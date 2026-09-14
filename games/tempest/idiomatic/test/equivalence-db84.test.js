@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_db84 -- emits one framing record then clears four even-indexed slots in each
+// Memory-equivalence for emitFixedHeaderAndClearVectorSlots -- emits one framing record then clears four even-indexed slots in each
 // of two register banks; dissolves the m.call to df39 into a direct idiomatic call. Output is RAM (the
 // ($74) record + the two banks), so each arm compares the RAM diff (minus dead stack). An omitted-ret
 // rewrite: the module drops the ROM ret and the seam completes it; A/X at RTS are incidental.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_db84 as oracle } from "../../translated/loc_db84.js";
-import { loc_db84 } from "../loc_db84.js";
+import { emitFixedHeaderAndClearVectorSlots } from "../emitFixedHeaderAndClearVectorSlots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -38,10 +38,10 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 // Point the framing record ($74) into vector RAM so df39's word write is diffed.
 function seat(m) { m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x24); }
 
-test("CAPTURE: real 0xdb84 dispatches -- loc_db84 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdb84 dispatches -- emitFixedHeaderAndClearVectorSlots == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_db84(c);
+    oracle(o); emitFixedHeaderAndClearVectorSlots(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -55,7 +55,7 @@ test("CRAFTED: framing record + even-slot bank clears == oracle (RAM)", () => {
     mm.mem.write8((0x60c1 + x) & 0xffff, 0xaa);
     mm.mem.write8((0x60d1 + x) & 0xffff, 0x55);
   }
-  oracle(o); loc_db84(c);
+  oracle(o); emitFixedHeaderAndClearVectorSlots(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after clears");
 });
 
@@ -66,7 +66,7 @@ test("TEETH: a twin that corrupts the emitted framing record diverges from the o
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
-  const broken = (mm) => { loc_db84(mm); mm.mem8[0x2400] ^= 0xff; }; // BUG: corrupts the framing word df39 emitted at ($74)
+  const broken = (mm) => { emitFixedHeaderAndClearVectorSlots(mm); mm.mem8[0x2400] ^= 0xff; }; // BUG: corrupts the framing word df39 emitted at ($74)
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted framing record");
 });
@@ -76,6 +76,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   seat(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_db84, TARGET, m);
-  assert.equal(r.placeable, true, `loc_db84 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitFixedHeaderAndClearVectorSlots, TARGET, m);
+  assert.equal(r.placeable, true, `emitFixedHeaderAndClearVectorSlots must be seam-placeable; got: ${r.error}`);
 });

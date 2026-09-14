@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ad22 (ROM 0xad22) -- scans the packed request word, and for the first
-// in-range slot builds the paired value, arms loc_ca48 + loc_a789, and writes a status into $0000. The
+// Memory-equivalence for armRequestedSoundSlot (ROM 0xad22) -- scans the packed request word, and for the first
+// in-range slot builds the paired value, arms selectProjectionScale + resetPerSlotStateTable, and writes a status into $0000. The
 // oracle m.calls the translated callees; the idiomatic dissolves them into direct idiomatic calls. Both
 // are memory-equivalent, so each arm compares RAM (dumpState, minus STACK_SCRATCH). Status is in $0000
 // (RAM), so A/X/Y at RTS are incidental. No POKEY read -> deterministic.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ad22 as oracle } from "../../translated/loc_ad22.js";
-import { loc_ad22 } from "../loc_ad22.js";
+import { armRequestedSoundSlot } from "../armRequestedSoundSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, VG_MODE_FLAG, VG_SCALE, ENEMY_SLOT_FLAGS, SLOT_METRIC, ACTIVE_SLOT, REQUEST_BITS } from "../names.js";
@@ -48,10 +48,10 @@ function seeded() {
   return m;
 }
 
-test("CAPTURE: real 0xad22 dispatches -- loc_ad22 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xad22 dispatches -- armRequestedSoundSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ad22(c);
+    oracle(o); armRequestedSoundSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -59,7 +59,7 @@ test("CAPTURE: real 0xad22 dispatches -- loc_ad22 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: an in-range slot builds $0602, arms ca48+a789, sets $0000 (== oracle, RAM)", () => {
   const o = seeded(), c = seeded();
-  oracle(o); loc_ad22(c);
+  oracle(o); armRequestedSoundSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after process path");
   assert.equal(c.mem.read8(GAME_MODE), 0x24, "$0000 armed status");
   assert.equal(c.mem.read8(ENEMY_SLOT_FLAGS), 0x00, "a789 cleared the table byte");
@@ -69,7 +69,7 @@ test("CRAFTED: an in-range slot builds $0602, arms ca48+a789, sets $0000 (== ora
 test("CRAFTED: an exhausted word exits idle with $0000 = 0x14 (== oracle, RAM)", () => {
   const o = new Machine(ROM, OPTS); o.mem.write8(REQUEST_BITS, 0x00);
   const c = new Machine(ROM, OPTS); c.mem.write8(REQUEST_BITS, 0x00);
-  oracle(o); loc_ad22(c);
+  oracle(o); armRequestedSoundSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after idle exit");
   assert.equal(c.mem.read8(GAME_MODE), 0x14, "$0000 idle status");
 });
@@ -77,14 +77,14 @@ test("CRAFTED: an exhausted word exits idle with $0000 = 0x14 (== oracle, RAM)",
 test("TEETH: a twin that skips the a789 dissolve leaves the table dirty and diverges", () => {
   const o = seeded(); oracle(o);
   assert.equal(o.mem.read8(ENEMY_SLOT_FLAGS), 0x00, "precondition: oracle cleared the table byte");
-  const c = seeded(); loc_ad22(c);
+  const c = seeded(); armRequestedSoundSlot(c);
   c.mem.write8(ENEMY_SLOT_FLAGS, 0xaa); // BUG: as if the a789 call never ran
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped a789");
 });
 
 test("TEETH: a twin with an off-by-one in the scaled $0602 value diverges", () => {
   const o = seeded(); oracle(o);
-  const c = seeded(); loc_ad22(c);
+  const c = seeded(); armRequestedSoundSlot(c);
   c.mem.write8(ACTIVE_SLOT, (c.mem.read8(ACTIVE_SLOT) + 1) & 0xff); // BUG: wrong scale
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a wrong $0602");
 });

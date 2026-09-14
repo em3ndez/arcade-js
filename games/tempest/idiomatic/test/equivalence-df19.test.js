@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df19 (ROM 0xdf19) -- from the accumulator A and the carry flag, pick a word-
+// Memory-equivalence for emitStrokeWordFromNibble (ROM 0xdf19) -- from the accumulator A and the carry flag, pick a word-
 // table index at $31e4 (0 when carry-set and the low nibble is 0, else nibble+1), copy the two-byte entry
-// through the ($74) display-list cursor, then advance the cursor by 2 (dissolved: idiomatic calls loc_df5f
+// through the ($74) display-list cursor, then advance the cursor by 2 (dissolved: idiomatic calls advanceDisplayCursor
 // directly with y=1). A/X/Y are scratch and php/plp restores the flags, so live-out is RAM only; the arms
 // compare RAM (dumpState -stack). No POKEY read, so the CRAFTED seeds are deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df19.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df19 as oracle } from "../../translated/loc_df19.js";
-import { loc_df19 } from "../loc_df19.js";
+import { emitStrokeWordFromNibble } from "../emitStrokeWordFromNibble.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -34,7 +34,7 @@ const ramDiff = (ma, mb) =>
 // A (the value) and the carry flag are the only registers read on entry; the clone carries both.
 function diffFrom(cap) {
   const o = cap.clone(), c = cap.clone();
-  oracle(o); loc_df19(c, c.regs.a, c.regs.fC);
+  oracle(o); emitStrokeWordFromNibble(c, c.regs.a, c.regs.fC);
   return ramDiff(o, c);
 }
 
@@ -46,7 +46,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 4000) : [];
 
-test("CAPTURE: real 0xdf19 dispatches -- loc_df19 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf19 dispatches -- emitStrokeWordFromNibble == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) assert.equal(diffFrom(cap), null);
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -63,7 +63,7 @@ test("CRAFTED: index selection (carry / low-nibble) copies the right table entry
   for (const t of cases) {
     const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = t.a; o.regs.fC = t.c;
     const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = t.a; c.regs.fC = t.c;
-    oracle(o); loc_df19(c, c.regs.a, c.regs.fC);
+    oracle(o); emitStrokeWordFromNibble(c, c.regs.a, c.regs.fC);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
 });

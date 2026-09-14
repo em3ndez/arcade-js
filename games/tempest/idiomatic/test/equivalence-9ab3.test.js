@@ -3,7 +3,7 @@
 // shared pointer-pair setup (0x9b02[4]->$2c, 0x9afd[4]->$2d, 4->$2b, A<-$29). Neither the incoming A nor
 // Y is read (the entry sets its own index), so live-out is RAM (dumpState minus STACK_SCRATCH) plus A.
 // The mid-entry is not a separate export in the frozen translated module, so the oracle is composed from
-// the mid-entry's own preset (index 4) feeding the frozen translated setup routine loc_9aee.
+// the mid-entry's own preset (index 4) feeding the frozen translated setup routine seatCoordListPointer.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9ab3.test.js
 
 import nodeTest from "node:test";
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9aee as oracleSetup } from "../../translated/loc_9aee.js";
-import { loc_9ab3 } from "../loc_9a9d.js";
+import { loc_9ab3 } from "../seatDemoCoordListPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";

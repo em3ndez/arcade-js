@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_92ad (ROM 0x92ad-0x92b1) -- zeroes the $50 cell, then returns. Live-out is
+// Memory-equivalence for clearByte50 (ROM 0x92ad-0x92b1) -- zeroes the $50 cell, then returns. Live-out is
 // RAM ($50 = 0), so the arms compare RAM (-stack). Pure leaf: no dispatch, so no SP tooth.
 // Run: node --test games/tempest/idiomatic/test/equivalence-92ad.test.js
 
@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_92ad as oracle } from "../../translated/loc_92ad.js";
-import { loc_92ad } from "../loc_92ad.js";
+import { clearByte50 } from "../clearByte50.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPINNER_ACCUM } from "../names.js";
@@ -38,11 +38,11 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 function diffFrom(cap) {
   const o = cap.clone(), c = cap.clone();
-  oracle(o); loc_92ad(c);
+  oracle(o); clearByte50(c);
   return ramDiff(o, c);
 }
 
-test("CAPTURE: real 0x92ad dispatches -- loc_92ad == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x92ad dispatches -- clearByte50 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) assert.equal(diffFrom(cap), null);
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -54,7 +54,7 @@ test("CRAFTED: $50 zeroed == oracle (RAM -stack)", () => {
   const s = { [SPINNER_ACCUM]: 0x7e };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
-  oracle(o); loc_92ad(c);
+  oracle(o); clearByte50(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(o.mem.read8(SPINNER_ACCUM), 0x00, "precondition: oracle zeroed $50 off 0x7e");
 });

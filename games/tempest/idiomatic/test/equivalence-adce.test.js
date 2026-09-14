@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_adce (ROM 0xadce-0xade9) -- folds the signed step $50 (times eight) into the
+// Memory-equivalence for foldStepIntoFraction (ROM 0xadce-0xade9) -- folds the signed step $50 (times eight) into the
 // low cell $51 (= $50*8 + $51), carries the fold's carry plus the sign of $50 up into A, then clears $50.
 // Live-out is the $50/$51 stores plus A (the running high byte, returned). It is a pure leaf (pha/pla only
 // save/restore A, no dispatch); the seam completes it by omitting the ROM ret. No POKEY reads.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_adce as oracle } from "../../translated/loc_adce.js";
-import { loc_adce } from "../loc_adce.js";
+import { foldStepIntoFraction } from "../foldStepIntoFraction.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPINNER_ACCUM, RIM_ROT_OFFSET } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xadce dispatches -- loc_adce == oracle in RAM (-stack) and in A", () => {
+test("CAPTURE: real 0xadce dispatches -- foldStepIntoFraction == oracle in RAM (-stack) and in A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const a = loc_adce(c);
+    oracle(o); const a = foldStepIntoFraction(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(a, o.regs.a, "returned A matches the oracle");
   }
@@ -65,7 +65,7 @@ test("CRAFTED: fold and sign-carry over various step/lo/A == oracle (RAM -stack,
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); const a = loc_adce(c);
+    oracle(o); const a = foldStepIntoFraction(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
     assert.equal(a, o.regs.a, `A: ${s.tag}`);
   }
@@ -89,7 +89,7 @@ test("SP-TOOTH: the omitted-ret leaf is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_adce, TARGET, m);
-  assert.equal(r.placeable, true, `loc_adce must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, foldStepIntoFraction, TARGET, m);
+  assert.equal(r.placeable, true, `foldStepIntoFraction must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf placeable");
 });

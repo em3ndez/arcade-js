@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b896 (ROM 0xb896) -- publish the 16-bit cursor into AVG vector RAM
+// Memory-equivalence for emitVectorTailRecord (ROM 0xb896) -- publish the 16-bit cursor into AVG vector RAM
 // ($2ffc/$2ffd/$2fff) and step it down by 0x20 (with a borrow into $013a). A is incidental (its exit value
 // is also the stored $0139), so live-out is RAM only and the arms compare RAM (-stack). Binary subtract; no
 // POKEY/clock coupling, so the CRAFTED diff is deterministic. A pure leaf (no dispatch, no stack move):
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b896 as oracle } from "../../translated/loc_b896.js";
-import { loc_b896 } from "../loc_b896.js";
+import { emitVectorTailRecord } from "../emitVectorTailRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, VECRAM_TAIL_CURSOR_LO, VECRAM_TAIL_CURSOR_HI, VEC_LIST_JMP_LO, VEC_LIST_JMP_HI, VEC_LIST_HALT } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1200) : [];
 
-test("CAPTURE: real 0xb896 dispatches -- loc_b896 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb896 dispatches -- emitVectorTailRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b896(c);
+    oracle(o); emitVectorTailRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -59,7 +59,7 @@ test("CRAFTED: both the no-borrow and borrow paths == oracle (RAM -stack)", () =
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_b896(c);
+    oracle(o); emitVectorTailRecord(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }
 });
@@ -77,7 +77,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
-  const r = seamPlaceable(withOmittedRet, loc_b896, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b896 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitVectorTailRecord, TARGET, m);
+  assert.equal(r.placeable, true, `emitVectorTailRecord must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

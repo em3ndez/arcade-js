@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_ab0d (ROM 0xab0d-0xab13) -- emits a vector word {0x20,0x80} at the cursor
 // origin ($74/$75), then steps the cursor past it. A pure tail-caller that dissolves the jmp into a direct
-// loc_df57 call. All live-out is RAM (the two emitted bytes + the advanced cursor); the oracle also leaves
+// emitVectorWord call. All live-out is RAM (the two emitted bytes + the advanced cursor); the oracle also leaves
 // A = the new cursor-low byte (a df5f-family live-out the idiomatic tail does not reproduce), and ab0d
 // reads no register after, so each arm compares RAM (dumpState minus STACK_SCRATCH) only, not A.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ab0d.test.js

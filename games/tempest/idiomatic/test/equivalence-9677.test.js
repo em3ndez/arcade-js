@@ -13,10 +13,10 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9677 as oracle } from "../../translated/loc_9677.js";
 import { loc_9677 } from "../loc_9677.js";
-import { loc_96ab, loc_96b7, loc_96c4 } from "../loc_96ab.js";
-import { loc_96e2 } from "../loc_96e2.js";
-import { loc_96db } from "../loc_96db.js";
-import { loc_9700 } from "../loc_96f4.js";
+import { fetchCoordListEntryByCounter, fetchCoordListEntryByIndex, readCoordListEntry } from "../fetchCoordListEntryByCounter.js";
+import { sumCoordListEntryRun } from "../sumCoordListEntryRun.js";
+import { resolveCoordListEntryToAbsolute } from "../resolveCoordListEntryToAbsolute.js";
+import { selectListEntryByDeltaParity } from "../computeCoordListBackDelta.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -35,7 +35,7 @@ const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM 
 const TARGET = 0x9677;
 const SEL_15E = 0x015e;
 const IDX = [2, 4, 6, 8, 10, 12];
-const TABLE = [null, loc_96c4, loc_96b7, loc_96ab, loc_96e2, loc_96db, loc_9700];
+const TABLE = [null, readCoordListEntry, fetchCoordListEntryByIndex, fetchCoordListEntryByCounter, sumCoordListEntryRun, resolveCoordListEntryToAbsolute, selectListEntryByDeltaParity];
 
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>

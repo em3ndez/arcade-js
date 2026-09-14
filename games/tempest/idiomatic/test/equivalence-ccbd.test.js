@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_ccbd (ROM 0xccbd-0xccc0) -- a sound trampoline: loads the fixed sound id 0x8f
 // and tail-calls the gate-register routine, carrying the caller's X/Y. The idiomatic side dissolves the
-// jsr $ccc3 into a direct loc_ccc3(m, 0x8f, x, y) call. Live-out is memory only (RAM incl. $31/$32 and the
+// jsr $ccc3 into a direct requestSoundIfEnabled(m, 0x8f, x, y) call. Live-out is memory only (RAM incl. $31/$32 and the
 // per-slot sound cells $c0+/$e0+/$f0+), so each arm compares RAM (dumpState minus STACK_SCRATCH); A/X/Y at
 // RTS are incidental and not asserted. Reads the $cb01 sound table (ROM, deterministic); no POKEY randoms.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ccbd.test.js

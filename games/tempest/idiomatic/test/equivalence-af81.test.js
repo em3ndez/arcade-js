@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_af81 (ROM 0xaf81-0xb095) -- draws the playfield well: refresh gates, rim
+// Memory-equivalence for drawTubeWell (ROM 0xaf81-0xb095) -- draws the playfield well: refresh gates, rim
 // segments, a nudge of the window pair $7b/$7c one step toward $0200 (bounded by $0127), five depth rows
 // and a four-entry trailer. Dissolves every m.call into direct idiomatic calls (marshalling the pre-jsr
-// register loads explicitly; consuming loc_b0ab's clamped-value live-out for the trailer index). All
+// register loads explicitly; consuming nudgeBlasterRimPosition's clamped-value live-out for the trailer index). All
 // output is RAM (window pair + timer + the many emitted vector words), so each arm compares the RAM diff
 // (minus the dead stack). Omitted-ret. Run: node --test games/tempest/idiomatic/test/equivalence-af81.test.js
 
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_af81 as oracle } from "../../translated/loc_af81.js";
-import { loc_af81 } from "../loc_af81.js";
+import { drawTubeWell } from "../drawTubeWell.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SEG_SPREAD_A_LO_3, SEG_SPREAD_A_LO_4, DEPTH_CEILING, PLAYER_SEGMENT, SCORE_DISPLAY_TIMER } from "../names.js";
@@ -59,10 +59,10 @@ function seat(m, s = {}) {
   seatAb14Chain(m);
 }
 
-test("CAPTURE: real 0xaf81 dispatches -- loc_af81 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaf81 dispatches -- drawTubeWell == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_af81(c);
+    oracle(o); drawTubeWell(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -78,7 +78,7 @@ test("CRAFTED: both nudge directions + the settle case == oracle (RAM)", () => {
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_af81(c);
+    oracle(o); drawTubeWell(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -98,6 +98,6 @@ test("SP-TOOTH: the omitted-ret draw routine is seam-placeable", () => {
   seat(m, {});
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_af81, TARGET, m);
-  assert.equal(r.placeable, true, `loc_af81 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawTubeWell, TARGET, m);
+  assert.equal(r.placeable, true, `drawTubeWell must be seam-placeable; got: ${r.error}`);
 });

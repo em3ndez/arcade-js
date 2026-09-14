@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { STATUS_FLAGS, DRAW_RECORD_PTR_LO, DRAW_RECORD_PTR_HI, REDRAW_COUNTER, PLAYER_SHAPE_SUM, VECHEAD0_FRAME, VECHEAD1_FRAME, VEC_LIST_HEADER_LO, VEC_LIST_HEADER_HI } from "./names.js";
-import { loc_b2be } from "./loc_b2be.js";
-import { loc_b2fe } from "./loc_b2fe.js";
-import { loc_b586 } from "./loc_b586.js";
-import { loc_b75b } from "./loc_b75b.js";
-import { loc_b5ad } from "./loc_b5ad.js";
-import { loc_b79a } from "./loc_b79a.js";
-import { loc_b498 } from "./loc_b498.js";
-import { loc_a8b4 } from "./loc_a8b4.js";
-import { loc_b367 } from "./loc_b367.js";
-import { loc_c5c2 } from "./loc_c5c2.js";
-import { loc_c54d } from "./loc_c54d.js";
+import { seatDrawCursor } from "./seatDrawCursor.js";
+import { closeLayerPointer } from "./closeLayerPointer.js";
+import { drawScoreStatusList } from "./drawScoreStatusList.js";
+import { drawSlotShapeList } from "./drawSlotShapeList.js";
+import { drawStyledSlotList } from "./drawStyledSlotList.js";
+import { drawEnemyShapeList } from "./drawEnemyShapeList.js";
+import { buildObjectDisplayList } from "./buildObjectDisplayList.js";
+import { buildTextOverlayList } from "./buildTextOverlayList.js";
+import { paintRimLanes } from "./paintRimLanes.js";
+import { buildEnemyDisplayList } from "./buildEnemyDisplayList.js";
+import { drawTimedObjectList } from "./drawTimedObjectList.js";
 
 // Draw one frame: each subsystem runs bracketed by a setup/teardown pair keyed to its
 // layer id. Between the player layer's brackets, when the sign flag is clear, sum a
@@ -19,28 +19,28 @@ import { loc_c54d } from "./loc_c54d.js";
 // latch two constants into the first two display words.
 export function loc_b230(m) {
   const { mem8 } = m;
-  loc_b2be(m, 0x07);
-  loc_b586(m);
-  loc_b2fe(m, 0x07);
+  seatDrawCursor(m, 0x07);
+  drawScoreStatusList(m);
+  closeLayerPointer(m, 0x07);
 
-  loc_b2be(m, 0x04);
-  loc_b75b(m);
-  loc_b2fe(m, 0x04);
+  seatDrawCursor(m, 0x04);
+  drawSlotShapeList(m);
+  closeLayerPointer(m, 0x04);
 
-  loc_b2be(m, 0x03);
-  loc_b5ad(m);
-  loc_b2fe(m, 0x03);
+  seatDrawCursor(m, 0x03);
+  drawStyledSlotList(m);
+  closeLayerPointer(m, 0x03);
 
-  loc_b2be(m, 0x06);
-  loc_b79a(m);
-  loc_b2fe(m, 0x06);
+  seatDrawCursor(m, 0x06);
+  drawEnemyShapeList(m);
+  closeLayerPointer(m, 0x06);
 
-  loc_b2be(m, 0x05);
-  loc_b498(m);
-  loc_b2fe(m, 0x05);
+  seatDrawCursor(m, 0x05);
+  buildObjectDisplayList(m);
+  closeLayerPointer(m, 0x05);
 
-  loc_b2be(m, 0x00);
-  loc_a8b4(m);
+  seatDrawCursor(m, 0x00);
+  buildTextOverlayList(m);
   if (!(mem8[STATUS_FLAGS] & 0x80)) {
     const ptr = mem8[DRAW_RECORD_PTR_LO] | (mem8[DRAW_RECORD_PTR_HI] << 8);
     let a = 0xf2;
@@ -52,16 +52,16 @@ export function loc_b230(m) {
     }
     mem8[PLAYER_SHAPE_SUM] = a;
   }
-  loc_b2fe(m, 0x00);
-  loc_b367(m);
+  closeLayerPointer(m, 0x00);
+  paintRimLanes(m);
 
-  loc_b2be(m, 0x01);
-  loc_c5c2(m);
-  loc_b2fe(m, 0x01);
+  seatDrawCursor(m, 0x01);
+  buildEnemyDisplayList(m);
+  closeLayerPointer(m, 0x01);
 
-  loc_b2be(m, 0x08);
-  loc_c54d(m);
-  loc_b2fe(m, 0x08);
+  seatDrawCursor(m, 0x08);
+  drawTimedObjectList(m);
+  closeLayerPointer(m, 0x08);
 
   mem8[REDRAW_COUNTER] = 0x00;
   mem8[VEC_LIST_HEADER_LO] = mem8[VECHEAD0_FRAME];

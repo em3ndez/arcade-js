@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a8b4 -- the per-frame overlay build. Dissolves its nine m.calls (df6a, b0d1,
+// Memory-equivalence for buildTextOverlayList -- the per-frame overlay build. Dissolves its nine m.calls (df6a, b0d1,
 // ab14, ab0d, aaa8, a97f, a9d7, df39, b0c6) into direct idiomatic calls. The oracle m.calls the frozen
 // routines; the idiomatic calls the idiomatic ones, so equivalence is transitive through each pair. All
 // output is RAM (vector fill + the checksum/mirror cells), so each arm compares the RAM diff (minus the
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a8b4 as oracle } from "../../translated/loc_a8b4.js";
-import { loc_a8b4 } from "../loc_a8b4.js";
+import { buildTextOverlayList } from "../buildTextOverlayList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -40,7 +40,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-// loc_a8b4 fans out into loc_ab14 (directly and via loc_aaa8), which chases the ($ac) object-table
+// buildTextOverlayList fans out into drawSlotShapeRecord (directly and via drawOverlayFrame), which chases the ($ac) object-table
 // pointer to a bit7-terminated vector list and appends into the ($74) cursor. A bare Machine leaves
 // those pointers zero, so ab14 dereferences into unmapped MMIO. Provision one shared, valid list for
 // every slot X that a8b4's branches can draw, and aim the cursor at vector RAM. (ROM is TRUTH; this
@@ -75,10 +75,10 @@ function seat(m, s = {}) {
   m.mem.write8((loc_102 + (s.m3d ?? 0x00)) & 0xffff, s.slot ?? 0x00);
 }
 
-test("CAPTURE: real 0xa8b4 dispatches -- loc_a8b4 == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xa8b4 dispatches -- buildTextOverlayList == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_a8b4(c);
+    oracle(o); buildTextOverlayList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -97,7 +97,7 @@ test("CRAFTED: skip-block/early-out, run-block+checksum, and the active-phase ta
   for (const s of cases) {
     const o = freezePokey(new Machine(ROM, OPTS)); seat(o, s);
     const c = freezePokey(new Machine(ROM, OPTS)); seat(c, s);
-    oracle(o); loc_a8b4(c);
+    oracle(o); buildTextOverlayList(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -108,7 +108,7 @@ test("TEETH: a twin that perturbs the checksum output byte diverges (the RAM dif
   const c = freezePokey(new Machine(ROM, OPTS)); seat(c, s);
   oracle(o);
   // BUG: builds the frame correctly but leaves the checksum cell one off.
-  const broken = (m) => { loc_a8b4(m); m.mem8[DECIMAL_MODE_FLAG] = (m.mem8[DECIMAL_MODE_FLAG] + 1) & 0xff; };
+  const broken = (m) => { buildTextOverlayList(m); m.mem8[DECIMAL_MODE_FLAG] = (m.mem8[DECIMAL_MODE_FLAG] + 1) & 0xff; };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the perturbed $016c checksum");
 });
@@ -118,7 +118,7 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   seedRender(m); // the default (all-zero) path still draws ab14, so provision its pointer chain
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a8b4, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a8b4 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildTextOverlayList, TARGET, m);
+  assert.equal(r.placeable, true, `buildTextOverlayList must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret rewrite placeable");
 });

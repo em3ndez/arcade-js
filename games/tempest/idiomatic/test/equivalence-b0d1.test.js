@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b0d1 (ROM 0xb0d1-0xb0dc) -- returns early when $9e already equals the
+// Memory-equivalence for emitColorStatIfChanged (ROM 0xb0d1-0xb0dc) -- returns early when $9e already equals the
 // input Y; otherwise latches Y into $9e and tail-emits a fixed-tag record via loc_df4c. The idiomatic
 // side dissolves the tail jsr $df4c into a direct loc_df4c(m, 0x08, y) call. Live-out is memory only
 // (tail-caller into the df-family emitter), so each arm compares RAM (dumpState minus STACK_SCRATCH).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b0d1 as oracle } from "../../translated/loc_b0d1.js";
-import { loc_b0d1 } from "../loc_b0d1.js";
+import { emitColorStatIfChanged } from "../emitColorStatIfChanged.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_9e, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb0d1 dispatches -- loc_b0d1 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb0d1 dispatches -- emitColorStatIfChanged == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b0d1(c);
+    oracle(o); emitColorStatIfChanged(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ function seedEmit(m, y, latched) {
 test("CRAFTED: Y != $9e -- latches Y and emits; RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedEmit(o, 0x05, 0x11);
   const c = new Machine(ROM, OPTS); seedEmit(c, 0x05, 0x11);
-  oracle(o); loc_b0d1(c);
+  oracle(o); emitColorStatIfChanged(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after latch+emit");
   assert.equal(c.mem.read8(loc_9e), 0x05, "$9e latched to Y");
 });
@@ -65,7 +65,7 @@ test("CRAFTED: Y != $9e -- latches Y and emits; RAM equal", () => {
 test("CRAFTED: Y == $9e -- early return, no change; RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedEmit(o, 0x22, 0x22);
   const c = new Machine(ROM, OPTS); seedEmit(c, 0x22, 0x22);
-  oracle(o); loc_b0d1(c);
+  oracle(o); emitColorStatIfChanged(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (early return path)");
 });
 
@@ -81,6 +81,6 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b0d1, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b0d1 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitColorStatIfChanged, TARGET, m);
+  assert.equal(r.placeable, true, `emitColorStatIfChanged must be seam-placeable; got: ${r.error}`);
 });

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df0d (emit header pair + a fixed body byte through the record
-// cursor). The oracle m.calls the translated loc_df53 / loc_dfac; the idiomatic calls their
+// Memory-equivalence for emitHeaderedBodyRecord (emit header pair + a fixed body byte through the record
+// cursor). The oracle m.calls the translated emitVectorHeaderWord / emitRecordTailByte; the idiomatic calls their
 // idiomatic twins directly. The cursor lives at $0074/$0075 and the writes land wherever it
 // points, so the contract is RAM (dumpState, minus STACK_SCRATCH). CRAFTED points the cursor
 // into vector RAM (0x2000-0x2fff, diffed); CAPTURE replays real dispatch clones.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df0d as oracle } from "../../translated/loc_df0d.js";
-import { loc_df0d } from "../loc_df0d.js";
+import { emitHeaderedBodyRecord } from "../emitHeaderedBodyRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xdf0d dispatches -- loc_df0d == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf0d dispatches -- emitHeaderedBodyRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df0d(c);
+    oracle(o); emitHeaderedBodyRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ function cursorArm(lo, hi) {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_df0d(c);
+  oracle(o); emitHeaderedBodyRecord(c);
   return { d: ramDiff(o, c), c };
 }
 

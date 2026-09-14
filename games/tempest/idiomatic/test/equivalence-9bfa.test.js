@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9bfa (ROM 0x9bfa) -- bumps counter $10b, and while gate $10c is zero reloads
+// Memory-equivalence for jumpScriptCursorWhenFlagClear (ROM 0x9bfa) -- bumps counter $10b, and while gate $10c is zero reloads
 // $10b from the ROM table $a0f7,Y. Live-out is RAM only (A/Y scratch), so every arm compares RAM (-stack).
 // Pure leaf (no dispatch): the seam completes it by omitting the ROM ret. The table read is plain ROM, not
 // POKEY, so the crafted arms are deterministic.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9bfa as oracle } from "../../translated/loc_9bfa.js";
-import { loc_9bfa } from "../loc_9bfa.js";
+import { jumpScriptCursorWhenFlagClear } from "../jumpScriptCursorWhenFlagClear.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SCRIPT_CURSOR, SCRIPT_BRANCH_FLAG, MOTION_SCRIPT_TABLE } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9bfa dispatches -- loc_9bfa == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9bfa dispatches -- jumpScriptCursorWhenFlagClear == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9bfa(c);
+    oracle(o); jumpScriptCursorWhenFlagClear(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ test("CRAFTED: gated (plain inc) and ungated (table reload) == oracle (RAM -stac
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_9bfa(c);
+    oracle(o); jumpScriptCursorWhenFlagClear(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }
 });

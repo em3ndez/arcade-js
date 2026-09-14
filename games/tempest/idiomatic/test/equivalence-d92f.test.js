@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_d92f -- folds one byte (through the zero-page pointer GAME_MODE, indexed by the cursor)
-// into the running byte and continues into loc_d931, which carries that folded byte as the tone burst
-// count into loc_d8cd (tone drains -> checksum/self-test spin). Its RAM-observable effect through the
+// Equivalence for foldToneTableByte -- folds one byte (through the zero-page pointer GAME_MODE, indexed by the cursor)
+// into the running byte and continues into seedToneBurstCount, which carries that folded byte as the tone burst
+// count into runPowerOnToneBursts (tone drains -> checksum/self-test spin). Its RAM-observable effect through the
 // chain is SEG_SPREAD_A_LO_1 = the folded byte. Contract: RAM (dumpState minus STACK_SCRATCH); the oracle runs under
 // a cycle BUDGET so the terminal self-test spin trips FramesComplete.
 // Run: node --test games/tempest/idiomatic/test/equivalence-d92f.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d92f as oracle } from "../../translated/loc_d92f.js";
-import { loc_d92f } from "../loc_d92f.js";
+import { foldToneTableByte } from "../foldToneTableByte.js";
 import { Machine, FramesComplete } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, SEG_SPREAD_A_LO_1, PENDING_WORK_FLAGS, loc_2e, loc_2f, SEG_SPREAD_A_LO } from "../names.js";
@@ -29,7 +29,7 @@ const Y_IN = 0x02;   // cursor index into the table
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// Pointer GAME_MODE/MODE_DISPATCH_SEL -> vector RAM 0x2000 (MODE_DISPATCH_SEL=0x20 also serves as loc_d931's pass-seed source), a
+// Pointer GAME_MODE/MODE_DISPATCH_SEL -> vector RAM 0x2000 (MODE_DISPATCH_SEL=0x20 also serves as seedToneBurstCount's pass-seed source), a
 // byte to fold at 0x2000+Y, and the self-test tail seed so the tail builds a real frame before its poll.
 function seed(m) {
   m.mem.write8(GAME_MODE, 0x00);
@@ -47,11 +47,11 @@ function runBoundedOracle(m) {
 }
 function runIdiomatic(m) {
   m.nextIrqCycle = Infinity; m.maxCycles = m.cycles + BUDGET;
-  try { loc_d92f(m, A_IN, Y_IN); return "returned"; }
+  try { foldToneTableByte(m, A_IN, Y_IN); return "returned"; }
   catch (e) { if (e instanceof FramesComplete) return "done"; if (e && e.name === "NotImplemented") return "notimpl"; throw e; }
 }
 
-test("CRAFTED: loc_d92f == oracle in RAM (-stack) through the fold + tone + self-test tail", () => {
+test("CRAFTED: foldToneTableByte == oracle in RAM (-stack) through the fold + tone + self-test tail", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   const os = runBoundedOracle(o);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_da62 -- the self-test session loop. A one-time preamble seeds the state
+// Memory-equivalence for runSelfTestLoop -- the self-test session loop. A one-time preamble seeds the state
 // machine, forwards a pending request byte, copies the 8-byte colour table into colour RAM, and idles
 // the coin/flip control; then each pass builds and shows one self-test frame (option switches -> SPINNER_POT_PREV
-// /SPINNER_ACCUM, diagnostic inputs -> INPUT_EDGE_FLAGS/INPUT_CUR, loc_db0f + loc_df0d + every-fourth-frame loc_de1b),
+// /SPINNER_ACCUM, diagnostic inputs -> INPUT_EDGE_FLAGS/INPUT_CUR, loc_db0f + emitHeaderedBodyRecord + every-fourth-frame stepEaromTransfer),
 // leaving once the self-test switch is released.
 //
 // This routine NEVER RETURNS in the oracle: with the switch idle-high it runs one frame then settles
@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_da62 as oracle } from "../../translated/loc_da62.js";
-import { loc_da62 } from "../loc_da62.js";
+import { runSelfTestLoop } from "../runSelfTestLoop.js";
 import { Machine, FramesComplete } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -54,7 +54,7 @@ function runBoundedOracle(m) {
   }
 }
 function runIdiomatic(m) {
-  try { loc_da62(m); return "returned"; }
+  try { runSelfTestLoop(m); return "returned"; }
   catch (e) {
     if (e && e.name === "NotImplemented") return "notimpl";
     throw e;
@@ -69,7 +69,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(4, 3000) : [];
 
-test("CAPTURE: real 0xda62 dispatches -- loc_da62 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xda62 dispatches -- runSelfTestLoop == oracle in RAM (-stack)", () => {
   // Self-test is off in a normal boot, so da62 is typically never dispatched (0 captures tolerated).
   let checked = 0;
   for (const cap of CAPS) {
@@ -94,7 +94,7 @@ function seedNoPending(m) {
   m.mem.write8(SEG_SPREAD_A_LO + 0x01, 0x01);
   m.mem.write8(SEG_SPREAD_A_LO_5 + 0x01, 0x20);
 }
-// Pending request (PENDING_WORK_FLAGS != 0): the preamble forwards it to SEG_SPREAD_A_LO_4, runs loc_ddf1, clears PENDING_WORK_FLAGS,
+// Pending request (PENDING_WORK_FLAGS != 0): the preamble forwards it to SEG_SPREAD_A_LO_4, runs queueEaromEraseAllRegions, clears PENDING_WORK_FLAGS,
 // and stamps GAME_MODE = 0 (a different loc_db0f handler). Exercises the else-branch of the preamble.
 function seedPending(m) {
   m.mem.write8(PENDING_WORK_FLAGS, 0x5a);

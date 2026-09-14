@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_ccf2 (ROM 0xccf2-0xccf5) -- seeds the fixed sound id 0x7f then BNE-delegates
-// (always taken) into the sound gate. The idiomatic dissolves the m.call(0xccc3) into loc_ccc3(m, 0x7f, x, y);
+// (always taken) into the sound gate. The idiomatic dissolves the m.call(0xccc3) into requestSoundIfEnabled(m, 0x7f, x, y);
 // caller X/Y pass through as register inputs. Live-out is memory only (A at RTS is incidental), so arms
 // compare RAM (dumpState minus STACK_SCRATCH). A leaf: the module omits the ROM ret, the seam completes it.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ccf2.test.js
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ccf2 as oracle } from "../../translated/loc_ccf2.js";
 import { loc_ccf2 } from "../loc_ccf2.js";
-import { loc_ccc7 } from "../loc_ccc7.js";
+import { loadSoundVoiceSlots } from "../loadSoundVoiceSlots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
@@ -85,7 +85,7 @@ test("TEETH: a twin that seeds the WRONG sound id diverges from the oracle (gate
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const brokenCcee = (m, x = m.regs.x, y = m.regs.y) => {
-    loc_ccc7(m, 0x00, x, y); // BUG: wrong sound id (0x00 instead of 0x7f)
+    loadSoundVoiceSlots(m, 0x00, x, y); // BUG: wrong sound id (0x00 instead of 0x7f)
   };
   brokenCcee(c);
   const d = ramDiff(o, c);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dd29 (ROM 0xdd29-0xdd2a) -- ldx #$f8, then falls through into loc_dd2b. The
-// idiomatic side dissolves the fall-through into a direct loc_dd2b(m, y, a, 0xf8) call, marshalling Y/A
+// Memory-equivalence for loc_dd29 (ROM 0xdd29-0xdd2a) -- ldx #$f8, then falls through into emitByteBitsAsDigits. The
+// idiomatic side dissolves the fall-through into a direct emitByteBitsAsDigits(m, y, a, 0xf8) call, marshalling Y/A
 // from this caller's register bridge and X from the fixed load. Live-out is memory only, so each arm
 // compares RAM (dumpState minus STACK_SCRATCH); registers are NOT asserted.
 // Run: node --test games/tempest/idiomatic/test/equivalence-dd29.test.js
@@ -13,7 +13,7 @@ import { loc_dd29 as oracle } from "../../translated/loc_dd29.js";
 import { loc_dd29 } from "../loc_dd29.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_dd2b } from "../loc_dd2b.js";
+import { emitByteBitsAsDigits } from "../emitByteBitsAsDigits.js";
 import { STACK_SCRATCH, SAVED_INDEX, SLOT_LOOP_INDEX, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -67,7 +67,7 @@ test("TEETH: a twin that presets the wrong X diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seedDistinct(o);
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   oracle(o);
-  const brokenDd29 = (m, y = m.regs.y, a = m.regs.a) => loc_dd2b(m, y, a, 0x00); // BUG: X != 0xf8
+  const brokenDd29 = (m, y = m.regs.y, a = m.regs.a) => emitByteBitsAsDigits(m, y, a, 0x00); // BUG: X != 0xf8
   brokenDd29(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong preset X");
 });

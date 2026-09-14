@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b622 -- a caller that reads slot x's table index and a four-phase animation
-// offset, then dissolves its jmp into the already-idiomatic loc_bcfd (direct call, value + index passed
+// Memory-equivalence for emitAnimatedPhaseSlot -- a caller that reads slot x's table index and a four-phase animation
+// offset, then dissolves its jmp into the already-idiomatic seatShapeParamsAndEmit (direct call, value + index passed
 // explicitly). The callee chain shapes vector work cells; live-out is memory only, so each side runs on a
 // clone and the contract is RAM (dumpState, minus STACK_SCRATCH). X flows in via the register bridge.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b622.test.js
@@ -10,8 +10,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b622 as oracle } from "../../translated/loc_b622.js";
-import { loc_b622 } from "../loc_b622.js";
-import { loc_bcfd } from "../loc_bcfd.js";
+import { emitAnimatedPhaseSlot } from "../emitAnimatedPhaseSlot.js";
+import { seatShapeParamsAndEmit } from "../seatShapeParamsAndEmit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xb622 dispatches -- loc_b622 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb622 dispatches -- emitAnimatedPhaseSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b622(c);
+    oracle(o); emitAnimatedPhaseSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ const seed = (m, x, phase, idx) => {
 test("CRAFTED: seeded dispatch is RAM-equivalent through the dissolved callee", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x03, 0x25, 0x11);
   const c = new Machine(ROM, OPTS); seed(c, 0x03, 0x25, 0x11);
-  oracle(o); loc_b622(c);
+  oracle(o); emitAnimatedPhaseSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after dissolved call");
 });
 
@@ -71,6 +71,6 @@ test("TEETH (non-default seed): a twin that omits the +0x12 offset diverges from
   const mem8 = c.mem8;
   const y = mem8[u16(ENEMY_SEGMENT + c.regs.x)];
   const a = ((mem8[FRAME_COUNTER] & 0x03) << 1) & 0xff; // BUG: drops the +0x12
-  loc_bcfd(c, a, y);
+  seatShapeParamsAndEmit(c, a, y);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing offset");
 });

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { u16 } from "../../../core/int.js";
+import { loc_298, SCRIPT_CURSOR } from "./names.js";
+import { followScriptGoto } from "./followScriptGoto.js";
+
+// Count slot x's timer down; while it stays nonzero run the table-driven state step,
+// otherwise bump the shared counter.
+export function holdSlotPoseUntilTimerExpires(m, x = m.regs.x) {
+  const { mem8 } = m;
+  const e = u16(loc_298 + x);
+  mem8[e]--;
+  if (mem8[e] !== 0) {
+    followScriptGoto(m);
+    return;
+  }
+  mem8[SCRIPT_CURSOR]++;
+}

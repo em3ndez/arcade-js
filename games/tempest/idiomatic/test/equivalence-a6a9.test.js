@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a6a9 (ROM 0xa6a9-0xa720) -- integrate slot x's three motion axes into their
+// Memory-equivalence for advanceEnemyFreeFlight (ROM 0xa6a9-0xa720) -- integrate slot x's three motion axes into their
 // fraction+whole coordinate pairs, resetting the whole on ring overflow. X is the slot index (param); the
 // live-out is RAM only (final A/Y just mirror the shared-cell whole), so each side runs on a clone and the
 // contract is RAM (dumpState, minus STACK_SCRATCH). A leaf: the module omits the ROM ret and the seam
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a6a9 as oracle } from "../../translated/loc_a6a9.js";
-import { loc_a6a9 } from "../loc_a6a9.js";
+import { advanceEnemyFreeFlight } from "../advanceEnemyFreeFlight.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -44,10 +44,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa6a9 dispatches -- loc_a6a9 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa6a9 dispatches -- advanceEnemyFreeFlight == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const y = loc_a6a9(c);
+    oracle(o); const y = advanceEnemyFreeFlight(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(y, o.regs.y, "returned register (exit Y = whole0) matches oracle's live-out Y");
   }
@@ -66,7 +66,7 @@ function seed(m) {
 test("CRAFTED: three axes integrate; axis-2 ring overflow forces the shared whole to 0", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); const y = loc_a6a9(c);
+  oracle(o); const y = advanceEnemyFreeFlight(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after integrate");
   assert.equal(c.mem.read8(OBJECT_AXIS0_FRAC + X), 0x10, "axis0 fraction wrapped");
   assert.equal(c.mem.read8(OBJECT_AXIS1_POS + X), 0x95, "axis1 whole stored");
@@ -87,7 +87,7 @@ test("REG-LIVE-OUT: no-overflow axes -- exit Y carries axis-0 whole and matches 
   }
   const o = new Machine(ROM, OPTS); seedNoOverflow(o);
   const c = new Machine(ROM, OPTS); seedNoOverflow(c);
-  oracle(o); const y = loc_a6a9(c);
+  oracle(o); const y = advanceEnemyFreeFlight(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after integrate (no overflow)");
   assert.equal(y, o.regs.y, "exit Y matches oracle Y");
   assert.equal(y, 0x42, "exit Y is the axis-0 whole (0x40 + 0x02)");
@@ -97,7 +97,7 @@ test("TEETH-RET: a twin returning a wrong exit register diverges from the oracle
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const badReturn = loc_a6a9(c) ^ 0xff; // any corruption of the true whole0
+  const badReturn = advanceEnemyFreeFlight(c) ^ 0xff; // any corruption of the true whole0
   assert.notEqual(badReturn, o.regs.y, "a wrong return would (correctly) fail the live-out check");
 });
 
@@ -128,7 +128,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a6a9, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a6a9 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, advanceEnemyFreeFlight, TARGET, m);
+  assert.equal(r.placeable, true, `advanceEnemyFreeFlight must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

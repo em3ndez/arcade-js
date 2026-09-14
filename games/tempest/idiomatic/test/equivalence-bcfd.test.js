@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_bcfd (ROM 0xbcfd-0xbd08) -- stores A at $55, loads $56/$58 from the two
-// indexed tables $0435/$0445,Y, then falls through into loc_bd09. The idiomatic side dissolves the
-// fall-through into a direct loc_bd09(m) tail call. Live-out is memory only, so each arm compares RAM
+// Memory-equivalence for seatShapeParamsAndEmit (ROM 0xbcfd-0xbd08) -- stores A at $55, loads $56/$58 from the two
+// indexed tables $0435/$0445,Y, then falls through into emitColoredShapeVector. The idiomatic side dissolves the
+// fall-through into a direct emitColoredShapeVector(m) tail call. Live-out is memory only, so each arm compares RAM
 // (dumpState minus STACK_SCRATCH); registers are NOT asserted.
 // Run: node --test games/tempest/idiomatic/test/equivalence-bcfd.test.js
 
@@ -10,11 +10,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_bcfd as oracle } from "../../translated/loc_bcfd.js";
-import { loc_bcfd } from "../loc_bcfd.js";
+import { seatShapeParamsAndEmit } from "../seatShapeParamsAndEmit.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { loc_bd09 } from "../loc_bd09.js";
+import { emitColoredShapeVector } from "../emitColoredShapeVector.js";
 import { STACK_SCRATCH, DRAW_STYLE, PROJ_PT_Y, PROJ_PT_X, DRAW_CURSOR_LO, SEG_MID_X, SEG_MID_Y } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xbcfd dispatches -- loc_bcfd == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xbcfd dispatches -- seatShapeParamsAndEmit == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_bcfd(c);
+    oracle(o); seatShapeParamsAndEmit(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,10 +57,10 @@ function seedDistinct(m) {
   m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x24); // ($74) -> 0x2400
 }
 
-test("CRAFTED: distinct A/Y -- loc_bcfd == oracle in RAM, work cells seated", () => {
+test("CRAFTED: distinct A/Y -- seatShapeParamsAndEmit == oracle in RAM, work cells seated", () => {
   const o = new Machine(ROM, OPTS); seedDistinct(o);
   const c = new Machine(ROM, OPTS); seedDistinct(c);
-  oracle(o); loc_bcfd(c);
+  oracle(o); seatShapeParamsAndEmit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after store + table loads + emit");
   assert.equal(c.mem.read8(DRAW_STYLE), 0x2a, "$55 = A");
   assert.equal(c.mem.read8(PROJ_PT_Y), c.mem.read8(u16(SEG_MID_X + 5)), "$56 = [$0435+Y]");
@@ -86,7 +86,7 @@ test("TEETH (marshalling): a twin that reads the tables at the wrong index diver
     mem8[DRAW_STYLE] = a;
     mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + y + 1)]; // BUG: off-by-one index
     mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + y + 1)];
-    loc_bd09(m);
+    emitColoredShapeVector(m);
   };
   wrongIndex(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong index");
@@ -96,6 +96,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_bcfd, TARGET, m);
-  assert.equal(r.placeable, true, `loc_bcfd must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, seatShapeParamsAndEmit, TARGET, m);
+  assert.equal(r.placeable, true, `seatShapeParamsAndEmit must be seam-placeable; got: ${r.error}`);
 });

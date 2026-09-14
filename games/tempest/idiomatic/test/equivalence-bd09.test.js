@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_bd09 (ROM 0xbd09-0xbd3d) -- folds the deltas via c098, lays the fixed
+// Memory-equivalence for emitColoredShapeVector (ROM 0xbd09-0xbd3d) -- folds the deltas via c098, lays the fixed
 // header via c765 (X=0x61), appends the (mantissa, exponent) pair via bd3e, then writes a two-byte
 // vector-list entry {clamped-nibble, 0x60} at ($74)+Y and tail-jumps to df59 with the {a,x} template
 // reloaded from the $cec8/$cec9 table indexed by $55. THE REGISTER THREAD: bd3e returns its exit Y
-// (= $a9 + 2); loc_bd09 sets $a9 = 0 first, so the threaded Y is 2, consumed by the two ($74),y stores
+// (= $a9 + 2); emitColoredShapeVector sets $a9 = 0 first, so the threaded Y is 2, consumed by the two ($74),y stores
 // and PERSISTENTLY stashed into $a9 (= threaded-Y + 2). Dissolves all four m.calls into direct idiomatic
 // calls. The oracle m.calls the frozen c098/c765/bd3e/df59; the idiomatic calls the idiomatic ones. All
 // output is RAM (vector-list bytes + $a9 + the callees' writes), so each arm compares the RAM diff (minus
@@ -15,11 +15,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_bd09 as oracle } from "../../translated/loc_bd09.js";
-import { loc_bd09 } from "../loc_bd09.js";
-import { loc_c098 } from "../loc_c098.js";
-import { loc_c765 } from "../loc_c765.js";
-import { loc_bd3e } from "../loc_bd3e.js";
-import { loc_df59 } from "../loc_df59.js";
+import { emitColoredShapeVector } from "../emitColoredShapeVector.js";
+import { projectPointThroughMathbox } from "../projectPointThroughMathbox.js";
+import { layHeaderAndBuildRecord } from "../layHeaderAndBuildRecord.js";
+import { appendNormalizedMantissaExponent } from "../appendNormalizedMantissaExponent.js";
+import { emitVectorWordAtOffset } from "../emitVectorWordAtOffset.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -59,10 +59,10 @@ function seat(m, s = {}) {
   m.mem.write8(DRAW_CURSOR_OFFSET, s.ba9 ?? 0x00);                            // clobbered to 0 by bd09; seed is incidental
 }
 
-test("CAPTURE: real 0xbd09 dispatches -- loc_bd09 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xbd09 dispatches -- emitColoredShapeVector == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_bd09(c);
+    oracle(o); emitColoredShapeVector(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -77,7 +77,7 @@ test("CRAFTED: coprocessor branch -- full c098/c765/bd3e/df59 chain matches the 
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_bd09(c);
+    oracle(o); emitColoredShapeVector(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -85,7 +85,7 @@ test("CRAFTED: coprocessor branch -- full c098/c765/bd3e/df59 chain matches the 
 test("CRAFTED: the threaded exit-Y ($a9 -> 0, so Y=2) lands the entry at cursor+2/+3 and stashes $a9=4", () => {
   const s = { b78: 0x35, b55: 0x00 };
   const c = new Machine(ROM, OPTS); seat(c, s);
-  loc_bd09(c);
+  emitColoredShapeVector(c);
   // bd09 forces $a9=0 -> bd3e returns Y=2 -> the two stores use Y=2,3 -> $a9 stashed = 2+2 = 4.
   assert.equal(c.mem.read8(DRAW_CURSOR_OFFSET), 0x04, "$a9 persistently stashed to threaded-Y + 2");
 });
@@ -100,10 +100,10 @@ test("TEETH (register thread): threading the WRONG Y (stale entry Y=0, not bd3e'
   // stashed as 0+2 = 2 instead of the oracle's 4 -- a divergence in the persistently-stashed cell.
   const broken = (m) => {
     const { mem8, mem16 } = m;
-    loc_c098(m);
-    loc_c765(m, 0x61);
+    projectPointThroughMathbox(m);
+    layHeaderAndBuildRecord(m, 0x61);
     mem8[DRAW_CURSOR_OFFSET] = 0x00;
-    loc_bd3e(m); // return IGNORED -- the defect
+    appendNormalizedMantissaExponent(m); // return IGNORED -- the defect
     let a = mem8[SEG_SPREAD_A_LO] ^ 0x07;
     a = (a << 1) & 0xff;
     if (a < 0x0a) a = 0x0a;
@@ -119,7 +119,7 @@ test("TEETH (register thread): threading the WRONG Y (stale entry Y=0, not bd3e'
     const x = mem8[(OBJ_TEMPLATE_WORD_HI + y) & 0xffff];
     a = mem8[(OBJ_TEMPLATE_WORD_LO + y) & 0xffff];
     y = mem8[DRAW_CURSOR_OFFSET];
-    loc_df59(m, a, x, y);
+    emitVectorWordAtOffset(m, a, x, y);
   };
   broken(c);
   const d = ramDiff(o, c);
@@ -135,10 +135,10 @@ test("TEETH: a twin that skips the 0x60 second entry byte diverges from the orac
   oracle(o);
   const broken = (m) => {
     const { mem8, mem16 } = m;
-    loc_c098(m);
-    loc_c765(m, 0x61);
+    projectPointThroughMathbox(m);
+    layHeaderAndBuildRecord(m, 0x61);
     mem8[DRAW_CURSOR_OFFSET] = 0x00;
-    const y0 = loc_bd3e(m);
+    const y0 = appendNormalizedMantissaExponent(m);
     let a = mem8[SEG_SPREAD_A_LO] ^ 0x07;
     a = (a << 1) & 0xff;
     if (a < 0x0a) a = 0x0a;
@@ -154,7 +154,7 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seat(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_bd09, TARGET, m);
-  assert.equal(r.placeable, true, `loc_bd09 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitColoredShapeVector, TARGET, m);
+  assert.equal(r.placeable, true, `emitColoredShapeVector must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret rewrite placeable");
 });

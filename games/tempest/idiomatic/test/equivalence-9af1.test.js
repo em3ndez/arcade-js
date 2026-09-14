@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9af1 (ROM 0x9af1) -- the shared pointer-pair setup entered one step later than
-// loc_9aee: the low pointer comes straight from the caller (A) instead of the 0x9b02 table, the high pointer
+// Memory-equivalence for seatCoordListPointerWithLowByte (ROM 0x9af1) -- the shared pointer-pair setup entered one step later than
+// seatCoordListPointer: the low pointer comes straight from the caller (A) instead of the 0x9b02 table, the high pointer
 // is loaded by index (0x9afd[y]->$2d), the index is stashed (y->$2b), and A is reloaded from its holding
 // cell ($29). Inputs are A (low pointer) and Y (index); live-out is RAM (dumpState minus STACK_SCRATCH)
 // plus A. The oracle is the frozen mid-entry export loc_9af1 in translated/loc_9aee.js.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9af1 as oracle } from "../../translated/loc_9aee.js";
-import { loc_9af1 } from "../loc_9aee.js";
+import { seatCoordListPointerWithLowByte } from "../seatCoordListPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9af1 dispatches -- loc_9af1 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x9af1 dispatches -- seatCoordListPointerWithLowByte == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9af1(c);
+    oracle(o); seatCoordListPointerWithLowByte(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   }
@@ -60,7 +60,7 @@ test("CRAFTED: caller low pointer + index seated, A reloaded -- RAM and A equal"
   for (const [low, y] of [[0x6e, 0x02], [0x00, 0x05], [0xff, 0x00]]) {
     const o = new Machine(ROM, OPTS); seed(o, low, y, 0x42);
     const c = new Machine(ROM, OPTS); seed(c, low, y, 0x42);
-    oracle(o); loc_9af1(c);
+    oracle(o); seatCoordListPointerWithLowByte(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after setup (low=${low},y=${y})`);
     assert.equal(c.regs.a, o.regs.a, `A live-out matches (low=${low},y=${y})`);
     assert.equal(c.mem.read8(COORD_LIST_PTR_LO), low, `$2c = caller low pointer (low=${low},y=${y})`);

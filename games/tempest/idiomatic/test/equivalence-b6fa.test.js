@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b6fa (ROM 0xb6fa-0xb71a) -- signed fractional scale of A by slot x's low 3
+// Memory-equivalence for scaleByPhaseFraction (ROM 0xb6fa-0xb71a) -- signed fractional scale of A by slot x's low 3
 // phase bits ($02cc,x). RAM writes ($29/$2b/$2c) are scratch that end at fixed values, so the load-bearing
 // live-out is the A return; the arms compare RAM (-stack) AND A. A leaf: it omits the ROM ret and the seam
 // completes it. No POKEY/clock read, so the crafted seeds are deterministic.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b6fa as oracle } from "../../translated/loc_b6fa.js";
-import { loc_b6fa } from "../loc_b6fa.js";
+import { scaleByPhaseFraction } from "../scaleByPhaseFraction.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, ENEMY_PHASE } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb6fa dispatches -- loc_b6fa == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0xb6fa dispatches -- scaleByPhaseFraction == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const r = loc_b6fa(c);
+    oracle(o); const r = scaleByPhaseFraction(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
     assert.equal(r, o.regs.a, "return == A");
@@ -57,7 +57,7 @@ test("CRAFTED: scaled A matches the oracle across values, x-slots and fractions"
   for (const [a, x, phase] of cases) {
     const o = new Machine(ROM, OPTS); o.regs.a = a; o.regs.x = x; o.mem.write8((ENEMY_PHASE + x) & 0xffff, phase);
     const c = new Machine(ROM, OPTS); c.regs.a = a; c.regs.x = x; c.mem.write8((ENEMY_PHASE + x) & 0xffff, phase);
-    oracle(o); const r = loc_b6fa(c);
+    oracle(o); const r = scaleByPhaseFraction(c);
     assert.equal(ramDiff(o, c), null, `RAM equal: a=${a} x=${x} phase=${phase}`);
     assert.equal(c.regs.a, o.regs.a, `A matches oracle: a=${a} x=${x} phase=${phase}`);
     assert.equal(r, o.regs.a, `return == A: a=${a} x=${x} phase=${phase}`);
@@ -81,7 +81,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_b6fa, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b6fa must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, scaleByPhaseFraction, TARGET, m);
+  assert.equal(r.placeable, true, `scaleByPhaseFraction must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

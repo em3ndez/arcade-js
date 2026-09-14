@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df75 (ROM 0xdf75-0xdf91) -- widens A and X to little-endian /4-scaled,
-// sign-extended pairs at $6e/$6f and $70/$71, then falls into loc_df92 with X=0x6e to emit the record.
-// The idiomatic side dissolves the fall-through m.call($df92) into a direct loc_df92(m, 0x6e) call.
-// Live-out is memory only (the pairs plus everything loc_df92's chain writes through the cursor; X is
+// Memory-equivalence for emitScaledCoordinateRecord (ROM 0xdf75-0xdf91) -- widens A and X to little-endian /4-scaled,
+// sign-extended pairs at $6e/$6f and $70/$71, then falls into emitCoordinateRecord with X=0x6e to emit the record.
+// The idiomatic side dissolves the fall-through m.call($df92) into a direct emitCoordinateRecord(m, 0x6e) call.
+// Live-out is memory only (the pairs plus everything emitCoordinateRecord's chain writes through the cursor; X is
 // consumed as df92's index, not read externally), so each arm compares RAM (dumpState minus
 // STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-df75.test.js
 
@@ -11,8 +11,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df75 as oracle } from "../../translated/loc_df75.js";
-import { loc_df75 } from "../loc_df75.js";
-import { loc_df92 } from "../loc_df92.js";
+import { emitScaledCoordinateRecord } from "../emitScaledCoordinateRecord.js";
+import { emitCoordinateRecord } from "../emitCoordinateRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, VEC_DELTA_Y_LO, DRAW_DELTA_A_HI, DRAW_DELTA_B_LO, DRAW_DELTA_B_HI, VG_RECORD_HEADER, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdf75 dispatches -- loc_df75 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf75 dispatches -- emitScaledCoordinateRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df75(c);
+    oracle(o); emitScaledCoordinateRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,10 +60,10 @@ function seedRecord(m) {
   for (const c of [VEC_DELTA_Y_LO, DRAW_DELTA_A_HI, DRAW_DELTA_B_LO, DRAW_DELTA_B_HI]) m.mem.write8(c, 0xee); // dirty sentinels
 }
 
-test("CRAFTED: pairs widened at $6e/$6f, $70/$71 then record emitted -- loc_df75 == oracle in RAM", () => {
+test("CRAFTED: pairs widened at $6e/$6f, $70/$71 then record emitted -- emitScaledCoordinateRecord == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedRecord(o);
   const c = new Machine(ROM, OPTS); seedRecord(c);
-  oracle(o); loc_df75(c);
+  oracle(o); emitScaledCoordinateRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after widen + emit");
   assert.equal(c.mem.read8(VEC_DELTA_Y_LO), 0xdc, "$6e = (0x37<<2)&0xff");
   assert.equal(c.mem.read8(DRAW_DELTA_A_HI), 0x00, "$6f = A sign-extended (positive)");
@@ -79,7 +79,7 @@ test("TEETH: a twin that skips the X pair (marshalling) diverges from the oracle
     // BUG: only widens A; leaves $70/$71 dirty, then emits the record anyway
     mem8[VEC_DELTA_Y_LO] = (a << 2) & 0xff;
     mem8[DRAW_DELTA_A_HI] = (a & 0x80 ? 0xff : 0x00) & 0xff;
-    return loc_df92(m, 0x6e);
+    return emitCoordinateRecord(m, 0x6e);
   };
   brokenDf75(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped X pair");
@@ -95,10 +95,10 @@ function seedMut(m) {
   for (const c of [VEC_DELTA_Y_LO, DRAW_DELTA_A_HI, DRAW_DELTA_B_LO, DRAW_DELTA_B_HI]) m.mem.write8(c, 0x11);
 }
 
-test("MUTATION: non-default seed -- loc_df75 == oracle in RAM", () => {
+test("MUTATION: non-default seed -- emitScaledCoordinateRecord == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedMut(o);
   const c = new Machine(ROM, OPTS); seedMut(c);
-  oracle(o); loc_df75(c);
+  oracle(o); emitScaledCoordinateRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the non-default seed");
 });
 
@@ -110,7 +110,7 @@ test("MUTATION TEETH: a twin that shifts by one instead of two diverges from the
     // BUG: single shift (<<1) instead of the /4-scale (<<2)
     mem8[VEC_DELTA_Y_LO] = (a << 1) & 0xff; mem8[DRAW_DELTA_A_HI] = (a & 0x80 ? 0xff : 0x00) & 0xff;
     mem8[DRAW_DELTA_B_LO] = (x << 1) & 0xff; mem8[DRAW_DELTA_B_HI] = (x & 0x80 ? 0xff : 0x00) & 0xff;
-    return loc_df92(m, 0x6e);
+    return emitCoordinateRecord(m, 0x6e);
   };
   brokenScale(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong shift amount");
@@ -120,6 +120,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_df75, TARGET, m);
-  assert.equal(r.placeable, true, `loc_df75 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitScaledCoordinateRecord, TARGET, m);
+  assert.equal(r.placeable, true, `emitScaledCoordinateRecord must be seam-placeable; got: ${r.error}`);
 });

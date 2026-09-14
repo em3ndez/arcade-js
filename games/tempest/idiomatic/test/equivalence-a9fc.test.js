@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a9fc (ROM 0xa9fc-0xaa12) -- maps A's low nibble to a byte from the vector-ROM
+// Memory-equivalence for writeNibbleGlyphToTextBuffer (ROM 0xa9fc-0xaa12) -- maps A's low nibble to a byte from the vector-ROM
 // word table $31e4 (index 2*Y, where Y = nibble+1, except a zero nibble with carry-in set indexes entry 0)
 // and stores it at $2f60,x, then advances X by two. Live-out is the $2f60,x store plus the advanced X
 // cursor; carry-in is a semantic input. It is a pure leaf (php/plp only preserve carry across the shift, no
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a9fc as oracle } from "../../translated/loc_a9fc.js";
-import { loc_a9fc } from "../loc_a9fc.js";
+import { writeNibbleGlyphToTextBuffer } from "../writeNibbleGlyphToTextBuffer.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, VEC_GLYPH_BUFFER, NIBBLE_GLYPH_TABLE } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa9fc dispatches -- loc_a9fc == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa9fc dispatches -- writeNibbleGlyphToTextBuffer == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a9fc(c);
+    oracle(o); writeNibbleGlyphToTextBuffer(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "advanced X cursor (live-out) diverged");
   }
@@ -66,7 +66,7 @@ test("CRAFTED: nibble->table byte at $2f60,x for various nibble/carry/cursor == 
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_a9fc(c);
+    oracle(o); writeNibbleGlyphToTextBuffer(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
     assert.equal(c.regs.x, o.regs.x, `X cursor: ${s.tag}`);
   }
@@ -115,7 +115,7 @@ test("SP-TOOTH: the omitted-ret leaf is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a9fc, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a9fc must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, writeNibbleGlyphToTextBuffer, TARGET, m);
+  assert.equal(r.placeable, true, `writeNibbleGlyphToTextBuffer must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf placeable");
 });

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df1f (ROM 0xdf1f) -- index = (A & 0x0f) + 1 into the $31e4 word table, copy
+// Memory-equivalence for emitStrokeWordFromNibblePlusOne (ROM 0xdf1f) -- index = (A & 0x0f) + 1 into the $31e4 word table, copy
 // the two-byte entry through the ($74) display-list cursor, then advance the cursor by 2 (dissolved:
-// idiomatic calls loc_df5f directly with y=1). loc_df24 is the shared tail (entry with the index already
-// in A); it is exercised via loc_df1f plus a direct arm. X/Y are scratch and php/plp restores the flags, but
-// exit A (live-out) is loc_df5f's returned cursor value, threaded up the chain to dd0d; the arms compare RAM
+// idiomatic calls advanceDisplayCursor directly with y=1). emitStrokeWordByIndex is the shared tail (entry with the index already
+// in A); it is exercised via emitStrokeWordFromNibblePlusOne plus a direct arm. X/Y are scratch and php/plp restores the flags, but
+// exit A (live-out) is advanceDisplayCursor's returned cursor value, threaded up the chain to dd0d; the arms compare RAM
 // (dumpState -stack) AND A. No POKEY read -> deterministic seeds.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df1f.test.js
 
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df1f as oracle, loc_df24 as oracle24 } from "../../translated/loc_df1f.js";
-import { loc_df1f, loc_df24 } from "../loc_df1f.js";
+import { emitStrokeWordFromNibblePlusOne, emitStrokeWordByIndex } from "../emitStrokeWordFromNibblePlusOne.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -36,7 +36,7 @@ const ramDiff = (ma, mb) =>
 // Returns { diff, o, c } so callers can also assert the A live-out (the cursor value df5f propagates up).
 function runFrom(cap) {
   const o = cap.clone(), c = cap.clone();
-  oracle(o); loc_df1f(c, c.regs.a);
+  oracle(o); emitStrokeWordFromNibblePlusOne(c, c.regs.a);
   return { diff: ramDiff(o, c), o, c };
 }
 
@@ -48,7 +48,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 4000) : [];
 
-test("CAPTURE: real 0xdf1f dispatches -- loc_df1f == oracle in RAM (-stack) and A live-out", () => {
+test("CAPTURE: real 0xdf1f dispatches -- emitStrokeWordFromNibblePlusOne == oracle in RAM (-stack) and A live-out", () => {
   for (const cap of CAPS) {
     const { diff, o, c } = runFrom(cap);
     assert.equal(diff, null);
@@ -67,7 +67,7 @@ test("CRAFTED: index = (A&0x0f)+1 copies the right table entry == oracle (RAM -s
   for (const t of cases) {
     const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = t.a;
     const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = t.a;
-    oracle(o); loc_df1f(c, c.regs.a);
+    oracle(o); emitStrokeWordFromNibblePlusOne(c, c.regs.a);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
     assert.equal(c.regs.a, o.regs.a, `A live-out: ${t.tag}`);
   }
@@ -77,7 +77,7 @@ test("CRAFTED (df24 tail): the index-in-A entry point == oracle (RAM -stack)", (
   for (const idx of [0x00, 0x03, 0x08]) {
     const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = idx;
     const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = idx;
-    oracle24(o); loc_df24(c, c.regs.a);
+    oracle24(o); emitStrokeWordByIndex(c, c.regs.a);
     assert.equal(ramDiff(o, c), null, `df24 idx=${idx}`);
     assert.equal(c.regs.a, o.regs.a, `df24 A live-out idx=${idx}`);
   }

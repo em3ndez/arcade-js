@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a33a -- inserts an object tagged 5 via the shared tail (loc_a352),
-// then decrements the $0201 pending counter. Dissolves the one jsr into a direct loc_a352 call,
+// Memory-equivalence for insertType5AndDrainPending -- inserts an object tagged 5 via the shared tail (insertObjectAndSignalReady),
+// then decrements the $0201 pending counter. Dissolves the one jsr into a direct insertObjectAndSignalReady call,
 // passing the entry X/Y (preserved across the callee). Output is RAM (a352's writes + $0201), so
 // each arm compares the RAM diff (minus the dead stack) and checks X/Y preserved.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a33a.test.js
@@ -10,8 +10,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a33a as oracle } from "../../translated/loc_a33a.js";
-import { loc_a33a } from "../loc_a33a.js";
-import { loc_a352 } from "../loc_a34b.js";
+import { insertType5AndDrainPending } from "../insertType5AndDrainPending.js";
+import { insertObjectAndSignalReady } from "../primeTopPriorityObject.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, COORD_LIST_PTR_LO, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH, OBJECT_ANIM_TIMER } from "../names.js";
@@ -44,10 +44,10 @@ function seed(m) {
   m.mem.write8(PLAYER_FINE_ANGLE, 0x40);        // pending counter (a352 sets 0x81, then dec -> 0x80)
 }
 
-test("CAPTURE: real 0xa33a dispatches -- loc_a33a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa33a dispatches -- insertType5AndDrainPending == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a33a(c);
+    oracle(o); insertType5AndDrainPending(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "X preserved");
     assert.equal(c.regs.y, o.regs.y, "Y preserved");
@@ -58,7 +58,7 @@ test("CAPTURE: real 0xa33a dispatches -- loc_a33a == oracle in RAM (-stack)", ()
 test("CRAFTED: insert runs, $0201 steps 0x81 -> 0x80 -- RAM equal, X/Y preserved", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a33a(c);
+  oracle(o); insertType5AndDrainPending(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after insert + decrement");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
   assert.equal(c.regs.y, o.regs.y, "Y preserved");
@@ -72,7 +72,7 @@ test("TEETH: a twin that skips the decrement leaves $0201 at 0x81 and diverges",
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken = (m, x = m.regs.x, y = m.regs.y) => {
-    loc_a352(m, 0x05, x, y);           // BUG: never decrements $0201
+    insertObjectAndSignalReady(m, 0x05, x, y);           // BUG: never decrements $0201
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped decrement");
@@ -82,6 +82,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a33a, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a33a must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, insertType5AndDrainPending, TARGET, m);
+  assert.equal(r.placeable, true, `insertType5AndDrainPending must be seam-placeable; got: ${r.error}`);
 });

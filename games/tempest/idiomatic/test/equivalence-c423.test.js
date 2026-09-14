@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c423 (ROM 0xc423-0xc43b) -- copies four $03xx,x table cells (x=$37) into the
-// $61..$64 record header, then tail-calls loc_c3ba (which emits the record through loc_df92). The oracle runs
-// the translated loc_c3ba via m.call; the idiomatic calls the idiomatic loc_c3ba directly. Live-out is memory
+// Memory-equivalence for emitProjectedSlotRecord (ROM 0xc423-0xc43b) -- copies four $03xx,x table cells (x=$37) into the
+// $61..$64 record header, then tail-calls emitCoordDeltaRecord (which emits the record through emitCoordinateRecord). The oracle runs
+// the translated emitCoordDeltaRecord via m.call; the idiomatic calls the idiomatic emitCoordDeltaRecord directly. Live-out is memory
 // only (registers at RTS are incidental), so both sides run on a clone and the contract is RAM (-stack).
 // Run: node --test games/tempest/idiomatic/test/equivalence-c423.test.js
 
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c423 as oracle } from "../../translated/loc_c423.js";
-import { loc_c423 } from "../loc_c423.js";
+import { emitProjectedSlotRecord } from "../emitProjectedSlotRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SLOT_LOOP_INDEX, COL_VAL_A, COL_SUB_A, COL_VAL_B, COL_SUB_B, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xc423 dispatches -- loc_c423 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc423 dispatches -- emitProjectedSlotRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c423(c);
+    oracle(o); emitProjectedSlotRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -59,7 +59,7 @@ function seed(m) {
 test("CRAFTED: the four indexed cells land in $61..$64 and RAM matches the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c423(c);
+  oracle(o); emitProjectedSlotRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after copy + emit");
   assert.equal(c.mem.read8(PROJ_Y_LO), 0x11, "$61");
   assert.equal(c.mem.read8(PROJ_Y_HI), 0x22, "$62");

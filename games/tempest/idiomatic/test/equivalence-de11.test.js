@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_de11 (ROM 0xde11) -- sets the mode byte $01c7=7 and clears its target
-// $01c8=0, then falls through into the EAROM/vector state machine (dissolved: idiomatic calls loc_de1b
+// Memory-equivalence for armEaromReadback (ROM 0xde11) -- sets the mode byte $01c7=7 and clears its target
+// $01c8=0, then falls through into the EAROM/vector state machine (dissolved: idiomatic calls stepEaromTransfer
 // directly). No register inputs; live-out is memory only, so the arms compare RAM (dumpState -stack).
 // The state machine touches the $6040/$6050 EAROM port block (deterministic within a clone), so CAPTURE
 // replays real dispatches on clones and CRAFTED seeds the fresh-row entry ($01ca=0, $01c7!=0).
@@ -11,8 +11,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_de11 as oracle } from "../../translated/loc_de11.js";
-import { loc_de11 } from "../loc_de11.js";
-import { loc_de1b as brokenTail } from "../loc_de1b.js"; // shared tail, for the TEETH twin
+import { armEaromReadback } from "../armEaromReadback.js";
+import { stepEaromTransfer as brokenTail } from "../stepEaromTransfer.js"; // shared tail, for the TEETH twin
 
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -41,10 +41,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xde11 dispatches -- loc_de11 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xde11 dispatches -- armEaromReadback == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_de11(c);
+    oracle(o); armEaromReadback(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -53,12 +53,12 @@ test("CAPTURE: real 0xde11 dispatches -- loc_de11 == oracle in RAM (-stack)", ()
 test("CRAFTED: seeds the mode byte and runs the fresh-row walk == oracle (RAM -stack)", () => {
   const seed = (m) => {
     m.mem.write8(EAROM_MODE, 0x00); // idle -> fresh-row block will run and read $01c8
-    m.mem.write8(EAROM_REGION_PENDING, 0x33); // garbage; loc_de11 overwrites with 7
-    m.mem.write8(EAROM_REGION_DIR, 0x77); // garbage; loc_de11 clears to 0
+    m.mem.write8(EAROM_REGION_PENDING, 0x33); // garbage; armEaromReadback overwrites with 7
+    m.mem.write8(EAROM_REGION_DIR, 0x77); // garbage; armEaromReadback clears to 0
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_de11(c);
+  oracle(o); armEaromReadback(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk");
   assert.equal(c.mem.read8(EAROM_REGION_DIR), 0x00, "$01c8 cleared");
 });
@@ -75,7 +75,7 @@ test("TEETH: a twin that skips clearing $01c8 diverges (the mask select flips y 
   const broken = (m) => {
     m.mem.write8(EAROM_REGION_PENDING, 0x07); // BUG: sets the mode byte but never clears $01c8
     // run the shared state machine on the un-cleared target
-    // (import kept local to the twin to mirror loc_de11's tail)
+    // (import kept local to the twin to mirror armEaromReadback's tail)
     return brokenTail(m);
   };
   broken(c);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a65b (ROM 0xa65b-0xa69a) -- spawn an enemy into slot x: the leading test is
+// Memory-equivalence for spawnEnemyInSlot (ROM 0xa65b-0xa69a) -- spawn an enemy into slot x: the leading test is
 // dead (and #$00), so it always seeds the three state bytes ($0263,x $0283,x $02a3,x = 0x80), then fills
 // three velocity/coordinate pairs from the RNG -- $02c3,x=$60da, $0323,x=jsr $a69b; $02e3,x=$60ca,
 // $0343,x=jsr $a69b forced non-positive; $0303,x=$60ca, $0363,x=jsr $a69b -- and rings the sound cue
@@ -16,8 +16,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a65b as oracle } from "../../translated/loc_a65b.js";
-import { loc_a65b } from "../loc_a65b.js";
-import { loc_a69b } from "../loc_a69b.js";
+import { spawnEnemyInSlot } from "../spawnEnemyInSlot.js";
+import { drawSignedVelocityNudge } from "../drawSignedVelocityNudge.js";
 import { loc_ccc1 } from "../loc_ccc1.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -51,10 +51,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xa65b dispatches -- loc_a65b == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xa65b dispatches -- spawnEnemyInSlot == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_a65b(c);
+    oracle(o); spawnEnemyInSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -72,7 +72,7 @@ function seed(m) {
 test("CRAFTED: state bytes -> 0x80 and RAM equal after the RNG fill", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a65b(c);
+  oracle(o); spawnEnemyInSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after spawn");
   for (const b of [OBJECT_AXIS1_POS, ENEMY_SLOT_FLAGS, ENEMY_POS2]) assert.equal(c.mem.read8(u16(b + XREG)), 0x80, "state byte active");
 });
@@ -83,10 +83,10 @@ test("TEETH: a twin that skips the 0x80 state-byte seeding diverges from the ora
   const brokenA65b = (m, x = m.regs.x, y = m.regs.y) => {
     const { mem8 } = m;
     // BUG: never marks the three state bytes active
-    const r0 = mem8[POKEY2_RANDOM]; mem8[u16(ENEMY_VEL1_LO + x)] = r0; mem8[u16(ENEMY_VEL1_HI + x)] = loc_a69b(m, r0);
+    const r0 = mem8[POKEY2_RANDOM]; mem8[u16(ENEMY_VEL1_LO + x)] = r0; mem8[u16(ENEMY_VEL1_HI + x)] = drawSignedVelocityNudge(m, r0);
     const r1 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL0_LO + x)] = r1;
-    let step = loc_a69b(m, r1); if ((step & 0x80) === 0) step = u8(-step); mem8[u16(ENEMY_VEL0_HI + x)] = step;
-    const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = loc_a69b(m, r2);
+    let step = drawSignedVelocityNudge(m, r1); if ((step & 0x80) === 0) step = u8(-step); mem8[u16(ENEMY_VEL0_HI + x)] = step;
+    const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = drawSignedVelocityNudge(m, r2);
     loc_ccc1(m, x, y);
   };
   brokenA65b(c);
@@ -102,10 +102,10 @@ test("TEETH (marshalling): a twin that always negates the middle step diverges w
   const alwaysNegate = (m, x = m.regs.x, y = m.regs.y) => {
     const { mem8 } = m;
     mem8[u16(OBJECT_AXIS1_POS + x)] = 0x80; mem8[u16(ENEMY_SLOT_FLAGS + x)] = 0x80; mem8[u16(ENEMY_POS2 + x)] = 0x80;
-    const r0 = mem8[POKEY2_RANDOM]; mem8[u16(ENEMY_VEL1_LO + x)] = r0; mem8[u16(ENEMY_VEL1_HI + x)] = loc_a69b(m, r0);
+    const r0 = mem8[POKEY2_RANDOM]; mem8[u16(ENEMY_VEL1_LO + x)] = r0; mem8[u16(ENEMY_VEL1_HI + x)] = drawSignedVelocityNudge(m, r0);
     const r1 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL0_LO + x)] = r1;
-    mem8[u16(ENEMY_VEL0_HI + x)] = u8(-loc_a69b(m, r1)); // BUG: unconditional negate
-    const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = loc_a69b(m, r2);
+    mem8[u16(ENEMY_VEL0_HI + x)] = u8(-drawSignedVelocityNudge(m, r1)); // BUG: unconditional negate
+    const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = drawSignedVelocityNudge(m, r2);
     loc_ccc1(m, x, y);
   };
   alwaysNegate(c);
@@ -116,6 +116,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a65b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a65b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, spawnEnemyInSlot, TARGET, m);
+  assert.equal(r.placeable, true, `spawnEnemyInSlot must be seam-placeable; got: ${r.error}`);
 });

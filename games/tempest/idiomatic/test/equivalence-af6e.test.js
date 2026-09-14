@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_af6e (ROM 0xaf6e) -- a bare RTS leaf (tail of loc_af3f, entered by loc_af26's
+// Memory-equivalence for sharedReturnTail (ROM 0xaf6e) -- a bare RTS leaf (tail of loc_af3f, entered by loc_af26's
 // tail-call). No RAM write, no register live-out: the idiomatic body is empty and the withOmittedRet seam
 // supplies the ret. The arms compare RAM (-stack) only; the oracle's ROM ret moves SP/pc but writes no RAM,
 // which the seam reconciles, so pc/SP are NOT compared. A TEETH twin that writes a cell proves the RAM diff
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_af6e as oracle } from "../../translated/loc_af6e.js";
-import { loc_af6e } from "../loc_af6e.js";
+import { sharedReturnTail } from "../sharedReturnTail.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -35,10 +35,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xaf6e dispatches -- loc_af6e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaf6e dispatches -- sharedReturnTail == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_af6e(c);
+    oracle(o); sharedReturnTail(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -49,7 +49,7 @@ test("CRAFTED: a bare RTS leaves RAM untouched (seeded, non-default RAM) == orac
   const seed = (m) => { m.mem8[0x40] = 0xaa; m.mem8[0x2c] = 0x55; m.mem8[0x0200] = 0x3c; };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_af6e(c);
+  oracle(o); sharedReturnTail(c);
   assert.equal(ramDiff(o, c), null, "no-op must leave seeded RAM identical to the oracle");
 });
 
@@ -65,7 +65,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0xcd); m.mem.write8(0x01fd, 0xab); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_af6e, TARGET, m);
-  assert.equal(r.placeable, true, `loc_af6e must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, sharedReturnTail, TARGET, m);
+  assert.equal(r.placeable, true, `sharedReturnTail must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

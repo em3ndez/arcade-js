@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dbe0 -- writes the incoming A to a POKEY register, copies the low 3 bits of
+// Memory-equivalence for assemblePotStatusByte -- writes the incoming A to a POKEY register, copies the low 3 bits of
 // one POKEY ALLPOT read into $0037 (and a second POKEY register), and returns those bits merged with one
 // relocated bit of a second ALLPOT read. The ALLPOT reads are POKEY-timing-coupled: on a fresh (master-
 // reset) POKEY they read 0, so $0037 is deterministic there -- the CRAFTED arm asserts that RAM cell and
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dbe0 as oracle } from "../../translated/loc_dbe0.js";
-import { loc_dbe0 } from "../loc_dbe0.js";
+import { assemblePotStatusByte } from "../assemblePotStatusByte.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SLOT_LOOP_INDEX } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdbe0 dispatches -- loc_dbe0 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdbe0 dispatches -- assemblePotStatusByte == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_dbe0(c);
+    oracle(o); assemblePotStatusByte(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,7 +54,7 @@ test("CRAFTED: $0037 = low 3 bits of the ALLPOT read (0 on a fresh POKEY), and t
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const rc = loc_dbe0(c, 0x5a);
+  const rc = assemblePotStatusByte(c, 0x5a);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0x00, "$0037 = low 3 bits of ALLPOT (0 on a fresh POKEY)");
   assert.equal(rc, o.regs.a, "return value matches the oracle's A");
@@ -77,7 +77,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_dbe0, TARGET, m);
-  assert.equal(r.placeable, true, `loc_dbe0 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, assemblePotStatusByte, TARGET, m);
+  assert.equal(r.placeable, true, `assemblePotStatusByte must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

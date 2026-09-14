@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a69b (ROM 0xa69b) -- signed random step: magnitude = POKEY2 RANDOM ($60da) & 7,
+// Memory-equivalence for drawSignedVelocityNudge (ROM 0xa69b) -- signed random step: magnitude = POKEY2 RANDOM ($60da) & 7,
 // sign from the incoming A's bit 0 (set bit 0 -> two's-complement). It writes NO memory, so the live-out is
 // register A; RAM (dumpState, minus STACK_SCRATCH) stays identical and A is compared directly.
 //   POKEY coupling: RANDOM ($60da) is clock-coupled (the read charges cycles the idiomatic doesn't), so the
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a69b as oracle } from "../../translated/loc_a69b.js";
-import { loc_a69b } from "../loc_a69b.js";
+import { drawSignedVelocityNudge } from "../drawSignedVelocityNudge.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -43,10 +43,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xa69b dispatches -- loc_a69b == oracle in A and RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xa69b dispatches -- drawSignedVelocityNudge == oracle in A and RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_a69b(c);
+    oracle(o); drawSignedVelocityNudge(c);
     assert.equal(o.regs.a, c.regs.a, "register A (the signed step) diverged");
     assert.equal(ramDiff(o, c), null);
   }
@@ -58,7 +58,7 @@ test("CRAFTED: positive branch (bit0=0) and negated branch (bit0=1) == oracle in
   for (const ain of [0x00, 0x10, 0xfe, 0x01, 0x11, 0xff]) {
     const o = new Machine(ROM, OPTS); o.regs.a = ain;
     const c = new Machine(ROM, OPTS); c.regs.a = ain;
-    oracle(o); loc_a69b(c);
+    oracle(o); drawSignedVelocityNudge(c);
     assert.equal(c.regs.a, o.regs.a, `A_in=0x${ain.toString(16)}: signed step diverged`);
     assert.equal(ramDiff(o, c), null, `A_in=0x${ain.toString(16)}: RAM (should be untouched) diverged`);
   }

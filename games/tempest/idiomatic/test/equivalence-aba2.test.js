@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aba2 (ROM 0xaba2-0xabab) -- refreshes the control state via loc_ac20, then
-// branches on ($01c9 & 3): zero -> the loc_ac07 no-op tail, else the loc_abac rebuild/copy path. The
+// Memory-equivalence for loc_aba2 (ROM 0xaba2-0xabab) -- refreshes the control state via requestRebuildIfSwitchesChanged, then
+// branches on ($01c9 & 3): zero -> the noRebuildRequestReturn no-op tail, else the rebuildControlBlocksFromTemplate rebuild/copy path. The
 // idiomatic side dissolves all three jsr into direct calls. Live-out is memory only, so each arm compares
 // RAM (dumpState minus STACK_SCRATCH). A caller: the module omits the ROM ret and the seam completes it.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aba2.test.js
@@ -13,8 +13,8 @@ import { loc_aba2 as oracle } from "../../translated/loc_aba2.js";
 import { loc_aba2 } from "../loc_aba2.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_ac20 } from "../loc_ac20.js";
-import { loc_ac07 } from "../loc_ac07.js";
+import { requestRebuildIfSwitchesChanged } from "../requestRebuildIfSwitchesChanged.js";
+import { noRebuildRequestReturn } from "../noRebuildRequestReturn.js";
 import { STACK_SCRATCH, loc_100, PENDING_WORK_FLAGS, INPUT_SNAPSHOT_HI, INPUT_SNAPSHOT_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -49,7 +49,7 @@ test("CAPTURE: real 0xaba2 dispatches -- loc_aba2 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-// Force the loc_abac branch: mismatched cached target bytes make loc_ac20 request a rebuild, which sets
+// Force the rebuildControlBlocksFromTemplate branch: mismatched cached target bytes make requestRebuildIfSwitchesChanged request a rebuild, which sets
 // ($01c9 | 3) so the low two bits are non-zero. Vector RAM dirtied so the copy/fill lands in the diffed region.
 function seedRebuild(m) {
   m.mem.write8(INPUT_SNAPSHOT_HI, 0xff);
@@ -58,26 +58,26 @@ function seedRebuild(m) {
   for (let i = 0; i < 0x40; i++) m.mem.write8((0x2100 + i) & 0xffff, 0x5a);
 }
 
-test("CRAFTED: forced rebuild -> loc_abac path -- loc_aba2 == oracle in RAM", () => {
+test("CRAFTED: forced rebuild -> rebuildControlBlocksFromTemplate path -- loc_aba2 == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedRebuild(o);
   const c = new Machine(ROM, OPTS); seedRebuild(c);
   oracle(o); loc_aba2(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the rebuild/copy path");
-  // loc_abac consumes (clears) the PENDING_WORK_FLAGS request bits; its durable $0100=0x08 write marks that the
-  // rebuild branch ran (the no-op loc_ac07 path never writes $0100).
-  assert.equal(c.mem.read8(loc_100), 0x08, "loc_abac branch ran (its $0100 write is present)");
+  // rebuildControlBlocksFromTemplate consumes (clears) the PENDING_WORK_FLAGS request bits; its durable $0100=0x08 write marks that the
+  // rebuild branch ran (the no-op noRebuildRequestReturn path never writes $0100).
+  assert.equal(c.mem.read8(loc_100), 0x08, "rebuildControlBlocksFromTemplate branch ran (its $0100 write is present)");
 });
 
-test("TEETH: a twin that skips the loc_abac path diverges from the oracle", () => {
+test("TEETH: a twin that skips the rebuildControlBlocksFromTemplate path diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seedRebuild(o); oracle(o);
   const c = new Machine(ROM, OPTS); seedRebuild(c);
   const broken = (m) => {
-    loc_ac20(m);
+    requestRebuildIfSwitchesChanged(m);
     // BUG: takes the no-op tail regardless of the request bits
-    return loc_ac07();
+    return noRebuildRequestReturn();
   };
   broken(c);
-  assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped loc_abac path");
+  assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped rebuildControlBlocksFromTemplate path");
 });
 
 test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {

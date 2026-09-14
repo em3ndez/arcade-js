@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_96cb (ROM 0x96cb) -- a vector-list coordinate walker ($969d dispatch target).
+// Memory-equivalence for advanceCoordListByEntryStride (ROM 0x96cb) -- a vector-list coordinate walker ($969d dispatch target).
 // Reads (0x2c),Y and (0x2c),Y-1, stores their delta at loc_29, advances Y by delta+2. Live-out is one RAM
 // cell (loc_29) plus Y and A, so the arms compare RAM (-stack) + Y + A. A leaf: it omits the ROM ret and
 // the seam completes it. No POKEY/clock read, so the CRAFTED diff is deterministic. Both sides run in binary
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_96cb as oracle } from "../../translated/loc_96cb.js";
-import { loc_96cb } from "../loc_96cb.js";
+import { advanceCoordListByEntryStride } from "../advanceCoordListByEntryStride.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x96cb dispatches -- loc_96cb == oracle in RAM (-stack), A and Y", () => {
+test("CAPTURE: real 0x96cb dispatches -- advanceCoordListByEntryStride == oracle in RAM (-stack), A and Y", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_96cb(c);
+    oracle(o); advanceCoordListByEntryStride(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
     assert.equal(c.regs.y, o.regs.y, "Y live-out matches the oracle");
@@ -63,7 +63,7 @@ test("CRAFTED: (ptr),Y minus (ptr),Y-1 -> delta at loc_29, Y advanced by delta+2
     };
     const o = new Machine(ROM, OPTS); seed(o);
     const c = new Machine(ROM, OPTS); seed(c);
-    oracle(o); const ret = loc_96cb(c);
+    oracle(o); const ret = advanceCoordListByEntryStride(c);
     assert.equal(ramDiff(o, c), null, `RAM (loc_29 delta): ${tag}`);
     assert.equal(c.regs.y, o.regs.y, `Y advanced matches oracle: ${tag}`);
     assert.equal(c.regs.a, o.regs.a, `A (pre-inc cursor) matches oracle: ${tag}`);
@@ -87,7 +87,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   m.mem.write8(COORD_LIST_PTR_LO, 0x00); m.mem.write8(COORD_LIST_PTR_HI, 0x05); m.regs.y = 0x10;
   m.regs.s = 0xff;
   m.push16(0xabcd);
-  const r = seamPlaceable(withOmittedRet, loc_96cb, TARGET, m);
-  assert.equal(r.placeable, true, `loc_96cb must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, advanceCoordListByEntryStride, TARGET, m);
+  assert.equal(r.placeable, true, `advanceCoordListByEntryStride must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

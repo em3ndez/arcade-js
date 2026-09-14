@@ -13,10 +13,10 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b84e as oracle } from "../../translated/loc_b84e.js";
 import { loc_b84e } from "../loc_b84e.js";
-import { loc_b85f } from "../loc_b85f.js";
-import { loc_b875 } from "../loc_b875.js";
-import { loc_b888 } from "../loc_b888.js";
-import { loc_b896 } from "../loc_b896.js";
+import { seedTripleArrays } from "../seedTripleArrays.js";
+import { rotateTripleArray } from "../rotateTripleArray.js";
+import { resetVectorTailCursor } from "../resetVectorTailCursor.js";
+import { emitVectorTailRecord } from "../emitVectorTailRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, COLOR_CYCLE_0, COLOR_RAM_9, VECRAM_TAIL_CURSOR_LO, VECRAM_TAIL_CURSOR_HI } from "../names.js";
@@ -80,7 +80,7 @@ test("TEETH: a twin that dispatches the WRONG entry (y>>1)^1 diverges in RAM", (
   const c = new Machine(ROM, OPTS); seed(c); c.regs.y = y;
   oracle(o);
   // BUG: dispatch the flipped table entry (b85f <-> b875) instead of the one Y selects.
-  const broken = (m, yy = m.regs.y) => [loc_b85f, loc_b875, loc_b888, loc_b896][(yy >> 1) ^ 1](m);
+  const broken = (m, yy = m.regs.y) => [seedTripleArrays, rotateTripleArray, resetVectorTailCursor, emitVectorTailRecord][(yy >> 1) ^ 1](m);
   broken(c, y);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch the wrong-entry dispatch");

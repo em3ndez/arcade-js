@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a1e4 -- guards on a matching live byte and a not-yet-set flag, then dissolves
-// the jsr into a direct loc_a34b(m, x, y) and latches the flag. Live-out is memory (the object table a34b
+// Memory-equivalence for primeTopObjectOnTargetMatch -- guards on a matching live byte and a not-yet-set flag, then dissolves
+// the jsr into a direct primeTopPriorityObject(m, x, y) and latches the flag. Live-out is memory (the object table a34b
 // seeds plus the flag); the incidental A/X/Y at RTS are not read, so each arm compares RAM (dumpState minus
 // STACK_SCRATCH). Poly is frozen defensively (the a34b path takes no RNG, but keeps arms bit-identical).
 // Run: node --test games/tempest/idiomatic/test/equivalence-a1e4.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a1e4 as oracle } from "../../translated/loc_a1e4.js";
-import { loc_a1e4 } from "../loc_a1e4.js";
+import { primeTopObjectOnTargetMatch } from "../primeTopObjectOnTargetMatch.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xa1e4 dispatches -- loc_a1e4 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa1e4 dispatches -- primeTopObjectOnTargetMatch == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_a1e4(c);
+    oracle(o); primeTopObjectOnTargetMatch(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ function seedFire(m) {
 test("CRAFTED: matching byte + clear flag -> a34b runs, flag latches to 0x81, RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedFire(o);
   const c = new Machine(ROM, OPTS); seedFire(c);
-  oracle(o); loc_a1e4(c);
+  oracle(o); primeTopObjectOnTargetMatch(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the dissolved a34b call");
   assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), 0x81, "flag latched");
 });
@@ -96,6 +96,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a1e4, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a1e4 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, primeTopObjectOnTargetMatch, TARGET, m);
+  assert.equal(r.placeable, true, `primeTopObjectOnTargetMatch must be seam-placeable; got: ${r.error}`);
 });

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b8ba -- resets accumulators/seeds, caches the base pointer pair, draws each
+// Memory-equivalence for drawMovingObjectSlots -- resets accumulators/seeds, caches the base pointer pair, draws each
 // active slot's record, and closes by swapping pointers and drawing the base list. The idiomatic side
 // dissolves the jsr chain (df39/b967/c098/b944/c3ba/b56a/c772/b955/df6c/df4c/df4a/df6a/df09) into direct
 // calls. Live-out is RAM, so each arm compares dumpState minus STACK_SCRATCH.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b8ba as oracle } from "../../translated/loc_b8ba.js";
-import { loc_b8ba } from "../loc_b8ba.js";
+import { drawMovingObjectSlots } from "../drawMovingObjectSlots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -18,19 +18,19 @@ import {
   STACK_SCRATCH, DEPTH_LO, DEPTH_HI, PROJ_OFS_X_LO, PROJ_OFS_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, PLAYER_SHOT_DEPTH, ENEMY_SLOT_FLAGS,
   OBJECT_AXIS1_POS, ENEMY_POS2, SLOT_LOOP_INDEX, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, VG_RECORD_HEADER, DRAW_CURSOR_ALT_LO, DRAW_CURSOR_ALT_HI, loc_9e,
 } from "../names.js";
-import { loc_df39 } from "../loc_df39.js";
-import { loc_df4a } from "../loc_df4a.js";
+import { emitCoordinateVectorWord } from "../emitCoordinateVectorWord.js";
+import { emitVectorWordTag60FromKey } from "../emitVectorWordTag60FromKey.js";
 import { loc_df4c } from "../loc_df4c.js";
 import { loc_df6a } from "../loc_df6a.js";
 import { loc_df6c } from "../loc_df6c.js";
 import { loc_df09 } from "../loc_df09.js";
-import { loc_b56a } from "../loc_b56a.js";
-import { loc_b944 } from "../loc_b944.js";
-import { loc_b955 } from "../loc_b955.js";
-import { loc_b967 } from "../loc_b967.js";
-import { loc_c098 } from "../loc_c098.js";
-import { loc_c3ba } from "../loc_c3ba.js";
-import { loc_c772 } from "../loc_c772.js";
+import { emitBlankValueRecord } from "../emitBlankValueRecord.js";
+import { swapDrawPointers } from "../swapDrawPointers.js";
+import { returnConstantTwo } from "../returnConstantTwo.js";
+import { selectPointerPair } from "../selectPointerPair.js";
+import { projectPointThroughMathbox } from "../projectPointThroughMathbox.js";
+import { emitCoordDeltaRecord } from "../emitCoordDeltaRecord.js";
+import { emitObjectPositionVector } from "../emitObjectPositionVector.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,10 +55,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb8ba dispatches -- loc_b8ba == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb8ba dispatches -- drawMovingObjectSlots == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b8ba(c);
+    oracle(o); drawMovingObjectSlots(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -75,7 +75,7 @@ function seedEmpty(m) {
 test("CRAFTED: no active slots -- prologue and close match the oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedEmpty(o);
   const c = new Machine(ROM, OPTS); seedEmpty(c);
-  oracle(o); loc_b8ba(c);
+  oracle(o); drawMovingObjectSlots(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after empty frame");
   assert.equal(c.mem.read8(DEPTH_HI), 0xe0, "seed $5f");
   assert.equal(c.mem.read8(DEPTH_LO), 0xff, "seed $5b");
@@ -108,20 +108,20 @@ function seedActive(m) {
 test("CRAFTED: one active slot -- per-slot record body marshalling matches the oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedActive(o);
   const c = new Machine(ROM, OPTS); seedActive(c);
-  oracle(o); loc_b8ba(c);
+  oracle(o); drawMovingObjectSlots(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after one active slot's record is emitted");
 });
 
-// A twin whose per-slot body is byte-identical EXCEPT the loc_b56a shadow-header arg (0xa0 -> 0x00) --
+// A twin whose per-slot body is byte-identical EXCEPT the emitBlankValueRecord shadow-header arg (0xa0 -> 0x00) --
 // a marshalling mutation. It MUST diverge, proving the active-slot arm actually verifies the body
 // (not a vacuous pass over a skipped body).
 function brokenMarshal(m) {
   const { mem8 } = m;
-  loc_df39(m, 0x3f, 0xf2);
+  emitCoordinateVectorWord(m, 0x3f, 0xf2);
   mem8[0x6a] = 0x00; mem8[0x6b] = 0x00; mem8[0x6c] = 0x00; mem8[0x6d] = 0x00;
   mem8[PLAYER_SHOT_DEPTH] = 0x00; mem8[PROJ_OFS_X_LO] = 0x00; mem8[PROJ_OFS_X_HI] = 0x00;
   mem8[DEPTH_HI] = 0xe0; mem8[DEPTH_LO] = 0xff;
-  { const [a, x] = loc_b967(m); mem8[DRAW_CURSOR_ALT_HI] = a; mem8[DRAW_CURSOR_ALT_LO] = x; }
+  { const [a, x] = selectPointerPair(m); mem8[DRAW_CURSOR_ALT_HI] = a; mem8[DRAW_CURSOR_ALT_LO] = x; }
   mem8[SLOT_LOOP_INDEX] = 0x0f;
   do {
     const x = mem8[SLOT_LOOP_INDEX];
@@ -130,45 +130,45 @@ function brokenMarshal(m) {
       mem8[OBJ_DEPTH] = active;
       mem8[PROJ_PT_Y] = mem8[u16(OBJECT_AXIS1_POS + x)];
       mem8[PROJ_PT_X] = mem8[u16(ENEMY_POS2 + x)];
-      loc_c098(m);
+      projectPointThroughMathbox(m);
       mem8[VG_RECORD_HEADER] = 0x00;
-      loc_b944(m);
-      loc_c3ba(m);
-      loc_b56a(m, 0x00);          // BUG: shadow-header arg should be 0xa0
-      loc_b944(m);
-      loc_c772(m, 0x61);
-      const [pa, py] = loc_b955(m);
+      swapDrawPointers(m);
+      emitCoordDeltaRecord(m);
+      emitBlankValueRecord(m, 0x00);          // BUG: shadow-header arg should be 0xa0
+      swapDrawPointers(m);
+      emitObjectPositionVector(m, 0x61);
+      const [pa, py] = returnConstantTwo(m);
       loc_df6c(m, pa, py);
       let phase = mem8[SLOT_LOOP_INDEX] & 0x07;
       if (phase === 0x07) phase = 0x00;
       mem8[loc_9e] = phase;
       loc_df4c(m, 0x08, phase);
-      loc_df4a(m, 0x00);
-      const [ha, hx] = loc_b967(m);
-      loc_df39(m, ha, hx);
+      emitVectorWordTag60FromKey(m, 0x00);
+      const [ha, hx] = selectPointerPair(m);
+      emitCoordinateVectorWord(m, ha, hx);
     }
     const next = (mem8[SLOT_LOOP_INDEX] - 1) & 0xff;
     mem8[SLOT_LOOP_INDEX] = next;
     if (next & 0x80) break;
   } while (true);
-  loc_b944(m);
+  swapDrawPointers(m);
   loc_df6a(m, 0x01);
   loc_df09(m);
-  loc_b944(m);
+  swapDrawPointers(m);
 }
 
-test("TEETH (marshalling): a twin with the wrong loc_b56a shadow arg diverges from the oracle", () => {
+test("TEETH (marshalling): a twin with the wrong emitBlankValueRecord shadow arg diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seedActive(o);
   const c = new Machine(ROM, OPTS); seedActive(c);
   oracle(o); brokenMarshal(c);
-  assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong loc_b56a arg");
+  assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong emitBlankValueRecord arg");
 });
 
 test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedEmpty(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b8ba, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b8ba must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawMovingObjectSlots, TARGET, m);
+  assert.equal(r.placeable, true, `drawMovingObjectSlots must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret tail-caller (moved 0) placeable");
 });

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df57 (ROM 0xdf57) -- the shared vector-word tail reached with the pair
+// Memory-equivalence for emitVectorWord (ROM 0xdf57) -- the shared vector-word tail reached with the pair
 // preset: store A at ($74/$75)+0 and X at +1, then advance the ($74/$75) cursor by 2 (tail into
-// loc_df5f). loc_df53 falls into it with the fixed {0x40,0x80}; loc_df4c/loc_df6c/loc_ab0d reach it
+// advanceDisplayCursor). emitVectorHeaderWord falls into it with the fixed {0x40,0x80}; loc_df4c/loc_df6c/loc_ab0d reach it
 // with a computed pair. The oracle m.call(0xdf5f)s the translated tail; the idiomatic calls the
-// idiomatic loc_df5f -- both memory-equivalent, so the contract is RAM (dumpState, minus STACK_SCRATCH).
+// idiomatic advanceDisplayCursor -- both memory-equivalent, so the contract is RAM (dumpState, minus STACK_SCRATCH).
 // A/X are INPUTS (read from the register bridge); the display-builder family leaves no asserted
-// register live-out (the landed loc_df5f tail preserves none). Plain caller -- no SP tooth, no POKEY read.
+// register live-out (the landed advanceDisplayCursor tail preserves none). Plain caller -- no SP tooth, no POKEY read.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df57.test.js
 
 import nodeTest from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df57 as oracle } from "../../translated/loc_df53.js";
-import { loc_df57 } from "../loc_df53.js";
+import { emitVectorWord } from "../emitVectorHeaderWord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdf57 dispatches -- loc_df57 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf57 dispatches -- emitVectorWord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df57(c);
+    oracle(o); emitVectorWord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -65,7 +65,7 @@ test("CRAFTED: {A,X} word written at cursor and cursor advanced by 2 == oracle (
   for (const t of cases) {
     const o = new Machine(ROM, OPTS); seedCursor(o, t.lo, t.hi); seedRegs(o, t.a, t.x);
     const c = new Machine(ROM, OPTS); seedCursor(c, t.lo, t.hi); seedRegs(c, t.a, t.x);
-    oracle(o); loc_df57(c);
+    oracle(o); emitVectorWord(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
     const ptr = u16((t.hi << 8) | t.lo);
     assert.equal(c.mem.read8(ptr), t.a, `${t.tag}: byte0 = A`);

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c90c (ROM 0xc90c-0xc93f) -- the per-slot state reset. It runs loc_aba2 and
-// loc_c16e (and loc_ca62 when STATUS_FLAGS is negative), clears SLOT_COUNTDOWN_HI, seeds every slot from ACTIVE_SLOT_COUNT down to 0
+// Memory-equivalence for resetLevelPlayfieldSlots (ROM 0xc90c-0xc93f) -- the per-slot state reset. It runs loc_aba2 and
+// buildLevelLayout (and clearChannelStagingBlock when STATUS_FLAGS is negative), clears SLOT_COUNTDOWN_HI, seeds every slot from ACTIVE_SLOT_COUNT down to 0
 // (SLOT_COUNTDOWN,slot = DSW_BONUS_CONFIG; PLAYER_LEVEL_TBL,slot = 0xff), clears LEVEL_ID and SPIKE_TABLE_GUARD, reloads loc_3d from ACTIVE_SLOT_COUNT, then
-// TAIL-DELEGATES to loc_90c4. Contract is RAM-equivalence (dumpState minus STACK_SCRATCH); no register is
-// compared -- loc_c90c takes no live-in register and tail-jmps loc_90c4, so its exit registers are the
-// delegate's (both layers run the identical loc_90c4 from the identical clone, so RAM equality suffices).
-// Oracle is the frozen translated loc_c90c.
+// TAIL-DELEGATES to selectWaveStartSlot. Contract is RAM-equivalence (dumpState minus STACK_SCRATCH); no register is
+// compared -- resetLevelPlayfieldSlots takes no live-in register and tail-jmps selectWaveStartSlot, so its exit registers are the
+// delegate's (both layers run the identical selectWaveStartSlot from the identical clone, so RAM equality suffices).
+// Oracle is the frozen translated resetLevelPlayfieldSlots.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c90c.test.js
 
 import nodeTest from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c90c as oracle } from "../../translated/loc_c90c.js";
-import { loc_c90c } from "../loc_c90c.js";
+import { resetLevelPlayfieldSlots } from "../resetLevelPlayfieldSlots.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -44,14 +44,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xc90c dispatches -- loc_c90c == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc90c dispatches -- resetLevelPlayfieldSlots == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented callee arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_c90c(c);
+    resetLevelPlayfieldSlots(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -59,14 +59,14 @@ test("CAPTURE: real 0xc90c dispatches -- loc_c90c == oracle in RAM (-stack)", ()
 });
 
 // Seed ACTIVE_SLOT_COUNT nonzero (so the seeding loop iterates over several slots), DSW_BONUS_CONFIG as the fill byte, and
-// LEVEL_ID/SPIKE_TABLE_GUARD nonzero so the routine's clears are observable. STATUS_FLAGS stays positive so the loc_ca62 arm
+// LEVEL_ID/SPIKE_TABLE_GUARD nonzero so the routine's clears are observable. STATUS_FLAGS stays positive so the clearChannelStagingBlock arm
 // is skipped (that arm is exercised separately below, skip-on-throw).
 // NB: SLOT_COUNTDOWN_HI (0x49) == SLOT_COUNTDOWN+1 -- it IS slot 1 of the SLOT_COUNTDOWN seeding array. The routine clears SLOT_COUNTDOWN_HI at
 // c91b, but with ACTIVE_SLOT_COUNT>=1 the seeding loop's slot-1 iteration (SLOT_COUNTDOWN+1 = SLOT_COUNTDOWN_HI) re-writes it to DSW_BONUS_CONFIG,
 // so under this multi-slot seed the oracle leaves SLOT_COUNTDOWN_HI == DSW_BONUS_CONFIG, NOT 0. The distinct c91b clear is
 // observable only when the loop never reaches slot 1 (ACTIVE_SLOT_COUNT == 0) -- the TEETH below seeds exactly that.
 function seed(m) {
-  m.mem.write8(STATUS_FLAGS, 0x10);    // positive -> loc_ca62 skipped
+  m.mem.write8(STATUS_FLAGS, 0x10);    // positive -> clearChannelStagingBlock skipped
   m.mem.write8(ACTIVE_SLOT_COUNT, 0x04);   // slot count -> loop runs slots 4..0
   m.mem.write8(DSW_BONUS_CONFIG, 0x5a);  // fill byte copied into SLOT_COUNTDOWN,slot
   m.mem.write8(LEVEL_ID, 0x66);   // nonzero -> the clear is observable
@@ -79,10 +79,10 @@ test("CRAFTED: seeding loop + clears + tail-delegate -- RAM equal", () => {
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle threw on this seed -- skipped"); return; }
-  loc_c90c(c);
+  resetLevelPlayfieldSlots(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the reset + delegate");
-  // The routine's own writes that survive the delegate (loc_90c4 does not touch 0x3f/0x115/0x46-0x4c on
-  // this positive-STATUS_FLAGS path; it DOES rewrite loc_3d via loc_9108, so loc_3d is the delegate's, not 0x3e).
+  // The routine's own writes that survive the delegate (selectWaveStartSlot does not touch 0x3f/0x115/0x46-0x4c on
+  // this positive-STATUS_FLAGS path; it DOES rewrite loc_3d via reseedWaveWorkingSet, so loc_3d is the delegate's, not 0x3e).
   assert.equal(c.mem.read8(SLOT_COUNTDOWN_HI), o.mem.read8(SLOT_COUNTDOWN_HI), "SLOT_COUNTDOWN_HI matches the oracle after the seeding loop");
   assert.equal(c.mem.read8(LEVEL_ID), o.mem.read8(LEVEL_ID), "LEVEL_ID matches the oracle (cleared)");
   assert.equal(c.mem.read8(SPIKE_TABLE_GUARD), o.mem.read8(SPIKE_TABLE_GUARD), "SPIKE_TABLE_GUARD matches the oracle (cleared)");
@@ -90,14 +90,14 @@ test("CRAFTED: seeding loop + clears + tail-delegate -- RAM equal", () => {
   assert.equal(c.mem.read8(PLAYER_LEVEL_TBL + 0x01), o.mem.read8(PLAYER_LEVEL_TBL + 0x01), "slot 1 flag (0x47) matches the oracle");
 });
 
-test("CRAFTED-B: STATUS_FLAGS negative -- loc_ca62 arm runs, RAM equal (skip-on-throw)", () => {
+test("CRAFTED-B: STATUS_FLAGS negative -- clearChannelStagingBlock arm runs, RAM equal (skip-on-throw)", () => {
   const o = new Machine(ROM, OPTS); seed(o); o.mem.write8(STATUS_FLAGS, 0x80);
   const c = new Machine(ROM, OPTS); seed(c); c.mem.write8(STATUS_FLAGS, 0x80);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
-  if (threw) { console.log("  CRAFTED-B: oracle threw on the loc_ca62 arm -- skipped"); return; }
-  loc_c90c(c);
-  assert.equal(ramDiff(o, c), null, "RAM equal with the loc_ca62 arm taken");
+  if (threw) { console.log("  CRAFTED-B: oracle threw on the clearChannelStagingBlock arm -- skipped"); return; }
+  resetLevelPlayfieldSlots(c);
+  assert.equal(ramDiff(o, c), null, "RAM equal with the clearChannelStagingBlock arm taken");
 });
 
 test("TEETH: a twin that drops the SLOT_COUNTDOWN_HI clear MUST diverge in RAM", () => {
@@ -105,7 +105,7 @@ test("TEETH: a twin that drops the SLOT_COUNTDOWN_HI clear MUST diverge in RAM",
   // (SLOT_COUNTDOWN_HI == SLOT_COUNTDOWN+1). Seed ACTIVE_SLOT_COUNT == 0 so the loop writes slot 0 only (SLOT_COUNTDOWN), leaving SLOT_COUNTDOWN_HI
   // to the clear; pre-seed SLOT_COUNTDOWN_HI nonzero so "dropped clear" leaves that stale value.
   const teethSeed = (m) => {
-    m.mem.write8(STATUS_FLAGS, 0x10);    // positive -> loc_ca62 skipped
+    m.mem.write8(STATUS_FLAGS, 0x10);    // positive -> clearChannelStagingBlock skipped
     m.mem.write8(ACTIVE_SLOT_COUNT, 0x00);   // loop runs slot 0 only -> never writes SLOT_COUNTDOWN+1 == SLOT_COUNTDOWN_HI
     m.mem.write8(DSW_BONUS_CONFIG, 0x5a);  // fill byte (into SLOT_COUNTDOWN = slot 0)
     m.mem.write8(SLOT_COUNTDOWN_HI, 0x77);   // stale value -> a dropped c91b clear leaves this
@@ -118,7 +118,7 @@ test("TEETH: a twin that drops the SLOT_COUNTDOWN_HI clear MUST diverge in RAM",
   assert.equal(o.mem.read8(SLOT_COUNTDOWN_HI), 0x00, "precondition: oracle leaves SLOT_COUNTDOWN_HI cleared");
   // Broken twin: run the real routine, then revert the SLOT_COUNTDOWN_HI clear. With ACTIVE_SLOT_COUNT == 0 the loop never
   // re-writes SLOT_COUNTDOWN_HI, so the c91b clear is the last write to it -- reverting it guarantees divergence.
-  const broken = (m) => { loc_c90c(m); m.mem.write8(SLOT_COUNTDOWN_HI, 0x77); };
+  const broken = (m) => { resetLevelPlayfieldSlots(m); m.mem.write8(SLOT_COUNTDOWN_HI, 0x77); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the dropped SLOT_COUNTDOWN_HI clear was NOT caught by the RAM compare");
 });

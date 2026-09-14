@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_92c5 (ROM 0x92c5-0x93df) -- the state re-seed. Builds the search key loc_2b,
+// Memory-equivalence for reseedStateTables (ROM 0x92c5-0x93df) -- the state re-seed. Builds the search key loc_2b,
 // walks the 4-byte records at STATE_RESEED_RECORD_TABLE (index 111..3 step -4) scanning each record's source list for the
 // range bracketing the key and storing the resolved byte through the record's destination pointer, then
 // rescales ENEMY_CLIMB_DELTA_LO_0/INITIAL_ACTIVE_COUNT per DSW_DIFFICULTY & 3 and folds ENEMY_CLIMB_DELTA_LO_3/OBJECT_VELOCITY_LO/ENEMY_CLIMB_DELTA_LO_0 through the helper, seeding
-// many loc_01xx cells. loc_92c5 takes no input register and ends with its OWN return (no tail-delegation),
+// many loc_01xx cells. reseedStateTables takes no input register and ends with its OWN return (no tail-delegation),
 // and every caller overwrites A/X/Y before reading them, so there is NO live-out register: the contract is
-// pure RAM-equivalence (dumpState minus STACK_SCRATCH). Oracle is the frozen translated loc_92c5.
+// pure RAM-equivalence (dumpState minus STACK_SCRATCH). Oracle is the frozen translated reseedStateTables.
 // Run: node --test games/tempest/idiomatic/test/equivalence-92c5.test.js
 
 import nodeTest from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_92c5 as oracle } from "../../translated/loc_92c5.js";
-import { loc_92c5 } from "../loc_92c5.js";
+import { reseedStateTables } from "../reseedStateTables.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_9f, DSW_DIFFICULTY, CANDIDATE_LANE_0 } from "../names.js";
@@ -41,14 +41,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x92c5 dispatches -- loc_92c5 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x92c5 dispatches -- reseedStateTables == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a deep list-scan arm may reach an unimplemented helper
     if (threw) continue;                       // both layers would throw identically there
-    loc_92c5(c);
+    reseedStateTables(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -72,7 +72,7 @@ for (const [name, keyByte, modeByte] of [
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) { console.log(`  CRAFTED ${name}: oracle threw on this seed -- skipped`); return; }
-    loc_92c5(c);
+    reseedStateTables(c);
     assert.equal(ramDiff(o, c), null, "RAM equal after the re-seed");
   });
 }
@@ -83,11 +83,11 @@ test("TEETH: a twin that corrupts a signature seed MUST diverge in RAM", () => {
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_92c5 but corrupts the unconditional CANDIDATE_LANE_0 = 1 signature write.
+  // Broken twin: identical to reseedStateTables but corrupts the unconditional CANDIDATE_LANE_0 = 1 signature write.
   let tried = 0;
   const broken = (m) => {
     tried++;
-    loc_92c5(m);
+    reseedStateTables(m);
     m.mem.write8(CANDIDATE_LANE_0, m.mem.read8(CANDIDATE_LANE_0) ^ 0xff); // BUG: corrupt the final seed
   };
   broken(c);

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a38e (ROM 0xa38e-0xa397) -- flags slot X active by writing 0xff to
-// HIT_TALLY,x, steps the incoming lane index Y back by four, then TAIL-DELEGATES to loc_a398 with the
-// unchanged X and the stepped-back index. loc_a38e takes X and Y as live-in registers (the write index
+// Memory-equivalence for activateSlotAndRespawn (ROM 0xa38e-0xa397) -- flags slot X active by writing 0xff to
+// HIT_TALLY,x, steps the incoming lane index Y back by four, then TAIL-DELEGATES to respawnEnemyAndAward with the
+// unchanged X and the stepped-back index. activateSlotAndRespawn takes X and Y as live-in registers (the write index
 // and the lane index) and its exit registers are the delegate's, so live-out is RAM only (dumpState
-// minus STACK_SCRATCH) -- no register is produced by loc_a38e itself, exactly as its tail-delegate leaves
-// A/X/Y. Oracle is the frozen translated loc_a38e.
+// minus STACK_SCRATCH) -- no register is produced by activateSlotAndRespawn itself, exactly as its tail-delegate leaves
+// A/X/Y. Oracle is the frozen translated activateSlotAndRespawn.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a38e.test.js
 
 import nodeTest from "node:test";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a38e as oracle } from "../../translated/loc_a38e.js";
-import { loc_a38e } from "../loc_a38e.js";
+import { activateSlotAndRespawn } from "../activateSlotAndRespawn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, HIT_TALLY } from "../names.js";
@@ -40,22 +40,22 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xa38e dispatches -- loc_a38e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa38e dispatches -- activateSlotAndRespawn == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented draw arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_a38e(c);
+    activateSlotAndRespawn(c);
     assert.equal(ramDiff(o, c), null);
-    // A/X/Y not compared: loc_a38e tail-delegates to loc_a398, so its exit registers are the delegate's.
+    // A/X/Y not compared: activateSlotAndRespawn tail-delegates to respawnEnemyAndAward, so its exit registers are the delegate's.
     checked++;
   }
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Seed X (the HIT_TALLY,x flag index) and Y (the lane index, stepped back by four into loc_a398), and
+// Seed X (the HIT_TALLY,x flag index) and Y (the lane index, stepped back by four into respawnEnemyAndAward), and
 // give the stepped-back slot a plausible descriptor/seated pair so the delegate walks a real path.
 function seed(m) {
   m.regs.x = 0x05;
@@ -70,7 +70,7 @@ test("CRAFTED: flag write + step-back + tail-delegate -- RAM equal", () => {
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle threw on this seed -- skipped"); return; }
-  loc_a38e(c);
+  activateSlotAndRespawn(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the flag write and tail-delegate");
   // The unconditional signature write landed at HIT_TALLY + X = HIT_TALLY + 5.
   assert.equal(c.mem.read8(HIT_TALLY + 0x05), 0xff, "slot flag set");
@@ -82,11 +82,11 @@ test("TEETH: a twin that drops the HIT_TALLY,x flag write MUST diverge in RAM", 
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_a38e but reverts the unconditional 0xff flag write.
+  // Broken twin: identical to activateSlotAndRespawn but reverts the unconditional 0xff flag write.
   const broken = (m) => {
     const x = m.regs.x;
     const before = m.mem.read8(HIT_TALLY + x);
-    loc_a38e(m);
+    activateSlotAndRespawn(m);
     m.mem.write8(HIT_TALLY + x, before); // BUG: undo the signature write
   };
   broken(c);

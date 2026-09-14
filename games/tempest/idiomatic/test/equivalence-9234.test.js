@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9234 (ROM 0x9234) -- seeds $3ab from $15b and fills $3ac..$3bb from $15a.
+// Memory-equivalence for seedPerLaneSpikeArray (ROM 0x9234) -- seeds $3ab from $15b and fills $3ac..$3bb from $15a.
 // Live-out is RAM only (A/X are loop scratch no caller reads), so every arm compares RAM (-stack). It is a
 // pure leaf (no dispatch), so the seam completes it by omitting its ROM ret. No POKEY reads.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9234.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9234 as oracle } from "../../translated/loc_9234.js";
-import { loc_9234 } from "../loc_9234.js";
+import { seedPerLaneSpikeArray } from "../seedPerLaneSpikeArray.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, LANE_FILL_INIT, INITIAL_ACTIVE_COUNT, FIRE_GATE, LANE_LIMIT } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9234 dispatches -- loc_9234 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9234 dispatches -- seedPerLaneSpikeArray == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9234(c);
+    oracle(o); seedPerLaneSpikeArray(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ test("CRAFTED: header from $15b and 16-byte fill from $15a == oracle (RAM -stack
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_9234(c);
+    oracle(o); seedPerLaneSpikeArray(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }
 });

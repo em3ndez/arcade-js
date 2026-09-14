@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b75b -- a caller that walks twelve slots emitting each non-empty entry's shape
-// (dissolving its in-loop jmp into the already-idiomatic loc_bcfd, value + index passed explicitly) then
+// Memory-equivalence for drawSlotShapeList -- a caller that walks twelve slots emitting each non-empty entry's shape
+// (dissolving its in-loop jmp into the already-idiomatic seatShapeParamsAndEmit, value + index passed explicitly) then
 // latches a level byte. The callee chain shapes vector work cells; live-out is memory only, so each side
 // runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). No register inputs.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b75b.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b75b as oracle } from "../../translated/loc_b75b.js";
-import { loc_b75b } from "../loc_b75b.js";
+import { drawSlotShapeList } from "../drawSlotShapeList.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xb75b dispatches -- loc_b75b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb75b dispatches -- drawSlotShapeList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b75b(c);
+    oracle(o); drawSlotShapeList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -63,7 +63,7 @@ const seed = (m, stage) => {
 test("CRAFTED: seeded loop is RAM-equivalent and latches the level byte", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x04); // stage < 6 -> level 0x04
   const c = new Machine(ROM, OPTS); seed(c, 0x04);
-  oracle(o); loc_b75b(c);
+  oracle(o); drawSlotShapeList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk");
   assert.equal(c.io.colorram[COLOR_RAM_8 & 0x0f], 0x04, "level byte latched to 0x04");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), o.mem.read8(SLOT_LOOP_INDEX), "loop counter matches oracle");
@@ -73,7 +73,7 @@ test("CRAFTED: stage in [6,8) latches 0x0b; stage >= 8 latches 0x0c", () => {
   for (const [stage, want] of [[0x07, 0x0b], [0x09, 0x0c]]) {
     const o = new Machine(ROM, OPTS); seed(o, stage);
     const c = new Machine(ROM, OPTS); seed(c, stage);
-    oracle(o); loc_b75b(c);
+    oracle(o); drawSlotShapeList(c);
     assert.equal(ramDiff(o, c), null, `RAM equal at stage ${stage}`);
     assert.equal(c.io.colorram[COLOR_RAM_8 & 0x0f], want, `level byte at stage ${stage}`);
   }
@@ -83,7 +83,7 @@ test("TEETH (non-default seed): a twin that latches the wrong level byte diverge
   const o = new Machine(ROM, OPTS); seed(o, 0x09);
   const c = new Machine(ROM, OPTS); seed(c, 0x09);
   oracle(o);
-  loc_b75b(c);
+  drawSlotShapeList(c);
   c.mem.write8(COLOR_RAM_8, 0x00); // BUG: clobber the latched level byte
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong level byte");
 });

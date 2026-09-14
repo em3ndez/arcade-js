@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c800 -- while the guard flag ($03 & $016b) is clear, runs down the delay
+// Memory-equivalence for commitPendingModeAfterDelay -- while the guard flag ($03 & $016b) is clear, runs down the delay
 // counter $04; when it lands on zero it arms the next state ($00 = $02) and clears the guard $016b. Every
-// path tail-delegates jmp 0x9749 (dissolved into the idiomatic loc_9749, Y threaded). Live-out is memory
+// path tail-delegates jmp 0x9749 (dissolved into the idiomatic rotateBlasterAroundRim, Y threaded). Live-out is memory
 // only, so each arm compares RAM (dumpState minus STACK_SCRATCH). The routine seats state then tail-calls,
 // so it is an omitted-ret dispatch (SP-tooth). $0201 bit7 is seeded to steer the delegated update to its
 // deterministic early-out.
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c800 as oracle } from "../../translated/loc_c800.js";
-import { loc_c800 } from "../loc_c800.js";
+import { commitPendingModeAfterDelay } from "../commitPendingModeAfterDelay.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAYER_FINE_ANGLE, FRAME_COUNTER, MODE_DELAY_GUARD, MODE_DELAY_TIMER, GAME_MODE, GAME_MODE_PENDING } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xc800 dispatches -- loc_c800 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc800 dispatches -- commitPendingModeAfterDelay == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c800(c);
+    oracle(o); commitPendingModeAfterDelay(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ test("CRAFTED: guard clear + counter reaches zero -- arm next state, clear guard
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c800(c);
+  oracle(o); commitPendingModeAfterDelay(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the arm path");
   assert.equal(c.mem.read8(GAME_MODE), 0x37, "$00 armed from $02");
   assert.equal(c.mem.read8(MODE_DELAY_GUARD), 0x00, "guard cleared");
@@ -75,7 +75,7 @@ test("CRAFTED: guard set -- tail-delegate with no arm", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c800(c);
+  oracle(o); commitPendingModeAfterDelay(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the guarded path");
   assert.equal(c.mem.read8(GAME_MODE), 0x00, "$00 not armed");
   assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x05, "counter untouched");
@@ -92,7 +92,7 @@ test("CRAFTED: guard clear + counter still counting -- decrement only, no arm", 
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c800(c);
+  oracle(o); commitPendingModeAfterDelay(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the counting path");
   assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x04, "counter decremented");
   assert.equal(c.mem.read8(GAME_MODE), 0x00, "no arm while counting");
@@ -127,7 +127,7 @@ test("SP-TOOTH: the omitted-ret dispatch (moved 0) is seam-placeable", () => {
   m.mem.write8(FRAME_COUNTER, 0xff);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c800, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c800 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, commitPendingModeAfterDelay, TARGET, m);
+  assert.equal(r.placeable, true, `commitPendingModeAfterDelay must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatch (moved 0) placeable");
 });

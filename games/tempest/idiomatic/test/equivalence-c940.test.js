@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c940 (ROM 0xc940-0xc97a) -- level-setup. It seeds the sizing/timer cells
+// Memory-equivalence for setupLevelTimers (ROM 0xc940-0xc97a) -- level-setup. It seeds the sizing/timer cells
 // (MODE_DISPATCH_SEL/GAME_MODE/GAME_MODE_PENDING), and when the level id LEVEL_ID differs from the last-seen loc_3d AND STATUS_FLAGS is
 // negative it installs the new-level timers (MODE_DISPATCH_SEL/GAME_MODE/MODE_DELAY_TIMER, the last picked by loc_117) and swaps
-// the paired tables via loc_92b2; then it converges: loc_ca48, index PLAYER_LEVEL_TBL by loc_3d into loc_9f,
-// loc_9025 (startup init), and TAIL-DELEGATES to loc_cd95 (readout reset). Live-out is RAM only
-// (dumpState minus STACK_SCRATCH): c940 takes no input register and tail-jmps loc_cd95, so its exit
+// the paired tables via swapParallelTables; then it converges: selectProjectionScale, index PLAYER_LEVEL_TBL by loc_3d into loc_9f,
+// loc_9025 (startup init), and TAIL-DELEGATES to resetBothPokeyChips (readout reset). Live-out is RAM only
+// (dumpState minus STACK_SCRATCH): c940 takes no input register and tail-jmps resetBothPokeyChips, so its exit
 // registers are the delegate's -- both layers run the identical delegate from the identical clone, so
-// registers are not part of this routine's contract. Oracle is the frozen translated loc_c940.
+// registers are not part of this routine's contract. Oracle is the frozen translated setupLevelTimers.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c940.test.js
 
 import nodeTest from "node:test";
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c940 as oracle } from "../../translated/loc_c940.js";
-import { loc_c940 } from "../loc_c940.js";
+import { setupLevelTimers } from "../setupLevelTimers.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -46,14 +46,14 @@ function captureDispatches(K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 const freezePokey = (m) => { for (const p of m.io.pokeys) p.skctl &= ~0x03; return m; };
 
-test("CAPTURE: real 0xc940 dispatches -- loc_c940 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc940 dispatches -- setupLevelTimers == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented downstream arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_c940(c);
+    setupLevelTimers(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -81,7 +81,7 @@ test("CRAFTED: changed level + negative STATUS_FLAGS + loc_117 branch -- RAM equ
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle threw on this seed -- skipped"); return; }
-  loc_c940(c);
+  setupLevelTimers(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the level-setup path");
   // Spot-checks on this routine's own signature writes.
   assert.equal(c.mem.read8(GAME_MODE_PENDING), 30, "GAME_MODE_PENDING seeded to 30");
@@ -109,7 +109,7 @@ test("CRAFTED: unchanged level -- block skipped, convergence tail -- RAM equal",
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED same: oracle threw on this seed -- skipped"); return; }
-  loc_c940(c);
+  setupLevelTimers(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the skip path");
   assert.equal(c.mem.read8(GAME_MODE_PENDING), 30, "GAME_MODE_PENDING seeded to 30 even on the skip path");
   assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0, "MODE_DISPATCH_SEL stays 0 (timer block skipped)");
@@ -122,11 +122,11 @@ test("TEETH: a twin that drops the unconditional GAME_MODE_PENDING write MUST di
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_c940 but reverts the unconditional GAME_MODE_PENDING = 30 write. The seed leaves
+  // Broken twin: identical to setupLevelTimers but reverts the unconditional GAME_MODE_PENDING = 30 write. The seed leaves
   // GAME_MODE_PENDING = 0 before the call, so reverting guarantees a RAM divergence from the oracle's 30.
   const broken = (m) => {
     const before02 = m.mem.read8(GAME_MODE_PENDING);
-    loc_c940(m);
+    setupLevelTimers(m);
     m.mem.write8(GAME_MODE_PENDING, before02); // BUG: revert the sizing-cell write
   };
   broken(c);

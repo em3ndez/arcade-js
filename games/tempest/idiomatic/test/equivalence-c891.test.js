@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_c891 (ROM 0xc891-0xc90b) -- the per-frame dispatcher. It sets speed/mode cells from
-// the coin input + phase counters, then a common tail advances FRAME_COUNTER and fires the sub-steps loc_c81b
-// (c8d2), loc_de1b (odd frames) and loc_ccfa (when SOUND_STEP_GATE is live), threading the slot index X/Y from one to
+// Equivalence for seedFramePhaseAndTick (ROM 0xc891-0xc90b) -- the per-frame dispatcher. It sets speed/mode cells from
+// the coin input + phase counters, then a common tail advances FRAME_COUNTER and fires the sub-steps advanceLevelCounter
+// (c8d2), stepEaromTransfer (odd frames) and loc_ccfa (when SOUND_STEP_GATE is live), threading the slot index X/Y from one to
 // the next. Contract: RAM (dumpState minus STACK_SCRATCH). The ROM's decimal-mode arm (SED gated on
 // DECIMAL_MODE_FLAG != 0 && loc_9f > 0x13) is DEAD -- DECIMAL_MODE_FLAG is the checksum 0xa7 ^ fold(ROM[0xaace..0xaad8]) of a
 // fixed program-ROM span, which is 0, so the gate never opens (verified statically and by a MAME tap over
 // gameplay). The idiomatic routine omits it; on every reachable state D is left untouched, matching the
 // oracle, which the CAPTURE test still checks. c891 is a full JS dispatcher (calls its sub-steps as JS),
 // not an omitted-ret leaf, so there is no SP-tooth. The X/Y threading into loc_ccfa is load-bearing: ccfa
-// forwards them to loc_ccc7, which stamps loc_31/loc_32 -- a stale (entry) X/Y writes the wrong cells.
+// forwards them to loadSoundVoiceSlots, which stamps loc_31/loc_32 -- a stale (entry) X/Y writes the wrong cells.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c891.test.js
 
 import nodeTest from "node:test";
@@ -16,8 +16,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c891 as oracle } from "../../translated/loc_c891.js";
-import { loc_c891 } from "../loc_c891.js";
-import { loc_de1b } from "../loc_de1b.js";
+import { seedFramePhaseAndTick } from "../seedFramePhaseAndTick.js";
+import { stepEaromTransfer } from "../stepEaromTransfer.js";
 import { loc_ccfa } from "../loc_ccfa.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -43,14 +43,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 4000) : [];
 
-test("CAPTURE: real 0xc891 dispatches -- loc_c891 == oracle in RAM (-stack) and in the D flag", () => {
+test("CAPTURE: real 0xc891 dispatches -- seedFramePhaseAndTick == oracle in RAM (-stack) and in the D flag", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue;
-    loc_c891(c);
+    seedFramePhaseAndTick(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.fD, o.regs.fD, "decimal-flag live-out matches");
     checked++;
@@ -58,7 +58,7 @@ test("CAPTURE: real 0xc891 dispatches -- loc_c891 == oracle in RAM (-stack) and 
   console.log(`  CAPTURE: ${checked}/${CAPS.length} compared`);
 });
 
-// Force the tail sub-steps: odd frame (so loc_de1b runs) and SOUND_STEP_GATE live (so loc_ccfa runs).
+// Force the tail sub-steps: odd frame (so stepEaromTransfer runs) and SOUND_STEP_GATE live (so loc_ccfa runs).
 const forceTailSubsteps = (m) => { m.mem.write8(FRAME_COUNTER, 0x00); m.mem.write8(SOUND_STEP_GATE, 0x01); };
 
 test("CRAFTED: loc_ccfa reached (odd frame + SOUND_STEP_GATE live) -- RAM equal, X/Y threaded correctly", () => {
@@ -69,7 +69,7 @@ test("CRAFTED: loc_ccfa reached (odd frame + SOUND_STEP_GATE live) -- RAM equal,
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue;
-    loc_c891(c);
+    seedFramePhaseAndTick(c);
     assert.equal(ramDiff(o, c), null, "RAM equal after the ccfa-reaching tail (loc_31/loc_32 stamped by threaded X/Y)");
     checked++;
   }
@@ -77,7 +77,7 @@ test("CRAFTED: loc_ccfa reached (odd frame + SOUND_STEP_GATE live) -- RAM equal,
   assert.ok(checked >= 1, "no state reached the ccfa tail cleanly");
 });
 
-// A full copy of loc_c891 identical EXCEPT the ccfa call hands over the stale (entry-register) X/Y
+// A full copy of seedFramePhaseAndTick identical EXCEPT the ccfa call hands over the stale (entry-register) X/Y
 // instead of the threaded locals -- the exact R37 defect this routine's threading prevents.
 function brokenStaleBridge(m, x = m.regs.x, y = m.regs.y) {
   const rd = (a) => m.mem8[a], wr = (a, v) => { m.mem8[a] = v & 0xff; };
@@ -93,17 +93,17 @@ function brokenStaleBridge(m, x = m.regs.x, y = m.regs.y) {
     else if (y !== 0) { wr(0x01, 0x16); wr(0x00, 0x0a); }
   }
   if (!toTail) {
-    if (toC81b && rd(0x06) !== 0) [x, y] = loc_c81b(m, x);
+    if (toC81b && rd(0x06) !== 0) [x, y] = advanceLevelCounter(m, x);
     if ((rd(0x09) & 0x03) === 0) wr(0x06, 0x02);
   }
   wr(0x03, rd(0x03) + 1);
-  if ((rd(0x03) & 0x01) !== 0) [x, y] = loc_de1b(m, x, y);
+  if ((rd(0x03) & 0x01) !== 0) [x, y] = stepEaromTransfer(m, x, y);
   if (rd(0x0c) !== 0) loc_ccfa(m); // BUG: stale entry X/Y from the bridge, not the threaded de1b/c81b exit
   if ((rd(0x4e) & 0x80) !== 0) wr(0x4e, 0x00);
 }
 
 test("TEETH (X/Y threading): a twin that lets loc_ccfa read the stale bridge diverges from the oracle", () => {
-  // On an odd frame loc_de1b changes X/Y, so a ccfa that reads the entry registers stamps the wrong
+  // On an odd frame stepEaromTransfer changes X/Y, so a ccfa that reads the entry registers stamps the wrong
   // loc_31/loc_32. Scan the forced states for one that diverges (the design measured ~148/200), proving it.
   let caught = false, tried = 0;
   for (const cap of CAPS) {

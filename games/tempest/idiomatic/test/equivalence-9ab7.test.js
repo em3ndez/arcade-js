@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for the loc_9ab7 mid-entry (ROM 0x9ab7) -- it presets the index to 3 and runs the
+// Memory-equivalence for the seatCoordListPointerAtIndex3 mid-entry (ROM 0x9ab7) -- it presets the index to 3 and runs the
 // shared pointer-pair setup (0x9b02[3]->$2c, 0x9afd[3]->$2d, 3->$2b, A<-$29). Neither the incoming A nor
 // Y is read (the entry sets its own index), so live-out is RAM (dumpState minus STACK_SCRATCH) plus A.
 // The oracle is the frozen mid-entry export loc_9ab7 in translated/loc_9a9d.js.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9ab7 as oracle } from "../../translated/loc_9a9d.js";
-import { loc_9ab7 } from "../loc_9a9d.js";
+import { seatCoordListPointerAtIndex3 } from "../seatDemoCoordListPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9ab7 dispatches -- loc_9ab7 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x9ab7 dispatches -- seatCoordListPointerAtIndex3 == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9ab7(c);
+    oracle(o); seatCoordListPointerAtIndex3(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   }
@@ -58,7 +58,7 @@ function seed(m, a29) {
 test("CRAFTED: index-3 pointer-pair seated and A reloaded -- RAM and A equal", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x42);
   const c = new Machine(ROM, OPTS); seed(c, 0x42);
-  oracle(o); loc_9ab7(c);
+  oracle(o); seatCoordListPointerAtIndex3(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.mem.read8(loc_2b), 0x03, "$2b holds the index");

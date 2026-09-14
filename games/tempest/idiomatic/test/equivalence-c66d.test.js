@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c66d (ROM 0xc66d-0xc6c6) -- averages a slot's two 16-bit coordinate pairs with
+// Memory-equivalence for emitSlotMidpointVertex (ROM 0xc66d-0xc6c6) -- averages a slot's two 16-bit coordinate pairs with
 // its wrap-around neighbour (round-up, sign-preserving halve) into $61/$62 and $63/$64, appends four bytes to
 // the ($74) display list (high bytes masked 0x1f), mirrors them to $6a-$6d, advances the $a9 cursor. Live-out
 // is memory only (A/X/Y at RTS are incidental), so each side runs on a clone and the contract is RAM
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c66d as oracle } from "../../translated/loc_c66d.js";
-import { loc_c66d } from "../loc_c66d.js";
+import { emitSlotMidpointVertex } from "../emitSlotMidpointVertex.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -57,10 +57,10 @@ function seed(m, slot) {
   m.mem.write16(DRAW_CURSOR_LO, DLIST);
 }
 
-test("CAPTURE: real 0xc66d dispatches -- loc_c66d == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc66d dispatches -- emitSlotMidpointVertex == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c66d(c);
+    oracle(o); emitSlotMidpointVertex(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -70,7 +70,7 @@ test("CRAFTED: midpoints, display-list append, mirrors and cursor all match the 
   for (const slot of [0x00, 0x03, 0x08, 0x0f]) {
     const o = new Machine(ROM, OPTS); seed(o, slot);
     const c = new Machine(ROM, OPTS); seed(c, slot);
-    oracle(o); loc_c66d(c);
+    oracle(o); emitSlotMidpointVertex(c);
     const label = `slot=0x${slot.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `RAM diverged: ${label}`);
     for (const a of [PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, DRAW_CURSOR_OFFSET])
@@ -111,7 +111,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   seed(m, 0x03);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c66d, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c66d must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitSlotMidpointVertex, TARGET, m);
+  assert.equal(r.placeable, true, `emitSlotMidpointVertex must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

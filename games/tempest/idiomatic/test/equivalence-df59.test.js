@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df59 (ROM 0xdf59) -- store {A,X} at ($74/$75)+Y and +(Y+1), then advance the
-// ($74/$75) cursor by Y+2 (tail into loc_df5f). A/X/Y are register-bridge inputs. The oracle m.call(0xdf5f)s
-// the translated tail; the idiomatic calls the idiomatic loc_df5f -- both memory-equivalent, so the contract
+// Memory-equivalence for emitVectorWordAtOffset (ROM 0xdf59) -- store {A,X} at ($74/$75)+Y and +(Y+1), then advance the
+// ($74/$75) cursor by Y+2 (tail into advanceDisplayCursor). A/X/Y are register-bridge inputs. The oracle m.call(0xdf5f)s
+// the translated tail; the idiomatic calls the idiomatic advanceDisplayCursor -- both memory-equivalent, so the contract
 // is RAM (dumpState, minus STACK_SCRATCH). Registers are scratch for this display-builder family (the landed
-// loc_df5f tail preserves none), so no register live-out is asserted. Plain (non-dispatching) caller -- no SP
+// advanceDisplayCursor tail preserves none), so no register live-out is asserted. Plain (non-dispatching) caller -- no SP
 // tooth. No POKEY read, so the CRAFTED seeds are deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df59.test.js
 
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df59 as oracle } from "../../translated/loc_df59.js";
-import { loc_df59 } from "../loc_df59.js";
+import { emitVectorWordAtOffset } from "../emitVectorWordAtOffset.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -39,7 +39,7 @@ function seed(m, s) {
 // A/X/Y are the register-bridge inputs; the clone carries them.
 function diffFrom(cap) {
   const o = cap.clone(), c = cap.clone();
-  oracle(o); loc_df59(c, c.regs.a, c.regs.x, c.regs.y);
+  oracle(o); emitVectorWordAtOffset(c, c.regs.a, c.regs.x, c.regs.y);
   return ramDiff(o, c);
 }
 
@@ -51,7 +51,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdf59 dispatches -- loc_df59 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf59 dispatches -- emitVectorWordAtOffset == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) assert.equal(diffFrom(cap), null);
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -69,12 +69,12 @@ test("CRAFTED: pair stored at Y/Y+1 and cursor advanced by Y+2 == oracle (RAM -s
   for (const t of cases) {
     const o = new Machine(ROM, OPTS); seed(o, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); o.regs.a = t.a; o.regs.x = t.x; o.regs.y = t.y;
     const c = new Machine(ROM, OPTS); seed(c, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); c.regs.a = t.a; c.regs.x = t.x; c.regs.y = t.y;
-    oracle(o); loc_df59(c, c.regs.a, c.regs.x, c.regs.y);
+    oracle(o); emitVectorWordAtOffset(c, c.regs.a, c.regs.x, c.regs.y);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
   // Explicit content/advance check.
   const m = new Machine(ROM, OPTS); seed(m, { [DRAW_CURSOR_LO]: 0x10, [DRAW_CURSOR_HI]: 0x20 }); m.regs.a = 0xab; m.regs.x = 0xcd; m.regs.y = 0x03;
-  loc_df59(m, m.regs.a, m.regs.x, m.regs.y);
+  emitVectorWordAtOffset(m, m.regs.a, m.regs.x, m.regs.y);
   assert.equal(m.mem.read8(0x2013), 0xab, "A at ptr+3");
   assert.equal(m.mem.read8(0x2014), 0xcd, "X at ptr+4");
   assert.equal(m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8), 0x2015, "cursor += Y+2");

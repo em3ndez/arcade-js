@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_af77 (ROM 0xaf77-0xaf80) -- packs A to BCD via loc_aaf5, then tail-emits the
-// single zeropage byte at $29 through loc_dfb1. The idiomatic side dissolves jsr $aaf5 and the jmp $dfb1
-// tail-call into direct loc_aaf5(m,a) / loc_dfb1(m,0x29,0x01) calls. Live-out is memory only (the emit
+// Memory-equivalence for loc_af77 (ROM 0xaf77-0xaf80) -- packs A to BCD via packBinaryToBcd, then tail-emits the
+// single zeropage byte at $29 through emitNibbleDigitRun. The idiomatic side dissolves jsr $aaf5 and the jmp $dfb1
+// tail-call into direct packBinaryToBcd(m,a) / emitNibbleDigitRun(m,0x29,0x01) calls. Live-out is memory only (the emit
 // list + zeropage; A/X/Y at RTS are incidental), so each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-af77.test.js
 
@@ -13,7 +13,7 @@ import { loc_af77 as oracle } from "../../translated/loc_af77.js";
 import { loc_af77 } from "../loc_af77.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_aaf5 } from "../loc_aaf5.js";
+import { packBinaryToBcd } from "../packBinaryToBcd.js";
 import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -73,7 +73,7 @@ test("CRAFTED: A=0x00 (non-default seed) -- RAM equal", () => {
 test("TEETH: a twin that skips the dfb1 tail-emit diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x4b); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c, 0x4b);
-  const brokenAf77 = (m, a = m.regs.a) => { loc_aaf5(m, a); /* BUG: never emits the byte */ };
+  const brokenAf77 = (m, a = m.regs.a) => { packBinaryToBcd(m, a); /* BUG: never emits the byte */ };
   brokenAf77(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped emit");
 });

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9c4f (ROM 0x9c4f) -- toggle bit $40 of slot X's $0283 flags cell and hand the
+// Memory-equivalence for toggleEnemyTurnSide (ROM 0x9c4f) -- toggle bit $40 of slot X's $0283 flags cell and hand the
 // toggled value back in A. Live-out is RAM ($0283,x) plus the A register (the caller reads the new value),
 // so the arms compare RAM (-stack) AND A. A pure leaf (no dispatch, no stack move): it omits the ROM ret and
 // the withOmittedRet seam completes it, so the arms compare RAM (-stack) + A, NOT pc/SP.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9c4f as oracle } from "../../translated/loc_9c4f.js";
-import { loc_9c4f } from "../loc_9c4f.js";
+import { toggleEnemyTurnSide } from "../toggleEnemyTurnSide.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_SLOT_FLAGS } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1200) : [];
 
-test("CAPTURE: real 0x9c4f dispatches -- loc_9c4f == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x9c4f dispatches -- toggleEnemyTurnSide == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9c4f(c);
+    oracle(o); toggleEnemyTurnSide(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out (toggled value) matches the oracle");
   }
@@ -58,7 +58,7 @@ test("CRAFTED: bit $40 toggles in $0283,x; A = toggled value", () => {
     const addr = (ENEMY_SLOT_FLAGS + x) & 0xffff;
     const o = new Machine(ROM, OPTS); o.regs.x = x; o.mem.write8(addr, seed);
     const c = new Machine(ROM, OPTS); c.regs.x = x; c.mem.write8(addr, seed);
-    oracle(o); const ret = loc_9c4f(c);
+    oracle(o); const ret = toggleEnemyTurnSide(c);
     const tag = `x=0x${x.toString(16)} seed=0x${seed.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `RAM: ${tag}`);
     assert.equal(c.mem.read8(addr), seed ^ 0x40, `cell toggled: ${tag}`);
@@ -81,7 +81,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   m.regs.x = 0x03; m.mem.write8((ENEMY_SLOT_FLAGS + 0x03) & 0xffff, 0x85);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
-  const r = seamPlaceable(withOmittedRet, loc_9c4f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9c4f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, toggleEnemyTurnSide, TARGET, m);
+  assert.equal(r.placeable, true, `toggleEnemyTurnSide must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

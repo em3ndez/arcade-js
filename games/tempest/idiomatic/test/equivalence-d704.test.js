@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_d704 (ROM 0xd704-0xd7dc) -- the periodic ~246Hz IRQ handler. Contract:
+// Memory-equivalence for serviceHeartbeatInterrupt (ROM 0xd704-0xd7dc) -- the periodic ~246Hz IRQ handler. Contract:
 // RAM only (dumpState minus STACK_SCRATCH). The ROM saves A/X/Y and restores them around the body and
 // returns via RTI, so A/X/Y/P/PC are plumbing, not live-outs, and the only register READ is S (the stack
-// pointer, for the depth guard) -- passed as the m.regs.s param default. Two internal JSRs (loc_cf24,
-// loc_cd0a) are dissolved to direct idiomatic calls; the rare BRK re-init arm stays a TEMPORARY m.call.
+// pointer, for the depth guard) -- passed as the m.regs.s param default. Two internal JSRs (tickHeartbeatCounters,
+// stepSoundVoices) are dissolved to direct idiomatic calls; the rare BRK re-init arm stays a TEMPORARY m.call.
 // IN0 bit7 = (cycles & 0x100): the ROM oracle steps cycles while the idiomatic layer does not, so the raw
 // IN0 byte latched into $08 would drift. Both clones' mem.clock is pinned to a constant to freeze that bit
 // (the analog of freezing POKEY random) -- POKEY random (0x60ca/0x60da) is NOT reached here (only ALLPOT
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d704 as oracle } from "../../translated/loc_d704.js";
-import { loc_d704 } from "../loc_d704.js";
+import { serviceHeartbeatInterrupt } from "../serviceHeartbeatInterrupt.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -51,14 +51,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xd704 dispatches -- loc_d704 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xd704 dispatches -- serviceHeartbeatInterrupt == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = pinClock(cap.clone()), c = pinClock(cap.clone());
     let threw = false;
     try { oracle(o); } catch { threw = true; } // guard/BRK re-init or an unimplemented callee arm
     if (threw) continue; // both layers would diverge into the same unported arm; nothing to compare
-    loc_d704(c);
+    serviceHeartbeatInterrupt(c);
     assert.equal(ramDiff(o, c), null, "RAM equal for a captured IRQ dispatch");
     checked++;
   }
@@ -87,7 +87,7 @@ test("CRAFTED: main path with both timer cascades -- RAM equal + cascade cells c
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle threw (unported callee arm) -- skipped"); return; }
-  loc_d704(c);
+  serviceHeartbeatInterrupt(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the main-path IRQ tick");
   assert.equal(c.mem.read8(IRQ_HEARTBEAT), 0x11, "heartbeat $53 advanced by 1");
   assert.equal(c.mem.read8(IRQ_SUBTIMER), 0x00, "$07 wrapped to 0");
@@ -112,7 +112,7 @@ test("CRAFTED: $07 low keeps the timer cascades and $0409 chain untouched", () =
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED-2: oracle threw -- skipped"); return; }
-  loc_d704(c);
+  serviceHeartbeatInterrupt(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the no-cascade path");
   assert.equal(c.mem.read8(IRQ_SUBTIMER), 0x11, "$07 advanced but did not wrap");
   assert.equal(c.mem.read8(TIMER1_LO), 0x55, "$0406 untouched (no wrap)");
@@ -128,7 +128,7 @@ test("TEETH: a twin that skips the $53 heartbeat INC MUST diverge in RAM", () =>
   let ran = false;
   const broken = (m) => {
     const before = m.mem.read8(IRQ_HEARTBEAT);
-    loc_d704(m);
+    serviceHeartbeatInterrupt(m);
     m.mem.write8(IRQ_HEARTBEAT, before); // BUG: revert the +1/IRQ heartbeat advance
     ran = true;
   };
@@ -145,7 +145,7 @@ test("TEETH: a twin that skips latching raw IN0 into $08 MUST diverge in RAM", (
   if (threw) { console.log("  TEETH-2: oracle threw -- skipped"); return; }
   const broken = (m) => {
     const before = m.mem.read8(INPUT_PORT_LATCH);
-    loc_d704(m);
+    serviceHeartbeatInterrupt(m);
     m.mem.write8(INPUT_PORT_LATCH, before); // BUG: never latched IN0 -> $08
   };
   broken(c);

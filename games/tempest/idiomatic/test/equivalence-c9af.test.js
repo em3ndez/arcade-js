@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c9af (ROM 0xc9af-0xc9f0) -- clears $04, decrements $48,x; when $48|$49 == 0 it
-// hands off to loc_c9f1 and returns, else it picks the next non-empty slot via the $3f toggle and arms the
-// $02/$00 timers. The idiomatic dissolves the m.call(0xc9f1) into a direct loc_c9f1(m). Live-out is memory
+// Memory-equivalence for tickEnemyPacingCountdown (ROM 0xc9af-0xc9f0) -- clears $04, decrements $48,x; when $48|$49 == 0 it
+// hands off to reloadPacingFromPeakSlot and returns, else it picks the next non-empty slot via the $3f toggle and arms the
+// $02/$00 timers. The idiomatic dissolves the m.call(0xc9f1) into a direct reloadPacingFromPeakSlot(m). Live-out is memory
 // only (A/X/Y at RTS differ per exit path, so incidental). A leaf: the module omits the ROM ret and the seam
 // completes it, so arms compare RAM (-stack), NOT pc/SP.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c9af.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c9af as oracle } from "../../translated/loc_c9af.js";
-import { loc_c9af } from "../loc_c9af.js";
+import { tickEnemyPacingCountdown } from "../tickEnemyPacingCountdown.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, GAME_MODE_PENDING, MODE_DELAY_TIMER, loc_3d, ACTIVE_SLOT_COUNT, LEVEL_ID, PLAYER_LEVEL_TBL, loc_47, SLOT_COUNTDOWN, SLOT_COUNTDOWN_HI, WAVE_PEAK_SEED } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xc9af dispatches -- loc_c9af == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc9af dispatches -- tickEnemyPacingCountdown == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c9af(c);
+    oracle(o); tickEnemyPacingCountdown(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -59,7 +59,7 @@ test("CRAFTED pick-slot: gate byte survives -> slot chosen, $02/$00 timers armed
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c9af(c);
+  oracle(o); tickEnemyPacingCountdown(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the pick-slot path");
   assert.equal(c.mem.read8(SLOT_COUNTDOWN), 0x02, "$48 decremented");
   assert.equal(c.mem.read8(GAME_MODE_PENDING), 0x02, "$02 timer = 0x02");
@@ -67,7 +67,7 @@ test("CRAFTED pick-slot: gate byte survives -> slot chosen, $02/$00 timers armed
   assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x00, "$04 cleared");
 });
 
-test("CRAFTED gate-zero: $48|$49 spent -> the dissolved loc_c9f1 hand-off runs", () => {
+test("CRAFTED gate-zero: $48|$49 spent -> the dissolved reloadPacingFromPeakSlot hand-off runs", () => {
   const seed = (m) => {
     m.mem.write8(loc_3d, 0x00);
     m.mem.write8(SLOT_COUNTDOWN, 0x01); // decrements to 0x00
@@ -78,7 +78,7 @@ test("CRAFTED gate-zero: $48|$49 spent -> the dissolved loc_c9f1 hand-off runs",
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c9af(c);
+  oracle(o); tickEnemyPacingCountdown(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the c9f1 hand-off path");
   assert.equal(c.mem.read8(WAVE_PEAK_SEED), 0x2f, "c9f1 wrote max-1 to $126");
 });
@@ -111,7 +111,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c9af, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c9af must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, tickEnemyPacingCountdown, TARGET, m);
+  assert.equal(r.placeable, true, `tickEnemyPacingCountdown must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

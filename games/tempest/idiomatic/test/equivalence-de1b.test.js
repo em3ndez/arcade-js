@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_de1b (ROM 0xde1b-0xdf08) -- the EAROM state-machine step over $01c6..$01cf
+// Memory-equivalence for stepEaromTransfer (ROM 0xde1b-0xdf08) -- the EAROM state-machine step over $01c6..$01cf
 // and the $6000/$6040/$6050 port block. Contract: RAM (dumpState, minus STACK_SCRATCH) PLUS the exit X/Y,
 // which the idiomatic form returns as [x, y] and the frozen oracle leaves in regs.x/regs.y at RTS -- a
-// load-bearing register live-out (loc_c891 forwards them to the sound call loc_ccfa). A leaf: the module
+// load-bearing register live-out (seedFramePhaseAndTick forwards them to the sound call loc_ccfa). A leaf: the module
 // omits the ROM ret and the seam completes it, so RAM arms compare RAM (-stack), NOT pc/SP.
 // The routine's $6000-block reads/writes are the EAROM (deterministic, cloned) -- not POKEY random.
 // Run: node --test games/tempest/idiomatic/test/equivalence-de1b.test.js
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_de1b as oracle } from "../../translated/loc_de1b.js";
-import { loc_de1b } from "../loc_de1b.js";
+import { stepEaromTransfer } from "../stepEaromTransfer.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, EAROM_REGION_PENDING, EAROM_MODE, EAROM_CURSOR } from "../names.js";
@@ -40,11 +40,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xde1b dispatches -- loc_de1b == oracle in RAM (-stack) and in exit [x, y]", () => {
+test("CAPTURE: real 0xde1b dispatches -- stepEaromTransfer == oracle in RAM (-stack) and in exit [x, y]", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     oracle(o);
-    const [rx, ry] = loc_de1b(c);
+    const [rx, ry] = stepEaromTransfer(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(rx, o.regs.x, "X live-out matches oracle exit X");
     assert.equal(ry, o.regs.y, "Y live-out matches oracle exit Y");
@@ -64,7 +64,7 @@ test("CRAFTED: carry arm retires the mode byte $01ca to 0x40, exit [x, y] matche
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const [rx, ry] = loc_de1b(c);
+  const [rx, ry] = stepEaromTransfer(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the step");
   assert.equal(c.mem.read8(EAROM_MODE), 0x40, "$01ca folded to 0x40");
   assert.equal(rx, o.regs.x, "X live-out matches oracle exit X");
@@ -76,7 +76,7 @@ test("CRAFTED: early-return arm (mode byte clear, no fresh row) exits [entryX, 0
   const o = new Machine(ROM, OPTS); early(o);
   const c = new Machine(ROM, OPTS); early(c);
   oracle(o);
-  const [rx, ry] = loc_de1b(c);
+  const [rx, ry] = stepEaromTransfer(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the early-return path");
   assert.equal(rx, o.regs.x, "X live-out = entry X (never loaded on this path)");
   assert.equal(rx, 0x37, "X carried through from entry");
@@ -117,7 +117,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_de1b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_de1b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepEaromTransfer, TARGET, m);
+  assert.equal(r.placeable, true, `stepEaromTransfer must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

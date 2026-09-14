@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_cd95 -- clears two POKEY control cells + a flag, polls two POKEY RANDOM
+// Memory-equivalence for resetBothPokeyChips -- clears two POKEY control cells + a flag, polls two POKEY RANDOM
 // registers for change across five samples (latching $0720 on a change), then reloads the controls to 7
 // and zeroes the paired 8-entry arrays $60c0/$60d0/$00c0/$00d0 plus $60c8/$60d8. The stability latch is
 // POKEY-timing-coupled: on a fresh (or master-reset) POKEY the polys are frozen, so both arms see stable
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_cd95 as oracle } from "../../translated/loc_cd95.js";
-import { loc_cd95 } from "../loc_cd95.js";
+import { resetBothPokeyChips } from "../resetBothPokeyChips.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -45,10 +45,10 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 const SLOTS = [];
 for (let i = 0; i < 8; i++) { SLOTS.push(u8(SOUND_VOICE_VALUE + i), u8(SOUND_VOICE_LEVEL + i)); }
 
-test("CAPTURE: real 0xcd95 dispatches -- loc_cd95 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xcd95 dispatches -- resetBothPokeyChips == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_cd95(c);
+    oracle(o); resetBothPokeyChips(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -61,7 +61,7 @@ test("CRAFTED: the $00c0/$00d0 slot arrays and $0720 flag clear to 0 (POKEY froz
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_cd95(c);
+  oracle(o); resetBothPokeyChips(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after clear");
   for (const a of SLOTS) assert.equal(c.mem.read8(a), 0x00, `slot 0x${a.toString(16)} cleared`);
   assert.equal(c.mem.read8(loc_720), 0x00, "$0720 cleared");
@@ -91,7 +91,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_cd95, TARGET, m);
-  assert.equal(r.placeable, true, `loc_cd95 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, resetBothPokeyChips, TARGET, m);
+  assert.equal(r.placeable, true, `resetBothPokeyChips must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

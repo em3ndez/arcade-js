@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a83a (ROM 0xa83a-0xa882). The countdown stepper: while STATUS_FLAGS bit7 is set it
-// advances the running counter WAVE_PHASE_LATCH against the SWEEP_STAGE-indexed limit table ATTRACT_TIMER_LIMIT_TABLE (calling loc_a888
+// Memory-equivalence for stepAttractEnemySweepTimer (ROM 0xa83a-0xa882). The countdown stepper: while STATUS_FLAGS bit7 is set it
+// advances the running counter WAVE_PHASE_LATCH against the SWEEP_STAGE-indexed limit table ATTRACT_TIMER_LIMIT_TABLE (calling sweepLaneSlotsForRespawn
 // at the tail), or -- when WAVE_PHASE_LATCH is idle and PLAYER_FINE_ANGLE clear and INPUT_EDGE_FLAGS bit3 set -- arms the next stage
 // (bump SWEEP_STAGE, seed WAVE_PHASE_LATCH); every path clears bit7 of INPUT_EDGE_FLAGS. No input register; effect is on RAM
 // only, so live-out is RAM (dumpState minus STACK_SCRATCH) with no register compared. Oracle is the frozen
-// translated loc_a83a.
+// translated stepAttractEnemySweepTimer.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a83a.test.js
 
 import nodeTest from "node:test";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a83a as oracle } from "../../translated/loc_a83a.js";
-import { loc_a83a } from "../loc_a83a.js";
+import { stepAttractEnemySweepTimer } from "../stepAttractEnemySweepTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, WAVE_PHASE_LATCH, PLAYER_FINE_ANGLE, SWEEP_STAGE, INPUT_EDGE_FLAGS } from "../names.js";
@@ -40,22 +40,22 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xa83a dispatches -- loc_a83a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa83a dispatches -- stepAttractEnemySweepTimer == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
-    try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented loc_a888 arm
+    try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented sweepLaneSlotsForRespawn arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_a83a(c);
+    stepAttractEnemySweepTimer(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Running-counter path: STATUS_FLAGS bit7 set, WAVE_PHASE_LATCH nonzero -> advance + limit compare + loc_a888 tail.
-// WAVE_PHASE_LATCH = 1 so after the advance it is 2 (or 0 if it hits the limit); either way loc_a888 sees a phase
+// Running-counter path: STATUS_FLAGS bit7 set, WAVE_PHASE_LATCH nonzero -> advance + limit compare + sweepLaneSlotsForRespawn tail.
+// WAVE_PHASE_LATCH = 1 so after the advance it is 2 (or 0 if it hits the limit); either way sweepLaneSlotsForRespawn sees a phase
 // below its 3-and-even gate and returns without dispatching, so no draw arm is reached.
 function seedRunning(m) {
   m.mem.write8(STATUS_FLAGS, 0x80);
@@ -70,7 +70,7 @@ test("CRAFTED: running counter advances against the limit table -- RAM equal", (
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(running): oracle threw on this seed -- skipped"); return; }
-  loc_a83a(c);
+  stepAttractEnemySweepTimer(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the running-counter step");
   assert.equal(c.mem.read8(INPUT_EDGE_FLAGS) & 0x80, 0, "bit7 of INPUT_EDGE_FLAGS cleared");
 });
@@ -89,7 +89,7 @@ test("CRAFTED: idle counter arms the next stage -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedArming(o);
   const c = new Machine(ROM, OPTS); seedArming(c);
   oracle(o);
-  loc_a83a(c);
+  stepAttractEnemySweepTimer(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the arming step");
   assert.equal(c.mem.read8(SWEEP_STAGE), 0x01, "SWEEP_STAGE bumped");
   assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x01, "WAVE_PHASE_LATCH seeded");
@@ -101,7 +101,7 @@ test("TEETH: a twin that skips the final bit7 clear MUST diverge in RAM", () => 
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const broken = (m) => { loc_a83a(m); m.mem.write8(INPUT_EDGE_FLAGS, m.mem.read8(INPUT_EDGE_FLAGS) | 0x80); }; // BUG: re-set bit7
+  const broken = (m) => { stepAttractEnemySweepTimer(m); m.mem.write8(INPUT_EDGE_FLAGS, m.mem.read8(INPUT_EDGE_FLAGS) | 0x80); }; // BUG: re-set bit7
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the skipped bit7 clear was NOT caught by the RAM compare");
 });

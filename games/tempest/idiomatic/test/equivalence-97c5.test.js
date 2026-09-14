@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_97c5 (ROM 0x97c5-0x97f7) -- scans $02df,x (count from $011c) for the
+// Memory-equivalence for aimSpinnerAtNearestEnemy (ROM 0x97c5-0x97f7) -- scans $02df,x (count from $011c) for the
 // smallest nonzero entry, keeping value in $29 and index in $2a. If none is found it returns the last
-// entry seen. Otherwise it dissolves the m.call($a7a6) into a direct loc_a7a6(m, $02b9,idx, $0200)
+// entry seen. Otherwise it dissolves the m.call($a7a6) into a direct signedSegmentDelta(m, $02b9,idx, $0200)
 // and returns A = 0 (zero) / 0x09 (negative) / 0xf7 (positive). Live-out is A (return code) plus
 // memory ($29/$2a and a7a6's $2a stash), so arms compare RAM (dumpState, minus STACK_SCRATCH) AND o.a.
 // Run: node --test games/tempest/idiomatic/test/equivalence-97c5.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_97c5 as oracle } from "../../translated/loc_97c5.js";
-import { loc_97c5 } from "../loc_97c5.js";
+import { aimSpinnerAtNearestEnemy } from "../aimSpinnerAtNearestEnemy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2a, ENEMY_SLOT_TOP, ENEMY_DEPTH, ENEMY_SEGMENT, PLAYER_SEGMENT } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x97c5 dispatches -- loc_97c5 == oracle in RAM (-stack) and in A", () => {
+test("CAPTURE: real 0x97c5 dispatches -- aimSpinnerAtNearestEnemy == oracle in RAM (-stack) and in A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_97c5(c);
+    oracle(o); aimSpinnerAtNearestEnemy(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "return code A matches");
   }
@@ -60,7 +60,7 @@ test("CRAFTED: found -> A code by sign; none-found -> last entry seen", () => {
   };
   let o = new Machine(ROM, OPTS); seedFound(o);
   let c = new Machine(ROM, OPTS); seedFound(c);
-  oracle(o); loc_97c5(c);
+  oracle(o); aimSpinnerAtNearestEnemy(c);
   assert.equal(ramDiff(o, c), null, "found branch RAM equal");
   assert.equal(c.regs.a, o.regs.a, "found branch A equal");
   assert.equal(c.mem.read8(loc_29), 0x03, "min value kept");
@@ -72,7 +72,7 @@ test("CRAFTED: found -> A code by sign; none-found -> last entry seen", () => {
   };
   o = new Machine(ROM, OPTS); seedNone(o);
   c = new Machine(ROM, OPTS); seedNone(c);
-  oracle(o); loc_97c5(c);
+  oracle(o); aimSpinnerAtNearestEnemy(c);
   assert.equal(ramDiff(o, c), null, "none-found branch RAM equal");
   assert.equal(c.regs.a, o.regs.a, "none-found branch A equal");
   assert.equal(c.mem.read8(loc_2a), 0xff, "$2a stays 0xff");
@@ -90,7 +90,7 @@ test("TEETH: a twin that returns the wrong code (or mis-scans) diverges from the
   let o = new Machine(ROM, OPTS); seed(o);
   let c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  loc_97c5(c);
+  aimSpinnerAtNearestEnemy(c);
   c.regs.a = (o.regs.a ^ 0xff) & 0xff; // BUG: corrupt the return code
   assert.notEqual(c.regs.a, o.regs.a, "A comparison FAILED to catch a corrupted return code");
 

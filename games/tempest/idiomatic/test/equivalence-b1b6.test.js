@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b1b6 -- per-frame vector housekeeping. It clears the frame work cells,
+// Memory-equivalence for buildFrameVectors -- per-frame vector housekeeping. It clears the frame work cells,
 // returns early when the guard cells say the frame is settled, hands a zero-mode frame to the builder,
 // otherwise publishes the active pointer and (unless the checkpoint helper reports a change) runs the
 // trampoline dispatch and folds a 40-byte block into a checksum byte via a carry-chained subtract that
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b1b6 as oracle } from "../../translated/loc_b1b6.js";
-import { loc_b1b6 } from "../loc_b1b6.js";
+import { buildFrameVectors } from "../buildFrameVectors.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, MODE_DISPATCH_SEL, SCORE_DISPLAY_TIMER, DRAW_RECORD_PTR_LO, VEC_LIST_HEADER_LO, VECHEAD0_PLAY } from "../names.js";
@@ -48,14 +48,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(12, 4000) : [];
 
-test("CAPTURE: real 0xb1b6 dispatches -- loc_b1b6 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb1b6 dispatches -- buildFrameVectors == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // both layers would throw identically at the same unimplemented arm
-    loc_b1b6(c);
+    buildFrameVectors(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -79,14 +79,14 @@ function craftMachine() {
   return new Machine(ROM, OPTS);
 }
 
-// NOTE: the D-set (decimal) checksum path is exercised only in the DECIMAL_MODE_FLAG!=0 mode, which loc_c891's sed
+// NOTE: the D-set (decimal) checksum path is exercised only in the DECIMAL_MODE_FLAG!=0 mode, which seedFramePhaseAndTick's sed
 // gates and which is NOT reached in the gameplay+attract capture (DECIMAL_MODE_FLAG is always 0 there), so it is a
-// dead/unreachable path in the shipped game. It also cannot be isolated in this per-routine test: loc_b1b6
+// dead/unreachable path in the shipped game. It also cannot be isolated in this per-routine test: buildFrameVectors
 // now calls the real loc_b20d directly (the seam stub that once kept the checksum on the seeded block is
 // gone), and the live dispatch targets (loc_b230 et al.) are not themselves decimal-aware, so a full-frame
 // D-set comparison measures those targets, not this routine. The decimal checksum stays faithfully in the
 // code (dFlag param); if that mode is ever shown reachable, the whole-game test validates the decimal frame.
-test("CRAFTED-BINARY: D clear, checksum loop runs -- loc_b1b6 == oracle in RAM (-stack)", () => {
+test("CRAFTED-BINARY: D clear, checksum loop runs -- buildFrameVectors == oracle in RAM (-stack)", () => {
   const base = ROM_PRESENT ? seedReachChecksum(craftMachine(), { fill: 0x37 }) : null;
   if (!base) return;
   const o = freezePokey(base.clone()), c = freezePokey(base.clone());
@@ -94,7 +94,7 @@ test("CRAFTED-BINARY: D clear, checksum loop runs -- loc_b1b6 == oracle in RAM (
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED-BINARY: oracle threw -- skipped"); return; }
-  loc_b1b6(c);
+  buildFrameVectors(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the binary checksum path");
 });
 
@@ -115,8 +115,8 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable on the trampo
   const m = freezePokey(seedReachChecksum(craftMachine(), { fill: 0x37 }));
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word (0x1234)
-  const r = seamPlaceable(withOmittedRet, loc_b1b6, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b1b6 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildFrameVectors, TARGET, m);
+  assert.equal(r.placeable, true, `buildFrameVectors must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller (moved 0) placeable");
 });
 

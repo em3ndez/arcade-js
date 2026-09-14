@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a18f (ROM 0xa18f-0xa1e3) -- loops every slot 0x0b..0: slots 8+ integrate a
+// Memory-equivalence for stepActiveShots (ROM 0xa18f-0xa1e3) -- loops every slot 0x0b..0: slots 8+ integrate a
 // 16-bit velocity into their position pair (and clear past the edge, via jsr $a1e4), slots below 8 step a
 // counter and advance it (via jsr $a1fa), clearing at the far limit. The idiomatic side dissolves both
-// jsrs into direct calls (consuming loc_a1fa's returned slot index). Live-out is memory only, so each arm
+// jsrs into direct calls (consuming advanceShotAndScoreLaneHit's returned slot index). Live-out is memory only, so each arm
 // compares RAM (dumpState minus STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-a18f.test.js
 
 import nodeTest from "node:test";
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a18f as oracle } from "../../translated/loc_a18f.js";
-import { loc_a18f } from "../loc_a18f.js";
+import { stepActiveShots } from "../stepActiveShots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SLOT_LOOP_INDEX, ACTIVE_ENEMY_COUNT, OBJECT_VELOCITY_HI, OBJECT_VELOCITY_LO, ACTIVE_OBJECT_COUNT, PLAYER_SEGMENT, PLAYER_SHOT_DEPTH, SLOT_STATE, loc_2e6, HIT_TALLY } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa18f dispatches -- loc_a18f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa18f dispatches -- stepActiveShots == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a18f(c);
+    oracle(o); stepActiveShots(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -71,7 +71,7 @@ function seed(m) {
 test("CRAFTED: all four branches (both dissolves) -- RAM equal to the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a18f(c);
+  oracle(o); stepActiveShots(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full slot sweep");
   assert.equal(c.mem.read8(SLOT_STATE + 0x0a), 0x12, "carry propagated into the high byte");
   assert.equal(c.mem.read8(loc_2e6 + 0x0a), 0x20, "low byte wrapped");
@@ -84,7 +84,7 @@ test("TEETH: a twin that drops the 16-bit carry diverges from the oracle", () =>
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  // Replays loc_a18f faithfully EXCEPT the high-byte add ignores the low-byte carry.
+  // Replays stepActiveShots faithfully EXCEPT the high-byte add ignores the low-byte carry.
   const broken = (m) => {
     const { mem8 } = m;
     mem8[SLOT_LOOP_INDEX] = 0x0b;
@@ -117,6 +117,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a18f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a18f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepActiveShots, TARGET, m);
+  assert.equal(r.placeable, true, `stepActiveShots must be seam-placeable; got: ${r.error}`);
 });

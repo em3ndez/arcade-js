@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a416 (ROM 0xa416-0xa447) -- if flag $0116==0 does nothing; else clears it and
+// Memory-equivalence for ageTimedObjects (ROM 0xa416-0xa447) -- if flag $0116==0 does nothing; else clears it and
 // for each live slot ($030a,x!=0) advances $0312,x by table a44e[$0302,x]; a slot that reaches limit
 // a448[type] is freed ($030a,x=0), a slot still short re-raises $0116. Live-out is memory only, so each
 // side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). A leaf: the module omits
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a416 as oracle } from "../../translated/loc_a416.js";
-import { loc_a416 } from "../loc_a416.js";
+import { ageTimedObjects } from "../ageTimedObjects.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TIMED_OBJECT_COUNT, SHAPE_ID, SHAPE_ACTIVE, SHAPE_ANIM } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa416 dispatches -- loc_a416 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa416 dispatches -- ageTimedObjects == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a416(c);
+    oracle(o); ageTimedObjects(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ test("CRAFTED: flag set + one live slot -- counter advances by the type step (RA
   const step = c.mem.read8(0xa44e + TYPE);   // per-type step (ROM)
   const limit = c.mem.read8(0xa448 + TYPE);  // per-type limit (ROM)
   const next = (CNT + step) & 0xff;
-  oracle(o); loc_a416(c);
+  oracle(o); ageTimedObjects(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after advance");
   if (next < limit) {
     assert.equal(c.mem.read8((SHAPE_ANIM + 5) & 0xffff), next, "counter advanced by step");
@@ -80,7 +80,7 @@ test("CRAFTED: flag clear -- routine is a no-op (RAM equal)", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a416(c);
+  oracle(o); ageTimedObjects(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after no-op");
   assert.equal(c.mem.read8((SHAPE_ANIM + 4) & 0xffff), 0x03, "counter untouched when flag clear");
 });
@@ -104,7 +104,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a416, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a416 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, ageTimedObjects, TARGET, m);
+  assert.equal(r.placeable, true, `ageTimedObjects must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

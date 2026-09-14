@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_af26 (ROM 0xaf26-0xaf3e) -- if both $0600 and $0601 are zero it tail-calls
-// the shared no-op rts (loc_af6e); otherwise it draws a shared header (loc_ab14), its count (loc_af71),
+// the shared no-op rts (sharedReturnTail); otherwise it draws a shared header (drawSlotShapeRecord), its count (loc_af71),
 // and both counter slots (loc_af3f x=0 then x=1). Dissolves every m.call. All output is RAM (the draw
 // setup + emitted words), so each arm compares the RAM diff (minus the dead stack). Omitted-ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-af26.test.js
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_af26 as oracle } from "../../translated/loc_af26.js";
 import { loc_af26 } from "../loc_af26.js";
-import { loc_ab14 } from "../loc_ab14.js";
+import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SLOT_METRIC, loc_601 } from "../names.js";
@@ -78,7 +78,7 @@ test("TEETH: a twin that always draws (ignoring the both-zero gate) diverges on 
   const o = new Machine(ROM, OPTS); seat(o, s); oracle(o);
   const c = new Machine(ROM, OPTS); seat(c, s);
   // BUG: draws the shared header even when both counters are zero (should have been a no-op rts).
-  const broken = (m) => { loc_ab14(m, 0x12); };
+  const broken = (m) => { drawSlotShapeRecord(m, 0x12); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the spurious draw");
 });

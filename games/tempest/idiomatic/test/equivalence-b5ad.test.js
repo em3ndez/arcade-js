@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b5ad -- when the guard flag is clear, walks seven slots and for each nonzero
+// Memory-equivalence for drawStyledSlotList -- when the guard flag is clear, walks seven slots and for each nonzero
 // control byte caches it, splits the paired slot byte, and dispatches a draw handler. The idiomatic side
 // dissolves jsr b5d7 into a direct call to the idiomatic dispatcher (seating X as the slot-index bridge the
 // handlers read). Live-out is memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b5ad as oracle } from "../../translated/loc_b5ad.js";
-import { loc_b5ad } from "../loc_b5ad.js";
+import { drawStyledSlotList } from "../drawStyledSlotList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPIKE_ACTIVE_FLAG, SLOT_LOOP_INDEX, ENEMY_DEPTH, OBJ_DEPTH, ENEMY_SLOT_FLAGS, DRAW_STYLE } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xb5ad dispatches -- loc_b5ad == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb5ad dispatches -- drawStyledSlotList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b5ad(c);
+    oracle(o); drawStyledSlotList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ function seedWalk(m) {
 test("CRAFTED: armed slot -- control byte cached and RAM matches the oracle", () => {
   const o = new Machine(ROM, OPTS); seedWalk(o);
   const c = new Machine(ROM, OPTS); seedWalk(c);
-  oracle(o); loc_b5ad(c);
+  oracle(o); drawStyledSlotList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk");
   assert.equal(c.mem.read8(OBJ_DEPTH), 0x08, "control byte cached into $57");
   assert.equal(c.mem.read8(DRAW_STYLE), o.mem.read8(DRAW_STYLE), "$55 matches the oracle (a dispatched draw handler leaves the final value)");
@@ -82,7 +82,7 @@ test("TEETH-GUARD: guard flag set -- oracle and idiomatic both early-out identic
   const seed = (m) => { m.mem.write8(SPIKE_ACTIVE_FLAG, 0x80); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_b5ad(c);
+  oracle(o); drawStyledSlotList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the guarded early-out");
 });
 
@@ -90,7 +90,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedWalk(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b5ad, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b5ad must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawStyledSlotList, TARGET, m);
+  assert.equal(r.placeable, true, `drawStyledSlotList must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller (moved 0) placeable");
 });

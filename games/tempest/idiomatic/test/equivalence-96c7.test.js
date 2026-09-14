@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_96c7 + loc_96c8 (ROM 0x96c7-0x96ca) -- two adjacent $969d dispatch entries
+// Memory-equivalence for advanceCursorPastPackedRecord + advanceListCursorByTwo (ROM 0x96c7-0x96ca) -- two adjacent $969d dispatch entries
 // that advance the vector-list cursor Y by 3 (0x96c7) or 2 (0x96c8). No RAM write, so the RAM diff is
 // vacuously null; the contract is the single register live-out Y. Both are leaves: they omit the ROM ret
 // and the seam completes them, so the arms compare RAM (-stack) + Y. No POKEY/clock read.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_96c7 as oracle7, loc_96c8 as oracle8 } from "../../translated/loc_96c7.js";
-import { loc_96c7, loc_96c8 } from "../loc_96c7.js";
+import { advanceCursorPastPackedRecord, advanceListCursorByTwo } from "../advanceCursorPastPackedRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -36,35 +36,35 @@ function captureDispatches(addr, oracleFn, K, maxFrames) {
 const CAPS7 = ROM_PRESENT ? captureDispatches(0x96c7, oracle7, 16, 2000) : [];
 const CAPS8 = ROM_PRESENT ? captureDispatches(0x96c8, oracle8, 16, 2000) : [];
 
-test("CAPTURE: real dispatches -- loc_96c7/96c8 == oracle in RAM (-stack) and Y", () => {
+test("CAPTURE: real dispatches -- advanceCursorPastPackedRecord/96c8 == oracle in RAM (-stack) and Y", () => {
   for (const cap of CAPS7) {
     const o = cap.clone(), c = cap.clone();
-    oracle7(o); loc_96c7(c);
+    oracle7(o); advanceCursorPastPackedRecord(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.y, o.regs.y, "0x96c7 Y live-out matches the oracle");
   }
   for (const cap of CAPS8) {
     const o = cap.clone(), c = cap.clone();
-    oracle8(o); loc_96c8(c);
+    oracle8(o); advanceListCursorByTwo(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.y, o.regs.y, "0x96c8 Y live-out matches the oracle");
   }
   console.log(`  CAPTURE: ${CAPS7.length}/${CAPS8.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: loc_96c7 advances Y by 3, loc_96c8 by 2 (8-bit wrap)", () => {
+test("CRAFTED: advanceCursorPastPackedRecord advances Y by 3, advanceListCursorByTwo by 2 (8-bit wrap)", () => {
   const ys = [0x00, 0x05, 0x7f, 0xfe, 0xff];
   for (const y of ys) {
     const o7 = new Machine(ROM, OPTS); o7.regs.y = y;
     const c7 = new Machine(ROM, OPTS); c7.regs.y = y;
-    oracle7(o7); const r7 = loc_96c7(c7);
+    oracle7(o7); const r7 = advanceCursorPastPackedRecord(c7);
     assert.equal(ramDiff(o7, c7), null, `96c7 no RAM: y=${y}`);
     assert.equal(c7.regs.y, o7.regs.y, `96c7 Y matches oracle: y=${y}`);
     assert.equal(r7, o7.regs.y, `96c7 return == Y: y=${y}`);
 
     const o8 = new Machine(ROM, OPTS); o8.regs.y = y;
     const c8 = new Machine(ROM, OPTS); c8.regs.y = y;
-    oracle8(o8); const r8 = loc_96c8(c8);
+    oracle8(o8); const r8 = advanceListCursorByTwo(c8);
     assert.equal(ramDiff(o8, c8), null, `96c8 no RAM: y=${y}`);
     assert.equal(c8.regs.y, o8.regs.y, `96c8 Y matches oracle: y=${y}`);
     assert.equal(r8, o8.regs.y, `96c8 return == Y: y=${y}`);
@@ -78,7 +78,7 @@ test("TEETH: a twin that uses the wrong stride diverges in Y", () => {
 });
 
 test("SP-TOOTH: both omitted-ret entries (moved 0) are seam-placeable", () => {
-  for (const [fn, addr] of [[loc_96c7, 0x96c7], [loc_96c8, 0x96c8]]) {
+  for (const [fn, addr] of [[advanceCursorPastPackedRecord, 0x96c7], [advanceListCursorByTwo, 0x96c8]]) {
     const m = new Machine(ROM, OPTS);
     m.regs.y = 0;
     m.regs.s = 0xff;

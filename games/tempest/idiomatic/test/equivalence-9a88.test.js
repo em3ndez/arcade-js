@@ -13,8 +13,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9a88 as oracle } from "../../translated/loc_9a88.js";
 import { loc_9a88 } from "../loc_9a88.js";
-import { loc_9a9d, loc_9aa9, loc_9ab3, loc_9ab7 } from "../loc_9a9d.js";
-import { loc_9abb } from "../loc_9abb.js";
+import { seatDemoCoordListPointer, loc_9aa9, loc_9ab3, seatCoordListPointerAtIndex3 } from "../seatDemoCoordListPointer.js";
+import { selectClimberSpawnLane } from "../selectClimberSpawnLane.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, LIST_PTR_HI, LIST_SELECT_FLAGS } from "../names.js";
@@ -30,7 +30,7 @@ function opt(name) {
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0x9a88;
-const TABLE = [loc_9a9d, loc_9aa9, loc_9abb, loc_9ab7, loc_9ab3];
+const TABLE = [seatDemoCoordListPointer, loc_9aa9, selectClimberSpawnLane, seatCoordListPointerAtIndex3, loc_9ab3];
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
@@ -55,7 +55,7 @@ test("CAPTURE: real 0x9a88 dispatches -- loc_9a88 == oracle in RAM (-stack)", ()
 });
 
 // Seed the setup cells the five entries read, then clone so the oracle and idiomatic arms start identical
-// (loc_9abb reads a POKEY value -- cloning makes the two arms deterministic regardless of its source).
+// (selectClimberSpawnLane reads a POKEY value -- cloning makes the two arms deterministic regardless of its source).
 function seedBase(a) {
   const m = new Machine(ROM, OPTS);
   m.regs.a = a; m.regs.x = 0x05;

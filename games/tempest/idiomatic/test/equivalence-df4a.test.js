@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df4a (ROM 0xdf4a) -- read the $73 data byte into Y, then tail into loc_df4c
+// Memory-equivalence for emitVectorWordTag60FromKey (ROM 0xdf4a) -- read the $73 data byte into Y, then tail into loc_df4c
 // (the $60-header emitter): write {$73, A|0x60} at the ($74/$75) cursor and advance it by 2. A is a
 // register input (unchanged by this routine, consumed by df4c). Live-out is memory only for this
-// display-builder family (the landed loc_df5f tail returns nothing; the ROM's incidental A=cursor-low is
+// display-builder family (the landed advanceDisplayCursor tail returns nothing; the ROM's incidental A=cursor-low is
 // not reproduced, and df4a's callers are pure tail-callers reading no register after), so the contract is
 // RAM (dumpState, minus STACK_SCRATCH). Plain tail-caller -- no SP tooth. No POKEY read -> deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df4a.test.js
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df4a as oracle } from "../../translated/loc_df4a.js";
-import { loc_df4a } from "../loc_df4a.js";
+import { emitVectorWordTag60FromKey } from "../emitVectorWordTag60FromKey.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, VG_RECORD_HEADER, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdf4a dispatches -- loc_df4a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf4a dispatches -- emitVectorWordTag60FromKey == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df4a(c);
+    oracle(o); emitVectorWordTag60FromKey(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -64,13 +64,13 @@ test("CRAFTED: emits {$73, A|0x60} at the cursor and advances it by 2 == oracle 
     const s = { a: t.a, mem: { [VG_RECORD_HEADER]: t.d, [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_df4a(c);
+    oracle(o); emitVectorWordTag60FromKey(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
   // Explicit content/advance check on the clean case.
   const m = new Machine(ROM, OPTS);
   seed(m, { a: 0x05, mem: { [VG_RECORD_HEADER]: 0x1a, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } });
-  loc_df4a(m);
+  emitVectorWordTag60FromKey(m);
   assert.equal(m.mem.read8(0x2000), 0x1a, "byte 0 = $73 data");
   assert.equal(m.mem.read8(0x2001), 0x65, "byte 1 = A|0x60");
   assert.equal(m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8), 0x2002, "cursor += 2");

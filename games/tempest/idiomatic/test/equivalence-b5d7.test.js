@@ -14,11 +14,11 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b5d7 as oracle } from "../../translated/loc_b5d7.js";
 import { loc_b5d7 } from "../loc_b5d7.js";
-import { loc_b5eb } from "../loc_b5eb.js";
-import { loc_b71b } from "../loc_b71b.js";
-import { loc_b60f } from "../loc_b60f.js";
-import { loc_b622 } from "../loc_b622.js";
-import { loc_b69b } from "../loc_b69b.js";
+import { drawSlotRimSegment } from "../drawSlotRimSegment.js";
+import { drawStyledSlotRimSegment } from "../drawStyledSlotRimSegment.js";
+import { emitJumpModeSlot } from "../emitJumpModeSlot.js";
+import { emitAnimatedPhaseSlot } from "../emitAnimatedPhaseSlot.js";
+import { emitInterpolatedSlotVector } from "../emitInterpolatedSlotVector.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -35,7 +35,7 @@ function opt(name) {
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0xb5d7;
-const TABLE = [loc_b5eb, loc_b71b, loc_b60f, loc_b622, loc_b69b];
+const TABLE = [drawSlotRimSegment, drawStyledSlotRimSegment, emitJumpModeSlot, emitAnimatedPhaseSlot, emitInterpolatedSlotVector];
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);

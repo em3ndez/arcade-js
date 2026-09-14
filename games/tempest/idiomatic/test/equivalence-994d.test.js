@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_994d -- scans the active-slot table for a free entry, seeds its parallel arrays,
+// Memory-equivalence for spawnClimberInFreeSlot -- scans the active-slot table for a free entry, seeds its parallel arrays,
 // bumps the active count and a per-lane counter, and returns 0x10 (or 0 when none free). Live-out is memory
 // plus A (0x10/0 the caller reads back); each side runs on a clone and the RAM contract is dumpState minus
 // STACK_SCRATCH. A leaf: the module omits the ROM ret and the seam completes it, so arms compare RAM (-stack).
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_994d as oracle } from "../../translated/loc_994d.js";
-import { loc_994d } from "../loc_994d.js";
+import { spawnClimberInFreeSlot } from "../spawnClimberInFreeSlot.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -67,19 +67,19 @@ function seedFull(m) {
   m.mem.write8(ENEMY_TOTAL_COUNT, 0x20);
 }
 
-test("CAPTURE: real 0x994d dispatches -- loc_994d == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x994d dispatches -- spawnClimberInFreeSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_994d(c);
+    oracle(o); spawnClimberInFreeSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED (free slot): loc_994d == oracle in RAM; slot 1 arrays seeded, count + lane bumped", () => {
+test("CRAFTED (free slot): spawnClimberInFreeSlot == oracle in RAM; slot 1 arrays seeded, count + lane bumped", () => {
   const o = new Machine(ROM, OPTS); seedFree(o);
   const c = new Machine(ROM, OPTS); seedFree(c);
-  oracle(o); const rc = loc_994d(c);
+  oracle(o); const rc = spawnClimberInFreeSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after seed");
   assert.equal(c.regs.a, o.regs.a, "A live-out equal (oracle sets regs.a; module returns it)");
   assert.equal(rc, 0x10, "found -> A=0x10");
@@ -95,10 +95,10 @@ test("CRAFTED (free slot): loc_994d == oracle in RAM; slot 1 arrays seeded, coun
   assert.equal(c.mem.read8(SAVED_INDEX2), 0x07, "$36 = X on success");
 });
 
-test("CRAFTED (no free slot): loc_994d == oracle in RAM; returns A=0, count untouched", () => {
+test("CRAFTED (no free slot): spawnClimberInFreeSlot == oracle in RAM; returns A=0, count untouched", () => {
   const o = new Machine(ROM, OPTS); seedFull(o);
   const c = new Machine(ROM, OPTS); seedFull(c);
-  oracle(o); const rc = loc_994d(c);
+  oracle(o); const rc = spawnClimberInFreeSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.a, o.regs.a, "A live-out equal (oracle sets regs.a; module returns it)");
   assert.equal(rc, 0x00, "none free -> A=0");
@@ -137,7 +137,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedFree(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_994d, TARGET, m);
-  assert.equal(r.placeable, true, `loc_994d must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, spawnClimberInFreeSlot, TARGET, m);
+  assert.equal(r.placeable, true, `spawnClimberInFreeSlot must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

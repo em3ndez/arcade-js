@@ -2,7 +2,7 @@
 // Memory-equivalence for loc_df6a (ROM 0xdf6a) -- zero the data byte, then tail into loc_df6c (the
 // $70-header emitter): write {0x00, A|0x70} at the ($74/$75) cursor and advance it by 2. A is a register
 // input (unchanged here, consumed by df6c). Live-out is memory only for this display-builder family (the
-// landed loc_df5f tail returns nothing; the ROM's incidental A=cursor-low is not reproduced, and df6a's
+// landed advanceDisplayCursor tail returns nothing; the ROM's incidental A=cursor-low is not reproduced, and df6a's
 // callers are pure tail-callers reading no register after), so the contract is RAM (dumpState, minus
 // STACK_SCRATCH). Plain tail-caller -- no SP tooth. No POKEY read -> deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df6a.test.js

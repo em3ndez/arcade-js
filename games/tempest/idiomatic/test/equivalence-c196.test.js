@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c196 -- from a level index, splits eight packed ROM-table bytes into low/high
+// Memory-equivalence for unpackLevelNibbleTables -- from a level index, splits eight packed ROM-table bytes into low/high
 // nibbles, mirroring each into zero-page ($19.. / $21..) and color RAM ($0800.. / $0808..). Live-out is
 // memory only (A/X/Y at RTS are incidental), so each side runs on a clone and the contract is RAM (dumpState,
 // minus STACK_SCRATCH). Color RAM is CPU write-only (read8 throws), so it is read back via io.colorram. A
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c196 as oracle } from "../../translated/loc_c196.js";
-import { loc_c196 } from "../loc_c196.js";
+import { unpackLevelNibbleTables } from "../unpackLevelNibbleTables.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_9f, LEVEL_GEOM_LO, LEVEL_GEOM_HI } from "../names.js";
@@ -45,10 +45,10 @@ const seed = (m) => {
   for (let y = 0; y < 8; y++) { m.mem.write8((LEVEL_GEOM_LO + y) & 0xffff, 0x77); m.mem.write8((LEVEL_GEOM_HI + y) & 0xffff, 0x77); }
 };
 
-test("CAPTURE: real 0xc196 dispatches -- loc_c196 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc196 dispatches -- unpackLevelNibbleTables == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c196(c);
+    oracle(o); unpackLevelNibbleTables(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ test("CAPTURE: real 0xc196 dispatches -- loc_c196 == oracle in RAM (-stack)", ()
 test("CRAFTED: nibbles split into zp and color RAM, mirrored low/high pairs consistent", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c196(c);
+  oracle(o); unpackLevelNibbleTables(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after split");
   // color RAM (0x0800-0x080f) is CPU write-only (read8 throws) -- read via io.colorram
   for (let y = 0; y < 8; y++) {
@@ -75,7 +75,7 @@ test("CRAFTED: nibbles split into zp and color RAM, mirrored low/high pairs cons
 test("TEETH: a twin that skips one zp store diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c196(c);
+  oracle(o); unpackLevelNibbleTables(c);
   c.mem.write8(LEVEL_GEOM_LO, (c.mem.read8(LEVEL_GEOM_LO) ^ 0xff) & 0xff); // BUG: entry-0 low nibble corrupted
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted store");
 });
@@ -84,7 +84,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c196, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c196 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, unpackLevelNibbleTables, TARGET, m);
+  assert.equal(r.placeable, true, `unpackLevelNibbleTables must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

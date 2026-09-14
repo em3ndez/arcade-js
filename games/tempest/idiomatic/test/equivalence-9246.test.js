@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9246 (ROM 0x9246-0x926e) -- clears the tag table $0243..$0282, then for each
+// Memory-equivalence for seedSlotRandomTags (ROM 0x9246-0x926e) -- clears the tag table $0243..$0282, then for each
 // active slot (X = [$03ab]-1..0) writes a 4-bit random to $0203,x and packs (x<<4 | random) into $0243,x,
 // substituting 0x0f when that tag is zero. Live-out is memory only (A/X at RTS are incidental), so each side
 // runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). A leaf: the module omits the ROM
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9246 as oracle } from "../../translated/loc_9246.js";
-import { loc_9246 } from "../loc_9246.js";
+import { seedSlotRandomTags } from "../seedSlotRandomTags.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, OBJECT_INDEX_TABLE, OBJECT_RECORD_TABLE, FIRE_GATE } from "../names.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0x9246 dispatches -- loc_9246 == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0x9246 dispatches -- seedSlotRandomTags == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_9246(c);
+    oracle(o); seedSlotRandomTags(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -63,7 +63,7 @@ test("CRAFTED: table cleared, then 4 active slots packed with (x<<4 | random)", 
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9246(c);
+  oracle(o); seedSlotRandomTags(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after fill");
   const rand = c.mem.read8(0x60ca) & 0x0f; // frozen -> same byte the routine saw
   for (let x = 0; x < 4; x++) {
@@ -101,7 +101,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9246, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9246 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, seedSlotRandomTags, TARGET, m);
+  assert.equal(r.placeable, true, `seedSlotRandomTags must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

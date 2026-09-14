@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b875 (ROM 0xb875-0xb887) -- rotates the three-entry array $22..$24 down by
+// Memory-equivalence for rotateTripleArray (ROM 0xb875-0xb887) -- rotates the three-entry array $22..$24 down by
 // one and mirrors each new entry into $0809..$080b. Live-out is memory only (registers at RTS incidental),
 // so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). A leaf: the module
 // omits the ROM ret and the seam completes it. No POKEY/clock read, so the crafted seed is deterministic.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b875 as oracle } from "../../translated/loc_b875.js";
-import { loc_b875 } from "../loc_b875.js";
+import { rotateTripleArray } from "../rotateTripleArray.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, COLOR_CYCLE_0, COLOR_CYCLE_1, COLOR_CYCLE_2, COLOR_RAM_9, COLOR_RAM_A, COLOR_RAM_B } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb875 dispatches -- loc_b875 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb875 dispatches -- rotateTripleArray == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b875(c);
+    oracle(o); rotateTripleArray(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ test("CRAFTED: $22..$24 rotate down by one and $0809..$080b mirror the result", 
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_b875(c);
+  oracle(o); rotateTripleArray(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after rotate");
   // rotate: new $22=old $23, new $23=old $24, new $24=old $22; the pair mirrors the new values.
   assert.equal(readCell(c, COLOR_CYCLE_0), 0x22, "$22 <- old $23");
@@ -88,7 +88,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_b875, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b875 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, rotateTripleArray, TARGET, m);
+  assert.equal(r.placeable, true, `rotateTripleArray must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

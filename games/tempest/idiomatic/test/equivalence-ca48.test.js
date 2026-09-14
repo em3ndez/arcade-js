@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ca48 (ROM 0xca48-0xca61) -- from two zero-page gates ($0117, $3d) it copies
+// Memory-equivalence for selectProjectionScale (ROM 0xca48-0xca61) -- from two zero-page gates ($0117, $3d) it copies
 // bit 2 into flag $a1 (eor/and/eor RMW) and stores a paired count byte to $b4. Live-out is memory only
 // (A/Y at RTS are incidental), so each side runs on a clone and the contract is RAM (dumpState, minus
 // STACK_SCRATCH). A leaf: the module omits the ROM ret and the seam completes it, so the arms compare
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ca48 as oracle } from "../../translated/loc_ca48.js";
-import { loc_ca48 } from "../loc_ca48.js";
+import { selectProjectionScale } from "../selectProjectionScale.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_117, loc_3d, VG_MODE_FLAG, VG_SCALE } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xca48 dispatches -- loc_ca48 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xca48 dispatches -- selectProjectionScale == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ca48(c);
+    oracle(o); selectProjectionScale(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ test("CRAFTED: both gates open -> bit 2 set in $a1 and $b4 = 0x08", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ca48(c);
+  oracle(o); selectProjectionScale(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after apply");
   assert.equal(c.mem.read8(VG_MODE_FLAG), 0x07, "$a1 bit 2 set, low bits preserved");
   assert.equal(c.mem.read8(VG_SCALE), 0x08, "$b4 = 0x08");
@@ -72,7 +72,7 @@ test("CRAFTED: a closed gate -> bit 2 cleared in $a1 and $b4 = 0x10", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ca48(c);
+  oracle(o); selectProjectionScale(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after apply");
   assert.equal(c.mem.read8(VG_MODE_FLAG), 0x03, "$a1 bit 2 cleared, low bits preserved");
   assert.equal(c.mem.read8(VG_SCALE), 0x10, "$b4 = 0x10");
@@ -103,7 +103,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_ca48, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ca48 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, selectProjectionScale, TARGET, m);
+  assert.equal(r.placeable, true, `selectProjectionScale must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_d8a9 (ROM 0xd8a9-0xd8b5) -- stashes A at $29, scales Y,X via loc_df75, then
-// emits the single $29 byte through loc_dfb1. The idiomatic side dissolves the two jsr into direct
-// loc_df75(m, y, x) and loc_dfb1(m, $29, 1) calls. Live-out is memory only (A/X/Y at RTS are whatever the
+// Memory-equivalence for loc_d8a9 (ROM 0xd8a9-0xd8b5) -- stashes A at $29, scales Y,X via emitScaledCoordinateRecord, then
+// emits the single $29 byte through emitNibbleDigitRun. The idiomatic side dissolves the two jsr into direct
+// emitScaledCoordinateRecord(m, y, x) and emitNibbleDigitRun(m, $29, 1) calls. Live-out is memory only (A/X/Y at RTS are whatever the
 // tail callee leaves, incidental), so each arm compares RAM (dumpState minus STACK_SCRATCH); registers are
 // NOT asserted. Run: node --test games/tempest/idiomatic/test/equivalence-d8a9.test.js
 
@@ -13,8 +13,8 @@ import { loc_d8a9 as oracle } from "../../translated/loc_d8a9.js";
 import { loc_d8a9 } from "../loc_d8a9.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_df75 } from "../loc_df75.js";
-import { loc_dfb1 } from "../loc_dfb1.js";
+import { emitScaledCoordinateRecord } from "../emitScaledCoordinateRecord.js";
+import { emitNibbleDigitRun } from "../emitNibbleDigitRun.js";
 import { STACK_SCRATCH, loc_29, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -79,8 +79,8 @@ test("TEETH (marshalling): a twin that scales A (not Y) diverges from the oracle
   const swappedTwin = (m, a = m.regs.a, y = m.regs.y, x = m.regs.x) => {
     const mem8 = m.mem8;
     mem8[loc_29] = a;
-    loc_df75(m, a, x); // BUG: scales A instead of Y
-    loc_dfb1(m, loc_29, 0x01);
+    emitScaledCoordinateRecord(m, a, x); // BUG: scales A instead of Y
+    emitNibbleDigitRun(m, loc_29, 0x01);
   };
   swappedTwin(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong scaled coordinate");

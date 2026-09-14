@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9a9d (ROM 0x9a9d-0x9aba) -- from its entry it seeds the pointer-pair cells
+// Memory-equivalence for seatDemoCoordListPointer (ROM 0x9a9d-0x9aba) -- from its entry it seeds the pointer-pair cells
 // ($2c from a fixed table byte, $2b=0, $2d from the held source cell) and reloads A from $29. The dead
 // mid-block (never reached from this entry) is not modelled. Live-outs are RAM plus A, so each arm compares
 // RAM (dumpState minus STACK_SCRATCH) and A (o.regs.a vs c.regs.a).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9a9d as oracle } from "../../translated/loc_9a9d.js";
-import { loc_9a9d } from "../loc_9a9d.js";
+import { seatDemoCoordListPointer } from "../seatDemoCoordListPointer.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, LIST_PTR_HI } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9a9d dispatches -- loc_9a9d == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x9a9d dispatches -- seatDemoCoordListPointer == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9a9d(c);
+    oracle(o); seatDemoCoordListPointer(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   }
@@ -57,7 +57,7 @@ function seed(m) {
 test("CRAFTED: pointer-pair cells seeded and A reloaded -- RAM and A equal", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9a9d(c);
+  oracle(o); seatDemoCoordListPointer(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.mem.read8(loc_2b), 0x00, "$2b index cleared");
@@ -99,6 +99,6 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_9a9d, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9a9d must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, seatDemoCoordListPointer, TARGET, m);
+  assert.equal(r.placeable, true, `seatDemoCoordListPointer must be seam-placeable; got: ${r.error}`);
 });

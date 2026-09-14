@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a3d6 (ROM 0xa3d6-0xa415) -- inserts an object into the 8-slot table at
+// Memory-equivalence for insertTimedObject (ROM 0xa3d6-0xa415) -- inserts an object into the 8-slot table at
 // $030a/$0302/$0312/$02fa,x: reuses the first empty $030a,x==0 slot, else evicts the max-$0312 slot and
 // dec's the count $0116; fills the four fields, inc's $0116. Live-out is memory only (A/X/Y at RTS are
 // incidental -- X/Y are restored to entry), so each side runs on a clone and the contract is RAM (dumpState,
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a3d6 as oracle } from "../../translated/loc_a3d6.js";
-import { loc_a3d6 } from "../loc_a3d6.js";
+import { insertTimedObject } from "../insertTimedObject.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, TIMED_OBJECT_COUNT, SHAPE_ACTIVE, SHAPE_ANIM } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa3d6 dispatches -- loc_a3d6 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa3d6 dispatches -- insertTimedObject == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a3d6(c);
+    oracle(o); insertTimedObject(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ test("CRAFTED: free-slot insert -- new object lands in the first empty slot, cou
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a3d6(c);
+  oracle(o); insertTimedObject(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after insert");
   assert.equal(c.mem.read8((SHAPE_ACTIVE + 3) & 0xffff), 0xab, "type field written to free slot 3");
   assert.equal(c.mem.read8((SHAPE_ANIM + 3) & 0xffff), 0x00, "counter zeroed in free slot 3");
@@ -79,7 +79,7 @@ test("CRAFTED: no free slot -- max-$0312 slot evicted, count net-unchanged", () 
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a3d6(c);
+  oracle(o); insertTimedObject(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after eviction");
   assert.equal(c.mem.read8((SHAPE_ACTIVE + 2) & 0xffff), 0x77, "new object evicts the max slot (2)");
   assert.equal(c.mem.read8(TIMED_OBJECT_COUNT), 0x08, "count dec then inc -- net unchanged");
@@ -113,7 +113,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a3d6, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a3d6 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, insertTimedObject, TARGET, m);
+  assert.equal(r.placeable, true, `insertTimedObject must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

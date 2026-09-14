@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9c17 (ROM 0x9c17-0x9c20) -- advances the $010b sequence index through the
+// Memory-equivalence for followScriptGoto (ROM 0x9c17-0x9c20) -- advances the $010b sequence index through the
 // $a0f8 ROM table (mem[$010b] = table[mem[$010b]]). Live-out is RAM only (A/Y are scratch no caller reads:
-// loc_9c0c tail-jumps here and reads neither), so every arm compares RAM (-stack). Pure leaf, no POKEY.
+// holdSlotPoseUntilTimerExpires tail-jumps here and reads neither), so every arm compares RAM (-stack). Pure leaf, no POKEY.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9c17.test.js
 
 import nodeTest from "node:test";
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9c17 as oracle } from "../../translated/loc_9c17.js";
-import { loc_9c17 } from "../loc_9c17.js";
+import { followScriptGoto } from "../followScriptGoto.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SCRIPT_CURSOR } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9c17 dispatches -- loc_9c17 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9c17 dispatches -- followScriptGoto == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9c17(c);
+    oracle(o); followScriptGoto(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -50,7 +50,7 @@ test("CRAFTED: $010b <- $a0f8[$010b] == oracle across index seeds", () => {
   for (const idx of [0x00, 0x01, 0x05, 0x7f, 0xff]) {
     const o = new Machine(ROM, OPTS); o.mem8[SCRIPT_CURSOR] = idx;
     const c = new Machine(ROM, OPTS); c.mem8[SCRIPT_CURSOR] = idx;
-    oracle(o); loc_9c17(c);
+    oracle(o); followScriptGoto(c);
     assert.equal(ramDiff(o, c), null, `idx=0x${idx.toString(16)}`);
   }
 });

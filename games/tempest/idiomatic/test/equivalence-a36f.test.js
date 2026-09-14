@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a36f (ROM 0xa36f-0xa38d) -- fires the sound gate (loc_ccc1), stages the slot's
-// source/target ($02db,y -> $29 and $02b5,y -> $2d), re-inserts a zeroed object (loc_a3d4 with A=0), clears
+// Memory-equivalence for retireSpawnedObject (ROM 0xa36f-0xa38d) -- fires the sound gate (loc_ccc1), stages the slot's
+// source/target ($02db,y -> $29 and $02b5,y -> $2d), re-inserts a zeroed object (insertTimedObjectOfType with A=0), clears
 // $02db,y, decrements $a6, and flags $02f2,x. The idiomatic side dissolves the two jsr into direct
-// loc_ccc1/loc_a3d4 calls, passing the entry X/Y (preserved across both callees). Live-out is memory only
+// loc_ccc1/insertTimedObjectOfType calls, passing the entry X/Y (preserved across both callees). Live-out is memory only
 // (A at RTS incidental; X/Y restored to entry), so each arm compares RAM (minus STACK_SCRATCH) and X/Y.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a36f.test.js
 
@@ -11,12 +11,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a36f as oracle } from "../../translated/loc_a36f.js";
-import { loc_a36f } from "../loc_a36f.js";
+import { retireSpawnedObject } from "../retireSpawnedObject.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import { loc_ccc1 } from "../loc_ccc1.js";
-import { loc_a3d4 } from "../loc_a3d4.js";
+import { insertTimedObjectOfType } from "../insertTimedObjectOfType.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_29, COORD_LIST_PTR_HI, ACTIVE_ENEMY_COUNT, loc_2db, loc_2b5, HIT_TALLY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -42,10 +42,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa36f dispatches -- loc_a36f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa36f dispatches -- retireSpawnedObject == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a36f(c);
+    oracle(o); retireSpawnedObject(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "X preserved");
     assert.equal(c.regs.y, o.regs.y, "Y preserved");
@@ -65,7 +65,7 @@ function seed(m) {
 test("CRAFTED: sound gate, stage, re-insert, clear and flag -- RAM equal and X/Y preserved", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a36f(c);
+  oracle(o); retireSpawnedObject(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after retire");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
   assert.equal(c.regs.y, o.regs.y, "Y preserved");
@@ -83,7 +83,7 @@ test("TEETH: a twin that indexes with a stale Y (and lane X) diverges in RAM", (
     loc_ccc1(m, x, y);
     mem8[loc_29] = mem8[u16(loc_2db + 0x00)]; // BUG: stale Y=0 index
     mem8[COORD_LIST_PTR_HI] = mem8[u16(loc_2b5 + 0x00)];
-    loc_a3d4(m, 0x00, x, y);
+    insertTimedObjectOfType(m, 0x00, x, y);
     mem8[u16(loc_2db + 0x00)] = 0x00;         // BUG: clears wrong slot
     mem8[ACTIVE_ENEMY_COUNT]--;
     mem8[u16(HIT_TALLY + 0x00)] = 0xff;         // BUG: flags wrong lane
@@ -96,6 +96,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a36f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a36f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, retireSpawnedObject, TARGET, m);
+  assert.equal(r.placeable, true, `retireSpawnedObject must be seam-placeable; got: ${r.error}`);
 });

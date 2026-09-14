@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_df09 (ROM 0xdf09-0xdf0c) -- presets the body byte 0xc0 and (0xc0 being
-// nonzero, the branch is always taken) enters the shared record tail at loc_df12, storing 0xc0 at the
+// nonzero, the branch is always taken) enters the shared record tail at emitRecordBodyByte, storing 0xc0 at the
 // cursor origin ($74) and running the record chain. A pure tail-caller: it dissolves the branch into a
-// direct loc_df12(m, 0xc0) call. All live-out is RAM (the stored byte + the chain's writes); the oracle
+// direct emitRecordBodyByte(m, 0xc0) call. All live-out is RAM (the stored byte + the chain's writes); the oracle
 // also leaves A as a df5f-family cursor byte the idiomatic tail does not reproduce, and df09 reads no
 // register after, so each arm compares RAM (dumpState minus STACK_SCRATCH) only, not A.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df09.test.js
@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df09 as oracle } from "../../translated/loc_df09.js";
 import { loc_df09 } from "../loc_df09.js";
-import { loc_df12 } from "../loc_df0d.js";
+import { emitRecordBodyByte } from "../emitHeaderedBodyRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -78,7 +78,7 @@ test("TEETH: a twin that stores the wrong body byte diverges from the oracle", (
   const o = new Machine(ROM, OPTS); seed(o, { ptr });
   const c = new Machine(ROM, OPTS); seed(c, { ptr });
   oracle(o);
-  const broken = (m) => loc_df12(m, 0x00); // BUG: 0x00 body byte instead of 0xc0
+  const broken = (m) => emitRecordBodyByte(m, 0x00); // BUG: 0x00 body byte instead of 0xc0
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong body byte");
 });

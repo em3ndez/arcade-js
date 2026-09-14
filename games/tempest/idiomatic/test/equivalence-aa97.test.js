@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa97 (ROM 0xaa97-0xaa9d) -- emits a zero header run via loc_b0dd(a=0),
-// then tail-enters loc_aa9e with X = the slot byte at $3d. Both m.calls are dissolved to direct
+// Memory-equivalence for loc_aa97 (ROM 0xaa97-0xaa9d) -- emits a zero header run via emitScaleWordIfChanged(a=0),
+// then tail-enters emitSlotIndexDigit with X = the slot byte at $3d. Both m.calls are dissolved to direct
 // idiomatic calls. Live-out is memory only (vector cursor + published slot pointer; the tail return is
 // incidental), so each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-aa97.test.js
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa97 as oracle } from "../../translated/loc_aa97.js";
 import { loc_aa97 } from "../loc_aa97.js";
-import { loc_aa9e } from "../loc_aa9e.js";
+import { emitSlotIndexDigit } from "../emitSlotIndexDigit.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -65,12 +65,12 @@ test("CRAFTED: zero header + slot run -- loc_aa97 == oracle in RAM", () => {
   assert.equal(c.mem.read8(0x61), 0x06, "$61 advanced past the slot byte");
 });
 
-test("TEETH: a twin that skips the header emit (loc_b0dd) diverges from the oracle", () => {
+test("TEETH: a twin that skips the header emit (emitScaleWordIfChanged) diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c);
   const broken = (m) => {
     // BUG: never publishes the zero header run; jumps straight to the slot run
-    return loc_aa9e(m, m.mem8[0x3d]);
+    return emitSlotIndexDigit(m, m.mem8[0x3d]);
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped header emit");

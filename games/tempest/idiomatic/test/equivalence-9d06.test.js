@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9d06 (ROM 0x9d06-0x9d66) -- per-slot(x) step over the $02df/$0283 slot
+// Memory-equivalence for settleEnemyAtTargetDepth (ROM 0x9d06-0x9d66) -- per-slot(x) step over the $02df/$0283 slot
 // tables. Dissolves the jsr $9d67 into a direct idiomatic call. The oracle m.calls the frozen 9d67; the
 // idiomatic calls idiomatic 9d67. All output is RAM (slot tables, $0108/$0109/$010b), so each arm
 // compares the RAM diff (minus the dead stack). An omitted-ret rewrite. A/X at RTS incidental; Y is a
 // live-out on the scan and 9d67 arms (the oracle leaves the scan index / $02b9,x in Y), consumed by
-// loc_9cb6's tail after this delegate, so it carries a standing comparison arm.
+// steerSlotCoordinate's tail after this delegate, so it carries a standing comparison arm.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9d06.test.js
 
 import nodeTest from "node:test";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9d06 as oracle } from "../../translated/loc_9d06.js";
-import { loc_9d06 } from "../loc_9d06.js";
+import { settleEnemyAtTargetDepth } from "../settleEnemyAtTargetDepth.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -58,10 +58,10 @@ function seat(m, s = {}) {
   m.mem.write8(TABLE_CURSOR, s.c38 ?? 0x00);
 }
 
-test("CAPTURE: real 0x9d06 dispatches -- loc_9d06 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9d06 dispatches -- settleEnemyAtTargetDepth == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9d06(c);
+    oracle(o); settleEnemyAtTargetDepth(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -78,25 +78,25 @@ test("CRAFTED: seeded states across every branch == oracle (RAM)", () => {
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_9d06(c);
+    oracle(o); settleEnemyAtTargetDepth(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
 
-test("Y-LIVE-OUT: the scan index / 9d67 Y is reproduced (loc_9cb6 reads it after the delegate)", () => {
-  // The Y live-out is now the RETURN value (threaded to loc_9c63's tail), not m.regs.y.
+test("Y-LIVE-OUT: the scan index / 9d67 Y is reproduced (steerSlotCoordinate reads it after the delegate)", () => {
+  // The Y live-out is now the RETURN value (threaded to advanceEnemyLaneDepth's tail), not m.regs.y.
   // scan-match arm: the oracle leaves Y = the matched scan slot index.
   const scan = { c109: 1, flags: [0, 0, 0, 0x02, 0, 0, 0], shared: 0x55, stash: [0, 0, 0, 0, 0, 0, 0x55] };
   let o = new Machine(ROM, OPTS); seat(o, scan);
   let c = new Machine(ROM, OPTS); seat(c, scan);
-  oracle(o); const scanY = loc_9d06(c);
+  oracle(o); const scanY = settleEnemyAtTargetDepth(c);
   assert.equal(ramDiff(o, c), null, "scan arm RAM");
   assert.equal(scanY, o.regs.y, "scan arm: Y live-out (the scan index) matches the oracle");
   // 9d67 arm: the oracle leaves Y = ENEMY_SEGMENT,x.
   const j = { c109: 2, flags: [0, 0, 0, 0x02, 0, 0, 0] };
   o = new Machine(ROM, OPTS); seat(o, j);
   c = new Machine(ROM, OPTS); seat(c, j);
-  oracle(o); const jY = loc_9d06(c);
+  oracle(o); const jY = settleEnemyAtTargetDepth(c);
   assert.equal(ramDiff(o, c), null, "9d67 arm RAM");
   assert.equal(jY, o.regs.y, "9d67 arm: Y live-out (ENEMY_SEGMENT,x) matches the oracle");
 });
@@ -122,6 +122,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   seat(m, { flags: [0, 0, 0, 0x82, 0, 0, 0] });
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_9d06, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9d06 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, settleEnemyAtTargetDepth, TARGET, m);
+  assert.equal(r.placeable, true, `settleEnemyAtTargetDepth must be seam-placeable; got: ${r.error}`);
 });

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9c0c (ROM 0x9c0c-0x9c20) -- decrements $0298,x; if still nonzero it
-// dissolves the tail m.call($9c17) into a direct loc_9c17(m) (table-driven $010b step), else bumps
+// Memory-equivalence for holdSlotPoseUntilTimerExpires (ROM 0x9c0c-0x9c20) -- decrements $0298,x; if still nonzero it
+// dissolves the tail m.call($9c17) into a direct followScriptGoto(m) (table-driven $010b step), else bumps
 // $010b. Live-out is memory only (dec/inc are RMW; A/X survive unchanged), so each side runs on a
 // clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-9c0c.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9c0c as oracle } from "../../translated/loc_9c0c.js";
-import { loc_9c0c } from "../loc_9c0c.js";
+import { holdSlotPoseUntilTimerExpires } from "../holdSlotPoseUntilTimerExpires.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_298, SCRIPT_CURSOR } from "../names.js";
@@ -38,21 +38,21 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9c0c dispatches -- loc_9c0c == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9c0c dispatches -- holdSlotPoseUntilTimerExpires == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9c0c(c);
+    oracle(o); holdSlotPoseUntilTimerExpires(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
 test("CRAFTED: nonzero-after-dec delegates to the step; zero-after-dec bumps $010b", () => {
-  // slot x=3, timer decrements to a nonzero value -> loc_9c17 runs (table step on $010b)
+  // slot x=3, timer decrements to a nonzero value -> followScriptGoto runs (table step on $010b)
   const seedA = (m) => { m.regs.x = 3; m.mem.write8((loc_298 + 3) & 0xffff, 0x05); m.mem.write8(SCRIPT_CURSOR, 0x02); };
   let o = new Machine(ROM, OPTS); seedA(o);
   let c = new Machine(ROM, OPTS); seedA(c);
-  oracle(o); loc_9c0c(c);
+  oracle(o); holdSlotPoseUntilTimerExpires(c);
   assert.equal(ramDiff(o, c), null, "delegate branch RAM equal");
   assert.equal(c.mem.read8((loc_298 + 3) & 0xffff), 0x04, "timer decremented");
 
@@ -60,7 +60,7 @@ test("CRAFTED: nonzero-after-dec delegates to the step; zero-after-dec bumps $01
   const seedB = (m) => { m.regs.x = 1; m.mem.write8((loc_298 + 1) & 0xffff, 0x01); m.mem.write8(SCRIPT_CURSOR, 0x07); };
   o = new Machine(ROM, OPTS); seedB(o);
   c = new Machine(ROM, OPTS); seedB(c);
-  oracle(o); loc_9c0c(c);
+  oracle(o); holdSlotPoseUntilTimerExpires(c);
   assert.equal(ramDiff(o, c), null, "counter branch RAM equal");
   assert.equal(c.mem.read8((loc_298 + 1) & 0xffff), 0x00, "timer hit zero");
   assert.equal(c.mem.read8(SCRIPT_CURSOR), 0x08, "$010b bumped");

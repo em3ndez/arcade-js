@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_d6bb -- slices $0e00 into three table lookups ($0156/$0158/$00ac/$00ad),
-// stashes $0e00 to $000a, writes $0009 = $0d00 ^ 2, then folds $00ad through loc_dbe0 and stores its
-// return to $016a. A (the loc_dbe0 return) is the register live-out, so the arms assert regs.a AND RAM
+// Memory-equivalence for decodeOptionSwitches -- slices $0e00 into three table lookups ($0156/$0158/$00ac/$00ad),
+// stashes $0e00 to $000a, writes $0009 = $0d00 ^ 2, then folds $00ad through assemblePotStatusByte and stores its
+// return to $016a. A (the assemblePotStatusByte return) is the register live-out, so the arms assert regs.a AND RAM
 // (-stack); the oracle's jsr push16 scratch lands in the excluded window when SP is high.
 // Run: node --test games/tempest/idiomatic/test/equivalence-d6bb.test.js
 
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d6bb as oracle } from "../../translated/loc_d6bb.js";
-import { loc_d6bb } from "../loc_d6bb.js";
+import { decodeOptionSwitches } from "../decodeOptionSwitches.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DSW2_SNAPSHOT, DSW1_SNAPSHOT, loc_ac, loc_ad, BONUS_LIFE_INTERVAL, DSW_BONUS_CONFIG, DSW_DIFFICULTY, DSW1_COINAGE, DSW2_OPTIONS } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xd6bb dispatches -- loc_d6bb == oracle in RAM (-stack) and regs.a", () => {
+test("CAPTURE: real 0xd6bb dispatches -- decodeOptionSwitches == oracle in RAM (-stack) and regs.a", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_d6bb(c);
+    oracle(o); decodeOptionSwitches(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "regs.a live-out");
   }
@@ -53,11 +53,11 @@ test("CRAFTED: three lookups + toggled copy + folded return all match the oracle
     m.regs.s = 0xfb;
     m.io.dsw2 = 0xba; // $0e00 DSW2 is a read-only port -- seed via io, not a RAM write. (>>3)&7=7, (>>6)&3=2, &6=2
     m.io.dsw1 = 0x55; // $0d00 DSW1, likewise read-only
-    // loc_dbe0 reads $60d8/$60c8 which decode to POKEY reg 8 = ALLPOT (0 here), so the fold returns 0.
+    // assemblePotStatusByte reads $60d8/$60c8 which decode to POKEY reg 8 = ALLPOT (0 here), so the fold returns 0.
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_d6bb(c);
+  oracle(o); decodeOptionSwitches(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.regs.a, o.regs.a, "regs.a live-out equal");
   assert.equal(c.mem.read8(DSW2_SNAPSHOT), 0xba, "$000a <- $0e00");
@@ -92,7 +92,7 @@ test("SP-TOOTH: the omitted-ret caller is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_d6bb, TARGET, m);
-  assert.equal(r.placeable, true, `loc_d6bb must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, decodeOptionSwitches, TARGET, m);
+  assert.equal(r.placeable, true, `decodeOptionSwitches must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller placeable");
 });

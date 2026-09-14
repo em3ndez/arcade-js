@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a618 (ROM 0xa618-0xa65a) -- the per-frame enemy-slot walk. Copies the spawn
+// Memory-equivalence for stepEnemyFleetAndSpawn (ROM 0xa618-0xa65a) -- the per-frame enemy-slot walk. Copies the spawn
 // countdown $010e into the "active" flag $010d, walks the 16 slots high-to-low: a live slot ($0283,x != 0)
 // integrates (a6a9) + steps (a721) and marks $010d = 0xff; a free slot spawns (a65b) when $010e != 0. On
 // even $03 frames it ticks the countdown; if nothing was live/spawned it raises $00 = 0x12.
@@ -22,10 +22,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a618 as oracle } from "../../translated/loc_a618.js";
-import { loc_a618 } from "../loc_a618.js";
-import { loc_a6a9 } from "../loc_a6a9.js";
-import { loc_a721 } from "../loc_a721.js";
-import { loc_a65b } from "../loc_a65b.js";
+import { stepEnemyFleetAndSpawn } from "../stepEnemyFleetAndSpawn.js";
+import { advanceEnemyFreeFlight } from "../advanceEnemyFreeFlight.js";
+import { decayEnemyFreeFlightVelocity } from "../decayEnemyFreeFlightVelocity.js";
+import { spawnEnemyInSlot } from "../spawnEnemyInSlot.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -55,10 +55,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 6000) : [];
 
-test("CAPTURE: real 0xa618 dispatches -- loc_a618 == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xa618 dispatches -- stepEnemyFleetAndSpawn == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_a618(c);
+    oracle(o); stepEnemyFleetAndSpawn(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -85,7 +85,7 @@ function seedCrafted(m, { frame = 0x00 } = {}) {
 test("CRAFTED: live slot integrates+steps, free slots spawn; RAM == oracle and $010d marked active", () => {
   const o = new Machine(ROM, OPTS); seedCrafted(o);
   const c = new Machine(ROM, OPTS); seedCrafted(c);
-  oracle(o); loc_a618(c);
+  oracle(o); stepEnemyFleetAndSpawn(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the slot walk");
   assert.equal(c.mem.read8(SPAWN_FOUND_FLAG), 0xff, "live slot marked the frame active");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "slot counter fell through to 0xff");
@@ -104,10 +104,10 @@ test("TEETH (register thread): threading the STALE entry Y instead of a721's ret
     mem8[SPAWN_FOUND_FLAG] = mem8[SPAWN_BUDGET_TIMER];
     for (let x = 0x0f; x >= 0; x--) {
       if (mem8[u16(ENEMY_SLOT_FLAGS + x)] !== 0) {
-        loc_a6a9(m, x); loc_a721(m, x); // return discarded -> y never updated
+        advanceEnemyFreeFlight(m, x); decayEnemyFreeFlightVelocity(m, x); // return discarded -> y never updated
         mem8[SPAWN_FOUND_FLAG] = 0xff;
       } else if (mem8[SPAWN_BUDGET_TIMER] !== 0) {
-        loc_a65b(m, x, y);
+        spawnEnemyInSlot(m, x, y);
       }
     }
     mem8[SLOT_LOOP_INDEX] = 0xff;
@@ -130,10 +130,10 @@ test("TEETH (countdown gate): a twin that ticks $010e on an ODD $03 frame diverg
     mem8[SPAWN_FOUND_FLAG] = mem8[SPAWN_BUDGET_TIMER];
     for (let x = 0x0f; x >= 0; x--) {
       if (mem8[u16(ENEMY_SLOT_FLAGS + x)] !== 0) {
-        loc_a6a9(m, x); y = loc_a721(m, x);
+        advanceEnemyFreeFlight(m, x); y = decayEnemyFreeFlightVelocity(m, x);
         mem8[SPAWN_FOUND_FLAG] = 0xff;
       } else if (mem8[SPAWN_BUDGET_TIMER] !== 0) {
-        loc_a65b(m, x, y);
+        spawnEnemyInSlot(m, x, y);
       }
     }
     mem8[SLOT_LOOP_INDEX] = 0xff;
@@ -148,7 +148,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a618, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a618 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepEnemyFleetAndSpawn, TARGET, m);
+  assert.equal(r.placeable, true, `stepEnemyFleetAndSpawn must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller (moved 0) placeable");
 });

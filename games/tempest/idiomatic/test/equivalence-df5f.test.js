@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df5f (ROM 0xdf5f) -- advance the ($74/$75) little-endian display-list cursor
+// Memory-equivalence for advanceDisplayCursor (ROM 0xdf5f) -- advance the ($74/$75) little-endian display-list cursor
 // by Y+1 (tya; sec; adc $74; sta $74) and carry into $75. Live-out is RAM ($74 + conditionally $75) PLUS A:
 // the exit A is the new cursor low byte (adc leaves it in A), threaded up the digit-emit chain to dd0d, so
 // the arms compare RAM (-stack) AND A. Plain (non-dispatching) rewrite -- no SP tooth. No POKEY
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df5f as oracle } from "../../translated/loc_df5f.js";
-import { loc_df5f } from "../loc_df5f.js";
+import { advanceDisplayCursor } from "../advanceDisplayCursor.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -35,7 +35,7 @@ const ramDiff = (ma, mb) =>
 // Returns { diff, o, c } so callers can also assert the A live-out (the new cursor low byte).
 function runFrom(cap) {
   const o = cap.clone(), c = cap.clone();
-  oracle(o); loc_df5f(c, c.regs.y);
+  oracle(o); advanceDisplayCursor(c, c.regs.y);
   return { diff: ramDiff(o, c), o, c };
 }
 
@@ -47,7 +47,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdf5f dispatches -- loc_df5f == oracle in RAM (-stack) and A live-out", () => {
+test("CAPTURE: real 0xdf5f dispatches -- advanceDisplayCursor == oracle in RAM (-stack) and A live-out", () => {
   for (const cap of CAPS) {
     const { diff, o, c } = runFrom(cap);
     assert.equal(diff, null);
@@ -71,7 +71,7 @@ test("CRAFTED: no-carry / carry / boundary cursor advance == oracle (RAM -stack)
   for (const t of cases) {
     const o = new Machine(ROM, OPTS); seed(o, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); o.regs.y = t.y;
     const c = new Machine(ROM, OPTS); seed(c, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); c.regs.y = t.y;
-    oracle(o); loc_df5f(c, c.regs.y);
+    oracle(o); advanceDisplayCursor(c, c.regs.y);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
     assert.equal(c.regs.a, o.regs.a, `A live-out: ${t.tag}`);
   }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9749 -- the spinner/rotation-delta update. When $0201 is non-negative it
+// Memory-equivalence for rotateBlasterAroundRim -- the spinner/rotation-delta update. When $0201 is non-negative it
 // derives a delta (table scan when $05 bit7 is clear; a clamped $50 when set), folds it through $2b/$2c/$2a,
 // rings the sound gate on a changed $2a, and commits $2a/$2b/$2c to $0200/$0201/$51. The idiomatic side
 // dissolves jsr 97c5 (delta in A) and jsr ccb5 (X = $0111, Y = entry Y) into direct idiomatic calls.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9749 as oracle } from "../../translated/loc_9749.js";
-import { loc_9749 } from "../loc_9749.js";
+import { rotateBlasterAroundRim } from "../rotateBlasterAroundRim.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, SPINNER_ACCUM, RIM_ROT_OFFSET, loc_2a, loc_2b, COORD_LIST_PTR_LO, TUBE_GEOM_FLAG, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, loc_31, loc_32 } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0x9749 dispatches -- loc_9749 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9749 dispatches -- rotateBlasterAroundRim == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9749(c);
+    oracle(o); rotateBlasterAroundRim(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -52,7 +52,7 @@ test("TEETH-NEGATIVE: $0201 negative -- both early-out with no state change", ()
   const seed = (m) => { m.mem.write8(PLAYER_FINE_ANGLE, 0x80); m.mem.write8(SPINNER_ACCUM, 0x77); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9749(c);
+  oracle(o); rotateBlasterAroundRim(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the negative early-out");
   assert.equal(c.mem.read8(SPINNER_ACCUM), 0x77, "$50 untouched (routine returned before the clamp)");
 });
@@ -66,7 +66,7 @@ test("CRAFTED: $05 bit7 CLEAR -- delta comes from the table scan (97c5 path)", (
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9749(c);
+  oracle(o); rotateBlasterAroundRim(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the scan path");
 });
 
@@ -80,7 +80,7 @@ test("CRAFTED: $05 bit7 SET, $50 positive >=0x1f -- capped to 0x1f then $50 cons
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9749(c);
+  oracle(o); rotateBlasterAroundRim(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the positive-clamp path");
   assert.equal(c.mem.read8(SPINNER_ACCUM), 0x00, "$50 consumed to 0");
 });
@@ -95,7 +95,7 @@ test("CRAFTED: $05 bit7 SET, $50 negative <0xe1 -- floored to 0xe1", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9749(c);
+  oracle(o); rotateBlasterAroundRim(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the negative-floor path");
 });
 
@@ -109,7 +109,7 @@ test("CRAFTED: $05 bit7 SET, $50 negative >=0xe1 -- kept as-is", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9749(c);
+  oracle(o); rotateBlasterAroundRim(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the negative-kept path");
 });
 
@@ -128,7 +128,7 @@ function seedNested(m) {
 test("CRAFTED: $0111 active -- nested cap + sign-flip saturation of $2c", () => {
   const o = new Machine(ROM, OPTS); seedNested(o);
   const c = new Machine(ROM, OPTS); seedNested(c);
-  oracle(o); loc_9749(c);
+  oracle(o); rotateBlasterAroundRim(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the nested-clamp path");
 });
 
@@ -136,7 +136,7 @@ test("CRAFTED: ccb5 active -- $05 bit7 SET + $2a != $0200 opens the gate; $31/$3
   const seedCcb5 = (m) => { seedNested(m); m.regs.y = 0x5a; };
   const o = new Machine(ROM, OPTS); seedCcb5(o);
   const c = new Machine(ROM, OPTS); seedCcb5(c);
-  oracle(o); loc_9749(c);
+  oracle(o); rotateBlasterAroundRim(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the ccb5-active path");
   assert.equal(c.mem.read8(loc_31), 0x07, "$31 = X = $0111 seated by the open sound gate");
   assert.equal(c.mem.read8(loc_32), 0x5a, "$32 = entry Y seated by the open sound gate");
@@ -211,7 +211,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   m.mem.write8(SPINNER_ACCUM, 0x40);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_9749, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9749 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, rotateBlasterAroundRim, TARGET, m);
+  assert.equal(r.placeable, true, `rotateBlasterAroundRim must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller (moved 0) placeable");
 });

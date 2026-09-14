@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a9d7 (ROM 0xa9d7-0xa9fb) -- emits three source bytes (high then low nibble)
-// through loc_a9fc, stepping the source pointer back after each byte. The idiomatic side dissolves the two
-// jsr $a9fc into direct loc_a9fc(...) calls and threads the cursor X + the carry-in by hand. Live-outs are
+// Memory-equivalence for buildTextBufferDigitString (ROM 0xa9d7-0xa9fb) -- emits three source bytes (high then low nibble)
+// through writeNibbleGlyphToTextBuffer, stepping the source pointer back after each byte. The idiomatic side dissolves the two
+// jsr $a9fc into direct writeNibbleGlyphToTextBuffer(...) calls and threads the cursor X + the carry-in by hand. Live-outs are
 // RAM (the $2f60 table region, $3b, $2a) AND X (the advanced write cursor), so both are asserted.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a9d7.test.js
 
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a9d7 as oracle } from "../../translated/loc_a9d7.js";
-import { loc_a9d7 } from "../loc_a9d7.js";
+import { buildTextBufferDigitString } from "../buildTextBufferDigitString.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_2a, WORK_PTR_LO, WORK_PTR_HI, VEC_GLYPH_BUFFER } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa9d7 dispatches -- loc_a9d7 == oracle in RAM (-stack) and in X", () => {
+test("CAPTURE: real 0xa9d7 dispatches -- buildTextBufferDigitString == oracle in RAM (-stack) and in X", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a9d7(c);
+    oracle(o); buildTextBufferDigitString(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "advanced cursor X must match");
   }
@@ -60,7 +60,7 @@ function seedGlyphs(m) {
 test("CRAFTED: three glyphs emitted -- RAM equal, X advanced by 12, pointer stepped by 3", () => {
   const o = new Machine(ROM, OPTS); seedGlyphs(o);
   const c = new Machine(ROM, OPTS); seedGlyphs(c);
-  oracle(o); loc_a9d7(c);
+  oracle(o); buildTextBufferDigitString(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
   assert.equal(c.regs.x, o.regs.x, "X live-out matches oracle");
   assert.equal(c.regs.x, 0x0c, "six nibble writes advance X by 12");
@@ -83,6 +83,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   seedGlyphs(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a9d7, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a9d7 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildTextBufferDigitString, TARGET, m);
+  assert.equal(r.placeable, true, `buildTextBufferDigitString must be seam-placeable; got: ${r.error}`);
 });

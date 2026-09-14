@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df92 (ROM 0xdf92) -- emits a 4-byte record through the ($74) cursor from four
-// zeropage slots (packed y and a key-folded 5-bit last byte), then falls into loc_dfac which stores the
-// last byte and tail-branches to loc_df5f (advance cursor, y nonzero) or loc_dfb1 (y wrapped to 0). The
-// idiomatic side dissolves the two m.call tails into direct loc_df5f / loc_dfb1 calls. Live-out is memory
+// Memory-equivalence for emitCoordinateRecord (ROM 0xdf92) -- emits a 4-byte record through the ($74) cursor from four
+// zeropage slots (packed y and a key-folded 5-bit last byte), then falls into emitRecordTailByte which stores the
+// last byte and tail-branches to advanceDisplayCursor (advance cursor, y nonzero) or emitNibbleDigitRun (y wrapped to 0). The
+// idiomatic side dissolves the two m.call tails into direct advanceDisplayCursor / emitNibbleDigitRun calls. Live-out is memory
 // only (the record bytes + advanced cursor; A/X/Y at RTS are incidental), so each arm compares RAM
 // (dumpState minus STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-df92.test.js
 
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df92 as oracle, loc_dfac as oracleDfac } from "../../translated/loc_df92.js";
-import { loc_df92, loc_dfac } from "../loc_df92.js";
+import { emitCoordinateRecord, emitRecordTailByte } from "../emitCoordinateRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, FRAME_COUNTER, VG_RECORD_HEADER, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -40,19 +40,19 @@ function captureDispatches(addr, fn, K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(TARGET, oracle, 16, 2000) : [];
 const CAPS_DFAC = ROM_PRESENT ? captureDispatches(0xdfac, oracleDfac, 16, 2000) : [];
 
-test("CAPTURE: real 0xdf92 dispatches -- loc_df92 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf92 dispatches -- emitCoordinateRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df92(c);
+    oracle(o); emitCoordinateRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} 0xdf92 dispatch(es) checked`);
 });
 
-test("CAPTURE: real 0xdfac dispatches -- loc_dfac == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdfac dispatches -- emitRecordTailByte == oracle in RAM (-stack)", () => {
   for (const cap of CAPS_DFAC) {
     const o = cap.clone(), c = cap.clone();
-    oracleDfac(o); loc_dfac(c);
+    oracleDfac(o); emitRecordTailByte(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS_DFAC.length} 0xdfac dispatch(es) checked`);
@@ -70,10 +70,10 @@ function seedRecord(m) {
   m.mem.write8(VG_RECORD_HEADER, 0x04); // key: ((0x99^0x04)&0x1f)^0x04 = 0x19
 }
 
-test("CRAFTED: 4-byte record emitted through ($74), bne taken -> loc_df5f advances cursor", () => {
+test("CRAFTED: 4-byte record emitted through ($74), bne taken -> advanceDisplayCursor advances cursor", () => {
   const o = new Machine(ROM, OPTS); seedRecord(o);
   const c = new Machine(ROM, OPTS); seedRecord(c);
-  oracle(o); loc_df92(c);
+  oracle(o); emitCoordinateRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after record emit + cursor advance");
   assert.equal(c.mem.read8(0x2000), 0x55, "byte 0 = $02,x");
   assert.equal(c.mem.read8(0x2001), 0x03, "byte 1 = $03,x & 0x1f");
@@ -98,7 +98,7 @@ test("TEETH: a twin that drops the key-fold on the last byte diverges from the o
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the dropped key-fold");
 });
 
-// Direct loc_dfac entry with y=0xff: the iny wraps to 0 -> bne not taken -> falls into loc_dfb1 (the
+// Direct emitRecordTailByte entry with y=0xff: the iny wraps to 0 -> bne not taken -> falls into emitNibbleDigitRun (the
 // terminating byte run). Exercises the second dissolved tail. base -> 0x2000 so the run lands in diffed RAM.
 function seedDfacWrap(m) {
   m.regs.a = 0x1f;
@@ -107,14 +107,14 @@ function seedDfacWrap(m) {
   m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // ($74) -> 0x2000
 }
 
-test("CRAFTED (dfac wrap): iny 0xff->0 -> falls into loc_dfb1 -- loc_dfac == oracle in RAM", () => {
+test("CRAFTED (dfac wrap): iny 0xff->0 -> falls into emitNibbleDigitRun -- emitRecordTailByte == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedDfacWrap(o);
   const c = new Machine(ROM, OPTS); seedDfacWrap(c);
-  oracleDfac(o, o.regs.a, o.regs.y); loc_dfac(c, c.regs.a, c.regs.y);
+  oracleDfac(o, o.regs.a, o.regs.y); emitRecordTailByte(c, c.regs.a, c.regs.y);
   assert.equal(ramDiff(o, c), null, "RAM equal after the dfb1 tail run");
 });
 
-test("TEETH (dfac wrap): a twin that runs loc_df5f instead of loc_dfb1 diverges from the oracle", () => {
+test("TEETH (dfac wrap): a twin that runs advanceDisplayCursor instead of emitNibbleDigitRun diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seedDfacWrap(o); oracleDfac(o, o.regs.a, o.regs.y);
   const c = new Machine(ROM, OPTS); seedDfacWrap(c);
   const brokenDfac = (m, a = m.regs.a, y = m.regs.y) => {
@@ -131,6 +131,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_df92, TARGET, m);
-  assert.equal(r.placeable, true, `loc_df92 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitCoordinateRecord, TARGET, m);
+  assert.equal(r.placeable, true, `emitCoordinateRecord must be seam-placeable; got: ${r.error}`);
 });

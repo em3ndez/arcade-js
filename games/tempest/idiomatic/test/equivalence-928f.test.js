@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_928f (ROM 0x928f) -- zeros $2d3..$2de then clears $135 and $a6. Live-out is
+// Memory-equivalence for clearActiveShots (ROM 0x928f) -- zeros $2d3..$2de then clears $135 and $a6. Live-out is
 // RAM only (A/X are loop scratch no caller reads), so every arm compares RAM (-stack). Pure leaf (no
 // dispatch): the seam completes it by omitting the ROM ret. No POKEY reads. Seeds pre-dirty the cells so
 // the clear (and its absence in the mutant) is observable.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_928f as oracle } from "../../translated/loc_928f.js";
-import { loc_928f } from "../loc_928f.js";
+import { clearActiveShots } from "../clearActiveShots.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTIVE_ENEMY_COUNT, ACTIVE_OBJECT_COUNT, SLOT_STATE } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x928f dispatches -- loc_928f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x928f dispatches -- clearActiveShots == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_928f(c);
+    oracle(o); clearActiveShots(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ function seedDirty(m) {
 test("CRAFTED: array + both flag cells cleared to zero == oracle (RAM -stack)", () => {
   const o = new Machine(ROM, OPTS); seedDirty(o);
   const c = new Machine(ROM, OPTS); seedDirty(c);
-  oracle(o); loc_928f(c);
+  oracle(o); clearActiveShots(c);
   assert.equal(ramDiff(o, c), null, "cleared block + flags match oracle");
   // Independent confirmation the fields actually went to zero.
   for (let a = 0x02d3; a <= 0x02de; a++) assert.equal(c.mem8[a], 0x00, `array ${a.toString(16)} cleared`);

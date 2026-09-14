@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_d804 (ROM 0xd804-0xd8a8) -- the frame vector-list builder. It runs four
+// Memory-equivalence for buildVectorItemList (ROM 0xd804-0xd8a8) -- the frame vector-list builder. It runs four
 // setup passes, lays a header pair, emits a marker $0158 times, then a run of table-indexed coordinate
 // records selected by $016a/$0200/$004d/$0009, and finally falls through into loc_d8a9 (dissolved to a
 // direct call). The routine draws into vector RAM ($2000-$2fff) and returns no value, so the contract is
 // RAM only (dumpState minus STACK_SCRATCH) -- no register is a live-out. The one still-frozen callee is
 // the co-SCC reset arm reached only when the mask CMP matches and the slot index underflows (m.call);
-// the CRAFTED seeds keep that arm out of the picture. Oracle is the frozen translated loc_d804.
+// the CRAFTED seeds keep that arm out of the picture. Oracle is the frozen translated buildVectorItemList.
 // Run: node --test games/tempest/idiomatic/test/equivalence-d804.test.js
 
 import nodeTest from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d804 as oracle } from "../../translated/loc_d804.js";
-import { loc_d804 } from "../loc_d804.js";
+import { buildVectorItemList } from "../buildVectorItemList.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -48,14 +48,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xd804 dispatches -- loc_d804 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xd804 dispatches -- buildVectorItemList == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach the frozen reset arm / an unlifted callee
     if (threw) continue;                        // both layers reach the same frozen code there; nothing to compare
-    loc_d804(c);
+    buildVectorItemList(c);
     assert.equal(ramDiff(o, c), null, "RAM equal for a captured dispatch");
     checked++;
   }
@@ -80,7 +80,7 @@ test("CRAFTED: mask-miss path skips the dex block -- RAM equal; draw count $37 z
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(skip): oracle threw -- skipped"); return; }
-  loc_d804(c);
+  buildVectorItemList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the mask-miss path");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0x00, "draw-loop counter $37 decremented to 0");
   assert.equal(c.mem.read8(PLAYER_SEGMENT), 0x00, "folded step written back to $0200");
@@ -105,7 +105,7 @@ test("CRAFTED: mask-match on x=3 runs the ora arm -- RAM equal; $01c9 |= 0x03", 
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(hit): oracle threw -- skipped"); return; }
-  loc_d804(c);
+  buildVectorItemList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the mask-match ora path");
   assert.equal(c.mem.read8(PENDING_WORK_FLAGS) & 0x03, 0x03, "0x03 ORed into $01c9 on the dded arm");
 });
@@ -118,7 +118,7 @@ test("TEETH: a twin that leaves the draw-count store $37 non-zero MUST diverge i
   if (threw) { console.log("  TEETH: oracle threw -- skipped"); return; }
   let ran = false;
   const broken = (m) => {
-    loc_d804(m);
+    buildVectorItemList(m);
     m.mem.write8(SLOT_LOOP_INDEX, 0x11); // BUG: revert the counter the draw loop decremented to 0
     ran = true;
   };

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b0dd (ROM 0xb0dd) -- if A already equals $72, return with no effect;
+// Memory-equivalence for emitScaleWordIfChanged (ROM 0xb0dd) -- if A already equals $72, return with no effect;
 // otherwise latch A into $72 and tail into loc_df6a (emit the {0x00, A|0x70} vector word at the ($74/$75)
 // cursor, advancing it by 2). A is a register input. Live-out is memory only for this display-builder
 // family (the shared df5f tail returns nothing; the ROM's incidental A is not reproduced), so the
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b0dd as oracle } from "../../translated/loc_b0dd.js";
-import { loc_b0dd } from "../loc_b0dd.js";
+import { emitScaleWordIfChanged } from "../emitScaleWordIfChanged.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, VG_LAST_STAT, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -44,10 +44,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb0dd dispatches -- loc_b0dd == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb0dd dispatches -- emitScaleWordIfChanged == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b0dd(c);
+    oracle(o); emitScaleWordIfChanged(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -59,7 +59,7 @@ test("CRAFTED: unchanged branch is a no-op; changed branch latches $72 and emits
     const s = { a: 0x33, mem: { [VG_LAST_STAT]: 0x33, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_b0dd(c);
+    oracle(o); emitScaleWordIfChanged(c);
     assert.equal(ramDiff(o, c), null, "RAM: unchanged branch");
     assert.equal(c.mem.read8(VG_LAST_STAT), 0x33, "$72 unchanged");
     assert.equal(c.mem.read8(0x2000), o.mem.read8(0x2000), "cursor target untouched");
@@ -69,7 +69,7 @@ test("CRAFTED: unchanged branch is a no-op; changed branch latches $72 and emits
     const s = { a: 0x05, mem: { [VG_LAST_STAT]: 0x33, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_b0dd(c);
+    oracle(o); emitScaleWordIfChanged(c);
     assert.equal(ramDiff(o, c), null, "RAM: changed branch");
     assert.equal(c.mem.read8(VG_LAST_STAT), 0x05, "$72 latched");
     assert.equal(c.mem.read8(0x2000), 0x00, "emit byte 0 = 0x00");

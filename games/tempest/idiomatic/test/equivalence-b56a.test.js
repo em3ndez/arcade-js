@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b56a (ROM 0xb56a) -- stores 0,0,0,A into the four bytes at the $74/$75
+// Memory-equivalence for emitBlankValueRecord (ROM 0xb56a) -- stores 0,0,0,A into the four bytes at the $74/$75
 // pointer, then advances that pointer by four. A is the only input; live-out is RAM only (the oracle's
 // stack save/restore of A lands inside STACK_SCRATCH, excluded from the diff). Pure leaf, no dispatch;
 // the seam completes it by omitting its ROM ret. No POKEY reads, so the crafted arms are deterministic.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b56a as oracle } from "../../translated/loc_b56a.js";
-import { loc_b56a } from "../loc_b56a.js";
+import { emitBlankValueRecord } from "../emitBlankValueRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb56a dispatches -- loc_b56a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb56a dispatches -- emitBlankValueRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b56a(c);
+    oracle(o); emitBlankValueRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -63,7 +63,7 @@ test("CRAFTED: writes 0,0,0,A and advances $74/$75 by four == oracle (RAM -stack
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_b56a(c);
+    oracle(o); emitBlankValueRecord(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
     // pointer advanced by exactly four
     const adv = (c.mem8[DRAW_CURSOR_LO] | (c.mem8[DRAW_CURSOR_HI] << 8));

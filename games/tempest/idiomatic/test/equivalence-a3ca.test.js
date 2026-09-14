@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a3ca (ROM 0xa3ca-0xa3d3) -- rings the fixed sound cue (jsr $ccc1), copies the
-// y-indexed byte $02df,y into scratch $29, then falls through into loc_a3d4 (stash A -> $2c, insert an object
+// Memory-equivalence for insertObjectFromSlotDepth (ROM 0xa3ca-0xa3d3) -- rings the fixed sound cue (jsr $ccc1), copies the
+// y-indexed byte $02df,y into scratch $29, then falls through into insertTimedObjectOfType (stash A -> $2c, insert an object
 // into the 8-slot table). The idiomatic side dissolves jsr $ccc1 and the fall-through into direct
-// loc_ccc1(...)/loc_a3d4(...) calls. Live-out is memory only (A/X/Y at exit are incidental -- the ROM's
+// loc_ccc1(...)/insertTimedObjectOfType(...) calls. Live-out is memory only (A/X/Y at exit are incidental -- the ROM's
 // ccc1 chain restores X/Y, and the tail routine consumes A), so each arm compares RAM (dumpState minus
 // STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-a3ca.test.js
 
@@ -11,9 +11,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a3ca as oracle } from "../../translated/loc_a3ca.js";
-import { loc_a3ca } from "../loc_a3ca.js";
+import { insertObjectFromSlotDepth } from "../insertObjectFromSlotDepth.js";
 import { loc_ccc1 } from "../loc_ccc1.js";
-import { loc_a3d4 } from "../loc_a3d4.js";
+import { insertTimedObjectOfType } from "../insertTimedObjectOfType.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -42,10 +42,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa3ca dispatches -- loc_a3ca == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa3ca dispatches -- insertObjectFromSlotDepth == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a3ca(c);
+    oracle(o); insertObjectFromSlotDepth(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -65,7 +65,7 @@ function seed(m) {
 test("CRAFTED: $29 <- $02df,y and A -> $2c; RAM equal after the insert", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a3ca(c);
+  oracle(o); insertObjectFromSlotDepth(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after ring/copy/insert");
   assert.equal(c.mem.read8(loc_29), SRC, "$29 took the y-indexed source byte");
   assert.equal(c.mem.read8(COORD_LIST_PTR_LO), AREG, "$2c took the incoming A");
@@ -78,7 +78,7 @@ test("CRAFTED: $29 <- $02df,y and A -> $2c; RAM equal after the insert", () => {
 function loc_a3caSwapped(m, a = m.regs.a, x = m.regs.x, y = m.regs.y) {
   loc_ccc1(m, y, x); // BUG: X and Y swapped into ccc1
   m.mem8[loc_29] = m.mem8[u16(ENEMY_DEPTH + y)];
-  return loc_a3d4(m, a, x, y);
+  return insertTimedObjectOfType(m, a, x, y);
 }
 
 test("TEETH (marshalling): swapped X/Y into ccc1 diverges from the oracle", () => {
@@ -92,7 +92,7 @@ test("TEETH (marshalling): swapped X/Y into ccc1 diverges from the oracle", () =
 function loc_a3caPartial(m, a = m.regs.a, x = m.regs.x, y = m.regs.y) {
   loc_ccc1(m, x, y);
   // BUG: skip mem8[loc_29] = mem8[ENEMY_DEPTH + y]
-  return loc_a3d4(m, a, x, y);
+  return insertTimedObjectOfType(m, a, x, y);
 }
 
 test("TEETH: a twin that skips the $02df,y -> $29 copy diverges from the oracle", () => {
@@ -106,6 +106,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a3ca, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a3ca must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, insertObjectFromSlotDepth, TARGET, m);
+  assert.equal(r.placeable, true, `insertObjectFromSlotDepth must be seam-placeable; got: ${r.error}`);
 });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dd41 -- packed-decimal prologue (two input pairs, the first doubled, forced to
+// Memory-equivalence for buildLargeDecimalNumber -- packed-decimal prologue (two input pairs, the first doubled, forced to
 // a minimum of one) then five binary-to-BCD double-dabble passes over the three-byte source the running
-// pointer walks, with dissolved loc_dce6 / loc_df39 / loc_dfb1 / loc_df75. Live-out is memory only; each arm
+// pointer walks, with dissolved runMathboxDivide / emitCoordinateVectorWord / emitNibbleDigitRun / emitScaledCoordinateRecord. Live-out is memory only; each arm
 // runs on a clone and compares RAM (dumpState minus STACK_SCRATCH). The double-dabble result is independent
 // of the entry carry (its residue lands in overwritten scratch), so the arms may enter with either carry.
 // Run: node --test games/tempest/idiomatic/test/equivalence-dd41.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dd41 as oracle } from "../../translated/loc_dd41.js";
-import { loc_dd41 } from "../loc_dd41.js";
+import { buildLargeDecimalNumber } from "../buildLargeDecimalNumber.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -42,10 +42,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdd41 dispatches -- loc_dd41 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdd41 dispatches -- buildLargeDecimalNumber == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_dd41(c);
+    oracle(o); buildLargeDecimalNumber(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -63,7 +63,7 @@ test("CRAFTED: prologue sums and five BCD passes -- RAM equal (opposite entry ca
   const s = { c: 0x34, d: 0x12, f: 0x00, g: 0x00, a: 0x10, b: 0x00, base: 0x10 };
   const o = new Machine(ROM, OPTS); seed(o, s); o.regs.fC = true;
   const c = new Machine(ROM, OPTS); seed(c, s); c.regs.fC = false;
-  oracle(o); loc_dd41(c);
+  oracle(o); buildLargeDecimalNumber(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after conversion");
 });
 
@@ -90,7 +90,7 @@ test("CRAFTED (min-clamp): zero magnitude forces $6095 to 0x01 -- RAM equal", ()
   }
   const o95 = recordWrites(o, MATHBOX_LD_R7_LO), o96 = recordWrites(o, MATHBOX_LD_R7_HI);
   const c95 = recordWrites(c, MATHBOX_LD_R7_LO), c96 = recordWrites(c, MATHBOX_LD_R7_HI);
-  oracle(o); loc_dd41(c);
+  oracle(o); buildLargeDecimalNumber(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.deepEqual(c95, o95, "module reproduces the oracle's $6095 write stream");
   assert.deepEqual(c96, o96, "module reproduces the oracle's $6096 write stream");
@@ -103,7 +103,7 @@ test("TEETH: a twin that skips the conversion diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o);
-  const broken = (m) => { loc_dd41; /* BUG: never writes $6095/$6096 or the BCD digits */ void m; };
+  const broken = (m) => { buildLargeDecimalNumber; /* BUG: never writes $6095/$6096 or the BCD digits */ void m; };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped conversion");
 });
@@ -113,6 +113,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m, s);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_dd41, TARGET, m);
-  assert.equal(r.placeable, true, `loc_dd41 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildLargeDecimalNumber, TARGET, m);
+  assert.equal(r.placeable, true, `buildLargeDecimalNumber must be seam-placeable; got: ${r.error}`);
 });

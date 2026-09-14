@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa13 (ROM 0xaa13-0xaa59) -- chooses a length from flags, points the copy
+// Memory-equivalence for stageTextLineWithCount (ROM 0xaa13-0xaa59) -- chooses a length from flags, points the copy
 // target at page $2f60, copies that many source bytes down into it, on the negative-flag path emits a
 // packed counter via loc_af77, then restores the low target byte and tail-jmps loc_df09. The idiomatic
 // side dissolves jsr $af77 (into loc_af77(m, $9f+1)) and the jmp $df09 tail (into loc_df09(m)). Live-out
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa13 as oracle } from "../../translated/loc_aa13.js";
-import { loc_aa13 } from "../loc_aa13.js";
+import { stageTextLineWithCount } from "../stageTextLineWithCount.js";
 import { loc_df09 } from "../loc_df09.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -48,10 +48,10 @@ function pickSmallIndex(m) {
   return 0;
 }
 
-test("CAPTURE: real 0xaa13 dispatches -- loc_aa13 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaa13 dispatches -- stageTextLineWithCount == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aa13(c);
+    oracle(o); stageTextLineWithCount(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -67,7 +67,7 @@ test("CRAFTED (positive path, no af77): copy down into $2f60 -- RAM equal", () =
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_aa13(c);
+  oracle(o); stageTextLineWithCount(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after copy (no af77)");
 });
 
@@ -81,7 +81,7 @@ test("CRAFTED (negative path, af77): counter emit + copy -- RAM equal", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_aa13(c);
+  oracle(o); stageTextLineWithCount(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after copy + af77 emit");
 });
 
@@ -125,6 +125,6 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aa13, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aa13 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stageTextLineWithCount, TARGET, m);
+  assert.equal(r.placeable, true, `stageTextLineWithCount must be seam-placeable; got: ${r.error}`);
 });

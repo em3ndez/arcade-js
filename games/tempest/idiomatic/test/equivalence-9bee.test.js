@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9bee (ROM 0x9bee) -- the attract/demo step tick: if the gate $010c != 0 do
+// Memory-equivalence for skipScriptOperandWhenFlagClear (ROM 0x9bee) -- the attract/demo step tick: if the gate $010c != 0 do
 // nothing, else advance the step counter $010b by two. Live-out is RAM only, so each arm compares RAM
 // (dumpState, minus STACK_SCRATCH). No POKEY read -> crafted diffs are deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9bee.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9bee as oracle } from "../../translated/loc_9bee.js";
-import { loc_9bee } from "../loc_9bee.js";
+import { skipScriptOperandWhenFlagClear } from "../skipScriptOperandWhenFlagClear.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SCRIPT_CURSOR, SCRIPT_BRANCH_FLAG } from "../names.js";
@@ -35,10 +35,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9bee dispatches -- loc_9bee == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9bee dispatches -- skipScriptOperandWhenFlagClear == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9bee(c);
+    oracle(o); skipScriptOperandWhenFlagClear(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ test("CRAFTED: gate held -> no change; gate clear -> $010b += 2 (== oracle, RAM)
   ];
   for (const { tag, gate, step, expect } of cases) {
     const o = seeded(gate, step), c = seeded(gate, step);
-    oracle(o); loc_9bee(c);
+    oracle(o); skipScriptOperandWhenFlagClear(c);
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.mem.read8(SCRIPT_CURSOR), expect, tag);
   }
@@ -72,7 +72,7 @@ test("TEETH: a twin that advances by ONE (not two) diverges when the gate is cle
   oracle(o);
   assert.equal(o.mem.read8(SCRIPT_CURSOR), 0x42, "precondition: oracle advanced by two");
   const c = seeded(0x00, 0x40);
-  loc_9bee(c);
+  skipScriptOperandWhenFlagClear(c);
   c.mem.write8(SCRIPT_CURSOR, 0x41); // BUG: advanced by one
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a +1 (should be +2) advance");
 });

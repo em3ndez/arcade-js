@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_96db (ROM 0x96db-0x96e1) -- reads (0x2c),y and adds the base $0160. It writes
+// Memory-equivalence for resolveCoordListEntryToAbsolute (ROM 0x96db-0x96e1) -- reads (0x2c),y and adds the base $0160. It writes
 // NO memory, so the RAM diff is trivially null and cannot by itself verify the transform: the behavioural
 // contract is register A, checked in CAPTURE and CRAFTED. Pure leaf (no dispatch), no POKEY reads.
 // Run: node --test games/tempest/idiomatic/test/equivalence-96db.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_96db as oracle } from "../../translated/loc_96db.js";
-import { loc_96db } from "../loc_96db.js";
+import { resolveCoordListEntryToAbsolute } from "../resolveCoordListEntryToAbsolute.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, COORD_LIST_PTR_LO, ENEMY_CLIMB_DELTA_LO_0 } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x96db dispatches -- loc_96db == oracle in A and RAM (-stack)", () => {
+test("CAPTURE: real 0x96db dispatches -- resolveCoordListEntryToAbsolute == oracle in A and RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_96db(c);
+    oracle(o); resolveCoordListEntryToAbsolute(c);
     assert.equal(c.regs.a, o.regs.a, "A live-out");
     assert.equal(ramDiff(o, c), null);
   }
@@ -66,7 +66,7 @@ test("CRAFTED: A = (ptr)+y + $0160 == oracle across seeds", () => {
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_96db(c);
+    oracle(o); resolveCoordListEntryToAbsolute(c);
     assert.equal(c.regs.a, o.regs.a, `A: ${s.tag}`);
     assert.equal(c.regs.a, (s.entry + s.base) & 0xff, `A value: ${s.tag}`);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);

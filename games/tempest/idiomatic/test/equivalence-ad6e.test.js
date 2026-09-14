@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ad6e (ROM 0xad6e-0xadcd) -- a CALLER that dissolves three m.calls into direct
-// idiomatic calls: loc_adce (fold/clamp the active slot value, consuming its returned A), loc_ddf7 (arm the
-// merge with mask 3), and loc_ad22 (walk the request word). Effect is memory only, so each side runs on a
+// Memory-equivalence for tickActiveSoundSlot (ROM 0xad6e-0xadcd) -- a CALLER that dissolves three m.calls into direct
+// idiomatic calls: foldStepIntoFraction (fold/clamp the active slot value, consuming its returned A), loc_ddf7 (arm the
+// merge with mask 3), and armRequestedSoundSlot (walk the request word). Effect is memory only, so each side runs on a
 // clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-ad6e.test.js
 
@@ -10,10 +10,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ad6e as oracle } from "../../translated/loc_ad6e.js";
-import { loc_ad6e } from "../loc_ad6e.js";
-import { loc_adce } from "../loc_adce.js";
+import { tickActiveSoundSlot } from "../tickActiveSoundSlot.js";
+import { foldStepIntoFraction } from "../foldStepIntoFraction.js";
 import { loc_ddf7 } from "../loc_ddf7.js";
-import { loc_ad22 } from "../loc_ad22.js";
+import { armRequestedSoundSlot } from "../armRequestedSoundSlot.js";
 import { Machine } from "../../machine.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xad6e dispatches -- loc_ad6e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xad6e dispatches -- tickActiveSoundSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ad6e(c);
+    oracle(o); tickActiveSoundSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -71,7 +71,7 @@ function seedMain(m) {
 test("CRAFTED (main path): gate open + negative step re-arms via ddf7/ad22", () => {
   const o = new Machine(ROM, OPTS); seedMain(o);
   const c = new Machine(ROM, OPTS); seedMain(c);
-  oracle(o); loc_ad6e(c);
+  oracle(o); tickActiveSoundSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after ad6e main path");
   assert.equal(c.mem.read8(INPUT_EDGE_FLAGS), 0x18 & 0x67, "$4e masked to 0x67");
   assert.equal(c.mem.read8((SLOT_VALUE + 0x02) & 0xffff), 0x10, "slot value kept");
@@ -86,7 +86,7 @@ function seedReset(m) {
 test("CRAFTED (reset path): idle countdown expires to the 0x14 reset", () => {
   const o = new Machine(ROM, OPTS); seedReset(o);
   const c = new Machine(ROM, OPTS); seedReset(c);
-  oracle(o); loc_ad6e(c);
+  oracle(o); tickActiveSoundSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after ad6e reset path");
   assert.equal(c.mem.read8(GAME_MODE), 0x14, "$0000 armed to 0x14");
   assert.equal(c.mem.read8(PASS_COUNTER), 0x00, "$0605 expired to 0");
@@ -96,7 +96,7 @@ test("TEETH: a twin that skips the $4e mask (& 0x67) diverges from the oracle", 
   const o = new Machine(ROM, OPTS); seedMain(o);
   const c = new Machine(ROM, OPTS); seedMain(c);
   oracle(o);
-  // Faithful copy of loc_ad6e with exactly one omission: it never masks $4e with 0x67.
+  // Faithful copy of tickActiveSoundSlot with exactly one omission: it never masks $4e with 0x67.
   const broken = (m) => {
     const { mem8 } = m;
     mem8[MODE_DISPATCH_SEL] = 0x06;
@@ -106,7 +106,7 @@ test("TEETH: a twin that skips the $4e mask (& 0x67) diverges from the oracle", 
       if (count === 0) { mem8[GAME_MODE] = 0x14; return; }
     }
     const slot = mem8[ACTIVE_SLOT];
-    const clamped = loc_adce(m, mem8[u16(SLOT_VALUE + slot)]);
+    const clamped = foldStepIntoFraction(m, mem8[u16(SLOT_VALUE + slot)]);
     let value;
     if ((clamped & 0x80) === 0) value = clamped >= 0x1b ? 0x00 : clamped;
     else value = 0x1a;
@@ -120,7 +120,7 @@ test("TEETH: a twin that skips the $4e mask (& 0x67) diverges from the oracle", 
     if ((step & 0x80) !== 0) {
       const idx = mem8[loc_3d];
       if (mem8[u16(SLOT_METRIC + idx)] < 0x04) loc_ddf7(m);
-      loc_ad22(m);
+      armRequestedSoundSlot(m);
       return;
     }
     mem8[u16(SLOT_VALUE + u8(slot - 1))] = 0x00;

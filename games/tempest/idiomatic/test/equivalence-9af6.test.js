@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9af6 (ROM 0x9af6) -- the shared pointer-pair setup entered past both table
+// Memory-equivalence for seatCoordListPointerWithHighByte (ROM 0x9af6) -- the shared pointer-pair setup entered past both table
 // loads: the caller has already set the low pointer ($2c), so this takes the high pointer straight from A
 // ($2d), stashes the index (y->$2b), and reloads A from its holding cell ($29). Inputs are A (high pointer)
 // and Y (index); live-out is RAM (dumpState minus STACK_SCRATCH) plus A. The oracle is the frozen mid-entry
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9af6 as oracle } from "../../translated/loc_9aee.js";
-import { loc_9af6 } from "../loc_9aee.js";
+import { seatCoordListPointerWithHighByte } from "../seatCoordListPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9af6 dispatches -- loc_9af6 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x9af6 dispatches -- seatCoordListPointerWithHighByte == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9af6(c);
+    oracle(o); seatCoordListPointerWithHighByte(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   }
@@ -59,7 +59,7 @@ test("CRAFTED: caller high pointer + index seated, A reloaded -- RAM and A equal
   for (const [high, y] of [[0x6e, 0x02], [0x00, 0x05], [0xff, 0x00]]) {
     const o = new Machine(ROM, OPTS); seed(o, high, y, 0x42);
     const c = new Machine(ROM, OPTS); seed(c, high, y, 0x42);
-    oracle(o); loc_9af6(c);
+    oracle(o); seatCoordListPointerWithHighByte(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after setup (high=${high},y=${y})`);
     assert.equal(c.regs.a, o.regs.a, `A live-out matches (high=${high},y=${y})`);
     assert.equal(c.mem.read8(COORD_LIST_PTR_HI), high, `$2d = caller high pointer (high=${high},y=${y})`);
@@ -69,7 +69,7 @@ test("CRAFTED: caller high pointer + index seated, A reloaded -- RAM and A equal
   }
 });
 
-test("MUTATION: a twin that stores A into $2c (like loc_9af1) instead of $2d diverges from the oracle", () => {
+test("MUTATION: a twin that stores A into $2c (like seatCoordListPointerWithLowByte) instead of $2d diverges from the oracle", () => {
   const high = 0x6e, y = 0x02;
   const o = new Machine(ROM, OPTS); seed(o, high, y, 0x42);
   const c = new Machine(ROM, OPTS); seed(c, high, y, 0x42);

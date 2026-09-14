@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_ccc3 } from "./loc_ccc3.js";
+import { requestSoundIfEnabled } from "./requestSoundIfEnabled.js";
 
 // Trampoline: gate-register the fixed sound id 0x1f, carrying the caller's X/Y.
 export function loc_ccc1(m, x = m.regs.x, y = m.regs.y) {
-  return loc_ccc3(m, 0x1f, x, y);
+  return requestSoundIfEnabled(m, 0x1f, x, y);
 }

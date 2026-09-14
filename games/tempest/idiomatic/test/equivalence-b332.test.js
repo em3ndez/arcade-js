@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b332 (ROM 0xb332) -- if $cec4 differs from $2000, store it and return carry
+// Memory-equivalence for emitFrameLink (ROM 0xb332) -- if $cec4 differs from $2000, store it and return carry
 // set; else copy a two-byte record (slot chosen by the $0415 mode flag) through the $74/$75 pointer,
 // reload the pointer from another record, clear $016e, and return carry clear. Carry is a real live-out
 // (caller $b1b6 branches on it), so the arms assert carry as well as RAM (dumpState minus STACK_SCRATCH).
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b332 as oracle } from "../../translated/loc_b332.js";
-import { loc_b332 } from "../loc_b332.js";
+import { emitFrameLink } from "../emitFrameLink.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI, POINTER_PARITY, SCORE_DISPLAY_TIMER, VEC_LIST_HEADER_LO, VECHEAD0_PLAY } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb332 dispatches -- loc_b332 == oracle in RAM (-stack) and carry", () => {
+test("CAPTURE: real 0xb332 dispatches -- emitFrameLink == oracle in RAM (-stack) and carry", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const cc = loc_b332(c);
+    oracle(o); const cc = emitFrameLink(c);
     assert.equal(ramDiff(o, c), null);
     // Carry is a boolean live-out (module RETURNS it; oracle produces o.regs.fC). The idiomatic
     // layer models no CPU flags, so compare the returned boolean to the oracle's carry, not c.regs.fC.
@@ -69,7 +69,7 @@ test("CRAFTED: differ->store+carry-set; equal->copy record+carry-clear == oracle
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); const cc = loc_b332(c);
+    oracle(o); const cc = emitFrameLink(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
     assert.equal(cc, o.regs.fC, `carry: ${s.tag}`);
     assert.equal(cc, true, `store branch returns carry set: ${s.tag}`);
@@ -83,7 +83,7 @@ test("CRAFTED: equal path (gate := $cec4) copies the record and clears carry == 
     const s = { gate, flag, ptr: 0x0420 };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); const cc = loc_b332(c);
+    oracle(o); const cc = emitFrameLink(c);
     assert.equal(ramDiff(o, c), null, `RAM equal-path flag=${flag}`);
     assert.equal(cc, o.regs.fC, `carry equal-path flag=${flag}`);
     assert.equal(cc, false, `carry clear on copy path flag=${flag}`);

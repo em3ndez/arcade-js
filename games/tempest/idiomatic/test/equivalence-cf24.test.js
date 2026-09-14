@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_cf24 -- a dense per-lane update over $0d/$10/$13 driven by the control bits in
+// Memory-equivalence for tickHeartbeatCounters -- a dense per-lane update over $0d/$10/$13 driven by the control bits in
 // $07/$08/$09, then a position/score accumulation into $16/$17/$18 via a lookup table in ROM, then two clamp
 // passes over the $13 lane triple. Fully deterministic (no POKEY / clock reads), so the CRAFTED arm seeds the
 // working cells, runs both arms, and compares RAM (dumpState, minus STACK_SCRATCH). A leaf: the module omits
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_cf24 as oracle } from "../../translated/loc_cf24.js";
-import { loc_cf24 } from "../loc_cf24.js";
+import { tickHeartbeatCounters } from "../tickHeartbeatCounters.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, LANE_WRAP_POS, LANE_COUNTER } from "../names.js";
@@ -49,10 +49,10 @@ const seed = (m) => {
   w(0x16, 0x40); w(0x17, 0x00); w(0x18, 0x00);
 };
 
-test("CAPTURE: real 0xcf24 dispatches -- loc_cf24 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xcf24 dispatches -- tickHeartbeatCounters == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_cf24(c);
+    oracle(o); tickHeartbeatCounters(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -61,7 +61,7 @@ test("CAPTURE: real 0xcf24 dispatches -- loc_cf24 == oracle in RAM (-stack)", ()
 test("CRAFTED: a seeded lane update + accumulation + clamp passes matches the oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_cf24(c);
+  oracle(o); tickHeartbeatCounters(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   // spot-check two cells the seed drives deterministically
   assert.equal(c.mem.read8(LANE_COUNTER), 0x10, "$0013 lane clamped down by 0x10");
@@ -75,7 +75,7 @@ test("TEETH: the seeded run actually mutates RAM, so the diff has teeth (untouch
   assert.notEqual(ramDiff(o, untouched), null, "the routine left RAM unchanged -- the seed does not bite");
   // and the idiomatic reproduces exactly that mutation
   const c = new Machine(ROM, OPTS); seed(c);
-  loc_cf24(c);
+  tickHeartbeatCounters(c);
   assert.equal(ramDiff(o, c), null, "idiomatic must reproduce the oracle's mutation");
 });
 
@@ -83,7 +83,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_cf24, TARGET, m);
-  assert.equal(r.placeable, true, `loc_cf24 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, tickHeartbeatCounters, TARGET, m);
+  assert.equal(r.placeable, true, `tickHeartbeatCounters must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ca18 (ROM 0xca18) -- masks $05 &= 0x3f, then lays a fixed init block:
+// Memory-equivalence for seedModeParamsFromMaskedFlags (ROM 0xca18) -- masks $05 &= 0x3f, then lays a fixed init block:
 // $3e=0, $02=0x1a, $00=0x0a, $04=0xa0, $016b=0x01, $01=0x0a. Live-out is RAM only (A is store scratch no
 // caller reads), so every arm compares RAM (-stack). Pure leaf (no dispatch): the seam completes it by
 // omitting the ROM ret. No POKEY reads. Seeds set $05's high bits (must survive the mask only in their low
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ca18 as oracle } from "../../translated/loc_ca18.js";
-import { loc_ca18 } from "../loc_ca18.js";
+import { seedModeParamsFromMaskedFlags } from "../seedModeParamsFromMaskedFlags.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, ACTIVE_SLOT_COUNT, GAME_MODE_PENDING, GAME_MODE, MODE_DELAY_TIMER, MODE_DELAY_GUARD, MODE_DISPATCH_SEL } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xca18 dispatches -- loc_ca18 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xca18 dispatches -- seedModeParamsFromMaskedFlags == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ca18(c);
+    oracle(o); seedModeParamsFromMaskedFlags(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ function seed(m) {
 test("CRAFTED: $05 masked + fixed block written == oracle (RAM -stack)", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ca18(c);
+  oracle(o); seedModeParamsFromMaskedFlags(c);
   assert.equal(ramDiff(o, c), null, "masked $05 + init block match oracle");
   // Independent confirmation of each field.
   assert.equal(c.mem8[STATUS_FLAGS], 0x05, "$05 masked to low six bits");

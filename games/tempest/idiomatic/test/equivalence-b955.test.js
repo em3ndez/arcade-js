@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b955 (ROM 0xb955-0xb966) -- reads $57, counts leading right-shifts into Y,
+// Memory-equivalence for returnConstantTwo (ROM 0xb955-0xb966) -- reads $57, counts leading right-shifts into Y,
 // then THROWS THAT COUNT AWAY: the loop leaves A==0, `clc; adc #2` forces A=2, and a final `ldy #0` clears
 // Y. So the routine returns the constant pair A=2, Y=0 for ANY $57 and touches no memory. It writes no
 // RAM (RAM diff is vacuously null); the live-out is the registers A and Y, which the idiomatic form
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b955 as oracle } from "../../translated/loc_b955.js";
-import { loc_b955 } from "../loc_b955.js";
+import { returnConstantTwo } from "../returnConstantTwo.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -44,7 +44,7 @@ test("CAPTURE: real 0xb955 dispatches -- returned [A,Y] == oracle regs, RAM unch
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     oracle(o);
-    const [a, y] = loc_b955(c);
+    const [a, y] = returnConstantTwo(c);
     assert.equal(a, o.regs.a, "returned A matches oracle's regs.a");
     assert.equal(y, o.regs.y, "returned Y matches oracle's regs.y");
     assert.equal(ramDiff(o, c), null, "no RAM change on either side");
@@ -58,7 +58,7 @@ test("CRAFTED: A=2, Y=0 for every $57 (count is discarded) == oracle", () => {
     const o = new Machine(ROM, OPTS); o.mem8[0x57] = s57;
     const c = new Machine(ROM, OPTS); c.mem8[0x57] = s57;
     oracle(o);
-    const [a, y] = loc_b955(c);
+    const [a, y] = returnConstantTwo(c);
     assert.equal(a, o.regs.a, `$57=0x${s57.toString(16)}: returned A matches oracle`);
     assert.equal(y, o.regs.y, `$57=0x${s57.toString(16)}: returned Y matches oracle`);
     assert.equal(a, 0x02, `$57=0x${s57.toString(16)}: A is the constant 2`);

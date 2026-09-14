@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_92b2 (ROM 0x92b2) -- swaps the two 18-byte tables $03aa,x <-> $03bc,x for
+// Memory-equivalence for swapParallelTables (ROM 0x92b2) -- swaps the two 18-byte tables $03aa,x <-> $03bc,x for
 // x = 0x11..0. Live-out is RAM only (A/X/Y at RTS are incidental), so each arm compares RAM (dumpState,
 // minus STACK_SCRATCH). No POKEY/clock coupling -> the crafted diff is deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-92b2.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_92b2 as oracle } from "../../translated/loc_92b2.js";
-import { loc_92b2 } from "../loc_92b2.js";
+import { swapParallelTables } from "../swapParallelTables.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SWEEP_STAGE, loc_3bc } from "../names.js";
@@ -42,10 +42,10 @@ function seed(m) {
   }
 }
 
-test("CAPTURE: real 0x92b2 dispatches -- loc_92b2 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x92b2 dispatches -- swapParallelTables == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_92b2(c);
+    oracle(o); swapParallelTables(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,7 +54,7 @@ test("CAPTURE: real 0x92b2 dispatches -- loc_92b2 == oracle in RAM (-stack)", ()
 test("CRAFTED: entry-for-entry swap == oracle (RAM -stack)", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_92b2(c);
+  oracle(o); swapParallelTables(c);
   assert.equal(ramDiff(o, c), null);
   // Sanity: the tables actually crossed over.
   assert.equal(c.mem.read8(loc_3bc + 0x05), 0x45, "$03bc,5 holds old $03aa,5");

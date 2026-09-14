@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9bd0 (ROM 0x9bd0-0x9bdc) -- advance the $010b cursor, read the $a0f7 ROM
+// Memory-equivalence for writeScriptConstantToSlot (ROM 0x9bd0-0x9bdc) -- advance the $010b cursor, read the $a0f7 ROM
 // table at the new index, and store that byte into the per-object slot $0298,x. Live-out is RAM only (A/Y
 // are scratch no caller reads), so every arm compares RAM (-stack). Pure leaf (no dispatch), no POKEY.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9bd0.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9bd0 as oracle } from "../../translated/loc_9bd0.js";
-import { loc_9bd0 } from "../loc_9bd0.js";
+import { writeScriptConstantToSlot } from "../writeScriptConstantToSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SCRIPT_CURSOR, loc_298 } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9bd0 dispatches -- loc_9bd0 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9bd0 dispatches -- writeScriptConstantToSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9bd0(c);
+    oracle(o); writeScriptConstantToSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ test("CRAFTED: cursor advance + $a0f7 lookup -> $0298,x == oracle across seeds",
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_9bd0(c);
+    oracle(o); writeScriptConstantToSlot(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }
 });

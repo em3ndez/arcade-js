@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_93e0 (ROM 0x93e0-0x93f9) -- folds A's top three bits (MSB first) into a 0xff
+// Memory-equivalence for partitionByteToFineCoarseSeed (ROM 0x93e0-0x93f9) -- folds A's top three bits (MSB first) into a 0xff
 // seed stored at $29, then derives X = ((seed ^ 0xff) + 0x0d) >> 1 across a pha/pla that preserves the SHIFTED
 // A (input << 3), not the input. The live-outs are memory ($29) plus registers X (derived), Y (= the seed) and
 // A (= input shifted left 3x; each caller writes regs.a to memory after the call, so A is genuine). Each side
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_93e0 as oracle } from "../../translated/loc_93e0.js";
-import { loc_93e0 } from "../loc_93e0.js";
+import { partitionByteToFineCoarseSeed } from "../partitionByteToFineCoarseSeed.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29 } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0x93e0 dispatches -- loc_93e0 == oracle in RAM (-stack) and X/Y/A", () => {
+test("CAPTURE: real 0x93e0 dispatches -- partitionByteToFineCoarseSeed == oracle in RAM (-stack) and X/Y/A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_93e0(c);
+    oracle(o); partitionByteToFineCoarseSeed(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "X (derived index) diverged");
     assert.equal(c.regs.y, o.regs.y, "Y (the seed) diverged");
@@ -57,7 +57,7 @@ test("CRAFTED: seed at $29, X and the shifted A match the oracle across the A ra
     const o = new Machine(ROM, OPTS); o.regs.a = ain;
     const c = new Machine(ROM, OPTS); c.regs.a = ain;
     oracle(o);
-    const [ra, rx, ry] = loc_93e0(c);
+    const [ra, rx, ry] = partitionByteToFineCoarseSeed(c);
     assert.equal(ramDiff(o, c), null, `A_in=0x${ain.toString(16)}: RAM ($29) diverged`);
     assert.equal(c.regs.x, o.regs.x, `A_in=0x${ain.toString(16)}: X diverged`);
     assert.equal(c.regs.y, o.regs.y, `A_in=0x${ain.toString(16)}: Y (seed) diverged`);
@@ -82,7 +82,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_93e0, TARGET, m);
-  assert.equal(r.placeable, true, `loc_93e0 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, partitionByteToFineCoarseSeed, TARGET, m);
+  assert.equal(r.placeable, true, `partitionByteToFineCoarseSeed must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

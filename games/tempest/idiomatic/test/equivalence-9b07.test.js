@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9b07 (ROM 0x9b07-0x9b1d) -- sets up a coordinate list for the packed index in
+// Memory-equivalence for setupEnemyCoordList (ROM 0x9b07-0x9b1d) -- sets up a coordinate list for the packed index in
 // loc_2b, saving/restoring the caller's index in SAVED_INDEX2 around the call. When loc_29 >= 0x20 the index is
-// dispatched through the loc_9a88 list-setup selector; otherwise loc_9aee seats the pointer pair directly.
+// dispatched through the loc_9a88 list-setup selector; otherwise seatCoordListPointer seats the pointer pair directly.
 // The caller's index (entry Y) is preserved across the call, so live-out is RAM (dumpState minus
-// STACK_SCRATCH) PLUS Y (and A, which the setup callee reloads). Oracle is the frozen translated loc_9b07.
+// STACK_SCRATCH) PLUS Y (and A, which the setup callee reloads). Oracle is the frozen translated setupEnemyCoordList.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9b07.test.js
 
 import nodeTest from "node:test";
@@ -11,8 +11,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9b07 as oracle } from "../../translated/loc_9b07.js";
-import { loc_9b07 } from "../loc_9b07.js";
-import { loc_9aee } from "../loc_9aee.js";
+import { setupEnemyCoordList } from "../setupEnemyCoordList.js";
+import { seatCoordListPointer } from "../seatCoordListPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2b, SAVED_INDEX2 } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9b07 dispatches -- loc_9b07 == oracle in RAM (-stack), Y and A", () => {
+test("CAPTURE: real 0x9b07 dispatches -- setupEnemyCoordList == oracle in RAM (-stack), Y and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9b07(c);
+    oracle(o); setupEnemyCoordList(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.y, o.regs.y, "Y live-out matches");
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
@@ -60,9 +60,9 @@ function seed(m, a29, idx, y) {
 }
 
 test("CRAFTED: high count dispatches through the selector -- RAM, Y and A equal", () => {
-  const o = new Machine(ROM, OPTS); seed(o, 0x30, 0x00, 0x55); // loc_29>=0x20 -> loc_9a88(idx=0 -> loc_9a9d)
+  const o = new Machine(ROM, OPTS); seed(o, 0x30, 0x00, 0x55); // loc_29>=0x20 -> loc_9a88(idx=0 -> seatDemoCoordListPointer)
   const c = new Machine(ROM, OPTS); seed(c, 0x30, 0x00, 0x55);
-  oracle(o); loc_9b07(c);
+  oracle(o); setupEnemyCoordList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the selector path");
   assert.equal(c.regs.y, o.regs.y, "Y restored to the entry index");
   assert.equal(c.regs.y, 0x55, "Y is the saved entry index, not the packed index");
@@ -70,12 +70,12 @@ test("CRAFTED: high count dispatches through the selector -- RAM, Y and A equal"
 });
 
 test("CRAFTED: low count seats the pointer pair directly -- RAM, Y and A equal", () => {
-  const o = new Machine(ROM, OPTS); seed(o, 0x05, 0x02, 0x55); // loc_29<0x20 -> loc_9aee(idx=2)
+  const o = new Machine(ROM, OPTS); seed(o, 0x05, 0x02, 0x55); // loc_29<0x20 -> seatCoordListPointer(idx=2)
   const c = new Machine(ROM, OPTS); seed(c, 0x05, 0x02, 0x55);
-  oracle(o); loc_9b07(c);
+  oracle(o); setupEnemyCoordList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the direct-setup path");
   assert.equal(c.regs.y, o.regs.y, "Y restored to the entry index");
-  assert.equal(c.mem.read8(loc_2b), 0x02, "the packed index was seated as the list index by loc_9aee");
+  assert.equal(c.mem.read8(loc_2b), 0x02, "the packed index was seated as the list index by seatCoordListPointer");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
 });
 
@@ -87,7 +87,7 @@ test("TEETH: a twin that skips the Y restore is RAM-clean but diverges in the Y 
     const { mem8 } = m;
     mem8[SAVED_INDEX2] = y;
     const idx = mem8[loc_2b];
-    loc_9aee(m, idx);
+    seatCoordListPointer(m, idx);
     m.regs.y = idx; // BUG: leaves Y as the packed index instead of restoring the saved entry index
   };
   broken(c);

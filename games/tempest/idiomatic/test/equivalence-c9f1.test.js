@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c9f1 -- scans the $46 window (length from $3e) for its max into $0126,
+// Memory-equivalence for reloadPacingFromPeakSlot -- scans the $46 window (length from $3e) for its max into $0126,
 // decrements it once when nonzero, then sets $00 to 0x14 or (when $05 is negative) 0x10. Live-out is memory
 // only, so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). A leaf: the
 // module omits the ROM ret and the seam completes it, so the arms compare RAM (-stack), NOT pc/SP.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c9f1 as oracle } from "../../translated/loc_c9f1.js";
-import { loc_c9f1 } from "../loc_c9f1.js";
+import { reloadPacingFromPeakSlot } from "../reloadPacingFromPeakSlot.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, STATUS_FLAGS, ACTIVE_SLOT_COUNT, PLAYER_LEVEL_TBL, WAVE_PEAK_SEED } from "../names.js";
@@ -46,10 +46,10 @@ const seed = (m) => {
   m.mem.write8(STATUS_FLAGS, 0x00);
 };
 
-test("CAPTURE: real 0xc9f1 dispatches -- loc_c9f1 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc9f1 dispatches -- reloadPacingFromPeakSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c9f1(c);
+    oracle(o); reloadPacingFromPeakSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -58,7 +58,7 @@ test("CAPTURE: real 0xc9f1 dispatches -- loc_c9f1 == oracle in RAM (-stack)", ()
 test("CRAFTED: max-1 lands in $0126 and $00 = 0x14 for non-negative $05", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c9f1(c);
+  oracle(o); reloadPacingFromPeakSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after scan");
   assert.equal(c.mem.read8(WAVE_PEAK_SEED), 0x08, "$0126 = max(09)-1");
   assert.equal(c.mem.read8(GAME_MODE), 0x14, "$00 = 0x14");
@@ -88,7 +88,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c9f1, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c9f1 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, reloadPacingFromPeakSlot, TARGET, m);
+  assert.equal(r.placeable, true, `reloadPacingFromPeakSlot must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

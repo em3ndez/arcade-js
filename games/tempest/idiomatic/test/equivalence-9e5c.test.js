@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9e5c (ROM 0x9e5c-0x9eaa) -- the FULL entry of a mid-entry split: it runs the
-// gated $9eab bit6-keeper guard, then falls into the shared body loc_9e5f (0x9e5f, also reached guardless by
-// loc_9f81/loc_9f99). The body forces bit7 on $0283,x and, per its low-3-bit segment, steps the $02b9,x
+// gated $9eab bit6-keeper guard, then falls into the shared body stepClimberSegmentAndHeading (0x9e5f, also reached guardless by
+// flipEnemyLaneTowardTarget/loc_9f99). The body forces bit7 on $0283,x and, per its low-3-bit segment, steps the $02b9,x
 // depth and stores either a 9ed7 ring direction (segment != 4) or 0x87/0x81 (segment 4 seam) to $02cc,x.
-// This is NOT a register-thread routine: loc_9ed7 already returns its exit A, so nothing is threaded through
+// This is NOT a register-thread routine: lookupRingHeading already returns its exit A, so nothing is threaded through
 // a stale register. Live-outs: RAM (the primary contract) plus register A (= the byte stored to $02cc,x).
 // Y is 9ed7 scratch (dropped by the idiomatic 9ed7, per equivalence-9ed7.test.js) and is NOT compared; X is
 // untouched. The oracle's m.call(0x9eab)/m.call(0x9ed7) resolve to the translated callees via the registry.
@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9e5c as oracle, loc_9e5f as oracle5f } from "../../translated/loc_9e5c.js";
 import { loc_9e5c } from "../loc_9e5c.js";
-import { loc_9e5f } from "../loc_9e5f.js";
+import { stepClimberSegmentAndHeading } from "../stepClimberSegmentAndHeading.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TUBE_GEOM_FLAG, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, ENEMY_PHASE, SEG_DIRECTION } from "../names.js";
@@ -53,7 +53,7 @@ test("CAPTURE: real 0x9e5c dispatches -- loc_9e5c == oracle in RAM (-stack) and 
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "register A (the $02cc,x byte) diverged");
     assert.equal(c.regs.x, o.regs.x, "register X (untouched) diverged");
-    // Y is loc_9ed7 scratch, dropped by the idiomatic 9ed7 -- not a live-out, not compared.
+    // Y is lookupRingHeading scratch, dropped by the idiomatic 9ed7 -- not a live-out, not compared.
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -95,7 +95,7 @@ test("CRAFTED: segment 4 (seam), bit6 set -- depth-- and 0x87 to $02cc,x; bit6 c
   }
 });
 
-test("MID-ENTRY: loc_9e5f (guardless) == oracle loc_9e5f in RAM (-stack) and A", () => {
+test("MID-ENTRY: stepClimberSegmentAndHeading (guardless) == oracle stepClimberSegmentAndHeading in RAM (-stack) and A", () => {
   const X = 5;
   const seed = (m) => {
     seedRing(m);
@@ -105,7 +105,7 @@ test("MID-ENTRY: loc_9e5f (guardless) == oracle loc_9e5f in RAM (-stack) and A",
   };
   const o = new Machine(ROM, OPTS); o.regs.x = X; seed(o);
   const c = new Machine(ROM, OPTS); c.regs.x = X; seed(c);
-  oracle5f(o); loc_9e5f(c);
+  oracle5f(o); stepClimberSegmentAndHeading(c);
   assert.equal(ramDiff(o, c), null, "mid-entry RAM equal");
   assert.equal(c.regs.a, o.regs.a, "mid-entry A == oracle A");
   // The guard would have fired ($0111!=0, bit6 already set, depth 0) but the mid-entry must NOT run it:
@@ -134,7 +134,7 @@ test("TEETH: a twin that takes the wrong branch (treats segment 4 as ordinary) d
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong-branch twin");
 });
 
-test("TEETH: skipping the $9eab head guard diverges -- loc_9e5f (guardless) != oracle loc_9e5c", () => {
+test("TEETH: skipping the $9eab head guard diverges -- stepClimberSegmentAndHeading (guardless) != oracle loc_9e5c", () => {
   const X = 3;
   const seed = (m) => {
     seedRing(m);
@@ -145,7 +145,7 @@ test("TEETH: skipping the $9eab head guard diverges -- loc_9e5f (guardless) != o
   const o = new Machine(ROM, OPTS); o.regs.x = X; seed(o);
   const c = new Machine(ROM, OPTS); c.regs.x = X; seed(c);
   oracle(o);                                          // full entry: guard sets bit6 first
-  loc_9e5f(c);                                        // mid-entry: no guard -> bit6 stays clear
+  stepClimberSegmentAndHeading(c);                                        // mid-entry: no guard -> bit6 stays clear
   assert.notEqual(ramDiff(o, c), null, "skipping the guard FAILED to diverge (guard is load-bearing)");
 });
 

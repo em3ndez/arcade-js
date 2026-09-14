@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c098 -- computes clamped signed X/Y deltas, drives the math coprocessor twice
+// Memory-equivalence for projectPointThroughMathbox -- computes clamped signed X/Y deltas, drives the math coprocessor twice
 // (writing inputs, waiting on the status register, reading the result pair), and folds paired offsets into
 // two 16-bit accumulators with saturating limits. Live-out is memory only (A/X at RTS are incidental), so
 // each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). The coprocessor is
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c098 as oracle } from "../../translated/loc_c098.js";
-import { loc_c098 } from "../loc_c098.js";
+import { projectPointThroughMathbox } from "../projectPointThroughMathbox.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -52,10 +52,10 @@ const seed = (m) => {
   m.mem.write8(PROJ_OFS_X_LO, 0x05); m.mem.write8(PROJ_OFS_X_HI, 0x00);
 };
 
-test("CAPTURE: real 0xc098 dispatches -- loc_c098 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc098 dispatches -- projectPointThroughMathbox == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c098(c);
+    oracle(o); projectPointThroughMathbox(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -64,7 +64,7 @@ test("CAPTURE: real 0xc098 dispatches -- loc_c098 == oracle in RAM (-stack)", ()
 test("CRAFTED: deltas + signs land, coprocessor-fed RAM matches the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c098(c);
+  oracle(o); projectPointThroughMathbox(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   // deterministic (non-coprocessor) results
   assert.equal(c.mem.read8(loc_32), 0x20, "|dy| stored");
@@ -75,7 +75,7 @@ test("CRAFTED: deltas + signs land, coprocessor-fed RAM matches the oracle", () 
 test("TEETH: a twin whose delta store is corrupted diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c098(c);
+  oracle(o); projectPointThroughMathbox(c);
   c.mem.write8(loc_32, (c.mem.read8(loc_32) ^ 0xff) & 0xff); // BUG: |dy| corrupted
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted store");
 });
@@ -84,7 +84,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c098, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c098 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, projectPointThroughMathbox, TARGET, m);
+  assert.equal(r.placeable, true, `projectPointThroughMathbox must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

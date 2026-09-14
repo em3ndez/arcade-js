@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c5c2 -- rebuilds the per-frame enemy display list: per slot copy a header
+// Memory-equivalence for buildEnemyDisplayList -- rebuilds the per-frame enemy display list: per slot copy a header
 // then append a midpoint pair or a straight/sign-fixed block; dissolves m.calls to df6a/c66d/c6c7/df5f.
 // Output is RAM (the ($74) display list + scratch cells), so each arm compares the RAM diff (minus dead
 // stack). A pure tail-caller (jmp df5f). CRAFTED keeps every slot inactive (kind bytes 0), so the copy
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c5c2 as oracle } from "../../translated/loc_c5c2.js";
-import { loc_c5c2 } from "../loc_c5c2.js";
+import { buildEnemyDisplayList } from "../buildEnemyDisplayList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -54,10 +54,10 @@ function seat(m) {
   for (let i = 0; i < 0x100; i++) m.mem.write8((0x2600 + i) & 0xffff, (i * 7) & 0xff);
 }
 
-test("CAPTURE: real 0xc5c2 dispatches -- loc_c5c2 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc5c2 dispatches -- buildEnemyDisplayList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c5c2(c);
+    oracle(o); buildEnemyDisplayList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,14 +66,14 @@ test("CAPTURE: real 0xc5c2 dispatches -- loc_c5c2 == oracle in RAM (-stack)", ()
 test("CRAFTED: full list rebuild (all slots straight-copy) == oracle (RAM)", () => {
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
-  oracle(o); loc_c5c2(c);
+  oracle(o); buildEnemyDisplayList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after rebuild");
 });
 
 test("CRAFTED-guard: $0110 set -> immediate return leaves RAM untouched == oracle", () => {
   const o = new Machine(ROM, OPTS); seat(o); o.mem.write8(loc_110, 0x01);
   const c = new Machine(ROM, OPTS); seat(c); c.mem.write8(loc_110, 0x01);
-  oracle(o); loc_c5c2(c);
+  oracle(o); buildEnemyDisplayList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on early return");
 });
 
@@ -81,7 +81,7 @@ test("TEETH: a twin that corrupts the write cursor diverges from the oracle", ()
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
-  const broken = (mm) => { loc_c5c2(mm); mm.mem8[DRAW_CURSOR_OFFSET] ^= 0xff; }; // BUG: leaves a wrong cursor
+  const broken = (mm) => { buildEnemyDisplayList(mm); mm.mem8[DRAW_CURSOR_OFFSET] ^= 0xff; }; // BUG: leaves a wrong cursor
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted cursor");
 });
@@ -91,6 +91,6 @@ test("SP-TOOTH: the omitted-ret tail rewrite is seam-placeable", () => {
   seat(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c5c2, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c5c2 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildEnemyDisplayList, TARGET, m);
+  assert.equal(r.placeable, true, `buildEnemyDisplayList must be seam-placeable; got: ${r.error}`);
 });

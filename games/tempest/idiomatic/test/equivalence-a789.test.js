@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a789 (ROM 0xa789) -- zero the $0283..$0292 table and re-seed $010e/$010d=0x20,
+// Memory-equivalence for resetPerSlotStateTable (ROM 0xa789) -- zero the $0283..$0292 table and re-seed $010e/$010d=0x20,
 // $01=0x04, $68=$69=0. A/X only carry the loop constant/counter (incidental scratch, dropped), so live-out
 // is RAM only and the arms compare RAM (-stack). A pure leaf (no dispatch, no stack move): it omits the ROM
 // ret and the withOmittedRet seam completes it.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a789 as oracle } from "../../translated/loc_a789.js";
-import { loc_a789 } from "../loc_a789.js";
+import { resetPerSlotStateTable } from "../resetPerSlotStateTable.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_SLOT_FLAGS, SPAWN_BUDGET_TIMER, SPAWN_FOUND_FLAG, MODE_DISPATCH_SEL, PROJ_OFS_X_LO, PROJ_OFS_X_HI } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1200) : [];
 
-test("CAPTURE: real 0xa789 dispatches -- loc_a789 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa789 dispatches -- resetPerSlotStateTable == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a789(c);
+    oracle(o); resetPerSlotStateTable(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ test("CRAFTED: table cleared + scalars re-seeded from a non-default seed", () =>
   };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
-  oracle(o); loc_a789(c);
+  oracle(o); resetPerSlotStateTable(c);
   assert.equal(ramDiff(o, c), null, "RAM matches oracle");
   for (let i = 0; i < 16; i++) assert.equal(c.mem.read8(ENEMY_SLOT_FLAGS + i), 0x00, `$0283+${i} cleared`);
   assert.equal(c.mem.read8(SPAWN_BUDGET_TIMER), 0x20, "$010e = 0x20");
@@ -80,7 +80,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
-  const r = seamPlaceable(withOmittedRet, loc_a789, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a789 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, resetPerSlotStateTable, TARGET, m);
+  assert.equal(r.placeable, true, `resetPerSlotStateTable must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

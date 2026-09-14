@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9c3b (ROM 0x9c3b-0x9c4e) -- derives $010c from the $0147/$0148 pair:
+// Memory-equivalence for setFlagFromPhaseAccumulatorSign (ROM 0x9c3b-0x9c4e) -- derives $010c from the $0147/$0148 pair:
 // $010c = (((($0147 << 2) + $0148) & $0148) & $80) ^ $80. Live-out is memory only (A/flags at RTS are
 // incidental), so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). A
 // leaf: the module omits the ROM ret and the seam completes it, so the arms compare RAM (-stack), NOT pc/SP.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9c3b as oracle } from "../../translated/loc_9c3b.js";
-import { loc_9c3b } from "../loc_9c3b.js";
+import { setFlagFromPhaseAccumulatorSign } from "../setFlagFromPhaseAccumulatorSign.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ANIM_DELTA, ENEMY_ANIM_ACCUM, SCRIPT_BRANCH_FLAG } from "../names.js";
@@ -41,10 +41,10 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // Reference for the crafted expectation: the exact byte the ROM lands at $010c.
 const expect = (v147, v148) => ((((((v147 << 2) & 0xff) + v148) & 0xff) & v148 & 0x80) ^ 0x80) & 0xff;
 
-test("CAPTURE: real 0x9c3b dispatches -- loc_9c3b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9c3b dispatches -- setFlagFromPhaseAccumulatorSign == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9c3b(c);
+    oracle(o); setFlagFromPhaseAccumulatorSign(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ test("CRAFTED: $010c = high bit of ((($0147<<2)+$0148)&$0148), inverted", () => 
     const seed = (m) => { m.mem.write8(ENEMY_ANIM_DELTA, c147); m.mem.write8(ENEMY_ANIM_ACCUM, c148); m.mem.write8(SCRIPT_BRANCH_FLAG, 0x99); };
     const o = new Machine(ROM, OPTS); seed(o);
     const c = new Machine(ROM, OPTS); seed(c);
-    oracle(o); loc_9c3b(c);
+    oracle(o); setFlagFromPhaseAccumulatorSign(c);
     const tag = `147=0x${c147.toString(16)} 148=0x${c148.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.mem.read8(SCRIPT_BRANCH_FLAG), expect(c147, c148), `$010c ${tag}`);
@@ -92,7 +92,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9c3b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9c3b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, setFlagFromPhaseAccumulatorSign, TARGET, m);
+  assert.equal(r.placeable, true, `setFlagFromPhaseAccumulatorSign must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

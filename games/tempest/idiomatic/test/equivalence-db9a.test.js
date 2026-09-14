@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_db9a -- advances a phase counter (gated by a frame byte), picks a slot from
-// three parallel tables to seed two output cells, and emits three header words via dissolved loc_df39 /
+// Memory-equivalence for stepVectorPhaseAnimation -- advances a phase counter (gated by a frame byte), picks a slot from
+// three parallel tables to seed two output cells, and emits three header words via dissolved emitCoordinateVectorWord /
 // loc_df6c. Live-out is memory only, so each arm runs on a clone and compares RAM (dumpState minus
 // STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-db9a.test.js
 
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_db9a as oracle } from "../../translated/loc_db9a.js";
-import { loc_db9a } from "../loc_db9a.js";
+import { stepVectorPhaseAnimation } from "../stepVectorPhaseAnimation.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FRAME_COUNTER, loc_39, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdb9a dispatches -- loc_db9a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdb9a dispatches -- stepVectorPhaseAnimation == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_db9a(c);
+    oracle(o); stepVectorPhaseAnimation(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ function seedFrozen(m) {
 test("CRAFTED (advance): counter steps, slot seeded, words emitted -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedAdvance(o);
   const c = new Machine(ROM, OPTS); seedAdvance(c);
-  oracle(o); loc_db9a(c);
+  oracle(o); stepVectorPhaseAnimation(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after advance");
   assert.equal(c.mem.read8(loc_39), 0x03, "$39 advanced");
 });
@@ -70,7 +70,7 @@ test("CRAFTED (advance): counter steps, slot seeded, words emitted -- RAM equal"
 test("CRAFTED (frozen gate): counter held, other slot -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedFrozen(o);
   const c = new Machine(ROM, OPTS); seedFrozen(c);
-  oracle(o); loc_db9a(c);
+  oracle(o); stepVectorPhaseAnimation(c);
   assert.equal(ramDiff(o, c), null, "RAM equal with gate set");
   assert.equal(c.mem.read8(loc_39), 0x05, "$39 held");
 });
@@ -79,7 +79,7 @@ test("TEETH: a twin that never advances the counter diverges from the oracle", (
   const o = new Machine(ROM, OPTS); seedAdvance(o);
   const c = new Machine(ROM, OPTS); seedAdvance(c);
   oracle(o);
-  const broken = (m) => { loc_db9a; /* BUG: leaves $39 and the output cells untouched */ void m; };
+  const broken = (m) => { stepVectorPhaseAnimation; /* BUG: leaves $39 and the output cells untouched */ void m; };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the frozen counter");
 });
@@ -88,6 +88,6 @@ test("SP-TOOTH: the tail-dispatching rewrite is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedAdvance(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_db9a, TARGET, m);
-  assert.equal(r.placeable, true, `loc_db9a must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepVectorPhaseAnimation, TARGET, m);
+  assert.equal(r.placeable, true, `stepVectorPhaseAnimation must be seam-placeable; got: ${r.error}`);
 });

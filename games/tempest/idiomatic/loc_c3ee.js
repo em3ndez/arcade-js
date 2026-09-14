@@ -2,10 +2,10 @@
 import { u8 } from "../../../core/int.js";
 import { SLOT_LOOP_INDEX, VG_RECORD_HEADER, loc_9e } from "./names.js";
 import { loc_df4c } from "./loc_df4c.js";
-import { loc_c43c } from "./loc_c43c.js";
-import { loc_c772 } from "./loc_c772.js";
-import { loc_c423 } from "./loc_c423.js";
-import { loc_c3ba } from "./loc_c3ba.js";
+import { loadSlotCoordBlock } from "./loadSlotCoordBlock.js";
+import { emitObjectPositionVector } from "./emitObjectPositionVector.js";
+import { emitProjectedSlotRecord } from "./emitProjectedSlotRecord.js";
+import { emitCoordDeltaRecord } from "./emitCoordDeltaRecord.js";
 
 // Draw a framed element in two passes: emit the current slot with the colour live,
 // step back one slot and re-emit uncoloured, then restore the colour and close it.
@@ -15,16 +15,16 @@ export function loc_c3ee(m, x = m.regs.x, a = m.regs.a) {
   const color = a;
   mem8[SLOT_LOOP_INDEX] = x;
   loc_df4c(m, 0x08, mem8[loc_9e]);
-  loc_c43c(m);
-  loc_c772(m, 0x61);
+  loadSlotCoordBlock(m);
+  emitObjectPositionVector(m, 0x61);
   mem8[VG_RECORD_HEADER] = color;
-  loc_c423(m);
+  emitProjectedSlotRecord(m);
   mem8[SLOT_LOOP_INDEX] = u8(mem8[SLOT_LOOP_INDEX] - 1);
   mem8[VG_RECORD_HEADER] = 0x00;
   loc_df4c(m, 0x08, mem8[loc_9e]);
-  loc_c423(m);
+  emitProjectedSlotRecord(m);
   mem8[VG_RECORD_HEADER] = color;
-  loc_c43c(m);
-  loc_c3ba(m);
+  loadSlotCoordBlock(m);
+  emitCoordDeltaRecord(m);
   return mem8[SLOT_LOOP_INDEX];
 }

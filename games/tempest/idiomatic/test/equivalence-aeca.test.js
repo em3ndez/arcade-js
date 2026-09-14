@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aeca (ROM 0xaeca) -- when $0156 is non-zero it seats it in $58, builds a record
+// Memory-equivalence for computeDisplayListChecksum (ROM 0xaeca) -- when $0156 is non-zero it seats it in $58, builds a record
 // via ab14 (X=0x34) and dfb1, and zeros $56/$57; then always folds 17 ROM bytes ($d575,y for y=0x10..0) plus
 // 0x85 (carry-chained) into $b5. Dissolves the m.calls to ab14/dfb1. Output is RAM ($b5 + record) plus the
 // checksum left in A (a register live-out), so arms compare RAM (dumpState minus STACK_SCRATCH) and the
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aeca as oracle } from "../../translated/loc_aeca.js";
-import { loc_aeca } from "../loc_aeca.js";
+import { computeDisplayListChecksum } from "../computeDisplayListChecksum.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, BONUS_LIFE_INTERVAL, PROJ_PT_X } from "../names.js";
@@ -48,28 +48,28 @@ function seatFlag(m) {
   m.mem.write8(0x0074, 0x00); m.mem.write8(0x0075, 0x20);  // ($74) -> 0x2000 (vector RAM)
 }
 
-test("CAPTURE: real 0xaeca dispatches -- loc_aeca == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaeca dispatches -- computeDisplayListChecksum == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aeca(c);
+    oracle(o); computeDisplayListChecksum(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED (flag clear): $0156 == 0 -> checksum only -- loc_aeca == oracle in RAM", () => {
+test("CRAFTED (flag clear): $0156 == 0 -> checksum only -- computeDisplayListChecksum == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); o.mem.write8(BONUS_LIFE_INTERVAL, 0x00);
   const c = new Machine(ROM, OPTS); c.mem.write8(BONUS_LIFE_INTERVAL, 0x00);
-  oracle(o); const rv = loc_aeca(c);
+  oracle(o); const rv = computeDisplayListChecksum(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after checksum");
   assert.equal(c.mem.read8(B5), o.mem.read8(B5), "$b5 checksum matches the oracle");
   assert.equal(rv, o.regs.a, "returned checksum matches the oracle's A live-out");
 });
 
-test("CRAFTED (flag set): $0156 != 0 -> ab14/dfb1 record + checksum -- loc_aeca == oracle in RAM", () => {
+test("CRAFTED (flag set): $0156 != 0 -> ab14/dfb1 record + checksum -- computeDisplayListChecksum == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seatFlag(o);
   const c = new Machine(ROM, OPTS); seatFlag(c);
-  oracle(o); const rv = loc_aeca(c);
+  oracle(o); const rv = computeDisplayListChecksum(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after record + checksum");
   assert.equal(c.mem.read8(PROJ_PT_X), 0x55, "$58 seated from the flag byte");
   assert.equal(rv, o.regs.a, "returned checksum matches the oracle's A live-out");
@@ -98,6 +98,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); m.mem.write8(BONUS_LIFE_INTERVAL, 0x00);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aeca, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aeca must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, computeDisplayListChecksum, TARGET, m);
+  assert.equal(r.placeable, true, `computeDisplayListChecksum must be seam-placeable; got: ${r.error}`);
 });

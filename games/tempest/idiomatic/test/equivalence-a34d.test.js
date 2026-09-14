@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a34d (ROM 0xa34d) -- the $013b-seed mid-entry: stores the caller's A into the
+// Memory-equivalence for insertType1WithHeadFlag (ROM 0xa34d) -- the $013b-seed mid-entry: stores the caller's A into the
 // head flag $013b, then falls into the shared insert tail with a fixed type byte 0x01 (so $2c = 0x01),
 // copying $0202->$29 / $0200->$2d, firing the sound gate and table insert with the entry X/Y, and raising
-// the ready flags. The idiomatic side dissolves the fall-through into a direct loc_a352 call. Live-out is
+// the ready flags. The idiomatic side dissolves the fall-through into a direct insertObjectAndSignalReady call. Live-out is
 // memory (X/Y preserved); each arm compares RAM (dumpState minus STACK_SCRATCH) and checks X/Y unchanged.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a34d.test.js
 
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a34d as oracle } from "../../translated/loc_a34b.js";
-import { loc_a34d } from "../loc_a34b.js";
+import { insertType1WithHeadFlag } from "../primeTopPriorityObject.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, COORD_LIST_PTR_LO, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa34d dispatches -- loc_a34d == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa34d dispatches -- insertType1WithHeadFlag == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a34d(c);
+    oracle(o); insertType1WithHeadFlag(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "X preserved");
     assert.equal(c.regs.y, o.regs.y, "Y preserved");
@@ -60,7 +60,7 @@ function seed(m, a) {
 test("CRAFTED: head flag seeded, then the type-1 insert runs -- RAM equal and X/Y preserved", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x09);
   const c = new Machine(ROM, OPTS); seed(c, 0x09);
-  oracle(o); loc_a34d(c);
+  oracle(o); insertType1WithHeadFlag(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
   assert.equal(c.regs.y, o.regs.y, "Y preserved");

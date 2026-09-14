@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ccc7 (ROM 0xccc7-0xcce9) -- registers sound id A: saves caller X/Y to $31/$32,
+// Memory-equivalence for loadSoundVoiceSlots (ROM 0xccc7-0xcce9) -- registers sound id A: saves caller X/Y to $31/$32,
 // then over 16 slots (X=0x0f..0, table cursor $cb01+id counting down with the slot) the first nonzero table
 // byte claims that slot ($bf, $c0,x, $e0,x, $f0,x) and $bf is reset to 0xff. X/Y are restored from $31/$32.
 // Register inputs A/X/Y become params defaulting to m.regs; live-out is memory only. A leaf: the module
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ccc7 as oracle } from "../../translated/loc_ccc7.js";
-import { loc_ccc7 } from "../loc_ccc7.js";
+import { loadSoundVoiceSlots } from "../loadSoundVoiceSlots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_31, loc_32 } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xccc7 dispatches -- loc_ccc7 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xccc7 dispatches -- loadSoundVoiceSlots == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ccc7(c);
+    oracle(o); loadSoundVoiceSlots(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ test("CRAFTED: caller X/Y land in $31/$32 and the slot scan matches", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ccc7(c);
+  oracle(o); loadSoundVoiceSlots(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after registration");
   assert.equal(c.mem.read8(loc_31), 0x5a, "$31 = caller X");
   assert.equal(c.mem.read8(loc_32), 0x3c, "$32 = caller Y");
@@ -86,7 +86,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_ccc7, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ccc7 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, loadSoundVoiceSlots, TARGET, m);
+  assert.equal(r.placeable, true, `loadSoundVoiceSlots must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

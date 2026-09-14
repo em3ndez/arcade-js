@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c16e (ROM 0xc16e-0xc1c2) -- a CALLER that dissolves jsr $aa13 and jsr $c235
+// Memory-equivalence for buildLevelLayout (ROM 0xc16e-0xc1c2) -- a CALLER that dissolves jsr $aa13 and jsr $c235
 // into direct idiomatic calls, then primes flags and unpacks a clamped $c1fd table entry into the four
 // per-column arrays. Effect is memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH). The
 // sub-calls can read POKEY random on some states, so CRAFTED runs both arms on clones of one seeded base
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c16e as oracle } from "../../translated/loc_c16e.js";
-import { loc_c16e } from "../loc_c16e.js";
+import { buildLevelLayout } from "../buildLevelLayout.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xc16e dispatches -- loc_c16e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc16e dispatches -- buildLevelLayout == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c16e(c);
+    oracle(o); buildLevelLayout(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ function seed(m) {
 test("CRAFTED: flags primed, header bytes mirrored, table entry unpacked", () => {
   const base = new Machine(ROM, OPTS); seed(base);
   const o = base.clone(), c = base.clone();
-  oracle(o); loc_c16e(c);
+  oracle(o); buildLevelLayout(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.mem.read8(0x5e), 0x80, "$5e primed");
   assert.equal(c.mem.read8(0x0114), 0xff, "$0114 primed");
@@ -85,6 +85,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c16e, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c16e must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildLevelLayout, TARGET, m);
+  assert.equal(r.placeable, true, `buildLevelLayout must be seam-placeable; got: ${r.error}`);
 });

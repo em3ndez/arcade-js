@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9f81 / loc_9f8a (ROM 0x9f81-0x9fc3) -- a per-slot(x) segment-flag step that
-// tail-jmps into loc_9e5f. The idiomatic side dissolves jsr $9d67, jsr $9c4f and the jmp $9e5f into direct
-// loc_9d67 / loc_9c4f / loc_9e5f calls. All output is RAM plus the tail's A live-out (loc_9e5f's stored
+// Memory-equivalence for flipEnemyLaneTowardTarget / flipEnemyLaneRandomSide (ROM 0x9f81-0x9fc3) -- a per-slot(x) segment-flag step that
+// tail-jmps into stepClimberSegmentAndHeading. The idiomatic side dissolves jsr $9d67, jsr $9c4f and the jmp $9e5f into direct
+// faceEnemyTowardPlayerSegment / toggleEnemyTurnSide / stepClimberSegmentAndHeading calls. All output is RAM plus the tail's A live-out (stepClimberSegmentAndHeading's stored
 // direction byte), so each arm compares RAM (dumpState minus STACK_SCRATCH) and the returned A vs o.regs.a.
-// The loc_9f8a entry reads a POKEY random bit ($60ca): both sides run on identically-seeded Machines (same
+// The flipEnemyLaneRandomSide entry reads a POKEY random bit ($60ca): both sides run on identically-seeded Machines (same
 // poly state), so the read agrees. Run: node --test games/tempest/idiomatic/test/equivalence-9f81.test.js
 
 import nodeTest from "node:test";
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9f81 as oracle, loc_9f8a as oracle8a } from "../../translated/loc_9f81.js";
-import { loc_9f81, loc_9f8a } from "../loc_9f81.js";
+import { flipEnemyLaneTowardTarget, flipEnemyLaneRandomSide } from "../flipEnemyLaneTowardTarget.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9f81 dispatches -- loc_9f81 == oracle in RAM (-stack) and A live-out", () => {
+test("CAPTURE: real 0x9f81 dispatches -- flipEnemyLaneTowardTarget == oracle in RAM (-stack) and A live-out", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const a = loc_9f81(c);
+    oracle(o); const a = flipEnemyLaneTowardTarget(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(a, o.regs.a, "returned A must equal oracle exit A");
   }
@@ -55,7 +55,7 @@ function seed(m, s) {
   m.mem.write8(u16(ENEMY_SEGMENT + 0), s.depth ?? 0x00);
 }
 
-test("CRAFTED (9f81): flip / no-flip / skip -- loc_9f81 == oracle (RAM + A)", () => {
+test("CRAFTED (9f81): flip / no-flip / skip -- flipEnemyLaneTowardTarget == oracle (RAM + A)", () => {
   const cases = [
     { tag: "bit6 clear, depth>=0x0f -> flip", flag: 0x00, depth: 0x0f },
     { tag: "bit6 set, depth==0 -> flip", flag: 0x40, depth: 0x00 },
@@ -66,18 +66,18 @@ test("CRAFTED (9f81): flip / no-flip / skip -- loc_9f81 == oracle (RAM + A)", ()
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); const a = loc_9f81(c);
+    oracle(o); const a = flipEnemyLaneTowardTarget(c);
     assert.equal(ramDiff(o, c), null, s.tag);
     assert.equal(a, o.regs.a, `A live-out: ${s.tag}`);
   }
 });
 
-test("CRAFTED (9f8a): random-reseed entry -- loc_9f8a == oracle8a (RAM + A)", () => {
+test("CRAFTED (9f8a): random-reseed entry -- flipEnemyLaneRandomSide == oracle8a (RAM + A)", () => {
   // Identical seed => identical POKEY poly => the $60ca bit agrees on both sides.
   for (const s of [{ flag: 0x00, depth: 0x0f }, { flag: 0x40, depth: 0x00 }, { flag: 0xbf, depth: 0x03 }]) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle8a(o); const a = loc_9f8a(c);
+    oracle8a(o); const a = flipEnemyLaneRandomSide(c);
     assert.equal(ramDiff(o, c), null, `9f8a RAM: flag ${s.flag}`);
     assert.equal(a, o.regs.a, `9f8a A live-out: flag ${s.flag}`);
   }
@@ -101,6 +101,6 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_9f81, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9f81 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, flipEnemyLaneTowardTarget, TARGET, m);
+  assert.equal(r.placeable, true, `flipEnemyLaneTowardTarget must be seam-placeable; got: ${r.error}`);
 });

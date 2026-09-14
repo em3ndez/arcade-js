@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_99a5 (ROM 0x99a5-0x9a86) -- builds the five-column deficit table SPAWN_DEFICIT_C0 from
+// Memory-equivalence for placeSpawnListForColumnDeficit (ROM 0x99a5-0x9a86) -- builds the five-column deficit table SPAWN_DEFICIT_C0 from
 // COLUMN_ENEMY_TARGET minus LANE_ENEMY_COUNT_0 (clamped nonnegative), deducts per active lane (ENEMY_DEPTH/ENEMY_SLOT_DIR), caps every column
-// at (ENEMY_SLOT_TOP + 1) minus the LANE_ENEMY_COUNT_0 total, then by the count of nonzero columns (0 / 1 / >=2) tries loc_9a87
+// at (ENEMY_SLOT_TOP + 1) minus the LANE_ENEMY_COUNT_0 total, then by the count of nonzero columns (0 / 1 / >=2) tries dispatchListSetupByColumn
 // to place a list, returning on the first success; every exhausted path clears loc_29. The idiomatic form
-// dissolves the mid-routine JSRs to loc_9a87 into direct calls and the m.ret(6) tails into plain returns.
-// Contract is RAM only (dumpState minus STACK_SCRATCH): the sole caller (loc_9923) reads loc_29 back from
+// dissolves the mid-routine JSRs to dispatchListSetupByColumn into direct calls and the m.ret(6) tails into plain returns.
+// Contract is RAM only (dumpState minus STACK_SCRATCH): the sole caller (spawnEnemyOnTimerExpiry) reads loc_29 back from
 // memory, not a register, so there is NO live-out register to compare, and the routine is not a tail
-// dispatcher (its exits are ordinary RTS), so there is no seam tooth. Oracle is the frozen translated loc_99a5.
+// dispatcher (its exits are ordinary RTS), so there is no seam tooth. Oracle is the frozen translated placeSpawnListForColumnDeficit.
 // Run: node --test games/tempest/idiomatic/test/equivalence-99a5.test.js
 
 import nodeTest from "node:test";
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_99a5 as oracle } from "../../translated/loc_99a5.js";
-import { loc_99a5 } from "../loc_99a5.js";
+import { placeSpawnListForColumnDeficit } from "../placeSpawnListForColumnDeficit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -45,14 +45,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x99a5 dispatches -- loc_99a5 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x99a5 dispatches -- placeSpawnListForColumnDeficit == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented list-setup arm
     if (threw) continue;
-    loc_99a5(c);
+    placeSpawnListForColumnDeficit(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -75,26 +75,26 @@ test("CRAFTED: single column, no COLUMN_SPAWN_CAP slot -- scans then clears loc_
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(one): oracle threw -- skipped"); return; }
-  loc_99a5(c);
+  placeSpawnListForColumnDeficit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the single-column no-slot path");
   assert.equal(c.mem.read8(loc_29), 0x00, "loc_29 was cleared on the no-placement tail");
   assert.equal(c.mem.read8(SPAWN_DEFICIT_C0 + 4), 0x01, "column 4 deficit capped to 1");
 });
 
-// One nonzero column WITH a COLUMN_SPAWN_CAP slot: block A now invokes loc_9a87(m, 4). Exercises the dissolved call.
+// One nonzero column WITH a COLUMN_SPAWN_CAP slot: block A now invokes dispatchListSetupByColumn(m, 4). Exercises the dissolved call.
 function seedOneCall(m) {
   seedOneNoCall(m);
   m.mem.write8(COLUMN_SPAWN_CAP + 4, 0x01);
 }
 
-test("CRAFTED: single column with a COLUMN_SPAWN_CAP slot -- loc_9a87 dissolution; RAM equal", () => {
+test("CRAFTED: single column with a COLUMN_SPAWN_CAP slot -- dispatchListSetupByColumn dissolution; RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedOneCall(o);
   const c = new Machine(ROM, OPTS); seedOneCall(c);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(call): oracle threw on the list-setup arm -- skipped"); return; }
-  loc_99a5(c);
-  assert.equal(ramDiff(o, c), null, "RAM equal after the placement path through loc_9a87");
+  placeSpawnListForColumnDeficit(c);
+  assert.equal(ramDiff(o, c), null, "RAM equal after the placement path through dispatchListSetupByColumn");
 });
 
 // Two nonzero columns (0 and 4) with columns 2 and 3 zero and no COLUMN_SPAWN_CAP slots: block B runs (PROJ_Y_LO set),
@@ -113,7 +113,7 @@ test("CRAFTED: two columns, block B with no placements -- RAM equal", () => {
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(many): oracle threw -- skipped"); return; }
-  loc_99a5(c);
+  placeSpawnListForColumnDeficit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the block-B no-placement path");
   assert.equal(c.mem.read8(loc_29), 0x00, "loc_29 cleared on the tail");
   assert.equal(c.mem.read8(SPAWN_DEFICIT_C3), 0x00, "column 3 stayed zero (b40 extra skipped)");
@@ -129,7 +129,7 @@ test("TEETH: a twin that skips the tail loc_29 clear MUST diverge in RAM", () =>
   // Broken twin: run the real routine, then revert loc_29 to its seeded value. The no-placement tail
   // clears loc_29 to 0, so reverting it to 0xf0 guarantees a RAM divergence.
   const before29 = c.mem.read8(loc_29);
-  loc_99a5(c);
+  placeSpawnListForColumnDeficit(c);
   c.mem.write8(loc_29, before29); // BUG: undo the signature clear
   assert.notEqual(ramDiff(o, c), null, "the skipped loc_29 clear was NOT caught by the RAM compare");
 });

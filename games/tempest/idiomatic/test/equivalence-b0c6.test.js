@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b0c6 (ROM 0xb0c6-0xb0d0) -- selects a pointer by index X via loc_91b5, then
-// tail-emits the three zeropage bytes at $29 through loc_dfb1. The idiomatic side dissolves jsr $91b5 and
-// the jmp $dfb1 tail-call into direct loc_91b5(m,x) / loc_dfb1(m,0x29,0x03) calls. Live-out is memory only
+// Memory-equivalence for loc_b0c6 (ROM 0xb0c6-0xb0d0) -- selects a pointer by index X via seatInPagePointer, then
+// tail-emits the three zeropage bytes at $29 through emitNibbleDigitRun. The idiomatic side dissolves jsr $91b5 and
+// the jmp $dfb1 tail-call into direct seatInPagePointer(m,x) / emitNibbleDigitRun(m,0x29,0x03) calls. Live-out is memory only
 // (the pointer slot + emit list; A/X/Y at RTS are incidental), so each arm compares RAM (dumpState minus
 // STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-b0c6.test.js
 
@@ -13,7 +13,7 @@ import { loc_b0c6 as oracle } from "../../translated/loc_b0c6.js";
 import { loc_b0c6 } from "../loc_b0c6.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_91b5 } from "../loc_91b5.js";
+import { seatInPagePointer } from "../seatInPagePointer.js";
 import { STACK_SCRATCH, loc_2a, loc_2b, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -72,7 +72,7 @@ test("CRAFTED: index X=0x00 (non-default seed) -- RAM equal", () => {
 test("TEETH: a twin that skips the dfb1 tail-emit diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x02); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c, 0x02);
-  const brokenB0c6 = (m, x = m.regs.x) => { loc_91b5(m, x); /* BUG: never emits the run */ };
+  const brokenB0c6 = (m, x = m.regs.x) => { seatInPagePointer(m, x); /* BUG: never emits the run */ };
   brokenB0c6(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped emit");
 });

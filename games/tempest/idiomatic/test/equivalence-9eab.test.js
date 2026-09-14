@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9eab (ROM 0x9eab-0x9ed6) -- per-slot(x) bit6 keeper on $0283,x, gated by $0111.
+// Memory-equivalence for keepClimberFlipBitByDepth (ROM 0x9eab-0x9ed6) -- per-slot(x) bit6 keeper on $0283,x, gated by $0111.
 // Writes memory only (A at RTS is incidental), so each side runs on a clone and the contract is RAM
 // (dumpState, minus STACK_SCRATCH). A leaf: the module omits the ROM ret and the seam completes it, so the
 // arms compare RAM (-stack), NOT pc/SP. No POKEY/clock read.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9eab as oracle } from "../../translated/loc_9eab.js";
-import { loc_9eab } from "../loc_9eab.js";
+import { keepClimberFlipBitByDepth } from "../keepClimberFlipBitByDepth.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TUBE_GEOM_FLAG, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9eab dispatches -- loc_9eab == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9eab dispatches -- keepClimberFlipBitByDepth == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9eab(c);
+    oracle(o); keepClimberFlipBitByDepth(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: gate-off no-op; bit6-set clears at depth>=0x0e; bit6-clear sets a
     };
     const o = new Machine(ROM, OPTS); o.regs.x = X; seed(o);
     const c = new Machine(ROM, OPTS); c.regs.x = X; seed(c);
-    oracle(o); loc_9eab(c);
+    oracle(o); keepClimberFlipBitByDepth(c);
     assert.equal(ramDiff(o, c), null, `RAM equal: gate=${gate} flag=0x${flag.toString(16)} depth=0x${depth.toString(16)}`);
     assert.equal(c.mem.read8((ENEMY_SLOT_FLAGS + X) & 0xffff), exp, `flag result: gate=${gate} flag=0x${flag.toString(16)} depth=0x${depth.toString(16)}`);
   }
@@ -91,7 +91,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9eab, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9eab must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, keepClimberFlipBitByDepth, TARGET, m);
+  assert.equal(r.placeable, true, `keepClimberFlipBitByDepth must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

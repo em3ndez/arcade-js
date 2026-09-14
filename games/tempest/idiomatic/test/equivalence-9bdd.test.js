@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9bdd (ROM 0x9bdd) -- the counter-driven indexed fetch that bumps $010b, reads
+// Memory-equivalence for writeScriptVariableToSlot (ROM 0x9bdd) -- the counter-driven indexed fetch that bumps $010b, reads
 // the ROM table $a0f7 with it, folds that byte back as a zero-page pointer, and stores the pointed-at byte
 // into slot X's $0298,x. Live-out is RAM only ($010b + $0298,x); A/Y are scratch, so the arms compare RAM
 // (-stack). It is a plain (non-dispatching) rewrite -- no SP tooth. No POKEY read, so the CRAFTED seed
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9bdd as oracle } from "../../translated/loc_9bdd.js";
-import { loc_9bdd } from "../loc_9bdd.js";
+import { writeScriptVariableToSlot } from "../writeScriptVariableToSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SCRIPT_CURSOR, loc_298 } from "../names.js";
@@ -35,7 +35,7 @@ const ramDiff = (ma, mb) =>
 // the clone carries it, so pass c.regs.x to the rewrite's param bridge.
 function diffFrom(cap) {
   const o = cap.clone(), c = cap.clone();
-  oracle(o); loc_9bdd(c, c.regs.x);
+  oracle(o); writeScriptVariableToSlot(c, c.regs.x);
   return ramDiff(o, c);
 }
 
@@ -47,7 +47,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9bdd dispatches -- loc_9bdd == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9bdd dispatches -- writeScriptVariableToSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) assert.equal(diffFrom(cap), null);
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -71,7 +71,7 @@ test("CRAFTED: counter bump + table/indirect fetch + slot store == oracle (RAM -
   for (const t of cases) {
     const o = new Machine(ROM, OPTS); fillZeroPage(o, t.zp); seed(o, { [SCRIPT_CURSOR]: t.counter }); o.regs.x = t.x;
     const c = new Machine(ROM, OPTS); fillZeroPage(c, t.zp); seed(c, { [SCRIPT_CURSOR]: t.counter }); c.regs.x = t.x;
-    oracle(o); loc_9bdd(c, c.regs.x);
+    oracle(o); writeScriptVariableToSlot(c, c.regs.x);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
 });

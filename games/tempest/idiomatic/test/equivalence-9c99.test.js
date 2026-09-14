@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for the loc_9c99 mid-entry (ROM 0x9c99) -- the SUBTRACT path of the tube-coordinate
+// Memory-equivalence for the reverseEnemyLaneDepth mid-entry (ROM 0x9c99) -- the SUBTRACT path of the tube-coordinate
 // stepper: it subtracts the per-segment delta (low ENEMY_CLIMB_DELTA_LO_0,y / high ENEMY_CLIMB_DELTA_HI_0,y) from slot x's 16-bit
 // coordinate (low ENEMY_DEPTH_LO,x / high ENEMY_DEPTH,x, with borrow), and floors the high byte to 0xf2 when it
 // underflows past 0xf0. Live-out is RAM (dumpState minus STACK_SCRATCH) plus A (the new high byte, or 0xf2),
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9c99 as oracle } from "../../translated/loc_9c58.js";
-import { loc_9c99 } from "../loc_9c58.js";
+import { reverseEnemyLaneDepth } from "../stepEnemyDepthInLaneDirection.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9c99 dispatches -- loc_9c99 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x9c99 dispatches -- reverseEnemyLaneDepth == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9c99(c);
+    oracle(o); reverseEnemyLaneDepth(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   }
@@ -61,7 +61,7 @@ function seed(m, x, y, lo, hi, loD, hiD) {
 test("CRAFTED: plain subtract (no underflow) -- RAM and A equal, A is the new high byte", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x00, 0x02, 0x80, 0x50, 0x10, 0x10);
   const c = new Machine(ROM, OPTS); seed(c, 0x00, 0x02, 0x80, 0x50, 0x10, 0x10);
-  oracle(o); loc_9c99(c);
+  oracle(o); reverseEnemyLaneDepth(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the subtract");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0x40, "A is the new high byte (0x50 - 0x10)");
@@ -71,7 +71,7 @@ test("CRAFTED: plain subtract (no underflow) -- RAM and A equal, A is the new hi
 test("CRAFTED: underflow past 0xf0 floors the high byte to 0xf2 -- RAM and A equal", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x00, 0x02, 0x80, 0x05, 0x10, 0x10);
   const c = new Machine(ROM, OPTS); seed(c, 0x00, 0x02, 0x80, 0x05, 0x10, 0x10);
-  oracle(o); loc_9c99(c);
+  oracle(o); reverseEnemyLaneDepth(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the floored subtract");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0xf2, "A is the floor value");

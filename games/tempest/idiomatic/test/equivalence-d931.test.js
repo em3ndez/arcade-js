@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_d931 -- a power-on-path helper that carries its incoming byte through as the tone
-// burst count and derives a pass-seed from MODE_DISPATCH_SEL, then tail-delegates to the tone burst loc_d8cd (which
-// runs the tone drains and continues into the checksum/self-test loc_da0a, a non-terminating spin). Its
+// Equivalence for seedToneBurstCount -- a power-on-path helper that carries its incoming byte through as the tone
+// burst count and derives a pass-seed from MODE_DISPATCH_SEL, then tail-delegates to the tone burst runPowerOnToneBursts (which
+// runs the tone drains and continues into the checksum/self-test checksumRomAndSettleEntropy, a non-terminating spin). Its
 // only RAM-observable effect through the chain is SEG_SPREAD_A_LO_1 = the burst count (the incoming A); the derived
 // pass-seed feeds only the POKEY drains (I/O, not in dumpState), so it is covered by review of the
 // faithful MODE_DISPATCH_SEL mask rather than by a RAM cell. Contract: RAM (dumpState minus STACK_SCRATCH); the
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d931 as oracle } from "../../translated/loc_d931.js";
-import { loc_d931 } from "../loc_d931.js";
+import { seedToneBurstCount } from "../seedToneBurstCount.js";
 import { Machine, FramesComplete } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, MODE_DISPATCH_SEL, SEG_SPREAD_A_LO_1, PENDING_WORK_FLAGS, loc_2e, loc_2f, SEG_SPREAD_A_LO } from "../names.js";
@@ -45,11 +45,11 @@ function runBoundedOracle(m) {
 }
 function runIdiomatic(m) {
   m.nextIrqCycle = Infinity; m.maxCycles = m.cycles + BUDGET;
-  try { loc_d931(m, COUNT); return "returned"; }
+  try { seedToneBurstCount(m, COUNT); return "returned"; }
   catch (e) { if (e instanceof FramesComplete) return "done"; if (e && e.name === "NotImplemented") return "notimpl"; throw e; }
 }
 
-test("CRAFTED: loc_d931 == oracle in RAM (-stack) through the tone + self-test tail", () => {
+test("CRAFTED: seedToneBurstCount == oracle in RAM (-stack) through the tone + self-test tail", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   const os = runBoundedOracle(o);

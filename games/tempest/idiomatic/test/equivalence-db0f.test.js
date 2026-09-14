@@ -14,13 +14,13 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_db0f as oracle } from "../../translated/loc_db0f.js";
 import { loc_db0f } from "../loc_db0f.js";
-import { loc_db5a } from "../loc_db5a.js";
-import { loc_dbf7 } from "../loc_dbf7.js";
-import { loc_db84 } from "../loc_db84.js";
-import { loc_db9a } from "../loc_db9a.js";
-import { loc_db7e } from "../loc_db7e.js";
+import { beginEaromSequenceIfIdle } from "../beginEaromSequenceIfIdle.js";
+import { emitReadoutVectorList } from "../emitReadoutVectorList.js";
+import { emitFixedHeaderAndClearVectorSlots } from "../emitFixedHeaderAndClearVectorSlots.js";
+import { stepVectorPhaseAnimation } from "../stepVectorPhaseAnimation.js";
+import { emitPrimedHeaderAndClearVectorSlots } from "../emitPrimedHeaderAndClearVectorSlots.js";
 import { loc_db6f } from "../loc_db6f.js";
-import { loc_db22 } from "../loc_db22.js";
+import { initVectorDisplayRegisters } from "../initVectorDisplayRegisters.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -39,7 +39,7 @@ function opt(name) {
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0xdb0f;
-const TABLE = [loc_db5a, loc_dbf7, loc_db84, loc_db9a, loc_db7e, loc_db6f, loc_db22];
+const TABLE = [beginEaromSequenceIfIdle, emitReadoutVectorList, emitFixedHeaderAndClearVectorSlots, stepVectorPhaseAnimation, emitPrimedHeaderAndClearVectorSlots, loc_db6f, initVectorDisplayRegisters];
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);

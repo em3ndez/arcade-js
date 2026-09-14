@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b79a (ROM 0xb79a-0xb7e4) -- clears $9e, walks the eight slots ($030a,x)
-// top-down and, for each non-empty slot, emits a shape record via loc_bcfd (or loc_b7eb for shape 1),
+// Memory-equivalence for drawEnemyShapeList (ROM 0xb79a-0xb7e4) -- clears $9e, walks the eight slots ($030a,x)
+// top-down and, for each non-empty slot, emits a shape record via seatShapeParamsAndEmit (or animateShapeOneVector for shape 1),
 // then latches $9f into $01ff when $0720 is set and $9f>=0x0d. The idiomatic side dissolves the two
 // jsr ($bcfd, $b7eb) into direct calls. Live-out is memory only, so each arm compares RAM (-stack).
 // Run: node --test games/tempest/idiomatic/test/equivalence-b79a.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b79a as oracle } from "../../translated/loc_b79a.js";
-import { loc_b79a } from "../loc_b79a.js";
+import { drawEnemyShapeList } from "../drawEnemyShapeList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -41,10 +41,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb79a dispatches -- loc_b79a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb79a dispatches -- drawEnemyShapeList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b79a(c);
+    oracle(o); drawEnemyShapeList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -71,7 +71,7 @@ function seedSlots(m, flag720, saved9f) {
 test("CRAFTED: mixed slots + $0720 set, $9f>=0x0d -- RAM equal and $01ff latched", () => {
   const o = new Machine(ROM, OPTS); seedSlots(o, 0x01, 0x20);
   const c = new Machine(ROM, OPTS); seedSlots(c, 0x01, 0x20);
-  oracle(o); loc_b79a(c);
+  oracle(o); drawEnemyShapeList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after slot walk + latch");
   assert.equal(c.mem.read8(loc_9e), 0x00, "$9e cleared");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "$37 counter wrapped to 0xff");
@@ -81,7 +81,7 @@ test("CRAFTED: mixed slots + $0720 set, $9f>=0x0d -- RAM equal and $01ff latched
 test("CRAFTED: $9f below threshold -- no latch; RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedSlots(o, 0x01, 0x05);
   const c = new Machine(ROM, OPTS); seedSlots(c, 0x01, 0x05);
-  oracle(o); loc_b79a(c);
+  oracle(o); drawEnemyShapeList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (below-threshold path)");
 });
 
@@ -91,7 +91,7 @@ test("TEETH: a twin that skips the final $01ff latch diverges from the oracle", 
   // that skips it must diverge on that exact cell.
   const o = new Machine(ROM, OPTS); seedSlots(o, 0x01, 0x20); oracle(o);
   const c = new Machine(ROM, OPTS); seedSlots(c, 0x01, 0x20);
-  loc_b79a(c);
+  drawEnemyShapeList(c);
   assert.equal(o.mem.read8(HIGH_LEVEL_MARKER), 0x20, "oracle must latch $01ff from $9f");
   assert.equal(c.mem.read8(HIGH_LEVEL_MARKER), o.mem.read8(HIGH_LEVEL_MARKER), "module must reproduce the $01ff latch");
   c.mem.write8(HIGH_LEVEL_MARKER, 0x00); // BUG: undo the latch the oracle performed
@@ -102,6 +102,6 @@ test("SP-TOOTH: the omitted-ret routine (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b79a, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b79a must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawEnemyShapeList, TARGET, m);
+  assert.equal(r.placeable, true, `drawEnemyShapeList must be seam-placeable; got: ${r.error}`);
 });

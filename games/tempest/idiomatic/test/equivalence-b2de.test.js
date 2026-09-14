@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b2de (ROM 0xb2de) -- load a 16-bit pointer from ROM table $ce7a (when the
+// Memory-equivalence for seatAltDrawPointer (ROM 0xb2de) -- load a 16-bit pointer from ROM table $ce7a (when the
 // per-index flag $0415+A is nonzero) or $ce68 (when zero), indexed by 2*A, into $3b/$3c, and clear $a9.
 // Live-out is RAM only (A/X/Y are addressing scratch no caller reads), so every arm compares RAM
 // (dumpState minus STACK_SCRATCH). It is a pure leaf (no dispatch); the seam completes it by omitting its
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b2de as oracle } from "../../translated/loc_b2de.js";
-import { loc_b2de } from "../loc_b2de.js";
+import { seatAltDrawPointer } from "../seatAltDrawPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, WORK_PTR_LO, WORK_PTR_HI, DRAW_CURSOR_OFFSET, POINTER_PARITY } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb2de dispatches -- loc_b2de == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb2de dispatches -- seatAltDrawPointer == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b2de(c);
+    oracle(o); seatAltDrawPointer(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -65,7 +65,7 @@ test("CRAFTED: table selection by $0415+A and 2*A stride == oracle (RAM -stack)"
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_b2de(c);
+    oracle(o); seatAltDrawPointer(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }
 });

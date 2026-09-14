@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a463 (ROM 0xa463-0xa503) -- the near/far slot scan. It stores threshold A
+// Memory-equivalence for resolveSlotProximityInteractions (ROM 0xa463-0xa503) -- the near/far slot scan. It stores threshold A
 // in loc_2e, walks loc_2db slots y=10..0 forming delta = |entry - threshold|, and for qualifying slots
-// retires/spawns via loc_a36f (near), loc_a309 (far band 4) or loc_a38e (far other bands); afterwards, if
+// retires/spawns via retireSpawnedObject (near), spawnLaneEnemyAndAward (far band 4) or activateSlotAndRespawn (far other bands); afterwards, if
 // HIT_TALLY,x reads 0xff it clears SLOT_STATE,x/HIT_TALLY,x and drops ACTIVE_OBJECT_COUNT. Inputs are A (threshold) and X
 // (slot index); the routine ends with a plain RTS and produces no return value, so the contract is RAM
 // only (dumpState minus STACK_SCRATCH) -- no register is a live-out. Oracle is the frozen translated
-// loc_a463; the three internal JSRs are dissolved to direct calls in the idiomatic layer.
+// resolveSlotProximityInteractions; the three internal JSRs are dissolved to direct calls in the idiomatic layer.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a463.test.js
 
 import nodeTest from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a463 as oracle } from "../../translated/loc_a463.js";
-import { loc_a463 } from "../loc_a463.js";
+import { resolveSlotProximityInteractions } from "../resolveSlotProximityInteractions.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -45,14 +45,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xa463 dispatches -- loc_a463 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa463 dispatches -- resolveSlotProximityInteractions == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented spawn/retire arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_a463(c);
+    resolveSlotProximityInteractions(c);
     assert.equal(ramDiff(o, c), null, "RAM equal for a captured dispatch");
     checked++;
   }
@@ -79,7 +79,7 @@ test("CRAFTED: full scan with no callee fired -- RAM equal; loc_2e/TABLE_CURSOR/
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle threw -- skipped"); return; }
-  loc_a463(c);
+  resolveSlotProximityInteractions(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the no-call scan + clear block");
   assert.equal(c.mem.read8(loc_2e), 0x80, "threshold stored to loc_2e");
   assert.equal(c.mem.read8(TABLE_CURSOR), 0x04, "TABLE_CURSOR holds the last far slot processed (y=4)");
@@ -89,23 +89,23 @@ test("CRAFTED: full scan with no callee fired -- RAM equal; loc_2e/TABLE_CURSOR/
 });
 
 // Near-slot retire: a single near slot (y=2) whose delta is under HIT_DISTANCE_THRESHOLD and whose loc_2b5,y matches
-// TARGET_SEG,x -> fires loc_a36f. The retire chain (ccc1/a3d4/...) may reach an unimplemented arm; skip on
+// TARGET_SEG,x -> fires retireSpawnedObject. The retire chain (ccc1/a3d4/...) may reach an unimplemented arm; skip on
 // oracle throw. When it runs cleanly this covers a dissolved-call path end-to-end.
 function seedRetire(m) {
   m.regs.a = 0x10; m.regs.x = 0x05;
   m.mem.write8(HIT_DISTANCE_THRESHOLD, 0x40);           // delta gate open
   m.mem.write8(u16(loc_2db + 0x02), 0x11); // slot 2 entry -> delta = 1 < 0x40
   m.mem.write8(u16(loc_2b5 + 0x02), 0x07);
-  m.mem.write8(u16(TARGET_SEG + 0x05), 0x07); // match -> loc_a36f fires
+  m.mem.write8(u16(TARGET_SEG + 0x05), 0x07); // match -> retireSpawnedObject fires
 }
 
-test("CRAFTED-CALL: near-slot retire fires loc_a36f -- RAM equal (skip on oracle throw)", () => {
+test("CRAFTED-CALL: near-slot retire fires retireSpawnedObject -- RAM equal (skip on oracle throw)", () => {
   const o = new Machine(ROM, OPTS); seedRetire(o);
   const c = new Machine(ROM, OPTS); seedRetire(c);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED-CALL: oracle threw on the retire arm -- skipped"); return; }
-  loc_a463(c);
+  resolveSlotProximityInteractions(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the near-slot retire");
 });
 
@@ -118,7 +118,7 @@ test("TEETH: a twin that drops the loc_2e threshold store MUST diverge in RAM", 
   let ran = false;
   const broken = (m) => {
     const before2e = m.mem.read8(loc_2e); // seeded 0x11, threshold is 0x80
-    loc_a463(m);
+    resolveSlotProximityInteractions(m);
     m.mem.write8(loc_2e, before2e); // BUG: revert the signature threshold store
     ran = true;
   };

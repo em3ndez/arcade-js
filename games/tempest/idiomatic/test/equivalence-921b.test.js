@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_921b (ROM 0x921b) -- seeds five constant cells ($0200=0x0e, $51=0xf0,
+// Memory-equivalence for seedFrameControlTimers (ROM 0x921b) -- seeds five constant cells ($0200=0x0e, $51=0xf0,
 // $0106=0x00, $0201=0x0f, $0202=0x10). Pure constant-store leaf: live-out is RAM only, so every arm checks
 // the RAM diff minus dead stack. No inputs, no POKEY/clock coupling. $0106 sits low in page 1 but well
 // clear of the live stack (S ~ 0xfd..0xef), so it is a genuine live-out, not dead scratch.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_921b as oracle } from "../../translated/loc_921b.js";
-import { loc_921b } from "../loc_921b.js";
+import { seedFrameControlTimers } from "../seedFrameControlTimers.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, RIM_ROT_OFFSET, SPIKE_ACTIVE_FLAG, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH } from "../names.js";
@@ -39,10 +39,10 @@ const CELLS = [RIM_ROT_OFFSET, SPIKE_ACTIVE_FLAG, PLAYER_SEGMENT, PLAYER_FINE_AN
 // Pre-dirty the target cells with a non-default pattern so a seed that misses any of them is caught.
 function seed(m, fill = 0xa5) { for (const a of CELLS) m.mem8[a] = fill; }
 
-test("CAPTURE: real 0x921b dispatches -- loc_921b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x921b dispatches -- seedFrameControlTimers == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_921b(c);
+    oracle(o); seedFrameControlTimers(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -52,10 +52,10 @@ test("CRAFTED: the five constant seeds == oracle (RAM -stack)", () => {
   for (const fill of [0xa5, 0x00, 0xff]) {
     const o = new Machine(ROM, OPTS); seed(o, fill);
     const c = new Machine(ROM, OPTS); seed(c, fill);
-    oracle(o); loc_921b(c);
+    oracle(o); seedFrameControlTimers(c);
     assert.equal(ramDiff(o, c), null, `fill=0x${fill.toString(16)}`);
   }
-  const c = new Machine(ROM, OPTS); seed(c, 0xa5); loc_921b(c);
+  const c = new Machine(ROM, OPTS); seed(c, 0xa5); seedFrameControlTimers(c);
   assert.equal(c.mem8[PLAYER_SEGMENT], 0x0e, "$0200");
   assert.equal(c.mem8[RIM_ROT_OFFSET], 0xf0, "$51");
   assert.equal(c.mem8[SPIKE_ACTIVE_FLAG], 0x00, "$0106");
@@ -81,8 +81,8 @@ test("SP-TOOTH: the pure leaf omits its ROM ret (SP unmoved) and is seam-placeab
     m.mem.write8(0x01fc, 0xcd); m.mem.write8(0x01fd, 0xab); // a real caller-return word for the seam's ret
     return m;
   };
-  const ok = seamPlaceable(withOmittedRet, loc_921b, TARGET, mk());
-  assert.equal(ok.placeable, true, `loc_921b must be seam-placeable; got: ${ok.error}`);
+  const ok = seamPlaceable(withOmittedRet, seedFrameControlTimers, TARGET, mk());
+  assert.equal(ok.placeable, true, `seedFrameControlTimers must be seam-placeable; got: ${ok.error}`);
   const spMutant = (m) => { m.push16(0x0000); };
   assert.equal(seamPlaceable(withOmittedRet, spMutant, TARGET, mk()).placeable, false, "SP tooth failed to refuse an unbalanced mutant");
   console.log("  SP-TOOTH: pure leaf placeable; unbalanced mutant refused");

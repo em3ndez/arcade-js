@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df53 (ROM 0xdf53) -- write the {0x40,0x80} header pair at ($74/$75)+0 and +1,
-// then advance the ($74/$75) cursor by 2 (tail into loc_df5f). The oracle m.call(0xdf5f)s the translated
-// tail; the idiomatic calls the idiomatic loc_df5f -- both memory-equivalent, so the contract is RAM
+// Memory-equivalence for emitVectorHeaderWord (ROM 0xdf53) -- write the {0x40,0x80} header pair at ($74/$75)+0 and +1,
+// then advance the ($74/$75) cursor by 2 (tail into advanceDisplayCursor). The oracle m.call(0xdf5f)s the translated
+// tail; the idiomatic calls the idiomatic advanceDisplayCursor -- both memory-equivalent, so the contract is RAM
 // (dumpState, minus STACK_SCRATCH). Registers are scratch for this display-builder family (A/X/Y at RTS are
-// incidental; the landed loc_df5f tail preserves none), so no register live-out is asserted. Plain
+// incidental; the landed advanceDisplayCursor tail preserves none), so no register live-out is asserted. Plain
 // (non-dispatching) caller -- no SP tooth. No POKEY read, so the CRAFTED seeds are deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df53.test.js
 
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df53 as oracle } from "../../translated/loc_df53.js";
-import { loc_df53 } from "../loc_df53.js";
+import { emitVectorHeaderWord } from "../emitVectorHeaderWord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -44,10 +44,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdf53 dispatches -- loc_df53 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf53 dispatches -- emitVectorHeaderWord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df53(c);
+    oracle(o); emitVectorHeaderWord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -65,12 +65,12 @@ test("CRAFTED: header pair written and cursor advanced by 2 == oracle (RAM -stac
   for (const t of cases) {
     const o = new Machine(ROM, OPTS); seed(o, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi });
     const c = new Machine(ROM, OPTS); seed(c, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi });
-    oracle(o); loc_df53(c);
+    oracle(o); emitVectorHeaderWord(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
   // Explicit content/advance check on the clean case.
   const m = new Machine(ROM, OPTS); seed(m, { [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 });
-  loc_df53(m);
+  emitVectorHeaderWord(m);
   assert.equal(m.mem.read8(0x2000), 0x40, "byte 0 = 0x40");
   assert.equal(m.mem.read8(0x2001), 0x80, "byte 1 = 0x80");
   assert.equal(m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8), 0x2002, "cursor += 2");

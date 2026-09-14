@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a2a6 -- scans the seven source slots and, for an armed slot whose timer
+// Memory-equivalence for spawnClimbersFromSourceSlots -- scans the seven source slots and, for an armed slot whose timer
 // underflows and whose RNG roll beats the per-wave gate, copies the spawn fields into the first free
 // destination slot and cues the sound via a dissolved jsr $ccbd -> loc_ccbd(m, x, y). Live-out is memory
 // (the destination slot fields, the reseeded timer, the wave index $a6, and the sound cells ccbd stamps);
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a2a6 as oracle } from "../../translated/loc_a2a6.js";
-import { loc_a2a6 } from "../loc_a2a6.js";
+import { spawnClimbersFromSourceSlots } from "../spawnClimbersFromSourceSlots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -46,10 +46,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xa2a6 dispatches -- loc_a2a6 == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xa2a6 dispatches -- spawnClimbersFromSourceSlots == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_a2a6(c);
+    oracle(o); spawnClimbersFromSourceSlots(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -80,7 +80,7 @@ function seedFire(m) {
 test("CRAFTED: one armed slot spawns into the free destination; RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedFire(o);
   const c = new Machine(ROM, OPTS); seedFire(c);
-  oracle(o); loc_a2a6(c);
+  oracle(o); spawnClimbersFromSourceSlots(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the dissolved spawn + ccbd");
   assert.equal(c.mem.read8(u16(loc_2db + 2)), 0x40, "spawn kind copied to free slot");
   assert.equal(c.mem.read8(u16(loc_2b5 + 2)), 0xaa, "field b copied");
@@ -139,6 +139,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a2a6, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a2a6 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, spawnClimbersFromSourceSlots, TARGET, m);
+  assert.equal(r.placeable, true, `spawnClimbersFromSourceSlots must be seam-placeable; got: ${r.error}`);
 });

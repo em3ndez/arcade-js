@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loc_970b -- the per-frame update driver: runs nine per-frame passes in order then
-// tail-delegates to loc_a504. Contract: RAM (dumpState minus STACK_SCRATCH). Oracle = frozen translated.
+// tail-delegates to ageShotsAndAdvanceFrameClock. Contract: RAM (dumpState minus STACK_SCRATCH). Oracle = frozen translated.
 // Run: node --test games/tempest/idiomatic/test/equivalence-970b.test.js
 
 import nodeTest from "node:test";
@@ -9,15 +9,15 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_970b as oracle } from "../../translated/loc_970b.js";
 import { loc_970b } from "../loc_970b.js";
-import { loc_9749 } from "../loc_9749.js";
-import { loc_a23f } from "../loc_a23f.js";
-import { loc_a83a } from "../loc_a83a.js";
-import { loc_98a2 } from "../loc_98a2.js";
-import { loc_a18f } from "../loc_a18f.js";
-import { loc_a2a6 } from "../loc_a2a6.js";
-import { loc_a454 } from "../loc_a454.js";
-import { loc_a416 } from "../loc_a416.js";
-import { loc_a504 } from "../loc_a504.js";
+import { rotateBlasterAroundRim } from "../rotateBlasterAroundRim.js";
+import { spawnEntityIntoFreeSlot } from "../spawnEntityIntoFreeSlot.js";
+import { stepAttractEnemySweepTimer } from "../stepAttractEnemySweepTimer.js";
+import { tickSpawnSlotTimers } from "../tickSpawnSlotTimers.js";
+import { stepActiveShots } from "../stepActiveShots.js";
+import { spawnClimbersFromSourceSlots } from "../spawnClimbersFromSourceSlots.js";
+import { scanAllSlotsForProximity } from "../scanAllSlotsForProximity.js";
+import { ageTimedObjects } from "../ageTimedObjects.js";
+import { ageShotsAndAdvanceFrameClock } from "../ageShotsAndAdvanceFrameClock.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -65,21 +65,21 @@ test("CRAFTED: a fresh-machine frame -- loc_970b == oracle in RAM (skip on oracl
   assert.equal(ramDiff(o, c), null, "RAM equal after the full per-frame pass");
 });
 
-test("TEETH: a twin that DROPS the loc_9b1e pass MUST diverge from the oracle in RAM", () => {
-  // Seed ENEMY_ANIM_ACCUM/ENEMY_ANIM_DELTA so loc_9b1e's accumulate is observable (a fresh frame leaves it inert).
+test("TEETH: a twin that DROPS the runObjectMotionScripts pass MUST diverge from the oracle in RAM", () => {
+  // Seed ENEMY_ANIM_ACCUM/ENEMY_ANIM_DELTA so runObjectMotionScripts's accumulate is observable (a fresh frame leaves it inert).
   const seed = (m) => { m.mem.write8(0x0148, 0x10); m.mem.write8(0x0147, 0x05); };
   const o = new Machine(ROM, OPTS); seed(o);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle hit an unimplemented arm -- skipped"); return; }
   const c = new Machine(ROM, OPTS); seed(c);
-  // Broken twin: the same driver but SKIPPING loc_9b1e (the 5th pass). If loc_9b1e has any RAM effect on
+  // Broken twin: the same driver but SKIPPING runObjectMotionScripts (the 5th pass). If runObjectMotionScripts has any RAM effect on
   // a fresh frame, the ordered-call contract is violated and the RAM diff must catch it.
   let brokeThrew = false;
   try {
-    loc_9749(c); loc_a23f(c); loc_a83a(c); loc_98a2(c); /* loc_9b1e(c) DROPPED */
-    loc_a18f(c); loc_a2a6(c); loc_a454(c); loc_a416(c); loc_a504(c);
+    rotateBlasterAroundRim(c); spawnEntityIntoFreeSlot(c); stepAttractEnemySweepTimer(c); tickSpawnSlotTimers(c); /* runObjectMotionScripts(c) DROPPED */
+    stepActiveShots(c); spawnClimbersFromSourceSlots(c); scanAllSlotsForProximity(c); ageTimedObjects(c); ageShotsAndAdvanceFrameClock(c);
   } catch { brokeThrew = true; }
   if (brokeThrew) { console.log("  TEETH: broken twin hit an unimplemented arm -- skipped"); return; }
-  assert.notEqual(ramDiff(o, c), null, "dropping loc_9b1e was NOT caught by the RAM compare");
+  assert.notEqual(ramDiff(o, c), null, "dropping runObjectMotionScripts was NOT caught by the RAM compare");
 });

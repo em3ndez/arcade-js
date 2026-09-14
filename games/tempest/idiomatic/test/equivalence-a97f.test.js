@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a97f (ROM 0xa97f-0xa9d6) -- builds the 7-entry vector list at $2f60 from
-// y-keyed base indices, seeds the $3b/$3c glyph pointer, and tail-transfers into loc_a9d7 (the nibble
+// Memory-equivalence for buildMarkerRowVectorList (ROM 0xa97f-0xa9d6) -- builds the 7-entry vector list at $2f60 from
+// y-keyed base indices, seeds the $3b/$3c glyph pointer, and tail-transfers into buildTextBufferDigitString (the nibble
 // emitter). Dissolves that fall-through into a direct idiomatic call. The oracle m.calls frozen a9d7; the
 // idiomatic calls idiomatic a9d7. Output is RAM ($2f60 list, $38, $3b/$3c) plus the a9d7 write cursor left
 // in X on the emit path -- so tail cases also assert o.regs.x vs c.regs.x. The early-exit path emits
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a97f as oracle } from "../../translated/loc_a97f.js";
-import { loc_a97f } from "../loc_a97f.js";
+import { buildMarkerRowVectorList } from "../buildMarkerRowVectorList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -57,10 +57,10 @@ function seat(m, s = {}) {
   m.mem.write8(WORK_PTR_HI, 0x00);
 }
 
-test("CAPTURE: real 0xa97f dispatches -- loc_a97f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa97f dispatches -- buildMarkerRowVectorList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a97f(c);
+    oracle(o); buildMarkerRowVectorList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -75,7 +75,7 @@ test("CRAFTED: seeded states across every branch == oracle (RAM + emit cursor)",
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_a97f(c);
+    oracle(o); buildMarkerRowVectorList(c);
     assert.equal(ramDiff(o, c), null, s.tag);
     if (s.tail) assert.equal(c.regs.x, o.regs.x, `${s.tag}: emit cursor (X) live-out`);
   }
@@ -104,6 +104,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   seat(m, { y: 1, c3d: 5, c00: 4 }); // early-exit seed keeps the tooth cheap
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a97f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a97f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildMarkerRowVectorList, TARGET, m);
+  assert.equal(r.placeable, true, `buildMarkerRowVectorList must be seam-placeable; got: ${r.error}`);
 });

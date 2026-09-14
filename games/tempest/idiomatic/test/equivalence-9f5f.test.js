@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9f5f (per-slot fire gate). The oracle m.calls the translated
-// step routines; the idiomatic calls their idiomatic twins (loc_9f8a / loc_9f81) directly.
+// Memory-equivalence for maybeFireEnemyStep (per-slot fire gate). The oracle m.calls the translated
+// step routines; the idiomatic calls their idiomatic twins (flipEnemyLaneRandomSide / flipEnemyLaneTowardTarget) directly.
 // Both are memory-equivalent, so the contract is RAM (dumpState, minus STACK_SCRATCH). The
 // slot index X is a register input (default from m.regs.x on both sides). POKEY RANDOM
 // ($60da here, $60ca inside the callees) is deterministic on identical fresh machine state,
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9f5f as oracle } from "../../translated/loc_9f5f.js";
-import { loc_9f5f } from "../loc_9f5f.js";
+import { maybeFireEnemyStep } from "../maybeFireEnemyStep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_DEPTH, ENEMY_FIRE_THRESHOLD, ENEMY_FIRE_SELECT } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9f5f dispatches -- loc_9f5f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9f5f dispatches -- maybeFireEnemyStep == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9f5f(c);
+    oracle(o); maybeFireEnemyStep(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,16 +60,16 @@ function fireArm(x, flag159) {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9f5f(c);
+  oracle(o); maybeFireEnemyStep(c);
   return ramDiff(o, c);
 }
 
-test("CRAFTED: bit6 clear -> loc_9f8a path (even slot), RAM equal", () => {
-  assert.equal(fireArm(0x04, 0x00), null, "loc_9f8a dissolve must match oracle");
+test("CRAFTED: bit6 clear -> flipEnemyLaneRandomSide path (even slot), RAM equal", () => {
+  assert.equal(fireArm(0x04, 0x00), null, "flipEnemyLaneRandomSide dissolve must match oracle");
 });
 
-test("CRAFTED: bit6 set + odd slot -> loc_9f81 path, RAM equal", () => {
-  assert.equal(fireArm(0x05, 0x40), null, "loc_9f81 dissolve must match oracle");
+test("CRAFTED: bit6 set + odd slot -> flipEnemyLaneTowardTarget path, RAM equal", () => {
+  assert.equal(fireArm(0x05, 0x40), null, "flipEnemyLaneTowardTarget dissolve must match oracle");
 });
 
 test("CRAFTED: fire bit clear -> both no-op, RAM equal", () => {
@@ -79,7 +79,7 @@ test("CRAFTED: fire bit clear -> both no-op, RAM equal", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9f5f(c);
+  oracle(o); maybeFireEnemyStep(c);
   assert.equal(ramDiff(o, c), null, "gated-off path leaves RAM untouched on both");
 });
 

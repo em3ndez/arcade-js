@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b0e7 (ROM 0xb0e7) -- loads a fixed init block: $00=0x0a, $02=0x00, $04=0xdf,
+// Memory-equivalence for seedModeParamsWithBounds (ROM 0xb0e7) -- loads a fixed init block: $00=0x0a, $02=0x00, $04=0xdf,
 // $01=0x12, $014e=0x19, $014d=0x18. Live-out is RAM only (A at RTS incidental), so each arm compares RAM
 // (dumpState, minus STACK_SCRATCH). No POKEY/clock coupling -> the crafted diff is deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b0e7.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b0e7 as oracle } from "../../translated/loc_b0e7.js";
-import { loc_b0e7 } from "../loc_b0e7.js";
+import { seedModeParamsWithBounds } from "../seedModeParamsWithBounds.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, MODE_DELAY_TIMER, loc_14d, loc_14e } from "../names.js";
@@ -45,10 +45,10 @@ function seed(m) {
   m.mem.write8(loc_14e, 0x66);
 }
 
-test("CAPTURE: real 0xb0e7 dispatches -- loc_b0e7 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb0e7 dispatches -- seedModeParamsWithBounds == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b0e7(c);
+    oracle(o); seedModeParamsWithBounds(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ test("CAPTURE: real 0xb0e7 dispatches -- loc_b0e7 == oracle in RAM (-stack)", ()
 test("CRAFTED: the fixed init block == oracle (RAM -stack)", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_b0e7(c);
+  oracle(o); seedModeParamsWithBounds(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(GAME_MODE), 0x0a, "$00");
   assert.equal(c.mem.read8(GAME_MODE_PENDING), 0x00, "$02");

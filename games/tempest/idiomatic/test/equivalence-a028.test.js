@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a028 (ROM 0xa028-0xa06e) -- pick a new segment for slot x by scanning the
+// Memory-equivalence for aimClimberAtDeepestColumn (ROM 0xa028-0xa06e) -- pick a new segment for slot x by scanning the
 // 16-column depth table $03ac,y from a random start column, keeping the column with the largest depth (an
 // empty column counts as maximal), skipping the last column while $0111!=0. Writes $2d/$0140/$29 (scratch)
 // and $02b9,x/$02cc,x/$028a,x. Live-out is memory (A/Y at RTS incidental), compared as RAM (-stack).
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a028 as oracle } from "../../translated/loc_a028.js";
-import { loc_a028 } from "../loc_a028.js";
+import { aimClimberAtDeepestColumn } from "../aimClimberAtDeepestColumn.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, TUBE_GEOM_FLAG, ENEMY_SEGMENT, ENEMY_PHASE, ENEMY_SLOT_DIR, LANE_LIMIT } from "../names.js";
@@ -46,10 +46,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xa028 dispatches -- loc_a028 == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xa028 dispatches -- aimClimberAtDeepestColumn == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_a028(c);
+    oracle(o); aimClimberAtDeepestColumn(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: scan keeps the deepest column; winner+successor+bit7 clear == ora
   };
   const o = freezePokey(new Machine(ROM, OPTS)); o.regs.x = X; seed(o);
   const c = freezePokey(new Machine(ROM, OPTS)); c.regs.x = X; seed(c);
-  oracle(o); loc_a028(c);
+  oracle(o); aimClimberAtDeepestColumn(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the scan");
   assert.equal(c.mem.read8(loc_29), 0x07, "winning column recorded in $29");
   assert.equal(c.mem.read8((ENEMY_SEGMENT + X) & 0xffff), 0x07, "segment := winner");
@@ -91,7 +91,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = freezePokey(new Machine(ROM, OPTS));
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a028, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a028 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, aimClimberAtDeepestColumn, TARGET, m);
+  assert.equal(r.placeable, true, `aimClimberAtDeepestColumn must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

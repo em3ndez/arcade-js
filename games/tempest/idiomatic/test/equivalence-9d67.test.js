@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9d67 (ROM 0x9d67-0x9d81) -- reads $02b9,x -> Y, dissolves the
-// m.call($a7a6) into a direct loc_a7a6(m, $0200, Y) whose signed difference's top bit picks whether
+// Memory-equivalence for faceEnemyTowardPlayerSegment (ROM 0x9d67-0x9d81) -- reads $02b9,x -> Y, dissolves the
+// m.call($a7a6) into a direct signedSegmentDelta(m, $0200, Y) whose signed difference's top bit picks whether
 // to clear (and #$bf) or set (ora #$40) bit6 of $0283,x. Live-out is memory ($0283,x and a7a6's
 // $2a stash), so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-9d67.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9d67 as oracle } from "../../translated/loc_9d67.js";
-import { loc_9d67 } from "../loc_9d67.js";
+import { faceEnemyTowardPlayerSegment } from "../faceEnemyTowardPlayerSegment.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_SEGMENT, PLAYER_SEGMENT, ENEMY_SLOT_FLAGS, TUBE_GEOM_FLAG } from "../names.js";
@@ -38,17 +38,17 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9d67 dispatches -- loc_9d67 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9d67 dispatches -- faceEnemyTowardPlayerSegment == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9d67(c);
+    oracle(o); faceEnemyTowardPlayerSegment(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
 test("CRAFTED: both branches -- clear bit6 when diff negative, set bit6 when non-negative", () => {
-  // loc_a7a6 keeps the FULL A-Y difference only when $0111 bit7 is set; otherwise it masks to the
+  // signedSegmentDelta keeps the FULL A-Y difference only when $0111 bit7 is set; otherwise it masks to the
   // low nibble and sign-extends it, which flips the sign of small values. Seed $0111 bit7 so the
   // returned diff's sign is the plain A-Y sign, and both branches exercise their intended path.
 
@@ -62,7 +62,7 @@ test("CRAFTED: both branches -- clear bit6 when diff negative, set bit6 when non
   };
   let o = new Machine(ROM, OPTS); seedA(o);
   let c = new Machine(ROM, OPTS); seedA(c);
-  oracle(o); loc_9d67(c);
+  oracle(o); faceEnemyTowardPlayerSegment(c);
   assert.equal(ramDiff(o, c), null, "clear-bit6 branch RAM equal");
   assert.equal((c.mem.read8((ENEMY_SLOT_FLAGS + 2) & 0xffff) & 0x40) !== 0, false, "bit6 cleared");
 
@@ -76,7 +76,7 @@ test("CRAFTED: both branches -- clear bit6 when diff negative, set bit6 when non
   };
   o = new Machine(ROM, OPTS); seedB(o);
   c = new Machine(ROM, OPTS); seedB(c);
-  oracle(o); loc_9d67(c);
+  oracle(o); faceEnemyTowardPlayerSegment(c);
   assert.equal(ramDiff(o, c), null, "set-bit6 branch RAM equal");
   assert.equal((c.mem.read8((ENEMY_SLOT_FLAGS + 5) & 0xffff) & 0x40) !== 0, true, "bit6 set");
 });

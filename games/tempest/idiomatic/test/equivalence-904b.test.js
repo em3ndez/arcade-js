@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_904b -- folds the sign-extended scroll delta into the long accumulator,
+// Memory-equivalence for autoAdvanceRimRotation -- folds the sign-extended scroll delta into the long accumulator,
 // steps the 16-bit position by a fixed stride, flags saturation, and on a zero high-difference rebuilds
-// the position seeds, then tail-delegates jmp 0x9749 (dissolved into the idiomatic loc_9749, Y threaded).
+// the position seeds, then tail-delegates jmp 0x9749 (dissolved into the idiomatic rotateBlasterAroundRim, Y threaded).
 // Live-out is memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH). The routine seats
 // state then tail-calls, so it is an omitted-ret dispatch (SP-tooth). $0201 bit7 is seeded to steer the
 // delegated spinner update to its deterministic early-out.
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_904b as oracle } from "../../translated/loc_904b.js";
-import { loc_904b } from "../loc_904b.js";
+import { autoAdvanceRimRotation } from "../autoAdvanceRimRotation.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAYER_FINE_ANGLE, LEVEL_GEOM_SCALE, DEPTH_HI, DEPTH_LO, DEPTH_TARGET, STATUS_FLAGS, loc_3d, GAME_MODE, SPIKE_TABLE_GUARD, PLAYER_SHOT_DEPTH, loc_102 } from "../names.js";
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x904b dispatches -- loc_904b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x904b dispatches -- autoAdvanceRimRotation == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_904b(c);
+    oracle(o); autoAdvanceRimRotation(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -58,7 +58,7 @@ test("CRAFTED: zero high-diff rebuilds the position seeds ($5b=0 path)", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_904b(c);
+  oracle(o); autoAdvanceRimRotation(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the rebuild path");
   assert.equal(c.mem.read8(DEPTH_HI), 0x44, "$5f reseeded from the target");
   assert.equal(c.mem.read8(DEPTH_LO), 0xff, "$5b reseeded to 0xff");
@@ -78,7 +78,7 @@ test("CRAFTED: nonzero high-diff skips the rebuild", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_904b(c);
+  oracle(o); autoAdvanceRimRotation(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the skip path");
   assert.equal(c.mem.read8(DEPTH_LO), 0x10, "$5b unchanged (rebuild skipped)");
 });
@@ -94,7 +94,7 @@ test("CRAFTED: high byte >= 0xfc sets the saturation flag", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_904b(c);
+  oracle(o); autoAdvanceRimRotation(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the saturation path");
   assert.equal(c.mem.read8(SPIKE_TABLE_GUARD), 0x01, "$0115 flagged");
 });
@@ -137,7 +137,7 @@ test("SP-TOOTH: the omitted-ret dispatch (moved 0) is seam-placeable", () => {
   m.mem.write8(PLAYER_FINE_ANGLE, 0x80);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_904b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_904b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, autoAdvanceRimRotation, TARGET, m);
+  assert.equal(r.placeable, true, `autoAdvanceRimRotation must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatch (moved 0) placeable");
 });

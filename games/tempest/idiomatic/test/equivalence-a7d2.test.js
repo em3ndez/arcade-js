@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a7d2 (ROM 0xa7d2-0xa830) -- remap the 8-entry $03fe table against the $0115
+// Memory-equivalence for stepSpikeTableCollapse (ROM 0xa7d2-0xa830) -- remap the 8-entry $03fe table against the $0115
 // reference, OR-folding the results into $29; if every entry becomes zero, $0115 is cleared. No-op when
 // $0115 starts zero. Live-out is RAM only (A/X/Y are loop scratch), so each side runs on a clone and the
 // contract is RAM (dumpState, minus STACK_SCRATCH). A leaf: the module omits the ROM ret and the seam
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a7d2 as oracle } from "../../translated/loc_a7d2.js";
-import { loc_a7d2 } from "../loc_a7d2.js";
+import { stepSpikeTableCollapse } from "../stepSpikeTableCollapse.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, SLOT_LOOP_INDEX, SPIKE_TABLE_GUARD, loc_3fe } from "../names.js";
@@ -45,10 +45,10 @@ const seedTable = (m, ref, vals) => {
   m.mem.write8(loc_29, 0x33); // dirty accumulator
 };
 
-test("CAPTURE: real 0xa7d2 dispatches -- loc_a7d2 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa7d2 dispatches -- stepSpikeTableCollapse == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a7d2(c);
+    oracle(o); stepSpikeTableCollapse(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -58,7 +58,7 @@ test("CRAFTED: negative reference -- shrink/rail/neighbour mix leaves a nonzero 
   const vals = [0x30, 0x00, 0x50, 0x05, 0x00, 0xe0, 0x10, 0x00];
   const o = new Machine(ROM, OPTS); seedTable(o, 0x80, vals);
   const c = new Machine(ROM, OPTS); seedTable(c, 0x80, vals);
-  oracle(o); loc_a7d2(c);
+  oracle(o); stepSpikeTableCollapse(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after remap");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "$37 loop counter ran to 0xff");
   assert.equal(c.mem.read8(SPIKE_TABLE_GUARD), 0x80, "$0115 kept (fold was nonzero)");
@@ -68,7 +68,7 @@ test("CRAFTED: positive reference, all mid entries -> every result 0 -> $0115 cl
   const vals = [0x03, 0x05, 0x02, 0x06, 0x04, 0x01, 0x07, 0x03];
   const o = new Machine(ROM, OPTS); seedTable(o, 0x40, vals);
   const c = new Machine(ROM, OPTS); seedTable(c, 0x40, vals);
-  oracle(o); loc_a7d2(c);
+  oracle(o); stepSpikeTableCollapse(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after remap");
   assert.equal(c.mem.read8(loc_29), 0x00, "fold is zero");
   assert.equal(c.mem.read8(SPIKE_TABLE_GUARD), 0x00, "$0115 cleared");
@@ -78,7 +78,7 @@ test("CRAFTED: zero reference is a no-op (RAM untouched)", () => {
   const vals = [0x30, 0x11, 0x50, 0x05, 0x22, 0xe0, 0x10, 0x77];
   const o = new Machine(ROM, OPTS); seedTable(o, 0x00, vals);
   const c = new Machine(ROM, OPTS); seedTable(c, 0x00, vals);
-  oracle(o); loc_a7d2(c);
+  oracle(o); stepSpikeTableCollapse(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (both no-op)");
   assert.equal(c.mem.read8(loc_29), 0x33, "accumulator untouched");
 });
@@ -113,7 +113,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a7d2, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a7d2 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepSpikeTableCollapse, TARGET, m);
+  assert.equal(r.placeable, true, `stepSpikeTableCollapse must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

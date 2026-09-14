@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_a343 / loc_a347 -- two seed entries that stamp the head flag ($013b)
-// with a per-entry tag (0x09 / 0x07), then tail-JMP into the shared insert (loc_a34d). Each side
-// dissolves the jmp into a direct loc_a34d call, passing the entry X/Y (preserved across the callee).
+// with a per-entry tag (0x09 / 0x07), then tail-JMP into the shared insert (insertType1WithHeadFlag). Each side
+// dissolves the jmp into a direct insertType1WithHeadFlag call, passing the entry X/Y (preserved across the callee).
 // Output is RAM, so each arm compares the RAM diff (minus the dead stack) and checks X/Y preserved.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a343.test.js
 
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a343 as oracle343, loc_a347 as oracle347 } from "../../translated/loc_a343.js";
 import { loc_a343, loc_a347 } from "../loc_a343.js";
-import { loc_a34d } from "../loc_a34b.js";
+import { insertType1WithHeadFlag } from "../primeTopPriorityObject.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, COORD_LIST_PTR_LO, PLAYER_SEGMENT, PLAYER_SHOT_DEPTH, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER } from "../names.js";
@@ -84,7 +84,7 @@ test("TEETH: a twin that stamps the wrong head-flag tag diverges in RAM", () => 
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle343(o);
-  const broken = (m, x = m.regs.x, y = m.regs.y) => loc_a34d(m, 0x07, x, y); // BUG: 0x07 not 0x09
+  const broken = (m, x = m.regs.x, y = m.regs.y) => insertType1WithHeadFlag(m, 0x07, x, y); // BUG: 0x07 not 0x09
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong head-flag tag");
 });

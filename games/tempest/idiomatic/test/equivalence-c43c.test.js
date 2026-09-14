@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c43c (ROM 0xc43c) -- gathers one column of four parallel $03xx tables (indexed
+// Memory-equivalence for loadSlotCoordBlock (ROM 0xc43c) -- gathers one column of four parallel $03xx tables (indexed
 // by $37) into the working block $61..$64. Pure table-copy leaf: live-out is RAM only, so every arm checks
 // the RAM diff minus dead stack. No POKEY/clock coupling, so the CRAFTED arms are deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c43c.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c43c as oracle } from "../../translated/loc_c43c.js";
-import { loc_c43c } from "../loc_c43c.js";
+import { loadSlotCoordBlock } from "../loadSlotCoordBlock.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SLOT_LOOP_INDEX, OBJ_DY_HI, OBJ_DY_LO, OBJ_DX_HI, OBJ_DX_LO, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI } from "../names.js";
@@ -45,10 +45,10 @@ function seed(m, s = {}) {
   m.mem8[PROJ_Y_LO] = 0xee; m.mem8[PROJ_Y_HI] = 0xee; m.mem8[PROJ_X_LO] = 0xee; m.mem8[PROJ_X_HI] = 0xee;
 }
 
-test("CAPTURE: real 0xc43c dispatches -- loc_c43c == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc43c dispatches -- loadSlotCoordBlock == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c43c(c);
+    oracle(o); loadSlotCoordBlock(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -63,7 +63,7 @@ test("CRAFTED: the four-column gather == oracle (RAM -stack)", () => {
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_c43c(c);
+    oracle(o); loadSlotCoordBlock(c);
     assert.equal(ramDiff(o, c), null, s.tag);
     assert.equal(c.mem8[PROJ_Y_LO], s.v61, `${s.tag}: $61`);
     assert.equal(c.mem8[PROJ_X_HI], s.v64, `${s.tag}: $64`);
@@ -93,8 +93,8 @@ test("SP-TOOTH: the pure leaf omits its ROM ret (SP unmoved) and is seam-placeab
     seed(m);
     return m;
   };
-  const ok = seamPlaceable(withOmittedRet, loc_c43c, TARGET, mk());
-  assert.equal(ok.placeable, true, `loc_c43c must be seam-placeable; got: ${ok.error}`);
+  const ok = seamPlaceable(withOmittedRet, loadSlotCoordBlock, TARGET, mk());
+  assert.equal(ok.placeable, true, `loadSlotCoordBlock must be seam-placeable; got: ${ok.error}`);
   // A mutant that pushes without popping moves SP net-nonzero -> the seam MUST refuse it.
   const spMutant = (m) => { m.push16(0x0000); };
   assert.equal(seamPlaceable(withOmittedRet, spMutant, TARGET, mk()).placeable, false, "SP tooth failed to refuse an unbalanced mutant");

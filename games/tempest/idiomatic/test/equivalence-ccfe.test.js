@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_ccfe (ROM 0xccfe-) -- loads sound id 0xbf and requests it through the
-// sound gate loc_ccc3 (which, when $0005 bit7 is set, registers via loc_ccc7 using the live X/Y bridge
+// sound gate requestSoundIfEnabled (which, when $0005 bit7 is set, registers via loadSoundVoiceSlots using the live X/Y bridge
 // into $0031/$0032). Effect is memory-only, so each side runs on a fresh Machine and the contract is RAM
 // (dumpState, minus STACK_SCRATCH). Leaf-omits the ROM ret; arms compare RAM (-stack), not pc/SP.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ccfe.test.js

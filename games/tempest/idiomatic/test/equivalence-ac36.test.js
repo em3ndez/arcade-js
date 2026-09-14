@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ac36 (ROM 0xac36) -- OR bits 0-1 ($03) into the $01c9 flags cell and hand the
+// Memory-equivalence for raiseRebuildRequestBits (ROM 0xac36) -- OR bits 0-1 ($03) into the $01c9 flags cell and hand the
 // merged value back in A. Live-out is RAM ($01c9) plus the A register (the caller reads the merged value),
 // so the arms compare RAM (-stack) AND A. A pure leaf (no dispatch, no stack move): it omits the ROM ret and
 // the withOmittedRet seam completes it, so the arms compare RAM (-stack) + A, NOT pc/SP.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ac36 as oracle } from "../../translated/loc_ac36.js";
-import { loc_ac36 } from "../loc_ac36.js";
+import { raiseRebuildRequestBits } from "../raiseRebuildRequestBits.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PENDING_WORK_FLAGS } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1200) : [];
 
-test("CAPTURE: real 0xac36 dispatches -- loc_ac36 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0xac36 dispatches -- raiseRebuildRequestBits == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ac36(c);
+    oracle(o); raiseRebuildRequestBits(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out (merged value) matches the oracle");
   }
@@ -60,7 +60,7 @@ test("CRAFTED: bits 0-1 set in $01c9, other bits preserved; A = merged value", (
   for (const { seed: sv } of cases) {
     const o = new Machine(ROM, OPTS); seed(o, { [PENDING_WORK_FLAGS]: sv });
     const c = new Machine(ROM, OPTS); seed(c, { [PENDING_WORK_FLAGS]: sv });
-    oracle(o); const ret = loc_ac36(c);
+    oracle(o); const ret = raiseRebuildRequestBits(c);
     const tag = `seed=0x${sv.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `RAM: ${tag}`);
     assert.equal(c.mem.read8(PENDING_WORK_FLAGS), sv | 0x03, `bits 0-1 set, rest kept: ${tag}`);
@@ -83,7 +83,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   m.mem.write8(PENDING_WORK_FLAGS, 0x84);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
-  const r = seamPlaceable(withOmittedRet, loc_ac36, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ac36 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, raiseRebuildRequestBits, TARGET, m);
+  assert.equal(r.placeable, true, `raiseRebuildRequestBits must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

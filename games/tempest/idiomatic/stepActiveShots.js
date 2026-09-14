@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { u16 } from "../../../core/int.js";
+import { SLOT_LOOP_INDEX, ACTIVE_ENEMY_COUNT, OBJECT_VELOCITY_HI, OBJECT_VELOCITY_LO, ACTIVE_OBJECT_COUNT, PLAYER_SHOT_DEPTH, SLOT_STATE, loc_2e6, HIT_TALLY } from "./names.js";
+import { advanceShotAndScoreLaneHit } from "./advanceShotAndScoreLaneHit.js";
+import { primeTopObjectOnTargetMatch } from "./primeTopObjectOnTargetMatch.js";
+
+// Advance every active slot (index 0x0b..0). Slots 8+ integrate a 16-bit velocity into their
+// position pair and clear once past the edge; slots below 8 step a counter (+9, less 4 when flagged)
+// then advance it, clearing at the far limit.
+export function stepActiveShots(m) {
+  const { mem8 } = m;
+
+  mem8[SLOT_LOOP_INDEX] = 0x0b;
+  for (;;) {
+    const x = mem8[SLOT_LOOP_INDEX];
+    if (mem8[u16(SLOT_STATE + x)] !== 0) {
+      if (x >= 0x08) {
+        const lo = mem8[u16(loc_2e6 + x)] + mem8[OBJECT_VELOCITY_LO];
+        mem8[u16(loc_2e6 + x)] = lo;
+        const hi = (mem8[u16(SLOT_STATE + x)] + mem8[OBJECT_VELOCITY_HI] + (lo > 0xff ? 1 : 0)) & 0xff;
+        if (hi >= mem8[PLAYER_SHOT_DEPTH]) {
+          mem8[u16(SLOT_STATE + x)] = hi;
+        } else {
+          mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] - 1;
+          primeTopObjectOnTargetMatch(m, x);
+          mem8[u16(SLOT_STATE + x)] = 0x00;
+        }
+      } else {
+        let counter = mem8[u16(SLOT_STATE + x)] + 0x09;
+        if (mem8[u16(HIT_TALLY + x)] !== 0) counter -= 0x04;
+        mem8[u16(SLOT_STATE + x)] = counter;
+        const xEff = advanceShotAndScoreLaneHit(m, x);
+        if (mem8[u16(SLOT_STATE + xEff)] >= 0xf0) {
+          mem8[ACTIVE_OBJECT_COUNT] = mem8[ACTIVE_OBJECT_COUNT] - 1;
+          mem8[u16(SLOT_STATE + xEff)] = 0x00;
+        }
+      }
+    }
+    const next = (mem8[SLOT_LOOP_INDEX] - 1) & 0xff;
+    mem8[SLOT_LOOP_INDEX] = next;
+    if (next & 0x80) break;
+  }
+}

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a06f (ROM 0xa06f-0xa0f6) -- retires the enemy in slot Y: clears ENEMY_DEPTH,y,
+// Memory-equivalence for retireEnemyAndSpawnSplit (ROM 0xa06f-0xa0f6) -- retires the enemy in slot Y: clears ENEMY_DEPTH,y,
 // drops ENEMY_TYPE_COUNT (matched, lane != 4) or ENEMY_TOTAL_COUNT, drops the per-lane LANE_ENEMY_COUNT_0 counter (X parked in SAVED_INDEX
 // and restored, so exit X == entry X), then on (ENEMY_SLOT_DIR,y & 3) != 0 seats loc_2b/loc_2a and spawns a
-// replacement via loc_9b07 + loc_994d (twice). Live-out is RAM (dumpState minus STACK_SCRATCH) PLUS A, X,
+// replacement via setupEnemyCoordList + spawnClimberInFreeSlot (twice). Live-out is RAM (dumpState minus STACK_SCRATCH) PLUS A, X,
 // Y: both callees restore Y and X is saved/restored, so those match trivially; A is the anded gate value
-// on the early return and otherwise whatever the final loc_994d leaves. Oracle is the frozen translated
-// loc_a06f. Run: node --test games/tempest/idiomatic/test/equivalence-a06f.test.js
+// on the early return and otherwise whatever the final spawnClimberInFreeSlot leaves. Oracle is the frozen translated
+// retireEnemyAndSpawnSplit. Run: node --test games/tempest/idiomatic/test/equivalence-a06f.test.js
 
 import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a06f as oracle } from "../../translated/loc_a06f.js";
-import { loc_a06f } from "../loc_a06f.js";
+import { retireEnemyAndSpawnSplit } from "../retireEnemyAndSpawnSplit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -45,14 +45,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xa06f dispatches -- loc_a06f == oracle in RAM (-stack), A/X/Y", () => {
+test("CAPTURE: real 0xa06f dispatches -- retireEnemyAndSpawnSplit == oracle in RAM (-stack), A/X/Y", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may route to an unimplemented list-setup arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_a06f(c);
+    retireEnemyAndSpawnSplit(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
     assert.equal(c.regs.x, o.regs.x, "X live-out matches");
@@ -62,11 +62,11 @@ test("CAPTURE: real 0xa06f dispatches -- loc_a06f == oracle in RAM (-stack), A/X
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Seed a slot Y and the gate cells. The lane index that reaches loc_9a88 (via loc_9b07 when loc_29 >= 0x20)
-// is kept to 0 -- gate 1 -> loc_2b = 0 -- so the oracle's dispatch resolves to loc_9a9d (arms 1 and 4 throw).
+// Seed a slot Y and the gate cells. The lane index that reaches loc_9a88 (via setupEnemyCoordList when loc_29 >= 0x20)
+// is kept to 0 -- gate 1 -> loc_2b = 0 -- so the oracle's dispatch resolves to seatDemoCoordListPointer (arms 1 and 4 throw).
 function seedDraw(m, y) {
   m.regs.y = y; m.regs.x = 0x7a;
-  m.mem.write8(u16(ENEMY_DEPTH + y), 0x30); // slotVal -> loc_29 = 0x30 (>= 0x20 -> loc_9b07 dispatches loc_9a88)
+  m.mem.write8(u16(ENEMY_DEPTH + y), 0x30); // slotVal -> loc_29 = 0x30 (>= 0x20 -> setupEnemyCoordList dispatches loc_9a88)
   m.mem.write8(PLAYER_SHOT_DEPTH, 0x30);          // match -> take the ENEMY_TYPE_COUNT path (lane != 4 below)
   m.mem.write8(u16(ENEMY_SLOT_FLAGS + y), 0x02); // lane 2 (!= 4): decrement ENEMY_TYPE_COUNT, then LANE_ENEMY_COUNT_0[2]
   m.mem.write8(u16(ENEMY_SLOT_DIR + y), 0x01); // gate 1 -> loc_2b = 0 (a safe list-setup index)
@@ -78,11 +78,11 @@ function seedDraw(m, y) {
   m.mem.write8(ENEMY_TYPE_COUNT, 0x20);
 }
 
-test("CRAFTED: draw path (gate != 0) spawns via loc_9b07 + loc_994d -- RAM and A/X/Y equal", () => {
+test("CRAFTED: draw path (gate != 0) spawns via setupEnemyCoordList + spawnClimberInFreeSlot -- RAM and A/X/Y equal", () => {
   const Y = 0x02;
   const o = new Machine(ROM, OPTS); seedDraw(o, Y);
   const c = new Machine(ROM, OPTS); seedDraw(c, Y);
-  oracle(o); loc_a06f(c);
+  oracle(o); retireEnemyAndSpawnSplit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the draw path");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.x, o.regs.x, "X restored to the entry index");
@@ -108,7 +108,7 @@ test("CRAFTED: cleared path (gate == 0) drops ENEMY_TYPE_COUNT/LANE_ENEMY_COUNT_
   const Y = 0x02;
   const o = new Machine(ROM, OPTS); seedClear(o, Y);
   const c = new Machine(ROM, OPTS); seedClear(c, Y);
-  oracle(o); loc_a06f(c);
+  oracle(o); retireEnemyAndSpawnSplit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the cleared path");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0x00, "A is the anded gate value (0)");

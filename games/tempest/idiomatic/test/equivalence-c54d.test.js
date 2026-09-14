@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c54d (ROM 0xc54d-0xc5c1) -- a CALLER that dissolves jsr $df4c and jsr $bd09
+// Memory-equivalence for drawTimedObjectList (ROM 0xc54d-0xc5c1) -- a CALLER that dissolves jsr $df4c and jsr $bd09
 // into direct idiomatic calls: while the guard flag is set it forces three cursor cells and, per nonzero
 // table slot, picks a draw mode and emits it, restoring the saved cells; the tail bumps one counter. Effect
 // is memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH). $bd09 can read POKEY random on
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c54d as oracle } from "../../translated/loc_c54d.js";
-import { loc_c54d } from "../loc_c54d.js";
+import { drawTimedObjectList } from "../drawTimedObjectList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xc54d dispatches -- loc_c54d == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc54d dispatches -- drawTimedObjectList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c54d(c);
+    oracle(o); drawTimedObjectList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -69,7 +69,7 @@ function seed(m) {
 test("CRAFTED: guarded draw pass -- RAM equal, saved cells restored, tail counter bumped", () => {
   const base = new Machine(ROM, OPTS); seed(base);
   const o = base.clone(), c = base.clone();
-  oracle(o); loc_c54d(c);
+  oracle(o); drawTimedObjectList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after pass");
   assert.equal(c.mem.read8(0x5f), 0x71, "$5f restored");
   assert.equal(c.mem.read8(0x5b), 0x72, "$5b restored");
@@ -90,6 +90,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c54d, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c54d must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawTimedObjectList, TARGET, m);
+  assert.equal(r.placeable, true, `drawTimedObjectList must be seam-placeable; got: ${r.error}`);
 });

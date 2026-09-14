@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { u16 } from "../../../core/int.js";
+import { DRAW_CURSOR_LO, NIBBLE_GLYPH_TABLE } from "./names.js";
+import { advanceDisplayCursor } from "./advanceDisplayCursor.js";
+
+// Turn the low nibble into a word-table index (nibble+1), then emit that entry.
+// Exit A (live-out) is the advanced cursor low byte left by the emit (the flag
+// save/restore around it preserves flags, not A).
+export function emitStrokeWordFromNibblePlusOne(m, a = m.regs.a) {
+  return emitStrokeWordByIndex(m, (a & 0x0f) + 1);
+}
+
+// Copy the indexed word-table entry's two bytes into the ($74) list, then step the
+// cursor past them.
+export function emitStrokeWordByIndex(m, a = m.regs.a) {
+  const { mem8, mem16 } = m;
+  const src = u16(NIBBLE_GLYPH_TABLE + (a << 1));
+  const dst = mem16[DRAW_CURSOR_LO];
+  mem8[u16(dst)] = mem8[src];
+  mem8[u16(dst + 1)] = mem8[u16(src + 1)];
+  return advanceDisplayCursor(m, 1);
+}

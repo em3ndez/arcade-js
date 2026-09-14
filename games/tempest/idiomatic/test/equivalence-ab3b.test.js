@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ab3b (ROM 0xab3b-0xab97) -- header/scale setup then a copy loop that emits
-// indexed point pairs into the ($74) buffer until a high-bit terminator, tail-jmp loc_df5f. All five
+// Memory-equivalence for expandShapeListToVectors (ROM 0xab3b-0xab97) -- header/scale setup then a copy loop that emits
+// indexed point pairs into the ($74) buffer until a high-bit terminator, tail-jmp advanceDisplayCursor. All five
 // m.calls (df6a, df75, b0d1, b0dd, df5f) are dissolved to direct idiomatic calls. Live-out is memory
 // only (buffer + cursor + scratch), so each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-ab3b.test.js
@@ -10,13 +10,13 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ab3b as oracle } from "../../translated/loc_ab3b.js";
-import { loc_ab3b } from "../loc_ab3b.js";
+import { expandShapeListToVectors } from "../expandShapeListToVectors.js";
 import { u16, u8 } from "../../../../core/int.js";
 import { loc_df6a } from "../loc_df6a.js";
-import { loc_df75 } from "../loc_df75.js";
-import { loc_b0d1 } from "../loc_b0d1.js";
-import { loc_b0dd } from "../loc_b0dd.js";
-import { loc_df5f } from "../loc_df5f.js";
+import { emitScaledCoordinateRecord } from "../emitScaledCoordinateRecord.js";
+import { emitColorStatIfChanged } from "../emitColorStatIfChanged.js";
+import { emitScaleWordIfChanged } from "../emitScaleWordIfChanged.js";
+import { advanceDisplayCursor } from "../advanceDisplayCursor.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -44,10 +44,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xab3b dispatches -- loc_ab3b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xab3b dispatches -- expandShapeListToVectors == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ab3b(c);
+    oracle(o); expandShapeListToVectors(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,10 +66,10 @@ function seed(m) {
   m.mem.write8(0x2a, 0x04); m.mem.write8(0x2b, 0x02);   // feed df75 marshalling
 }
 
-test("CRAFTED: header/scale + pair-copy loop -- loc_ab3b == oracle in RAM", () => {
+test("CRAFTED: header/scale + pair-copy loop -- expandShapeListToVectors == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ab3b(c);
+  oracle(o); expandShapeListToVectors(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
   assert.equal(c.mem.read8(0x2a), 0x04, "$2a = 2 entries x 2 bytes");
   assert.equal(c.mem.read8(0x2b), 0x82, "$2b = last (terminator) entry");
@@ -80,14 +80,14 @@ function brokenTail(m) {
   const { mem8, mem16 } = m;
   mem8[0x73] = 0x00; mem8[0x72] = 0x01;
   loc_df6a(m);
-  loc_df75(m, mem8[0x2a], mem8[0x2b]);
+  emitScaledCoordinateRecord(m, mem8[0x2a], mem8[0x2b]);
   let y = mem8[0x35];
   mem8[0x3b] = mem8[u16(mem16[0xac] + y)];
   y = u8(y + 1);
   mem8[0x3c] = mem8[u16(mem16[0xac] + y)];
   const key = mem8[u16(0xd121 + mem8[0x35])];
-  loc_b0d1(m, key >> 4);
-  loc_b0dd(m, key & 0x0f);
+  emitColorStatIfChanged(m, key >> 4);
+  emitScaleWordIfChanged(m, key & 0x0f);
   mem8[0x2a] = 0x00;
   let listIdx = 0x01, entry;
   do {
@@ -103,7 +103,7 @@ function brokenTail(m) {
     outOff = u8(outOff + 1);
     mem8[0x2a] = outOff;
   } while ((entry & 0x80) === 0);
-  loc_df5f(m, mem8[0x2a]); // BUG: missing the -1 on the closing stride
+  advanceDisplayCursor(m, mem8[0x2a]); // BUG: missing the -1 on the closing stride
 }
 
 test("TEETH: a twin that mis-marshals the df5f tail stride diverges from the oracle", () => {
@@ -124,10 +124,10 @@ function seedMut(m) {
   m.mem.write8(0x2a, 0x1c); m.mem.write8(0x2b, 0xc3);
 }
 
-test("MUTATION: non-default seed (longer list, different cursor) -- loc_ab3b == oracle in RAM", () => {
+test("MUTATION: non-default seed (longer list, different cursor) -- expandShapeListToVectors == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedMut(o);
   const c = new Machine(ROM, OPTS); seedMut(c);
-  oracle(o); loc_ab3b(c);
+  oracle(o); expandShapeListToVectors(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the non-default seed");
 });
 
@@ -135,6 +135,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ab3b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ab3b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, expandShapeListToVectors, TARGET, m);
+  assert.equal(r.placeable, true, `expandShapeListToVectors must be seam-placeable; got: ${r.error}`);
 });

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_902b (ROM 0x902b) -- the new-game reset spine: run six subsystem resets
-// (loc_928f, loc_926f, loc_9246, loc_929f, loc_92ad, loc_c16e) in order, then set $0124=$0148=0xff and
+// (clearActiveShots, clearShotTableAndStateFlags, seedSlotRandomTags, clearEightByteTableAndFlag, clearByte50, buildLevelLayout) in order, then set $0124=$0148=0xff and
 // $0123=0x00. Live-out is memory only (A/X at RTS incidental), so each side runs on a clone and the
 // contract is RAM (dumpState, minus STACK_SCRATCH). A body-then-return routine: the module omits the ROM
 // ret and the seam completes it, so the arms compare RAM (-stack), NOT pc/SP.
-//   POKEY coupling: loc_9246 draws slot tags from $60ca (POKEY1 RANDOM), clock-coupled. We freeze the
+//   POKEY coupling: seedSlotRandomTags draws slot tags from $60ca (POKEY1 RANDOM), clock-coupled. We freeze the
 // polys (clear SK_RESET) so both arms read the SAME RANDOM byte on every load, keeping the fill
 // deterministic on the crafted and captured arms alike.
 // Run: node --test games/tempest/idiomatic/test/equivalence-902b.test.js

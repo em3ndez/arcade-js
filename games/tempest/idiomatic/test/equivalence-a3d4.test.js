@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a3d4 (ROM 0xa3d4-0xa3d5) -- stores A into $2c, then falls into loc_a3d6
+// Memory-equivalence for insertTimedObjectOfType (ROM 0xa3d4-0xa3d5) -- stores A into $2c, then falls into insertTimedObject
 // (the 8-slot object insert). The oracle m.calls the frozen a3d6; the idiomatic calls idiomatic a3d6.
 // All output is RAM (the inserted slot's four fields + the count), so each arm compares the RAM diff
 // (minus the dead stack). An omitted-ret rewrite (the seam completes the ret). A/X/Y at RTS incidental.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a3d4 as oracle } from "../../translated/loc_a3d4.js";
-import { loc_a3d4 } from "../loc_a3d4.js";
+import { insertTimedObjectOfType } from "../insertTimedObjectOfType.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, COORD_LIST_PTR_LO, loc_29, COORD_LIST_PTR_HI, TIMED_OBJECT_COUNT, SHAPE_ACTIVE, SHAPE_ID, SHAPE_COORD, SHAPE_ANIM } from "../names.js";
@@ -50,10 +50,10 @@ function seat(m, s = {}) {
   }
 }
 
-test("CAPTURE: real 0xa3d4 dispatches -- loc_a3d4 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa3d4 dispatches -- insertTimedObjectOfType == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a3d4(c);
+    oracle(o); insertTimedObjectOfType(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -69,7 +69,7 @@ test("CRAFTED: seeded states across every branch == oracle (RAM)", () => {
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_a3d4(c);
+    oracle(o); insertTimedObjectOfType(c);
     assert.equal(ramDiff(o, c), null, s.tag);
     assert.equal(c.mem.read8(COORD_LIST_PTR_LO), s.a ?? 0x77, `${s.tag}: A stored into $2c`);
   }
@@ -104,6 +104,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seat(m, { table: [9, 9, 9, 9, 9, 9, 9, 0] });
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a3d4, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a3d4 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, insertTimedObjectOfType, TARGET, m);
+  assert.equal(r.placeable, true, `insertTimedObjectOfType must be seam-placeable; got: ${r.error}`);
 });

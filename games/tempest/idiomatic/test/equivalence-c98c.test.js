@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c98c (ROM 0xc98c-0xc9ae). Index off loc_3d: read the PLAYER_LEVEL_TBL-slot; while it is
+// Memory-equivalence for bumpLevelEnemyQuota (ROM 0xc98c-0xc9ae). Index off loc_3d: read the PLAYER_LEVEL_TBL-slot; while it is
 // below 0x62 increment that slot and loc_9f; seed GAME_MODE = 0x18; when the loc_102-slot is nonzero run the
-// handler chain (loc_91b5 with the slot value, loc_ca6c with X=0xff, loc_ccb9); then TAIL-DELEGATE to
+// handler chain (seatInPagePointer with the slot value, addBcdScoreAndAwardAtThreshold with X=0xff, loc_ccb9); then TAIL-DELEGATE to
 // loc_9009. Contract is RAM (dumpState minus STACK_SCRATCH). Registers are NOT compared: the routine takes
 // no input register and tail-jmps loc_9009, so its exit registers are the delegate's -- both layers run the
-// identical delegate from the identical clone. Oracle is the frozen translated loc_c98c.
+// identical delegate from the identical clone. Oracle is the frozen translated bumpLevelEnemyQuota.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c98c.test.js
 
 import nodeTest from "node:test";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c98c as oracle } from "../../translated/loc_c98c.js";
-import { loc_c98c } from "../loc_c98c.js";
+import { bumpLevelEnemyQuota } from "../bumpLevelEnemyQuota.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, loc_3d, PLAYER_LEVEL_TBL, loc_9f } from "../names.js";
@@ -42,14 +42,14 @@ function captureDispatches(K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 const freezePokey = (m) => { for (const p of m.io.pokeys) p.skctl &= ~0x03; return m; };
 
-test("CAPTURE: real 0xc98c dispatches -- loc_c98c == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc98c dispatches -- bumpLevelEnemyQuota == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented arm
     if (threw) continue;                        // both layers would throw identically there
-    loc_c98c(c);
+    bumpLevelEnemyQuota(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -57,7 +57,7 @@ test("CAPTURE: real 0xc98c dispatches -- loc_c98c == oracle in RAM (-stack)", ()
 });
 
 // Seed the index cell, a below-threshold slot value (so the increment block runs), and the trigger slot
-// so the loc_91b5/ca6c/ccb9 chain fires (trigger != 0) or is skipped (trigger == 0).
+// so the seatInPagePointer/ca6c/ccb9 chain fires (trigger != 0) or is skipped (trigger == 0).
 function seed(m, idx, slotVal, trigger) {
   m.mem.write8(loc_3d, idx);
   m.mem.write8((PLAYER_LEVEL_TBL + idx) & 0xff, slotVal);
@@ -76,7 +76,7 @@ test("CRAFTED: increment block + handler chain + tail-delegate -- RAM equal", ()
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // an arm this generic seed cannot provision -- other cases carry it
-    loc_c98c(c);
+    bumpLevelEnemyQuota(c);
     assert.equal(ramDiff(o, c), null, `RAM equal for idx=${idx} slot=${slotVal} trig=${trigger}`);
     checked++;
   }
@@ -89,7 +89,7 @@ test("CRAFTED: increment block + handler chain + tail-delegate -- RAM equal", ()
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (!threw) {
-    loc_c98c(c);
+    bumpLevelEnemyQuota(c);
     assert.equal(c.mem.read8(GAME_MODE), 0x18, "GAME_MODE seeded to 0x18");
     assert.equal(c.mem.read8((PLAYER_LEVEL_TBL + 0x03) & 0xff), o.mem.read8((PLAYER_LEVEL_TBL + 0x03) & 0xff), "slot matches oracle");
     assert.equal(c.mem.read8(loc_9f), o.mem.read8(loc_9f), "loc_9f matches oracle");
@@ -106,7 +106,7 @@ test("TEETH: a twin that drops the GAME_MODE = 0x18 signature write MUST diverge
   // GAME_MODE = 0x18 untouched, so reverting it alone guarantees a RAM divergence from the oracle.
   const broken = (m) => {
     const before00 = m.mem.read8(GAME_MODE);
-    loc_c98c(m);
+    bumpLevelEnemyQuota(m);
     m.mem.write8(GAME_MODE, before00); // BUG: undo the 0x18 write
   };
   broken(c);

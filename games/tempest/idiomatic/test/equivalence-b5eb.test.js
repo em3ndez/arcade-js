@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b5eb -- sets the run count ($9e=3), then splits on the slot's sign
-// ($0283,x): a negative slot preps a coordinate (loc_b634) and builds a segment at corner 0
-// (loc_bdcb); otherwise picks a header from a table by the style index ($55) and builds one at the
-// slot's corner ($02b9,x) via loc_bda0. All three jsr are dissolved into direct idiomatic calls.
+// Memory-equivalence for drawSlotRimSegment -- sets the run count ($9e=3), then splits on the slot's sign
+// ($0283,x): a negative slot preps a coordinate (buildSlotScreenPoint) and builds a segment at corner 0
+// (emitTubeRimSegmentVectors); otherwise picks a header from a table by the style index ($55) and builds one at the
+// slot's corner ($02b9,x) via drawTubeRimSegmentFromCorner. All three jsr are dissolved into direct idiomatic calls.
 // Output is RAM (X at RTS is incidental -- the else path reloads X from $55), so each arm compares
 // the RAM diff (minus the dead stack). The bdcb early-out is seeded so writes stay deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b5eb.test.js
@@ -12,8 +12,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b5eb as oracle } from "../../translated/loc_b5eb.js";
-import { loc_b5eb } from "../loc_b5eb.js";
-import { loc_bda0 } from "../loc_bda0.js";
+import { drawSlotRimSegment } from "../drawSlotRimSegment.js";
+import { drawTubeRimSegmentFromCorner } from "../drawTubeRimSegmentFromCorner.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_9e, DRAW_STYLE, OBJ_DEPTH, DEPTH_LO, DEPTH_HI, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT } from "../names.js";
@@ -59,20 +59,20 @@ function seatNeg(m) {
   m.mem.write8((ENEMY_SEGMENT + SLOT) & 0xffff, 0x02);
 }
 
-test("CAPTURE: real 0xb5eb dispatches -- loc_b5eb == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb5eb dispatches -- drawSlotRimSegment == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b5eb(c);
+    oracle(o); drawSlotRimSegment(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: both sign branches -- loc_b5eb == oracle in RAM", () => {
+test("CRAFTED: both sign branches -- drawSlotRimSegment == oracle in RAM", () => {
   for (const [name, seat] of [["positive slot", seatPos], ["negative slot", seatNeg]]) {
     const o = new Machine(ROM, OPTS); seat(o);
     const c = new Machine(ROM, OPTS); seat(c);
-    oracle(o); loc_b5eb(c);
+    oracle(o); drawSlotRimSegment(c);
     assert.equal(ramDiff(o, c), null, name);
     assert.equal(c.mem.read8(loc_9e), 0x03, `${name}: $9e run count`);
   }
@@ -87,7 +87,7 @@ test("TEETH: a twin that ignores the sign and always builds the table segment di
     mem8[loc_9e] = 0x03;
     const corner = mem8[(ENEMY_SEGMENT + x) & 0xffff];
     const style = mem8[DRAW_STYLE];
-    loc_bda0(m, mem8[(0xb60b + style) & 0xffff], corner); // BUG: skips the b634/bdcb negative path
+    drawTubeRimSegmentFromCorner(m, mem8[(0xb60b + style) & 0xffff], corner); // BUG: skips the b634/bdcb negative path
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the ignored sign branch");
@@ -97,6 +97,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seatPos(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b5eb, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b5eb must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawSlotRimSegment, TARGET, m);
+  assert.equal(r.placeable, true, `drawSlotRimSegment must be seam-placeable; got: ${r.error}`);
 });

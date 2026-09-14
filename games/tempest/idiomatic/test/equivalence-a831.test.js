@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a831 (ROM 0xa831) -- clear the $03aa and $0125 working cells. The A register
+// Memory-equivalence for clearReadyLatchPair (ROM 0xa831) -- clear the $03aa and $0125 working cells. The A register
 // only carries the constant 0 into memory (incidental scratch, dropped), so live-out is RAM only and the
 // arms compare RAM (-stack). A pure leaf (no dispatch, no stack move): it omits the ROM ret and the
 // withOmittedRet seam completes it, so the arms compare RAM (-stack), NOT pc/SP/A.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a831 as oracle } from "../../translated/loc_a831.js";
-import { loc_a831 } from "../loc_a831.js";
+import { clearReadyLatchPair } from "../clearReadyLatchPair.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SWEEP_STAGE, WAVE_PHASE_LATCH } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1200) : [];
 
-test("CAPTURE: real 0xa831 dispatches -- loc_a831 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa831 dispatches -- clearReadyLatchPair == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a831(c);
+    oracle(o); clearReadyLatchPair(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -53,7 +53,7 @@ test("CRAFTED: both cells land at 0 from a non-default seed", () => {
   const s = { [SWEEP_STAGE]: 0x9c, [WAVE_PHASE_LATCH]: 0x5a }; // NON-default so the clear actually bites
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
-  oracle(o); loc_a831(c);
+  oracle(o); clearReadyLatchPair(c);
   assert.equal(ramDiff(o, c), null, "RAM matches oracle");
   assert.equal(c.mem.read8(SWEEP_STAGE), 0x00, "$03aa cleared");
   assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x00, "$0125 cleared");
@@ -72,7 +72,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
-  const r = seamPlaceable(withOmittedRet, loc_a831, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a831 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, clearReadyLatchPair, TARGET, m);
+  assert.equal(r.placeable, true, `clearReadyLatchPair must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

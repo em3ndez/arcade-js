@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a504 (ROM 0xa504-0xa5ca) -- a sign-split routine: the positive arm bumps a
+// Memory-equivalence for ageShotsAndAdvanceFrameClock (ROM 0xa504-0xa5ca) -- a sign-split routine: the positive arm bumps a
 // slot timer and conditionally resets shot state (jsr $a5cb, jsr $928f); the negative arm ages the shot
 // table, advances a clock/counter, and clamps a running total (jsr $928f). The idiomatic side dissolves
-// every jsr into direct loc_a5cb / loc_928f calls. Live-out is memory only, so each arm compares RAM
+// every jsr into direct initWaveStateCountingSpikes / clearActiveShots calls. Live-out is memory only, so each arm compares RAM
 // (dumpState minus STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-a504.test.js
 
 import nodeTest from "node:test";
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a504 as oracle } from "../../translated/loc_a504.js";
-import { loc_a504 } from "../loc_a504.js";
+import { ageShotsAndAdvanceFrameClock } from "../ageShotsAndAdvanceFrameClock.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -41,10 +41,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa504 dispatches -- loc_a504 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa504 dispatches -- ageShotsAndAdvanceFrameClock == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a504(c);
+    oracle(o); ageShotsAndAdvanceFrameClock(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -72,14 +72,14 @@ function seedNegative(m) {
 test("CRAFTED negative: age + counter + tail -- RAM equal, $0202 stepped, $03ab clamped", () => {
   const o = new Machine(ROM, OPTS); seedNegative(o);
   const c = new Machine(ROM, OPTS); seedNegative(c);
-  oracle(o); loc_a504(c);
+  oracle(o); ageShotsAndAdvanceFrameClock(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the negative arm");
   assert.equal(c.mem.read8(PLAYER_SHOT_DEPTH), 0xff, "$0202 advanced by 0x0f");
   assert.equal(c.mem.read8(GAME_MODE), 0x06, "tail seeded $00");
   assert.equal(c.mem.read8(FIRE_GATE), 0x25, "$03ab total clamped");
 });
 
-// Positive arm, reset path: gate clear, no shot past threshold -> loc_a5cb + loc_928f both run.
+// Positive arm, reset path: gate clear, no shot past threshold -> initWaveStateCountingSpikes + clearActiveShots both run.
 function seedPositive(m) {
   m.mem.write8(PLAYER_FINE_ANGLE, 0x00);   // bit7 clear -> positive arm
   m.mem.write8(loc_455, 0x00);
@@ -91,10 +91,10 @@ function seedPositive(m) {
   for (let i = 0; i <= 2; i++) m.mem.write8((ENEMY_DEPTH + i) & 0xffff, 0x00); // nothing past threshold
 }
 
-test("CRAFTED positive: reset path dissolves loc_a5cb + loc_928f -- RAM equal", () => {
+test("CRAFTED positive: reset path dissolves initWaveStateCountingSpikes + clearActiveShots -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedPositive(o);
   const c = new Machine(ROM, OPTS); seedPositive(c);
-  oracle(o); loc_a504(c);
+  oracle(o); ageShotsAndAdvanceFrameClock(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the positive reset path");
 });
 
@@ -111,6 +111,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a504, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a504 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, ageShotsAndAdvanceFrameClock, TARGET, m);
+  assert.equal(r.placeable, true, `ageShotsAndAdvanceFrameClock must be seam-placeable; got: ${r.error}`);
 });

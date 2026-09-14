@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aef8 (ROM 0xaef8) -- from the caller's A it sets a slot count, copies three
-// 2-byte glyph words through the ($74) pointer, then tail-transfers into loc_df5f to advance the cursor.
+// Memory-equivalence for drawThreeCharGlyphString (ROM 0xaef8) -- from the caller's A it sets a slot count, copies three
+// 2-byte glyph words through the ($74) pointer, then tail-transfers into advanceDisplayCursor to advance the cursor.
 // The oracle m.calls translated df5f; the idiomatic dissolves it into a direct idiomatic call. Both are
 // memory-equivalent, so each arm compares RAM (dumpState, minus STACK_SCRATCH). Live-out is RAM only
 // (regs at RTS are the tail callee's incidental leftovers). A is a live-in via the register bridge.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aef8 as oracle } from "../../translated/loc_aef8.js";
-import { loc_aef8 } from "../loc_aef8.js";
+import { drawThreeCharGlyphString } from "../drawThreeCharGlyphString.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TABLE_CURSOR, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SLOT_VALUE } from "../names.js";
@@ -50,10 +50,10 @@ function seeded(a = A_IN) {
   return m;
 }
 
-test("CAPTURE: real 0xaef8 dispatches -- loc_aef8 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaef8 dispatches -- drawThreeCharGlyphString == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aef8(c);
+    oracle(o); drawThreeCharGlyphString(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -61,7 +61,7 @@ test("CAPTURE: real 0xaef8 dispatches -- loc_aef8 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: three glyph words copied and the cursor advanced via df5f (== oracle, RAM)", () => {
   const o = seeded(), c = seeded();
-  oracle(o); loc_aef8(c);
+  oracle(o); drawThreeCharGlyphString(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after copy + advance");
   assert.equal(c.mem.read8(DRAW_CURSOR_LO), 0x06, "cursor advanced by 6");
 });
@@ -69,14 +69,14 @@ test("CRAFTED: three glyph words copied and the cursor advanced via df5f (== ora
 test("TEETH: a twin that skips the df5f dissolve leaves the cursor unadvanced and diverges", () => {
   const o = seeded(); oracle(o);
   assert.equal(o.mem.read8(DRAW_CURSOR_LO), 0x06, "precondition: oracle advanced the cursor");
-  const c = seeded(); loc_aef8(c);
+  const c = seeded(); drawThreeCharGlyphString(c);
   c.mem.write8(DRAW_CURSOR_LO, 0x00); // BUG: as if the df5f call never ran
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped df5f");
 });
 
 test("TEETH: a twin that corrupts one copied glyph byte diverges", () => {
   const o = seeded(); oracle(o);
-  const c = seeded(); loc_aef8(c);
+  const c = seeded(); drawThreeCharGlyphString(c);
   c.mem.write8(0x0402, (c.mem.read8(0x0402) ^ 0xff) & 0xff); // BUG: wrong glyph byte
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a corrupted glyph byte");
 });

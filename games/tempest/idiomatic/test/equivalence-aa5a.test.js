@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa5a (ROM 0xaa5a-0xaa61) -- draws object slot X=8 (loc_ab14) then tail-calls
+// Memory-equivalence for loc_aa5a (ROM 0xaa5a-0xaa61) -- draws object slot X=8 (drawSlotShapeRecord) then tail-calls
 // the shared post-draw step loc_aa69. Dissolves both m.calls. All output is RAM (emitted vector words +
 // the post step), so each arm compares the RAM diff (minus the dead stack). Omitted-ret caller.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aa5a.test.js
@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa5a as oracle } from "../../translated/loc_aa5a.js";
 import { loc_aa5a } from "../loc_aa5a.js";
-import { loc_ab14 } from "../loc_ab14.js";
+import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
 import { loc_aa69 } from "../loc_aa69.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -29,8 +29,8 @@ const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 const freezePokey = (m) => { for (const p of m.io.pokeys) p.skctl &= ~0x03; return m; };
 
-// loc_aa5a -> loc_ab14 (slot 8), then loc_aa69 -> loc_aa92 (slot 2) -> loc_a8e7 -> loc_aaa8 (more slots).
-// Every loc_ab14 chases the ($ac) object-table pointer to a bit7-terminated vector list and appends into
+// loc_aa5a -> drawSlotShapeRecord (slot 8), then loc_aa69 -> loc_aa92 (slot 2) -> composeFrameDisplayList -> drawOverlayFrame (more slots).
+// Every drawSlotShapeRecord chases the ($ac) object-table pointer to a bit7-terminated vector list and appends into
 // the ($74) cursor; a bare Machine leaves those pointers zero, so ab14 dereferences unmapped MMIO. Give
 // each drawn slot a valid list and aim the cursor at vector RAM. Slot 8 (the real draw) and slot 0 (the
 // teeth's wrong draw) point at DISTINCT lists so the wrong-slot twin genuinely diverges; the interior
@@ -82,7 +82,7 @@ test("TEETH (slot index): a twin that draws slot 0 instead of slot 8 diverges", 
   const o = freezePokey(new Machine(ROM, OPTS)); seedRender(o); oracle(o);
   const c = freezePokey(new Machine(ROM, OPTS)); seedRender(c);
   // BUG: draws the wrong object slot (X=0, a distinct list), so the emitted vector words differ.
-  const broken = (m) => { loc_ab14(m, 0x00); loc_aa69(m); };
+  const broken = (m) => { drawSlotShapeRecord(m, 0x00); loc_aa69(m); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong slot index");
 });

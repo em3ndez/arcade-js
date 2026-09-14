@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a888 (ROM 0xa888-0xa8ae). Acts only when WAVE_PHASE_LATCH >= 3 and even: it scans
+// Memory-equivalence for sweepLaneSlotsForRespawn (ROM 0xa888-0xa8ae). Acts only when WAVE_PHASE_LATCH >= 3 and even: it scans
 // ENEMY_DEPTH,y downward from y = ENEMY_SLOT_TOP for the first nonzero slot. Found -> clears the low two bits of
-// ENEMY_SLOT_DIR,y and TAIL-DELEGATES to loc_a398 for that slot; none found -> resets WAVE_PHASE_LATCH to 0; below the
+// ENEMY_SLOT_DIR,y and TAIL-DELEGATES to respawnEnemyAndAward for that slot; none found -> resets WAVE_PHASE_LATCH to 0; below the
 // guard -> no-op. Contract is RAM (dumpState minus STACK_SCRATCH). No live-out register is compared: the
-// found path tail-delegates to loc_a398 (its exit registers are the delegate's chain), and the other
+// found path tail-delegates to respawnEnemyAndAward (its exit registers are the delegate's chain), and the other
 // exits are plain returns whose registers no caller distinguishes here. Oracle is the frozen translated
-// loc_a888.
+// sweepLaneSlotsForRespawn.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a888.test.js
 
 import nodeTest from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a888 as oracle } from "../../translated/loc_a888.js";
-import { loc_a888 } from "../loc_a888.js";
+import { sweepLaneSlotsForRespawn } from "../sweepLaneSlotsForRespawn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -42,14 +42,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xa888 dispatches -- loc_a888 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa888 dispatches -- sweepLaneSlotsForRespawn == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
-    try { oracle(o); } catch { threw = true; } // a found-slot dispatch may reach an unimplemented arm in loc_a398's chain
+    try { oracle(o); } catch { threw = true; } // a found-slot dispatch may reach an unimplemented arm in respawnEnemyAndAward's chain
     if (threw) continue;
-    loc_a888(c);
+    sweepLaneSlotsForRespawn(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -60,7 +60,7 @@ test("CAPTURE: real 0xa888 dispatches -- loc_a888 == oracle in RAM (-stack)", ()
 test("CRAFTED: WAVE_PHASE_LATCH below 3 -- no-op, RAM equal", () => {
   const o = new Machine(ROM, OPTS); o.mem.write8(WAVE_PHASE_LATCH, 0x02);
   const c = new Machine(ROM, OPTS); c.mem.write8(WAVE_PHASE_LATCH, 0x02);
-  oracle(o); loc_a888(c);
+  oracle(o); sweepLaneSlotsForRespawn(c);
   assert.equal(ramDiff(o, c), null, "RAM equal for the below-guard exit");
   assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x02, "WAVE_PHASE_LATCH untouched below the guard");
 });
@@ -69,7 +69,7 @@ test("CRAFTED: WAVE_PHASE_LATCH below 3 -- no-op, RAM equal", () => {
 test("CRAFTED: WAVE_PHASE_LATCH odd -- no-op, RAM equal", () => {
   const o = new Machine(ROM, OPTS); o.mem.write8(WAVE_PHASE_LATCH, 0x05);
   const c = new Machine(ROM, OPTS); c.mem.write8(WAVE_PHASE_LATCH, 0x05);
-  oracle(o); loc_a888(c);
+  oracle(o); sweepLaneSlotsForRespawn(c);
   assert.equal(ramDiff(o, c), null, "RAM equal for the odd-phase exit");
   assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x05, "WAVE_PHASE_LATCH untouched for odd phase");
 });
@@ -84,12 +84,12 @@ function seedNoneFound(m) {
 test("CRAFTED: none-found -- WAVE_PHASE_LATCH reset to 0, RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedNoneFound(o);
   const c = new Machine(ROM, OPTS); seedNoneFound(c);
-  oracle(o); loc_a888(c);
+  oracle(o); sweepLaneSlotsForRespawn(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the none-found reset");
   assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x00, "WAVE_PHASE_LATCH reset to 0 when no slot is found");
 });
 
-// Found path: a nonzero slot -> clear low 2 bits of ENEMY_SLOT_DIR,y then tail-delegate to loc_a398.
+// Found path: a nonzero slot -> clear low 2 bits of ENEMY_SLOT_DIR,y then tail-delegate to respawnEnemyAndAward.
 function seedFound(m) {
   m.mem.write8(WAVE_PHASE_LATCH, 0x04);   // >= 3 and even -> scans
   m.mem.write8(ENEMY_SLOT_TOP, 0x03);   // scan starts at y = 3
@@ -101,9 +101,9 @@ test("CRAFTED: found slot -- clears ENEMY_SLOT_DIR,y bits then delegates, RAM eq
   const o = new Machine(ROM, OPTS); seedFound(o);
   const c = new Machine(ROM, OPTS); seedFound(c);
   let threw = false;
-  try { oracle(o); } catch { threw = true; } // loc_a398's chain may reach an unimplemented arm under this seed
+  try { oracle(o); } catch { threw = true; } // respawnEnemyAndAward's chain may reach an unimplemented arm under this seed
   if (threw) { console.log("  CRAFTED found: oracle threw in the delegate -- skipped"); return; }
-  loc_a888(c);
+  sweepLaneSlotsForRespawn(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the found-slot delegate");
   assert.equal(c.mem.read8(u16(ENEMY_SLOT_DIR + 0x02)), 0x04, "low two bits of ENEMY_SLOT_DIR,y cleared (0x07 -> 0x04)");
 });
@@ -117,7 +117,7 @@ test("TEETH: a twin that skips the ENEMY_SLOT_DIR,y bit-clear MUST diverge in RA
   // Broken twin: run the real routine, then revert the ENEMY_SLOT_DIR,y bit-clear the found path performs.
   const broken = (m) => {
     const before = m.mem.read8(u16(ENEMY_SLOT_DIR + 0x02));
-    loc_a888(m);
+    sweepLaneSlotsForRespawn(m);
     m.mem.write8(u16(ENEMY_SLOT_DIR + 0x02), before | 0x03); // BUG: restore the low bits the routine cleared
   };
   broken(c);

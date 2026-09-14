@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b71b -- latches a run flag ($9e = 4 or 0 from $0148's sign) and a
+// Memory-equivalence for drawStyledSlotRimSegment -- latches a run flag ($9e = 4 or 0 from $0148's sign) and a
 // style byte ($29) picked from table $b755 by $0148's clamped high nibble, then splits on the
-// slot's sign ($0283,x): a negative slot preps a coordinate (loc_b634) and builds a segment at
-// corner $29 (loc_bdcb); otherwise builds one at the slot's corner ($02b9,x) with A=$29 (loc_bda0).
+// slot's sign ($0283,x): a negative slot preps a coordinate (buildSlotScreenPoint) and builds a segment at
+// corner $29 (emitTubeRimSegmentVectors); otherwise builds one at the slot's corner ($02b9,x) with A=$29 (drawTubeRimSegmentFromCorner).
 // All three jsr are dissolved into direct idiomatic calls. Output is RAM, so each arm compares the
 // RAM diff (minus dead stack). The bdcb early-out is seeded so segment writes stay deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b71b.test.js
@@ -12,8 +12,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b71b as oracle } from "../../translated/loc_b71b.js";
-import { loc_b71b } from "../loc_b71b.js";
-import { loc_bda0 } from "../loc_bda0.js";
+import { drawStyledSlotRimSegment } from "../drawStyledSlotRimSegment.js";
+import { drawTubeRimSegmentFromCorner } from "../drawTubeRimSegmentFromCorner.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_9e, ENEMY_ANIM_ACCUM, OBJ_DEPTH, DEPTH_LO, DEPTH_HI, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT } from "../names.js";
@@ -59,16 +59,16 @@ function seatNeg(m, c148 = 0xb0) {
   m.mem.write8((ENEMY_SEGMENT + SLOT) & 0xffff, 0x02);
 }
 
-test("CAPTURE: real 0xb71b dispatches -- loc_b71b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb71b dispatches -- drawStyledSlotRimSegment == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b71b(c);
+    oracle(o); drawStyledSlotRimSegment(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: both sign branches, and $0148 minus vs plus for $9e -- loc_b71b == oracle in RAM", () => {
+test("CRAFTED: both sign branches, and $0148 minus vs plus for $9e -- drawStyledSlotRimSegment == oracle in RAM", () => {
   const cases = [
     { tag: "positive slot, $0148 minus -> $9e=4", seat: (m) => seatPos(m, 0xb0), r9e: 0x04 },
     { tag: "positive slot, $0148 plus -> $9e=0", seat: (m) => seatPos(m, 0x30), r9e: 0x00 },
@@ -77,7 +77,7 @@ test("CRAFTED: both sign branches, and $0148 minus vs plus for $9e -- loc_b71b =
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); s.seat(o);
     const c = new Machine(ROM, OPTS); s.seat(c);
-    oracle(o); loc_b71b(c);
+    oracle(o); drawStyledSlotRimSegment(c);
     assert.equal(ramDiff(o, c), null, s.tag);
     assert.equal(c.mem.read8(loc_9e), s.r9e, `${s.tag}: $9e`);
   }
@@ -94,7 +94,7 @@ test("TEETH: a twin that inverts the $9e sign latch writes the wrong run flag an
     if (idx >= 0x05) idx = 0x00;
     mem8[loc_29] = mem8[(0xb755 + idx) & 0xffff];
     const corner = mem8[(ENEMY_SEGMENT + x) & 0xffff];
-    loc_bda0(m, mem8[loc_29], corner);
+    drawTubeRimSegmentFromCorner(m, mem8[loc_29], corner);
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the inverted $9e latch");
@@ -104,6 +104,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seatPos(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b71b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b71b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawStyledSlotRimSegment, TARGET, m);
+  assert.equal(r.placeable, true, `drawStyledSlotRimSegment must be seam-placeable; got: ${r.error}`);
 });

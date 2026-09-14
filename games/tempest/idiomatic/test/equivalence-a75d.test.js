@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a75d (ROM 0xa75d-0xa787) -- step a signed 16-bit velocity (whole in Y, low in
+// Memory-equivalence for stepVelocityTowardZero (ROM 0xa75d-0xa787) -- step a signed 16-bit velocity (whole in Y, low in
 // A) one fixed increment toward zero, saturating to zero (and bumping a counter) on the crossing. Live-out
 // is RAM ($29/$2a/$2b) PLUS the returned register pair [A=low, Y=whole], so the arms compare RAM (-stack)
 // AND the returned pair against the oracle's regs. A leaf: the module omits the ROM ret and the seam
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a75d as oracle } from "../../translated/loc_a75d.js";
-import { loc_a75d } from "../loc_a75d.js";
+import { stepVelocityTowardZero } from "../stepVelocityTowardZero.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2a, loc_2b } from "../names.js";
@@ -43,7 +43,7 @@ test("CAPTURE: real 0xa75d dispatches -- returned [A,Y] == oracle regs, RAM (-st
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     oracle(o);
-    const [a, y] = loc_a75d(c);
+    const [a, y] = stepVelocityTowardZero(c);
     assert.equal(a, o.regs.a, "returned A matches oracle's regs.a");
     assert.equal(y, o.regs.y, "returned Y matches oracle's regs.y");
     assert.equal(ramDiff(o, c), null);
@@ -65,7 +65,7 @@ test("CRAFTED: step toward zero over a dirty $29 counter == oracle (RAM + [A,Y])
     const o = new Machine(ROM, OPTS); setup(o);
     const c = new Machine(ROM, OPTS); setup(c);
     oracle(o);
-    const [ra, ry] = loc_a75d(c);
+    const [ra, ry] = stepVelocityTowardZero(c);
     const tag = `y=0x${y.toString(16)} a=0x${a.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `RAM equal: ${tag}`);
     assert.equal(ra, o.regs.a, `A matches oracle: ${tag}`);
@@ -99,7 +99,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a75d, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a75d must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepVelocityTowardZero, TARGET, m);
+  assert.equal(r.placeable, true, `stepVelocityTowardZero must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

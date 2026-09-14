@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9c21 (ROM 0x9c21) -- per-slot boundary test for slot X: segment = $02b9,x;
+// Memory-equivalence for setFlagIfSlotPastSegmentBound (ROM 0x9c21) -- per-slot boundary test for slot X: segment = $02b9,x;
 // bound = $03ac[segment] (a 0 entry reads as 0xff); flag $010c = (bound >= $02df,x) ? 1 : 0. Live-out is
 // RAM only, so each arm compares RAM (dumpState, minus STACK_SCRATCH). X is an input register bridged to a
 // param. No POKEY read -> crafted diffs are deterministic.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9c21 as oracle } from "../../translated/loc_9c21.js";
-import { loc_9c21 } from "../loc_9c21.js";
+import { setFlagIfSlotPastSegmentBound } from "../setFlagIfSlotPastSegmentBound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_SEGMENT, ENEMY_DEPTH, LANE_LIMIT, SCRIPT_BRANCH_FLAG } from "../names.js";
@@ -36,11 +36,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9c21 dispatches -- loc_9c21 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9c21 dispatches -- setFlagIfSlotPastSegmentBound == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     // X is read back from the captured regs on both sides (param default == oracle's regs.x).
-    oracle(o); loc_9c21(c);
+    oracle(o); setFlagIfSlotPastSegmentBound(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: flag = (bound >= coord); 0-entry reads as 0xff (== oracle, RAM)",
   ];
   for (const { tag, x, seg, entry, coord, flag } of cases) {
     const o = seeded(x, seg, entry, coord), c = seeded(x, seg, entry, coord);
-    oracle(o); loc_9c21(c);
+    oracle(o); setFlagIfSlotPastSegmentBound(c);
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.mem.read8(SCRIPT_BRANCH_FLAG), flag, tag);
   }
@@ -78,7 +78,7 @@ test("TEETH: a twin that skips the 0-entry -> 0xff substitution diverges", () =>
   oracle(o);
   assert.equal(o.mem.read8(SCRIPT_BRANCH_FLAG), 1, "precondition: oracle set flag via the 0xff substitution");
   const c = seeded(3, 0x07, 0x00, 0x80);
-  loc_9c21(c);
+  setFlagIfSlotPastSegmentBound(c);
   c.mem.write8(SCRIPT_BRANCH_FLAG, 0x00); // BUG: bound left 0, so 0 >= 0x80 is false -> flag 0
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a missing 0->0xff substitution");
 });

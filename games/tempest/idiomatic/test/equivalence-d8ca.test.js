@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_d8ca / loc_d8cd -- the power-on tone-and-delay. It stores its input byte at
+// Memory-equivalence for playPowerOnTone / runPowerOnToneBursts -- the power-on tone-and-delay. It stores its input byte at
 // SEG_SPREAD_A_LO_1, then drives POKEY chip-0 (POKEY1_AUDF1/POKEY1_AUDC1/LED_FLIP_LATCH) through a descending run of tone bursts,
 // each burst draining a fixed count while strobing the watchdog WATCHDOG_CLEAR, and TAIL-DELEGATES to the
-// checksum/self-test at loc_da0a. Its only work-RAM write is SEG_SPREAD_A_LO_1 (the POKEY/LED/watchdog cells are I/O,
+// checksum/self-test at checksumRomAndSettleEntropy. Its only work-RAM write is SEG_SPREAD_A_LO_1 (the POKEY/LED/watchdog cells are I/O,
 // not captured by dumpState); da0a's writes follow. The oracle's inner drains busy-wait on the 3kHz clock
 // bit of IN0_PORT, which advances only as the oracle steps cycles, so the oracle terminates naturally; the
 // idiomatic layer has no clock and drains by count. Contract: RAM (dumpState minus STACK_SCRATCH). No
 // live-out register (the routine tail-delegates; the exit registers belong to da0a's chain). Because the
 // tail (da0a -> da62) never returns in the oracle, the oracle is run under a cycle BUDGET so its terminal
-// spin trips FramesComplete. Oracle is the frozen translated loc_d8ca.
+// spin trips FramesComplete. Oracle is the frozen translated playPowerOnTone.
 // Run: node --test games/tempest/idiomatic/test/equivalence-d8ca.test.js
 
 import nodeTest from "node:test";
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d8ca as oracle } from "../../translated/loc_d8ca.js";
-import { loc_d8ca } from "../loc_d8ca.js";
+import { playPowerOnTone } from "../playPowerOnTone.js";
 import { Machine, FramesComplete, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -56,7 +56,7 @@ function runBoundedOracle(m) {
   }
 }
 function runIdiomatic(m) {
-  try { loc_d8ca(m, INPUT); return "returned"; }
+  try { playPowerOnTone(m, INPUT); return "returned"; }
   catch (e) {
     if (e && e.name === "NotImplemented") return "notimpl";
     throw e;
@@ -80,7 +80,7 @@ function seedTail(m) {
   m.mem.write8(SEG_SPREAD_A_LO + 0x01, 0x01);
 }
 
-test("CAPTURE: real 0xd8ca dispatches -- loc_d8ca == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xd8ca dispatches -- playPowerOnTone == oracle in RAM (-stack)", () => {
   // The power-on tone is not dispatched in a normal boot, so 0 captures is expected and tolerated.
   let checked = 0;
   for (const cap of CAPS) {
@@ -130,7 +130,7 @@ test("TEETH: a twin that drops the SEG_SPREAD_A_LO_1 store MUST diverge in RAM",
 });
 
 test("SP-TOOTH: the omitted-ret tail-delegator is seam-placeable", () => {
-  // The oracle seats a return then tail-transfers to loc_da0a; the idiomatic form omits its ROM ret and
+  // The oracle seats a return then tail-transfers to checksumRomAndSettleEntropy; the idiomatic form omits its ROM ret and
   // never touches the stack, so the seam must place it (SP unmoved). The tail chain (da0a -> da62) leaves its
   // per-frame loop when the self-test switch (IN0_PORT bit4) reads set; that bit is ACTIVE-LOW and idle-high,
   // so the default readIn0 (0x3f) already carries it -- the idiomatic tail returns after one pass with no port
@@ -138,7 +138,7 @@ test("SP-TOOTH: the omitted-ret tail-delegator is seam-placeable", () => {
   // first without the seam and skip if a stubbed draw arm throws downstream.
   const probe = new Machine(ROM, OPTS); seedTail(probe);
   let notimpl = false;
-  try { loc_d8ca(probe.clone(), INPUT); }
+  try { playPowerOnTone(probe.clone(), INPUT); }
   catch (e) { if (e && e.name === "NotImplemented") notimpl = true; else throw e; }
   if (notimpl) { console.log("  SP-TOOTH: idiomatic tail hit a stubbed draw arm -- skipped"); return; }
 
@@ -146,7 +146,7 @@ test("SP-TOOTH: the omitted-ret tail-delegator is seam-placeable", () => {
   m.regs.a = INPUT;
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_d8ca, TARGET, m);
-  assert.equal(r.placeable, true, `loc_d8ca must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, playPowerOnTone, TARGET, m);
+  assert.equal(r.placeable, true, `playPowerOnTone must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret tail-delegator placeable");
 });

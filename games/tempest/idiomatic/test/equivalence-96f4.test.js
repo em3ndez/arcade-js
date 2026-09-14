@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_96f4 (ROM 0x96f4-0x96ff) -- records the incoming cursor index at $29, then
+// Memory-equivalence for computeCoordListBackDelta (ROM 0x96f4-0x96ff) -- records the incoming cursor index at $29, then
 // returns A = $2b minus the byte at (($2c)) + (index - 2). A leaf (no jsr). Live-out is the RAM write at
 // $29 plus the A register, so each arm compares RAM (dumpState minus STACK_SCRATCH) and the module's
 // return value against the oracle's exit A (o.regs.a). Y is net-unchanged, so it is not asserted.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_96f4 as oracle } from "../../translated/loc_96f4.js";
-import { loc_96f4 } from "../loc_96f4.js";
+import { computeCoordListBackDelta } from "../computeCoordListBackDelta.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
@@ -48,11 +48,11 @@ function seed(m, s = {}) {
   return { y, ptr };
 }
 
-test("CAPTURE: real 0x96f4 dispatches -- loc_96f4 == oracle in RAM (-stack) and in exit A", () => {
+test("CAPTURE: real 0x96f4 dispatches -- computeCoordListBackDelta == oracle in RAM (-stack) and in exit A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     oracle(o);
-    const ra = loc_96f4(c);
+    const ra = computeCoordListBackDelta(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(ra, o.regs.a, "returned A must equal oracle exit A");
   }
@@ -63,7 +63,7 @@ test("CRAFTED: $29 records the index and A = base - operand", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const ra = loc_96f4(c);
+  const ra = computeCoordListBackDelta(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.mem.read8(loc_29), 0x05, "$29 records incoming index");
   assert.equal(ra, o.regs.a, "returned A equals oracle exit A");
@@ -75,7 +75,7 @@ test("CRAFTED (non-default seed): a different index/base/operand still matches t
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o);
-  const ra = loc_96f4(c);
+  const ra = computeCoordListBackDelta(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (non-default seed)");
   assert.equal(ra, o.regs.a, "returned A equals oracle exit A (non-default seed)");
 });
@@ -103,6 +103,6 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_96f4, TARGET, m);
-  assert.equal(r.placeable, true, `loc_96f4 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, computeCoordListBackDelta, TARGET, m);
+  assert.equal(r.placeable, true, `computeCoordListBackDelta must be seam-placeable; got: ${r.error}`);
 });

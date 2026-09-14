@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a7bd (ROM 0xa7bd) -- zeroes $03fe..$0405, then $0405 = 0xf0 and $0115 = 0xff.
+// Memory-equivalence for rebuildSpikeTable (ROM 0xa7bd) -- zeroes $03fe..$0405, then $0405 = 0xf0 and $0115 = 0xff.
 // Live-out is RAM only (A/X at RTS incidental), so each arm compares RAM (dumpState, minus STACK_SCRATCH).
 // No POKEY/clock coupling -> the crafted diff is deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a7bd.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a7bd as oracle } from "../../translated/loc_a7bd.js";
-import { loc_a7bd } from "../loc_a7bd.js";
+import { rebuildSpikeTable } from "../rebuildSpikeTable.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_3fe, loc_405, SPIKE_TABLE_GUARD } from "../names.js";
@@ -41,10 +41,10 @@ function seed(m) {
   m.mem.write8(SPIKE_TABLE_GUARD, S115);
 }
 
-test("CAPTURE: real 0xa7bd dispatches -- loc_a7bd == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa7bd dispatches -- rebuildSpikeTable == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a7bd(c);
+    oracle(o); rebuildSpikeTable(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -53,7 +53,7 @@ test("CAPTURE: real 0xa7bd dispatches -- loc_a7bd == oracle in RAM (-stack)", ()
 test("CRAFTED: table zeroed, $0405 = 0xf0, $0115 = 0xff == oracle (RAM -stack)", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a7bd(c);
+  oracle(o); rebuildSpikeTable(c);
   assert.equal(ramDiff(o, c), null);
   for (let x = 0; x <= 6; x++) assert.equal(c.mem.read8(loc_3fe + x), 0x00, `zeroed $03fe+${x}`);
   assert.equal(c.mem.read8(loc_405), 0xf0, "$0405 overwritten with 0xf0");

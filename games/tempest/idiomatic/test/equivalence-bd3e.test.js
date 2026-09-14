@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_bd3e (ROM 0xbd3e-0xbd9f) -- appends a two-byte entry to the table at ($74)+$a9:
+// Memory-equivalence for appendNormalizedMantissaExponent (ROM 0xbd3e-0xbd9f) -- appends a two-byte entry to the table at ($74)+$a9:
 // small $57 emits a fixed pair, otherwise it drives the math coprocessor and normalizes the result. Live-out
 // is memory only (registers at RTS incidental), so each side runs on a clone and the contract is RAM
 // (dumpState, minus STACK_SCRATCH). A leaf: the module omits the ROM ret and the seam completes it. The math
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_bd3e as oracle } from "../../translated/loc_bd3e.js";
-import { loc_bd3e } from "../loc_bd3e.js";
+import { appendNormalizedMantissaExponent } from "../appendNormalizedMantissaExponent.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, OBJ_DEPTH, DEPTH_LO, DEPTH_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SEG_SPREAD_A_LO, loc_a0, DRAW_CURSOR_OFFSET } from "../names.js";
@@ -48,10 +48,10 @@ const seedTrivial = (m) => {
   m.mem.write8(OBJ_DEPTH, 0x05); m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x06); m.mem.write8(DRAW_CURSOR_OFFSET, 0x20);
 };
 
-test("CAPTURE: real 0xbd3e dispatches -- loc_bd3e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xbd3e dispatches -- appendNormalizedMantissaExponent == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_bd3e(c);
+    oracle(o); appendNormalizedMantissaExponent(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ test("CAPTURE: real 0xbd3e dispatches -- loc_bd3e == oracle in RAM (-stack)", ()
 test("CRAFTED: math-coprocessor branch ($57>=0x10) matches the oracle", () => {
   const o = new Machine(ROM, OPTS); seedElse(o);
   const c = new Machine(ROM, OPTS); seedElse(c);
-  oracle(o); const y = loc_bd3e(c);
+  oracle(o); const y = appendNormalizedMantissaExponent(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the coprocessor path");
   // LIVE-OUT: the oracle leaves the real Y register at RTS; the module must return it.
   assert.equal(y, o.regs.y, "returned Y == oracle exit Y (else path)");
@@ -70,7 +70,7 @@ test("CRAFTED: math-coprocessor branch ($57>=0x10) matches the oracle", () => {
 test("CRAFTED: trivial branch ($57<0x10) writes the fixed (0x00, 0x71) entry", () => {
   const o = new Machine(ROM, OPTS); seedTrivial(o);
   const c = new Machine(ROM, OPTS); seedTrivial(c);
-  oracle(o); const y = loc_bd3e(c);
+  oracle(o); const y = appendNormalizedMantissaExponent(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the trivial path");
   assert.equal(c.mem.read8(SEG_SPREAD_A_LO), 0x01, "$78 = 0x01");
   assert.equal(c.mem.read8(0x0620), 0x00, "first entry byte = 0x00");
@@ -106,7 +106,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedTrivial(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_bd3e, TARGET, m);
-  assert.equal(r.placeable, true, `loc_bd3e must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, appendNormalizedMantissaExponent, TARGET, m);
+  assert.equal(r.placeable, true, `appendNormalizedMantissaExponent must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

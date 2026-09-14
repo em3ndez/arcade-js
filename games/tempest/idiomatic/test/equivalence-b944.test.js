@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b944 (ROM 0xb944) -- swaps the 16-bit pointers ($75:$74) <-> ($77:$76).
+// Memory-equivalence for swapDrawPointers (ROM 0xb944) -- swaps the 16-bit pointers ($75:$74) <-> ($77:$76).
 // Live-out is RAM only (X/Y/A at RTS are incidental temporaries), so each arm compares RAM (dumpState,
 // minus STACK_SCRATCH). No POKEY/clock coupling -> the crafted diff is deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b944.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b944 as oracle } from "../../translated/loc_b944.js";
-import { loc_b944 } from "../loc_b944.js";
+import { swapDrawPointers } from "../swapDrawPointers.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DRAW_CURSOR_ALT_LO, DRAW_CURSOR_ALT_HI } from "../names.js";
@@ -40,10 +40,10 @@ function seed(m) {
   m.mem.write8(DRAW_CURSOR_ALT_LO, 0x33); m.mem.write8(DRAW_CURSOR_ALT_HI, 0x44);
 }
 
-test("CAPTURE: real 0xb944 dispatches -- loc_b944 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb944 dispatches -- swapDrawPointers == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b944(c);
+    oracle(o); swapDrawPointers(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -52,7 +52,7 @@ test("CAPTURE: real 0xb944 dispatches -- loc_b944 == oracle in RAM (-stack)", ()
 test("CRAFTED: pointer pair swapped == oracle (RAM -stack)", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_b944(c);
+  oracle(o); swapDrawPointers(c);
   assert.equal(ramDiff(o, c), null);
   // Sanity: the two pointers actually crossed over.
   assert.equal(c.mem.read8(DRAW_CURSOR_LO), 0x33, "$74 holds old $76");

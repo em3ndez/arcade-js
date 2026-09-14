@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ab14 (ROM 0xab14-0xab97) -- object-render setup: pick a slot from the $d122
+// Memory-equivalence for drawSlotShapeRecord (ROM 0xab14-0xab97) -- object-render setup: pick a slot from the $d122
 // table by X, latch its ($ac) list pointer, cache the cursor into $b6/$b7 when X==0x2c, set scale, then
-// copy indexed point pairs into the ($74) buffer until a terminator, tail-jmp loc_df5f. All six m.calls
+// copy indexed point pairs into the ($74) buffer until a terminator, tail-jmp advanceDisplayCursor. All six m.calls
 // (ab0d, df6a, df75, b0d1, b0dd, df5f) are dissolved. Live-out is memory only; each arm compares RAM.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ab14.test.js
 
@@ -10,14 +10,14 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ab14 as oracle } from "../../translated/loc_ab14.js";
-import { loc_ab14 } from "../loc_ab14.js";
+import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
 import { u16, u8 } from "../../../../core/int.js";
 import { loc_ab0d } from "../loc_ab0d.js";
 import { loc_df6a } from "../loc_df6a.js";
-import { loc_df75 } from "../loc_df75.js";
-import { loc_b0d1 } from "../loc_b0d1.js";
-import { loc_b0dd } from "../loc_b0dd.js";
-import { loc_df5f } from "../loc_df5f.js";
+import { emitScaledCoordinateRecord } from "../emitScaledCoordinateRecord.js";
+import { emitColorStatIfChanged } from "../emitColorStatIfChanged.js";
+import { emitScaleWordIfChanged } from "../emitScaleWordIfChanged.js";
+import { advanceDisplayCursor } from "../advanceDisplayCursor.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xab14 dispatches -- loc_ab14 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xab14 dispatches -- drawSlotShapeRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ab14(c);
+    oracle(o); drawSlotShapeRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,20 +66,20 @@ function seedAt(m, x, tableBase, listBase, cursorHi) {
   m.mem.write8(0x74, 0x00); m.mem.write8(0x75, cursorHi); // cursor
 }
 
-test("CRAFTED: X=0 slot, no cursor cache -- loc_ab14 == oracle in RAM", () => {
+test("CRAFTED: X=0 slot, no cursor cache -- drawSlotShapeRecord == oracle in RAM", () => {
   const s = (m) => seedAt(m, 0x00, 0x0400, 0x0420, 0x28);
   const o = new Machine(ROM, OPTS); s(o);
   const c = new Machine(ROM, OPTS); s(c);
-  oracle(o); loc_ab14(c);
+  oracle(o); drawSlotShapeRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
   assert.equal(c.mem.read8(0x35), 0x00, "$35 latched X");
 });
 
-test("CACHE: X=0x2c latches the cursor into $b6/$b7 -- loc_ab14 == oracle in RAM", () => {
+test("CACHE: X=0x2c latches the cursor into $b6/$b7 -- drawSlotShapeRecord == oracle in RAM", () => {
   const s = (m) => { seedAt(m, 0x2c, 0x0600, 0x0700, 0x2c); m.mem.write8(0x74, 0x11); m.mem.write8(0x75, 0x2c); };
   const o = new Machine(ROM, OPTS); s(o);
   const c = new Machine(ROM, OPTS); s(c);
-  oracle(o); loc_ab14(c);
+  oracle(o); drawSlotShapeRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the cache path");
   assert.equal(c.mem.read8(0xb6), 0x11, "$b6 = cached cursor low");
   assert.equal(c.mem.read8(0xb7), 0x2c, "$b7 = cached cursor high");
@@ -99,14 +99,14 @@ function brokenTail(m, x = m.regs.x) {
   loc_ab0d(m);
   mem8[0x73] = 0x00; mem8[0x72] = 0x01;
   loc_df6a(m);
-  loc_df75(m, mem8[0x2a], mem8[0x2b]);
+  emitScaledCoordinateRecord(m, mem8[0x2a], mem8[0x2b]);
   y = mem8[0x35];
   mem8[0x3b] = mem8[u16(mem16[0xac] + y)];
   y = u8(y + 1);
   mem8[0x3c] = mem8[u16(mem16[0xac] + y)];
   const key = mem8[u16(0xd121 + mem8[0x35])];
-  loc_b0d1(m, key >> 4);
-  loc_b0dd(m, key & 0x0f);
+  emitColorStatIfChanged(m, key >> 4);
+  emitScaleWordIfChanged(m, key & 0x0f);
   mem8[0x2a] = 0x00;
   let listIdx = 0x01, entry;
   do {
@@ -122,7 +122,7 @@ function brokenTail(m, x = m.regs.x) {
     outOff = u8(outOff + 1);
     mem8[0x2a] = outOff;
   } while ((entry & 0x80) === 0);
-  loc_df5f(m, mem8[0x2a]); // BUG: missing the -1
+  advanceDisplayCursor(m, mem8[0x2a]); // BUG: missing the -1
 }
 
 test("TEETH: a twin that mis-marshals the df5f tail stride diverges from the oracle", () => {
@@ -132,14 +132,14 @@ test("TEETH: a twin that mis-marshals the df5f tail stride diverges from the ora
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong tail stride");
 });
 
-test("MUTATION: non-default seed (X=0x08, different table/cursor) -- loc_ab14 == oracle in RAM", () => {
+test("MUTATION: non-default seed (X=0x08, different table/cursor) -- drawSlotShapeRecord == oracle in RAM", () => {
   const s = (m) => {
     seedAt(m, 0x08, 0x0500, 0x0560, 0x2a);
     m.mem.write8(0x0562, 0x11); m.mem.write8(0x0563, 0x94); // longer list before terminator
   };
   const o = new Machine(ROM, OPTS); s(o);
   const c = new Machine(ROM, OPTS); s(c);
-  oracle(o); loc_ab14(c);
+  oracle(o); drawSlotShapeRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the non-default seed");
 });
 
@@ -147,6 +147,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedAt(m, 0x00, 0x0400, 0x0420, 0x28);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ab14, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ab14 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawSlotShapeRecord, TARGET, m);
+  assert.equal(r.placeable, true, `drawSlotShapeRecord must be seam-placeable; got: ${r.error}`);
 });

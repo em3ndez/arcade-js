@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_97f8 -- per-frame step of the moving spike: guard, optional start sound,
+// Memory-equivalence for advanceMovingSpike -- per-frame step of the moving spike: guard, optional start sound,
 // 16-bit height advance with ceiling park + end sound, a table rebuild, a second accumulator step, a
 // delta rederive, and a slot-row collision scan. The idiomatic side dissolves every jsr into direct
 // idiomatic calls (ccee/ccf2/cd06 take their X/Y from the seated registers, a347 by explicit args).
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_97f8 as oracle } from "../../translated/loc_97f8.js";
-import { loc_97f8 } from "../loc_97f8.js";
+import { advanceMovingSpike } from "../advanceMovingSpike.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -42,10 +42,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 6000) : [];
 
-test("CAPTURE: real 0x97f8 dispatches -- loc_97f8 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x97f8 dispatches -- advanceMovingSpike == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_97f8(c);
+    oracle(o); advanceMovingSpike(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -73,7 +73,7 @@ function seedStep(m) {
 test("CRAFTED: full step -- height advance, delta rederive, and collision match the oracle", () => {
   const o = new Machine(ROM, OPTS); seedStep(o);
   const c = new Machine(ROM, OPTS); seedStep(c);
-  oracle(o); loc_97f8(c);
+  oracle(o); advanceMovingSpike(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the step");
   assert.equal(c.mem.read8(SPIKE_HEIGHT_LO), 0x10, "height low advanced");
   assert.equal(c.mem.read8(SPIKE_STEP_LO), 0x40, "per-frame delta rederived");
@@ -93,7 +93,7 @@ test("TEETH-GUARD: primary flag high -- oracle and idiomatic both early-out iden
   const seed = (m) => { m.mem.write8(PLAYER_FINE_ANGLE, 0x80); m.mem.write8(SPIKE_ACTIVE_FLAG, 0x80); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_97f8(c);
+  oracle(o); advanceMovingSpike(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the guarded early-out");
 });
 
@@ -101,7 +101,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedStep(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_97f8, TARGET, m);
-  assert.equal(r.placeable, true, `loc_97f8 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, advanceMovingSpike, TARGET, m);
+  assert.equal(r.placeable, true, `advanceMovingSpike must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller (moved 0) placeable");
 });

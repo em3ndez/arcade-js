@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dce6 -- primes the mathbox operand/count registers from A,X, kicks a divide,
+// Memory-equivalence for runMathboxDivide -- primes the mathbox operand/count registers from A,X, kicks a divide,
 // then scans for the first ready slot and returns its low/high result pair. The mathbox lives outside the RAM
 // dump, so the RAM contract reduces to $0073 and $0414 both cleared; registers A/X/Y are the real product and
 // are compared directly. A leaf: the module omits the ROM ret and the seam completes it.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dce6 as oracle } from "../../translated/loc_dce6.js";
-import { loc_dce6 } from "../loc_dce6.js";
+import { runMathboxDivide } from "../runMathboxDivide.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, VG_RECORD_HEADER, loc_414 } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdce6 dispatches -- loc_dce6 == oracle in RAM (-stack) and registers", () => {
+test("CAPTURE: real 0xdce6 dispatches -- runMathboxDivide == oracle in RAM (-stack) and registers", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_dce6(c);
+    oracle(o); runMathboxDivide(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out");
     assert.equal(c.regs.x, o.regs.x, "X live-out");
@@ -58,7 +58,7 @@ test("CRAFTED: $0073 and $0414 clear to 0x00 and the register result pair matche
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_dce6(c);
+  oracle(o); runMathboxDivide(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.mem.read8(VG_RECORD_HEADER), 0x00, "$0073 cleared");
   assert.equal(c.mem.read8(loc_414), 0x00, "$0414 cleared");
@@ -85,7 +85,7 @@ test("SP-TOOTH: the omitted-ret leaf is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_dce6, TARGET, m);
-  assert.equal(r.placeable, true, `loc_dce6 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, runMathboxDivide, TARGET, m);
+  assert.equal(r.placeable, true, `runMathboxDivide must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf placeable");
 });

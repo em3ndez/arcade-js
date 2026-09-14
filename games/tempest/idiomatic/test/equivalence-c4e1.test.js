@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c4e1 -- reduces an input byte into two scratch fields, emits a framing
+// Memory-equivalence for drawTubeShapeOutline -- reduces an input byte into two scratch fields, emits a framing
 // record, then walks two delta tables emitting 16 vector segments; dissolves m.calls to c2e8/df6a/
 // df4c/df75 into direct idiomatic calls. Output is RAM (scratch cells + the ($74) vector list), so each
 // arm compares the RAM diff (minus dead stack). A pure tail-caller (jmp df6a): A at RTS is incidental
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c4e1 as oracle } from "../../translated/loc_c4e1.js";
-import { loc_c4e1 } from "../loc_c4e1.js";
+import { drawTubeShapeOutline } from "../drawTubeShapeOutline.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PROJ_PT_Y, DRAW_CURSOR_LO, DRAW_CURSOR_HI, TUBE_SHAPE_INDEX } from "../names.js";
@@ -44,10 +44,10 @@ function seat(m, s = {}) {
   m.regs.a = s.a ?? 0x30;
 }
 
-test("CAPTURE: real 0xc4e1 dispatches -- loc_c4e1 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc4e1 dispatches -- drawTubeShapeOutline == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c4e1(c);
+    oracle(o); drawTubeShapeOutline(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ test("CRAFTED: reduce + framing + 16-segment walk == oracle (RAM)", () => {
   for (const s of [{ a: 0x30, shape: 0x03 }, { a: 0x11, shape: 0x00 }, { a: 0x4f, shape: 0x07 }]) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_c4e1(c);
+    oracle(o); drawTubeShapeOutline(c);
     assert.equal(ramDiff(o, c), null, `a=${s.a} shape=${s.shape}`);
   }
 });
@@ -67,7 +67,7 @@ test("TEETH: a twin that corrupts the running delta field diverges from the orac
   const o = new Machine(ROM, OPTS); seat(o, s);
   const c = new Machine(ROM, OPTS); seat(c, s);
   oracle(o);
-  const broken = (mm) => { loc_c4e1(mm, s.a); mm.mem8[PROJ_PT_Y] ^= 0xff; }; // BUG: perturbs $56 after the walk
+  const broken = (mm) => { drawTubeShapeOutline(mm, s.a); mm.mem8[PROJ_PT_Y] ^= 0xff; }; // BUG: perturbs $56 after the walk
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted delta field");
 });
@@ -77,6 +77,6 @@ test("SP-TOOTH: the omitted-ret tail rewrite is seam-placeable", () => {
   seat(m, {});
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c4e1, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c4e1 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawTubeShapeOutline, TARGET, m);
+  assert.equal(r.placeable, true, `drawTubeShapeOutline must be seam-placeable; got: ${r.error}`);
 });

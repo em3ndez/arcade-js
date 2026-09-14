@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b0ab (ROM 0xb0ab) -- reads $0200, nudges it through loc_adce, clamps the
+// Memory-equivalence for nudgeBlasterRimPosition (ROM 0xb0ab) -- reads $0200, nudges it through foldStepIntoFraction, clamps the
 // result into [0, $0127], and writes it back to $0200 and to the A/Y live-outs. The oracle m.calls the
 // translated adce; the idiomatic dissolves it into a direct idiomatic call, capturing its return. Both
 // are memory-equivalent, so each arm compares RAM (dumpState, minus STACK_SCRATCH) AND the A/Y live-outs
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b0ab as oracle } from "../../translated/loc_b0ab.js";
-import { loc_b0ab } from "../loc_b0ab.js";
+import { nudgeBlasterRimPosition } from "../nudgeBlasterRimPosition.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPINNER_ACCUM, RIM_ROT_OFFSET, DEPTH_CEILING, PLAYER_SEGMENT } from "../names.js";
@@ -46,10 +46,10 @@ function seeded(v, step, s51, ceil) {
   return m;
 }
 
-test("CAPTURE: real 0xb0ab dispatches -- loc_b0ab == oracle in RAM (-stack) + A/Y live-outs", () => {
+test("CAPTURE: real 0xb0ab dispatches -- nudgeBlasterRimPosition == oracle in RAM (-stack) + A/Y live-outs", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const [ra, ry] = loc_b0ab(c);
+    oracle(o); const [ra, ry] = nudgeBlasterRimPosition(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out");
     assert.equal(c.regs.y, o.regs.y, "Y live-out");
@@ -67,7 +67,7 @@ test("CRAFTED: keep / clamp-to-ceiling / negative-floors-to-zero (== oracle, RAM
   ];
   for (const { v, step, s51, ceil, want } of cases) {
     const o = seeded(v, step, s51, ceil), c = seeded(v, step, s51, ceil);
-    oracle(o); const [ra, ry] = loc_b0ab(c);
+    oracle(o); const [ra, ry] = nudgeBlasterRimPosition(c);
     assert.equal(ramDiff(o, c), null, `RAM v=0x${v.toString(16)}`);
     assert.equal(c.mem.read8(PLAYER_SEGMENT), want, `$0200 v=0x${v.toString(16)}`);
     assert.equal(c.regs.a, o.regs.a, `A v=0x${v.toString(16)}`);
@@ -79,7 +79,7 @@ test("CRAFTED: keep / clamp-to-ceiling / negative-floors-to-zero (== oracle, RAM
 
 test("TEETH: a twin that skips the ceiling clamp diverges", () => {
   const o = seeded(0x40, 0x30, 0x00, 0x20); oracle(o);
-  const c = seeded(0x40, 0x30, 0x00, 0x20); loc_b0ab(c);
+  const c = seeded(0x40, 0x30, 0x00, 0x20); nudgeBlasterRimPosition(c);
   c.mem.write8(PLAYER_SEGMENT, 0x41); // BUG: unclamped result
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a missing clamp");
 });

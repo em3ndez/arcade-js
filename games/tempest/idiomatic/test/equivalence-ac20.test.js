@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ac20 (ROM 0xac20-0xac35) -- refreshes the live control snapshot via d6bb,
-// then either falls into loc_ac36 (set the low two $01c9 request bits) or into the shared rts loc_ac3e
+// Memory-equivalence for requestRebuildIfSwitchesChanged (ROM 0xac20-0xac35) -- refreshes the live control snapshot via d6bb,
+// then either falls into raiseRebuildRequestBits (set the low two $01c9 request bits) or into the shared rts switchesUnchangedReturn
 // (no change). Dissolves all three m.calls into direct idiomatic calls. The oracle m.calls the frozen
 // d6bb/ac36/ac3e; the idiomatic calls the idiomatic ones. All output is RAM (d6bb's writes + $01c9), so
 // each arm compares the RAM diff (minus the dead stack). An omitted-ret rewrite. A/X/Y at RTS incidental.
@@ -11,8 +11,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ac20 as oracle } from "../../translated/loc_ac20.js";
-import { loc_ac20 } from "../loc_ac20.js";
-import { loc_d6bb } from "../loc_d6bb.js";
+import { requestRebuildIfSwitchesChanged } from "../requestRebuildIfSwitchesChanged.js";
+import { decodeOptionSwitches } from "../decodeOptionSwitches.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, INPUT_SNAPSHOT_HI, INPUT_SNAPSHOT_LO, PENDING_WORK_FLAGS } from "../names.js";
@@ -48,10 +48,10 @@ function seat(m, s = {}) {
   m.mem.write8(PENDING_WORK_FLAGS, s.c1c9 ?? 0x00);
 }
 
-test("CAPTURE: real 0xac20 dispatches -- loc_ac20 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xac20 dispatches -- requestRebuildIfSwitchesChanged == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ac20(c);
+    oracle(o); requestRebuildIfSwitchesChanged(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: match (no change) and mismatch (set $01c9) == oracle (RAM)", () =
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_ac20(c);
+    oracle(o); requestRebuildIfSwitchesChanged(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -79,7 +79,7 @@ test("TEETH: a twin that always requests a rebuild diverges on the match case", 
   // BUG: ignores the compare and always sets the $01c9 request bits (skips the ac3e no-change path).
   const broken = (m) => {
     const { mem8 } = m;
-    loc_d6bb(m);
+    decodeOptionSwitches(m);
     mem8[PENDING_WORK_FLAGS] |= 0x03;
   };
   broken(c);
@@ -91,6 +91,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   seat(m, { e00: 0x00, t71e: 0x00, t71f: 0x00 });
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ac20, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ac20 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, requestRebuildIfSwitchesChanged, TARGET, m);
+  assert.equal(r.placeable, true, `requestRebuildIfSwitchesChanged must be seam-placeable; got: ${r.error}`);
 });

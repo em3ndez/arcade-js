@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa92 (ROM 0xaa92-0xaa96) -- loads X=2, draws via loc_ab14, then tail-calls
+// Memory-equivalence for loc_aa92 (ROM 0xaa92-0xaa96) -- loads X=2, draws via drawSlotShapeRecord, then tail-calls
 // loc_aa97. Dissolves both m.calls into direct idiomatic calls. All output is RAM (the draw setup + the
 // vector words emitted downstream), so each arm compares the RAM diff (minus the dead stack). An
 // omitted-ret tail-caller; A/X/Y at RTS are incidental.
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa92 as oracle } from "../../translated/loc_aa92.js";
 import { loc_aa92 } from "../loc_aa92.js";
-import { loc_ab14 } from "../loc_ab14.js";
+import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -36,9 +36,9 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-// loc_aa92 draws the fixed X=0x02 slot via loc_ab14; the broken TEETH twin draws X=0x2c. Seed the ($ac)
+// loc_aa92 draws the fixed X=0x02 slot via drawSlotShapeRecord; the broken TEETH twin draws X=0x2c. Seed the ($ac)
 // slot table so BOTH offsets point to a valid bit7-terminated vector list, and put the ($74) output
-// cursor in writable vector RAM (0x2000-0x2fff) -- otherwise loc_ab14's copy loop reads an unmapped cell.
+// cursor in writable vector RAM (0x2000-0x2fff) -- otherwise drawSlotShapeRecord's copy loop reads an unmapped cell.
 function seat(m) {
   const tableBase = 0x0400;
   m.mem.write8(0xac, tableBase & 0xff); m.mem.write8(0xad, (tableBase >> 8) & 0xff);
@@ -74,7 +74,7 @@ test("TEETH: a twin that skips the X=2 slot draw diverges from the oracle", () =
   const o = new Machine(ROM, OPTS); seat(o); oracle(o);
   const c = new Machine(ROM, OPTS); seat(c);
   // BUG: draws with the wrong slot index (0x2c) instead of the fixed 0x02, and skips the aa97 tail.
-  const broken = (m) => { loc_ab14(m, 0x2c); };
+  const broken = (m) => { drawSlotShapeRecord(m, 0x2c); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong slot draw");
 });

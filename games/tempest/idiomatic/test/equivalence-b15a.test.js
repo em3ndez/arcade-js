@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b15a (ROM 0xb15a-0xb1b3) -- stashes the A/X inputs into $57/$56, then walks a
+// Memory-equivalence for emitSegmentedSpanBetweenCursors (ROM 0xb15a-0xb1b3) -- stashes the A/X inputs into $57/$56, then walks a
 // cursor $37 from $014d to $014e in steps of two, emitting three vector words per step via loc_df6c/df4c/
-// df39, then two trailer words via loc_ab17 and a tail loc_df39. The idiomatic side dissolves all five
+// df39, then two trailer words via drawSlotShapeWithHeader and a tail emitCoordinateVectorWord. The idiomatic side dissolves all five
 // jsr/jmp into direct calls. Live-out is memory only (the emit list is a vector-drawer tail), so the arms
 // compare RAM (dumpState -stack). Real base states seed the crafted/teeth arms so the emit terminates.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b15a.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b15a as oracle } from "../../translated/loc_b15a.js";
-import { loc_b15a } from "../loc_b15a.js";
+import { emitSegmentedSpanBetweenCursors } from "../emitSegmentedSpanBetweenCursors.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PROJ_PT_Y, OBJ_DEPTH } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xb15a dispatches -- loc_b15a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb15a dispatches -- emitSegmentedSpanBetweenCursors == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b15a(c);
+    oracle(o); emitSegmentedSpanBetweenCursors(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -53,7 +53,7 @@ test("CRAFTED: a chosen A/X input is stashed and marshalled identically to the o
   const o = CAPS[0].clone(), c = CAPS[0].clone();
   o.regs.a = 0x5a; o.regs.x = 0xa5;
   c.regs.a = 0x5a; c.regs.x = 0xa5;
-  oracle(o); loc_b15a(c);
+  oracle(o); emitSegmentedSpanBetweenCursors(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the crafted input");
   assert.equal(c.mem.read8(OBJ_DEPTH), 0x5a, "$57 holds the stashed A");
   assert.equal(c.mem.read8(PROJ_PT_Y), 0xa5, "$56 holds the stashed X");
@@ -73,7 +73,7 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_b15a, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b15a must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitSegmentedSpanBetweenCursors, TARGET, m);
+  assert.equal(r.placeable, true, `emitSegmentedSpanBetweenCursors must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret tail-caller (moved 0) placeable");
 });

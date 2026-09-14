@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9025 (ROM 0x9025-0x902a) -- the startup init entry: it runs two seed
-// routines in order (loc_921b, then loc_92c5) and TAIL-DELEGATES to the main init loc_902b. The idiomatic
+// routines in order (seedFrameControlTimers, then reseedStateTables) and TAIL-DELEGATES to the main init loc_902b. The idiomatic
 // form dissolves the two JSRs and the tail fall-through into three plain calls. Contract is RAM
 // (dumpState, minus STACK_SCRATCH); loc_9025 takes no input register and tail-delegates, so its exit
 // registers are the delegate's and are NOT compared. loc_902b writes the signature bytes 0x0124=0x0148=0xff
-// / 0x0123=0x00 and loc_921b writes 0x0200=0x0e, so the chain produces observable RAM on a bare boot.
+// / 0x0123=0x00 and seedFrameControlTimers writes 0x0200=0x0e, so the chain produces observable RAM on a bare boot.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9025.test.js
 
 import nodeTest from "node:test";
@@ -35,12 +35,12 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// POKEY coupling: loc_9025 tail-delegates to loc_902b -> loc_9246, which reads $60ca (POKEY1 RANDOM). That
+// POKEY coupling: loc_9025 tail-delegates to loc_902b -> seedSlotRandomTags, which reads $60ca (POKEY1 RANDOM). That
 // register is clock-coupled -- its poly index advances with CPU cycles, and each read charges cycles the
 // idiomatic layer does not tick. The oracle (which steps every instruction) sees a FRESH random byte per
 // load while the idiomatic layer sees a frozen one, so on a captured mid-run dispatch (SK_RESET set) the
-// loc_9246 tag table diverges at $0203+. Freeze the polys (clear SK_RESET) so both arms read the SAME
-// RANDOM byte on every load -- the same fix the loc_9246 equivalence test uses. A fresh Machine boots with
+// seedSlotRandomTags tag table diverges at $0203+. Freeze the polys (clear SK_RESET) so both arms read the SAME
+// RANDOM byte on every load -- the same fix the seedSlotRandomTags equivalence test uses. A fresh Machine boots with
 // skctl=0 (polys already frozen), so the CRAFTED arm below needs no freeze.
 const freezePokey = (m) => { for (const p of m.io.pokeys) p.skctl &= ~0x03; return m; };
 
@@ -75,8 +75,8 @@ test("CRAFTED: bare-boot startup init -- loc_9025 == oracle in RAM (-stack)", ()
   if (threw) { console.log("  CRAFTED: oracle threw on a bare boot -- skipped"); return; }
   loc_9025(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the startup init chain");
-  // Both seed signatures landed: loc_921b's 0x0200 and loc_902b's 0x0124.
-  assert.equal(c.mem.read8(0x0200), o.mem.read8(0x0200), "loc_921b signature matches the oracle");
+  // Both seed signatures landed: seedFrameControlTimers's 0x0200 and loc_902b's 0x0124.
+  assert.equal(c.mem.read8(0x0200), o.mem.read8(0x0200), "seedFrameControlTimers signature matches the oracle");
   assert.equal(c.mem.read8(SIG), o.mem.read8(SIG), "loc_902b signature matches the oracle");
 });
 

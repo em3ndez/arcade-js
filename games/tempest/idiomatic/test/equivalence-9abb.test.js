@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9abb -- picks a POKEY-random start lane, walks four candidate lists skipping
+// Memory-equivalence for selectClimberSpawnLane -- picks a POKEY-random start lane, walks four candidate lists skipping
 // empty lanes, and on a hit builds the $2c/$2d list pointer + $2b tag, returning A=$29 (or 0 on underflow).
 // Live-out is memory plus A; each side runs on a clone and the RAM contract is dumpState minus STACK_SCRATCH.
 // A leaf: the module omits the ROM ret and the seam completes it, so arms compare RAM (-stack).
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9abb as oracle } from "../../translated/loc_9abb.js";
-import { loc_9abb } from "../loc_9abb.js";
+import { selectClimberSpawnLane } from "../selectClimberSpawnLane.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, POKEY1_RANDOM, loc_2b, loc_39, CANDIDATE_LANE_0, OBJECT_ANIM_TIMER, COORD_LIST_PTR_LO, LIST_PTR_TABLE_HI, COORD_LIST_PTR_HI, loc_29 } from "../names.js";
@@ -48,19 +48,19 @@ function seedHit(m) {
   m.mem.write8(loc_29, 0x7e);
 }
 
-test("CAPTURE: real 0x9abb dispatches -- loc_9abb == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9abb dispatches -- selectClimberSpawnLane == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9abb(c);
+    oracle(o); selectClimberSpawnLane(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED (qualifying walk): loc_9abb == oracle in RAM; tail sets $2b/$2d, returns A=$29", () => {
+test("CRAFTED (qualifying walk): selectClimberSpawnLane == oracle in RAM; tail sets $2b/$2d, returns A=$29", () => {
   const o = new Machine(ROM, OPTS); seedHit(o);
   const c = new Machine(ROM, OPTS); seedHit(c);
-  oracle(o); loc_9abb(c);
+  oracle(o); selectClimberSpawnLane(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after seed");
   assert.equal(c.regs.a, o.regs.a, "A live-out equal (oracle sets regs.a, returns undefined)");
   assert.equal(c.regs.a, 0x7e, "on a hit A = $29");
@@ -103,7 +103,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedHit(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9abb, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9abb must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, selectClimberSpawnLane, TARGET, m);
+  assert.equal(r.placeable, true, `selectClimberSpawnLane must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

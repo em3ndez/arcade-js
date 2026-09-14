@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c81b -- from the $4e gate and a >=2 test on $06, derives a 0..2 step, subtracts
+// Memory-equivalence for advanceLevelCounter -- from the $4e gate and a >=2 test on $06, derives a 0..2 step, subtracts
 // it from $06, and either seeds intro cells (gate clear) or sets status bits, zeroes cells, bumps a 16-bit
 // tally at $040c,x and clamps $0100. Live-out is memory only, so each side runs on a clone and the contract
 // is RAM (dumpState, minus STACK_SCRATCH). A leaf: the module omits the ROM ret and the seam completes it.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c81b as oracle } from "../../translated/loc_c81b.js";
-import { loc_c81b } from "../loc_c81b.js";
+import { advanceLevelCounter } from "../advanceLevelCounter.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, MODE_DELAY_TIMER, STATUS_FLAGS, PHASE_COUNTER, HEARTBEAT_ACCUM_LO, HEARTBEAT_ACCUM_OVERFLOW, ACTIVE_SLOT_COUNT, INPUT_EDGE_FLAGS, SPINNER_ACCUM, loc_100, SPIKED_SEGMENT_COUNT, COORD_ACC_LO, COORD_ACC_HI } from "../names.js";
@@ -48,11 +48,11 @@ const seed = (m) => {
   m.mem.write8(loc_100, 0x10);
 };
 
-test("CAPTURE: real 0xc81b dispatches -- loc_c81b == oracle in RAM (-stack) + exit X/Y", () => {
+test("CAPTURE: real 0xc81b dispatches -- advanceLevelCounter == oracle in RAM (-stack) + exit X/Y", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     oracle(o);
-    const [rx, ry] = loc_c81b(c);
+    const [rx, ry] = advanceLevelCounter(c);
     assert.equal(ramDiff(o, c), null);
     // Live-out: the module's returned [X,Y] equal the oracle's registers at RTS.
     assert.equal(rx, o.regs.x, "exit X matches oracle register");
@@ -65,7 +65,7 @@ test("CRAFTED: gate/step path sets $3e, $05|=0xc0, zeroes $16/$18/$00, bumps $04
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const [rx, ry] = loc_c81b(c);
+  const [rx, ry] = advanceLevelCounter(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after step path");
   assert.equal(c.mem.read8(INPUT_EDGE_FLAGS), 0x00, "$4e cleared");
   assert.equal(c.mem.read8(PHASE_COUNTER), 0x03, "$06 -= 2");
@@ -85,7 +85,7 @@ test("TEETH-RET: a wrong exit-register model diverges from the oracle registers"
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const [rx, ry] = loc_c81b(c);
+  const [rx, ry] = advanceLevelCounter(c);
   // The real return matches the oracle's registers at RTS...
   assert.equal(rx, o.regs.x);
   assert.equal(ry, o.regs.y);
@@ -111,7 +111,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c81b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c81b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, advanceLevelCounter, TARGET, m);
+  assert.equal(r.placeable, true, `advanceLevelCounter must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

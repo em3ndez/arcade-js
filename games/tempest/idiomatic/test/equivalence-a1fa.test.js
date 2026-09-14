@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a1fa (ROM 0xa1fa-0xa23e) -- steps a slot's counter toward its per-target
+// Memory-equivalence for advanceShotAndScoreLaneHit (ROM 0xa1fa-0xa23e) -- steps a slot's counter toward its per-target
 // limit; on reaching it, clamps the limit cell, bumps the hit tally, flags the target, then chimes
 // (jsr $ccf6) and awards (jsr $ca6c); after two hits it resets the counter and drops a life. The
-// idiomatic side dissolves the two jsr into direct loc_ccf6 / loc_ca6c calls. Output is RAM plus the
+// idiomatic side dissolves the two jsr into direct loc_ccf6 / addBcdScoreAndAwardAtThreshold calls. Output is RAM plus the
 // exit slot index X (loaded from $37 on the work path, entry X on the skip path), so each arm compares
 // RAM (dumpState minus STACK_SCRATCH) and the returned X vs o.regs.x.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a1fa.test.js
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a1fa as oracle } from "../../translated/loc_a1fa.js";
-import { loc_a1fa } from "../loc_a1fa.js";
+import { advanceShotAndScoreLaneHit } from "../advanceShotAndScoreLaneHit.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xa1fa dispatches -- loc_a1fa == oracle in RAM (-stack) and X live-out", () => {
+test("CAPTURE: real 0xa1fa dispatches -- advanceShotAndScoreLaneHit == oracle in RAM (-stack) and X live-out", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const x = loc_a1fa(c);
+    oracle(o); const x = advanceShotAndScoreLaneHit(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(x, o.regs.x, "returned X must equal oracle exit X");
   }
@@ -60,7 +60,7 @@ function seed(m, s) {
   m.mem.write8(u16(HIT_TALLY + (s.s37 ?? 0x02)), s.tally37 ?? 0x00); // work-path xEff tally
 }
 
-test("CRAFTED: limit-not-reached / reached / reached+second-hit -- loc_a1fa == oracle (RAM + X)", () => {
+test("CRAFTED: limit-not-reached / reached / reached+second-hit -- advanceShotAndScoreLaneHit == oracle (RAM + X)", () => {
   const cases = [
     { tag: "limit 0 -> early return", limit: 0x00, counter: 0x20 },
     { tag: "counter < limit -> skip path, xEff = entry X", limit: 0x40, counter: 0x10 },
@@ -72,7 +72,7 @@ test("CRAFTED: limit-not-reached / reached / reached+second-hit -- loc_a1fa == o
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); const x = loc_a1fa(c);
+    oracle(o); const x = advanceShotAndScoreLaneHit(c);
     assert.equal(ramDiff(o, c), null, s.tag);
     assert.equal(x, o.regs.x, `X live-out: ${s.tag}`);
   }
@@ -106,6 +106,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_a1fa, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a1fa must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, advanceShotAndScoreLaneHit, TARGET, m);
+  assert.equal(r.placeable, true, `advanceShotAndScoreLaneHit must be seam-placeable; got: ${r.error}`);
 });

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_d7e1 (ROM 0xd7e1-0xd803) -- arms $0005=0 and $0001=2, then delegates to
-// loc_abac only when $01ca==0 AND ($0c00 & 0x10)!=0 AND ($01c9 & 0x03)==0 (also stamping $0000=0 past the
+// Memory-equivalence for armModeAndRebuildIfEnabled (ROM 0xd7e1-0xd803) -- arms $0005=0 and $0001=2, then delegates to
+// rebuildControlBlocksFromTemplate only when $01ca==0 AND ($0c00 & 0x10)!=0 AND ($01c9 & 0x03)==0 (also stamping $0000=0 past the
 // second guard); any guard fails -> straight return. Effect is memory-only, so each side runs on a fresh
 // Machine and the contract is RAM (dumpState, minus STACK_SCRATCH). Leaf-omits the ROM ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-d7e1.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d7e1 as oracle } from "../../translated/loc_d7e1.js";
-import { loc_d7e1 } from "../loc_d7e1.js";
+import { armModeAndRebuildIfEnabled } from "../armModeAndRebuildIfEnabled.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, STATUS_FLAGS, PENDING_WORK_FLAGS, EAROM_MODE } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xd7e1 dispatches -- loc_d7e1 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xd7e1 dispatches -- armModeAndRebuildIfEnabled == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_d7e1(c);
+    oracle(o); armModeAndRebuildIfEnabled(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -52,7 +52,7 @@ test("CRAFTED: all guards open -- delegate runs, RAM matches oracle", () => {
   const seed = (m) => { m.mem.write8(EAROM_MODE, 0x00); m.mem.write8(PENDING_WORK_FLAGS, 0x03); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_d7e1(c);
+  oracle(o); armModeAndRebuildIfEnabled(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after delegate");
   assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0x02, "$0001 armed");
   assert.equal(c.mem.read8(GAME_MODE), 0x00, "$0000 stamped past second guard");
@@ -62,7 +62,7 @@ test("CRAFTED: first guard shut ($01ca!=0) -- no delegate, RAM still matches ora
   const seed = (m) => { m.mem.write8(EAROM_MODE, 0x01); m.mem.write8(PENDING_WORK_FLAGS, 0x00); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_d7e1(c);
+  oracle(o); armModeAndRebuildIfEnabled(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the guarded-out path");
   assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0x02, "$0001 still armed before the guard");
 });

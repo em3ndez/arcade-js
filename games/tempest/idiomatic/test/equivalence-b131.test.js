@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b131 -- rebuilds the paired cursors via loc_b15a, then decrements $014d
+// Memory-equivalence for advancePinchingSpanAnimation -- rebuilds the paired cursors via emitSegmentedSpanBetweenCursors, then decrements $014d
 // (guarded) and pulls $014e down toward it. Dissolves the m.call(b15a) into a direct idiomatic call. The
 // oracle m.calls the frozen b15a; the idiomatic calls the idiomatic one. All output is RAM (b15a's vector
 // fill + the clamp cells), so each arm compares the RAM diff (minus the dead stack). A/X/Y at RTS incidental.
@@ -10,8 +10,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b131 as oracle } from "../../translated/loc_b131.js";
-import { loc_b131 } from "../loc_b131.js";
-import { loc_b15a } from "../loc_b15a.js";
+import { advancePinchingSpanAnimation } from "../advancePinchingSpanAnimation.js";
+import { emitSegmentedSpanBetweenCursors } from "../emitSegmentedSpanBetweenCursors.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_14d, loc_14e } from "../names.js";
@@ -42,10 +42,10 @@ function seat(m, s = {}) {
   m.mem.write8(loc_14e, s.far ?? 0x00);
 }
 
-test("CAPTURE: real 0xb131 dispatches -- loc_b131 == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xb131 dispatches -- advancePinchingSpanAnimation == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_b131(c);
+    oracle(o); advancePinchingSpanAnimation(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,12 +60,12 @@ test("CRAFTED: near<0x30 skip, dec-then-high early-out, and the far-pull cases =
   ];
   if (!CAPS.length) { console.log("  CRAFTED: no dispatch captured -- skipped"); return; }
   for (const s of cases) {
-    // Seed from a real dispatch so b15a's tail vector-drawer (loc_ab17) has valid list pointers
+    // Seed from a real dispatch so b15a's tail vector-drawer (drawSlotShapeWithHeader) has valid list pointers
     // ($ac/$74); a fresh Machine leaves them 0 -> ab17 reads a wild MMIO address. Then overwrite
     // $014d/$014e to drive the clamp branch under test (the drawer never touches those cells).
     const o = freezePokey(CAPS[0].clone()); seat(o, s);
     const c = freezePokey(CAPS[0].clone()); seat(c, s);
-    oracle(o); loc_b131(c);
+    oracle(o); advancePinchingSpanAnimation(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -81,7 +81,7 @@ test("TEETH: a twin that always keeps far-1 (never clamps up to near) diverges",
   // BUG: unconditionally keeps far-1, skipping the far := near clamp.
   const broken = (m) => {
     const { mem8 } = m;
-    loc_b15a(m, 0x3f, 0x4e);
+    emitSegmentedSpanBetweenCursors(m, 0x3f, 0x4e);
     let near = mem8[loc_14d];
     if (near >= 0x30) { near = (near - 1) & 0xff; mem8[loc_14d] = near; }
     if (near >= 0x80) return;
@@ -95,7 +95,7 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   const m = freezePokey(new Machine(ROM, OPTS));
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b131, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b131 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, advancePinchingSpanAnimation, TARGET, m);
+  assert.equal(r.placeable, true, `advancePinchingSpanAnimation must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret rewrite placeable");
 });

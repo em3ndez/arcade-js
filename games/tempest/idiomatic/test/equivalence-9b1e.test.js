@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_9b1e -- when PLAYER_FINE_ANGLE>=0, walks slots SLOT_LOOP_INDEX=ENEMY_SLOT_TOP..0 running a per-entry motion
+// Equivalence for runObjectMotionScripts -- when PLAYER_FINE_ANGLE>=0, walks slots SLOT_LOOP_INDEX=ENEMY_SLOT_TOP..0 running a per-entry motion
 // pass through loc_9b98 (MOTION_SCRIPT_TABLE-indexed) and storing SCRIPT_CURSOR back to ENEMY_SCRIPT_CURSOR,x; then signed-accumulates
 // ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM (cd06/cd02 on a sign flip) and negates ENEMY_ANIM_DELTA when ENEMY_ANIM_ACCUM leaves [0x0f,0xc0].
 // Contract: RAM (dumpState minus STACK_SCRATCH). Oracle = frozen translated/loc_9b1e.js.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9b1e as oracle } from "../../translated/loc_9b1e.js";
-import { loc_9b1e } from "../loc_9b1e.js";
+import { runObjectMotionScripts } from "../runObjectMotionScripts.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -37,14 +37,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9b1e dispatches -- loc_9b1e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9b1e dispatches -- runObjectMotionScripts == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // a real dispatch may reach an unimplemented arm inside loc_9b98
-    loc_9b1e(c);
+    runObjectMotionScripts(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -61,7 +61,7 @@ test("CRAFTED (tail): accumulate ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM + negate
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9b1e(c);
+  oracle(o); runObjectMotionScripts(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the tail");
   assert.equal(c.mem.read8(ENEMY_ANIM_ACCUM), 0x15, "ENEMY_ANIM_ACCUM = 0x10 + 0x05");
   assert.equal(c.mem.read8(ENEMY_ANIM_DELTA), 0xfb, "ENEMY_ANIM_DELTA negated (0x05 -> 0xfb) since ENEMY_ANIM_ACCUM is in-band");
@@ -76,7 +76,7 @@ test("CRAFTED (tail, out-of-band): ENEMY_ANIM_ACCUM < 0x0f leaves ENEMY_ANIM_DEL
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_9b1e(c);
+  oracle(o); runObjectMotionScripts(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.mem.read8(ENEMY_ANIM_DELTA), 0x05, "ENEMY_ANIM_DELTA unchanged (ENEMY_ANIM_ACCUM 0x07 below the band)");
 });
@@ -98,7 +98,7 @@ test("CRAFTED (walk): one active slot runs the loc_9b98 pass -- RAM equal (skip 
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED (walk): oracle hit an unimplemented loc_9b98 arm -- skipped"); return; }
-  loc_9b1e(c);
+  runObjectMotionScripts(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk + tail");
 });
 
@@ -109,7 +109,7 @@ test("TEETH: a twin that skips the ENEMY_ANIM_ACCUM accumulate MUST diverge in R
   oracle(o);
   // Broken twin: everything except it leaves ENEMY_ANIM_ACCUM unchanged (never adds ENEMY_ANIM_DELTA).
   const before148 = c.mem.read8(ENEMY_ANIM_ACCUM);
-  loc_9b1e(c);
+  runObjectMotionScripts(c);
   c.mem.write8(ENEMY_ANIM_ACCUM, before148); // BUG: revert the accumulate
   assert.notEqual(ramDiff(o, c), null, "the dropped ENEMY_ANIM_ACCUM accumulate was NOT caught");
 });

@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa69 as oracle } from "../../translated/loc_aa69.js";
 import { loc_aa69 } from "../loc_aa69.js";
-import { loc_a8e7 } from "../loc_a8e7.js";
+import { composeFrameDisplayList } from "../composeFrameDisplayList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, STATUS_FLAGS } from "../names.js";
@@ -75,7 +75,7 @@ test("TEETH: a twin that omits the aa92 prep and only runs the driver MUST diver
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
-  const broken = (m) => { loc_a8e7(m); }; // BUG: skips the aa92 prep call
+  const broken = (m) => { composeFrameDisplayList(m); }; // BUG: skips the aa92 prep call
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped aa92 prep");
 });

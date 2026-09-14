@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ca6c (ROM 0xca6c-0xcaf0) -- adds a three-byte BCD amount into the $40..$42+y
+// Memory-equivalence for addBcdScoreAndAwardAtThreshold (ROM 0xca6c-0xcaf0) -- adds a three-byte BCD amount into the $40..$42+y
 // score trio, range-checks the high byte against $0156, and on a qualifying result (with a per-slot $48,x
 // counter under six) bumps the counter, fires sound loc_ccb9, and sets $0124. The oracle runs the translated
-// sound via m.call; the idiomatic dissolves it to loc_ccc3(A=0x4f) threading the slot x and y. Live-out is
+// sound via m.call; the idiomatic dissolves it to requestSoundIfEnabled(A=0x4f) threading the slot x and y. Live-out is
 // memory only (registers at RTS incidental), so both sides run on a clone and the contract is RAM (-stack).
 // Run: node --test games/tempest/idiomatic/test/equivalence-ca6c.test.js
 
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ca6c as oracle } from "../../translated/loc_ca6c.js";
-import { loc_ca6c } from "../loc_ca6c.js";
+import { addBcdScoreAndAwardAtThreshold } from "../addBcdScoreAndAwardAtThreshold.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_29, loc_2a, loc_2b, loc_3d, loc_40, loc_41, loc_42, SLOT_COUNTDOWN, RIM_COLOR_ANIM, BONUS_LIFE_INTERVAL } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xca6c dispatches -- loc_ca6c == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xca6c dispatches -- addBcdScoreAndAwardAtThreshold == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ca6c(c);
+    oracle(o); addBcdScoreAndAwardAtThreshold(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -65,7 +65,7 @@ function seed(m) {
 test("CRAFTED: BCD add lands the score, then the award bumps the counter and sets $0124", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ca6c(c);
+  oracle(o); addBcdScoreAndAwardAtThreshold(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after add + award");
   assert.equal(c.mem.read8(loc_40), 0x11, "$40 score low");
   assert.equal(c.mem.read8(loc_41), 0x22, "$41 score mid");
@@ -78,7 +78,7 @@ test("GATED: with $05 bit7 clear the routine is a no-op vs the oracle", () => {
   const prep = (m) => { seed(m); m.mem.write8(STATUS_FLAGS, m.mem.read8(STATUS_FLAGS) & 0x7f); };
   const o = new Machine(ROM, OPTS); prep(o);
   const c = new Machine(ROM, OPTS); prep(c);
-  oracle(o); loc_ca6c(c);
+  oracle(o); addBcdScoreAndAwardAtThreshold(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the gated-off path");
   assert.equal(c.mem.read8(loc_40), 0x00, "score untouched when gated off");
 });
@@ -88,6 +88,6 @@ test("TEETH: mutating an addend byte makes the idiomatic diverge from the oracle
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   c.mem.write8(loc_29, 0x33); // non-default: different low addend
-  loc_ca6c(c);
+  addBcdScoreAndAwardAtThreshold(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the changed addend");
 });

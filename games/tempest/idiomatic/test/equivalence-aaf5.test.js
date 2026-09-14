@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aaf5 (ROM 0xaaf5) -- binary->BCD (double-dabble) of the byte in A, result to
+// Memory-equivalence for packBinaryToBcd (ROM 0xaaf5) -- binary->BCD (double-dabble) of the byte in A, result to
 // $29 and $2c. A is the input (param bridge) and the BCD byte is the register live-out (returned); the RAM
 // live-out is $29/$2c, so the arms compare RAM (-stack). Decimal-mode ADC only; no POKEY/clock coupling, so
 // the CRAFTED diff is fully deterministic. A pure leaf (no dispatch, no stack move): omits the ROM ret and
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aaf5 as oracle } from "../../translated/loc_aaf5.js";
-import { loc_aaf5 } from "../loc_aaf5.js";
+import { packBinaryToBcd } from "../packBinaryToBcd.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO } from "../names.js";
@@ -39,11 +39,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1200) : [];
 
-test("CAPTURE: real 0xaaf5 dispatches -- loc_aaf5 == oracle in RAM (-stack), and A live-out matches", () => {
+test("CAPTURE: real 0xaaf5 dispatches -- packBinaryToBcd == oracle in RAM (-stack), and A live-out matches", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     oracle(o);
-    const ret = loc_aaf5(c);
+    const ret = packBinaryToBcd(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(ret, o.regs.a, "A live-out (return) matches oracle");
   }
@@ -55,7 +55,7 @@ test("CRAFTED: BCD conversion == oracle across a spread of inputs (RAM -stack + 
     const o = new Machine(ROM, OPTS); o.regs.a = av;
     const c = new Machine(ROM, OPTS); c.regs.a = av;
     oracle(o);
-    const ret = loc_aaf5(c);
+    const ret = packBinaryToBcd(c);
     assert.equal(ramDiff(o, c), null, `RAM: A=0x${av.toString(16)}`);
     assert.equal(c.mem.read8(loc_29), c.mem.read8(COORD_LIST_PTR_LO), `$29==$2c for A=0x${av.toString(16)}`);
     assert.equal(ret, o.regs.a, `A live-out for A=0x${av.toString(16)}`);
@@ -76,7 +76,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   m.regs.s = 0xff;
   m.regs.a = 0x2a;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
-  const r = seamPlaceable(withOmittedRet, loc_aaf5, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aaf5 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, packBinaryToBcd, TARGET, m);
+  assert.equal(r.placeable, true, `packBinaryToBcd must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

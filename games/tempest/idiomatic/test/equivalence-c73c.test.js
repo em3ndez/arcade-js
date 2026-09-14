@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c73c -- stores two 16-bit differences through the ($74) pointer at cursor $a9,
+// Memory-equivalence for emitDeltaVectorPair -- stores two 16-bit differences through the ($74) pointer at cursor $a9,
 // low bytes raw, high bytes masked to 5 bits (the second OR'd 0xa0), advancing $a9 by four. Live-out is
 // memory only, so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). A leaf:
 // the module omits the ROM ret and the seam completes it, so the arms compare RAM (-stack), NOT pc/SP.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c73c as oracle } from "../../translated/loc_c73c.js";
-import { loc_c73c } from "../loc_c73c.js";
+import { emitDeltaVectorPair } from "../emitDeltaVectorPair.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_OFFSET, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, PREV_Y_LO, PREV_Y_HI, PREV_X_LO, PREV_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -48,10 +48,10 @@ const seed = (m) => {
   m.mem.write8(PREV_Y_LO, 0x01); m.mem.write8(PREV_Y_HI, 0x00);
 };
 
-test("CAPTURE: real 0xc73c dispatches -- loc_c73c == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc73c dispatches -- emitDeltaVectorPair == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c73c(c);
+    oracle(o); emitDeltaVectorPair(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ test("CAPTURE: real 0xc73c dispatches -- loc_c73c == oracle in RAM (-stack)", ()
 test("CRAFTED: two 16-bit deltas stored at $0310.. and $a9 advanced by four", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c73c(c);
+  oracle(o); emitDeltaVectorPair(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after stores");
   assert.equal(c.mem.read8(0x0310), 0x23, "delta1 lo");
   assert.equal(c.mem.read8(0x0311), 0x10, "delta1 hi (5-bit)");
@@ -94,7 +94,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c73c, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c73c must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitDeltaVectorPair, TARGET, m);
+  assert.equal(r.placeable, true, `emitDeltaVectorPair must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

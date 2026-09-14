@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa62 as oracle } from "../../translated/loc_aa62.js";
 import { loc_aa62 } from "../loc_aa62.js";
-import { loc_ab17 } from "../loc_ab17.js";
+import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
 import { loc_aa92 } from "../loc_aa92.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -76,7 +76,7 @@ test("TEETH: a twin that omits the ab17/aa92 prep and only runs the driver MUST 
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
-  const broken = (m) => { loc_aa92(m); void loc_ab17; }; // BUG: skips ab17 slot prime
+  const broken = (m) => { loc_aa92(m); void drawSlotShapeWithHeader; }; // BUG: skips ab17 slot prime
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped ab17 prime");
 });

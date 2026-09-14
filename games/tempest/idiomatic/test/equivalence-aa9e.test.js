@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa9e (ROM 0xaa9e-0xaaa7) -- advance the slot index (inx), publish it through
-// the pointer byte $61, set the pointer base (A=0x61) and count (Y=1), then tail-jmp loc_dfb1 to emit that
-// one-byte run. The idiomatic side dissolves the tail jmp into a direct loc_dfb1(m, 0x61, 0x01) call.
+// Memory-equivalence for emitSlotIndexDigit (ROM 0xaa9e-0xaaa7) -- advance the slot index (inx), publish it through
+// the pointer byte $61, set the pointer base (A=0x61) and count (Y=1), then tail-jmp emitNibbleDigitRun to emit that
+// one-byte run. The idiomatic side dissolves the tail jmp into a direct emitNibbleDigitRun(m, 0x61, 0x01) call.
 // dfb1 takes its base/count as args and clobbers X internally, so X is NOT a live-out; the contract is
 // memory only -- each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-aa9e.test.js
@@ -11,8 +11,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa9e as oracle } from "../../translated/loc_aa9e.js";
-import { loc_aa9e } from "../loc_aa9e.js";
-import { loc_dfb1 } from "../loc_dfb1.js";
+import { emitSlotIndexDigit } from "../emitSlotIndexDigit.js";
+import { emitNibbleDigitRun } from "../emitNibbleDigitRun.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
@@ -41,10 +41,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xaa9e dispatches -- loc_aa9e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaa9e dispatches -- emitSlotIndexDigit == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aa9e(c);
+    oracle(o); emitSlotIndexDigit(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ function seed(m) { m.regs.x = XREG; }
 test("CRAFTED: $61 <- x+1 and RAM equal after the one-byte emit", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_aa9e(c);
+  oracle(o); emitSlotIndexDigit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
   assert.equal(c.mem.read8(PROJ_Y_LO), u8(XREG + 1), "$61 took the advanced slot index");
 });
@@ -67,7 +67,7 @@ test("TEETH: a twin that publishes x (not x+1) diverges from the oracle", () => 
   const brokenAa9e = (m, x = m.regs.x) => {
     const { mem8 } = m;
     mem8[PROJ_Y_LO] = x; // BUG: forgot the increment -> wrong pointer byte AND wrong emitted run
-    return loc_dfb1(m, 0x61, 0x01);
+    return emitNibbleDigitRun(m, 0x61, 0x01);
   };
   brokenAa9e(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing increment");
@@ -77,6 +77,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aa9e, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aa9e must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitSlotIndexDigit, TARGET, m);
+  assert.equal(r.placeable, true, `emitSlotIndexDigit must be seam-placeable; got: ${r.error}`);
 });

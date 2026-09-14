@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b60f (ROM 0xb60f-0xb61b) -- picks a jump-mode byte from the 0xb61e table by
+// Memory-equivalence for emitJumpModeSlot (ROM 0xb60f-0xb61b) -- picks a jump-mode byte from the 0xb61e table by
 // ($028a,x & 3), pairs it with the slot's target ($02b9,x), and tail-calls the shared emitter 0xbcfd. The
-// idiomatic side dissolves the tail jmp into a direct loc_bcfd(m, modeByte, target) call. Live-out is
-// memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH). loc_bcfd seats $0055/$0056/$0058
+// idiomatic side dissolves the tail jmp into a direct seatShapeParamsAndEmit(m, modeByte, target) call. Live-out is
+// memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH). seatShapeParamsAndEmit seats $0055/$0056/$0058
 // then runs the emit chain. Run: node --test games/tempest/idiomatic/test/equivalence-b60f.test.js
 
 import nodeTest from "node:test";
@@ -10,8 +10,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b60f as oracle } from "../../translated/loc_b60f.js";
-import { loc_b60f } from "../loc_b60f.js";
-import { loc_bcfd } from "../loc_bcfd.js";
+import { emitJumpModeSlot } from "../emitJumpModeSlot.js";
+import { seatShapeParamsAndEmit } from "../seatShapeParamsAndEmit.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_SLOT_DIR, ENEMY_SEGMENT, JUMP_MODE_SHAPE, SEG_MID_X, SEG_MID_Y, DRAW_STYLE, PROJ_PT_Y, PROJ_PT_X } from "../names.js";
@@ -39,16 +39,16 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xb60f dispatches -- loc_b60f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb60f dispatches -- emitJumpModeSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b60f(c);
+    oracle(o); emitJumpModeSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-// Slot 3, mode 2 ($028a,3 & 3), target 7 ($02b9,3). loc_bcfd stashes the mode byte in $0055 and copies
+// Slot 3, mode 2 ($028a,3 & 3), target 7 ($02b9,3). seatShapeParamsAndEmit stashes the mode byte in $0055 and copies
 // the two indexed table entries ($0435+7, $0445+7) into $0056/$0058 before the emit chain -- so seeding
 // those two cells makes the target (y) marshalling observable.
 function seed(m) {
@@ -61,10 +61,10 @@ function seed(m) {
   m.mem.write8(SEG_MID_Y + 8, 0x22);
 }
 
-test("CRAFTED: mode/target marshalled into loc_bcfd -- RAM equal to the oracle", () => {
+test("CRAFTED: mode/target marshalled into seatShapeParamsAndEmit -- RAM equal to the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_b60f(c);
+  oracle(o); emitJumpModeSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the emit");
   assert.equal(c.mem.read8(DRAW_STYLE), m0(c), "mode byte stashed");
   assert.equal(c.mem.read8(PROJ_PT_Y), 0xab, "target indexed the $0435 table");
@@ -89,7 +89,7 @@ test("TEETH (marshalling): a twin that passes the wrong target y diverges from t
     const { mem8 } = m;
     const mode = mem8[(ENEMY_SLOT_DIR + x) & 0xffff] & 0x03;
     // BUG: target off by one -> reads the neighbour table entries into $0056/$0058
-    return loc_bcfd(m, mem8[(JUMP_MODE_SHAPE + mode) & 0xffff], (mem8[(ENEMY_SEGMENT + x) & 0xffff] + 1) & 0xff);
+    return seatShapeParamsAndEmit(m, mem8[(JUMP_MODE_SHAPE + mode) & 0xffff], (mem8[(ENEMY_SEGMENT + x) & 0xffff] + 1) & 0xff);
   };
   wrongY(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong target y");
@@ -99,6 +99,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b60f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b60f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitJumpModeSlot, TARGET, m);
+  assert.equal(r.placeable, true, `emitJumpModeSlot must be seam-placeable; got: ${r.error}`);
 });

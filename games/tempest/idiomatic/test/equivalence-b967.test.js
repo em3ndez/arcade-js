@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b967 (ROM 0xb967) -- select an (A,X) pair from two ROM slots by the RAM flag
+// Memory-equivalence for selectPointerPair (ROM 0xb967) -- select an (A,X) pair from two ROM slots by the RAM flag
 // POINTER_PARITY: flag==0 -> (ALT_DRAW_PTR_CLR_HI, ALT_DRAW_PTR_CLR_LO), else (ALT_DRAW_PTR_SET_HI, ALT_DRAW_PTR_SET_LO). No RAM write, so the RAM diff is
 // vacuously null; the real contract is the TWO register live-outs A and X. A leaf: it omits the ROM ret and
 // the seam completes it, so the arms compare RAM (-stack) + A + X, NOT pc/SP. No POKEY/clock read.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b967 as oracle } from "../../translated/loc_b967.js";
-import { loc_b967 } from "../loc_b967.js";
+import { selectPointerPair } from "../selectPointerPair.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, POINTER_PARITY, ALT_DRAW_PTR_CLR_LO, ALT_DRAW_PTR_CLR_HI, ALT_DRAW_PTR_SET_LO, ALT_DRAW_PTR_SET_HI } from "../names.js";
@@ -36,10 +36,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb967 dispatches -- loc_b967 == oracle in RAM (-stack), A and X", () => {
+test("CAPTURE: real 0xb967 dispatches -- selectPointerPair == oracle in RAM (-stack), A and X", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b967(c);
+    oracle(o); selectPointerPair(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
     assert.equal(c.regs.x, o.regs.x, "X live-out matches the oracle");
@@ -56,7 +56,7 @@ test("CRAFTED: flag==0 -> (ce87,ce86); flag!=0 -> (ce6f,ce6e)", () => {
   for (const { tag, flag } of cases) {
     const o = new Machine(ROM, OPTS); o.mem.write8(POINTER_PARITY, flag);
     const c = new Machine(ROM, OPTS); c.mem.write8(POINTER_PARITY, flag);
-    oracle(o); const ret = loc_b967(c);
+    oracle(o); const ret = selectPointerPair(c);
     assert.equal(ramDiff(o, c), null, `no RAM write: ${tag}`);
     assert.equal(c.regs.a, o.regs.a, `A matches oracle: ${tag}`);
     assert.equal(c.regs.x, o.regs.x, `X matches oracle: ${tag}`);
@@ -77,7 +77,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
-  const r = seamPlaceable(withOmittedRet, loc_b967, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b967 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, selectPointerPair, TARGET, m);
+  assert.equal(r.placeable, true, `selectPointerPair must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_df6c (ROM 0xdf6c-0xdf72) -- tags A with the 0x70 header bits, then emits the
 // vector word {Y, tagged-A} at the cursor and advances it. The idiomatic side dissolves the jmp $df57 tail
-// into a direct loc_df57(m, y, a|0x70) call. Live-out is memory only (pure tail-caller, reads no register
+// into a direct emitVectorWord(m, y, a|0x70) call. Live-out is memory only (pure tail-caller, reads no register
 // after), so each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-df6c.test.js
 
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df6c as oracle } from "../../translated/loc_df6c.js";
 import { loc_df6c } from "../loc_df6c.js";
-import { loc_df57 } from "../loc_df53.js";
+import { emitVectorWord } from "../emitVectorHeaderWord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -66,7 +66,7 @@ test("CRAFTED: word {Y, A|0x70} emitted at the cursor, cursor advanced", () => {
 test("TEETH: a twin tagging with 0x60 instead of 0x70 diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x0c, 0x2a); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c, 0x0c, 0x2a);
-  const brokenDf6c = (m, a = m.regs.a, y = m.regs.y) => loc_df57(m, y, a | 0x60); // BUG: wrong header bits
+  const brokenDf6c = (m, a = m.regs.a, y = m.regs.y) => emitVectorWord(m, y, a | 0x60); // BUG: wrong header bits
   brokenDf6c(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong header tag");
 });

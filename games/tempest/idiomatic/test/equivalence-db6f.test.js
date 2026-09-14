@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_db6f -- emits a header word via loc_df4c (Y = $50>>1, A=0x68), then always
-// continues into loc_db88 (the gate byte 0x33 is a constant nonzero). Dissolves both m.calls into direct
+// continues into emitVectorHeaderAndClearSlots (the gate byte 0x33 is a constant nonzero). Dissolves both m.calls into direct
 // idiomatic calls. The oracle m.calls the frozen df4c/db88; the idiomatic calls the idiomatic ones. Output
 // is the vector fill from df4c and db88's df39 word (RAM), so each arm compares the RAM diff (minus the
 // dead stack). A/X/Y at RTS incidental. Run: node --test games/tempest/idiomatic/test/equivalence-db6f.test.js

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_9a87 (ROM 0x9a87) -- a lone `txa` (A=X) that falls through into the RTS-trick
+// Equivalence for dispatchListSetupByColumn (ROM 0x9a87) -- a lone `txa` (A=X) that falls through into the RTS-trick
 // COMPUTED-JUMP dispatcher at 0x9a88. The idiomatic form dissolves the txa+fall-through into passing X
-// as the dispatch index: loc_9a87(m, x) === loc_9a88(m, x). The five list-setup entries are selected by
+// as the dispatch index: dispatchListSetupByColumn(m, x) === loc_9a88(m, x). The five list-setup entries are selected by
 // X (0..4) and none reads the incoming A/Y/X as data (X is the dispatch index, consumed), so this is a
-// tail delegation -- the exit registers are the delegate's, NOT loc_9a87's. Contract is RAM
+// tail delegation -- the exit registers are the delegate's, NOT dispatchListSetupByColumn's. Contract is RAM
 // (dumpState minus STACK_SCRATCH); the oracle's stack gymnastics land in STACK_SCRATCH and are excluded.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9a87.test.js
 
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9a87 as oracle } from "../../translated/loc_9a87.js";
-import { loc_9a87 } from "../loc_9a87.js";
+import { dispatchListSetupByColumn } from "../dispatchListSetupByColumn.js";
 import { loc_9a88 } from "../loc_9a88.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -41,12 +41,12 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9a87 dispatches -- loc_9a87 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9a87 dispatches -- dispatchListSetupByColumn == oracle in RAM (-stack)", () => {
   const xs = new Set();
   for (const cap of CAPS) {
     xs.add(cap.regs.x);
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9a87(c);
+    oracle(o); dispatchListSetupByColumn(c);
     assert.equal(ramDiff(o, c), null, `RAM equal for captured X=${cap.regs.x}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked; distinct X seen: [${[...xs].sort((a, b) => a - b).join(",")}]`);
@@ -63,7 +63,7 @@ function seedBase(x) {
   return m;
 }
 
-test("CRAFTED: each entry index X=0..4 -- loc_9a87 == oracle in RAM (-stack)", () => {
+test("CRAFTED: each entry index X=0..4 -- dispatchListSetupByColumn == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const x of [0, 1, 2, 3, 4]) {
     const base = seedBase(x);
@@ -71,7 +71,7 @@ test("CRAFTED: each entry index X=0..4 -- loc_9a87 == oracle in RAM (-stack)", (
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // an entry the generic seed cannot fully provision -- CAPTURE carries it
-    loc_9a87(c);
+    dispatchListSetupByColumn(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after dispatching entry X=${x}`);
     checked++;
   }
@@ -104,7 +104,7 @@ test("SP-TOOTH: the omitted-ret delegator (moved 0) is seam-placeable", () => {
   const m = seedBase(0x00);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9a87, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9a87 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchListSetupByColumn, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchListSetupByColumn must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret delegator (moved 0) placeable");
 });

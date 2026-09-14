@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { u8, u16 } from "../../../core/int.js";
+import { HIT_TALLY } from "./names.js";
+import { respawnEnemyAndAward } from "./respawnEnemyAndAward.js";
+
+// Flag slot X active (HIT_TALLY,x = 0xff), step the lane index back by four, then tail-delegate
+// the retire/spawn/award for the stepped-back slot.
+export function activateSlotAndRespawn(m, x = m.regs.x, y = m.regs.y) {
+  const { mem8 } = m;
+
+  mem8[u16(HIT_TALLY + x)] = 0xff;
+  const priorSlot = u8(y - 4);
+  return respawnEnemyAndAward(m, x, priorSlot);
+}

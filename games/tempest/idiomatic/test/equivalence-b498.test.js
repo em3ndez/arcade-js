@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b498 -- builds the vector display list for active objects and tail-calls the
+// Memory-equivalence for buildObjectDisplayList -- builds the vector display list for active objects and tail-calls the
 // header emitter. The idiomatic side dissolves jsr df4c/c765/df5f/df6a into direct calls. Live-out is the
 // display-list RAM plus the coordinate scratch cells; the A carried out by the tail header emitter is
 // validated by that callee's own equivalence, so each arm compares RAM (dumpState minus STACK_SCRATCH).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b498 as oracle } from "../../translated/loc_b498.js";
-import { loc_b498 } from "../loc_b498.js";
+import { buildObjectDisplayList } from "../buildObjectDisplayList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -42,10 +42,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb498 dispatches -- loc_b498 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb498 dispatches -- buildObjectDisplayList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b498(c);
+    oracle(o); buildObjectDisplayList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -69,7 +69,7 @@ function seedOneObject(m) {
 test("CRAFTED: one active object -- display list and coord scratch match the oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedOneObject(o);
   const c = new Machine(ROM, OPTS); seedOneObject(c);
-  oracle(o); loc_b498(c);
+  oracle(o); buildObjectDisplayList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after list build");
 });
 
@@ -91,7 +91,7 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS); seedOneObject(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b498, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b498 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildObjectDisplayList, TARGET, m);
+  assert.equal(r.placeable, true, `buildObjectDisplayList must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret tail-caller (moved 0) placeable");
 });

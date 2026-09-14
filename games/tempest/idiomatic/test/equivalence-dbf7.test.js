@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dbf7 (ROM 0xdbf7-0xdce0) -- the per-frame vector-list emit. When the 16-bit
-// counter loc_2e/loc_2f is nonzero it seeds the POKEY operand cells, runs the coprocessor scan loc_dce6,
+// Memory-equivalence for emitReadoutVectorList (ROM 0xdbf7-0xdce0) -- the per-frame vector-list emit. When the 16-bit
+// counter loc_2e/loc_2f is nonzero it seeds the POKEY operand cells, runs the coprocessor scan runMathboxDivide,
 // and from its A/X/Y sets SEG_SPREAD_A_LO (and the POKEY2_POTGO status byte); it then advances the 15-bit counter,
 // builds the work word POKEY1_AUDF1-POKEY1_AUDC2 from INPUT_DEBOUNCED(=POKEY2_AUDCTL & 0x78)/INPUT_EDGE_FLAGS, fires the readout draws
 // (loc_dd0d/dd2b/dd27), conditionally emits the SPINNER_POT_PREV-bit marker (LED_FLIP_LATCH + the 0x4000 latch), walks
-// SEG_SPREAD_A_LO_5,x for x=11..0 and SEG_SPREAD_A_LO,x for x=4..0, then TAIL-DELEGATES to loc_df73 with the SPINNER_ACCUM-indexed
+// SEG_SPREAD_A_LO_5,x for x=11..0 and SEG_SPREAD_A_LO,x for x=4..0, then TAIL-DELEGATES to emitKeyedScaledCoordinateRecord with the SPINNER_ACCUM-indexed
 // colour pair from COLOR_PAIR_HI/COLOR_PAIR_LO and Y = 0xc0. Live-out is RAM (dumpState minus STACK_SCRATCH) PLUS
-// A/X/Y: dbf7 takes no input register and tail-jmps loc_df73, so its exit registers are whatever loc_df73's
-// chain (loc_df75 -> loc_df92) leaves; both layers run the identical delegate from the identical clone, so
-// A/X/Y match value-for-value (a matching value never false-fails). Oracle is the frozen translated loc_dbf7.
+// A/X/Y: dbf7 takes no input register and tail-jmps emitKeyedScaledCoordinateRecord, so its exit registers are whatever emitKeyedScaledCoordinateRecord's
+// chain (emitScaledCoordinateRecord -> emitCoordinateRecord) leaves; both layers run the identical delegate from the identical clone, so
+// A/X/Y match value-for-value (a matching value never false-fails). Oracle is the frozen translated emitReadoutVectorList.
 // Run: node --test games/tempest/idiomatic/test/equivalence-dbf7.test.js
 
 import nodeTest from "node:test";
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dbf7 as oracle } from "../../translated/loc_dbf7.js";
-import { loc_dbf7 } from "../loc_dbf7.js";
+import { emitReadoutVectorList } from "../emitReadoutVectorList.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -47,30 +47,30 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xdbf7 dispatches -- loc_dbf7 == oracle in RAM (-stack), A/X/Y", () => {
+test("CAPTURE: real 0xdbf7 dispatches -- emitReadoutVectorList == oracle in RAM (-stack), A/X/Y", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented draw arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_dbf7(c);
+    emitReadoutVectorList(c);
     assert.equal(ramDiff(o, c), null);
-    // A/X/Y not compared: loc_dbf7 tail-delegates to loc_df73, so its exit registers are the delegate's,
+    // A/X/Y not compared: emitReadoutVectorList tail-delegates to emitKeyedScaledCoordinateRecord, so its exit registers are the delegate's,
     // threaded by param in the idiomatic layer rather than through m.regs.
     checked++;
   }
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Seed the counter nonzero (so the loc_dce6 scan block runs), a couple of nonzero entries in both
+// Seed the counter nonzero (so the runMathboxDivide scan block runs), a couple of nonzero entries in both
 // tables (so both walks emit), the SPINNER_POT_PREV marker bit, the final colour index SPINNER_ACCUM, and point the
 // display cursor DRAW_CURSOR_LO/DRAW_CURSOR_HI at vector RAM 0x2000 so every emit lands there (not zero page).
 function seed(m) {
   m.mem.write8(loc_2e, 0x37);   // counter low nonzero -> the scan block runs
   m.mem.write8(loc_2f, 0x12);   // counter high
   m.mem.write8(INPUT_EDGE_FLAGS, 0x05);   // -> POKEY1_AUDF2 = 0x0a, and the loc_dd27 run
-  m.mem.write8(SPINNER_POT_PREV, 0x10);   // marker bit set -> the loc_df39 marker branch runs
+  m.mem.write8(SPINNER_POT_PREV, 0x10);   // marker bit set -> the emitCoordinateVectorWord marker branch runs
   m.mem.write8(SPINNER_ACCUM, 0x02);   // colour index for the tail-delegate
   // SEG_SPREAD_A_LO,x walk (x = 4..0 -> 0x78..0x7c): nonzero entries so it takes the POTMARK_WORD_INDEX-indexed path
   m.mem.write8(SEG_SPREAD_A_LO + 0x01, 0x01);
@@ -89,9 +89,9 @@ test("CRAFTED: counter + both table walks + marker + tail-delegate -- RAM and A/
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle threw on this seed -- skipped"); return; }
-  loc_dbf7(c);
+  emitReadoutVectorList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full emit");
-  // A/X/Y not compared -- loc_dbf7 tail-delegates to loc_df73; the exit registers are the delegate's.
+  // A/X/Y not compared -- emitReadoutVectorList tail-delegates to emitKeyedScaledCoordinateRecord; the exit registers are the delegate's.
   // The counter advanced (loc_2e 0x37 -> 0x38, no wrap so loc_2f unchanged).
   assert.equal(c.mem.read8(loc_2e), 0x38, "counter low byte advanced");
   assert.equal(c.mem.read8(loc_2f), 0x12, "counter high byte unchanged (no wrap)");
@@ -105,12 +105,12 @@ test("TEETH: a twin that drops the counter advance MUST diverge in RAM", () => {
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_dbf7 but never advances loc_2e/loc_2f. loc_2e is unconditionally
+  // Broken twin: identical to emitReadoutVectorList but never advances loc_2e/loc_2f. loc_2e is unconditionally
   // incremented by the real routine, so the counter alone guarantees a RAM divergence.
   const broken = (m) => {
     const before2e = m.mem.read8(loc_2e);
     const before2f = m.mem.read8(loc_2f);
-    loc_dbf7(m);
+    emitReadoutVectorList(m);
     m.mem.write8(loc_2e, before2e); // BUG: revert the counter advance
     m.mem.write8(loc_2f, before2f);
   };

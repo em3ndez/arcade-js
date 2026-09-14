@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loc_c7bd (ROM 0xc7bd-0xc7d9) -- a DSW-gated RTS-trick dispatcher: when (DSW1_COINAGE & 0x83)
-// == 0x82 it returns immediately; otherwise it runs a pre-pass (loc_a7d2), sets bit7 of INPUT_EDGE_FLAGS, and
+// == 0x82 it returns immediately; otherwise it runs a pre-pass (stepSpikeTableCollapse), sets bit7 of INPUT_EDGE_FLAGS, and
 // rts-dispatches to word($c7da+GAME_MODE)+1. The table has 19 entries (idx0..18); idx6 is an unused slot
 // (ROM word 0x0000 -> a jump into RAM, never validly selected). The idiomatic form dissolves the trick
 // into TABLE[GAME_MODE>>1](m). Contract: RAM (dumpState minus STACK_SCRATCH). DSW1_COINAGE is the read-only DSW1
@@ -13,23 +13,23 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c7bd as oracle } from "../../translated/loc_c7bd.js";
 import { loc_c7bd } from "../loc_c7bd.js";
-import { loc_c90c } from "../loc_c90c.js";
-import { loc_c940 } from "../loc_c940.js";
+import { resetLevelPlayfieldSlots } from "../resetLevelPlayfieldSlots.js";
+import { setupLevelTimers } from "../setupLevelTimers.js";
 import { loc_970b } from "../loc_970b.js";
-import { loc_c9af } from "../loc_c9af.js";
-import { loc_c9f1 } from "../loc_c9f1.js";
-import { loc_c800 } from "../loc_c800.js";
-import { loc_c98c } from "../loc_c98c.js";
-import { loc_ac3f } from "../loc_ac3f.js";
-import { loc_ad6e } from "../loc_ad6e.js";
-import { loc_ca18 } from "../loc_ca18.js";
-import { loc_9149, loc_9108 } from "../loc_90c4.js";
-import { loc_904b } from "../loc_904b.js";
-import { loc_b0e7 } from "../loc_b0e7.js";
-import { loc_c97b } from "../loc_c97b.js";
+import { tickEnemyPacingCountdown } from "../tickEnemyPacingCountdown.js";
+import { reloadPacingFromPeakSlot } from "../reloadPacingFromPeakSlot.js";
+import { commitPendingModeAfterDelay } from "../commitPendingModeAfterDelay.js";
+import { bumpLevelEnemyQuota } from "../bumpLevelEnemyQuota.js";
+import { buildSortedSoundRequest } from "../buildSortedSoundRequest.js";
+import { tickActiveSoundSlot } from "../tickActiveSoundSlot.js";
+import { seedModeParamsFromMaskedFlags } from "../seedModeParamsFromMaskedFlags.js";
+import { tickWaveSpawnCadence, reseedWaveWorkingSet } from "../selectWaveStartSlot.js";
+import { autoAdvanceRimRotation } from "../autoAdvanceRimRotation.js";
+import { seedModeParamsWithBounds } from "../seedModeParamsWithBounds.js";
+import { seedModeParamsMinimal } from "../seedModeParamsMinimal.js";
 import { loc_9729 } from "../loc_9729.js";
-import { loc_d7e1 } from "../loc_d7e1.js";
-import { loc_a618 } from "../loc_a618.js";
+import { armModeAndRebuildIfEnabled } from "../armModeAndRebuildIfEnabled.js";
+import { stepEnemyFleetAndSpawn } from "../stepEnemyFleetAndSpawn.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, INPUT_EDGE_FLAGS } from "../names.js";
@@ -44,8 +44,8 @@ const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM 
 const TARGET = 0xc7bd;
 const GARBAGE_IDX = 6; // the only unused slot (ROM word 0x0000)
 const TABLE = [
-  loc_c90c, loc_c940, loc_970b, loc_c9af, loc_c9f1, loc_c800, null, loc_c98c, loc_ac3f, loc_ad6e,
-  loc_ca18, loc_9149, loc_904b, loc_b0e7, loc_9108, loc_c97b, loc_9729, loc_d7e1, loc_a618,
+  resetLevelPlayfieldSlots, setupLevelTimers, loc_970b, tickEnemyPacingCountdown, reloadPacingFromPeakSlot, commitPendingModeAfterDelay, null, bumpLevelEnemyQuota, buildSortedSoundRequest, tickActiveSoundSlot,
+  seedModeParamsFromMaskedFlags, tickWaveSpawnCadence, autoAdvanceRimRotation, seedModeParamsWithBounds, reseedWaveWorkingSet, seedModeParamsMinimal, loc_9729, armModeAndRebuildIfEnabled, stepEnemyFleetAndSpawn,
 ];
 const OFFSETS = TABLE.map((t, idx) => (t ? idx * 2 : -1)).filter((o) => o >= 0);
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;

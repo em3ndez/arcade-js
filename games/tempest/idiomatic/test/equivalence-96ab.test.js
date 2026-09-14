@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_96ab + loc_96b7 + loc_96c4 (ROM 0x96ab-0x96c6) -- three vector-list dispatch
+// Memory-equivalence for fetchCoordListEntryByCounter + fetchCoordListEntryByIndex + readCoordListEntry (ROM 0x96ab-0x96c6) -- three vector-list dispatch
 // entries reached via the computed-jmp tables. 0x96ab derives a running value from the $2b counter, 0x96b7
 // reloads $2b raw; both stash the incoming Y at $29, combine the value with the delta two entries back
 // through the ($2c) pointer, set Y to the result, and read the entry it points to into A. 0x96c4 is the bare
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_96ab as oracleAb, loc_96b7 as oracleB7, loc_96c4 as oracleC4 } from "../../translated/loc_96ab.js";
-import { loc_96ab, loc_96b7, loc_96c4 } from "../loc_96ab.js";
+import { fetchCoordListEntryByCounter, fetchCoordListEntryByIndex, readCoordListEntry } from "../fetchCoordListEntryByCounter.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
@@ -52,7 +52,7 @@ const seedCraft = (m, { p2b, y, base = 0x0400 }) => {
 };
 
 test("CAPTURE: real dispatches -- 0x96ab/96b7/96c4 == oracle in RAM (-stack) and A/Y", () => {
-  const arms = [[CAPS_AB, oracleAb, loc_96ab], [CAPS_B7, oracleB7, loc_96b7], [CAPS_C4, oracleC4, loc_96c4]];
+  const arms = [[CAPS_AB, oracleAb, fetchCoordListEntryByCounter], [CAPS_B7, oracleB7, fetchCoordListEntryByIndex], [CAPS_C4, oracleC4, readCoordListEntry]];
   for (const [caps, oracleFn, fn] of arms) {
     for (const cap of caps) {
       const o = cap.clone(), c = cap.clone();
@@ -71,7 +71,7 @@ test("CRAFTED: 0x96ab derives from the counter, 0x96b7 reloads it raw, 0x96c4 is
   {
     const o = new Machine(ROM, OPTS); seedCraft(o, { p2b: 0x25, y: 0x10 });
     const c = new Machine(ROM, OPTS); seedCraft(c, { p2b: 0x25, y: 0x10 });
-    oracleAb(o); const [ra, ry] = loc_96ab(c);
+    oracleAb(o); const [ra, ry] = fetchCoordListEntryByCounter(c);
     assert.equal(ramDiff(o, c), null, "96ab RAM diverged");
     assert.equal(c.regs.a, o.regs.a, "96ab A diverged");
     assert.equal(c.regs.y, o.regs.y, "96ab Y diverged");
@@ -84,7 +84,7 @@ test("CRAFTED: 0x96ab derives from the counter, 0x96b7 reloads it raw, 0x96c4 is
   {
     const o = new Machine(ROM, OPTS); seedCraft(o, { p2b: 0x25, y: 0x10 });
     const c = new Machine(ROM, OPTS); seedCraft(c, { p2b: 0x25, y: 0x10 });
-    oracleB7(o); loc_96b7(c);
+    oracleB7(o); fetchCoordListEntryByIndex(c);
     assert.equal(ramDiff(o, c), null, "96b7 RAM diverged");
     assert.equal(c.regs.a, o.regs.a, "96b7 A diverged");
     assert.equal(c.regs.y, o.regs.y, "96b7 Y diverged");
@@ -94,7 +94,7 @@ test("CRAFTED: 0x96ab derives from the counter, 0x96b7 reloads it raw, 0x96c4 is
   {
     const o = new Machine(ROM, OPTS); seedCraft(o, { y: 0x07 });
     const c = new Machine(ROM, OPTS); seedCraft(c, { y: 0x07 });
-    oracleC4(o); const r = loc_96c4(c);
+    oracleC4(o); const r = readCoordListEntry(c);
     assert.equal(ramDiff(o, c), null, "96c4 RAM diverged");
     assert.equal(c.regs.a, o.regs.a, "96c4 A diverged");
     assert.equal(c.regs.y, 0x07, "96c4 leaves Y untouched");
@@ -121,7 +121,7 @@ test("TEETH: a twin that skips the (($2c),Y-2) subtraction diverges from the ora
 });
 
 test("SP-TOOTH: all three omitted-ret entries (moved 0) are seam-placeable", () => {
-  for (const [fn, addr] of [[loc_96ab, 0x96ab], [loc_96b7, 0x96b7], [loc_96c4, 0x96c4]]) {
+  for (const [fn, addr] of [[fetchCoordListEntryByCounter, 0x96ab], [fetchCoordListEntryByIndex, 0x96b7], [readCoordListEntry, 0x96c4]]) {
     const m = new Machine(ROM, OPTS); seedCraft(m, { p2b: 0x25, y: 0x10 });
     m.regs.s = 0xfb;
     m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam

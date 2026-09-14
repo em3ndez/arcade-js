@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9009 (ROM 0x9009-0x9024) -- an init sequence: run four setup subroutines
-// (loc_92c5, loc_9234, loc_902b, loc_a831) in order, then seed DEPTH_LO = 250 and clear
+// (reseedStateTables, seedPerLaneSpikeArray, loc_902b, clearReadyLatchPair) in order, then seed DEPTH_LO = 250 and clear
 // SPIKE_ACTIVE_FLAG/DEPTH_HI/MODE_DISPATCH_SEL. No input register; ends with a plain return (not a tail-delegate) and no caller
 // reads a register back, so live-out is RAM only (dumpState minus STACK_SCRATCH). Oracle is the frozen
 // translated loc_9009.
@@ -34,12 +34,12 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// POKEY coupling: the init chain reaches loc_902b -> loc_9246, which reads $60ca (POKEY1 RANDOM). That
+// POKEY coupling: the init chain reaches loc_902b -> seedSlotRandomTags, which reads $60ca (POKEY1 RANDOM). That
 // register is clock-coupled -- its poly index advances with CPU cycles, and each read charges cycles the
 // idiomatic layer does not tick. The oracle (which steps every instruction) therefore sees a FRESH random
 // byte per load while the idiomatic layer sees a frozen one, so on a captured mid-run dispatch (SK_RESET
-// set) the loc_9246 tag table diverges at $0203+. Freeze the polys (clear SK_RESET) so both arms read the
-// SAME RANDOM byte on every load -- the same fix the loc_9246 equivalence test uses. A fresh Machine boots
+// set) the seedSlotRandomTags tag table diverges at $0203+. Freeze the polys (clear SK_RESET) so both arms read the
+// SAME RANDOM byte on every load -- the same fix the seedSlotRandomTags equivalence test uses. A fresh Machine boots
 // with skctl=0 (polys already frozen), so the CRAFTED arm below needs no freeze.
 const freezePokey = (m) => { for (const p of m.io.pokeys) p.skctl &= ~0x03; return m; };
 

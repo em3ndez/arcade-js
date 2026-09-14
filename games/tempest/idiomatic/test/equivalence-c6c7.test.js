@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c6c7 (ROM 0xc6c7-0xc73b) -- a CALLER: it dissolves m.call into direct
+// Memory-equivalence for emitEnemySlotEntry (ROM 0xc6c7-0xc73b) -- a CALLER: it dissolves m.call into direct
 // idiomatic calls (c453, c098, c73c, bd3e). Effect is memory only (cursor $a9 + vector RAM via ($74)),
 // so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). The bit6-set
 // branch reads POKEY RANDOM ($60ca), so that path is validated by CAPTURE (both sides replay identical
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c6c7 as oracle } from "../../translated/loc_c6c7.js";
-import { loc_c6c7 } from "../loc_c6c7.js";
+import { emitEnemySlotEntry } from "../emitEnemySlotEntry.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TABLE_CURSOR, LANE_LIMIT, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DRAW_CURSOR_OFFSET } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xc6c7 dispatches -- loc_c6c7 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc6c7 dispatches -- emitEnemySlotEntry == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c6c7(c);
+    oracle(o); emitEnemySlotEntry(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -63,7 +63,7 @@ test("CRAFTED: inactive slot ($03ac,x == 0) writes four 0x00/0x71 pairs and adva
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c6c7(c);
+  oracle(o); emitEnemySlotEntry(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after inactive-branch emit");
   for (let i = 0; i < 4; i++) {
     assert.equal(c.mem.read8(0x2000 + i * 2), 0x00, `pair ${i} lo`);

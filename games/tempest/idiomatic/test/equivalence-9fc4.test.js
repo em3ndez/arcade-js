@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9fc4 (ROM 0x9fc4-0xa027) -- slot x column-approach step. Dissolves the
-// jsr $a028 (new-column pick) into the idiomatic loc_a028. All output is RAM, so each arm compares the
-// RAM diff (minus the dead stack). The far-limit arms enter loc_a028, which reads POKEY2 RANDOM
+// Memory-equivalence for advanceClimberTrackingColumnMin (ROM 0x9fc4-0xa027) -- slot x column-approach step. Dissolves the
+// jsr $a028 (new-column pick) into the idiomatic aimClimberAtDeepestColumn. All output is RAM, so each arm compares the
+// RAM diff (minus the dead stack). The far-limit arms enter aimClimberAtDeepestColumn, which reads POKEY2 RANDOM
 // ($60da); both sides run on identically-seeded Machines (same poly state) so the read agrees --
 // CAPTURE + identical-seed is the equivalence guarantee there. An omitted-ret rewrite. A at RTS incidental.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9fc4.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9fc4 as oracle } from "../../translated/loc_9fc4.js";
-import { loc_9fc4 } from "../loc_9fc4.js";
+import { advanceClimberTrackingColumnMin } from "../advanceClimberTrackingColumnMin.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SCRIPT_BRANCH_FLAG, TUBE_GEOM_FLAG, ENEMY_SEGMENT, LANE_LIMIT, ENEMY_DEPTH, LANE_TARGET_FLAG, ENEMY_SLOT_DIR, ENEMY_SLOT_FLAGS, FIRE_GATE } from "../names.js";
@@ -51,10 +51,10 @@ function seat(m, s = {}) {
   m.mem.write8(FIRE_GATE, s.c3ab ?? 0x00);
 }
 
-test("CAPTURE: real 0x9fc4 dispatches -- loc_9fc4 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9fc4 dispatches -- advanceClimberTrackingColumnMin == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9fc4(c);
+    oracle(o); advanceClimberTrackingColumnMin(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -73,7 +73,7 @@ test("CRAFTED: seeded states across every branch == oracle (RAM)", () => {
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_9fc4(c);
+    oracle(o); advanceClimberTrackingColumnMin(c);
     assert.equal(ramDiff(o, c), null, s.tag);            // POKEY read agrees: identical seed => identical poly
     const cleared = (s.depth ?? 0x50) >= 0xf2 && (s.c3ab ?? 0x00) === 0x00; // full-rewrite path clears $010c
     assert.equal(c.mem.read8(SCRIPT_BRANCH_FLAG), cleared ? 0x00 : 0x01, `${s.tag}: $010c`);
@@ -104,6 +104,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seat(m, { depth: 0x10 });   // shallow path: no POKEY, deterministic
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_9fc4, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9fc4 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, advanceClimberTrackingColumnMin, TARGET, m);
+  assert.equal(r.placeable, true, `advanceClimberTrackingColumnMin must be seam-placeable; got: ${r.error}`);
 });

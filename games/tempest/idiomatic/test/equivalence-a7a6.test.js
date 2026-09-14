@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a7a6 (ROM 0xa7a6) -- $2a = A - Y, then keep the full difference when $0111
+// Memory-equivalence for signedSegmentDelta (ROM 0xa7a6) -- $2a = A - Y, then keep the full difference when $0111
 // bit 7 is set, else the low nibble sign-extended from bit 3. Live-out is RAM $2a plus register A (the
 // caller reads A back), so each arm compares A directly AND RAM (dumpState minus STACK_SCRATCH). It is a
 // pure leaf (no dispatch); the seam completes it by omitting its ROM ret. No POKEY/clock coupling, so the
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a7a6 as oracle } from "../../translated/loc_a7a6.js";
-import { loc_a7a6 } from "../loc_a7a6.js";
+import { signedSegmentDelta } from "../signedSegmentDelta.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_2a, TUBE_GEOM_FLAG } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa7a6 dispatches -- loc_a7a6 == oracle in A and RAM (-stack)", () => {
+test("CAPTURE: real 0xa7a6 dispatches -- signedSegmentDelta == oracle in A and RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a7a6(c);
+    oracle(o); signedSegmentDelta(c);
     assert.equal(c.regs.a, o.regs.a, "register A (the result) diverged");
     assert.equal(ramDiff(o, c), null);
   }
@@ -66,7 +66,7 @@ test("CRAFTED: keep-full / nibble / sign-extend branches == oracle in A and RAM 
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_a7a6(c);
+    oracle(o); signedSegmentDelta(c);
     assert.equal(c.regs.a, o.regs.a, `A: ${s.tag}`);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }

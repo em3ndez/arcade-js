@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b634 (ROM 0xb634) -- for slot x, copy $57->$2f, fetch a base coord pair from
+// Memory-equivalence for buildSlotScreenPoint (ROM 0xb634) -- for slot x, copy $57->$2f, fetch a base coord pair from
 // $03ce/$03de (indexed by $02b9,x), signed-saturating-add the $b68b/$b687 deltas (indexed by $02cc,x&0x0f)
 // into $2e/$30, and load a style pair $bcdc/$bcec (indexed by $0112) into $59/$5a. x is the only input;
 // live-out is RAM only. Pure leaf, no dispatch; the seam completes it by omitting its ROM ret. No POKEY
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b634 as oracle } from "../../translated/loc_b634.js";
-import { loc_b634 } from "../loc_b634.js";
+import { buildSlotScreenPoint } from "../buildSlotScreenPoint.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -41,10 +41,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb634 dispatches -- loc_b634 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb634 dispatches -- buildSlotScreenPoint == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b634(c);
+    oracle(o); buildSlotScreenPoint(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -71,7 +71,7 @@ test("CRAFTED: coord fetch, saturating add and style load == oracle across seeds
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_b634(c);
+    oracle(o); buildSlotScreenPoint(c);
     assert.equal(ramDiff(o, c), null, `RAM x=${s.x} coordIdx=${s.coordIdx}`);
     assert.equal(c.mem8[loc_2f], s.b57, `x=${s.x}: $2f copied from $57`);
   }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_ccb5 (ROM 0xccb5-0xccb8) -- loads sound id A=0x0f and tail-calls the sound gate
-// (loc_ccc3), threading the caller's X/Y into $31/$32. The oracle runs the translated loc_ccc3 via m.call;
-// the idiomatic calls the idiomatic loc_ccc3 directly with A=0x0f and the caller X/Y. Live-out is memory
+// (requestSoundIfEnabled), threading the caller's X/Y into $31/$32. The oracle runs the translated requestSoundIfEnabled via m.call;
+// the idiomatic calls the idiomatic requestSoundIfEnabled directly with A=0x0f and the caller X/Y. Live-out is memory
 // (the sound-slot tables + $31/$32); registers at RTS are incidental, so the contract is RAM (-stack).
 // Run: node --test games/tempest/idiomatic/test/equivalence-ccb5.test.js
 
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ccb5 as oracle } from "../../translated/loc_ccb5.js";
 import { loc_ccb5 } from "../loc_ccb5.js";
-import { loc_ccc3 } from "../loc_ccc3.js";
+import { requestSoundIfEnabled } from "../requestSoundIfEnabled.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
@@ -67,6 +67,6 @@ test("TEETH: a twin that threads the wrong X diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  loc_ccc3(c, 0x0f, 0x99, 0x22); // BUG: X=0x99 instead of the seeded 0x11
+  requestSoundIfEnabled(c, 0x0f, 0x99, 0x22); // BUG: X=0x99 instead of the seeded 0x11
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong X thread");
 });

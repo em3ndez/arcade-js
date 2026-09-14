@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_ccc1 (ROM 0xccc1-0xccc2) -- trampoline: load the fixed sound id 0x1f then fall
-// through into loc_ccc3 (the $05 bit7 gate). The idiomatic dissolves the fall-through into a direct
-// loc_ccc3(m, 0x1f, x, y). X/Y are register inputs -> params defaulting to m.regs, stamped to $31/$32 by the
+// through into requestSoundIfEnabled (the $05 bit7 gate). The idiomatic dissolves the fall-through into a direct
+// requestSoundIfEnabled(m, 0x1f, x, y). X/Y are register inputs -> params defaulting to m.regs, stamped to $31/$32 by the
 // downstream registration; live-out is memory only. A leaf: the module omits the ROM ret and the seam
 // completes it, so arms compare RAM (-stack), NOT pc/SP.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ccc1.test.js
@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ccc1 as oracle } from "../../translated/loc_ccc1.js";
 import { loc_ccc1 } from "../loc_ccc1.js";
-import { loc_ccc3 } from "../loc_ccc3.js";
+import { requestSoundIfEnabled } from "../requestSoundIfEnabled.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32, SOUND_VOICE_VALUE } from "../names.js";
@@ -86,7 +86,7 @@ test("TEETH id: a twin that registers the wrong id diverges from the oracle", ()
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const brokenCcc1 = (m, x = m.regs.x, y = m.regs.y) => loc_ccc3(m, 0x5f, x, y); // BUG: 0x5f not 0x1f
+  const brokenCcc1 = (m, x = m.regs.x, y = m.regs.y) => requestSoundIfEnabled(m, 0x5f, x, y); // BUG: 0x5f not 0x1f
   brokenCcc1(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong sound id");
 });
@@ -100,7 +100,7 @@ test("TEETH X/Y: a twin that drops the caller X/Y bridge diverges (non-default s
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const brokenCcc1 = (m) => loc_ccc3(m, 0x1f, 0x00, 0x00); // BUG: stale X/Y (0,0) not caller's
+  const brokenCcc1 = (m) => requestSoundIfEnabled(m, 0x1f, 0x00, 0x00); // BUG: stale X/Y (0,0) not caller's
   brokenCcc1(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the dropped X/Y bridge");
 });

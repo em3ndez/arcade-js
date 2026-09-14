@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c30d -- first-time setup seeds two counters, always emits a header, and (when
+// Memory-equivalence for initAndDrawRimDepthCounters -- first-time setup seeds two counters, always emits a header, and (when
 // both counters are live) clears record slots and draws each counter's record set, tail-calling the drawer.
 // The idiomatic side dissolves the jsr chain (c473/c453/df6a/c3ee/df4c/c36e) into direct calls. Live-out is
 // RAM plus the value carried out by the tail drawer (validated by that callee's own equivalence), so each arm
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c30d as oracle } from "../../translated/loc_c30d.js";
-import { loc_c30d } from "../loc_c30d.js";
+import { initAndDrawRimDepthCounters } from "../initAndDrawRimDepthCounters.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_9e, loc_110, loc_113 } from "../names.js";
@@ -38,10 +38,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xc30d dispatches -- loc_c30d == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc30d dispatches -- initAndDrawRimDepthCounters == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c30d(c);
+    oracle(o); initAndDrawRimDepthCounters(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ function seedLive(m) {
 test("CRAFTED: first counter live -- header + mode flag written, then early return matches oracle", () => {
   const o = new Machine(ROM, OPTS); seedLive(o);
   const c = new Machine(ROM, OPTS); seedLive(c);
-  oracle(o); loc_c30d(c);
+  oracle(o); initAndDrawRimDepthCounters(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after early-return path");
   assert.equal(c.mem.read8(loc_9e), 0x06, "mode flag written");
 });
@@ -74,7 +74,7 @@ test("TEETH-NODRAW: first counter live but no secondary -- both take the same ea
   const seed = (m) => { m.mem.write8(loc_110, 0x05); m.mem.write8(loc_113, 0x00); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c30d(c);
+  oracle(o); initAndDrawRimDepthCounters(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the shared early return");
 });
 
@@ -82,7 +82,7 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS); seedLive(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c30d, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c30d must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, initAndDrawRimDepthCounters, TARGET, m);
+  assert.equal(r.placeable, true, `initAndDrawRimDepthCounters must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret tail-caller (moved 0) placeable");
 });

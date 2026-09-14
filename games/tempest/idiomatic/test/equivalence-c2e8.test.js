@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c2e8 (ROM 0xc2e8-0xc30c) -- reduces the input A (>= 0x62 -> POKEY1 RANDOM
+// Memory-equivalence for resolveShapeTableIndex (ROM 0xc2e8-0xc30c) -- reduces the input A (>= 0x62 -> POKEY1 RANDOM
 // $60ca & 0x5f), /16 into quotient X and remainder Y, looks Y up in table $bc7c, stores the byte to $0112,
 // and returns A = (entry << 4) | 0x0f. Live-outs are RAM ($0112) plus registers A/X/Y, so the arms compare
 // RAM (-stack) and A/X/Y. A leaf: it omits the ROM ret and the seam completes it.
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c2e8 as oracle } from "../../translated/loc_c2e8.js";
-import { loc_c2e8 } from "../loc_c2e8.js";
+import { resolveShapeTableIndex } from "../resolveShapeTableIndex.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TUBE_SHAPE_INDEX } from "../names.js";
@@ -44,10 +44,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xc2e8 dispatches -- loc_c2e8 == oracle in RAM (-stack) and A/X/Y (poly frozen)", () => {
+test("CAPTURE: real 0xc2e8 dispatches -- resolveShapeTableIndex == oracle in RAM (-stack) and A/X/Y (poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_c2e8(c);
+    oracle(o); resolveShapeTableIndex(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A (packed result) diverged");
     assert.equal(c.regs.x, o.regs.x, "X (quotient) diverged");
@@ -60,7 +60,7 @@ test("CRAFTED: A < 0x62 -- quotient/remainder split, table lookup, $0112 store, 
   for (const ain of [0x00, 0x0f, 0x10, 0x35, 0x59, 0x61]) {
     const o = new Machine(ROM, OPTS); o.regs.a = ain;
     const c = new Machine(ROM, OPTS); c.regs.a = ain;
-    oracle(o); const r = loc_c2e8(c);
+    oracle(o); const r = resolveShapeTableIndex(c);
     assert.equal(ramDiff(o, c), null, `A_in=0x${ain.toString(16)}: RAM diverged`);
     assert.equal(c.regs.a, o.regs.a, `A_in=0x${ain.toString(16)}: A diverged`);
     assert.equal(c.regs.x, o.regs.x, `A_in=0x${ain.toString(16)}: X diverged`);
@@ -90,7 +90,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   m.regs.a = 0x10; // < 0x62 -> no POKEY read, fully deterministic
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c2e8, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c2e8 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, resolveShapeTableIndex, TARGET, m);
+  assert.equal(r.placeable, true, `resolveShapeTableIndex must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

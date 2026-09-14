@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_cd06 as oracle } from "../../translated/loc_cd06.js";
 import { loc_cd06 } from "../loc_cd06.js";
-import { loc_ccc3 } from "../loc_ccc3.js";
+import { requestSoundIfEnabled } from "../requestSoundIfEnabled.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
@@ -102,7 +102,7 @@ test("TEETH: passing the wrong id (0x00) diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  loc_ccc3(c, 0x00); // BUG: wrong sound id walks a different table window
+  requestSoundIfEnabled(c, 0x00); // BUG: wrong sound id walks a different table window
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong sound id");
 });
 

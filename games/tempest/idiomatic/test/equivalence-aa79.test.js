@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa79 (ROM 0xaa79-0xaa8f) -- draws a vector list (loc_ab17 A=0/X=$32), then
-// when ($03 & $1f) < $10 draws a second (A=$e0/X=$22), and tail-calls the frame setup loc_a8b4. Dissolves
+// Memory-equivalence for loc_aa79 (ROM 0xaa79-0xaa8f) -- draws a vector list (drawSlotShapeWithHeader A=0/X=$32), then
+// when ($03 & $1f) < $10 draws a second (A=$e0/X=$22), and tail-calls the frame setup buildTextOverlayList. Dissolves
 // every m.call. All output is RAM (emitted vector words + setup), so each arm compares the RAM diff (minus
 // the dead stack). Omitted-ret caller.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aa79.test.js
@@ -11,8 +11,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa79 as oracle } from "../../translated/loc_aa79.js";
 import { loc_aa79 } from "../loc_aa79.js";
-import { loc_ab17 } from "../loc_ab17.js";
-import { loc_a8b4 } from "../loc_a8b4.js";
+import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
+import { buildTextOverlayList } from "../buildTextOverlayList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FRAME_COUNTER } from "../names.js";
@@ -75,7 +75,7 @@ test("TEETH: a twin that always draws the second list diverges on the high-statu
   const o = new Machine(ROM, OPTS); seedPipe(o); o.mem.write8(FRAME_COUNTER, c03); oracle(o);
   const c = new Machine(ROM, OPTS); seedPipe(c); c.mem.write8(FRAME_COUNTER, c03);
   // BUG: ignores the gate and always draws the second list.
-  const broken = (m) => { loc_ab17(m, 0x00, 0x32); loc_ab17(m, 0xe0, 0x22); loc_a8b4(m); };
+  const broken = (m) => { drawSlotShapeWithHeader(m, 0x00, 0x32); drawSlotShapeWithHeader(m, 0xe0, 0x22); buildTextOverlayList(m); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the ungated second draw");
 });

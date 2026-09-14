@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df39 (ROM 0xdf39-0xdf4b) -- a tail-CALLER that emits a coordinate word through
+// Memory-equivalence for emitCoordinateVectorWord (ROM 0xdf39-0xdf4b) -- a tail-CALLER that emits a coordinate word through
 // the ($74) cursor (high byte = tagged upper nibble of A, low byte = X rotated right) then dissolves its
-// tail branch into a direct loc_df5f cursor-advance (the fall path, unreachable since Y is always 1, would
+// tail branch into a direct advanceDisplayCursor cursor-advance (the fall path, unreachable since Y is always 1, would
 // tail into loc_df4c). Effect is memory only; the emitter returns nothing, so each arm compares RAM
 // (dumpState minus STACK_SCRATCH). A/X are register inputs, carried on both sides via clones of one base.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df39.test.js
@@ -11,8 +11,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df39 as oracle } from "../../translated/loc_df39.js";
-import { loc_df39 } from "../loc_df39.js";
-import { loc_df5f } from "../loc_df5f.js";
+import { emitCoordinateVectorWord } from "../emitCoordinateVectorWord.js";
+import { advanceDisplayCursor } from "../advanceDisplayCursor.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xdf39 dispatches -- loc_df39 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf39 dispatches -- emitCoordinateVectorWord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df39(c);
+    oracle(o); emitCoordinateVectorWord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ function seed(m) {
 test("CRAFTED: emits {lo,hi} coordinate word and advances the cursor by two", () => {
   const base = new Machine(ROM, OPTS); seed(base);
   const o = base.clone(), c = base.clone();
-  oracle(o); loc_df39(c);
+  oracle(o); emitCoordinateVectorWord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
   assert.equal(c.mem.read8(0x2000), 0xa2, "low byte = X rotated right with carry-in");
   assert.equal(c.mem.read8(0x2001), 0xa5, "high byte = tagged upper nibble of A");
@@ -79,7 +79,7 @@ test("TEETH: a twin that drops the 0xa0 tag on the high byte diverges from the o
     const ptr = mem16[0x74];
     mem8[(ptr + 1) & 0xffff] = hi;
     mem8[ptr & 0xffff] = lo;
-    return loc_df5f(m, 1); // advance identically so only the tag differs
+    return advanceDisplayCursor(m, 1); // advance identically so only the tag differs
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing tag");

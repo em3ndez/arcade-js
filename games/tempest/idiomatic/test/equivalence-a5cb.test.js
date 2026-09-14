@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a5cb (ROM 0xa5cb-0xa617) -- sets $00=0x20, $0106|=0x80, clears
+// Memory-equivalence for initWaveStateCountingSpikes (ROM 0xa5cb-0xa617) -- sets $00=0x20, $0106|=0x80, clears
 // $0104/$0107/$5c/$0123, $0105=2, counts nonzero $03ac..$03bb into $0123; if that count is nonzero and
 // $9f<7 loads the param block ($04=0x1e,$00=0x0a,$02=0x20,$0123=0x80); finally $0125=0xff. Live-out is
 // memory only, so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a5cb as oracle } from "../../translated/loc_a5cb.js";
-import { loc_a5cb } from "../loc_a5cb.js";
+import { initWaveStateCountingSpikes } from "../initWaveStateCountingSpikes.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, GAME_MODE_PENDING, MODE_DELAY_TIMER, loc_9f, SPIKE_ACTIVE_FLAG, SPIKED_SEGMENT_COUNT, WAVE_PHASE_LATCH, LANE_LIMIT } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xa5cb dispatches -- loc_a5cb == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa5cb dispatches -- initWaveStateCountingSpikes == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a5cb(c);
+    oracle(o); initWaveStateCountingSpikes(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ test("CRAFTED: live entries + $9f<7 -- param block loads (RAM equal)", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a5cb(c);
+  oracle(o); initWaveStateCountingSpikes(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after init");
   assert.equal(c.mem.read8(SPIKE_ACTIVE_FLAG) & 0x80, 0x80, "$0106 bit7 set");
   assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x1e, "param block $04 loaded");
@@ -74,7 +74,7 @@ test("CRAFTED: $9f>=7 -- param block skipped, count kept (RAM equal)", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a5cb(c);
+  oracle(o); initWaveStateCountingSpikes(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after init");
   assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT), 0x03, "count kept (param block skipped)");
   assert.equal(c.mem.read8(GAME_MODE), 0x20, "$00 stays at 0x20 (block skipped)");
@@ -109,7 +109,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_a5cb, TARGET, m);
-  assert.equal(r.placeable, true, `loc_a5cb must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, initWaveStateCountingSpikes, TARGET, m);
+  assert.equal(r.placeable, true, `initWaveStateCountingSpikes must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

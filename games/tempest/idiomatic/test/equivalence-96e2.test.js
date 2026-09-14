@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_96e2 (ROM 0x96e2-0x96f3) -- calls loc_96f4 for a repeat count, loads the first
+// Memory-equivalence for sumCoordListEntryRun (ROM 0x96e2-0x96f3) -- calls computeCoordListBackDelta for a repeat count, loads the first
 // (0x2c),y entry, then folds `count` more copies of the next entry into a one-byte running total. The
-// idiomatic side dissolves the jsr $96f4 into a direct loc_96f4(m, y) call and consumes its returned count.
+// idiomatic side dissolves the jsr $96f4 into a direct computeCoordListBackDelta(m, y) call and consumes its returned count.
 // Live-out is the accumulator A (returned by the module), compared against the oracle's exit regs.a; RAM
-// (dumpState minus STACK_SCRATCH) also covers $29 written inside loc_96f4.
+// (dumpState minus STACK_SCRATCH) also covers $29 written inside computeCoordListBackDelta.
 // Run: node --test games/tempest/idiomatic/test/equivalence-96e2.test.js
 
 import nodeTest from "node:test";
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_96e2 as oracle } from "../../translated/loc_96e2.js";
-import { loc_96e2 } from "../loc_96e2.js";
+import { sumCoordListEntryRun } from "../sumCoordListEntryRun.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -50,10 +50,10 @@ function seed(m, y) {
   m.regs.y = y;
 }
 
-test("CAPTURE: real 0x96e2 dispatches -- loc_96e2 == oracle in RAM (-stack) and live-out A", () => {
+test("CAPTURE: real 0x96e2 dispatches -- sumCoordListEntryRun == oracle in RAM (-stack) and live-out A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const rv = loc_96e2(c);
+    oracle(o); const rv = sumCoordListEntryRun(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(rv & 0xff, o.regs.a, "returned total must equal oracle exit A");
   }
@@ -63,7 +63,7 @@ test("CAPTURE: real 0x96e2 dispatches -- loc_96e2 == oracle in RAM (-stack) and 
 test("CRAFTED: count=3 fold -- RAM equal and returned total equals oracle exit A", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x04);
   const c = new Machine(ROM, OPTS); seed(c, 0x04);
-  oracle(o); const rv = loc_96e2(c);
+  oracle(o); const rv = sumCoordListEntryRun(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after fold");
   assert.equal(rv & 0xff, o.regs.a, "returned total equals oracle exit A");
   assert.equal(rv & 0xff, 0x16, "0x10 + 3*0x02 = 0x16");
@@ -84,6 +84,6 @@ test("SP-TOOTH: the omitted-ret routine (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_96e2, TARGET, m);
-  assert.equal(r.placeable, true, `loc_96e2 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, sumCoordListEntryRun, TARGET, m);
+  assert.equal(r.placeable, true, `sumCoordListEntryRun must be seam-placeable; got: ${r.error}`);
 });

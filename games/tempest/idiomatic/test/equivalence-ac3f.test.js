@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ac3f (ROM 0xac3f-0xad21) -- a CALLER that dissolves three m.calls into direct
-// idiomatic calls: loc_ca62 (conditional block-clear), loc_ddfb (arm the merge with mask 4), and the
-// fall-through loc_ad22 (walk the request word). It bubble-sorts each channel's record rows counting passes,
+// Memory-equivalence for buildSortedSoundRequest (ROM 0xac3f-0xad21) -- a CALLER that dissolves three m.calls into direct
+// idiomatic calls: clearChannelStagingBlock (conditional block-clear), queueEaromRegionSave (arm the merge with mask 4), and the
+// fall-through armRequestedSoundSlot (walk the request word). It bubble-sorts each channel's record rows counting passes,
 // records per-channel pass counts, nudges a running total, and derives a packed request byte. Effect is
 // memory only, so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-ac3f.test.js
@@ -11,10 +11,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ac3f as oracle } from "../../translated/loc_ac3f.js";
-import { loc_ac3f } from "../loc_ac3f.js";
-import { loc_ca62 } from "../loc_ca62.js";
-import { loc_ddfb } from "../loc_ddfb.js";
-import { loc_ad22 } from "../loc_ad22.js";
+import { buildSortedSoundRequest } from "../buildSortedSoundRequest.js";
+import { clearChannelStagingBlock } from "../clearChannelStagingBlock.js";
+import { queueEaromRegionSave } from "../queueEaromRegionSave.js";
+import { armRequestedSoundSlot } from "../armRequestedSoundSlot.js";
 import { Machine } from "../../machine.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -46,10 +46,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xac3f dispatches -- loc_ac3f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xac3f dispatches -- buildSortedSoundRequest == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ac3f(c);
+    oracle(o); buildSortedSoundRequest(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -72,7 +72,7 @@ function fillWindow(m) {
 test("CRAFTED (no ca62): full bubble sort + request derivation match the oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); fillWindow(o); o.mem.write8(STATUS_FLAGS, 0xff); o.mem.write8(DSW1_SNAPSHOT, 0x00);
   const c = new Machine(ROM, OPTS); fillWindow(c); c.mem.write8(STATUS_FLAGS, 0xff); c.mem.write8(DSW1_SNAPSHOT, 0x00);
-  oracle(o); loc_ac3f(c);
+  oracle(o); buildSortedSoundRequest(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after ac3f (no ca62 path)");
   assert.equal(c.mem.read8(STATUS_FLAGS) & 0x40, 0x00, "$05 bit6 cleared");
 });
@@ -80,7 +80,7 @@ test("CRAFTED (no ca62): full bubble sort + request derivation match the oracle 
 test("CRAFTED (ca62 path): the conditional block-clear fires and still matches the oracle", () => {
   const o = new Machine(ROM, OPTS); fillWindow(o); o.mem.write8(STATUS_FLAGS, 0xff); o.mem.write8(DSW1_SNAPSHOT, 0x40);
   const c = new Machine(ROM, OPTS); fillWindow(c); c.mem.write8(STATUS_FLAGS, 0xff); c.mem.write8(DSW1_SNAPSHOT, 0x40);
-  oracle(o); loc_ac3f(c);
+  oracle(o); buildSortedSoundRequest(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after ac3f (ca62 path)");
 });
 
@@ -96,12 +96,12 @@ test("TEETH: a faithful twin that drops the request byte's ADC carry-in diverges
   const o = new Machine(ROM, OPTS); fillWindow(o); o.mem.write8(STATUS_FLAGS, 0xff); o.mem.write8(DSW1_SNAPSHOT, 0x00);
   const c = new Machine(ROM, OPTS); fillWindow(c); c.mem.write8(STATUS_FLAGS, 0xff); c.mem.write8(DSW1_SNAPSHOT, 0x00);
   oracle(o);
-  // Byte-for-byte loc_ac3f, with exactly one omission: the (flag>>6)&1 carry-in on the request byte.
+  // Byte-for-byte buildSortedSoundRequest, with exactly one omission: the (flag>>6)&1 carry-in on the request byte.
   const broken = (m) => {
     const { mem8 } = m;
     mem8[STATUS_FLAGS] = mem8[STATUS_FLAGS] & 0xbf;
-    if ((mem8[DSW1_SNAPSHOT] & 0x43) === 0x40) loc_ca62(m);
-    loc_ddfb(m);
+    if ((mem8[DSW1_SNAPSHOT] & 0x43) === 0x40) clearChannelStagingBlock(m);
+    queueEaromRegionSave(m);
     mem8[loc_601] = 0x00;
     let channel = mem8[ACTIVE_SLOT_COUNT] === 0 ? 0 : 3;
     while (true) {
@@ -159,7 +159,7 @@ test("TEETH: a faithful twin that drops the request byte's ADC carry-in diverges
     let request = (((flag ^ 0x01) << 2) & 0xff) | flag;
     request = u8(request + 0x05); // BUG: dropped + ((flag >> 6) & 0x01)
     mem8[REQUEST_BITS] = request;
-    return loc_ad22(m);
+    return armRequestedSoundSlot(m);
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the dropped carry-in");

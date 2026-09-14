@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ccfa (ROM 0xccfa-0xccfd) -- trampoline: load A=0xaf then tail-jump to loc_ccc7
+// Memory-equivalence for loc_ccfa (ROM 0xccfa-0xccfd) -- trampoline: load A=0xaf then tail-jump to loadSoundVoiceSlots
 // to register that fixed sound id. The idiomatic dissolves the tail m.call(0xccc7) into a direct
-// loc_ccc7(m, 0xaf, x, y); X/Y are register inputs -> params defaulting to m.regs. Live-out is memory only.
+// loadSoundVoiceSlots(m, 0xaf, x, y); X/Y are register inputs -> params defaulting to m.regs. Live-out is memory only.
 // A leaf: the module omits the ROM ret and the seam completes it, so arms compare RAM (-stack), NOT pc/SP.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ccfa.test.js
 
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ccfa as oracle } from "../../translated/loc_ccfa.js";
 import { loc_ccfa } from "../loc_ccfa.js";
-import { loc_ccc7 } from "../loc_ccc7.js";
+import { loadSoundVoiceSlots } from "../loadSoundVoiceSlots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_31, loc_32, SOUND_VOICE_VALUE } from "../names.js";
@@ -73,7 +73,7 @@ test("TEETH: a twin that forwards caller A (not 0xaf) diverges from the oracle",
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const brokenCcfa = (m, a = m.regs.a, x = m.regs.x, y = m.regs.y) => {
-    loc_ccc7(m, a, x, y); // BUG: forwards caller A instead of the fixed 0xaf
+    loadSoundVoiceSlots(m, a, x, y); // BUG: forwards caller A instead of the fixed 0xaf
   };
   brokenCcfa(c);
   const d = ramDiff(o, c);

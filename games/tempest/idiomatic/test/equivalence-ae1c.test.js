@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ae1c (ROM 0xae1c-0xae4d) -- runs the frame setup (loc_a8b4), folds two POKEY
+// Memory-equivalence for seedRngAndDrawCounterPanel (ROM 0xae1c-0xae4d) -- runs the frame setup (buildTextOverlayList), folds two POKEY
 // random samples ($60ca then $60da) into the scratch byte $29 and the stored nibble $011f, draws counters
 // (loc_af26), then tail-calls the row builder loc_ae4e with A = 0xff. Dissolves every m.call; the 0xff is
 // threaded as loc_ae4e's A input.
@@ -14,8 +14,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ae1c as oracle } from "../../translated/loc_ae1c.js";
-import { loc_ae1c } from "../loc_ae1c.js";
-import { loc_a8b4 } from "../loc_a8b4.js";
+import { seedRngAndDrawCounterPanel } from "../seedRngAndDrawCounterPanel.js";
+import { buildTextOverlayList } from "../buildTextOverlayList.js";
 import { loc_af26 } from "../loc_af26.js";
 import { loc_ae4e } from "../loc_ae4e.js";
 import { Machine, withOmittedRet } from "../../machine.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 6000) : [];
 
-// Stand up a minimal draw environment for the frame build (loc_a8b4). Without it the emitted vector words
-// corrupt zero page ($3b/$3c) and loc_ab14 dereferences a garbage pointer into a decode hole (unmapped read
+// Stand up a minimal draw environment for the frame build (buildTextOverlayList). Without it the emitted vector words
+// corrupt zero page ($3b/$3c) and drawSlotShapeRecord dereferences a garbage pointer into a decode hole (unmapped read
 // at 0x7100). Point ($74) at vector RAM (0x2800), ($ac) at a table (0x2400) whose every even entry points to
-// a one-pair, bit7-terminated list at 0x2500, and set $05 bit7 so loc_a8b4 skips its own object-draw block
+// a one-pair, bit7-terminated list at 0x2500, and set $05 bit7 so buildTextOverlayList skips its own object-draw block
 // (covered separately by equivalence-a8b4). The random fold, loc_af26 draw, and A=0xff thread still run.
 function seat(m) {
   m.mem.write8(0x05, 0x80);
@@ -59,10 +59,10 @@ function seat(m) {
   return m;
 }
 
-test("CAPTURE: real 0xae1c dispatches -- loc_ae1c == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xae1c dispatches -- seedRngAndDrawCounterPanel == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_ae1c(c);
+    oracle(o); seedRngAndDrawCounterPanel(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -71,7 +71,7 @@ test("CAPTURE: real 0xae1c dispatches -- loc_ae1c == oracle in RAM (-stack, poly
 test("CRAFTED: random fold -> $29 and $011f, draws, A=0xff to loc_ae4e == oracle (RAM)", () => {
   const o = seat(freezePokey(new Machine(ROM, OPTS)));
   const c = seat(freezePokey(new Machine(ROM, OPTS)));
-  oracle(o); loc_ae1c(c);
+  oracle(o); seedRngAndDrawCounterPanel(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the fold + draw");
   assert.equal(c.mem.read8(loc_29), o.mem.read8(loc_29), "scratch $29 folded identically");
   assert.equal(c.mem.read8(loc_11f), o.mem.read8(loc_11f), "stored nibble $011f folded identically");
@@ -83,7 +83,7 @@ test("TEETH (A thread): a twin that hands loc_ae4e the wrong A (0x00) diverges a
   // BUG: threads a zero A into the row builder instead of 0xff; loc_ae4e stamps it into $63.
   const broken = (m) => {
     const { mem8 } = m;
-    loc_a8b4(m);
+    buildTextOverlayList(m);
     const r0 = mem8[POKEY1_RANDOM];
     mem8[loc_29] = mem8[POKEY1_RANDOM];
     mem8[loc_29] = (r0 >> 4) ^ mem8[loc_29];
@@ -104,6 +104,6 @@ test("SP-TOOTH: the omitted-ret caller is seam-placeable", () => {
   const m = seat(freezePokey(new Machine(ROM, OPTS)));
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ae1c, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ae1c must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, seedRngAndDrawCounterPanel, TARGET, m);
+  assert.equal(r.placeable, true, `seedRngAndDrawCounterPanel must be seam-placeable; got: ${r.error}`);
 });

@@ -4,7 +4,7 @@
 // step later ($2c<-the ORed value, $9afd[1]->$2d, 1->$2b, A<-$29). Neither the incoming A nor Y is read.
 // Live-out is RAM (dumpState minus STACK_SCRATCH) plus A. The mid-entry is not a separate export in the
 // frozen translated module, so the oracle is composed from its preset (OR + index 1) feeding the frozen
-// translated setup routine loc_9af1.
+// translated setup routine seatCoordListPointerWithLowByte.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9aa9.test.js
 
 import nodeTest from "node:test";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9af1 as oracleSetup } from "../../translated/loc_9aee.js";
-import { loc_9aa9 } from "../loc_9a9d.js";
+import { loc_9aa9 } from "../seatDemoCoordListPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";

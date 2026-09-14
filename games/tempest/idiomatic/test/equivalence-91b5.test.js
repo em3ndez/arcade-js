@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_91b5 (ROM 0x91b5) -- doubles selector A into a word index, clears $29, and
+// Memory-equivalence for seatInPagePointer (ROM 0x91b5) -- doubles selector A into a word index, clears $29, and
 // copies the ROM word table 0x91c6[index] into $2a/$2b. Live-out is RAM only (A/X at RTS are incidental),
 // so each arm compares RAM (dumpState, minus STACK_SCRATCH). No POKEY read -> the crafted diffs are
 // deterministic. The table read is plain ROM, so no clock coupling.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_91b5 as oracle } from "../../translated/loc_91b5.js";
-import { loc_91b5 } from "../loc_91b5.js";
+import { seatInPagePointer } from "../seatInPagePointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_2a, loc_2b } from "../names.js";
@@ -36,10 +36,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x91b5 dispatches -- loc_91b5 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x91b5 dispatches -- seatInPagePointer == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_91b5(c);
+    oracle(o); seatInPagePointer(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -64,7 +64,7 @@ test("CRAFTED: A -> index*2 -> table[index] lands at $2a/$2b, $29 cleared (== or
   ];
   for (const { a, lo, hi } of cases) {
     const o = seeded(a), c = seeded(a);
-    oracle(o); loc_91b5(c);
+    oracle(o); seatInPagePointer(c);
     assert.equal(ramDiff(o, c), null, `A=0x${a.toString(16)}`);
     assert.equal(c.mem.read8(loc_29), 0x00, `$29 cleared A=0x${a.toString(16)}`);
     assert.equal(c.mem.read8(loc_2a), lo, `$2a A=0x${a.toString(16)}`);
@@ -77,7 +77,7 @@ test("TEETH: a twin that forgets to clear $29 diverges from the oracle", () => {
   oracle(o);
   assert.equal(o.mem.read8(loc_29), 0x00, "precondition: oracle cleared $29 off the sentinel");
   const c = seeded(0x03);
-  loc_91b5(c);
+  seatInPagePointer(c);
   c.mem.write8(loc_29, SENTINEL29); // BUG: $29 never cleared
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch an uncleared $29");
 });

@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa6f as oracle } from "../../translated/loc_aa6f.js";
 import { loc_aa6f } from "../loc_aa6f.js";
-import { loc_ab17 } from "../loc_ab17.js";
+import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, STATUS_FLAGS } from "../names.js";
@@ -75,7 +75,7 @@ test("TEETH: a twin that omits the a8b4 prep and only primes the slot MUST diver
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
-  const broken = (m) => { loc_ab17(m, 0x00, 0x06); }; // BUG: skips the a8b4 prep call
+  const broken = (m) => { drawSlotShapeWithHeader(m, 0x00, 0x06); }; // BUG: skips the a8b4 prep call
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped a8b4 prep");
 });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c772/loc_c774 (ROM 0xc772-0xc79f) -- a CALLER that dissolves its tail m.call
-// into a direct idiomatic call (df5f, the cursor advance). loc_c772 seeds y=0 and falls into loc_c774;
-// loc_c774 is the second entry, reached with X (zeropage-pair index) and Y (write cursor) live. Effect is
+// Memory-equivalence for emitObjectPositionVector/emitObjectPositionRecord (ROM 0xc772-0xc79f) -- a CALLER that dissolves its tail m.call
+// into a direct idiomatic call (df5f, the cursor advance). emitObjectPositionVector seeds y=0 and falls into emitObjectPositionRecord;
+// emitObjectPositionRecord is the second entry, reached with X (zeropage-pair index) and Y (write cursor) live. Effect is
 // memory only (vector RAM via ($74), the $6a-$6d cache, and the ($74) cursor), so each side runs on a clone
 // and the contract is RAM (dumpState, minus STACK_SCRATCH). X/Y are register inputs, seated on both sides.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c772.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c772 as oracle_c772, loc_c774 as oracle_c774 } from "../../translated/loc_c772.js";
-import { loc_c772, loc_c774 } from "../loc_c772.js";
+import { emitObjectPositionVector, emitObjectPositionRecord } from "../emitObjectPositionVector.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, MODE_DISPATCH_SEL, GAME_MODE_PENDING, FRAME_COUNTER, GAME_MODE, PREV_Y_LO, PREV_Y_HI, PREV_X_LO, PREV_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -43,12 +43,12 @@ const CAPS774 = ROM_PRESENT ? captureDispatches(0xc774, oracle_c774, 16, 2000) :
 test("CAPTURE: real 0xc772 / 0xc774 dispatches -- idiomatic == oracle in RAM (-stack)", () => {
   for (const cap of CAPS772) {
     const o = cap.clone(), c = cap.clone();
-    oracle_c772(o); loc_c772(c);
+    oracle_c772(o); emitObjectPositionVector(c);
     assert.equal(ramDiff(o, c), null, "c772 entry");
   }
   for (const cap of CAPS774) {
     const o = cap.clone(), c = cap.clone();
-    oracle_c774(o); loc_c774(c);
+    oracle_c774(o); emitObjectPositionRecord(c);
     assert.equal(ramDiff(o, c), null, "c774 entry");
   }
   console.log(`  CAPTURE: c772=${CAPS772.length} c774=${CAPS774.length} dispatch(es) checked`);
@@ -70,7 +70,7 @@ test("CRAFTED: c772 emits header {0x40,0x80} + two 5-bit-clamped coordinate word
   const x = 0x10;
   const o = new Machine(ROM, OPTS); seed(o, x);
   const c = new Machine(ROM, OPTS); seed(c, x);
-  oracle_c772(o); loc_c772(c);
+  oracle_c772(o); emitObjectPositionVector(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after c772");
   assert.equal(c.mem.read8(0x2000), 0x40, "header lo");
   assert.equal(c.mem.read8(0x2001), 0x80, "header hi");

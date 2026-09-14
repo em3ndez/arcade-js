@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b7eb (ROM 0xb7eb-0xb829) -- refreshes two axis params from the $0435/$0445
-// tables (index $29), runs the two frame updaters (loc_c098, loc_c765 with X=0x61), counts down the
+// Memory-equivalence for animateShapeOneVector (ROM 0xb7eb-0xb829) -- refreshes two axis params from the $0435/$0445
+// tables (index $29), runs the two frame updaters (projectPointThroughMathbox, layHeaderAndBuildRecord with X=0x61), counts down the
 // sub-timer $013c (on wrap advances phase $013b and reloads $013c), optionally runs the phase handler
 // (loc_b84e when the $b83d entry is >= 0), then emits the phase's $cec8/$cec9 vector-pair word via the
-// loc_df57 tail. Dissolves all four m.calls into direct idiomatic calls. All live-out is RAM (the tables,
+// emitVectorWord tail. Dissolves all four m.calls into direct idiomatic calls. All live-out is RAM (the tables,
 // the timer/phase cells, and every callee's writes); the oracle also leaves A as a df5f-family cursor byte
 // the tail does not reproduce, and b7eb reads no register after, so each arm compares RAM only, not A.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b7eb.test.js
@@ -13,9 +13,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b7eb as oracle } from "../../translated/loc_b7eb.js";
-import { loc_b7eb } from "../loc_b7eb.js";
-import { loc_c098 } from "../loc_c098.js";
-import { loc_c765 } from "../loc_c765.js";
+import { animateShapeOneVector } from "../animateShapeOneVector.js";
+import { projectPointThroughMathbox } from "../projectPointThroughMathbox.js";
+import { layHeaderAndBuildRecord } from "../layHeaderAndBuildRecord.js";
 import { loc_b84e } from "../loc_b84e.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -53,10 +53,10 @@ function seed(m, s = {}) {
   m.mem.write8(DRAW_CURSOR_HI, (ptr >> 8) & 0xff);
 }
 
-test("CAPTURE: real 0xb7eb dispatches -- loc_b7eb == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb7eb dispatches -- animateShapeOneVector == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b7eb(c);
+    oracle(o); animateShapeOneVector(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: no-wrap (timer>1) -- axis params refresh, timer ticks, matches th
   const s = { y: 0x00, phase: 0x00, timer: 0x03 };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
-  oracle(o); loc_b7eb(c);
+  oracle(o); animateShapeOneVector(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (no-wrap)");
   assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), 0x02, "sub-timer decremented");
   assert.equal(c.mem.read8(PROJ_PT_Y), o.mem.read8(PROJ_PT_Y), "$56 axis param refreshed");
@@ -77,7 +77,7 @@ test("CRAFTED: wrap (timer==1) -- phase advances and the timer reloads, matches 
   const s = { y: 0x00, phase: 0x00, timer: 0x01 };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
-  oracle(o); loc_b7eb(c);
+  oracle(o); animateShapeOneVector(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (wrap)");
   assert.equal(c.mem.read8(OBJECT_ANIM_PHASE), o.mem.read8(OBJECT_ANIM_PHASE), "phase advanced identically");
   assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), o.mem.read8(OBJECT_ANIM_TIMER), "sub-timer reloaded identically");
@@ -93,8 +93,8 @@ test("TEETH: a twin that never ticks the sub-timer diverges from the oracle", ()
     const y = mem8[loc_29];
     mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + y)];
     mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + y)];
-    loc_c098(m);
-    loc_c765(m, 0x61);
+    projectPointThroughMathbox(m);
+    layHeaderAndBuildRecord(m, 0x61);
     const x = mem8[OBJECT_ANIM_PHASE]; // BUG: never decrements/reloads $013c, never advances the phase
     const phase = mem8[u16(ANIM_PHASE_CODE + x)];
     if (phase < 0x80) loc_b84e(m, phase);
@@ -122,8 +122,8 @@ test("TEETH (marshalling): a twin that swaps the df57 emit pair diverges from th
     const y = mem8[loc_29];
     mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + y)];
     mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + y)];
-    loc_c098(m);
-    loc_c765(m, 0x61);
+    projectPointThroughMathbox(m);
+    layHeaderAndBuildRecord(m, 0x61);
     let x = mem8[OBJECT_ANIM_PHASE];
     const ticked = (mem8[OBJECT_ANIM_TIMER] - 1) & 0xff;
     mem8[OBJECT_ANIM_TIMER] = ticked;
@@ -149,6 +149,6 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b7eb, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b7eb must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, animateShapeOneVector, TARGET, m);
+  assert.equal(r.placeable, true, `animateShapeOneVector must be seam-placeable; got: ${r.error}`);
 });

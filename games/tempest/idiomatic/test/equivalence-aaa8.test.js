@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aaa8 (ROM 0xaaa8-0xaaf2) -- per-frame draw driver: draws the phase slot via
-// loc_ab14, ticks $016e, chooses loc_aeca or the alternate loc_ab14(0x32) draw by the $0a/$03 gates,
+// Memory-equivalence for drawOverlayFrame (ROM 0xaaa8-0xaaf2) -- per-frame draw driver: draws the phase slot via
+// drawSlotShapeRecord, ticks $016e, chooses computeDisplayListChecksum or the alternate drawSlotShapeRecord(0x32) draw by the $0a/$03 gates,
 // redraws slots 0x2c/0x2e, clamps $06 to <=0x28, draws its count via loc_af77, then posts an optional
-// word via loc_df39 when $17 is live. Dissolves every m.call. All output is RAM (draw setup + timer +
+// word via emitCoordinateVectorWord when $17 is live. Dissolves every m.call. All output is RAM (draw setup + timer +
 // clamp + emitted words), so each arm compares the RAM diff (minus the dead stack). Omitted-ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aaa8.test.js
 
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aaa8 as oracle } from "../../translated/loc_aaa8.js";
-import { loc_aaa8 } from "../loc_aaa8.js";
+import { drawOverlayFrame } from "../drawOverlayFrame.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FRAME_COUNTER, PHASE_COUNTER, DSW1_SNAPSHOT, DSW2_SNAPSHOT, HEARTBEAT_ACCUM_HI, SCORE_DISPLAY_TIMER } from "../names.js";
@@ -47,10 +47,10 @@ function seat(m, s = {}) {
   m.mem.write8(SCORE_DISPLAY_TIMER, s.c16e ?? 0x40);
 }
 
-test("CAPTURE: real 0xaaa8 dispatches -- loc_aaa8 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaaa8 dispatches -- drawOverlayFrame == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aaa8(c);
+    oracle(o); drawOverlayFrame(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: every branch path == oracle (RAM)", () => {
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_aaa8(c);
+    oracle(o); drawOverlayFrame(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -86,6 +86,6 @@ test("SP-TOOTH: the omitted-ret driver is seam-placeable", () => {
   seat(m, {});
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aaa8, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aaa8 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawOverlayFrame, TARGET, m);
+  assert.equal(r.placeable, true, `drawOverlayFrame must be seam-placeable; got: ${r.error}`);
 });

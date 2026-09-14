@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c765 (ROM 0xc765-0xc771) -- an alt entry that lays a fixed {0x00,0x71}
-// header at the cursor start (slots 0,1) then falls (bne, y=2 always taken) into loc_c774's body to
-// finish the vector. The idiomatic form dissolves that fall-through into a direct loc_c774(m, x, 2) call.
+// Memory-equivalence for layHeaderAndBuildRecord (ROM 0xc765-0xc771) -- an alt entry that lays a fixed {0x00,0x71}
+// header at the cursor start (slots 0,1) then falls (bne, y=2 always taken) into emitObjectPositionRecord's body to
+// finish the vector. The idiomatic form dissolves that fall-through into a direct emitObjectPositionRecord(m, x, 2) call.
 // Effect is memory only (vector RAM via ($74) plus the $6a-$6d cache and cursor), so each side runs on a
 // clone and the contract is RAM (dumpState, minus STACK_SCRATCH). X (zeropage-pair index) is a register
 // input, seated on both sides.
@@ -12,8 +12,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c765 as oracle } from "../../translated/loc_c765.js";
-import { loc_c765 } from "../loc_c765.js";
-import { loc_c774 } from "../loc_c772.js";
+import { layHeaderAndBuildRecord } from "../layHeaderAndBuildRecord.js";
+import { emitObjectPositionRecord } from "../emitObjectPositionVector.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, MODE_DISPATCH_SEL, GAME_MODE_PENDING, FRAME_COUNTER, GAME_MODE, PREV_Y_LO, PREV_Y_HI, PREV_X_LO, PREV_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -41,10 +41,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xc765 dispatches -- loc_c765 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc765 dispatches -- layHeaderAndBuildRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c765(c);
+    oracle(o); layHeaderAndBuildRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: c765 lays {0x00,0x71} header then the c774 header + two 5-bit-cla
   const x = 0x10;
   const o = new Machine(ROM, OPTS); seed(o, x);
   const c = new Machine(ROM, OPTS); seed(c, x);
-  oracle(o); loc_c765(c);
+  oracle(o); layHeaderAndBuildRecord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after c765");
   assert.equal(c.mem.read8(0x2000), 0x00, "alt header lo");
   assert.equal(c.mem.read8(0x2001), 0x71, "alt header hi");
@@ -91,7 +91,7 @@ test("TEETH: a twin that writes the wrong alt-header byte (0x70) diverges from t
     const base = m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8);
     m.mem.write8((base + 0) & 0xffff, 0x00);
     m.mem.write8((base + 1) & 0xffff, 0x70); // BUG: should be 0x71
-    loc_c774(m, m.regs.x, 2);
+    emitObjectPositionRecord(m, m.regs.x, 2);
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong alt-header byte");

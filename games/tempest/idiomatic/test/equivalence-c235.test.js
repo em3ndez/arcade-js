@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c235 (ROM 0xc235-0xc2e7) -- level-geometry setup. Dissolves jsr $c2e8 into a
+// Memory-equivalence for buildTubeLaneCoords (ROM 0xc235-0xc2e7) -- level-geometry setup. Dissolves jsr $c2e8 into a
 // direct idiomatic call (passing $46,x explicitly, consuming its returned A as the seed index); the oracle
-// runs the TRANSLATED loc_c2e8 via m.call. Live-out is memory only (final A/X/Y are incidental), so each
-// side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). loc_c2e8 reads POKEY
+// runs the TRANSLATED resolveShapeTableIndex via m.call. Live-out is memory only (final A/X/Y are incidental), so each
+// side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). resolveShapeTableIndex reads POKEY
 // random ($60ca) only when its input >= 0x62; the crafted seeds stay below that, and CAPTURE compares on
 // identical clones (poly-frozen), so both arms read the same byte. A caller: the module omits the ROM ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c235.test.js
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c235 as oracle } from "../../translated/loc_c235.js";
-import { loc_c235 } from "../loc_c235.js";
+import { buildTubeLaneCoords } from "../buildTubeLaneCoords.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -43,10 +43,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xc235 dispatches -- loc_c235 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc235 dispatches -- buildTubeLaneCoords == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c235(c);
+    oracle(o); buildTubeLaneCoords(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -64,7 +64,7 @@ const seedDiff = (m) => {
 test("CRAFTED-DIFF: $02!=0x1e path -- constant cells set, RAM matches the oracle", () => {
   const o = new Machine(ROM, OPTS); seedDiff(o);
   const c = new Machine(ROM, OPTS); seedDiff(c);
-  oracle(o); loc_c235(c);
+  oracle(o); buildTubeLaneCoords(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.mem.read8(loc_113), 0x2c, "$0113 = 0x2c");
   assert.equal(c.mem.read8(DEPTH_LO), 0xff, "$5b = 0xff");
@@ -78,7 +78,7 @@ test("CRAFTED-COPY: $02==0x1e path -- offset pair copied, RAM matches the oracle
   const seedCopy = (m) => { seedDiff(m); m.mem.write8(GAME_MODE_PENDING, 0x1e); };
   const o = new Machine(ROM, OPTS); seedCopy(o);
   const c = new Machine(ROM, OPTS); seedCopy(c);
-  oracle(o); loc_c235(c);
+  oracle(o); buildTubeLaneCoords(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.mem.read8(PROJ_OFS_X_LO), o.mem.read8(PROJ_OFS_X_LO), "$68 copied identically");
   assert.equal(c.mem.read8(PROJ_OFS_X_HI), o.mem.read8(PROJ_OFS_X_HI), "$69 copied identically");
@@ -87,7 +87,7 @@ test("CRAFTED-COPY: $02==0x1e path -- offset pair copied, RAM matches the oracle
 test("TEETH: a twin whose $0435[0] average is corrupted diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seedDiff(o);
   const c = new Machine(ROM, OPTS); seedDiff(c);
-  oracle(o); loc_c235(c);
+  oracle(o); buildTubeLaneCoords(c);
   c.mem.write8(SEG_MID_X, (c.mem.read8(SEG_MID_X) ^ 0xff) & 0xff); // BUG: averaged output corrupted
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted store");
 });
@@ -96,7 +96,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedDiff(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_c235, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c235 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, buildTubeLaneCoords, TARGET, m);
+  assert.equal(r.placeable, true, `buildTubeLaneCoords must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller (moved 0) placeable");
 });
