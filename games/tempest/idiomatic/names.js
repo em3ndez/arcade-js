@@ -19,8 +19,8 @@ export const SOUND_STEP_GATE = 0x000c;  // [seen] Flag enabling the periodic sou
 export const LANE_WRAP_POS = 0x000d;  // [seen] Three-lane wrapped position accumulator (masked to five bits) advanced by the heartbeat
 export const LANE_DOWNTIMER = 0x0010;  // [seen] Per-lane down-timer (reloads to 0x78) that drives the heartbeat accumulator step
 export const LANE_COUNTER = 0x0013;  // [seen] Three-entry per-lane counter advanced by the heartbeat; its bit7 feeds the coin/LED latch
-export const LANE_COUNTER_1 = 0x0014;  // [code] Second entry of the three-lane heartbeat counter (LANE_COUNTER base)
-export const LANE_COUNTER_2 = 0x0015;  // [code] Third entry of the three-lane heartbeat counter (LANE_COUNTER base)
+export const LANE_COUNTER_1 = 0x0014;  // [seen] Second entry of the three-lane heartbeat counter (LANE_COUNTER base)
+export const LANE_COUNTER_2 = 0x0015;  // [seen] Third entry of the three-lane heartbeat counter (LANE_COUNTER base)
 export const HEARTBEAT_ACCUM_LO = 0x0016;  // [seen] Low byte of the heartbeat running accumulator advanced with a carry link
 export const HEARTBEAT_ACCUM_HI = 0x0017;  // [seen] High byte of the heartbeat running accumulator, later reduced by a table amount
 export const HEARTBEAT_ACCUM_OVERFLOW = 0x0018;  // [seen] Overflow tally advanced when the heartbeat accumulator subtraction stays non-negative
@@ -839,7 +839,7 @@ export const ROUTINES = {
   0xdd2b: { name: "emitByteBitsAsDigits", role: "[code] Stashes the byte y into loc_35, scales the two coordinates, then shifts loc_35 out MSB-first emitting each of its eight bits as one vector digit.", cert: "seen" },
   0xdd41: { name: "buildLargeDecimalNumber", role: "[code] Doubles-and-adds two little-endian input pairs into the math-box operands loc_6095/loc_6096 (floored to one), seeds a divide, emits a header, then makes repeated passes of binary-to-BCD double-dabble over the three-byte source at loc_3b/loc_3c emitting each pass's digits with a scaled coordinate record.", cert: "seen" },
   0xdde9: { name: "queueEaromRegionErase", role: "[code] queue a blanked write (erase) of the single region on bit 0x04 by feeding mask 0x04 into the blank-mode merge loc_ddf3 (which forces blank-flag 0x1c6=0xff then ORs the mask into 0x1c7/0x1c8).", cert: "code" },
-  0xdded: { name: "eraseEaromLowRegions", role: "[seen] Branch-only trampoline requesting a blanked EAROM write of the two low regions via ddf3 with mask 0x03; downstream loc_1c7/loc_1c8 observed changing.", cert: "seen" },
+  0xdded: { name: "eraseEaromLowRegions", role: "[code] Branch-only trampoline requesting a blanked EAROM write of the two low regions via ddf3 with mask 0x03; downstream loc_1c7/loc_1c8 observed changing.", cert: "code" },
   0xddf1: { name: "queueEaromEraseAllRegions", role: "[seen] queue a blanked write (erase) of all three EAROM regions: stamp 0xff into blank-flag 0x1c6 and OR mask 0x07 into region-pending 0x1c7 and direction 0x1c8.", cert: "seen" },
   0xddf3: { name: "requestEaromBlankWrite", role: "[seen] Forces the EAROM index byte to 0xff (blank mode) then merges the caller's mask, requesting a blanked write of those regions.", cert: "seen" },
   0xddf7: { name: "requestWriteLowRegions", role: "[code] request a (non-blanked) EAROM write of the two low NVRAM regions: pass the fixed mask 0x03 to the shared zeroed-index merge tail loc_ddfd, which ORs the mask into the region-pending loc_1c7 and direction loc_1c8 cells with a cleared blank-index loc_1c6.", cert: "seen" },
