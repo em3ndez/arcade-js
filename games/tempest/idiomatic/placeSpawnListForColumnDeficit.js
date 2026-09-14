@@ -6,11 +6,31 @@ import {
 } from "./names.js";
 import { dispatchListSetupByColumn } from "./dispatchListSetupByColumn.js";
 
-// Builds the five-column deficit table SPAWN_DEFICIT_C0[0..4] from COLUMN_ENEMY_TARGET minus LANE_ENEMY_COUNT_0 (clamped nonnegative),
-// deducts per active lane, and caps every column at (ENEMY_SLOT_TOP + 1) minus the LANE_ENEMY_COUNT_0 total. Then, by how
-// many columns remain nonzero, tries the list-setup dispatcher to place a list: on one column it scans SPAWN_DEFICIT_C0/COLUMN_SPAWN_CAP;
-// on two or more it scans a wider set including a LANE_LIMIT-selected extra and a round-robin sweep. Any
-// successful placement returns immediately; every exhausted path clears loc_29 before returning.
+/**
+ * placeSpawnListForColumnDeficit — top up the per-column enemy quotas by placing a new spawn list. ROM
+ * 0x99a5.
+ *
+ * Role in the machine: Tempest keeps a target population of enemies per spawn "column" of the tube. Each
+ * wave-servicing pass this routine measures how far every column is below its target, subtracts what is
+ * already in flight, and — if room remains — asks the list-setup dispatcher to seat a fresh spawn list on
+ * the neediest column. It is the throttle that decides when and where the next batch of enemies enters.
+ *
+ * Behaviour, in four stages. (1) Build the five-column deficit table SPAWN_DEFICIT_C0[0..4] as
+ * COLUMN_ENEMY_TARGET minus LANE_ENEMY_COUNT_0, keeping only nonnegative entries. (2) For every active
+ * enemy slot (ENEMY_DEPTH set, low two bits of ENEMY_SLOT_DIR nonzero) deduct 2 from that lane's column,
+ * with lane 3 remapping to column 5. (3) Compute a global cap = (ENEMY_SLOT_TOP + 1) minus the total of
+ * LANE_ENEMY_COUNT_0[0..4] (byte-wrapping) and clamp every column down to it. (4) Count the nonzero
+ * columns and branch: exactly one column scans for a column that has both a deficit and a COLUMN_SPAWN_CAP
+ * entry; two-or-more scans below-cap columns, then — if columns 3 and 2 are both live — picks one via the
+ * LANE_LIMIT threshold, then finally a round-robin sweep of all five columns seeded off POKEY2_RANDOM.
+ *
+ * Any dispatchListSetupByColumn that reports a placement returns immediately. Every exhausted path falls
+ * through and clears the request flag loc_29 before returning.
+ *
+ * Live-out: SPAWN_DEFICIT_C0[0..4] (the deficit table), the decremented OBJECT_ANIM_TIMER column cells,
+ * PROJ_Y_LO (the count-1 marker in the multi-column branch), whatever dispatchListSetupByColumn seats, and
+ * loc_29 cleared on no placement. Grounding: [seen].
+ */
 export function placeSpawnListForColumnDeficit(m) {
   const { mem8 } = m;
 

@@ -11,9 +11,36 @@ import { initAndDrawRimDepthCounters } from "./initAndDrawRimDepthCounters.js";
 import { closeLayerPointer } from "./closeLayerPointer.js";
 import { seatAltDrawPointer } from "./seatAltDrawPointer.js";
 
-// Rebuild the 16-entry display-flag block from the active enemy tables, then walk
-// two 16-entry passes writing per-column state through one indirect list and OR-ing
-// color bits into another.
+/**
+ * paintRimLanes — recolour the sixteen rim lanes of the tube from live enemy state. ROM 0xb367.
+ *
+ * Role in the machine: the tube's rim is drawn as sixteen lanes, and their colours carry information to the
+ * player — plain lanes cycle a neutral ramp, lanes with an approaching enemy flash, and the two lanes tied
+ * to the player's aim get highlighted. This routine rebuilds a sixteen-entry lane-flag block from the active
+ * enemy tables, then walks the rim twice: a first pass chooses each lane's colour value and writes it
+ * through one indirect display list, and a second pass folds a high/low colour bit into a second list.
+ *
+ * Behaviour. If the redraw counter (REDRAW_COUNTER) is set it runs the pointer pre-pass —
+ * seatDrawCursor / initAndDrawRimDepthCounters / closeLayerPointer on layer 0x02 — and always refreshes the
+ * base pointer with seatAltDrawPointer. It clears the sixteen-entry LANE_FLAGS block, then (unless the
+ * SPIKE_ACTIVE_FLAG guard byte is negative) sweeps the enemy slots from ENEMY_SLOT_TOP down: for each slot
+ * that is alive (ENEMY_DEPTH nonzero) and in the "on rim" state (low three bits of ENEMY_SLOT_FLAGS == 1),
+ * it builds a per-lane flag byte (base 1, +2 when animating and nearer than NEAR_DEPTH_THRESHOLD) and OR-s
+ * it into the near lane (ENEMY_PHASE) and, with bit7 set, the far lane (ENEMY_SEGMENT). It then picks a
+ * base colour (0x06, or 0x01 on a WAVE_PHASE_LATCH gate every eighth frame), caches the two aim-highlighted
+ * columns (colA/colB from PLAYER_SEGMENT/PLAYER_FINE_ANGLE when a shot is live), and advances the
+ * RIM_COLOR_ANIM ramp phase.
+ *
+ * First pass (x = 15..0): a flagged lane blinks (frame parity when bit1 set, else 0x06); an aim column is
+ * 0x01; otherwise it takes either the held base value or a rotating ramp segment, written through the
+ * ($3b / WORK_PTR_LO) list at the lane's RIM_LANE_SLOT_TABLE_A slot. Second pass (x from 15 or 14 down): the
+ * lane-flag's bit7 selects colour 0x00 vs 0xc0, which is OR-ed (low five bits kept) into the
+ * ($b0 / DRAW_PATCH_PTR_LO) list at the RIM_LANE_SLOT_TABLE_B slot.
+ *
+ * Live-out: the LANE_FLAGS block, the two display lists behind WORK_PTR_LO and DRAW_PATCH_PTR_LO, the
+ * scratch cells loc_29/loc_2a/loc_2b/COORD_LIST_PTR_LO/PROJ_PT_X, and the decremented RIM_COLOR_ANIM phase.
+ * Grounding: [seen].
+ */
 export function paintRimLanes(m) {
   const { mem8, mem16 } = m;
 
@@ -30,18 +57,21 @@ export function paintRimLanes(m) {
 
   // Merge enemy state into the flag block (unless the guard byte is negative).
   if ((mem8[SPIKE_ACTIVE_FLAG] & 0x80) === 0) {
+    // Sweep the enemy slots ENEMY_SLOT_TOP..0 (loop ends when x wraps past 0 into bit7).
     let x = mem8[ENEMY_SLOT_TOP];
     do {
+      // Only alive slots (ENEMY_DEPTH != 0) whose low three state bits == 1 (drawn on the rim) count.
       if (mem8[u16(ENEMY_DEPTH + x)] !== 0 && (mem8[u16(ENEMY_SLOT_FLAGS + x)] & 0x07) === 0x01) {
-        mem8[loc_29] = 0x01;
+        mem8[loc_29] = 0x01; // per-lane flag byte, base value
         if ((mem8[u16(ENEMY_SLOT_FLAGS + x)] & 0x80) === 0) {
+          // Nearer than the threshold while animating -> bump the flag (+2) so the near lane blinks.
           if ((mem8[ENEMY_ANIM_ACCUM] & 0x80) === 0 && mem8[u16(ENEMY_DEPTH + x)] < mem8[NEAR_DEPTH_THRESHOLD]) {
             mem8[loc_29] = mem8[loc_29] + 2;
           }
-          const near = mem8[u16(ENEMY_PHASE + x)];
+          const near = mem8[u16(ENEMY_PHASE + x)];       // near lane index
           mem8[u16(LANE_FLAGS + near)] |= mem8[loc_29];
         }
-        const far = mem8[u16(ENEMY_SEGMENT + x)];
+        const far = mem8[u16(ENEMY_SEGMENT + x)];         // far lane index, tagged with bit7
         mem8[u16(LANE_FLAGS + far)] |= mem8[loc_29] | 0x80;
       }
       x = (x - 1) & 0xff;

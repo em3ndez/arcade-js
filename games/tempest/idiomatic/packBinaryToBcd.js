@@ -2,8 +2,22 @@
 import { u8 } from "../../../core/int.js";
 import { loc_29, COORD_LIST_PTR_LO } from "./names.js";
 
-// Convert the binary byte in A to packed BCD (double-dabble): 8 passes each shift
-// the top bit out of the source and double the BCD accumulator, folding that bit in.
+/**
+ * packBinaryToBcd — convert a binary byte to packed BCD by double-dabble. ROM 0xaaf5.
+ *
+ * Role in the machine: display quantities (coordinates and the like) are kept in packed binary-coded-decimal
+ * so they can be rendered digit by digit and added with the 6502's decimal mode. This routine takes a plain
+ * binary byte in A and produces its two-digit packed-BCD equivalent, publishing it where the coordinate/
+ * print path reads it.
+ *
+ * Behaviour: classic double-dabble over eight passes. Each pass shifts the top bit out of the source byte
+ * and doubles the BCD accumulator, folding that shifted-out bit into the low end. The doubling runs in
+ * decimal (bcdDouble) so every nibble stays a valid 0..9 digit, applying the 6502 decimal-adjust
+ * corrections (+6 on a nibble past 9, +0x60 on the byte past 0x9x) as it goes.
+ *
+ * Live-out: the packed result written to loc_29 and loc_2c (COORD_LIST_PTR_LO), and register A. Grounding:
+ * [seen].
+ */
 
 // Decimal-mode double-of-(x + carry): returns the low byte of (x + x + carryIn) in BCD.
 function bcdDouble(x, carryIn) {
