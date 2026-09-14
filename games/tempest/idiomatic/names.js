@@ -270,8 +270,8 @@ export const ENEMY_DEPTH = 0x02df;  // [seen] high byte of an enemy's tube depth
 export const ENEMY_VEL0_LO = 0x02e3;  // [seen] axis-0 velocity low byte of the free-flight spawn integrator
 export const loc_2e6 = 0x02e6;
 export const HIT_TALLY = 0x02f2;  // [seen] per-slot active flag (0xff) and hit tally for the lane-spawn bank
-export const SHAPE_COORD = 0x02fa;  // [code] per-slot coordinate for the eight-slot shape draw bank
-export const SHAPE_ID = 0x0302;  // [code] per-slot shape id for the eight-slot shape draw bank
+export const SHAPE_COORD = 0x02fa;  // [seen] per-slot coordinate for the eight-slot shape draw bank
+export const SHAPE_ID = 0x0302;  // [seen] per-slot shape id for the eight-slot shape draw bank
 export const ENEMY_VEL2_LO = 0x0303;  // [seen] axis-2 velocity low byte of the free-flight spawn integrator
 export const SHAPE_ACTIVE = 0x030a;  // [seen] per-slot active flag for the eight-slot shape draw bank (nonzero = drawn)
 export const SHAPE_ANIM = 0x0312;  // [seen] per-slot animation/age byte for the shape draw bank
