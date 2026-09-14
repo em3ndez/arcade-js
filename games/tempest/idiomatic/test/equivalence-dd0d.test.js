@@ -14,9 +14,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_dd0d as oracle } from "../../translated/loc_dd0d.js";
 import { buildPotReadoutVectorList } from "../buildPotReadoutVectorList.js";
 import { emitVectorHeaderWord } from "../emitVectorHeaderWord.js";
-import { loc_df6a } from "../loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "../emitBlankVectorWordTag70.js";
 import { emitByteBitsAsDigitsAtF8 } from "../emitByteBitsAsDigitsAtF8.js";
-import { loc_dd27 } from "../loc_dd27.js";
+import { emitByteBitsAsDigitsFixed } from "../emitByteBitsAsDigitsFixed.js";
 import { assemblePotStatusByte } from "../assemblePotStatusByte.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -80,11 +80,11 @@ test("TEETH: a twin that skips assemblePotStatusByte (its SLOT_LOOP_INDEX pot-st
   const broken = (m) => {
     const { mem8 } = m;
     emitVectorHeaderWord(m);
-    loc_df6a(m, 0x00);
+    emitBlankVectorWordTag70(m, 0x00);
     emitByteBitsAsDigitsAtF8(m, mem8[DSW1_COINAGE], 0xe8);
-    const a = loc_dd27(m, mem8[DSW2_OPTIONS]);
+    const a = emitByteBitsAsDigitsFixed(m, mem8[DSW2_OPTIONS]);
     // BUG: skips assemblePotStatusByte entirely, so its SLOT_LOOP_INDEX = (POKEY2_AUDCTL & 7) write never happens
-    return loc_dd27(m, a);
+    return emitByteBitsAsDigitsFixed(m, a);
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped assemblePotStatusByte write");

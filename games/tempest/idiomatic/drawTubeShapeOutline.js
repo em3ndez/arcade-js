@@ -6,7 +6,7 @@ import {
 } from "./names.js";
 import { resolveShapeTableIndex } from "./resolveShapeTableIndex.js";
 import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 
 // Reduce an input byte into two scratch fields, emit a framing record, then walk two
@@ -19,7 +19,7 @@ export function drawTubeShapeOutline(m, a = m.regs.a) {
   mem8[SAVED_INDEX] = quotient;
 
   mem8[VG_RECORD_HEADER] = 0x00;
-  loc_df6a(m, 0x05);
+  emitBlankVectorWordTag70(m, 0x05);
 
   const col = mem8[SAVED_INDEX] & 0x07;
   const header = mem8[u16(OUTLINE_HEADER + col)];
@@ -53,5 +53,5 @@ export function drawTubeShapeOutline(m, a = m.regs.a) {
     if (count >= 0x80) break;
   }
 
-  loc_df6a(m, 0x01);
+  emitBlankVectorWordTag70(m, 0x01);
 }

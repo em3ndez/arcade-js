@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { DSW1_COINAGE, DSW2_OPTIONS } from "./names.js";
 import { emitVectorHeaderWord } from "./emitVectorHeaderWord.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { emitByteBitsAsDigitsAtF8 } from "./emitByteBitsAsDigitsAtF8.js";
-import { loc_dd27 } from "./loc_dd27.js";
+import { emitByteBitsAsDigitsFixed } from "./emitByteBitsAsDigitsFixed.js";
 import { assemblePotStatusByte } from "./assemblePotStatusByte.js";
 
 // Build the vector list for the spinner/knob readout: emit a fixed header word and a
@@ -14,9 +14,9 @@ import { assemblePotStatusByte } from "./assemblePotStatusByte.js";
 export function buildPotReadoutVectorList(m) {
   const { mem8 } = m;
   emitVectorHeaderWord(m);
-  loc_df6a(m, 0x00);
+  emitBlankVectorWordTag70(m, 0x00);
   emitByteBitsAsDigitsAtF8(m, mem8[DSW1_COINAGE], 0xe8);
-  const a = loc_dd27(m, mem8[DSW2_OPTIONS]);
+  const a = emitByteBitsAsDigitsFixed(m, mem8[DSW2_OPTIONS]);
   const r = assemblePotStatusByte(m, a);
-  return loc_dd27(m, r);
+  return emitByteBitsAsDigitsFixed(m, r);
 }

@@ -6,7 +6,7 @@ import {
 } from "./names.js";
 import { selectProjectionScale } from "./selectProjectionScale.js";
 import { emitColorStatIfChanged } from "./emitColorStatIfChanged.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { drawSlotShapeWithHeader } from "./drawSlotShapeWithHeader.js";
 import { drawSlotThenDigitRun } from "./drawSlotThenDigitRun.js";
 import { drawSlotShapeRecord } from "./drawSlotShapeRecord.js";
@@ -26,7 +26,7 @@ export function drawTubeWell(m) {
   mem8[SCORE_DISPLAY_TIMER]--;
   emitColorStatIfChanged(m, 0x03);
   mem8[VG_LAST_STAT] = 0x01;
-  loc_df6a(m, 0x01);
+  emitBlankVectorWordTag70(m, 0x01);
   drawSlotShapeWithHeader(m, 0x60, 0x2c);
   drawSlotThenDigitRun(m);
 

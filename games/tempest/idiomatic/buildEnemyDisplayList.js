@@ -8,7 +8,7 @@ import {
 import { emitSlotMidpointVertex } from "./emitSlotMidpointVertex.js";
 import { emitEnemySlotEntry } from "./emitEnemySlotEntry.js";
 import { advanceDisplayCursor } from "./advanceDisplayCursor.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 
 // Rebuild the per-frame enemy display list: for each active slot copy a fixed header, then
 // append either a computed midpoint pair or a straight/sign-fixed coordinate block.
@@ -18,7 +18,7 @@ export function buildEnemyDisplayList(m) {
   if (mem8[loc_110] !== 0) return;
   if (mem8[DEPTH_LO] === 0 && mem8[DEPTH_HI] >= 0xf0) return;
 
-  loc_df6a(m, 0x01);
+  emitBlankVectorWordTag70(m, 0x01);
 
   const savedLo = mem8[DRAW_CURSOR_LO];
   const savedHi = mem8[DRAW_CURSOR_HI];

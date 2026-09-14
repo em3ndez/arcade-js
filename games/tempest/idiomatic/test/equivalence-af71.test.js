@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_af71 (ROM 0xaf71-0xaf76) -- clamps A to a max of 0x63, then falls into
+// Memory-equivalence for emitCappedCount (ROM 0xaf71-0xaf76) -- clamps A to a max of 0x63, then falls into
 // emitByteAsBcdDigits (pack-to-BCD + emit). The idiomatic side dissolves the jsr into a direct emitByteAsBcdDigits(m, clamped)
 // call, seating the clamped byte explicitly. Both sides pull A from m.regs.a, so seed it. Live-out is
 // memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_af71 as oracle } from "../../translated/loc_af71.js";
-import { loc_af71 } from "../loc_af71.js";
+import { emitCappedCount } from "../emitCappedCount.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { emitByteAsBcdDigits } from "../emitByteAsBcdDigits.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xaf71 dispatches -- loc_af71 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaf71 dispatches -- emitCappedCount == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_af71(c);
+    oracle(o); emitCappedCount(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,14 +57,14 @@ function seed(m, aVal) {
 test("CRAFTED: A=0x40 (< 0x63, passes through) -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x40);
   const c = new Machine(ROM, OPTS); seed(c, 0x40);
-  oracle(o); loc_af71(c);
+  oracle(o); emitCappedCount(c);
   assert.equal(ramDiff(o, c), null, "RAM equal for the unclamped byte");
 });
 
 test("CRAFTED: A=0x80 (>= 0x63, clamps to 0x63) -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x80);
   const c = new Machine(ROM, OPTS); seed(c, 0x80);
-  oracle(o); loc_af71(c);
+  oracle(o); emitCappedCount(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the clamp");
   assert.equal(c.mem.read8(loc_29), c.mem.read8(COORD_LIST_PTR_LO), "packed BCD of the clamped 0x63 landed");
 });
@@ -82,6 +82,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
   m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21);
-  const r = seamPlaceable(withOmittedRet, loc_af71, TARGET, m);
-  assert.equal(r.placeable, true, `loc_af71 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitCappedCount, TARGET, m);
+  assert.equal(r.placeable, true, `emitCappedCount must be seam-placeable; got: ${r.error}`);
 });

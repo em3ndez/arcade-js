@@ -4,7 +4,7 @@ import { projectAllLanesThroughMathbox } from "./projectAllLanesThroughMathbox.j
 import { snapCoordUpToReference } from "./snapCoordUpToReference.js";
 import { drawFramedCounterSlot } from "./drawFramedCounterSlot.js";
 import { drawGatedRecordLoop } from "./drawGatedRecordLoop.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 
 // First-time setup seeds two counters through the integrator (nudging the low one when
@@ -23,7 +23,7 @@ export function initAndDrawRimDepthCounters(m) {
       mem8[loc_10f] = projectAllLanesThroughMathbox(m, mem8[OBJ_DEPTH], 0x0f);
     }
   }
-  loc_df6a(m, 0x01);
+  emitBlankVectorWordTag70(m, 0x01);
   mem8[loc_9e] = 0x06;
   if (mem8[loc_110] !== 0) return;
   if (mem8[loc_113] === 0) return;

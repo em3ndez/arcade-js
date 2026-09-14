@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dd27 -- a caller that seats a fixed value byte, then dissolves its jmp into
+// Memory-equivalence for emitByteBitsAsDigitsFixed -- a caller that seats a fixed value byte, then dissolves its jmp into
 // the already-idiomatic emitByteBitsAsDigitsAtF8 (direct call). The routine and its callee chain shape vector work cells;
 // live-out is memory only (registers at exit are incidental), so each side runs on a clone and the contract
 // is RAM (dumpState, minus STACK_SCRATCH). Y flows in via the register bridge.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dd27 as oracle } from "../../translated/loc_dd27.js";
-import { loc_dd27 } from "../loc_dd27.js";
+import { emitByteBitsAsDigitsFixed } from "../emitByteBitsAsDigitsFixed.js";
 import { emitByteBitsAsDigitsAtF8 } from "../emitByteBitsAsDigitsAtF8.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xdd27 dispatches -- loc_dd27 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdd27 dispatches -- emitByteBitsAsDigitsFixed == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_dd27(c);
+    oracle(o); emitByteBitsAsDigitsFixed(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,7 +54,7 @@ test("CRAFTED: seeded dispatch is RAM-equivalent through the dissolved callee", 
   const seed = (m) => { seedVectorRam(m); m.regs.y = 0x14; };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_dd27(c);
+  oracle(o); emitByteBitsAsDigitsFixed(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after dissolved call");
 });
 

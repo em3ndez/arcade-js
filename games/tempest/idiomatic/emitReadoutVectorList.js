@@ -9,7 +9,7 @@ import {
 import { runMathboxDivide } from "./runMathboxDivide.js";
 import { buildPotReadoutVectorList } from "./buildPotReadoutVectorList.js";
 import { emitByteBitsAsDigits } from "./emitByteBitsAsDigits.js";
-import { loc_dd27 } from "./loc_dd27.js";
+import { emitByteBitsAsDigitsFixed } from "./emitByteBitsAsDigitsFixed.js";
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { emitStrokeWordFromNibblePlusOne } from "./emitStrokeWordFromNibblePlusOne.js";
 import { emitScaledByteDigit } from "./emitScaledByteDigit.js";
@@ -73,7 +73,7 @@ export function emitReadoutVectorList(m) {
   // Draw the spinner/knob readout and the two coordinate marks.
   buildPotReadoutVectorList(m);
   emitByteBitsAsDigits(m, mem8[INPUT_DEBOUNCED], 0xd0, 0xf0); // (m, y=INPUT_DEBOUNCED, a=0xd0, x=0xf0)
-  loc_dd27(m, mem8[INPUT_EDGE_FLAGS]);             // (m, y=INPUT_EDGE_FLAGS)
+  emitByteBitsAsDigitsFixed(m, mem8[INPUT_EDGE_FLAGS]);             // (m, y=INPUT_EDGE_FLAGS)
 
   // Optional SPINNER_POT_PREV-bit marker (POKEY mode byte + a latch write).
   if ((mem8[SPINNER_POT_PREV] & 0x10) !== 0) {

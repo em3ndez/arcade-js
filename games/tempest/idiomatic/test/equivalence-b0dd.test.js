@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for emitScaleWordIfChanged (ROM 0xb0dd) -- if A already equals $72, return with no effect;
-// otherwise latch A into $72 and tail into loc_df6a (emit the {0x00, A|0x70} vector word at the ($74/$75)
+// otherwise latch A into $72 and tail into emitBlankVectorWordTag70 (emit the {0x00, A|0x70} vector word at the ($74/$75)
 // cursor, advancing it by 2). A is a register input. Live-out is memory only for this display-builder
 // family (the shared df5f tail returns nothing; the ROM's incidental A is not reproduced), so the
 // contract is RAM (dumpState, minus STACK_SCRATCH). Plain tail-caller -- no SP tooth. No POKEY read.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16, u8 } from "../../../core/int.js";
 import { loc_2a, loc_2b, COORD_LIST_PTR_LO, SAVED_INDEX, WORK_PTR_LO, WORK_PTR_HI, VG_LAST_STAT, VG_RECORD_HEADER, DRAW_CURSOR_LO, loc_ac, SCALE_KEY_TABLE, NIBBLE_GLYPH_TABLE, NIBBLE_GLYPH_TABLE_HI } from "./names.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 import { emitColorStatIfChanged } from "./emitColorStatIfChanged.js";
 import { emitScaleWordIfChanged } from "./emitScaleWordIfChanged.js";
@@ -13,7 +13,7 @@ export function expandShapeListToVectors(m) {
   const { mem8, mem16 } = m;
   mem8[VG_RECORD_HEADER] = 0x00;
   mem8[VG_LAST_STAT] = 0x01;
-  loc_df6a(m, 0x01); // A live-in = the 0x01 just loaded (STA $72); df6a folds it as a|0x70
+  emitBlankVectorWordTag70(m, 0x01); // A live-in = the 0x01 just loaded (STA $72); df6a folds it as a|0x70
   emitScaledCoordinateRecord(m, mem8[loc_2a], mem8[loc_2b]);
   let y = mem8[SAVED_INDEX];
   mem8[WORK_PTR_LO] = mem8[u16(mem16[loc_ac] + y)];

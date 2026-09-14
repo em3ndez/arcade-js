@@ -4,7 +4,7 @@ import { SLOT_METRIC, loc_2e, COUNT_GLYPH_COORD_TABLE } from "./names.js";
 import { emitColorStatIfChanged } from "./emitColorStatIfChanged.js";
 import { emitFixedVectorWord } from "./emitFixedVectorWord.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
-import { loc_af71 } from "./loc_af71.js";
+import { emitCappedCount } from "./emitCappedCount.js";
 import { emitBlankValueRecord } from "./emitBlankValueRecord.js";
 import { drawShapeListAtPosition } from "./drawShapeListAtPosition.js";
 import { emitSlotIndexDigit } from "./emitSlotIndexDigit.js";
@@ -18,7 +18,7 @@ export function drawCounterSlot(m, x = m.regs.x) {
   emitColorStatIfChanged(m, 0x03);
   emitFixedVectorWord(m);
   emitScaledCoordinateRecord(m, 0xd0, mem8[u16(COUNT_GLYPH_COORD_TABLE + mem8[loc_2e])]);
-  loc_af71(m, count);
+  emitCappedCount(m, count);
   emitBlankValueRecord(m, 0xa0);
   drawShapeListAtPosition(m, 0x04, 0x10);
   emitSlotIndexDigit(m, mem8[loc_2e]);

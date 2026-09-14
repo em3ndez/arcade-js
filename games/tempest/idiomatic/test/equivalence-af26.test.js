@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for drawCounterPair (ROM 0xaf26-0xaf3e) -- if both $0600 and $0601 are zero it tail-calls
-// the shared no-op rts (sharedReturnTail); otherwise it draws a shared header (drawSlotShapeRecord), its count (loc_af71),
+// the shared no-op rts (sharedReturnTail); otherwise it draws a shared header (drawSlotShapeRecord), its count (emitCappedCount),
 // and both counter slots (drawCounterSlot x=0 then x=1). Dissolves every m.call. All output is RAM (the draw
 // setup + emitted words), so each arm compares the RAM diff (minus the dead stack). Omitted-ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-af26.test.js

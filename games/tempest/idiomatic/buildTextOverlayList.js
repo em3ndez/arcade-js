@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { emitColorStatIfChanged } from "./emitColorStatIfChanged.js";
 import { drawSlotShapeRecord } from "./drawSlotShapeRecord.js";
 import { emitFixedVectorWord } from "./emitFixedVectorWord.js";
@@ -23,7 +23,7 @@ import {
 export function buildTextOverlayList(m) {
   const { mem8 } = m;
   mem8[VG_LAST_STAT] = 0x01;
-  loc_df6a(m, 0x01);
+  emitBlankVectorWordTag70(m, 0x01);
   emitColorStatIfChanged(m, 0x05);
 
   if (!(mem8[STATUS_FLAGS] & 0x80)) {

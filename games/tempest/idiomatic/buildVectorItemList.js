@@ -14,8 +14,8 @@ import { emitVectorHeaderWord } from "./emitVectorHeaderWord.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { foldStepIntoFraction } from "./foldStepIntoFraction.js";
-import { loc_dde9 } from "./loc_dde9.js";
-import { loc_dded } from "./loc_dded.js";
+import { queueEaromRegionErase } from "./queueEaromRegionErase.js";
+import { eraseEaromLowRegions } from "./eraseEaromLowRegions.js";
 import { emitScaledByteDigit } from "./emitScaledByteDigit.js";
 
 // Assemble the frame's vector item list: four setup passes, a header pair, a marker
@@ -51,10 +51,10 @@ export function buildVectorItemList(m) {
     x = u8(x - 2);
     if ((x & 0x80) === 0) {                // x-2 stayed non-negative
       if (x !== 0) {
-        loc_dded(m);
+        eraseEaromLowRegions(m);
         mem8[PENDING_WORK_FLAGS] = mem8[PENDING_WORK_FLAGS] | 0x03;
       } else {
-        loc_dde9(m);                       // clv/bvc merge into the common tail
+        queueEaromRegionErase(m);                       // clv/bvc merge into the common tail
       }
     } else {
       // Slot-index underflow: the original takes a full RESET here. This is an error arm the draw loop's

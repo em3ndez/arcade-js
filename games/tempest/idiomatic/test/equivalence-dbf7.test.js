@@ -69,7 +69,7 @@ test("CAPTURE: real 0xdbf7 dispatches -- emitReadoutVectorList == oracle in RAM 
 function seed(m) {
   m.mem.write8(loc_2e, 0x37);   // counter low nonzero -> the scan block runs
   m.mem.write8(loc_2f, 0x12);   // counter high
-  m.mem.write8(INPUT_EDGE_FLAGS, 0x05);   // -> POKEY1_AUDF2 = 0x0a, and the loc_dd27 run
+  m.mem.write8(INPUT_EDGE_FLAGS, 0x05);   // -> POKEY1_AUDF2 = 0x0a, and the emitByteBitsAsDigitsFixed run
   m.mem.write8(SPINNER_POT_PREV, 0x10);   // marker bit set -> the emitCoordinateVectorWord marker branch runs
   m.mem.write8(SPINNER_ACCUM, 0x02);   // colour index for the tail-delegate
   // SEG_SPREAD_A_LO,x walk (x = 4..0 -> 0x78..0x7c): nonzero entries so it takes the POTMARK_WORD_INDEX-indexed path

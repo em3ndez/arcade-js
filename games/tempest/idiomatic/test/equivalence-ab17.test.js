@@ -13,7 +13,7 @@ import { loc_ab17 as oracle } from "../../translated/loc_ab17.js";
 import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
 import { u16, u8 } from "../../../../core/int.js";
 import { emitFixedVectorWord } from "../emitFixedVectorWord.js";
-import { loc_df6a } from "../loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "../emitBlankVectorWordTag70.js";
 import { emitScaledCoordinateRecord } from "../emitScaledCoordinateRecord.js";
 import { emitColorStatIfChanged } from "../emitColorStatIfChanged.js";
 import { emitScaleWordIfChanged } from "../emitScaleWordIfChanged.js";
@@ -97,7 +97,7 @@ function brokenTail(m, a = m.regs.a, x = m.regs.x) {
   mem8[0x2a] = mem8[mem16[0x3b]];
   emitFixedVectorWord(m);
   mem8[0x73] = 0x00; mem8[0x72] = 0x01;
-  loc_df6a(m);
+  emitBlankVectorWordTag70(m);
   emitScaledCoordinateRecord(m, mem8[0x2a], mem8[0x2b]);
   y = mem8[0x35];
   mem8[0x3b] = mem8[u16(mem16[0xac] + y)];

@@ -7,7 +7,7 @@ import {
 } from "./names.js";
 import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { advanceDisplayCursor } from "./advanceDisplayCursor.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { layHeaderAndBuildRecord } from "./layHeaderAndBuildRecord.js";
 
 // Build a vector display list for up to 0x12 active objects, emitting a header word,
@@ -95,5 +95,5 @@ export function buildObjectDisplayList(m) {
     advanceDisplayCursor(m, y);
   }
   if (mem8[CHECKSUM_ACC] !== 0 && mem8[PLAYER_LEVEL_TBL] >= 0x0a) mem8[IRQ_HEARTBEAT] = 0x7a;
-  return loc_df6a(m, 0x01);
+  return emitBlankVectorWordTag70(m, 0x01);
 }

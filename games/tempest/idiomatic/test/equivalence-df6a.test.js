@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df6a (ROM 0xdf6a) -- zero the data byte, then tail into emitVectorWordTag70 (the
+// Memory-equivalence for emitBlankVectorWordTag70 (ROM 0xdf6a) -- zero the data byte, then tail into emitVectorWordTag70 (the
 // $70-header emitter): write {0x00, A|0x70} at the ($74/$75) cursor and advance it by 2. A is a register
 // input (unchanged here, consumed by df6c). Live-out is memory only for this display-builder family (the
 // landed advanceDisplayCursor tail returns nothing; the ROM's incidental A=cursor-low is not reproduced, and df6a's
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df6a as oracle } from "../../translated/loc_df6a.js";
-import { loc_df6a } from "../loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "../emitBlankVectorWordTag70.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdf6a dispatches -- loc_df6a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf6a dispatches -- emitBlankVectorWordTag70 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df6a(c);
+    oracle(o); emitBlankVectorWordTag70(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -64,13 +64,13 @@ test("CRAFTED: emits {0x00, A|0x70} at the cursor and advances it by 2 == oracle
     const s = { a: t.a, mem: { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
-    oracle(o); loc_df6a(c);
+    oracle(o); emitBlankVectorWordTag70(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
   // Explicit content/advance check on the clean case.
   const m = new Machine(ROM, OPTS);
   seed(m, { a: 0x05, mem: { [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } });
-  loc_df6a(m);
+  emitBlankVectorWordTag70(m);
   assert.equal(m.mem.read8(0x2000), 0x00, "byte 0 = 0x00");
   assert.equal(m.mem.read8(0x2001), 0x75, "byte 1 = A|0x70");
   assert.equal(m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8), 0x2002, "cursor += 2");

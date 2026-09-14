@@ -8,7 +8,7 @@ import {
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { emitVectorWordTag60FromKey } from "./emitVectorWordTag60FromKey.js";
 import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
-import { loc_df6a } from "./loc_df6a.js";
+import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { emitVectorWordTag70 } from "./emitVectorWordTag70.js";
 import { emitRecordBodyC0 } from "./emitRecordBodyC0.js";
 import { emitBlankValueRecord } from "./emitBlankValueRecord.js";
@@ -69,7 +69,7 @@ export function drawMovingObjectSlots(m) {
     if (next & 0x80) break;
   } while (true);
   swapDrawPointers(m);
-  loc_df6a(m, 0x01);
+  emitBlankVectorWordTag70(m, 0x01);
   emitRecordBodyC0(m);
   return swapDrawPointers(m);
 }
