@@ -17,14 +17,39 @@ import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 import { emitVectorHeaderWord, emitVectorWord } from "./emitVectorHeaderWord.js";
 import { emitKeyedScaledCoordinateRecord } from "./emitKeyedScaledCoordinateRecord.js";
 
-// Per-frame vector-list emit. When the 16-bit counter loc_2e/loc_2f is nonzero it seeds the POKEY
-// operand cells, runs the math-coprocessor scan, and from its result (A/X/Y) decides whether to set
-// SEG_SPREAD_A_LO = 0xff (and what byte lands in the POKEY status cell). Then it advances the 15-bit counter
-// (inc loc_2e; on wrap inc loc_2f, resetting loc_2f to 0 once bit7 sets), builds the POKEY work word
-// from INPUT_DEBOUNCED (= a status byte masked to bits 3..6) and INPUT_EDGE_FLAGS, fires the readout draws, conditionally
-// emits the SPINNER_POT_PREV-bit marker with a POKEY mode byte plus a latch write, walks SEG_SPREAD_A_LO_5,x for x=11..0
-// (emit per nonzero entry) and SEG_SPREAD_A_LO,x for x=4..0 (each nonzero slot indexed into a coordinate word
-// table), then tail-delegates to the colour-pair emitter with the SPINNER_ACCUM-indexed pair and Y = 0xc0.
+/**
+ * emitReadoutVectorList — per-frame pot/spinner/audio readout vector list. ROM 0xdbf7.
+ *
+ * Role in the machine: handler index 1 of dispatchDrawHandler — the diagnostic/operator readout that draws
+ * the current control and audio state as vectors. Each frame it services a slow 15-bit "sweep" counter,
+ * pokes the POKEY sound chip's operand/control cells so the readout is audible/visible, draws the
+ * spinner-knob and coordinate marks, and then walks two small emit tables that render the per-slot
+ * accumulator state into the vector list. It closes by drawing a final mark and handing a colour pair to
+ * the keyed scaled-coordinate emitter.
+ *
+ * Behaviour, in order:
+ *  - If the 16-bit counter loc_2e/loc_2f is nonzero: seed the mathbox operands (loc_2e -> R7 low & RA low,
+ *    loc_2f -> R7 high), run runMathboxDivide, and from its [A,X,Y] result decide setFF: A!=1, or A==1 with
+ *    Y!=0, or A==1/Y==0 with X negative all mean "set" (0xff into SEG_SPREAD_A_LO and the POKEY status
+ *    byte); A==1/Y==0/X positive means "clear" (status byte = exit X). When loc_2e is zero the status byte
+ *    stays 0.
+ *  - Clear the record header VG_RECORD_HEADER, then advance the 15-bit counter: inc loc_2e, and on its wrap
+ *    inc loc_2f, resetting loc_2f to 0 once its bit 7 sets (so the high half stays a 7-bit sweep).
+ *  - Write the decided status byte to the POKEY status cell, then build two POKEY voice words: from
+ *    INPUT_DEBOUNCED (POKEY2_AUDCTL & 0x78) and from INPUT_EDGE_FLAGS (<<1), each gating a 0xa4 control byte.
+ *  - Fire the readout draws: buildPotReadoutVectorList, then the two byte-bits digit rows.
+ *  - Optionally, if SPINNER_POT_PREV bit 4 is set, emit a marker coordinate word and, when the debounced
+ *    input's 0x60 bits say so, write the LED/coin flip latches.
+ *  - Emit a coordinate mark, walk SEG_SPREAD_A_LO_5,x for x=11..0 emitting a stroke/digit/record trio per
+ *    nonzero entry, emit the header word and one scaled record, then walk SEG_SPREAD_A_LO,x for x=4..0
+ *    (SLOT_LOOP_INDEX) indexing each nonzero slot into a coordinate-word table.
+ *  - Emit a final mark, then tail-delegate to emitKeyedScaledCoordinateRecord with the SPINNER_ACCUM-indexed
+ *    colour pair and key Y = 0xc0.
+ *
+ * Live-out: the appended readout vector list; SEG_SPREAD_A_LO possibly forced 0xff; the POKEY audio/status
+ * cells; the advanced sweep counter loc_2e/loc_2f; INPUT_DEBOUNCED; and the LED/coin latches when taken.
+ * Grounding: [seen].
+ */
 export function emitReadoutVectorList(m) {
   const { mem8 } = m;
 

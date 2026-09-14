@@ -10,12 +10,27 @@ import { layHeaderAndBuildRecord } from "./layHeaderAndBuildRecord.js";
 import { appendNormalizedMantissaExponent } from "./appendNormalizedMantissaExponent.js";
 import { emitVectorWordAtOffset } from "./emitVectorWordAtOffset.js";
 
-// Build a screen position for slot x and tail into the vector emitter. Load the slot coord and the
-// segment-indexed base pair; when the phase byte is negative, interpolate the pair toward the next
-// segment by scaling the delta through the fraction helper. Fold the live deltas, lay the fixed
-// header, then append the (mantissa, exponent) pair: the appender returns its exit cursor, which is
-// persisted and reloaded as the emitter's cursor offset. The entry template is read from a word
-// table indexed by the frame's low bits.
+/**
+ * emitInterpolatedSlotVector -- project one enemy slot to the tube and emit its vector word. ROM 0xb69b.
+ *
+ * Role in the machine: draws one active enemy (Flipper, Tanker, etc.) sitting in slot x. Enemies live on
+ * the 16 tube segments; a slot carries its depth down the tube, its segment, and a phase byte that says
+ * whether it is mid-flip between two segments. This routine builds the enemy's projected screen position,
+ * runs it through the 3D "mathbox" projection, and lays the resulting vector word so the AVG draws it.
+ *
+ * Behavior: copy the slot's depth (ENEMY_DEPTH+x) into the projection depth (OBJ_DEPTH), read its segment,
+ * and load that segment's base X/Y from the two segment tables (SEG_BASE_X/SEG_BASE_Y) into the projection
+ * point. When the phase byte is negative (bit7 set) the enemy is flipping: compute the delta to the next
+ * segment (wrapping 0..15), scale it by the phase fraction (scaleByPhaseFraction), and add it in so the
+ * point interpolates between the two segments. Project the point (projectPointThroughMathbox), lay the
+ * fixed 0x61 header and build the record (layHeaderAndBuildRecord), then append the normalized
+ * (mantissa, exponent) pair -- the appender returns its exit cursor, saved to and reloaded from
+ * DRAW_CURSOR_OFFSET. Finally pick a template word from the frame-phased table (index = (FRAME_COUNTER&3)
+ * <<1, +0x4e) and emit it at the saved cursor offset.
+ *
+ * Live-out: OBJ_DEPTH, PROJ_PT_X/PROJ_PT_Y, DRAW_CURSOR_OFFSET, and the vector word(s) appended to the
+ * display list by the header/record/emit helpers. Grounding: [seen].
+ */
 export function emitInterpolatedSlotVector(m, x = m.regs.x) {
   const { mem8 } = m;
 

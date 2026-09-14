@@ -9,49 +9,76 @@ import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { emitBlankVectorWordTag70 } from "./emitBlankVectorWordTag70.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 
-// Reduce an input byte into two scratch fields, emit a framing record, then walk two
-// delta tables (16 steps) emitting one vector segment per step.
+/**
+ * drawTubeShapeOutline — draw the sixteen-segment outline of the tube's mouth. ROM 0xc4e1.
+ *
+ * Role in the machine: every Tempest level is a tube with a distinct cross-section (circle,
+ * square, plus, figure-eight, open strips, ...). The rim is a closed run of sixteen lane
+ * vertices. This routine strokes that outline: it seats the starting vertex as an absolute
+ * point, then walks the sixteen lane vertices emitting each edge as a signed delta, so the
+ * vector generator draws the whole tube silhouette. The shape and colour come from tables
+ * keyed by the current level.
+ *
+ * Behaviour: reduce the input byte through resolveShapeTableIndex into a reduced starting
+ * index (SAVED_INDEX2) and a quotient (SAVED_INDEX). Emit an opening framing record
+ * (VG_RECORD_HEADER=0, blank tag-0x70 word of length 5). Pick the outline colour header from
+ * OUTLINE_HEADER indexed by SAVED_INDEX&0x07, stash it in loc_9e, and emit it as a tag-0x08
+ * word. Read the level's shape index TUBE_SHAPE_INDEX; if that shape's gate LEVEL_GATE_FLAG+shape
+ * is zero (an open, non-wrapping tube) roll the seed back by 0x0f so the walk starts a full lap
+ * earlier. Seat the first vertex absolutely: LANE_VERTEX_Y+seed into OBJ_DEPTH and
+ * LANE_VERTEX_X+seed into PROJ_PT_Y, emitted with the 0x80 sign bias (firstX^0x80, firstY^0x80).
+ * Then set VG_RECORD_HEADER=0xc0 (draw-mode), seed the step count TABLE_CURSOR at 0x0f and loop
+ * sixteen times: from vertex SAVED_INDEX2 form the signed dx/dy against the running PROJ_PT_Y /
+ * OBJ_DEPTH, update those, emit the scaled coordinate record, step SAVED_INDEX2 back, and stop
+ * when the count rolls negative. Close with a blank tag-0x70 word of length 1.
+ *
+ * Live-out: the outline's opening word, colour header, absolute first point, sixteen edge
+ * records and closing word appended to the display list; PROJ_PT_Y/OBJ_DEPTH left at the last
+ * vertex; SAVED_INDEX/SAVED_INDEX2/TABLE_CURSOR/loc_9e/VG_RECORD_HEADER left as scratch.
+ *
+ * Grounding: [seen].
+ */
 export function drawTubeShapeOutline(m, a = m.regs.a) {
   const { mem8 } = m;
 
-  const [reduced, quotient] = resolveShapeTableIndex(m, a);
+  const [reduced, quotient] = resolveShapeTableIndex(m, a); // reduced = start vertex, quotient = colour key
   mem8[SAVED_INDEX2] = reduced;
   mem8[SAVED_INDEX] = quotient;
 
   mem8[VG_RECORD_HEADER] = 0x00;
-  emitBlankVectorWordTag70(m, 0x05);
+  emitBlankVectorWordTag70(m, 0x05);          // opening framing record
 
   const col = mem8[SAVED_INDEX] & 0x07;
-  const header = mem8[u16(OUTLINE_HEADER + col)];
+  const header = mem8[u16(OUTLINE_HEADER + col)]; // colour/intensity header for this outline
   mem8[loc_9e] = header;
   emitTaggedVectorWord(m, 0x08, header);
 
   const shape = mem8[TUBE_SHAPE_INDEX];
   let seed = mem8[SAVED_INDEX2];
-  if (mem8[u16(LEVEL_GATE_FLAG + shape)] === 0) seed = (seed - 0x0f) & 0xff;
+  if (mem8[u16(LEVEL_GATE_FLAG + shape)] === 0) seed = (seed - 0x0f) & 0xff; // open tube: start a lap back
 
-  const firstY = mem8[u16(LANE_VERTEX_Y + seed)];
+  const firstY = mem8[u16(LANE_VERTEX_Y + seed)];  // seat the first vertex absolutely
   mem8[OBJ_DEPTH] = firstY;
   const firstX = mem8[u16(LANE_VERTEX_X + seed)];
   mem8[PROJ_PT_Y] = firstX;
-  emitScaledCoordinateRecord(m, firstX ^ 0x80, firstY ^ 0x80);
+  emitScaledCoordinateRecord(m, firstX ^ 0x80, firstY ^ 0x80); // 0x80 sign bias on the absolute point
 
-  mem8[VG_RECORD_HEADER] = 0xc0;
-  mem8[TABLE_CURSOR] = 0x0f;
+  mem8[VG_RECORD_HEADER] = 0xc0;              // draw-mode header for the edge records
+  mem8[TABLE_CURSOR] = 0x0f;                   // sixteen edges to walk
   for (;;) {
     const idx = mem8[SAVED_INDEX2];
     const nx = mem8[u16(LANE_VERTEX_X + idx)];
-    const dx = (nx - mem8[PROJ_PT_Y]) & 0xff;
+    const dx = (nx - mem8[PROJ_PT_Y]) & 0xff;  // signed edge delta X
     mem8[PROJ_PT_Y] = nx;
     const ny = mem8[u16(LANE_VERTEX_Y + idx)];
-    const dy = (ny - mem8[OBJ_DEPTH]) & 0xff;
+    const dy = (ny - mem8[OBJ_DEPTH]) & 0xff;  // signed edge delta Y
     mem8[OBJ_DEPTH] = ny;
     emitScaledCoordinateRecord(m, dx, dy);
     mem8[SAVED_INDEX2] = mem8[SAVED_INDEX2] - 1;
     const count = (mem8[TABLE_CURSOR] - 1) & 0xff;
     mem8[TABLE_CURSOR] = count;
-    if (count >= 0x80) break;
+    if (count >= 0x80) break;                  // stop once the count rolls negative
   }
 
-  emitBlankVectorWordTag70(m, 0x01);
+  emitBlankVectorWordTag70(m, 0x01);          // closing framing record
 }

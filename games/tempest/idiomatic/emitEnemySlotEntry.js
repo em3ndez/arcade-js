@@ -9,9 +9,32 @@ import { projectPointThroughMathbox } from "./projectPointThroughMathbox.js";
 import { emitDeltaVectorPair } from "./emitDeltaVectorPair.js";
 import { appendNormalizedMantissaExponent } from "./appendNormalizedMantissaExponent.js";
 
-// Emit a vector-list entry for the active slot. When its kind byte is zero, write four
-// blank/marker pairs; otherwise seat the scratch inputs, run the delta passes, then append
-// either a randomly chosen table word or a fixed marker word, advancing the write cursor.
+/**
+ * emitEnemySlotEntry — emit one enemy slot's vector-list entry, projecting the object and
+ * appending its terminator word. ROM 0xc6c7.
+ *
+ * Role in the machine: Tempest keeps enemies in a table of slots; this routine turns the slot
+ * currently addressed by loc_38 into one entry of the vector display list. An empty slot
+ * (its depth/kind byte loc_3ac+x is zero) is drawn as four blank placeholder pairs so the
+ * list keeps a fixed stride. A live slot is projected through the math-box coprocessor and
+ * emitted as delta vectors, then capped with either a randomly chosen template word or a
+ * fixed marker word depending on the slot's target flag.
+ *
+ * Behavior: x = slot cursor loc_38; base = draw pointer loc_74:75. If LANE_LIMIT+x == 0
+ * (inactive): from the current cursor offset write four (0x00, 0x71) pairs and store the
+ * advanced offset, then return. Otherwise seat the scratch inputs — OBJ_DEPTH = LANE_LIMIT+x,
+ * clamp via snapCoordUpToReference (c453), PROJ_PT_Y = SEG_MID_X+x, PROJ_PT_X = SEG_MID_Y+x —
+ * project the point through the math box (projectPointThroughMathbox, c098), and emit its
+ * delta words (emitDeltaVectorPair, c73c). Then read the target flag: kind = (LANE_TARGET_FLAG
+ * + loc_38) & 0x40. If set, append a normalized mantissa/exponent word, pick a random even
+ * offset idx = (POKEY1_RANDOM & 0x02) + 0x1c, write the two adjacent template words
+ * OBJ_TEMPLATE_WORD_HI/LO+idx, and advance the cursor by two. If clear, write the fixed marker
+ * word (0x00, 0x68, BLANK_SLOT_VEC_LO, BLANK_SLOT_VEC_HI) and advance by four.
+ *
+ * Live-out: the enemy's projected/marker bytes appended through the draw pointer and the draw
+ * cursor offset loc_a9 advanced; the projection scratch fields (OBJ_DEPTH, PROJ_PT_X/Y) and
+ * the math-box outputs are also left seated. Grounding: [seen].
+ */
 export function emitEnemySlotEntry(m) {
   const { mem8 } = m;
   const x = mem8[TABLE_CURSOR];
@@ -29,14 +52,14 @@ export function emitEnemySlotEntry(m) {
   }
 
   // Active slot: seat scratch fields and run the delta/coprocessor passes.
-  mem8[OBJ_DEPTH] = mem8[u16(LANE_LIMIT + x)];
-  snapCoordUpToReference(m);
-  mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + x)];
+  mem8[OBJ_DEPTH] = mem8[u16(LANE_LIMIT + x)];        // depth = slot's kind byte
+  snapCoordUpToReference(m);                          // clamp depth to the reference (c453)
+  mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + x)];         // seat the segment midpoint as the point
   mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + x)];
-  projectPointThroughMathbox(m);
-  emitDeltaVectorPair(m);
+  projectPointThroughMathbox(m);                      // math-box projection (c098)
+  emitDeltaVectorPair(m);                             // emit the projected delta vectors (c73c)
 
-  const kind = mem8[u16(LANE_TARGET_FLAG + mem8[TABLE_CURSOR])] & 0x40;
+  const kind = mem8[u16(LANE_TARGET_FLAG + mem8[TABLE_CURSOR])] & 0x40;  // target flag bit6
   let y = mem8[DRAW_CURSOR_OFFSET];
   if (kind !== 0) {
     // Randomized word: a random even offset selects one of two adjacent table words.
