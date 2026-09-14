@@ -4,10 +4,36 @@ import { ENEMY_PHASE, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, ENEMY_SLOT_DIR, FIRE_GATE
 import { lookupRingHeading } from "./lookupRingHeading.js";
 import { flipEnemyLaneTowardTarget } from "./flipEnemyLaneTowardTarget.js";
 
-// Advance slot x's turn animation: step its phase counter, then branch on the low 3 bits of the
-// state byte. State 4 settles a turn (rotate the coord, reseed the phase, flip a sign, maybe kick
-// off the next step); otherwise re-aim and walk the coord one step toward the target on a match.
-// Every exit stashes the state byte's bit7 in a shared flag.
+/**
+ * animateFlipperTurn -- step one flipper's flip-across-a-lane animation. ROM 0x9d82.
+ *
+ * Role in the machine: a flipper doesn't slide between tube lanes, it tumbles across the rim
+ * one hinge-step at a time. This routine drives that tumble for enemy slot x: it advances the
+ * slot's phase counter, and depending on the slot's animation state either re-aims the flipper
+ * at its target lane and walks it one coordinate step when the phase lines up, or -- in the
+ * settling state -- completes the flip by rotating to the next lane, reseeding the phase,
+ * flipping the turn direction, and (when clear to attack) deciding whether to lunge at the
+ * player. It is what makes flippers appear to cartwheel around the tube toward the player's rim.
+ *
+ * Behavior: phase counter -- step ENEMY_PHASE+x down or up by the state byte's bit6
+ * (ENEMY_SLOT_FLAGS+x & 0x40), keep the low nibble, force bit7. Then branch on the low 3 bits
+ * of the state byte. If state != 4 (not settling): re-derive the target heading with
+ * lookupRingHeading of (state ^ 0x40) against ENEMY_SEGMENT+x, and only when it matches the
+ * phase drop bit7 of the state byte and reseed -- if bit6 was set, ENEMY_PHASE+x =
+ * (ENEMY_SEGMENT+x + 1) & 0x0f; else copy the segment into the phase and step the segment down
+ * one lane. If state == 4 (settling) and the phase has reached a step boundary (low 3 bits 0):
+ * when phase bit3 is set rotate ENEMY_SEGMENT+x up one lane, clear the state byte's bit7, reseed
+ * the phase to 0x20, and toggle bit7 of ENEMY_SLOT_DIR+x (the turn sign). While FIRE_GATE is 0,
+ * if the flipper's depth ENEMY_DEPTH+x equals the player's floor PLAYER_SHOT_DEPTH it lunges via
+ * flipEnemyLaneTowardTarget; otherwise ENEMY_SLOT_DIR+x is masked down to just its sign bit.
+ * Every exit copies the state byte's bit7 into the shared branch flag SCRIPT_BRANCH_FLAG.
+ *
+ * Live-out: ENEMY_PHASE+x (advanced/reseeded), ENEMY_SEGMENT+x (rotated on settle/step),
+ * ENEMY_SLOT_FLAGS+x (bit7 possibly dropped), ENEMY_SLOT_DIR+x (sign toggled/masked),
+ * SCRIPT_BRANCH_FLAG (state bit7), and the lane flip queued by flipEnemyLaneTowardTarget.
+ *
+ * Grounding: [seen].
+ */
 export function animateFlipperTurn(m, x = m.regs.x) {
   const { mem8 } = m;
 

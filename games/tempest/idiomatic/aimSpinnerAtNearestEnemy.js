@@ -3,9 +3,29 @@ import { u16 } from "../../../core/int.js";
 import { loc_29, loc_2a, ENEMY_SLOT_TOP, ENEMY_DEPTH, ENEMY_SEGMENT, PLAYER_SEGMENT } from "./names.js";
 import { signedSegmentDelta } from "./signedSegmentDelta.js";
 
-// Scan the table for the smallest nonzero entry, keeping its index. If none, return the last
-// entry seen. Otherwise derive a signed difference for that slot and return a code by its sign:
-// 0 when zero, 9 when negative, else 0xf7.
+/**
+ * aimSpinnerAtNearestEnemy -- auto-aim: which way to spin toward the nearest enemy. ROM 0x97c5.
+ *
+ * Role in the machine: the attract-mode / auto-play spinner needs a direction to turn the
+ * blaster. "Nearest" here means shallowest: the enemy with the smallest nonzero depth in the
+ * shot/enemy depth table is the most urgent threat. This routine finds that slot, works out
+ * whether it sits clockwise or counter-clockwise of the player's current segment, and returns
+ * a one-byte turn code that rotateBlasterAroundRim folds into the spinner delta. It is the
+ * auto-aim half of the spinner path (the manual trackball/knob delta is the alternative).
+ *
+ * Behavior: seed loc_29 = 0xff (smallest value seen) and loc_2a = 0xff (its index, 0xff = none).
+ * Walk the depth table ENEMY_DEPTH from ENEMY_SLOT_TOP downward: for each slot, if its depth is
+ * nonzero and smaller than the running minimum, record the value and index. Stop when the index
+ * counter goes negative (bit7 set). If no candidate was found (loc_2a still has bit7 set), just
+ * return the last value read. Otherwise take the signed segment delta of the winner's segment
+ * ENEMY_SEGMENT[idx] against the player's PLAYER_SEGMENT via signedSegmentDelta, and return a
+ * code by sign: 0x00 already aligned, 0x09 when the enemy is one way, 0xf7 the other way.
+ *
+ * Live-out: loc_29 (min depth seen) and loc_2a (its slot index) as scratch, and m.regs.a set to
+ * the returned turn code (0x00 / 0x09 / 0xf7), consumed by rotateBlasterAroundRim.
+ *
+ * Grounding: [seen].
+ */
 export function aimSpinnerAtNearestEnemy(m) {
   const { mem8 } = m;
   mem8[loc_29] = 0xff; // smallest value seen

@@ -3,9 +3,29 @@ import { u16 } from "../../../core/int.js";
 import { PLAYER_SHOT_DEPTH, loc_29, loc_2a, loc_2b, LEVEL_GEOM_SCALE, ZOOM_ACCUM_HI, PROJ_OFS_X_LO, PROJ_OFS_X_HI, DEPTH_HI, DEPTH_LO, DEPTH_TARGET, SPIKE_TABLE_GUARD, STATUS_FLAGS, GAME_MODE, loc_3d, loc_102, REDRAW_COUNTER } from "./names.js";
 import { rotateBlasterAroundRim } from "./rotateBlasterAroundRim.js";
 
-// Fold the sign-extended scroll delta into the long accumulator, step the 16-bit
-// position by a fixed stride, flag it when the high byte saturates, and on a matched
-// high difference rebuild the position seeds before delegating the spinner update.
+/**
+ * autoAdvanceRimRotation — advance the tube-rim rotation from a fixed-stride position accumulator.
+ * ROM 0x904b.
+ *
+ * Role in the machine: on levels whose geometry auto-scrolls, Tempest's playfield rim rotates on its own.
+ * This routine is the per-frame auto-advance: it folds the level's geometry-scale delta into a long
+ * position accumulator, steps a 16-bit position by a fixed stride, notices when it saturates or reaches
+ * its target, and hands off to rotateBlasterAroundRim to actually place the blaster on the (now advanced)
+ * rim. It is the "the tube turns even if you don't" driver.
+ *
+ * Behavior: set the shot-depth floor $202 = 0x10 (PLAYER_SHOT_DEPTH). Sign-extend the geometry-scale delta
+ * $121 (LEVEL_GEOM_SCALE) across the work bytes $29/$2a/$2b (loc_29/2a/2b), then arithmetic-shift the
+ * $2a:$29 pair right twice (preserving sign). Add the three work bytes with carry into the 24-bit running
+ * total $122/$68/$69 (ZOOM_ACCUM_HI / PROJ_OFS_X_LO / PROJ_OFS_X_HI). Step the 16-bit position $5f:$5b
+ * (DEPTH_HI:DEPTH_LO) by stride 0x18, arming the spike-table guard $115 (SPIKE_TABLE_GUARD) when the low
+ * byte reaches >= 0xfc. Compute the high difference against target $5d (DEPTH_TARGET); when it collapses to
+ * zero, snap the position to (target, 0xff), set the game mode $0 (GAME_MODE) to 0x04 or 0x08 by the sign
+ * of $5 (STATUS_FLAGS bit 7), and clear $102[$3d] (loc_102 indexed by loc_3d). Finally mark the redraw
+ * counter $114 = 0xff (REDRAW_COUNTER) and tail-call rotateBlasterAroundRim, forwarding Y.
+ *
+ * Live-out: $202, the 24-bit total $122/$68/$69, the stepped position $5f:$5b, $115 (maybe armed), and on
+ * a target hit $0/$102[$3d]; $114 = 0xff. Returns whatever rotateBlasterAroundRim returns. Grounding: [seen].
+ */
 export function autoAdvanceRimRotation(m, y = m.regs.y) {
   const { mem8 } = m;
   mem8[PLAYER_SHOT_DEPTH] = 0x10;

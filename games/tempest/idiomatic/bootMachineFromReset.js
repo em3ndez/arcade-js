@@ -11,11 +11,15 @@ import { runMainFrameLoop } from "./runMainFrameLoop.js";
 // IN0_PORT bit 4 is the operator self-test switch: idle HIGH boots the game, clear runs diagnostics. [code]
 const SELF_TEST = 0x10;
 
-// bootMachineFromReset — the power-on reset entry, a generator. Wipes work/vector RAM, seeds the small control block,
-// then forks on the self-test switch: idle boots (device-init chain, then becomes the main-loop spine via
-// yield*); held diverts to the diagnostic spin. Validated by the whole-machine boot, not an isolated test.
+// bootMachineFromReset — the power-on reset entry, a generator. ROM 0xd93f.
+//
+// Role in the machine: this is where the CPU lands on power-on/RESET. It brings the whole board up from
+// cold — clears RAM so nothing reads stale bytes, seeds the handful of control cells the wipe cannot cover,
+// then forks on the operator self-test switch: idle (the normal case) boots the game and becomes the main
+// loop; held diverts to the technician diagnostic. Validated by the whole-machine boot, not an isolated test.
+//
 // The reset's stack seat, interrupt-disable, decimal-clear and watchdog/AVG strobes have no engine effect
-// (the engine retires the stack pointer and gates interrupts itself) and are dropped.
+// (the engine retires the stack pointer and gates interrupts itself) and are dropped. Grounding: [seen].
 export function* bootMachineFromReset(m) {
   const { mem8 } = m;
 

@@ -8,9 +8,40 @@ import {
 import { clearActiveShots } from "./clearActiveShots.js";
 import { initWaveStateCountingSpikes } from "./initWaveStateCountingSpikes.js";
 
-// A control byte's sign splits two arms: the positive arm bumps a per-slot timer
-// cell and conditionally resets shot state; the negative arm ages the shot table,
-// advances a clock, and clamps a running total.
+/**
+ * ageShotsAndAdvanceFrameClock -- the per-frame shot ager, keyed on the sign of the
+ * frame-control byte PLAYER_FINE_ANGLE (loc_201). ROM 0xa504.
+ *
+ * Role in the machine: Tempest runs its wave/shot bookkeeping once per frame off a single
+ * control byte whose sign selects one of two jobs. While that byte is positive the routine
+ * services the "still setting up" arm -- it nurses a per-slot timer and, when the board is
+ * quiet, folds the wave state back to its start so a fresh wave can spawn. Once the byte
+ * goes negative the routine flips to the "wind-down" arm: it ages every shot in flight, ticks
+ * a frame/countdown clock, and when that clock crosses its marker it hands control off (sets
+ * the game-mode cell to 6) and clamps a running enemy-budget total. Together the two arms are
+ * what makes shots decay, waves recycle, and the between-wave timer march forward.
+ *
+ * Behavior: read PLAYER_FINE_ANGLE (loc_201). If < 0x80 (positive arm): when a gate cell pair
+ * (loc_455 | PLAYER_SHAPE_SUM) is live and loc_42 > 0x17, bump timer cell GAME_MODE+loc_40
+ * (loc_00 base) by one. Bail on an active spike. If FIRE_GATE|TIMED_OBJECT_COUNT is zero, scan
+ * the ENEMY_DEPTH shot table from ENEMY_SLOT_TOP down looking for any live shot already grown
+ * past 0x11; only if none is found re-init the wave (initWaveStateCountingSpikes) and clear
+ * shots. Three further guards (INPUT_DEBOUNCED bits 0x60, STATUS_FLAGS bit 0x80, DSW1_SNAPSHOT
+ * masked to 0x40) gate a second wave re-init. Negative arm: bail while any of ACTIVE_OBJECT_COUNT
+ * / ACTIVE_ENEMY_COUNT / TIMED_OBJECT_COUNT is nonzero; otherwise age each live ENEMY_DEPTH shot
+ * by +0x0f (snapping >= 0xf0 to 0). Then, keyed on SLOT_COUNTDOWN+loc_3d, either step
+ * PLAYER_SHOT_DEPTH by +0x0f (proceed at >= 0xf0) or reset two flags and count the 16-bit
+ * DEPTH_HI/DEPTH_LO clock down by 0x20 (proceed when the high byte hits 0xfa). On proceed:
+ * GAME_MODE = 0x06, clear shots, and set FIRE_GATE = min(0x3f, ENEMY_TOTAL_COUNT +
+ * ENEMY_TYPE_COUNT + FIRE_GATE).
+ *
+ * Live-out: the ENEMY_DEPTH shot table (aged), the per-slot timer cell GAME_MODE+loc_40,
+ * PLAYER_SHOT_DEPTH / DEPTH_HI / DEPTH_LO (the clock), GAME_MODE (=0x06 on hand-off), FIRE_GATE
+ * (the clamped enemy budget), loc_10f / REDRAW_COUNTER, and the wave state re-seeded by the
+ * called routines.
+ *
+ * Grounding: [seen].
+ */
 export function ageShotsAndAdvanceFrameClock(m) {
   const { mem8 } = m;
 

@@ -19,9 +19,24 @@ import { runFrameStateUpdaters } from "./runFrameStateUpdaters.js";
 import { armModeAndRebuildIfEnabled } from "./armModeAndRebuildIfEnabled.js";
 import { stepEnemyFleetAndSpawn } from "./stepEnemyFleetAndSpawn.js";
 
-// DSW-gated per-frame handler dispatch: skip entirely when (DSW1_COINAGE & 0x83) == 0x82; otherwise run a
-// pre-pass, set bit7 of INPUT_EDGE_FLAGS, and select one of the handlers by the byte offset in GAME_MODE. Index 6 is
-// an unused table slot (its word is zero); the caller never selects it.
+/**
+ * dispatchFramePhaseHandler -- the DSW-gated per-frame phase dispatcher. ROM 0xc7bd.
+ *
+ * Role in the machine: this is the first of the three per-update passes the main frame loop
+ * (runMainFrameLoop) runs each ~26.5Hz tick. It drives whatever phase the game is in -- level setup,
+ * per-frame play updates, enemy pacing, pending-mode commit, wave spawn cadence, rim rotation, the sound
+ * queue, and the mode-param seeding variants -- by selecting the phase's handler from the mode cell.
+ *
+ * Behavior: first a DSW gate -- when the coinage dip (DSW1_COINAGE & 0x83) reads 0x82 the whole pass is
+ * skipped and the routine returns doing nothing (a hardware config that disables this update). Otherwise it
+ * runs a pre-pass, stepSpikeTableCollapse (the original's loc_a7d2), then sets bit7 of INPUT_EDGE_FLAGS
+ * (0x4e) to mark this frame's edge state. It then reads GAME_MODE (0x0) as a byte offset and tail-calls
+ * TABLE[offset>>1]. The 19-entry TABLE mirrors the original word table; slot index 6 (offset 0x0c) is an
+ * unused/zero entry the caller never selects, kept here as null to preserve the offset>>1 indexing.
+ *
+ * Live-out: INPUT_EDGE_FLAGS bit7 set, plus all the frame-phase state the pre-pass and selected handler write.
+ * Grounding: [seen].
+ */
 const TABLE = [
   resetLevelPlayfieldSlots, setupLevelTimers, runPerFrameUpdates, tickEnemyPacingCountdown, reloadPacingFromPeakSlot, commitPendingModeAfterDelay, null, bumpLevelEnemyQuota, buildSortedSoundRequest, tickActiveSoundSlot,
   seedModeParamsFromMaskedFlags, tickWaveSpawnCadence, autoAdvanceRimRotation, seedModeParamsWithBounds, reseedWaveWorkingSet, seedModeParamsMinimal, runFrameStateUpdaters, armModeAndRebuildIfEnabled, stepEnemyFleetAndSpawn,
