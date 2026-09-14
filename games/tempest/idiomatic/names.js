@@ -23,7 +23,7 @@ export const LANE_COUNTER_1 = 0x0014;  // [code] Second entry of the three-lane 
 export const LANE_COUNTER_2 = 0x0015;  // [code] Third entry of the three-lane heartbeat counter (LANE_COUNTER base)
 export const HEARTBEAT_ACCUM_LO = 0x0016;  // [seen] Low byte of the heartbeat running accumulator advanced with a carry link
 export const HEARTBEAT_ACCUM_HI = 0x0017;  // [seen] High byte of the heartbeat running accumulator, later reduced by a table amount
-export const HEARTBEAT_ACCUM_OVERFLOW = 0x0018;  // [code] Overflow tally advanced when the heartbeat accumulator subtraction stays non-negative
+export const HEARTBEAT_ACCUM_OVERFLOW = 0x0018;  // [seen] Overflow tally advanced when the heartbeat accumulator subtraction stays non-negative
 export const LEVEL_GEOM_LO = 0x0019;  // [seen] Eight-entry working table of the current level's low geometry nibbles (mirrored to colour RAM COLOR_RAM)
 export const LEVEL_GEOM_HI = 0x0021;  // [seen] Eight-entry working table of the current level's high geometry nibbles (mirrored to colour RAM COLOR_RAM_8)
 export const COLOR_CYCLE_0 = 0x0022;  // [seen] First entry of a three-entry array mirrored into colour RAM COLOR_RAM_9..COLOR_RAM_B
@@ -524,7 +524,7 @@ export const ENEMY_CLIMB_DELTA_LO_3 = 0x0163;  // [seen] Segment-3 low byte of t
 export const ENEMY_CLIMB_DELTA_HI_1 = 0x0166;  // [seen] Segment-1 high byte of the per-segment enemy climb-speed delta table
 export const ENEMY_CLIMB_DELTA_HI_2 = 0x0167;  // [seen] Segment-2 high byte of the per-segment enemy climb-speed delta table
 export const ENEMY_CLIMB_DELTA_HI_3 = 0x0168;  // [seen] Segment-3 high byte of the per-segment enemy climb-speed delta table
-export const OBJECT_BAND = 0x027f;  // [code] Per-object attribute folded to a 3-bit band selecting the proximity/retire threshold
+export const OBJECT_BAND = 0x027f;  // [seen] Per-object attribute folded to a 3-bit band selecting the proximity/retire threshold
 export const loc_2c0 = 0x02c0;
 export const VEC_COORD1_LO = 0x3f16;  // [seen] low-byte vector-ROM coordinate-word table (draw set 1)
 export const VEC_COORD1_HI = 0x3f17;  // [seen] high-byte vector-ROM coordinate-word table (draw set 1)
@@ -841,7 +841,7 @@ export const ROUTINES = {
   0xdde9: { name: "queueEaromRegionErase", role: "[code] queue a blanked write (erase) of the single region on bit 0x04 by feeding mask 0x04 into the blank-mode merge loc_ddf3 (which forces blank-flag 0x1c6=0xff then ORs the mask into 0x1c7/0x1c8).", cert: "code" },
   0xdded: { name: "eraseEaromLowRegions", role: "[seen] Branch-only trampoline requesting a blanked EAROM write of the two low regions via ddf3 with mask 0x03; downstream loc_1c7/loc_1c8 observed changing.", cert: "seen" },
   0xddf1: { name: "queueEaromEraseAllRegions", role: "[seen] queue a blanked write (erase) of all three EAROM regions: stamp 0xff into blank-flag 0x1c6 and OR mask 0x07 into region-pending 0x1c7 and direction 0x1c8.", cert: "seen" },
-  0xddf3: { name: "requestEaromBlankWrite", role: "[code] Forces the EAROM index byte to 0xff (blank mode) then merges the caller's mask, requesting a blanked write of those regions.", cert: "code" },
+  0xddf3: { name: "requestEaromBlankWrite", role: "[seen] Forces the EAROM index byte to 0xff (blank mode) then merges the caller's mask, requesting a blanked write of those regions.", cert: "seen" },
   0xddf7: { name: "requestWriteLowRegions", role: "[code] request a (non-blanked) EAROM write of the two low NVRAM regions: pass the fixed mask 0x03 to the shared zeroed-index merge tail loc_ddfd, which ORs the mask into the region-pending loc_1c7 and direction loc_1c8 cells with a cleared blank-index loc_1c6.", cert: "seen" },
   0xddfb: { name: "queueEaromRegionSave", role: "[seen] queue a plain (non-blanked) EAROM save of the region on bit 0x04: store index 0x00 into blank-flag 0x1c6 and OR mask 0x04 into region-pending 0x1c7 and direction 0x1c8.", cert: "seen" },
   0xddfd: { name: "queueEaromRegionSave", entry: "queueEaromRequestAtIndexZero", role: "[code] queue an EAROM (high-score NVRAM) request at cell index 0: store 0x00 into the target-index cell loc_1c6 and OR the caller's mask A into both request-flag cells loc_1c7 and loc_1c8 (shared tail queueEaromRequest); entry queueEaromRegionSave presets mask 0x04.", cert: "seen" },
