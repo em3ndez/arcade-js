@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for seedFramePhaseAndTick (ROM 0xc891-0xc90b) -- the per-frame dispatcher. It sets speed/mode cells from
 // the coin input + phase counters, then a common tail advances FRAME_COUNTER and fires the sub-steps advanceLevelCounter
-// (c8d2), stepEaromTransfer (odd frames) and loc_ccfa (when SOUND_STEP_GATE is live), threading the slot index X/Y from one to
+// (c8d2), stepEaromTransfer (odd frames) and requestActiveSoundCue (when SOUND_STEP_GATE is live), threading the slot index X/Y from one to
 // the next. Contract: RAM (dumpState minus STACK_SCRATCH). The ROM's decimal-mode arm (SED gated on
 // DECIMAL_MODE_FLAG != 0 && loc_9f > 0x13) is DEAD -- DECIMAL_MODE_FLAG is the checksum 0xa7 ^ fold(ROM[0xaace..0xaad8]) of a
 // fixed program-ROM span, which is 0, so the gate never opens (verified statically and by a MAME tap over
 // gameplay). The idiomatic routine omits it; on every reachable state D is left untouched, matching the
 // oracle, which the CAPTURE test still checks. c891 is a full JS dispatcher (calls its sub-steps as JS),
-// not an omitted-ret leaf, so there is no SP-tooth. The X/Y threading into loc_ccfa is load-bearing: ccfa
+// not an omitted-ret leaf, so there is no SP-tooth. The X/Y threading into requestActiveSoundCue is load-bearing: ccfa
 // forwards them to loadSoundVoiceSlots, which stamps loc_31/loc_32 -- a stale (entry) X/Y writes the wrong cells.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c891.test.js
 
@@ -18,7 +18,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_c891 as oracle } from "../../translated/loc_c891.js";
 import { seedFramePhaseAndTick } from "../seedFramePhaseAndTick.js";
 import { stepEaromTransfer } from "../stepEaromTransfer.js";
-import { loc_ccfa } from "../loc_ccfa.js";
+import { requestActiveSoundCue } from "../requestActiveSoundCue.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FRAME_COUNTER, SOUND_STEP_GATE } from "../names.js";
@@ -58,10 +58,10 @@ test("CAPTURE: real 0xc891 dispatches -- seedFramePhaseAndTick == oracle in RAM 
   console.log(`  CAPTURE: ${checked}/${CAPS.length} compared`);
 });
 
-// Force the tail sub-steps: odd frame (so stepEaromTransfer runs) and SOUND_STEP_GATE live (so loc_ccfa runs).
+// Force the tail sub-steps: odd frame (so stepEaromTransfer runs) and SOUND_STEP_GATE live (so requestActiveSoundCue runs).
 const forceTailSubsteps = (m) => { m.mem.write8(FRAME_COUNTER, 0x00); m.mem.write8(SOUND_STEP_GATE, 0x01); };
 
-test("CRAFTED: loc_ccfa reached (odd frame + SOUND_STEP_GATE live) -- RAM equal, X/Y threaded correctly", () => {
+test("CRAFTED: requestActiveSoundCue reached (odd frame + SOUND_STEP_GATE live) -- RAM equal, X/Y threaded correctly", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()); forceTailSubsteps(o);
@@ -98,11 +98,11 @@ function brokenStaleBridge(m, x = m.regs.x, y = m.regs.y) {
   }
   wr(0x03, rd(0x03) + 1);
   if ((rd(0x03) & 0x01) !== 0) [x, y] = stepEaromTransfer(m, x, y);
-  if (rd(0x0c) !== 0) loc_ccfa(m); // BUG: stale entry X/Y from the bridge, not the threaded de1b/c81b exit
+  if (rd(0x0c) !== 0) requestActiveSoundCue(m); // BUG: stale entry X/Y from the bridge, not the threaded de1b/c81b exit
   if ((rd(0x4e) & 0x80) !== 0) wr(0x4e, 0x00);
 }
 
-test("TEETH (X/Y threading): a twin that lets loc_ccfa read the stale bridge diverges from the oracle", () => {
+test("TEETH (X/Y threading): a twin that lets requestActiveSoundCue read the stale bridge diverges from the oracle", () => {
   // On an odd frame stepEaromTransfer changes X/Y, so a ccfa that reads the entry registers stamps the wrong
   // loc_31/loc_32. Scan the forced states for one that diverges (the design measured ~148/200), proving it.
   let caught = false, tried = 0;

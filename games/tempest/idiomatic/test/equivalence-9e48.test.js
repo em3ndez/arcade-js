@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for fireHitOnPlayerCollision (ROM 0x9e48-0x9e5b) -- a collision test that calls $a343 only when a
 // slot's coords match the player's ($02df,x==$0202 and $02b9,x==$0200). The idiomatic side dissolves the
-// jsr $a343 into a direct loc_a343(m, x) call. Effect is memory-only, so each arm compares RAM (dumpState
+// jsr $a343 into a direct insertObjectHeadTag9(m, x) call. Effect is memory-only, so each arm compares RAM (dumpState
 // minus STACK_SCRATCH); registers are not asserted (the dissolved callee leaves them per its own contract).
 // Run: node --test games/tempest/idiomatic/test/equivalence-9e48.test.js
 

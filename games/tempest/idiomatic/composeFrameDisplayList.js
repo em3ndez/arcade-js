@@ -10,7 +10,7 @@ import { buildMarkerRowVectorList } from "./buildMarkerRowVectorList.js";
 import { buildTextBufferDigitString } from "./buildTextBufferDigitString.js";
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { drawSlotShapeRecord } from "./drawSlotShapeRecord.js";
-import { loc_b0c6 } from "./loc_b0c6.js";
+import { emitTableValueDigitRun } from "./emitTableValueDigitRun.js";
 
 // Per-frame draw setup: refresh sprites, rebuild a checksum and a small coordinate
 // table unless idle, then issue the ordered chain of draw calls.
@@ -50,7 +50,7 @@ export function composeFrameDisplayList(m) {
   if (!(mem8[STATUS_FLAGS] & 0x80)) return;
   if (mem8[u16(loc_102 + mem8[loc_3d])] !== 0) {
     drawSlotShapeRecord(m, 0x30);
-    loc_b0c6(m, mem8[u16(loc_102 + mem8[loc_3d])]);
+    emitTableValueDigitRun(m, mem8[u16(loc_102 + mem8[loc_3d])]);
   }
   drawSlotShapeRecord(m, 0x3a);
   drawSlotShapeRecord(m, 0x38);

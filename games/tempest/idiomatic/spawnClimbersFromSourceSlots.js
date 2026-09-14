@@ -4,7 +4,7 @@ import {
   SPAWN_TIMER_RELOAD, FLYER_SLOT_TOP, PLAYER_FINE_ANGLE, ENEMY_SLOT_FLAGS, ENEMY_SLOT_DIR, ENEMY_TIMER, loc_2b5, ENEMY_SEGMENT,
   loc_2c8, ENEMY_PHASE, loc_2db, ENEMY_DEPTH, POKEY1_RANDOM, ACTIVE_ENEMY_COUNT, SPAWN_RATE_TABLE,
 } from "./names.js";
-import { loc_ccbd } from "./loc_ccbd.js";
+import { gateSound8f } from "./gateSound8f.js";
 
 // Walk the seven source slots: for each armed, above-threshold slot whose timer
 // underflows and whose RNG roll beats the per-wave gate, copy its spawn fields
@@ -29,7 +29,7 @@ export function spawnClimbersFromSourceSlots(m) {
         mem8[u16(loc_2b5 + y)] = mem8[u16(ENEMY_SEGMENT + x)];
         mem8[u16(loc_2c8 + y)] = mem8[u16(ENEMY_PHASE + x)];
         mem8[u16(ENEMY_TIMER + x)] = mem8[SPAWN_TIMER_RELOAD];
-        loc_ccbd(m, x, y);
+        gateSound8f(m, x, y);
         mem8[ACTIVE_ENEMY_COUNT] = u8(mem8[ACTIVE_ENEMY_COUNT] + 1);
         y = 0; // spawned -> end the free-slot scan
       }

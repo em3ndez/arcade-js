@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for bumpLevelEnemyQuota (ROM 0xc98c-0xc9ae). Index off loc_3d: read the PLAYER_LEVEL_TBL-slot; while it is
 // below 0x62 increment that slot and loc_9f; seed GAME_MODE = 0x18; when the loc_102-slot is nonzero run the
-// handler chain (seatInPagePointer with the slot value, addBcdScoreAndAwardAtThreshold with X=0xff, loc_ccb9); then TAIL-DELEGATE to
-// loc_9009. Contract is RAM (dumpState minus STACK_SCRATCH). Registers are NOT compared: the routine takes
-// no input register and tail-jmps loc_9009, so its exit registers are the delegate's -- both layers run the
+// handler chain (seatInPagePointer with the slot value, addBcdScoreAndAwardAtThreshold with X=0xff, requestScoreAwardSound); then TAIL-DELEGATE to
+// runWaveInit. Contract is RAM (dumpState minus STACK_SCRATCH). Registers are NOT compared: the routine takes
+// no input register and tail-jmps runWaveInit, so its exit registers are the delegate's -- both layers run the
 // identical delegate from the identical clone. Oracle is the frozen translated bumpLevelEnemyQuota.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c98c.test.js
 

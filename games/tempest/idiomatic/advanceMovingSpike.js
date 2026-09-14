@@ -4,11 +4,11 @@ import {
   GAME_MODE, DEPTH_ACCUM_LO, DEPTH_HI, DEPTH_LO, loc_9f, SPIKE_STEP_LO, SPIKE_STEP_HI, SPIKE_ACTIVE_FLAG,
   SPIKE_HEIGHT_LO, REDRAW_COUNTER, SPIKE_TABLE_GUARD, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH, LANE_LIMIT,
 } from "./names.js";
-import { loc_ccee } from "./loc_ccee.js";
-import { loc_ccf2 } from "./loc_ccf2.js";
+import { cueMovingSpikeStartSound } from "./cueMovingSpikeStartSound.js";
+import { cueMovingSpikeEndSound } from "./cueMovingSpikeEndSound.js";
 import { rebuildSpikeTable } from "./rebuildSpikeTable.js";
-import { loc_cd06 } from "./loc_cd06.js";
-import { loc_a347 } from "./loc_a343.js";
+import { cueSpikeCollisionSound } from "./cueSpikeCollisionSound.js";
+import { insertObjectHeadTag7 } from "./insertObjectHeadTag9.js";
 import { clearActiveShots } from "./clearActiveShots.js";
 
 // Per-frame step of the moving spike. Runs only while the primary flag is low and the arm
@@ -23,7 +23,7 @@ export function advanceMovingSpike(m, x = m.regs.x, y = m.regs.y) {
   if (mem8[PLAYER_FINE_ANGLE] & 0x80) return;
   if (!(mem8[SPIKE_ACTIVE_FLAG] & 0x80)) return;
 
-  if (mem8[PLAYER_SHOT_DEPTH] === 0x10) loc_ccee(m, x, y);
+  if (mem8[PLAYER_SHOT_DEPTH] === 0x10) cueMovingSpikeStartSound(m, x, y);
 
   const lo = mem8[SPIKE_HEIGHT_LO] + mem8[SPIKE_STEP_LO];
   mem8[SPIKE_HEIGHT_LO] = lo;
@@ -31,7 +31,7 @@ export function advanceMovingSpike(m, x = m.regs.x, y = m.regs.y) {
   mem8[PLAYER_SHOT_DEPTH] = hi;
   if (hi > 0xff || mem8[PLAYER_SHOT_DEPTH] >= 0xf0) {
     mem8[GAME_MODE] = 0x0e;
-    loc_ccf2(m, x, y);
+    cueMovingSpikeEndSound(m, x, y);
     mem8[PLAYER_SHOT_DEPTH] = 0xff;
   }
 
@@ -58,8 +58,8 @@ export function advanceMovingSpike(m, x = m.regs.x, y = m.regs.y) {
     if (val === 0) continue;
     if (xi !== mem8[PLAYER_SEGMENT]) continue;
     if (val >= mem8[PLAYER_SHOT_DEPTH]) continue;
-    loc_cd06(m, xi, y); // the sound cue reads its two params from xi and y
-    loc_a347(m, xi, y);
+    cueSpikeCollisionSound(m, xi, y); // the sound cue reads its two params from xi and y
+    insertObjectHeadTag7(m, xi, y);
     mem8[SPIKE_TABLE_GUARD] = 0x00;
     clearActiveShots(m);
   }

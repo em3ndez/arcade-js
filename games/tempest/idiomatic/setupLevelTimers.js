@@ -5,7 +5,7 @@ import {
 } from "./names.js";
 import { swapParallelTables } from "./swapParallelTables.js";
 import { selectProjectionScale } from "./selectProjectionScale.js";
-import { loc_9025 } from "./loc_9025.js";
+import { runLevelInit } from "./runLevelInit.js";
 import { resetBothPokeyChips } from "./resetBothPokeyChips.js";
 
 // Level-setup: seed the sizing/timer cells, and when the level id LEVEL_ID has changed
@@ -32,6 +32,6 @@ export function setupLevelTimers(m) {
 
   selectProjectionScale(m);
   mem8[loc_9f] = mem8[u8(PLAYER_LEVEL_TBL + mem8[loc_3d])];
-  loc_9025(m);
+  runLevelInit(m);
   return resetBothPokeyChips(m);
 }

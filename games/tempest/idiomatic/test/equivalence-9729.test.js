@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9729 (ROM 0x9729-0x9748) -- the per-frame update chain. It clears bit7 of
+// Memory-equivalence for runFrameStateUpdaters (ROM 0x9729-0x9748) -- the per-frame update chain. It clears bit7 of
 // SPIKED_SEGMENT_COUNT, runs the five state updaters rotateBlasterAroundRim/advanceMovingSpike/ageTimedObjects/spawnEntityIntoFreeSlot/stepActiveShots in order, then when
 // PLAYER_FINE_ANGLE is negative (bit7 set) runs ageShotsAndAdvanceFrameClock. It is a plain call-and-return routine (no computed
 // dispatch, no tail delegate) that leaves no value a caller reads back, so the contract is RAM only
 // (dumpState minus STACK_SCRATCH); no register is compared and there is no seam tooth. Oracle is the
-// frozen translated loc_9729.
+// frozen translated runFrameStateUpdaters.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9729.test.js
 
 import nodeTest from "node:test";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9729 as oracle } from "../../translated/loc_9729.js";
-import { loc_9729 } from "../loc_9729.js";
+import { runFrameStateUpdaters } from "../runFrameStateUpdaters.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPIKED_SEGMENT_COUNT, PLAYER_FINE_ANGLE } from "../names.js";
@@ -40,14 +40,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9729 dispatches -- loc_9729 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9729 dispatches -- runFrameStateUpdaters == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented draw arm
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_9729(c);
+    runFrameStateUpdaters(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -75,7 +75,7 @@ test("CRAFTED: PLAYER_FINE_ANGLE negative -- chain runs, ageShotsAndAdvanceFrame
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(extra): oracle threw on this seed -- skipped"); return; }
-  loc_9729(c);
+  runFrameStateUpdaters(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the chain + ageShotsAndAdvanceFrameClock");
   assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT), o.mem.read8(SPIKED_SEGMENT_COUNT), "SPIKED_SEGMENT_COUNT matches the oracle");
   assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT) & 0x80, 0, "bit7 of SPIKED_SEGMENT_COUNT cleared");
@@ -87,7 +87,7 @@ test("CRAFTED: PLAYER_FINE_ANGLE positive -- updaters run, ageShotsAndAdvanceFra
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED(bodies): oracle threw on this seed -- skipped"); return; }
-  loc_9729(c);
+  runFrameStateUpdaters(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the update chain");
   assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT) & 0x80, 0, "bit7 of SPIKED_SEGMENT_COUNT cleared");
 });
@@ -98,11 +98,11 @@ test("TEETH: a twin that skips the bit7 clear of SPIKED_SEGMENT_COUNT MUST diver
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_9729 but restores SPIKED_SEGMENT_COUNT's original value, dropping the signature
+  // Broken twin: identical to runFrameStateUpdaters but restores SPIKED_SEGMENT_COUNT's original value, dropping the signature
   // clear. SPIKED_SEGMENT_COUNT was seeded with bit7 set, so the dropped clear guarantees a RAM divergence.
   const broken = (m) => {
     const before123 = m.mem.read8(SPIKED_SEGMENT_COUNT);
-    loc_9729(m);
+    runFrameStateUpdaters(m);
     m.mem.write8(SPIKED_SEGMENT_COUNT, before123); // BUG: revert the bit7 clear
   };
   broken(c);

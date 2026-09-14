@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for sharedReturnTail (ROM 0xaf6e) -- a bare RTS leaf (tail of loc_af3f, entered by loc_af26's
+// Memory-equivalence for sharedReturnTail (ROM 0xaf6e) -- a bare RTS leaf (tail of drawCounterSlot, entered by drawCounterPair's
 // tail-call). No RAM write, no register live-out: the idiomatic body is empty and the withOmittedRet seam
 // supplies the ret. The arms compare RAM (-stack) only; the oracle's ROM ret moves SP/pc but writes no RAM,
 // which the seam reconciles, so pc/SP are NOT compared. A TEETH twin that writes a cell proves the RAM diff

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { PROJ_PT_Y, OBJ_DEPTH, SLOT_LOOP_INDEX, loc_14d, loc_14e, SCORE_DISPLAY_TIMER } from "./names.js";
-import { loc_df6c } from "./loc_df6c.js";
-import { loc_df4c } from "./loc_df4c.js";
+import { emitVectorWordTag70 } from "./emitVectorWordTag70.js";
+import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { drawSlotShapeWithHeader } from "./drawSlotShapeWithHeader.js";
 
@@ -17,7 +17,7 @@ export function emitSegmentedSpanBetweenCursors(m, a = m.regs.a, x = m.regs.x) {
   mem8[SCORE_DISPLAY_TIMER] = mem8[SCORE_DISPLAY_TIMER] - 1;
   do {
     const cur = mem8[SLOT_LOOP_INDEX];
-    loc_df6c(m, cur >> 5, (cur << 2) & 0x7f);
+    emitVectorWordTag70(m, cur >> 5, (cur << 2) & 0x7f);
     let marker;
     if (cur === mem8[loc_14d]) {
       marker = 0x00;
@@ -25,7 +25,7 @@ export function emitSegmentedSpanBetweenCursors(m, a = m.regs.a, x = m.regs.x) {
       const seg = (cur >> 3) & 0x07;
       marker = seg === 0x07 ? 0x03 : seg;
     }
-    loc_df4c(m, 0x68, marker);
+    emitTaggedVectorWord(m, 0x68, marker);
     emitCoordinateVectorWord(m, mem8[OBJ_DEPTH], mem8[PROJ_PT_Y]);
     mem8[SLOT_LOOP_INDEX] = mem8[SLOT_LOOP_INDEX] + 2;
   } while (mem8[SLOT_LOOP_INDEX] < mem8[loc_14e]);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_9a88 (ROM 0x9a88-0x9a92) -- an RTS-trick COMPUTED-JUMP dispatcher: it does asl a
+// Equivalence for dispatchCoordListSetup (ROM 0x9a88-0x9a92) -- an RTS-trick COMPUTED-JUMP dispatcher: it does asl a
 // (A=2*A), tay (Y=A) then pushes word($9a93+Y) and rts, jumping to (word+1). The caller passes A as the
 // ENTRY INDEX 0..4 (the routine doubles it into the 2-byte table offset itself), so the Nth word is entry
 // A -- the idiomatic form is TABLE[a], NOT a>>1. The five targets (0x9a9d/0x9aa9/0x9abb/0x9ab7/0x9ab3) each
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9a88 as oracle } from "../../translated/loc_9a88.js";
-import { loc_9a88 } from "../loc_9a88.js";
+import { dispatchCoordListSetup } from "../dispatchCoordListSetup.js";
 import { seatDemoCoordListPointer, loc_9aa9, loc_9ab3, seatCoordListPointerAtIndex3 } from "../seatDemoCoordListPointer.js";
 import { selectClimberSpawnLane } from "../selectClimberSpawnLane.js";
 import { Machine, withOmittedRet } from "../../machine.js";
@@ -43,12 +43,12 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9a88 dispatches -- loc_9a88 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9a88 dispatches -- dispatchCoordListSetup == oracle in RAM (-stack)", () => {
   const as = new Set();
   for (const cap of CAPS) {
     as.add(cap.regs.a);
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9a88(c);
+    oracle(o); dispatchCoordListSetup(c);
     assert.equal(ramDiff(o, c), null, `RAM equal for captured A=${cap.regs.a}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked; distinct A seen: [${[...as].sort((a, b) => a - b).join(",")}]`);
@@ -65,7 +65,7 @@ function seedBase(a) {
   return m;
 }
 
-test("CRAFTED: each entry index A=0..4 -- loc_9a88 == oracle in RAM (-stack)", () => {
+test("CRAFTED: each entry index A=0..4 -- dispatchCoordListSetup == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const a of [0, 1, 2, 3, 4]) {
     const base = seedBase(a);
@@ -73,7 +73,7 @@ test("CRAFTED: each entry index A=0..4 -- loc_9a88 == oracle in RAM (-stack)", (
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // an entry the generic seed cannot fully provision -- CAPTURE carries it
-    loc_9a88(c);
+    dispatchCoordListSetup(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after dispatching entry A=${a}`);
     checked++;
   }
@@ -106,7 +106,7 @@ test("SP-TOOTH: the omitted-ret dispatcher (moved 0) is seam-placeable", () => {
   const m = seedBase(0x00);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9a88, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9a88 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchCoordListSetup, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchCoordListSetup must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatcher (moved 0) placeable");
 });

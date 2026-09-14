@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for seedRngAndDrawCounterPanel (ROM 0xae1c-0xae4d) -- runs the frame setup (buildTextOverlayList), folds two POKEY
 // random samples ($60ca then $60da) into the scratch byte $29 and the stored nibble $011f, draws counters
-// (loc_af26), then tail-calls the row builder loc_ae4e with A = 0xff. Dissolves every m.call; the 0xff is
-// threaded as loc_ae4e's A input.
+// (drawCounterPair), then tail-calls the row builder drawHighlightedGlyphRowList with A = 0xff. Dissolves every m.call; the 0xff is
+// threaded as drawHighlightedGlyphRowList's A input.
 //   POKEY coupling: the fold reads $60ca/$60da (RANDOM). The oracle's m.step charges cycles the idiomatic
 // does not, so the arms only agree when the POKEY poly is frozen (clear SK_RESET -> _advance early-returns
 // -> RANDOM constant). Freezing the clones makes CAPTURE and the fold deterministic.
-//   Live-out is RAM ($29, $011f, the draws, and $63 stamped by loc_ae4e from the threaded A). Omitted-ret.
+//   Live-out is RAM ($29, $011f, the draws, and $63 stamped by drawHighlightedGlyphRowList from the threaded A). Omitted-ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-ae1c.test.js
 
 import nodeTest from "node:test";
@@ -16,8 +16,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_ae1c as oracle } from "../../translated/loc_ae1c.js";
 import { seedRngAndDrawCounterPanel } from "../seedRngAndDrawCounterPanel.js";
 import { buildTextOverlayList } from "../buildTextOverlayList.js";
-import { loc_af26 } from "../loc_af26.js";
-import { loc_ae4e } from "../loc_ae4e.js";
+import { drawCounterPair } from "../drawCounterPair.js";
+import { drawHighlightedGlyphRowList } from "../drawHighlightedGlyphRowList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, loc_11f, POKEY1_RANDOM, POKEY2_RANDOM } from "../names.js";
@@ -49,7 +49,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 6000) : [];
 // corrupt zero page ($3b/$3c) and drawSlotShapeRecord dereferences a garbage pointer into a decode hole (unmapped read
 // at 0x7100). Point ($74) at vector RAM (0x2800), ($ac) at a table (0x2400) whose every even entry points to
 // a one-pair, bit7-terminated list at 0x2500, and set $05 bit7 so buildTextOverlayList skips its own object-draw block
-// (covered separately by equivalence-a8b4). The random fold, loc_af26 draw, and A=0xff thread still run.
+// (covered separately by equivalence-a8b4). The random fold, drawCounterPair draw, and A=0xff thread still run.
 function seat(m) {
   m.mem.write8(0x05, 0x80);
   m.mem.write8(0x74, 0x00); m.mem.write8(0x75, 0x28);
@@ -68,7 +68,7 @@ test("CAPTURE: real 0xae1c dispatches -- seedRngAndDrawCounterPanel == oracle in
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: random fold -> $29 and $011f, draws, A=0xff to loc_ae4e == oracle (RAM)", () => {
+test("CRAFTED: random fold -> $29 and $011f, draws, A=0xff to drawHighlightedGlyphRowList == oracle (RAM)", () => {
   const o = seat(freezePokey(new Machine(ROM, OPTS)));
   const c = seat(freezePokey(new Machine(ROM, OPTS)));
   oracle(o); seedRngAndDrawCounterPanel(c);
@@ -77,10 +77,10 @@ test("CRAFTED: random fold -> $29 and $011f, draws, A=0xff to loc_ae4e == oracle
   assert.equal(c.mem.read8(loc_11f), o.mem.read8(loc_11f), "stored nibble $011f folded identically");
 });
 
-test("TEETH (A thread): a twin that hands loc_ae4e the wrong A (0x00) diverges at $63", () => {
+test("TEETH (A thread): a twin that hands drawHighlightedGlyphRowList the wrong A (0x00) diverges at $63", () => {
   const o = seat(freezePokey(new Machine(ROM, OPTS))); oracle(o);
   const c = seat(freezePokey(new Machine(ROM, OPTS)));
-  // BUG: threads a zero A into the row builder instead of 0xff; loc_ae4e stamps it into $63.
+  // BUG: threads a zero A into the row builder instead of 0xff; drawHighlightedGlyphRowList stamps it into $63.
   const broken = (m) => {
     const { mem8 } = m;
     buildTextOverlayList(m);
@@ -91,8 +91,8 @@ test("TEETH (A thread): a twin that hands loc_ae4e the wrong A (0x00) diverges a
     const r1shift = mem8[POKEY2_RANDOM];
     mem8[loc_29] = ((r1 ^ mem8[loc_29]) & 0xf0) ^ mem8[loc_29];
     mem8[loc_11f] = ((r1shift << 4) & 0xff) ^ mem8[loc_29];
-    loc_af26(m);
-    loc_ae4e(m, 0x00); // wrong A
+    drawCounterPair(m);
+    drawHighlightedGlyphRowList(m, 0x00); // wrong A
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong threaded A");

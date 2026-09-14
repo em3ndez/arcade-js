@@ -68,7 +68,7 @@ test("CAPTURE: real 0xb1b6 dispatches -- buildFrameVectors == oracle in RAM (-st
 function seedReachChecksum(m, { fill }) {
   const cec4 = m.mem.read8(VECHEAD0_PLAY);           // 0xe4 in ROM; also != $cec6 (0xe6) so the guard is broken
   m.mem.write8(VEC_LIST_HEADER_LO, cec4);                 // == $cec4 -> checkpoint helper returns no-change
-  m.mem.write8(MODE_DISPATCH_SEL, 0x00);                    // trampoline selector -> loc_b230 (a terminating dispatch)
+  m.mem.write8(MODE_DISPATCH_SEL, 0x00);                    // trampoline selector -> drawFrame (a terminating dispatch)
   m.mem.write8(DRAW_RECORD_PTR_LO, 0x00);                   // active pointer -> 0x0500 (work RAM)
   m.mem.write8(DRAW_RECORD_PTR_LO + 1, 0x05);
   for (let i = 0; i < 0x28; i++) m.mem.write8(0x0500 + i, fill);
@@ -82,8 +82,8 @@ function craftMachine() {
 // NOTE: the D-set (decimal) checksum path is exercised only in the DECIMAL_MODE_FLAG!=0 mode, which seedFramePhaseAndTick's sed
 // gates and which is NOT reached in the gameplay+attract capture (DECIMAL_MODE_FLAG is always 0 there), so it is a
 // dead/unreachable path in the shipped game. It also cannot be isolated in this per-routine test: buildFrameVectors
-// now calls the real loc_b20d directly (the seam stub that once kept the checksum on the seeded block is
-// gone), and the live dispatch targets (loc_b230 et al.) are not themselves decimal-aware, so a full-frame
+// now calls the real dispatchDisplayModeHandler directly (the seam stub that once kept the checksum on the seeded block is
+// gone), and the live dispatch targets (drawFrame et al.) are not themselves decimal-aware, so a full-frame
 // D-set comparison measures those targets, not this routine. The decimal checksum stays faithfully in the
 // code (dFlag param); if that mode is ever shown reachable, the whole-game test validates the decimal frame.
 test("CRAFTED-BINARY: D clear, checksum loop runs -- buildFrameVectors == oracle in RAM (-stack)", () => {

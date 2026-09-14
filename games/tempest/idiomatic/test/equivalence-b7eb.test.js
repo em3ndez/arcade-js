@@ -2,7 +2,7 @@
 // Memory-equivalence for animateShapeOneVector (ROM 0xb7eb-0xb829) -- refreshes two axis params from the $0435/$0445
 // tables (index $29), runs the two frame updaters (projectPointThroughMathbox, layHeaderAndBuildRecord with X=0x61), counts down the
 // sub-timer $013c (on wrap advances phase $013b and reloads $013c), optionally runs the phase handler
-// (loc_b84e when the $b83d entry is >= 0), then emits the phase's $cec8/$cec9 vector-pair word via the
+// (dispatchDrawSetup when the $b83d entry is >= 0), then emits the phase's $cec8/$cec9 vector-pair word via the
 // emitVectorWord tail. Dissolves all four m.calls into direct idiomatic calls. All live-out is RAM (the tables,
 // the timer/phase cells, and every callee's writes); the oracle also leaves A as a df5f-family cursor byte
 // the tail does not reproduce, and b7eb reads no register after, so each arm compares RAM only, not A.
@@ -16,7 +16,7 @@ import { loc_b7eb as oracle } from "../../translated/loc_b7eb.js";
 import { animateShapeOneVector } from "../animateShapeOneVector.js";
 import { projectPointThroughMathbox } from "../projectPointThroughMathbox.js";
 import { layHeaderAndBuildRecord } from "../layHeaderAndBuildRecord.js";
-import { loc_b84e } from "../loc_b84e.js";
+import { dispatchDrawSetup } from "../dispatchDrawSetup.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -97,7 +97,7 @@ test("TEETH: a twin that never ticks the sub-timer diverges from the oracle", ()
     layHeaderAndBuildRecord(m, 0x61);
     const x = mem8[OBJECT_ANIM_PHASE]; // BUG: never decrements/reloads $013c, never advances the phase
     const phase = mem8[u16(ANIM_PHASE_CODE + x)];
-    if (phase < 0x80) loc_b84e(m, phase);
+    if (phase < 0x80) dispatchDrawSetup(m, phase);
     // emit still happens, but $013c is left stale
     void mem16;
   };
@@ -133,7 +133,7 @@ test("TEETH (marshalling): a twin that swaps the df57 emit pair diverges from th
       mem8[OBJECT_ANIM_TIMER] = mem8[u16(ANIM_PHASE_DURATION + x)];
     }
     const phase = mem8[u16(ANIM_PHASE_CODE + x)];
-    if (phase < 0x80) loc_b84e(m, phase);
+    if (phase < 0x80) dispatchDrawSetup(m, phase);
     const j = ((mem8[OBJECT_ANIM_PHASE] << 1) + 0x28) & 0xff;
     const p = mem16[DRAW_CURSOR_LO];
     // BUG: swapped low/high emit bytes

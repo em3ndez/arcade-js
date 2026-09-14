@@ -5,7 +5,7 @@ import {
 } from "./names.js";
 import { advanceLevelCounter } from "./advanceLevelCounter.js";
 import { stepEaromTransfer } from "./stepEaromTransfer.js";
-import { loc_ccfa } from "./loc_ccfa.js";
+import { requestActiveSoundCue } from "./requestActiveSoundCue.js";
 
 // Per-frame dispatcher. A short setup decides the speed/mode cells (GAME_MODE/MODE_DISPATCH_SEL/loc_a2) from the
 // coin input, the mode flag STATUS_FLAGS, and the phase counters DSW2_SNAPSHOT/PHASE_COUNTER, then a common tail advances
@@ -46,7 +46,7 @@ export function seedFramePhaseAndTick(m, x = m.regs.x, y = m.regs.y) {
   // Common tail.
   mem8[FRAME_COUNTER] = u8(mem8[FRAME_COUNTER] + 1);
   if ((mem8[FRAME_COUNTER] & 0x01) !== 0) [x, y] = stepEaromTransfer(m, x, y);  // odd frames
-  if (mem8[SOUND_STEP_GATE] !== 0) loc_ccfa(m, x, y);                    // live -> register the sound
+  if (mem8[SOUND_STEP_GATE] !== 0) requestActiveSoundCue(m, x, y);                    // live -> register the sound
   // (The decimal-mode arm here -- SED gated on DECIMAL_MODE_FLAG != 0 && loc_9f > 0x13 -- is dead: DECIMAL_MODE_FLAG holds a
   // fixed checksum that is always 0, so the gate never opens. Verified statically and by observation of the
   // running game, where DECIMAL_MODE_FLAG is written 0 every time.)

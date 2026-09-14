@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_d8a9 (ROM 0xd8a9-0xd8b5) -- stashes A at $29, scales Y,X via emitScaledCoordinateRecord, then
+// Memory-equivalence for emitScaledByteDigit (ROM 0xd8a9-0xd8b5) -- stashes A at $29, scales Y,X via emitScaledCoordinateRecord, then
 // emits the single $29 byte through emitNibbleDigitRun. The idiomatic side dissolves the two jsr into direct
 // emitScaledCoordinateRecord(m, y, x) and emitNibbleDigitRun(m, $29, 1) calls. Live-out is memory only (A/X/Y at RTS are whatever the
 // tail callee leaves, incidental), so each arm compares RAM (dumpState minus STACK_SCRATCH); registers are
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_d8a9 as oracle } from "../../translated/loc_d8a9.js";
-import { loc_d8a9 } from "../loc_d8a9.js";
+import { emitScaledByteDigit } from "../emitScaledByteDigit.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { emitScaledCoordinateRecord } from "../emitScaledCoordinateRecord.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xd8a9 dispatches -- loc_d8a9 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xd8a9 dispatches -- emitScaledByteDigit == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_d8a9(c);
+    oracle(o); emitScaledByteDigit(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,10 +56,10 @@ function seedDistinct(m) {
   m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21); // ($74) -> 0x2100 (vector RAM, diffed)
 }
 
-test("CRAFTED: distinct A/Y/X -- loc_d8a9 == oracle in RAM", () => {
+test("CRAFTED: distinct A/Y/X -- emitScaledByteDigit == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedDistinct(o);
   const c = new Machine(ROM, OPTS); seedDistinct(c);
-  oracle(o); loc_d8a9(c);
+  oracle(o); emitScaledByteDigit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after stash + scale + emit");
   assert.equal(c.mem.read8(loc_29), 0x11, "A stashed at $29");
 });
@@ -90,6 +90,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_d8a9, TARGET, m);
-  assert.equal(r.placeable, true, `loc_d8a9 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitScaledByteDigit, TARGET, m);
+  assert.equal(r.placeable, true, `emitScaledByteDigit must be seam-placeable; got: ${r.error}`);
 });

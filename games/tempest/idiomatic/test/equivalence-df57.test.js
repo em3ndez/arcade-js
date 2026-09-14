@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for emitVectorWord (ROM 0xdf57) -- the shared vector-word tail reached with the pair
 // preset: store A at ($74/$75)+0 and X at +1, then advance the ($74/$75) cursor by 2 (tail into
-// advanceDisplayCursor). emitVectorHeaderWord falls into it with the fixed {0x40,0x80}; loc_df4c/loc_df6c/loc_ab0d reach it
+// advanceDisplayCursor). emitVectorHeaderWord falls into it with the fixed {0x40,0x80}; emitTaggedVectorWord/emitVectorWordTag70/emitFixedVectorWord reach it
 // with a computed pair. The oracle m.call(0xdf5f)s the translated tail; the idiomatic calls the
 // idiomatic advanceDisplayCursor -- both memory-equivalent, so the contract is RAM (dumpState, minus STACK_SCRATCH).
 // A/X are INPUTS (read from the register bridge); the display-builder family leaves no asserted

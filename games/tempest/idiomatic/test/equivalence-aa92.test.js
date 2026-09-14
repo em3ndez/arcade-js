@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa92 (ROM 0xaa92-0xaa96) -- loads X=2, draws via drawSlotShapeRecord, then tail-calls
-// loc_aa97. Dissolves both m.calls into direct idiomatic calls. All output is RAM (the draw setup + the
+// Memory-equivalence for drawSlotThenDigitRun (ROM 0xaa92-0xaa96) -- loads X=2, draws via drawSlotShapeRecord, then tail-calls
+// emitCountDigitRun. Dissolves both m.calls into direct idiomatic calls. All output is RAM (the draw setup + the
 // vector words emitted downstream), so each arm compares the RAM diff (minus the dead stack). An
 // omitted-ret tail-caller; A/X/Y at RTS are incidental.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aa92.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa92 as oracle } from "../../translated/loc_aa92.js";
-import { loc_aa92 } from "../loc_aa92.js";
+import { drawSlotThenDigitRun } from "../drawSlotThenDigitRun.js";
 import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -36,7 +36,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-// loc_aa92 draws the fixed X=0x02 slot via drawSlotShapeRecord; the broken TEETH twin draws X=0x2c. Seed the ($ac)
+// drawSlotThenDigitRun draws the fixed X=0x02 slot via drawSlotShapeRecord; the broken TEETH twin draws X=0x2c. Seed the ($ac)
 // slot table so BOTH offsets point to a valid bit7-terminated vector list, and put the ($74) output
 // cursor in writable vector RAM (0x2000-0x2fff) -- otherwise drawSlotShapeRecord's copy loop reads an unmapped cell.
 function seat(m) {
@@ -49,15 +49,15 @@ function seat(m) {
     m.mem.write8((listBase + 1) & 0xffff, 0x03); // entry
     m.mem.write8((listBase + 2) & 0xffff, 0x82); // bit7 terminator
   };
-  seedList(0x02, 0x0500); // the fixed slot loc_aa92 draws
+  seedList(0x02, 0x0500); // the fixed slot drawSlotThenDigitRun draws
   seedList(0x2c, 0x0520); // the wrong slot the TEETH twin draws
   m.mem.write8(0x74, 0x00); m.mem.write8(0x75, 0x28); // cursor -> 0x2800 vector RAM
 }
 
-test("CAPTURE: real 0xaa92 dispatches -- loc_aa92 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaa92 dispatches -- drawSlotThenDigitRun == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aa92(c);
+    oracle(o); drawSlotThenDigitRun(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CAPTURE: real 0xaa92 dispatches -- loc_aa92 == oracle in RAM (-stack)", ()
 test("CRAFTED: draw setup + tail == oracle (RAM)", () => {
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
-  oracle(o); loc_aa92(c);
+  oracle(o); drawSlotThenDigitRun(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after draw + tail");
 });
 
@@ -83,6 +83,6 @@ test("SP-TOOTH: the omitted-ret tail-caller is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seat(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aa92, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aa92 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawSlotThenDigitRun, TARGET, m);
+  assert.equal(r.placeable, true, `drawSlotThenDigitRun must be seam-placeable; got: ${r.error}`);
 });

@@ -7,7 +7,7 @@ import {
 } from "./names.js";
 import { armEaromReadback } from "./armEaromReadback.js";
 import { queueEaromEraseAllRegions } from "./queueEaromEraseAllRegions.js";
-import { loc_db0f } from "./loc_db0f.js";
+import { dispatchDrawHandler } from "./dispatchDrawHandler.js";
 import { emitHeaderedBodyRecord } from "./emitHeaderedBodyRecord.js";
 import { stepEaromTransfer } from "./stepEaromTransfer.js";
 
@@ -56,7 +56,7 @@ export function runSelfTestLoop(m) {
       if ((packed & 0x80) !== 0) mem8[GAME_MODE] = mem8[GAME_MODE] + 2; // top bit shifted out -> double-bump
     }
 
-    loc_db0f(m);
+    dispatchDrawHandler(m);
     mem8[AVG_GO_STROBE] = emitHeaderedBodyRecord(m); // build the frame, then strobe display go
 
     mem8[FRAME_COUNTER] = mem8[FRAME_COUNTER] + 1;

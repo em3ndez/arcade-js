@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for drawTubeRimSegmentFromCorner / emitTubeRimSegmentVectors (ROM 0xbda0-0xbfb4). drawTubeRimSegmentFromCorner captures a segment's two
 // endpoints then falls into emitTubeRimSegmentVectors, the shared builder (also entered directly at 0xbdcb from other
-// sites). bdcb early-outs unless active, transforms both endpoints via projectPointThroughMathbox/layHeaderAndBuildRecord/loc_df4c/
-// loc_df6c, forms two clamped signed deltas, expands a fivefold spread, and emits N four-byte records
+// sites). bdcb early-outs unless active, transforms both endpoints via projectPointThroughMathbox/layHeaderAndBuildRecord/emitTaggedVectorWord/
+// emitVectorWordTag70, forms two clamped signed deltas, expands a fivefold spread, and emits N four-byte records
 // into the ($74) cursor before tail-advancing it via advanceDisplayCursor. The idiomatic side dissolves every
 // jsr into a direct call. Live-out is memory only (tail-caller into df5f), so each arm compares RAM
 // (dumpState minus STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-bda0.test.js

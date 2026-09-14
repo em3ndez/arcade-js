@@ -7,10 +7,10 @@ import {
 } from "./names.js";
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { emitVectorWordTag60FromKey } from "./emitVectorWordTag60FromKey.js";
-import { loc_df4c } from "./loc_df4c.js";
+import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { loc_df6a } from "./loc_df6a.js";
-import { loc_df6c } from "./loc_df6c.js";
-import { loc_df09 } from "./loc_df09.js";
+import { emitVectorWordTag70 } from "./emitVectorWordTag70.js";
+import { emitRecordBodyC0 } from "./emitRecordBodyC0.js";
 import { emitBlankValueRecord } from "./emitBlankValueRecord.js";
 import { swapDrawPointers } from "./swapDrawPointers.js";
 import { returnConstantTwo } from "./returnConstantTwo.js";
@@ -55,11 +55,11 @@ export function drawMovingObjectSlots(m) {
       swapDrawPointers(m);
       emitObjectPositionVector(m, 0x61);
       const [pa, py] = returnConstantTwo(m);
-      loc_df6c(m, pa, py);
+      emitVectorWordTag70(m, pa, py);
       let phase = mem8[SLOT_LOOP_INDEX] & 0x07;
       if (phase === 0x07) phase = 0x00;
       mem8[loc_9e] = phase;
-      loc_df4c(m, 0x08, phase);
+      emitTaggedVectorWord(m, 0x08, phase);
       emitVectorWordTag60FromKey(m, 0x00);
       const [ha, hx] = selectPointerPair(m);
       emitCoordinateVectorWord(m, ha, hx);
@@ -70,6 +70,6 @@ export function drawMovingObjectSlots(m) {
   } while (true);
   swapDrawPointers(m);
   loc_df6a(m, 0x01);
-  loc_df09(m);
+  emitRecordBodyC0(m);
   return swapDrawPointers(m);
 }

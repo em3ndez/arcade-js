@@ -5,7 +5,7 @@ import {
   PROJ_OFS_X_LO, PROJ_OFS_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, loc_9e, CHECKSUM_ACC,
   OBJECT_INDEX_TABLE, OBJECT_RECORD_TABLE, OBJ_DY_HI, OBJ_DY_LO, OBJ_DX_HI, OBJ_DX_LO,
 } from "./names.js";
-import { loc_df4c } from "./loc_df4c.js";
+import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { advanceDisplayCursor } from "./advanceDisplayCursor.js";
 import { loc_df6a } from "./loc_df6a.js";
 import { layHeaderAndBuildRecord } from "./layHeaderAndBuildRecord.js";
@@ -16,7 +16,7 @@ import { layHeaderAndBuildRecord } from "./layHeaderAndBuildRecord.js";
 export function buildObjectDisplayList(m) {
   const { mem8 } = m;
   mem8[loc_9e] = 0x0c;
-  loc_df4c(m, 0x08, 0x0c);
+  emitTaggedVectorWord(m, 0x08, 0x0c);
   layHeaderAndBuildRecord(m, 0x66);
   mem8[PROJ_PT_Y] = 0x12;
   mem8[SLOT_LOOP_INDEX] = 0x3f;

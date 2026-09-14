@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_af71 (ROM 0xaf71-0xaf76) -- clamps A to a max of 0x63, then falls into
-// loc_af77 (pack-to-BCD + emit). The idiomatic side dissolves the jsr into a direct loc_af77(m, clamped)
+// emitByteAsBcdDigits (pack-to-BCD + emit). The idiomatic side dissolves the jsr into a direct emitByteAsBcdDigits(m, clamped)
 // call, seating the clamped byte explicitly. Both sides pull A from m.regs.a, so seed it. Live-out is
 // memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-af71.test.js
@@ -13,7 +13,7 @@ import { loc_af71 as oracle } from "../../translated/loc_af71.js";
 import { loc_af71 } from "../loc_af71.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_af77 } from "../loc_af77.js";
+import { emitByteAsBcdDigits } from "../emitByteAsBcdDigits.js";
 import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -72,7 +72,7 @@ test("CRAFTED: A=0x80 (>= 0x63, clamps to 0x63) -- RAM equal", () => {
 test("TEETH: a twin that skips the clamp diverges from the oracle (A=0x80)", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x80); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c, 0x80);
-  const broken = (m, a = m.regs.a) => loc_af77(m, a); // BUG: never clamps to 0x63
+  const broken = (m, a = m.regs.a) => emitByteAsBcdDigits(m, a); // BUG: never clamps to 0x63
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped clamp");
 });

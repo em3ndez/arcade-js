@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df6c (ROM 0xdf6c-0xdf72) -- tags A with the 0x70 header bits, then emits the
+// Memory-equivalence for emitVectorWordTag70 (ROM 0xdf6c-0xdf72) -- tags A with the 0x70 header bits, then emits the
 // vector word {Y, tagged-A} at the cursor and advances it. The idiomatic side dissolves the jmp $df57 tail
 // into a direct emitVectorWord(m, y, a|0x70) call. Live-out is memory only (pure tail-caller, reads no register
 // after), so each arm compares RAM (dumpState minus STACK_SCRATCH).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df6c as oracle } from "../../translated/loc_df6c.js";
-import { loc_df6c } from "../loc_df6c.js";
+import { emitVectorWordTag70 } from "../emitVectorWordTag70.js";
 import { emitVectorWord } from "../emitVectorHeaderWord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -45,10 +45,10 @@ function seed(m, a, y) {
   m.regs.a = a; m.regs.y = y;
 }
 
-test("CAPTURE: real 0xdf6c dispatches -- loc_df6c == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf6c dispatches -- emitVectorWordTag70 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df6c(c);
+    oracle(o); emitVectorWordTag70(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -57,7 +57,7 @@ test("CAPTURE: real 0xdf6c dispatches -- loc_df6c == oracle in RAM (-stack)", ()
 test("CRAFTED: word {Y, A|0x70} emitted at the cursor, cursor advanced", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x0c, 0x2a);
   const c = new Machine(ROM, OPTS); seed(c, 0x0c, 0x2a);
-  oracle(o); loc_df6c(c);
+  oracle(o); emitVectorWordTag70(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
   assert.equal(c.mem.read8(0x2000), 0x2a, "first byte = Y payload");
   assert.equal(c.mem.read8(0x2001), 0x7c, "second byte = A tagged with 0x70");
@@ -75,6 +75,6 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_df6c, TARGET, m);
-  assert.equal(r.placeable, true, `loc_df6c must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitVectorWordTag70, TARGET, m);
+  assert.equal(r.placeable, true, `emitVectorWordTag70 must be seam-placeable; got: ${r.error}`);
 });

@@ -5,7 +5,7 @@ import {
   LANE_VERTEX_X, LANE_VERTEX_Y, LEVEL_GATE_FLAG, OUTLINE_HEADER,
 } from "./names.js";
 import { resolveShapeTableIndex } from "./resolveShapeTableIndex.js";
-import { loc_df4c } from "./loc_df4c.js";
+import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { loc_df6a } from "./loc_df6a.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 
@@ -24,7 +24,7 @@ export function drawTubeShapeOutline(m, a = m.regs.a) {
   const col = mem8[SAVED_INDEX] & 0x07;
   const header = mem8[u16(OUTLINE_HEADER + col)];
   mem8[loc_9e] = header;
-  loc_df4c(m, 0x08, header);
+  emitTaggedVectorWord(m, 0x08, header);
 
   const shape = mem8[TUBE_SHAPE_INDEX];
   let seed = mem8[SAVED_INDEX2];

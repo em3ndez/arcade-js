@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for buildVectorItemList (ROM 0xd804-0xd8a8) -- the frame vector-list builder. It runs four
 // setup passes, lays a header pair, emits a marker $0158 times, then a run of table-indexed coordinate
-// records selected by $016a/$0200/$004d/$0009, and finally falls through into loc_d8a9 (dissolved to a
+// records selected by $016a/$0200/$004d/$0009, and finally falls through into emitScaledByteDigit (dissolved to a
 // direct call). The routine draws into vector RAM ($2000-$2fff) and returns no value, so the contract is
 // RAM only (dumpState minus STACK_SCRATCH) -- no register is a live-out. The one still-frozen callee is
 // the co-SCC reset arm reached only when the mask CMP matches and the slot index underflows (m.call);
@@ -64,7 +64,7 @@ test("CAPTURE: real 0xd804 dispatches -- buildVectorItemList == oracle in RAM (-
 
 // Skip seed: point the vector cursor into vector RAM, run the draw loop once ($0158=1), and force the mask
 // CMP to MISS ($004d=0 so the AND is 0 while every $d8b6 mask entry is nonzero) -> the dex/reset block is
-// skipped entirely and control drops to the common tail (df53 + two loc_d8a9 records).
+// skipped entirely and control drops to the common tail (df53 + two emitScaledByteDigit records).
 function seedSkip(m) {
   m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // cursor -> $2000, keeps writes in vector RAM
   m.mem.write8(DSW_BONUS_CONFIG, 0x01);                            // draw loop runs once, $37 ends at 0

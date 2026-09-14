@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aba2 (ROM 0xaba2-0xabab) -- refreshes the control state via requestRebuildIfSwitchesChanged, then
+// Memory-equivalence for rebuildControlBlocksIfRequested (ROM 0xaba2-0xabab) -- refreshes the control state via requestRebuildIfSwitchesChanged, then
 // branches on ($01c9 & 3): zero -> the noRebuildRequestReturn no-op tail, else the rebuildControlBlocksFromTemplate rebuild/copy path. The
 // idiomatic side dissolves all three jsr into direct calls. Live-out is memory only, so each arm compares
 // RAM (dumpState minus STACK_SCRATCH). A caller: the module omits the ROM ret and the seam completes it.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aba2 as oracle } from "../../translated/loc_aba2.js";
-import { loc_aba2 } from "../loc_aba2.js";
+import { rebuildControlBlocksIfRequested } from "../rebuildControlBlocksIfRequested.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { requestRebuildIfSwitchesChanged } from "../requestRebuildIfSwitchesChanged.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xaba2 dispatches -- loc_aba2 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaba2 dispatches -- rebuildControlBlocksIfRequested == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aba2(c);
+    oracle(o); rebuildControlBlocksIfRequested(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -58,10 +58,10 @@ function seedRebuild(m) {
   for (let i = 0; i < 0x40; i++) m.mem.write8((0x2100 + i) & 0xffff, 0x5a);
 }
 
-test("CRAFTED: forced rebuild -> rebuildControlBlocksFromTemplate path -- loc_aba2 == oracle in RAM", () => {
+test("CRAFTED: forced rebuild -> rebuildControlBlocksFromTemplate path -- rebuildControlBlocksIfRequested == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedRebuild(o);
   const c = new Machine(ROM, OPTS); seedRebuild(c);
-  oracle(o); loc_aba2(c);
+  oracle(o); rebuildControlBlocksIfRequested(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the rebuild/copy path");
   // rebuildControlBlocksFromTemplate consumes (clears) the PENDING_WORK_FLAGS request bits; its durable $0100=0x08 write marks that the
   // rebuild branch ran (the no-op noRebuildRequestReturn path never writes $0100).
@@ -84,6 +84,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aba2, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aba2 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, rebuildControlBlocksIfRequested, TARGET, m);
+  assert.equal(r.placeable, true, `rebuildControlBlocksIfRequested must be seam-placeable; got: ${r.error}`);
 });

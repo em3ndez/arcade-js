@@ -18,7 +18,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_a65b as oracle } from "../../translated/loc_a65b.js";
 import { spawnEnemyInSlot } from "../spawnEnemyInSlot.js";
 import { drawSignedVelocityNudge } from "../drawSignedVelocityNudge.js";
-import { loc_ccc1 } from "../loc_ccc1.js";
+import { gateSound1f } from "../gateSound1f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -87,7 +87,7 @@ test("TEETH: a twin that skips the 0x80 state-byte seeding diverges from the ora
     const r1 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL0_LO + x)] = r1;
     let step = drawSignedVelocityNudge(m, r1); if ((step & 0x80) === 0) step = u8(-step); mem8[u16(ENEMY_VEL0_HI + x)] = step;
     const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = drawSignedVelocityNudge(m, r2);
-    loc_ccc1(m, x, y);
+    gateSound1f(m, x, y);
   };
   brokenA65b(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped state-byte seeding");
@@ -106,7 +106,7 @@ test("TEETH (marshalling): a twin that always negates the middle step diverges w
     const r1 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL0_LO + x)] = r1;
     mem8[u16(ENEMY_VEL0_HI + x)] = u8(-drawSignedVelocityNudge(m, r1)); // BUG: unconditional negate
     const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = drawSignedVelocityNudge(m, r2);
-    loc_ccc1(m, x, y);
+    gateSound1f(m, x, y);
   };
   alwaysNegate(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong middle-step sign");

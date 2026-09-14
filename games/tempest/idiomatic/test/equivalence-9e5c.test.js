@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9e5c (ROM 0x9e5c-0x9eaa) -- the FULL entry of a mid-entry split: it runs the
+// Memory-equivalence for stepClimberSegmentGuarded (ROM 0x9e5c-0x9eaa) -- the FULL entry of a mid-entry split: it runs the
 // gated $9eab bit6-keeper guard, then falls into the shared body stepClimberSegmentAndHeading (0x9e5f, also reached guardless by
 // flipEnemyLaneTowardTarget/loc_9f99). The body forces bit7 on $0283,x and, per its low-3-bit segment, steps the $02b9,x
 // depth and stores either a 9ed7 ring direction (segment != 4) or 0x87/0x81 (segment 4 seam) to $02cc,x.
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9e5c as oracle, loc_9e5f as oracle5f } from "../../translated/loc_9e5c.js";
-import { loc_9e5c } from "../loc_9e5c.js";
+import { stepClimberSegmentGuarded } from "../stepClimberSegmentGuarded.js";
 import { stepClimberSegmentAndHeading } from "../stepClimberSegmentAndHeading.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -46,10 +46,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0x9e5c dispatches -- loc_9e5c == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x9e5c dispatches -- stepClimberSegmentGuarded == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9e5c(c);
+    oracle(o); stepClimberSegmentGuarded(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "register A (the $02cc,x byte) diverged");
     assert.equal(c.regs.x, o.regs.x, "register X (untouched) diverged");
@@ -68,7 +68,7 @@ test("CRAFTED: segment != 4, bit6 set -- depth++ then 9ed7 half-turn direction t
   };
   const o = new Machine(ROM, OPTS); o.regs.x = X; seed(o);
   const c = new Machine(ROM, OPTS); c.regs.x = X; seed(c);
-  oracle(o); loc_9e5c(c);
+  oracle(o); stepClimberSegmentGuarded(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the ordinary-segment path");
   assert.equal(c.mem.read8((ENEMY_SLOT_FLAGS + X) & 0xffff), 0xc2, "$0283,x got bit7 forced on");
   assert.equal(c.mem.read8((ENEMY_SEGMENT + X) & 0xffff), 0x06, "depth stepped up (5 -> 6)");
@@ -87,7 +87,7 @@ test("CRAFTED: segment 4 (seam), bit6 set -- depth-- and 0x87 to $02cc,x; bit6 c
     };
     const o = new Machine(ROM, OPTS); o.regs.x = X; seed(o);
     const c = new Machine(ROM, OPTS); c.regs.x = X; seed(c);
-    oracle(o); loc_9e5c(c);
+    oracle(o); stepClimberSegmentGuarded(c);
     assert.equal(ramDiff(o, c), null, `RAM equal (seam, flag=0x${flag.toString(16)})`);
     assert.equal(c.mem.read8((ENEMY_SEGMENT + X) & 0xffff), wantDepth, `depth (flag=0x${flag.toString(16)})`);
     assert.equal(c.mem.read8((ENEMY_PHASE + X) & 0xffff), wantCC, `$02cc,x (flag=0x${flag.toString(16)})`);
@@ -134,7 +134,7 @@ test("TEETH: a twin that takes the wrong branch (treats segment 4 as ordinary) d
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong-branch twin");
 });
 
-test("TEETH: skipping the $9eab head guard diverges -- stepClimberSegmentAndHeading (guardless) != oracle loc_9e5c", () => {
+test("TEETH: skipping the $9eab head guard diverges -- stepClimberSegmentAndHeading (guardless) != oracle stepClimberSegmentGuarded", () => {
   const X = 3;
   const seed = (m) => {
     seedRing(m);
@@ -153,7 +153,7 @@ test("SP-TOOTH: the omitted-ret module (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seedRing(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9e5c, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9e5c must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepClimberSegmentGuarded, TARGET, m);
+  assert.equal(r.placeable, true, `stepClimberSegmentGuarded must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret module (moved 0) placeable");
 });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_af26 (ROM 0xaf26-0xaf3e) -- if both $0600 and $0601 are zero it tail-calls
+// Memory-equivalence for drawCounterPair (ROM 0xaf26-0xaf3e) -- if both $0600 and $0601 are zero it tail-calls
 // the shared no-op rts (sharedReturnTail); otherwise it draws a shared header (drawSlotShapeRecord), its count (loc_af71),
-// and both counter slots (loc_af3f x=0 then x=1). Dissolves every m.call. All output is RAM (the draw
+// and both counter slots (drawCounterSlot x=0 then x=1). Dissolves every m.call. All output is RAM (the draw
 // setup + emitted words), so each arm compares the RAM diff (minus the dead stack). Omitted-ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-af26.test.js
 
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_af26 as oracle } from "../../translated/loc_af26.js";
-import { loc_af26 } from "../loc_af26.js";
+import { drawCounterPair } from "../drawCounterPair.js";
 import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -50,10 +50,10 @@ function seat(m, s = {}) {
   m.mem.write8(0x0074, 0x00); m.mem.write8(0x0075, 0x20); // ($74) -> 0x2000 (vector RAM)
 }
 
-test("CAPTURE: real 0xaf26 dispatches -- loc_af26 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaf26 dispatches -- drawCounterPair == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_af26(c);
+    oracle(o); drawCounterPair(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -68,7 +68,7 @@ test("CRAFTED: both-zero (no draw) and live (full draw) == oracle (RAM)", () => 
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seat(o, s);
     const c = new Machine(ROM, OPTS); seat(c, s);
-    oracle(o); loc_af26(c);
+    oracle(o); drawCounterPair(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -88,6 +88,6 @@ test("SP-TOOTH: the omitted-ret caller is seam-placeable", () => {
   seat(m, {});
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_af26, TARGET, m);
-  assert.equal(r.placeable, true, `loc_af26 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawCounterPair, TARGET, m);
+  assert.equal(r.placeable, true, `drawCounterPair must be seam-placeable; got: ${r.error}`);
 });

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_db0f (ROM 0xdb0f-0xdb21) -- an RTS-trick COMPUTED-JUMP dispatcher: it reads a byte
+// Equivalence for dispatchDrawHandler (ROM 0xdb0f-0xdb21) -- an RTS-trick COMPUTED-JUMP dispatcher: it reads a byte
 // offset from GAME_MODE, clamps it to 0x02 (persisting the clamp to GAME_MODE) when >= 0x0e, then pushes
 // word($db01+offset) and rts, jumping to (word+1). The seven targets (word+1) are 0xdb5a/0xdbf7/0xdb84/
-// 0xdb9a/0xdb7e/0xdb6f/0xdb22 -- the per-frame draw handlers -- and each RTS returns to loc_db0f's own
+// 0xdb9a/0xdb7e/0xdb6f/0xdb22 -- the per-frame draw handlers -- and each RTS returns to dispatchDrawHandler's own
 // caller. The idiomatic form dissolves the push/pull16/rts-jump into TABLE[offset>>1](m). All seven
 // targets take only (m); the register work is the dead rts-trick, so the contract is RAM (dumpState,
 // minus STACK_SCRATCH). Not reached in a 3000-frame boot, so the proof rests on CRAFTED + CLAMP + TEETH + SP.
@@ -13,13 +13,13 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_db0f as oracle } from "../../translated/loc_db0f.js";
-import { loc_db0f } from "../loc_db0f.js";
+import { dispatchDrawHandler } from "../dispatchDrawHandler.js";
 import { beginEaromSequenceIfIdle } from "../beginEaromSequenceIfIdle.js";
 import { emitReadoutVectorList } from "../emitReadoutVectorList.js";
 import { emitFixedHeaderAndClearVectorSlots } from "../emitFixedHeaderAndClearVectorSlots.js";
 import { stepVectorPhaseAnimation } from "../stepVectorPhaseAnimation.js";
 import { emitPrimedHeaderAndClearVectorSlots } from "../emitPrimedHeaderAndClearVectorSlots.js";
-import { loc_db6f } from "../loc_db6f.js";
+import { emitHalvedCountHeaderAndClearVectorSlots } from "../emitHalvedCountHeaderAndClearVectorSlots.js";
 import { initVectorDisplayRegisters } from "../initVectorDisplayRegisters.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -39,7 +39,7 @@ function opt(name) {
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0xdb0f;
-const TABLE = [beginEaromSequenceIfIdle, emitReadoutVectorList, emitFixedHeaderAndClearVectorSlots, stepVectorPhaseAnimation, emitPrimedHeaderAndClearVectorSlots, loc_db6f, initVectorDisplayRegisters];
+const TABLE = [beginEaromSequenceIfIdle, emitReadoutVectorList, emitFixedHeaderAndClearVectorSlots, stepVectorPhaseAnimation, emitPrimedHeaderAndClearVectorSlots, emitHalvedCountHeaderAndClearVectorSlots, initVectorDisplayRegisters];
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
@@ -70,21 +70,21 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xdb0f dispatches -- loc_db0f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdb0f dispatches -- dispatchDrawHandler == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue;
-    loc_db0f(c);
+    dispatchDrawHandler(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-test("CRAFTED: each table entry off=0,2,4,6,8,10,12 -- loc_db0f == oracle in RAM (-stack)", () => {
+test("CRAFTED: each table entry off=0,2,4,6,8,10,12 -- dispatchDrawHandler == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const off of [0, 2, 4, 6, 8, 10, 12]) {
     const o = new Machine(ROM, OPTS); seed(o, off);
@@ -92,7 +92,7 @@ test("CRAFTED: each table entry off=0,2,4,6,8,10,12 -- loc_db0f == oracle in RAM
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // an entry the generic seed cannot fully provision -- CAPTURE + others carry it
-    loc_db0f(c);
+    dispatchDrawHandler(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after dispatching offset ${off}`);
     checked++;
   }
@@ -100,13 +100,13 @@ test("CRAFTED: each table entry off=0,2,4,6,8,10,12 -- loc_db0f == oracle in RAM
   assert.ok(checked >= 1, "no entry could be provisioned -- seed is inert");
 });
 
-test("CLAMP: an out-of-range offset (0x20) clamps to entry 1 -- loc_db0f == oracle, GAME_MODE rewritten to 2", () => {
+test("CLAMP: an out-of-range offset (0x20) clamps to entry 1 -- dispatchDrawHandler == oracle, GAME_MODE rewritten to 2", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x20);
   const c = new Machine(ROM, OPTS); seed(c, 0x20);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CLAMP: entry-1 seed threw -- skipped"); return; }
-  loc_db0f(c);
+  dispatchDrawHandler(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the clamp path");
   assert.equal(c.mem.read8(GAME_MODE), 0x02, "GAME_MODE was clamped to 0x02 and persisted");
 });
@@ -135,7 +135,7 @@ test("SP-TOOTH: the omitted-ret dispatcher (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m, 0x02); // entry 1 provisions cleanly
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_db0f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_db0f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchDrawHandler, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchDrawHandler must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatcher (moved 0) placeable");
 });

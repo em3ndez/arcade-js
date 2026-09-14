@@ -2,7 +2,7 @@
 import { u8 } from "../../../core/int.js";
 import { STATUS_FLAGS, SPINNER_ACCUM, RIM_ROT_OFFSET, loc_2a, loc_2b, COORD_LIST_PTR_LO, TUBE_GEOM_FLAG, PLAYER_SEGMENT, PLAYER_FINE_ANGLE } from "./names.js";
 import { aimSpinnerAtNearestEnemy } from "./aimSpinnerAtNearestEnemy.js";
-import { loc_ccb5 } from "./loc_ccb5.js";
+import { cueRimRotationSound } from "./cueRimRotationSound.js";
 
 // Advance the spinner/rotation state: skip while the angle flag is still negative. Take a raw
 // delta either from the aim scan or by clamping the manual delta into its band, fold it into the
@@ -41,7 +41,7 @@ export function rotateBlasterAroundRim(m, y = m.regs.y) {
   mem8[loc_2a] = hi;
   mem8[loc_2b] = (hi + 1) & 0x0f;
 
-  if (mem8[loc_2a] !== mem8[PLAYER_SEGMENT]) loc_ccb5(m, mem8[TUBE_GEOM_FLAG], y);
+  if (mem8[loc_2a] !== mem8[PLAYER_SEGMENT]) cueRimRotationSound(m, mem8[TUBE_GEOM_FLAG], y);
 
   mem8[PLAYER_SEGMENT] = mem8[loc_2a];
   mem8[PLAYER_FINE_ANGLE] = mem8[loc_2b];

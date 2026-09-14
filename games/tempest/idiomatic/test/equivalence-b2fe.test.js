@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for closeLayerPointer (ROM 0xb2fe-0xb331) -- emits a header record (loc_df09), sets the
+// Memory-equivalence for closeLayerPointer (ROM 0xb2fe-0xb331) -- emits a header record (emitRecordBodyC0), sets the
 // $3b/$3c pointer and toggles a per-slot parity flag, then writes the two-byte word chosen by the new
-// parity through that pointer. The idiomatic side dissolves the jsr $df09 into a direct loc_df09(m)
+// parity through that pointer. The idiomatic side dissolves the jsr $df09 into a direct emitRecordBodyC0(m)
 // call. Live-out is memory only, so each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-b2fe.test.js
 

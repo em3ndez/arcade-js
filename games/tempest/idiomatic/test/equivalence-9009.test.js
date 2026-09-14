@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9009 (ROM 0x9009-0x9024) -- an init sequence: run four setup subroutines
-// (reseedStateTables, seedPerLaneSpikeArray, loc_902b, clearReadyLatchPair) in order, then seed DEPTH_LO = 250 and clear
+// Memory-equivalence for runWaveInit (ROM 0x9009-0x9024) -- an init sequence: run four setup subroutines
+// (reseedStateTables, seedPerLaneSpikeArray, resetWorkingRamForStateEntry, clearReadyLatchPair) in order, then seed DEPTH_LO = 250 and clear
 // SPIKE_ACTIVE_FLAG/DEPTH_HI/MODE_DISPATCH_SEL. No input register; ends with a plain return (not a tail-delegate) and no caller
 // reads a register back, so live-out is RAM only (dumpState minus STACK_SCRATCH). Oracle is the frozen
-// translated loc_9009.
+// translated runWaveInit.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9009.test.js
 
 import nodeTest from "node:test";
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9009 as oracle } from "../../translated/loc_9009.js";
-import { loc_9009 } from "../loc_9009.js";
+import { runWaveInit } from "../runWaveInit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DEPTH_LO, DEPTH_HI } from "../names.js";
@@ -34,7 +34,7 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// POKEY coupling: the init chain reaches loc_902b -> seedSlotRandomTags, which reads $60ca (POKEY1 RANDOM). That
+// POKEY coupling: the init chain reaches resetWorkingRamForStateEntry -> seedSlotRandomTags, which reads $60ca (POKEY1 RANDOM). That
 // register is clock-coupled -- its poly index advances with CPU cycles, and each read charges cycles the
 // idiomatic layer does not tick. The oracle (which steps every instruction) therefore sees a FRESH random
 // byte per load while the idiomatic layer sees a frozen one, so on a captured mid-run dispatch (SK_RESET
@@ -51,14 +51,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9009 dispatches -- loc_9009 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9009 dispatches -- runWaveInit == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a callee may reach an unimplemented arm on a real dispatch
     if (threw) continue; // both layers would throw identically there; nothing to compare
-    loc_9009(c);
+    runWaveInit(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -71,7 +71,7 @@ test("CRAFTED: full init sequence -- RAM equal, and the seed/clear writes landed
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle threw on this seed -- skipped"); return; }
-  loc_9009(c);
+  runWaveInit(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full init sequence");
   // The routine's own signature writes.
   assert.equal(c.mem.read8(DEPTH_LO), 250, "DEPTH_LO seeded to 250");
@@ -87,12 +87,12 @@ test("TEETH: a twin that drops the DEPTH_LO seed MUST diverge in RAM", () => {
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
   let tried = 0;
-  // Broken twin: identical to loc_9009 but reverts the DEPTH_LO = 250 signature write. The oracle always
+  // Broken twin: identical to runWaveInit but reverts the DEPTH_LO = 250 signature write. The oracle always
   // seeds DEPTH_LO, so dropping it alone guarantees a RAM divergence.
   const broken = (m) => {
     tried++;
     const before5b = m.mem.read8(DEPTH_LO);
-    loc_9009(m);
+    runWaveInit(m);
     m.mem.write8(DEPTH_LO, before5b); // BUG: revert the seed
   };
   broken(c);

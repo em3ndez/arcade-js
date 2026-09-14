@@ -4,13 +4,13 @@ import {
   WORK_PTR_LO, WORK_PTR_HI, POINTER_PARITY,
   DRAW_BASE_PTR_LO, DRAW_BASE_PTR_HI, DRAW_PTR_EVEN_LO, DRAW_PTR_EVEN_HI, DRAW_PTR_ODD_LO, DRAW_PTR_ODD_HI,
 } from "./names.js";
-import { loc_df09 } from "./loc_df09.js";
+import { emitRecordBodyC0 } from "./emitRecordBodyC0.js";
 
 // Emit one header record, toggle this slot's parity flag, then write the pointer target
 // with the word chosen by the freshly toggled parity.
 export function closeLayerPointer(m, a = m.regs.a) {
   const { mem8, mem16 } = m;
-  loc_df09(m);
+  emitRecordBodyC0(m);
   const slot = a;
   const idx = (a << 1) & 0xff;
   mem8[WORK_PTR_LO] = mem8[u16(DRAW_BASE_PTR_LO + idx)];

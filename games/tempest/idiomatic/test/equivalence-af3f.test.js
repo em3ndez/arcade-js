@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_af3f (ROM 0xaf3f) -- draws one slot: when $0600,x is zero it returns at once,
+// Memory-equivalence for drawCounterSlot (ROM 0xaf3f) -- draws one slot: when $0600,x is zero it returns at once,
 // else it emits the slot's capped count at a per-slot screen position, dissolving m.calls to b0d1/ab0d/df75/
 // af71/b56a/ab98/aa9e into direct idiomatic calls. All output is RAM, so each arm compares RAM (dumpState
 // minus STACK_SCRATCH). X is a live-in via the register bridge. The deep path runs ab98->ab3b, whose copy
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_af3f as oracle } from "../../translated/loc_af3f.js";
-import { loc_af3f } from "../loc_af3f.js";
+import { drawCounterSlot } from "../drawCounterSlot.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SLOT_METRIC, loc_2e } from "../names.js";
@@ -52,10 +52,10 @@ function seatEmpty(m) {
   m.mem.write8(SLOT_METRIC, 0x00); // slot 0 count zero -> immediate return
 }
 
-test("CAPTURE: real 0xaf3f dispatches -- loc_af3f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaf3f dispatches -- drawCounterSlot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_af3f(c);
+    oracle(o); drawCounterSlot(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -64,15 +64,15 @@ test("CAPTURE: real 0xaf3f dispatches -- loc_af3f == oracle in RAM (-stack)", ()
 test("CRAFTED (empty slot): $0600,x == 0 -> immediate return, no writes (== oracle)", () => {
   const o = new Machine(ROM, OPTS); seatEmpty(o);
   const c = new Machine(ROM, OPTS); seatEmpty(c);
-  oracle(o); loc_af3f(c);
+  oracle(o); drawCounterSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (both early-returned)");
   assert.equal(c.mem.read8(loc_2e), 0x00, "$2e untouched on the empty-slot path");
 });
 
-test("CRAFTED (deep): non-empty slot draws the count -- loc_af3f == oracle in RAM", () => {
+test("CRAFTED (deep): non-empty slot draws the count -- drawCounterSlot == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seatDeep(o);
   const c = new Machine(ROM, OPTS); seatDeep(c);
-  oracle(o); loc_af3f(c);
+  oracle(o); drawCounterSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full draw");
   assert.equal(c.mem.read8(loc_2e), 0x00, "$2e = slot index");
 });
@@ -89,7 +89,7 @@ test("TEETH: a twin that draws even for an empty slot diverges from the oracle",
 
 test("TEETH (deep): a twin that corrupts one emitted vector byte diverges", () => {
   const o = new Machine(ROM, OPTS); seatDeep(o); oracle(o);
-  const c = new Machine(ROM, OPTS); seatDeep(c); loc_af3f(c);
+  const c = new Machine(ROM, OPTS); seatDeep(c); drawCounterSlot(c);
   c.mem.write8(0x2000, (c.mem.read8(0x2000) ^ 0xff) & 0xff); // BUG: wrong byte in the vector buffer
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a corrupted emit");
 });
@@ -98,6 +98,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seatEmpty(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_af3f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_af3f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawCounterSlot, TARGET, m);
+  assert.equal(r.placeable, true, `drawCounterSlot must be seam-placeable; got: ${r.error}`);
 });

@@ -118,7 +118,7 @@ test("CRAFTED advance clamp: hi < floor -> hi clamped to floor, ENEMY_FIRE_SELEC
 
 test("CRAFTED advance keep, early rts: hi >= floor and FIRE_GATE == 0 -- RAM + A live-out equal (A = new hi)", () => {
   // hi 0x50 >= floor 0x10, FIRE_GATE == 0 -> beq -> early rts, no delegation. A is the live-out the caller
-  // reads; the oracle's ldy #0 leaves Y=0 but that Y is UNCONSUMED (loc_9b98/runObjectMotionScripts discard it), so the
+  // reads; the oracle's ldy #0 leaves Y=0 but that Y is UNCONSUMED (dispatchSlotMotionHandler/runObjectMotionScripts discard it), so the
   // idiomatic form no longer seats it and Y is not compared here.
   const [o, c] = pair({ x: 0x00, gate: 0x00, lo: 0x00, dlo: 0x00, hi: 0x50, dhi: 0x00, floor: 0x10, ab: 0x00 });
   oracle(o); advanceEnemyPursuit(c);

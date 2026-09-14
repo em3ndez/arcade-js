@@ -2,7 +2,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { OBJECT_AXIS1_POS, ENEMY_SLOT_FLAGS, ENEMY_POS2, ENEMY_VEL1_LO, ENEMY_VEL0_LO, ENEMY_VEL2_LO, ENEMY_VEL1_HI, ENEMY_VEL0_HI, ENEMY_VEL2_HI, POKEY1_RANDOM, POKEY2_RANDOM } from "./names.js";
 import { drawSignedVelocityNudge } from "./drawSignedVelocityNudge.js";
-import { loc_ccc1 } from "./loc_ccc1.js";
+import { gateSound1f } from "./gateSound1f.js";
 
 // Spawn an enemy into slot x: mark its three state bytes active, fill three
 // velocity/coordinate pairs from the RNG (forcing the middle step non-positive),
@@ -27,5 +27,5 @@ export function spawnEnemyInSlot(m, x = m.regs.x, y = m.regs.y) {
   mem8[u16(ENEMY_VEL2_LO + x)] = r2;
   mem8[u16(ENEMY_VEL2_HI + x)] = drawSignedVelocityNudge(m, r2);
 
-  loc_ccc1(m, x, y);
+  gateSound1f(m, x, y);
 }

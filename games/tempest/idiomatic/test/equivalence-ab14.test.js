@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_ab14 as oracle } from "../../translated/loc_ab14.js";
 import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
 import { u16, u8 } from "../../../../core/int.js";
-import { loc_ab0d } from "../loc_ab0d.js";
+import { emitFixedVectorWord } from "../emitFixedVectorWord.js";
 import { loc_df6a } from "../loc_df6a.js";
 import { emitScaledCoordinateRecord } from "../emitScaledCoordinateRecord.js";
 import { emitColorStatIfChanged } from "../emitColorStatIfChanged.js";
@@ -96,7 +96,7 @@ function brokenTail(m, x = m.regs.x) {
   mem8[0x3c] = mem8[u16(mem16[0xac] + y)];
   if (x === 0x2c) { mem8[0xb6] = mem8[0x74]; mem8[0xb7] = mem8[0x75]; }
   mem8[0x2a] = mem8[mem16[0x3b]];
-  loc_ab0d(m);
+  emitFixedVectorWord(m);
   mem8[0x73] = 0x00; mem8[0x72] = 0x01;
   loc_df6a(m);
   emitScaledCoordinateRecord(m, mem8[0x2a], mem8[0x2b]);

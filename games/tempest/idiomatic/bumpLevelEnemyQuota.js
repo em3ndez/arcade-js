@@ -3,8 +3,8 @@ import { u16 } from "../../../core/int.js";
 import { GAME_MODE, loc_3d, PLAYER_LEVEL_TBL, loc_9f, loc_102 } from "./names.js";
 import { seatInPagePointer } from "./seatInPagePointer.js";
 import { addBcdScoreAndAwardAtThreshold } from "./addBcdScoreAndAwardAtThreshold.js";
-import { loc_ccb9 } from "./loc_ccb9.js";
-import { loc_9009 } from "./loc_9009.js";
+import { requestScoreAwardSound } from "./requestScoreAwardSound.js";
+import { runWaveInit } from "./runWaveInit.js";
 
 // Index off loc_3d. Bump the PLAYER_LEVEL_TBL-slot (and loc_9f) while it is below 0x62, seed GAME_MODE = 0x18,
 // and when the loc_102-slot is nonzero run its handler chain; then tail-delegate.
@@ -25,8 +25,8 @@ export function bumpLevelEnemyQuota(m) {
   if (trigger !== 0) {
     seatInPagePointer(m, trigger);
     addBcdScoreAndAwardAtThreshold(m, 0xff);
-    loc_ccb9(m);
+    requestScoreAwardSound(m);
   }
 
-  return loc_9009(m);
+  return runWaveInit(m);
 }

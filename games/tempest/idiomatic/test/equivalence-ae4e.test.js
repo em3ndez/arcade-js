@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ae4e (ROM 0xae4e) -- runs a descending do-while (0x37: 0x15 step -3) that emits
+// Memory-equivalence for drawHighlightedGlyphRowList (ROM 0xae4e) -- runs a descending do-while (0x37: 0x15 step -3) that emits
 // a run of slot records, seeding each pass's glyph triple ($56-$58) from the $0706 table. Dissolves m.calls
 // to ab14/b0dd/ab0d/df75/b0d1/dfb1/b56a/aef8 into direct idiomatic calls. All output is RAM, so each arm
 // compares RAM (dumpState minus STACK_SCRATCH). A is a live-in via the register bridge. The one ab14 call's
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ae4e as oracle } from "../../translated/loc_ae4e.js";
-import { loc_ae4e } from "../loc_ae4e.js";
+import { drawHighlightedGlyphRowList } from "../drawHighlightedGlyphRowList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SLOT_LOOP_INDEX, PROJ_X_LO } from "../names.js";
@@ -47,19 +47,19 @@ function seat(m, a = 0x11) {
   m.mem.write8(0x0074, 0x00); m.mem.write8(0x0075, 0x20);  // ($74) -> 0x2000 (vector RAM)
 }
 
-test("CAPTURE: real 0xae4e dispatches -- loc_ae4e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xae4e dispatches -- drawHighlightedGlyphRowList == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ae4e(c);
+    oracle(o); drawHighlightedGlyphRowList(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: run the descending emit loop -- loc_ae4e == oracle in RAM", () => {
+test("CRAFTED: run the descending emit loop -- drawHighlightedGlyphRowList == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
-  oracle(o); loc_ae4e(c);
+  oracle(o); drawHighlightedGlyphRowList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full run");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xfd, "$37 stepped past zero (0x00 - 3)");
   assert.equal(c.mem.read8(PROJ_X_LO), 0x11, "$63 = A live-in");
@@ -67,7 +67,7 @@ test("CRAFTED: run the descending emit loop -- loc_ae4e == oracle in RAM", () =>
 
 test("TEETH: a twin that corrupts a seeded glyph cell diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seat(o); oracle(o);
-  const c = new Machine(ROM, OPTS); seat(c); loc_ae4e(c);
+  const c = new Machine(ROM, OPTS); seat(c); drawHighlightedGlyphRowList(c);
   c.mem.write8(0x0058, (c.mem.read8(0x0058) ^ 0xff) & 0xff); // BUG: wrong $58 glyph byte
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a corrupted glyph cell");
 });
@@ -84,6 +84,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seat(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ae4e, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ae4e must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawHighlightedGlyphRowList, TARGET, m);
+  assert.equal(r.placeable, true, `drawHighlightedGlyphRowList must be seam-placeable; got: ${r.error}`);
 });

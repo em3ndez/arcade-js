@@ -7,12 +7,12 @@ import {
   POKEY2_AUDCTL, POKEY2_POTGO, LED_FLIP_LATCH, POTMARK_WORD_INDEX, COLOR_PAIR_LO, COLOR_PAIR_HI,
 } from "./names.js";
 import { runMathboxDivide } from "./runMathboxDivide.js";
-import { loc_dd0d } from "./loc_dd0d.js";
+import { buildPotReadoutVectorList } from "./buildPotReadoutVectorList.js";
 import { emitByteBitsAsDigits } from "./emitByteBitsAsDigits.js";
 import { loc_dd27 } from "./loc_dd27.js";
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { emitStrokeWordFromNibblePlusOne } from "./emitStrokeWordFromNibblePlusOne.js";
-import { loc_d8a9 } from "./loc_d8a9.js";
+import { emitScaledByteDigit } from "./emitScaledByteDigit.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 import { emitVectorHeaderWord, emitVectorWord } from "./emitVectorHeaderWord.js";
 import { emitKeyedScaledCoordinateRecord } from "./emitKeyedScaledCoordinateRecord.js";
@@ -71,7 +71,7 @@ export function emitReadoutVectorList(m) {
   mem8[POKEY1_AUDC2] = x60c3;
 
   // Draw the spinner/knob readout and the two coordinate marks.
-  loc_dd0d(m);
+  buildPotReadoutVectorList(m);
   emitByteBitsAsDigits(m, mem8[INPUT_DEBOUNCED], 0xd0, 0xf0); // (m, y=INPUT_DEBOUNCED, a=0xd0, x=0xf0)
   loc_dd27(m, mem8[INPUT_EDGE_FLAGS]);             // (m, y=INPUT_EDGE_FLAGS)
 
@@ -97,7 +97,7 @@ export function emitReadoutVectorList(m) {
       mem8[SAVED_INDEX] = a;
       mem8[TABLE_CURSOR] = x;
       emitStrokeWordFromNibblePlusOne(m, x);                        // (m, a=x)
-      loc_d8a9(m, mem8[SAVED_INDEX], 0xf4, 0xf4); // (m, a=SAVED_INDEX, y=0xf4, x=0xf4)
+      emitScaledByteDigit(m, mem8[SAVED_INDEX], 0xf4, 0xf4); // (m, a=SAVED_INDEX, y=0xf4, x=0xf4)
       emitScaledCoordinateRecord(m, 0x0c, 0x0c);               // (m, a=0x0c, x=0x0c)
     }
   }

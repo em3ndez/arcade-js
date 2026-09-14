@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b230 -- draws one frame: each subsystem bracketed by a setup/teardown pair,
+// Memory-equivalence for drawFrame -- draws one frame: each subsystem bracketed by a setup/teardown pair,
 // a conditional carry-chained 40-byte sum into a status cell, then two constants latched into the first
 // two display words. The idiomatic side dissolves every jsr into direct idiomatic calls (the setup and
 // teardown pair takes its layer id explicitly). Live-out is memory only, so each arm compares RAM
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b230 as oracle } from "../../translated/loc_b230.js";
-import { loc_b230 } from "../loc_b230.js";
+import { drawFrame } from "../drawFrame.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, REDRAW_COUNTER, VECHEAD0_FRAME, VECHEAD1_FRAME, VEC_LIST_HEADER_LO, VEC_LIST_HEADER_HI } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(12, 6000) : [];
 
-test("CAPTURE: real 0xb230 dispatches -- loc_b230 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb230 dispatches -- drawFrame == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b230(c);
+    oracle(o); drawFrame(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,7 +54,7 @@ const BASE = () => (CAPS.length ? CAPS[0].clone() : new Machine(ROM, OPTS));
 
 test("CRAFTED: warm frame draw -- full subsystem sequence matches the oracle", () => {
   const o = BASE(); const c = BASE();
-  oracle(o); loc_b230(c);
+  oracle(o); drawFrame(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the frame draw");
   assert.equal(c.mem.read8(VEC_LIST_HEADER_LO), c.mem.read8(VECHEAD0_FRAME), "display word 0 latched from its source");
   assert.equal(c.mem.read8(VEC_LIST_HEADER_HI), c.mem.read8(VECHEAD1_FRAME), "display word 1 latched from its source");
@@ -72,7 +72,7 @@ test("TEETH: a twin that draws nothing diverges from the oracle", () => {
 test("TEETH-LATCH: a twin that latches the wrong display word diverges from the oracle", () => {
   const o = BASE(); const c = BASE();
   oracle(o);
-  const brokenB230 = (m) => { loc_b230(m); m.mem8[VEC_LIST_HEADER_LO] = (m.mem8[VECHEAD0_FRAME] ^ 0xff) & 0xff; };
+  const brokenB230 = (m) => { drawFrame(m); m.mem8[VEC_LIST_HEADER_LO] = (m.mem8[VECHEAD0_FRAME] ^ 0xff) & 0xff; };
   brokenB230(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted latch");
 });
@@ -81,7 +81,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = BASE();
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_b230, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b230 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawFrame, TARGET, m);
+  assert.equal(r.placeable, true, `drawFrame must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret caller (moved 0) placeable");
 });

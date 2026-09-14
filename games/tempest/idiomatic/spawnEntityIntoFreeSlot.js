@@ -4,7 +4,7 @@ import {
   STATUS_FLAGS, loc_29, INPUT_DEBOUNCED, SPIKE_ACTIVE_FLAG, ACTIVE_OBJECT_COUNT,
   PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH, TARGET_SEG, loc_2b5, loc_2c0, SLOT_STATE, loc_2db, HIT_TALLY,
 } from "./names.js";
-import { loc_ccea } from "./loc_ccea.js";
+import { requestEnemySpawnSound } from "./requestEnemySpawnSound.js";
 import { resolveSlotProximityInteractions } from "./resolveSlotProximityInteractions.js";
 
 // Try to spawn into a free slot. Bails when PLAYER_FINE_ANGLE is negative. Then forms a gate: when STATUS_FLAGS is
@@ -41,7 +41,7 @@ export function spawnEntityIntoFreeSlot(m) {
     mem8[u16(loc_2c0 + x)] = mem8[PLAYER_FINE_ANGLE];
     mem8[u16(HIT_TALLY + x)] = 0;
     // The spawn/sound chain stamps the slot index into loc_31/loc_32; pass it explicitly.
-    loc_ccea(m, x);
+    requestEnemySpawnSound(m, x);
     resolveSlotProximityInteractions(m, mem8[PLAYER_SHOT_DEPTH], x);
     break; // only the first free slot is filled
   }

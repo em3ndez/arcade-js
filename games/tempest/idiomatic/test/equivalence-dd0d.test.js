@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dd0d (ROM 0xdd0d-0xdd26) -- builds the spinner/pot readout vector list: a fixed
+// Memory-equivalence for buildPotReadoutVectorList (ROM 0xdd0d-0xdd26) -- builds the spinner/pot readout vector list: a fixed
 // header word, a zero-tagged word, an eight-digit run keyed by (DSW1_COINAGE), a second run keyed by (DSW2_OPTIONS),
 // then assemblePotStatusByte (pulses the POKEY pot-scan trigger $60db -- DISCARDED by the board, so the A fed in is
 // unobservable in RAM -- and returns the assembled pot-status byte from POKEY2_AUDCTL/POKEY1_AUDCTL), whose result
-// keys a final eight-digit run via Y. loc_dd0d is UNREACHED in the capture, so this is CRAFTED-only.
-// Live-out is RAM (dumpState minus STACK_SCRATCH) plus A/Y. Oracle is the frozen translated loc_dd0d.
+// keys a final eight-digit run via Y. buildPotReadoutVectorList is UNREACHED in the capture, so this is CRAFTED-only.
+// Live-out is RAM (dumpState minus STACK_SCRATCH) plus A/Y. Oracle is the frozen translated buildPotReadoutVectorList.
 // Run: node --test games/tempest/idiomatic/test/equivalence-dd0d.test.js
 
 import nodeTest from "node:test";
@@ -12,10 +12,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dd0d as oracle } from "../../translated/loc_dd0d.js";
-import { loc_dd0d } from "../loc_dd0d.js";
+import { buildPotReadoutVectorList } from "../buildPotReadoutVectorList.js";
 import { emitVectorHeaderWord } from "../emitVectorHeaderWord.js";
 import { loc_df6a } from "../loc_df6a.js";
-import { loc_dd29 } from "../loc_dd29.js";
+import { emitByteBitsAsDigitsAtF8 } from "../emitByteBitsAsDigitsAtF8.js";
 import { loc_dd27 } from "../loc_dd27.js";
 import { assemblePotStatusByte } from "../assemblePotStatusByte.js";
 import { Machine } from "../../machine.js";
@@ -45,16 +45,16 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(8, 3000) : [];
 
-test("CAPTURE: real 0xdd0d dispatches (if any) -- loc_dd0d == oracle in RAM (-stack), A/Y", () => {
+test("CAPTURE: real 0xdd0d dispatches (if any) -- buildPotReadoutVectorList == oracle in RAM (-stack), A/Y", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_dd0d(c);
+    oracle(o); buildPotReadoutVectorList(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-    // Y is not compared: loc_dd0d tail-delegates to the final digit run, so its exit Y belongs to that
-    // callee and is not a value loc_dd0d itself produces (the idiomatic layer threads it by param, not m.regs).
+    // Y is not compared: buildPotReadoutVectorList tail-delegates to the final digit run, so its exit Y belongs to that
+    // callee and is not a value buildPotReadoutVectorList itself produces (the idiomatic layer threads it by param, not m.regs).
   }
-  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked (loc_dd0d is deep-tail, 0 expected)`);
+  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked (buildPotReadoutVectorList is deep-tail, 0 expected)`);
 });
 
 function seed(m) {
@@ -67,7 +67,7 @@ function seed(m) {
 test("CRAFTED: full readout build -- RAM and A/Y equal to the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_dd0d(c);
+  oracle(o); buildPotReadoutVectorList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the readout build");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.notEqual(c.mem.read8(DRAW_CURSOR_LO), 0x00, "the cursor advanced (words were emitted)");
@@ -81,7 +81,7 @@ test("TEETH: a twin that skips assemblePotStatusByte (its SLOT_LOOP_INDEX pot-st
     const { mem8 } = m;
     emitVectorHeaderWord(m);
     loc_df6a(m, 0x00);
-    loc_dd29(m, mem8[DSW1_COINAGE], 0xe8);
+    emitByteBitsAsDigitsAtF8(m, mem8[DSW1_COINAGE], 0xe8);
     const a = loc_dd27(m, mem8[DSW2_OPTIONS]);
     // BUG: skips assemblePotStatusByte entirely, so its SLOT_LOOP_INDEX = (POKEY2_AUDCTL & 7) write never happens
     return loc_dd27(m, a);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH } from "./names.js";
-import { loc_ccb0 } from "./loc_ccb0.js";
+import { gateSound5f } from "./gateSound5f.js";
 import { insertTimedObject } from "./insertTimedObject.js";
 
 // Shared insert tail: seat the object's type byte, copy its source and target cells,
@@ -10,7 +10,7 @@ export function insertObjectAndSignalReady(m, a = m.regs.a, x = m.regs.x, y = m.
   mem8[COORD_LIST_PTR_LO] = a;
   mem8[loc_29] = mem8[PLAYER_SHOT_DEPTH];
   mem8[COORD_LIST_PTR_HI] = mem8[PLAYER_SEGMENT];
-  loc_ccb0(m, x, y);
+  gateSound5f(m, x, y);
   insertTimedObject(m, x, y);
   mem8[PLAYER_FINE_ANGLE] = 0x81;
   mem8[OBJECT_ANIM_TIMER] = 0x01;

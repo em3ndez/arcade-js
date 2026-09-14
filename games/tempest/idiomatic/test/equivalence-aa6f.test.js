@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa6f -- runs the alternate prep a8b4 then tail-primes a draw slot via
+// Memory-equivalence for composeFrameThenDrawSlot06 -- runs the alternate prep a8b4 then tail-primes a draw slot via
 // ab17(0,6). Dissolves both m.calls into direct idiomatic calls; the oracle m.calls the frozen callees,
 // the idiomatic calls the idiomatic ones. Output is RAM, so each arm compares the RAM diff (minus the
 // dead stack). An omitted-ret rewrite.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa6f as oracle } from "../../translated/loc_aa6f.js";
-import { loc_aa6f } from "../loc_aa6f.js";
+import { composeFrameThenDrawSlot06 } from "../composeFrameThenDrawSlot06.js";
 import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -47,10 +47,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xaa6f dispatches -- loc_aa6f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaa6f dispatches -- composeFrameThenDrawSlot06 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aa6f(c);
+    oracle(o); composeFrameThenDrawSlot06(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -65,7 +65,7 @@ test("CRAFTED: idle and active prep states == oracle (RAM)", () => {
     const seat = (m) => { seedPipe(m); m.mem.write8(GAME_MODE, s.c00); m.mem.write8(STATUS_FLAGS, s.c05); };
     const o = new Machine(ROM, OPTS); seat(o);
     const c = new Machine(ROM, OPTS); seat(c);
-    oracle(o); loc_aa6f(c);
+    oracle(o); composeFrameThenDrawSlot06(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -86,6 +86,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   m.mem.write8(GAME_MODE, 0x04);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aa6f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aa6f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, composeFrameThenDrawSlot06, TARGET, m);
+  assert.equal(r.placeable, true, `composeFrameThenDrawSlot06 must be seam-placeable; got: ${r.error}`);
 });

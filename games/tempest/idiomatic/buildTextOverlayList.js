@@ -3,12 +3,12 @@ import { u16 } from "../../../core/int.js";
 import { loc_df6a } from "./loc_df6a.js";
 import { emitColorStatIfChanged } from "./emitColorStatIfChanged.js";
 import { drawSlotShapeRecord } from "./drawSlotShapeRecord.js";
-import { loc_ab0d } from "./loc_ab0d.js";
+import { emitFixedVectorWord } from "./emitFixedVectorWord.js";
 import { drawOverlayFrame } from "./drawOverlayFrame.js";
 import { buildMarkerRowVectorList } from "./buildMarkerRowVectorList.js";
 import { buildTextBufferDigitString } from "./buildTextBufferDigitString.js";
 import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
-import { loc_b0c6 } from "./loc_b0c6.js";
+import { emitTableValueDigitRun } from "./emitTableValueDigitRun.js";
 import {
   VG_LAST_STAT, STATUS_FLAGS, FRAME_COUNTER, PHASE_COUNTER, loc_a2, NIBBLE_GLYPH_TABLE, VEC_SNAPSHOT_MIRROR_A, VEC_SNAPSHOT_MIRROR_B,
   ACTIVE_SLOT_COUNT, loc_43, loc_44, loc_45, GAME_MODE, WORK_PTR_LO, WORK_PTR_HI, GLYPH_LIST_BUF_OFS, MIRROR_COPY_BUF_OFS,
@@ -33,7 +33,7 @@ export function buildTextOverlayList(m) {
     else if (mem8[loc_a2] & 0x80) idx = 0x22;
     else idx = 0x06;
     drawSlotShapeRecord(m, idx);
-    loc_ab0d(m);
+    emitFixedVectorWord(m);
     const snap = mem8[NIBBLE_GLYPH_TABLE];
     mem8[VEC_SNAPSHOT_MIRROR_A] = snap;
     mem8[VEC_SNAPSHOT_MIRROR_B] = snap;
@@ -75,7 +75,7 @@ export function buildTextOverlayList(m) {
 
   if (mem8[u16(loc_102 + mem8[loc_3d])] !== 0) {
     drawSlotShapeRecord(m, 0x30);
-    loc_b0c6(m, mem8[u16(loc_102 + mem8[loc_3d])]);
+    emitTableValueDigitRun(m, mem8[u16(loc_102 + mem8[loc_3d])]);
   }
   drawSlotShapeRecord(m, 0x3a);
   drawSlotShapeRecord(m, 0x38);

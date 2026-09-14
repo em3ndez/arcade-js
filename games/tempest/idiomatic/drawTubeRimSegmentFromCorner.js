@@ -12,9 +12,9 @@ import {
 } from "./names.js";
 import { projectPointThroughMathbox } from "./projectPointThroughMathbox.js";
 import { layHeaderAndBuildRecord } from "./layHeaderAndBuildRecord.js";
-import { loc_df4c } from "./loc_df4c.js";
+import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { advanceDisplayCursor } from "./advanceDisplayCursor.js";
-import { loc_df6c } from "./loc_df6c.js";
+import { emitVectorWordTag70 } from "./emitVectorWordTag70.js";
 
 // Full entry: capture the source/next-corner endpoints for a segment, seed the run counters,
 // then hand off to the shared builder.
@@ -42,14 +42,14 @@ export function emitTubeRimSegmentVectors(m, corner = m.regs.y) {
   }
   mem8[DRAW_RECORD_COUNT] = mem8[u16(SEG_RECORD_COUNT + corner)];
   mem8[TABLE_CURSOR] = mem8[u16(SEG_PACK_CURSOR + corner)];
-  loc_df4c(m, 0x08, mem8[loc_9e]);
+  emitTaggedVectorWord(m, 0x08, mem8[loc_9e]);
   projectPointThroughMathbox(m);
   layHeaderAndBuildRecord(m, 0x61);
   mem8[PROJ_PT_Y] = mem8[loc_2e];
   mem8[OBJ_DEPTH] = mem8[loc_2f];
   mem8[PROJ_PT_X] = mem8[loc_30];
   projectPointThroughMathbox(m);
-  loc_df6c(m, mem8[RUN_SIZE], mem8[CLAMP_TALLY]);
+  emitVectorWordTag70(m, mem8[RUN_SIZE], mem8[CLAMP_TALLY]);
 
   // delta 1 -> clamped magnitude in $79, sign high byte in $9b
   {

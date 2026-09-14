@@ -11,7 +11,7 @@ import { clearByte50 } from "./clearByte50.js";
 import { reseedStateTables } from "./reseedStateTables.js";
 import { seedPerLaneSpikeArray } from "./seedPerLaneSpikeArray.js";
 import { unpackLevelNibbleTables } from "./unpackLevelNibbleTables.js";
-import { loc_ccfe } from "./loc_ccfe.js";
+import { requestLevelIntroSound } from "./requestLevelIntroSound.js";
 import { nudgeBlasterRimPosition } from "./nudgeBlasterRimPosition.js";
 import { clearReadyLatchPair } from "./clearReadyLatchPair.js";
 
@@ -87,7 +87,7 @@ export function tickWaveSpawnCadence(m) {
     const phase = bcdSubByte(prev, 1).value;
     mem8[MODE_DELAY_TIMER] = phase;
     if ((u8(prev - 1) & 0x80) !== 0) mem8[INPUT_EDGE_FLAGS] = 0x10;
-    if (phase === 3) loc_ccfe(m);
+    if (phase === 3) requestLevelIntroSound(m);
     mem8[PASS_COUNTER] = 20;
   }
 

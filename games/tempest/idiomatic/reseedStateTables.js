@@ -7,7 +7,7 @@ import {
   ENEMY_CLIMB_DELTA_LO_2, ENEMY_CLIMB_DELTA_LO_3, ENEMY_CLIMB_DELTA_LO_4, ENEMY_CLIMB_DELTA_HI_0, ENEMY_CLIMB_DELTA_HI_1, ENEMY_CLIMB_DELTA_HI_2, ENEMY_CLIMB_DELTA_HI_3, ENEMY_CLIMB_DELTA_HI_4,
   POKEY2_RANDOM, STATE_RESEED_RECORD_TABLE,
 } from "./names.js";
-import { loc_9677 } from "./loc_9677.js";
+import { dispatchRangeValueBySelector } from "./dispatchRangeValueBySelector.js";
 import { dispatchCursorAdvanceBySelector } from "./dispatchCursorAdvanceBySelector.js";
 import { partitionByteToFineCoarseSeed } from "./partitionByteToFineCoarseSeed.js";
 
@@ -54,7 +54,7 @@ export function reseedStateTables(m) {
         advance = k > hi;
         if (!advance) {                     // lo <= key <= hi -> range hit
           y = u8(y + 1);
-          const r = loc_9677(m, y);         // yields the byte to store (first element if it also returns an index)
+          const r = dispatchRangeValueBySelector(m, y);         // yields the byte to store (first element if it also returns an index)
           resolved = Array.isArray(r) ? r[0] : r;
           break;
         }

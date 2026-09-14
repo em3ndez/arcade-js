@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_9677 (ROM 0x9677-0x9682) -- an RTS-trick COMPUTED-JUMP dispatcher: ldx $015e; then
+// Equivalence for dispatchRangeValueBySelector (ROM 0x9677-0x9682) -- an RTS-trick COMPUTED-JUMP dispatcher: ldx $015e; then
 // pha byte($9690+x); pha byte($968f+x); rts -> jumps to (word($968f+x)+1). $015e holds a selector byte
 // {2,4,6,8,10,12}; the six targets (word+1) are 0x96c4/0x96b7/0x96ab/0x96e2/0x96db/0x9700 and each RTS
-// returns to loc_9677's own caller. The idiomatic form dissolves the push/rts-jump into TABLE[sel>>1](m).
-// loc_9677 tail-delegates, so its exit registers are the delegate's -- the contract is RAM-only
+// returns to dispatchRangeValueBySelector's own caller. The idiomatic form dissolves the push/rts-jump into TABLE[sel>>1](m).
+// dispatchRangeValueBySelector tail-delegates, so its exit registers are the delegate's -- the contract is RAM-only
 // (dumpState minus STACK_SCRATCH); the oracle's stack gymnastics land in STACK_SCRATCH and are excluded.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9677.test.js
 
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9677 as oracle } from "../../translated/loc_9677.js";
-import { loc_9677 } from "../loc_9677.js";
+import { dispatchRangeValueBySelector } from "../dispatchRangeValueBySelector.js";
 import { fetchCoordListEntryByCounter, fetchCoordListEntryByIndex, readCoordListEntry } from "../fetchCoordListEntryByCounter.js";
 import { sumCoordListEntryRun } from "../sumCoordListEntryRun.js";
 import { resolveCoordListEntryToAbsolute } from "../resolveCoordListEntryToAbsolute.js";
@@ -61,18 +61,18 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0x9677 dispatches -- loc_9677 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x9677 dispatches -- dispatchRangeValueBySelector == oracle in RAM (-stack)", () => {
   const sels = new Set();
   for (const cap of CAPS) {
     sels.add(cap.mem.read8(SEL_15E));
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_9677(c);
+    oracle(o); dispatchRangeValueBySelector(c);
     assert.equal(ramDiff(o, c), null, `RAM equal for captured selector=${cap.mem.read8(SEL_15E)}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked; distinct selectors: [${[...sels].sort((a, b) => a - b).join(",")}]`);
 });
 
-test("CRAFTED: each selector 2,4,6,8,10,12 -- loc_9677 == oracle in RAM (-stack)", () => {
+test("CRAFTED: each selector 2,4,6,8,10,12 -- dispatchRangeValueBySelector == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const sel of IDX) {
     const o = new Machine(ROM, OPTS); seed(o, sel, 0x08);
@@ -80,7 +80,7 @@ test("CRAFTED: each selector 2,4,6,8,10,12 -- loc_9677 == oracle in RAM (-stack)
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // a selector the generic seed cannot fully provision
-    loc_9677(c);
+    dispatchRangeValueBySelector(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after dispatching selector ${sel}`);
     checked++;
   }
@@ -111,7 +111,7 @@ test("SP-TOOTH: the omitted-ret dispatcher is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m, 0x06, 0x08);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9677, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9677 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchRangeValueBySelector, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchRangeValueBySelector must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatcher placeable");
 });

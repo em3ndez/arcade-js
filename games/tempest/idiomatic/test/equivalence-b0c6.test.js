@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_b0c6 (ROM 0xb0c6-0xb0d0) -- selects a pointer by index X via seatInPagePointer, then
+// Memory-equivalence for emitTableValueDigitRun (ROM 0xb0c6-0xb0d0) -- selects a pointer by index X via seatInPagePointer, then
 // tail-emits the three zeropage bytes at $29 through emitNibbleDigitRun. The idiomatic side dissolves jsr $91b5 and
 // the jmp $dfb1 tail-call into direct seatInPagePointer(m,x) / emitNibbleDigitRun(m,0x29,0x03) calls. Live-out is memory only
 // (the pointer slot + emit list; A/X/Y at RTS are incidental), so each arm compares RAM (dumpState minus
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b0c6 as oracle } from "../../translated/loc_b0c6.js";
-import { loc_b0c6 } from "../loc_b0c6.js";
+import { emitTableValueDigitRun } from "../emitTableValueDigitRun.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { seatInPagePointer } from "../seatInPagePointer.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xb0c6 dispatches -- loc_b0c6 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb0c6 dispatches -- emitTableValueDigitRun == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b0c6(c);
+    oracle(o); emitTableValueDigitRun(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -58,14 +58,14 @@ function seed(m, xVal) {
 test("CRAFTED: index X=0x02 selects a pointer and emits three bytes -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x02);
   const c = new Machine(ROM, OPTS); seed(c, 0x02);
-  oracle(o); loc_b0c6(c);
+  oracle(o); emitTableValueDigitRun(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after select + emit");
 });
 
 test("CRAFTED: index X=0x00 (non-default seed) -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x00);
   const c = new Machine(ROM, OPTS); seed(c, 0x00);
-  oracle(o); loc_b0c6(c);
+  oracle(o); emitTableValueDigitRun(c);
   assert.equal(ramDiff(o, c), null, "RAM equal for index 0");
 });
 
@@ -82,6 +82,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
   m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21);
-  const r = seamPlaceable(withOmittedRet, loc_b0c6, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b0c6 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitTableValueDigitRun, TARGET, m);
+  assert.equal(r.placeable, true, `emitTableValueDigitRun must be seam-placeable; got: ${r.error}`);
 });

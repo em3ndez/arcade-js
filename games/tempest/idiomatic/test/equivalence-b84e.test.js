@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_b84e (ROM 0xb84e-0xb856) -- an RTS-trick COMPUTED-JUMP dispatcher: the caller passes
+// Equivalence for dispatchDrawSetup (ROM 0xb84e-0xb856) -- an RTS-trick COMPUTED-JUMP dispatcher: the caller passes
 // Y as a byte offset (0,2,4,6) into the 2-byte jump table at $b857; the target (word+1) is one of
-// 0xb85f/0xb875/0xb888/0xb896 and its RTS returns to loc_b84e's own caller. The idiomatic form dissolves the
+// 0xb85f/0xb875/0xb888/0xb896 and its RTS returns to dispatchDrawSetup's own caller. The idiomatic form dissolves the
 // push/pull16/rts-jump into TABLE[y>>1](m). Live-out is RAM: the dispatched targets are themselves idiomatic
 // seams that carry NO register live-out (they drop A/X/Y), so the contract is RAM (dumpState, minus
 // STACK_SCRATCH); the oracle's stack gymnastics land inside STACK_SCRATCH and are excluded.
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b84e as oracle } from "../../translated/loc_b84e.js";
-import { loc_b84e } from "../loc_b84e.js";
+import { dispatchDrawSetup } from "../dispatchDrawSetup.js";
 import { seedTripleArrays } from "../seedTripleArrays.js";
 import { rotateTripleArray } from "../rotateTripleArray.js";
 import { resetVectorTailCursor } from "../resetVectorTailCursor.js";
@@ -54,22 +54,22 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xb84e dispatches -- loc_b84e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb84e dispatches -- dispatchDrawSetup == oracle in RAM (-stack)", () => {
   const ys = new Set();
   for (const cap of CAPS) {
     ys.add(cap.regs.y);
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b84e(c);
+    oracle(o); dispatchDrawSetup(c);
     assert.equal(ramDiff(o, c), null, `RAM equal for captured Y=${cap.regs.y}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked; distinct Y seen: [${[...ys].sort((a, b) => a - b).join(",")}]`);
 });
 
-test("CRAFTED: each table entry Y=0,2,4,6 -- loc_b84e == oracle in RAM (-stack)", () => {
+test("CRAFTED: each table entry Y=0,2,4,6 -- dispatchDrawSetup == oracle in RAM (-stack)", () => {
   for (const y of [0, 2, 4, 6]) {
     const o = new Machine(ROM, OPTS); seed(o); o.regs.y = y;
     const c = new Machine(ROM, OPTS); seed(c); c.regs.y = y;
-    oracle(o); loc_b84e(c);
+    oracle(o); dispatchDrawSetup(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after dispatching entry Y=${y}`);
   }
 });
@@ -91,7 +91,7 @@ test("SP-TOOTH: the omitted-ret dispatcher (moved 0) is seam-placeable", () => {
   m.regs.y = 0; // dispatch a pure-RAM leaf entry (b85f) so the seam sees a net-0 stack move
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_b84e, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b84e must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchDrawSetup, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchDrawSetup must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatcher (moved 0) placeable");
 });

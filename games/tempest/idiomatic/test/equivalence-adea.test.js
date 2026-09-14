@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_adea (ROM 0xadea-0xae1b) -- draws the fixed frame (buildTextOverlayList, several drawSlotShapeWithHeader/
-// drawSlotShapeRecord vector draws, loc_aa97), decrements $016e, computes A = $0602 - $0604 and tail-calls the row
-// builder loc_ae4e with that delta. Dissolves every m.call; the delta is threaded as loc_ae4e's A input.
+// Memory-equivalence for drawScoreDeltaPanel (ROM 0xadea-0xae1b) -- draws the fixed frame (buildTextOverlayList, several drawSlotShapeWithHeader/
+// drawSlotShapeRecord vector draws, emitCountDigitRun), decrements $016e, computes A = $0602 - $0604 and tail-calls the row
+// builder drawHighlightedGlyphRowList with that delta. Dissolves every m.call; the delta is threaded as drawHighlightedGlyphRowList's A input.
 // All output is RAM (emitted words + $016e tick), so each arm compares the RAM diff (minus dead stack).
 // Omitted-ret caller.
 // Run: node --test games/tempest/idiomatic/test/equivalence-adea.test.js
@@ -11,12 +11,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_adea as oracle } from "../../translated/loc_adea.js";
-import { loc_adea } from "../loc_adea.js";
+import { drawScoreDeltaPanel } from "../drawScoreDeltaPanel.js";
 import { buildTextOverlayList } from "../buildTextOverlayList.js";
 import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
-import { loc_aa97 } from "../loc_aa97.js";
+import { emitCountDigitRun } from "../emitCountDigitRun.js";
 import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
-import { loc_ae4e } from "../loc_ae4e.js";
+import { drawHighlightedGlyphRowList } from "../drawHighlightedGlyphRowList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
@@ -49,7 +49,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 // (unmapped read at 0x7100). Point $74 at vector RAM (0x2800), $ac at a table (0x2400) whose every even
 // entry points to a one-pair, bit7-terminated list at 0x2500, and set $05 bit7 so buildTextOverlayList skips its own
 // object-draw block (drawOverlayFrame would otherwise overwrite $016e -- that block has its own coverage in
-// equivalence-a8b4). loc_adea's own drawSlotShapeRecord(0x0a)/(0x2c) draws still run through the seeded table.
+// equivalence-a8b4). drawScoreDeltaPanel's own drawSlotShapeRecord(0x0a)/(0x2c) draws still run through the seeded table.
 function seat(m, { c602 = 0x40, c604 = 0x07, c16e = 0x09 } = {}) {
   m.mem.write8(ACTIVE_SLOT, c602);
   m.mem.write8(REARM_COUNTER, c604);
@@ -61,24 +61,24 @@ function seat(m, { c602 = 0x40, c604 = 0x07, c16e = 0x09 } = {}) {
   m.mem.write8(0x2500, 0x00); m.mem.write8(0x2501, 0x82);      // list: header byte, then a bit7 terminator
 }
 
-test("CAPTURE: real 0xadea dispatches -- loc_adea == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xadea dispatches -- drawScoreDeltaPanel == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_adea(c);
+    oracle(o); drawScoreDeltaPanel(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: frame draw + $016e-- + delta thread to loc_ae4e == oracle (RAM)", () => {
+test("CRAFTED: frame draw + $016e-- + delta thread to drawHighlightedGlyphRowList == oracle (RAM)", () => {
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
-  oracle(o); loc_adea(c);
+  oracle(o); drawScoreDeltaPanel(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the frame build");
   assert.equal(c.mem.read8(SCORE_DISPLAY_TIMER), 0x08, "$016e decremented");
 });
 
-test("TEETH (delta thread): a twin that hands loc_ae4e the wrong A (0x00) diverges", () => {
+test("TEETH (delta thread): a twin that hands drawHighlightedGlyphRowList the wrong A (0x00) diverges", () => {
   const o = new Machine(ROM, OPTS); seat(o); oracle(o);
   const c = new Machine(ROM, OPTS); seat(c);
   // BUG: replays the same draws but threads a stale/zero delta into the row builder.
@@ -87,12 +87,12 @@ test("TEETH (delta thread): a twin that hands loc_ae4e the wrong A (0x00) diverg
     buildTextOverlayList(m);
     drawSlotShapeWithHeader(m, 0xc0, 0x02);
     mem8[SCORE_DISPLAY_TIMER] = u8(mem8[SCORE_DISPLAY_TIMER] - 1);
-    loc_aa97(m);
+    emitCountDigitRun(m);
     drawSlotShapeRecord(m, 0x0a);
     drawSlotShapeWithHeader(m, 0xa6, 0x0c);
     drawSlotShapeWithHeader(m, 0x9c, 0x0e);
     drawSlotShapeRecord(m, 0x2c);
-    loc_ae4e(m, 0x00); // wrong delta
+    drawHighlightedGlyphRowList(m, 0x00); // wrong delta
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong threaded delta");
@@ -103,6 +103,6 @@ test("SP-TOOTH: the omitted-ret caller is seam-placeable", () => {
   seat(m, {});
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_adea, TARGET, m);
-  assert.equal(r.placeable, true, `loc_adea must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawScoreDeltaPanel, TARGET, m);
+  assert.equal(r.placeable, true, `drawScoreDeltaPanel must be seam-placeable; got: ${r.error}`);
 });

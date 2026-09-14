@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dded as oracle } from "../../translated/loc_dded.js";
 import { loc_dded } from "../loc_dded.js";
-import { loc_ddf3 } from "../loc_ddf3.js";
+import { requestEaromBlankWrite } from "../requestEaromBlankWrite.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, EAROM_BLANK_FLAG, EAROM_REGION_PENDING, EAROM_REGION_DIR } from "../names.js";
@@ -92,7 +92,7 @@ test("TEETH: passing the wrong mask (0x00) diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  loc_ddf3(c, 0x00); // BUG: wrong mask leaves $01c7/$01c8 low bits clear
+  requestEaromBlankWrite(c, 0x00); // BUG: wrong mask leaves $01c7/$01c8 low bits clear
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong mask");
 });
 

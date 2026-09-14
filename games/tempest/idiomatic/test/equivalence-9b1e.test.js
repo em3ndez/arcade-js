@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for runObjectMotionScripts -- when PLAYER_FINE_ANGLE>=0, walks slots SLOT_LOOP_INDEX=ENEMY_SLOT_TOP..0 running a per-entry motion
-// pass through loc_9b98 (MOTION_SCRIPT_TABLE-indexed) and storing SCRIPT_CURSOR back to ENEMY_SCRIPT_CURSOR,x; then signed-accumulates
+// pass through dispatchSlotMotionHandler (MOTION_SCRIPT_TABLE-indexed) and storing SCRIPT_CURSOR back to ENEMY_SCRIPT_CURSOR,x; then signed-accumulates
 // ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM (cd06/cd02 on a sign flip) and negates ENEMY_ANIM_DELTA when ENEMY_ANIM_ACCUM leaves [0x0f,0xc0].
 // Contract: RAM (dumpState minus STACK_SCRATCH). Oracle = frozen translated/loc_9b1e.js.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9b1e.test.js
@@ -43,7 +43,7 @@ test("CAPTURE: real 0x9b1e dispatches -- runObjectMotionScripts == oracle in RAM
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; }
-    if (threw) continue; // a real dispatch may reach an unimplemented arm inside loc_9b98
+    if (threw) continue; // a real dispatch may reach an unimplemented arm inside dispatchSlotMotionHandler
     runObjectMotionScripts(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
@@ -51,7 +51,7 @@ test("CAPTURE: real 0x9b1e dispatches -- runObjectMotionScripts == oracle in RAM
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// PLAYER_FINE_ANGLE negative -> the outer walk is skipped, isolating the tail accumulate + clamp (no loc_9b98).
+// PLAYER_FINE_ANGLE negative -> the outer walk is skipped, isolating the tail accumulate + clamp (no dispatchSlotMotionHandler).
 test("CRAFTED (tail): accumulate ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM + negate in-band -- RAM equal", () => {
   const seed = (m) => {
     m.mem.write8(PLAYER_FINE_ANGLE, 0x80);  // negative -> skip the walk
@@ -81,15 +81,15 @@ test("CRAFTED (tail, out-of-band): ENEMY_ANIM_ACCUM < 0x0f leaves ENEMY_ANIM_DEL
   assert.equal(c.mem.read8(ENEMY_ANIM_DELTA), 0x05, "ENEMY_ANIM_DELTA unchanged (ENEMY_ANIM_ACCUM 0x07 below the band)");
 });
 
-// The outer walk: one slot with ENEMY_DEPTH,x nonzero drives loc_9b98 via the MOTION_SCRIPT_TABLE table. Skip-on-throw
-// if loc_9b98 reaches an unimplemented arm on this seed.
-test("CRAFTED (walk): one active slot runs the loc_9b98 pass -- RAM equal (skip on oracle throw)", () => {
+// The outer walk: one slot with ENEMY_DEPTH,x nonzero drives dispatchSlotMotionHandler via the MOTION_SCRIPT_TABLE table. Skip-on-throw
+// if dispatchSlotMotionHandler reaches an unimplemented arm on this seed.
+test("CRAFTED (walk): one active slot runs the dispatchSlotMotionHandler pass -- RAM equal (skip on oracle throw)", () => {
   const seed = (m) => {
     m.mem.write8(PLAYER_FINE_ANGLE, 0x00);                 // >= 0 -> walk runs
     m.mem.write8(ENEMY_SLOT_TOP, 0x00);                 // one slot (SLOT_LOOP_INDEX = 0)
     m.mem.write8(u16(ENEMY_DEPTH + 0x00), 0x40);     // slot 0 active
     m.mem.write8(u16(ENEMY_SCRIPT_CURSOR + 0x00), 0x00);     // cursor start
-    m.mem.write8(u16(MOTION_SCRIPT_TABLE + 0x00), 0x00);    // table entry -> loc_9b98 index 0 (a benign handler)
+    m.mem.write8(u16(MOTION_SCRIPT_TABLE + 0x00), 0x00);    // table entry -> dispatchSlotMotionHandler index 0 (a benign handler)
     m.mem.write8(ENEMY_ANIM_DELTA, 0x00);                 // no accumulate delta
     m.mem.write8(ENEMY_ANIM_ACCUM, 0x20);
   };
@@ -97,7 +97,7 @@ test("CRAFTED (walk): one active slot runs the loc_9b98 pass -- RAM equal (skip 
   const c = new Machine(ROM, OPTS); seed(c);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
-  if (threw) { console.log("  CRAFTED (walk): oracle hit an unimplemented loc_9b98 arm -- skipped"); return; }
+  if (threw) { console.log("  CRAFTED (walk): oracle hit an unimplemented dispatchSlotMotionHandler arm -- skipped"); return; }
   runObjectMotionScripts(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk + tail");
 });

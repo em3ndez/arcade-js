@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_db6f -- emits a header word via loc_df4c (Y = $50>>1, A=0x68), then always
+// Memory-equivalence for emitHalvedCountHeaderAndClearVectorSlots -- emits a header word via emitTaggedVectorWord (Y = $50>>1, A=0x68), then always
 // continues into emitVectorHeaderAndClearSlots (the gate byte 0x33 is a constant nonzero). Dissolves both m.calls into direct
 // idiomatic calls. The oracle m.calls the frozen df4c/db88; the idiomatic calls the idiomatic ones. Output
 // is the vector fill from df4c and db88's df39 word (RAM), so each arm compares the RAM diff (minus the
@@ -10,8 +10,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_db6f as oracle } from "../../translated/loc_db6f.js";
-import { loc_db6f } from "../loc_db6f.js";
-import { loc_df4c } from "../loc_df4c.js";
+import { emitHalvedCountHeaderAndClearVectorSlots } from "../emitHalvedCountHeaderAndClearVectorSlots.js";
+import { emitTaggedVectorWord } from "../emitTaggedVectorWord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPINNER_ACCUM } from "../names.js";
@@ -39,10 +39,10 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
 const seat = (m, s = {}) => { m.mem.write8(SPINNER_ACCUM, s.slots ?? 0x00); };
 
-test("CAPTURE: real 0xdb6f dispatches -- loc_db6f == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0xdb6f dispatches -- emitHalvedCountHeaderAndClearVectorSlots == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_db6f(c);
+    oracle(o); emitHalvedCountHeaderAndClearVectorSlots(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -52,7 +52,7 @@ test("CRAFTED: several $50 counts -> df4c header + db88 fill == oracle (RAM)", (
   for (const slots of [0x00, 0x0a, 0x1e, 0xff]) {
     const o = freezePokey(new Machine(ROM, OPTS)); seat(o, { slots });
     const c = freezePokey(new Machine(ROM, OPTS)); seat(c, { slots });
-    oracle(o); loc_db6f(c);
+    oracle(o); emitHalvedCountHeaderAndClearVectorSlots(c);
     assert.equal(ramDiff(o, c), null, `slots=${slots}`);
   }
 });
@@ -63,7 +63,7 @@ test("TEETH: a twin that stops after df4c (skips db88's word/clear) diverges", (
   const c = freezePokey(new Machine(ROM, OPTS)); seat(c, s);
   oracle(o);
   // BUG: emits the header but never runs the db88 continuation.
-  const broken = (m) => { loc_df4c(m, 0x68, m.mem8[SPINNER_ACCUM] >> 1); };
+  const broken = (m) => { emitTaggedVectorWord(m, 0x68, m.mem8[SPINNER_ACCUM] >> 1); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped db88 continuation");
 });
@@ -72,7 +72,7 @@ test("SP-TOOTH: the omitted-ret tail-caller is seam-placeable", () => {
   const m = freezePokey(new Machine(ROM, OPTS));
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_db6f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_db6f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitHalvedCountHeaderAndClearVectorSlots, TARGET, m);
+  assert.equal(r.placeable, true, `emitHalvedCountHeaderAndClearVectorSlots must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret tail-caller placeable");
 });

@@ -3,7 +3,7 @@ import { u16 } from "../../../core/int.js";
 import { loc_29, PROJ_PT_Y, PROJ_PT_X, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, SEG_MID_X, SEG_MID_Y, ANIM_PHASE_DURATION, ANIM_PHASE_CODE, OBJ_TEMPLATE_WORD_LO, OBJ_TEMPLATE_WORD_HI } from "./names.js";
 import { projectPointThroughMathbox } from "./projectPointThroughMathbox.js";
 import { layHeaderAndBuildRecord } from "./layHeaderAndBuildRecord.js";
-import { loc_b84e } from "./loc_b84e.js";
+import { dispatchDrawSetup } from "./dispatchDrawSetup.js";
 import { emitVectorWord } from "./emitVectorHeaderWord.js";
 
 // Refresh two axis parameters from the per-frame tables, run the two frame updaters, count down the
@@ -25,7 +25,7 @@ export function animateShapeOneVector(m) {
     mem8[OBJECT_ANIM_TIMER] = mem8[u16(ANIM_PHASE_DURATION + x)];
   }
   const phase = mem8[u16(ANIM_PHASE_CODE + x)];
-  if (phase < 0x80) loc_b84e(m, phase);
+  if (phase < 0x80) dispatchDrawSetup(m, phase);
   const idx = ((mem8[OBJECT_ANIM_PHASE] << 1) + 0x28) & 0xff;
   emitVectorWord(m, mem8[u16(OBJ_TEMPLATE_WORD_LO + idx)], mem8[u16(OBJ_TEMPLATE_WORD_HI + idx)]);
 }

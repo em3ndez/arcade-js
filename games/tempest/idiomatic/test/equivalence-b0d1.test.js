@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for emitColorStatIfChanged (ROM 0xb0d1-0xb0dc) -- returns early when $9e already equals the
-// input Y; otherwise latches Y into $9e and tail-emits a fixed-tag record via loc_df4c. The idiomatic
-// side dissolves the tail jsr $df4c into a direct loc_df4c(m, 0x08, y) call. Live-out is memory only
+// input Y; otherwise latches Y into $9e and tail-emits a fixed-tag record via emitTaggedVectorWord. The idiomatic
+// side dissolves the tail jsr $df4c into a direct emitTaggedVectorWord(m, 0x08, y) call. Live-out is memory only
 // (tail-caller into the df-family emitter), so each arm compares RAM (dumpState minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-b0d1.test.js
 

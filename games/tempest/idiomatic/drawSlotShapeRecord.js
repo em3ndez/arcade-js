@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16, u8 } from "../../../core/int.js";
 import { loc_2a, loc_2b, COORD_LIST_PTR_LO, SAVED_INDEX, WORK_PTR_LO, WORK_PTR_HI, VG_LAST_STAT, VG_RECORD_HEADER, DRAW_CURSOR_LO, DRAW_CURSOR_HI, loc_ac, DRAW_RECORD_PTR_LO, DRAW_RECORD_PTR_HI, SCALE_KEY_TABLE, HEADER_COLOR_SEED, NIBBLE_GLYPH_TABLE, NIBBLE_GLYPH_TABLE_HI } from "./names.js";
-import { loc_ab0d } from "./loc_ab0d.js";
+import { emitFixedVectorWord } from "./emitFixedVectorWord.js";
 import { loc_df6a } from "./loc_df6a.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
 import { emitColorStatIfChanged } from "./emitColorStatIfChanged.js";
@@ -24,7 +24,7 @@ export function drawSlotShapeRecord(m, x = m.regs.x) {
     mem8[DRAW_RECORD_PTR_HI] = mem8[DRAW_CURSOR_HI];
   }
   mem8[loc_2a] = mem8[mem16[WORK_PTR_LO]];
-  loc_ab0d(m);
+  emitFixedVectorWord(m);
   mem8[VG_RECORD_HEADER] = 0x00;
   mem8[VG_LAST_STAT] = 0x01;
   loc_df6a(m, 0x01); // A = 0x01, the value just stored to VG_LAST_STAT

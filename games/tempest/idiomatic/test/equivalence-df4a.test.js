@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for emitVectorWordTag60FromKey (ROM 0xdf4a) -- read the $73 data byte into Y, then tail into loc_df4c
+// Memory-equivalence for emitVectorWordTag60FromKey (ROM 0xdf4a) -- read the $73 data byte into Y, then tail into emitTaggedVectorWord
 // (the $60-header emitter): write {$73, A|0x60} at the ($74/$75) cursor and advance it by 2. A is a
 // register input (unchanged by this routine, consumed by df4c). Live-out is memory only for this
 // display-builder family (the landed advanceDisplayCursor tail returns nothing; the ROM's incidental A=cursor-low is

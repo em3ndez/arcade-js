@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_b5d7 (ROM 0xb5d7-0xb5e0) -- an RTS-trick COMPUTED-JUMP dispatcher: it does tay (Y=A)
+// Equivalence for dispatchSlotDrawHandler (ROM 0xb5d7-0xb5e0) -- an RTS-trick COMPUTED-JUMP dispatcher: it does tay (Y=A)
 // then pushes word($b5e1+Y) and rts, jumping to (word+1). The caller passes A as a byte offset (0,2,4,6,8)
 // into the 2-byte jump table at $b5e1; the five targets (word+1) are 0xb5eb/0xb71b/0xb60f/0xb622/0xb69b and
-// each RTS returns to loc_b5d7's own caller. The idiomatic form dissolves the push/pull16/rts-jump into
+// each RTS returns to dispatchSlotDrawHandler's own caller. The idiomatic form dissolves the push/pull16/rts-jump into
 // TABLE[a>>1](m). All five targets take only (m, x=m.regs.x) -- none reads Y -- so the tay is a dead
 // register and the contract is RAM (dumpState, minus STACK_SCRATCH); the oracle's stack gymnastics land in
 // STACK_SCRATCH and are excluded.
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_b5d7 as oracle } from "../../translated/loc_b5d7.js";
-import { loc_b5d7 } from "../loc_b5d7.js";
+import { dispatchSlotDrawHandler } from "../dispatchSlotDrawHandler.js";
 import { drawSlotRimSegment } from "../drawSlotRimSegment.js";
 import { drawStyledSlotRimSegment } from "../drawStyledSlotRimSegment.js";
 import { emitJumpModeSlot } from "../emitJumpModeSlot.js";
@@ -58,18 +58,18 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xb5d7 dispatches -- loc_b5d7 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xb5d7 dispatches -- dispatchSlotDrawHandler == oracle in RAM (-stack)", () => {
   const as = new Set();
   for (const cap of CAPS) {
     as.add(cap.regs.a);
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_b5d7(c);
+    oracle(o); dispatchSlotDrawHandler(c);
     assert.equal(ramDiff(o, c), null, `RAM equal for captured A=${cap.regs.a}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked; distinct A seen: [${[...as].sort((a, b) => a - b).join(",")}]`);
 });
 
-test("CRAFTED: each table entry A=0,2,4,6,8 -- loc_b5d7 == oracle in RAM (-stack)", () => {
+test("CRAFTED: each table entry A=0,2,4,6,8 -- dispatchSlotDrawHandler == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const a of [0, 2, 4, 6, 8]) {
     const o = new Machine(ROM, OPTS); seed(o, a);
@@ -77,7 +77,7 @@ test("CRAFTED: each table entry A=0,2,4,6,8 -- loc_b5d7 == oracle in RAM (-stack
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // an entry the generic seed cannot fully provision -- CAPTURE + others carry it
-    loc_b5d7(c);
+    dispatchSlotDrawHandler(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after dispatching entry A=${a}`);
     checked++;
   }
@@ -110,7 +110,7 @@ test("SP-TOOTH: the omitted-ret dispatcher (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS); seed(m, 0x00);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_b5d7, TARGET, m);
-  assert.equal(r.placeable, true, `loc_b5d7 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchSlotDrawHandler, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchSlotDrawHandler must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatcher (moved 0) placeable");
 });

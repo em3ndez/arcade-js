@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for emitSegmentedSpanBetweenCursors (ROM 0xb15a-0xb1b3) -- stashes the A/X inputs into $57/$56, then walks a
-// cursor $37 from $014d to $014e in steps of two, emitting three vector words per step via loc_df6c/df4c/
+// cursor $37 from $014d to $014e in steps of two, emitting three vector words per step via emitVectorWordTag70/df4c/
 // df39, then two trailer words via drawSlotShapeWithHeader and a tail emitCoordinateVectorWord. The idiomatic side dissolves all five
 // jsr/jmp into direct calls. Live-out is memory only (the emit list is a vector-drawer tail), so the arms
 // compare RAM (dumpState -stack). Real base states seed the crafted/teeth arms so the emit terminates.

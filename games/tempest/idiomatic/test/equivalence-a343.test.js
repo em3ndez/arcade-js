@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a343 / loc_a347 -- two seed entries that stamp the head flag ($013b)
+// Memory-equivalence for insertObjectHeadTag9 / insertObjectHeadTag7 -- two seed entries that stamp the head flag ($013b)
 // with a per-entry tag (0x09 / 0x07), then tail-JMP into the shared insert (insertType1WithHeadFlag). Each side
 // dissolves the jmp into a direct insertType1WithHeadFlag call, passing the entry X/Y (preserved across the callee).
 // Output is RAM, so each arm compares the RAM diff (minus the dead stack) and checks X/Y preserved.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a343 as oracle343, loc_a347 as oracle347 } from "../../translated/loc_a343.js";
-import { loc_a343, loc_a347 } from "../loc_a343.js";
+import { insertObjectHeadTag9, insertObjectHeadTag7 } from "../insertObjectHeadTag9.js";
 import { insertType1WithHeadFlag } from "../primeTopPriorityObject.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -43,10 +43,10 @@ function seed(m) {
   m.mem.write8(PLAYER_SEGMENT, 0x88);
 }
 
-test("CAPTURE: real 0xa343 dispatches -- loc_a343 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa343 dispatches -- insertObjectHeadTag9 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS343) {
     const o = cap.clone(), c = cap.clone();
-    oracle343(o); loc_a343(c);
+    oracle343(o); insertObjectHeadTag9(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "X preserved");
     assert.equal(c.regs.y, o.regs.y, "Y preserved");
@@ -54,10 +54,10 @@ test("CAPTURE: real 0xa343 dispatches -- loc_a343 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE a343: ${CAPS343.length} dispatch(es) checked`);
 });
 
-test("CAPTURE: real 0xa347 dispatches -- loc_a347 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xa347 dispatches -- insertObjectHeadTag7 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS347) {
     const o = cap.clone(), c = cap.clone();
-    oracle347(o); loc_a347(c);
+    oracle347(o); insertObjectHeadTag7(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE a347: ${CAPS347.length} dispatch(es) checked`);
@@ -65,8 +65,8 @@ test("CAPTURE: real 0xa347 dispatches -- loc_a347 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: a343 stamps $013b=0x09, a347 stamps 0x07 -- RAM equal, X/Y preserved", () => {
   for (const [name, oracleFn, idFn, tag] of [
-    ["a343", oracle343, loc_a343, 0x09],
-    ["a347", oracle347, loc_a347, 0x07],
+    ["a343", oracle343, insertObjectHeadTag9, 0x09],
+    ["a347", oracle347, insertObjectHeadTag7, 0x07],
   ]) {
     const o = new Machine(ROM, OPTS); seed(o);
     const c = new Machine(ROM, OPTS); seed(c);
@@ -90,7 +90,7 @@ test("TEETH: a twin that stamps the wrong head-flag tag diverges in RAM", () => 
 });
 
 test("SP-TOOTH: the omitted-ret tail-callers (moved 0) are seam-placeable", () => {
-  for (const [target, idFn] of [[0xa343, loc_a343], [0xa347, loc_a347]]) {
+  for (const [target, idFn] of [[0xa343, insertObjectHeadTag9], [0xa347, insertObjectHeadTag7]]) {
     const m = new Machine(ROM, OPTS);
     m.regs.s = 0xfb;
     m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);

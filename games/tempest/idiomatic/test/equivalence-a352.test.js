@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for insertObjectAndSignalReady (ROM 0xa352) -- the shared object-insert tail reached with the caller's
-// A as the type byte: stores A->$2c, copies $0202->$29 and $0200->$2d, fires the sound gate (loc_ccb0) and
+// A as the type byte: stores A->$2c, copies $0202->$29 and $0200->$2d, fires the sound gate (gateSound5f) and
 // the table insert (insertTimedObject) with the entry X/Y, then raises the ready flags $0201=0x81 / $013c=1. The
 // idiomatic side dissolves the two jsr into direct calls. Live-out is memory (X/Y preserved across both
 // callees); each arm compares RAM (dumpState minus STACK_SCRATCH) and checks X/Y unchanged.

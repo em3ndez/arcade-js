@@ -3,7 +3,7 @@
 // counter loc_2e/loc_2f is nonzero it seeds the POKEY operand cells, runs the coprocessor scan runMathboxDivide,
 // and from its A/X/Y sets SEG_SPREAD_A_LO (and the POKEY2_POTGO status byte); it then advances the 15-bit counter,
 // builds the work word POKEY1_AUDF1-POKEY1_AUDC2 from INPUT_DEBOUNCED(=POKEY2_AUDCTL & 0x78)/INPUT_EDGE_FLAGS, fires the readout draws
-// (loc_dd0d/dd2b/dd27), conditionally emits the SPINNER_POT_PREV-bit marker (LED_FLIP_LATCH + the 0x4000 latch), walks
+// (buildPotReadoutVectorList/dd2b/dd27), conditionally emits the SPINNER_POT_PREV-bit marker (LED_FLIP_LATCH + the 0x4000 latch), walks
 // SEG_SPREAD_A_LO_5,x for x=11..0 and SEG_SPREAD_A_LO,x for x=4..0, then TAIL-DELEGATES to emitKeyedScaledCoordinateRecord with the SPINNER_ACCUM-indexed
 // colour pair from COLOR_PAIR_HI/COLOR_PAIR_LO and Y = 0xc0. Live-out is RAM (dumpState minus STACK_SCRATCH) PLUS
 // A/X/Y: dbf7 takes no input register and tail-jmps emitKeyedScaledCoordinateRecord, so its exit registers are whatever emitKeyedScaledCoordinateRecord's

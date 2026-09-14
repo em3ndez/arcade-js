@@ -4,7 +4,7 @@ import {
   SLOT_LOOP_INDEX, loc_40, loc_42, DRAW_STYLE, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, DEPTH_LO, DEPTH_HI,
   loc_9e, loc_9f, loc_a0, SPIKE_TABLE_GUARD, loc_11f, PLAYER_SEGMENT, loc_3fe,
 } from "./names.js";
-import { loc_df4c } from "./loc_df4c.js";
+import { emitTaggedVectorWord } from "./emitTaggedVectorWord.js";
 import { emitColoredShapeVector } from "./emitColoredShapeVector.js";
 
 // While the guard flag is set, force three cursor cells and, for each nonzero slot in
@@ -36,7 +36,7 @@ export function drawTimedObjectList(m) {
           mode = 0x06;
         }
         mem8[loc_9e] = mode;
-        loc_df4c(m, 0x08, mem8[loc_9e]);
+        emitTaggedVectorWord(m, 0x08, mem8[loc_9e]);
         mem8[DRAW_STYLE] = u8(((slot & 0x03) << 1) + 0x0a);
         emitColoredShapeVector(m);
       }

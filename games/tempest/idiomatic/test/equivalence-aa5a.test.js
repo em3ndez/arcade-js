@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa5a (ROM 0xaa5a-0xaa61) -- draws object slot X=8 (drawSlotShapeRecord) then tail-calls
-// the shared post-draw step loc_aa69. Dissolves both m.calls. All output is RAM (emitted vector words +
+// Memory-equivalence for drawFrameWithSlot08 (ROM 0xaa5a-0xaa61) -- draws object slot X=8 (drawSlotShapeRecord) then tail-calls
+// the shared post-draw step prepCountThenComposeFrame. Dissolves both m.calls. All output is RAM (emitted vector words +
 // the post step), so each arm compares the RAM diff (minus the dead stack). Omitted-ret caller.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aa5a.test.js
 
@@ -9,9 +9,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa5a as oracle } from "../../translated/loc_aa5a.js";
-import { loc_aa5a } from "../loc_aa5a.js";
+import { drawFrameWithSlot08 } from "../drawFrameWithSlot08.js";
 import { drawSlotShapeRecord } from "../drawSlotShapeRecord.js";
-import { loc_aa69 } from "../loc_aa69.js";
+import { prepCountThenComposeFrame } from "../prepCountThenComposeFrame.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -29,7 +29,7 @@ const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 const freezePokey = (m) => { for (const p of m.io.pokeys) p.skctl &= ~0x03; return m; };
 
-// loc_aa5a -> drawSlotShapeRecord (slot 8), then loc_aa69 -> loc_aa92 (slot 2) -> composeFrameDisplayList -> drawOverlayFrame (more slots).
+// drawFrameWithSlot08 -> drawSlotShapeRecord (slot 8), then prepCountThenComposeFrame -> drawSlotThenDigitRun (slot 2) -> composeFrameDisplayList -> drawOverlayFrame (more slots).
 // Every drawSlotShapeRecord chases the ($ac) object-table pointer to a bit7-terminated vector list and appends into
 // the ($74) cursor; a bare Machine leaves those pointers zero, so ab14 dereferences unmapped MMIO. Give
 // each drawn slot a valid list and aim the cursor at vector RAM. Slot 8 (the real draw) and slot 0 (the
@@ -62,10 +62,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xaa5a dispatches -- loc_aa5a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaa5a dispatches -- drawFrameWithSlot08 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aa5a(c);
+    oracle(o); drawFrameWithSlot08(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -74,7 +74,7 @@ test("CAPTURE: real 0xaa5a dispatches -- loc_aa5a == oracle in RAM (-stack)", ()
 test("CRAFTED: slot-8 draw + post step == oracle (RAM)", () => {
   const o = freezePokey(new Machine(ROM, OPTS)); seedRender(o);
   const c = freezePokey(new Machine(ROM, OPTS)); seedRender(c);
-  oracle(o); loc_aa5a(c);
+  oracle(o); drawFrameWithSlot08(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the slot draw + post step");
 });
 
@@ -82,7 +82,7 @@ test("TEETH (slot index): a twin that draws slot 0 instead of slot 8 diverges", 
   const o = freezePokey(new Machine(ROM, OPTS)); seedRender(o); oracle(o);
   const c = freezePokey(new Machine(ROM, OPTS)); seedRender(c);
   // BUG: draws the wrong object slot (X=0, a distinct list), so the emitted vector words differ.
-  const broken = (m) => { drawSlotShapeRecord(m, 0x00); loc_aa69(m); };
+  const broken = (m) => { drawSlotShapeRecord(m, 0x00); prepCountThenComposeFrame(m); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong slot index");
 });
@@ -92,6 +92,6 @@ test("SP-TOOTH: the omitted-ret caller is seam-placeable", () => {
   seedRender(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aa5a, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aa5a must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawFrameWithSlot08, TARGET, m);
+  assert.equal(r.placeable, true, `drawFrameWithSlot08 must be seam-placeable; got: ${r.error}`);
 });

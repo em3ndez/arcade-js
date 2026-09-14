@@ -2,7 +2,7 @@
 // Memory-equivalence for emitCoordinateVectorWord (ROM 0xdf39-0xdf4b) -- a tail-CALLER that emits a coordinate word through
 // the ($74) cursor (high byte = tagged upper nibble of A, low byte = X rotated right) then dissolves its
 // tail branch into a direct advanceDisplayCursor cursor-advance (the fall path, unreachable since Y is always 1, would
-// tail into loc_df4c). Effect is memory only; the emitter returns nothing, so each arm compares RAM
+// tail into emitTaggedVectorWord). Effect is memory only; the emitter returns nothing, so each arm compares RAM
 // (dumpState minus STACK_SCRATCH). A/X are register inputs, carried on both sides via clones of one base.
 // Run: node --test games/tempest/idiomatic/test/equivalence-df39.test.js
 

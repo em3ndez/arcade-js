@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for resetLevelPlayfieldSlots (ROM 0xc90c-0xc93f) -- the per-slot state reset. It runs loc_aba2 and
+// Memory-equivalence for resetLevelPlayfieldSlots (ROM 0xc90c-0xc93f) -- the per-slot state reset. It runs rebuildControlBlocksIfRequested and
 // buildLevelLayout (and clearChannelStagingBlock when STATUS_FLAGS is negative), clears SLOT_COUNTDOWN_HI, seeds every slot from ACTIVE_SLOT_COUNT down to 0
 // (SLOT_COUNTDOWN,slot = DSW_BONUS_CONFIG; PLAYER_LEVEL_TBL,slot = 0xff), clears LEVEL_ID and SPIKE_TABLE_GUARD, reloads loc_3d from ACTIVE_SLOT_COUNT, then
 // TAIL-DELEGATES to selectWaveStartSlot. Contract is RAM-equivalence (dumpState minus STACK_SCRATCH); no register is

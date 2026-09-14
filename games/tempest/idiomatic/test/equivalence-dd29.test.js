@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_dd29 (ROM 0xdd29-0xdd2a) -- ldx #$f8, then falls through into emitByteBitsAsDigits. The
+// Memory-equivalence for emitByteBitsAsDigitsAtF8 (ROM 0xdd29-0xdd2a) -- ldx #$f8, then falls through into emitByteBitsAsDigits. The
 // idiomatic side dissolves the fall-through into a direct emitByteBitsAsDigits(m, y, a, 0xf8) call, marshalling Y/A
 // from this caller's register bridge and X from the fixed load. Live-out is memory only, so each arm
 // compares RAM (dumpState minus STACK_SCRATCH); registers are NOT asserted.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dd29 as oracle } from "../../translated/loc_dd29.js";
-import { loc_dd29 } from "../loc_dd29.js";
+import { emitByteBitsAsDigitsAtF8 } from "../emitByteBitsAsDigitsAtF8.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { emitByteBitsAsDigits } from "../emitByteBitsAsDigits.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xdd29 dispatches -- loc_dd29 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdd29 dispatches -- emitByteBitsAsDigitsAtF8 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_dd29(c);
+    oracle(o); emitByteBitsAsDigitsAtF8(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,10 +54,10 @@ function seedDistinct(m) {
   m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x22); // ($74) -> 0x2200
 }
 
-test("CRAFTED: distinct A/Y -- loc_dd29 == oracle in RAM", () => {
+test("CRAFTED: distinct A/Y -- emitByteBitsAsDigitsAtF8 == oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seedDistinct(o);
   const c = new Machine(ROM, OPTS); seedDistinct(c);
-  oracle(o); loc_dd29(c);
+  oracle(o); emitByteBitsAsDigitsAtF8(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after preset + 8 digit emits");
   assert.equal(c.mem.read8(SAVED_INDEX), 0x00, "$35 shifted fully out to 0");
   assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "$37 loop counter ran to 0xff");
@@ -76,6 +76,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_dd29, TARGET, m);
-  assert.equal(r.placeable, true, `loc_dd29 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitByteBitsAsDigitsAtF8, TARGET, m);
+  assert.equal(r.placeable, true, `emitByteBitsAsDigitsAtF8 must be seam-placeable; got: ${r.error}`);
 });

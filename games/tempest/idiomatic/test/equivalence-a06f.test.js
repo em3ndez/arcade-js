@@ -62,11 +62,11 @@ test("CAPTURE: real 0xa06f dispatches -- retireEnemyAndSpawnSplit == oracle in R
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Seed a slot Y and the gate cells. The lane index that reaches loc_9a88 (via setupEnemyCoordList when loc_29 >= 0x20)
+// Seed a slot Y and the gate cells. The lane index that reaches dispatchCoordListSetup (via setupEnemyCoordList when loc_29 >= 0x20)
 // is kept to 0 -- gate 1 -> loc_2b = 0 -- so the oracle's dispatch resolves to seatDemoCoordListPointer (arms 1 and 4 throw).
 function seedDraw(m, y) {
   m.regs.y = y; m.regs.x = 0x7a;
-  m.mem.write8(u16(ENEMY_DEPTH + y), 0x30); // slotVal -> loc_29 = 0x30 (>= 0x20 -> setupEnemyCoordList dispatches loc_9a88)
+  m.mem.write8(u16(ENEMY_DEPTH + y), 0x30); // slotVal -> loc_29 = 0x30 (>= 0x20 -> setupEnemyCoordList dispatches dispatchCoordListSetup)
   m.mem.write8(PLAYER_SHOT_DEPTH, 0x30);          // match -> take the ENEMY_TYPE_COUNT path (lane != 4 below)
   m.mem.write8(u16(ENEMY_SLOT_FLAGS + y), 0x02); // lane 2 (!= 4): decrement ENEMY_TYPE_COUNT, then LANE_ENEMY_COUNT_0[2]
   m.mem.write8(u16(ENEMY_SLOT_DIR + y), 0x01); // gate 1 -> loc_2b = 0 (a safe list-setup index)

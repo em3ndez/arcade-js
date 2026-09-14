@@ -8,7 +8,7 @@ import {
 } from "./names.js";
 import { decodeOptionSwitches } from "./decodeOptionSwitches.js";
 import { drawOverlayFrame } from "./drawOverlayFrame.js";
-import { loc_dd0d } from "./loc_dd0d.js";
+import { buildPotReadoutVectorList } from "./buildPotReadoutVectorList.js";
 import { buildLargeDecimalNumber } from "./buildLargeDecimalNumber.js";
 import { emitVectorHeaderWord } from "./emitVectorHeaderWord.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
@@ -16,7 +16,7 @@ import { emitCoordinateVectorWord } from "./emitCoordinateVectorWord.js";
 import { foldStepIntoFraction } from "./foldStepIntoFraction.js";
 import { loc_dde9 } from "./loc_dde9.js";
 import { loc_dded } from "./loc_dded.js";
-import { loc_d8a9 } from "./loc_d8a9.js";
+import { emitScaledByteDigit } from "./emitScaledByteDigit.js";
 
 // Assemble the frame's vector item list: four setup passes, a header pair, a marker
 // emitted a counted number of times, then a run of table-indexed coordinate records selected by a few
@@ -25,7 +25,7 @@ export function buildVectorItemList(m) {
   const { mem8 } = m;
   decodeOptionSwitches(m);
   drawOverlayFrame(m);
-  loc_dd0d(m);
+  buildPotReadoutVectorList(m);
   buildLargeDecimalNumber(m);
 
   mem8[SLOT_LOOP_INDEX] = mem8[DSW_BONUS_CONFIG];
@@ -69,8 +69,8 @@ export function buildVectorItemList(m) {
   emitVectorHeaderWord(m);
 
   const lo = (mem8[DSW1_SNAPSHOT] & 0x1c) >> 2;
-  loc_d8a9(m, mem8[u16(DIAG_VALUE_LO + lo)], 0xee, 0x1b);
+  emitScaledByteDigit(m, mem8[u16(DIAG_VALUE_LO + lo)], 0xee, 0x1b);
 
   const hi = mem8[DSW1_SNAPSHOT] >> 5;
-  return loc_d8a9(m, mem8[u16(DIAG_VALUE_HI + hi)], 0x32, 0xf8);
+  return emitScaledByteDigit(m, mem8[u16(DIAG_VALUE_HI + hi)], 0x32, 0xf8);
 }

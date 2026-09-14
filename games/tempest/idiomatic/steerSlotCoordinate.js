@@ -4,7 +4,7 @@ import {
   ENEMY_ANIM_ACCUM, NEAR_DEPTH_THRESHOLD, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, ENEMY_SLOT_DIR, ENEMY_SEGMENT, ENEMY_PHASE, ENEMY_DEPTH, FIRE_GATE,
 } from "./names.js";
 import { advanceEnemyLaneDepth, reverseEnemyLaneDepth } from "./stepEnemyDepthInLaneDirection.js";
-import { loc_a347 } from "./loc_a343.js";
+import { insertObjectHeadTag7 } from "./insertObjectHeadTag9.js";
 
 // Per-slot(x) steering step, keyed on ENEMY_SLOT_DIR,x bit7.
 //  - bit7 set: SUB-step; probe = FIRE_GATE!=0 ? the step's new hi : 0xff; if probe >= NEAR_DEPTH_THRESHOLD flip bit7
@@ -35,5 +35,5 @@ export function steerSlotCoordinate(m, x = m.regs.x) {
   if (v200 !== mem8[u16(ENEMY_SEGMENT + x)]) return (m.regs.a = v200);
   const v201 = mem8[PLAYER_FINE_ANGLE];
   if (v201 !== mem8[u16(ENEMY_PHASE + x)]) return (m.regs.a = v201);
-  return loc_a347(m, x, y); // all four match -> seed the object (A left as the callee's leftover)
+  return insertObjectHeadTag7(m, x, y); // all four match -> seed the object (A left as the callee's leftover)
 }

@@ -2,7 +2,7 @@
 // Memory-equivalence for runSelfTestLoop -- the self-test session loop. A one-time preamble seeds the state
 // machine, forwards a pending request byte, copies the 8-byte colour table into colour RAM, and idles
 // the coin/flip control; then each pass builds and shows one self-test frame (option switches -> SPINNER_POT_PREV
-// /SPINNER_ACCUM, diagnostic inputs -> INPUT_EDGE_FLAGS/INPUT_CUR, loc_db0f + emitHeaderedBodyRecord + every-fourth-frame stepEaromTransfer),
+// /SPINNER_ACCUM, diagnostic inputs -> INPUT_EDGE_FLAGS/INPUT_CUR, dispatchDrawHandler + emitHeaderedBodyRecord + every-fourth-frame stepEaromTransfer),
 // leaving once the self-test switch is released.
 //
 // This routine NEVER RETURNS in the oracle: with the switch idle-high it runs one frame then settles
@@ -84,7 +84,7 @@ test("CAPTURE: real 0xda62 dispatches -- runSelfTestLoop == oracle in RAM (-stac
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// No pending request (PENDING_WORK_FLAGS == 0): the preamble stamps GAME_MODE = 2, which routes loc_db0f to its
+// No pending request (PENDING_WORK_FLAGS == 0): the preamble stamps GAME_MODE = 2, which routes dispatchDrawHandler to its
 // per-frame vector emit. Seed that emitter's counter + table cells so the frame builds a real list;
 // da62 itself points the display cursor at vector RAM (DRAW_CURSOR_HI = 0x20) so emits land in diffed space.
 function seedNoPending(m) {
@@ -95,7 +95,7 @@ function seedNoPending(m) {
   m.mem.write8(SEG_SPREAD_A_LO_5 + 0x01, 0x20);
 }
 // Pending request (PENDING_WORK_FLAGS != 0): the preamble forwards it to SEG_SPREAD_A_LO_4, runs queueEaromEraseAllRegions, clears PENDING_WORK_FLAGS,
-// and stamps GAME_MODE = 0 (a different loc_db0f handler). Exercises the else-branch of the preamble.
+// and stamps GAME_MODE = 0 (a different dispatchDrawHandler handler). Exercises the else-branch of the preamble.
 function seedPending(m) {
   m.mem.write8(PENDING_WORK_FLAGS, 0x5a);
   m.mem.write8(loc_2e, 0x11);

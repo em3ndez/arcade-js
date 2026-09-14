@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c3ee (ROM 0xc3ee-0xc422) -- a CALLER that dissolves jsr $df4c/$c43c/$c772/
+// Memory-equivalence for drawFramedCounterSlot (ROM 0xc3ee-0xc422) -- a CALLER that dissolves jsr $df4c/$c43c/$c772/
 // $c423/$c3ba into direct idiomatic calls: a two-pass framed draw with the colour live then stepped-back
 // uncoloured. Effect is memory (vector RAM via the ($74) cursor plus the $6a-$73 caches). Live-out is the
 // stepped-back slot index in X, so each arm compares RAM (dumpState minus STACK_SCRATCH) AND the returned
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c3ee as oracle } from "../../translated/loc_c3ee.js";
-import { loc_c3ee } from "../loc_c3ee.js";
+import { drawFramedCounterSlot } from "../drawFramedCounterSlot.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xc3ee dispatches -- loc_c3ee == oracle in RAM (-stack) and exit X", () => {
+test("CAPTURE: real 0xc3ee dispatches -- drawFramedCounterSlot == oracle in RAM (-stack) and exit X", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); const rx = loc_c3ee(c);
+    oracle(o); const rx = drawFramedCounterSlot(c);
     assert.equal(ramDiff(o, c), null, "RAM equal");
     assert.equal(rx, o.regs.x, "returned index == oracle exit X");
   }
@@ -61,7 +61,7 @@ function seed(m) {
 test("CRAFTED: two-pass framed draw -- RAM equal and returned index is the stepped-back slot", () => {
   const base = new Machine(ROM, OPTS); seed(base);
   const o = base.clone(), c = base.clone();
-  oracle(o); const rx = loc_c3ee(c);
+  oracle(o); const rx = drawFramedCounterSlot(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after draw");
   assert.equal(rx, o.regs.x, "returned index == oracle exit X");
   assert.equal(rx, 0x04, "index stepped back by one from 0x05");
@@ -89,6 +89,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c3ee, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c3ee must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawFramedCounterSlot, TARGET, m);
+  assert.equal(r.placeable, true, `drawFramedCounterSlot must be seam-placeable; got: ${r.error}`);
 });

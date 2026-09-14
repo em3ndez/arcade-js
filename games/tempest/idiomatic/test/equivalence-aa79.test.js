@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa79 (ROM 0xaa79-0xaa8f) -- draws a vector list (drawSlotShapeWithHeader A=0/X=$32), then
+// Memory-equivalence for drawFrameWithSlot32 (ROM 0xaa79-0xaa8f) -- draws a vector list (drawSlotShapeWithHeader A=0/X=$32), then
 // when ($03 & $1f) < $10 draws a second (A=$e0/X=$22), and tail-calls the frame setup buildTextOverlayList. Dissolves
 // every m.call. All output is RAM (emitted vector words + setup), so each arm compares the RAM diff (minus
 // the dead stack). Omitted-ret caller.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa79 as oracle } from "../../translated/loc_aa79.js";
-import { loc_aa79 } from "../loc_aa79.js";
+import { drawFrameWithSlot32 } from "../drawFrameWithSlot32.js";
 import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
 import { buildTextOverlayList } from "../buildTextOverlayList.js";
 import { Machine, withOmittedRet } from "../../machine.js";
@@ -48,10 +48,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0xaa79 dispatches -- loc_aa79 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaa79 dispatches -- drawFrameWithSlot32 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aa79(c);
+    oracle(o); drawFrameWithSlot32(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -65,7 +65,7 @@ test("CRAFTED: low status draws both lists, high status draws only one -- both =
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seedPipe(o); o.mem.write8(FRAME_COUNTER, s.c03);
     const c = new Machine(ROM, OPTS); seedPipe(c); c.mem.write8(FRAME_COUNTER, s.c03);
-    oracle(o); loc_aa79(c);
+    oracle(o); drawFrameWithSlot32(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -85,6 +85,6 @@ test("SP-TOOTH: the omitted-ret caller is seam-placeable", () => {
   seedPipe(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aa79, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aa79 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawFrameWithSlot32, TARGET, m);
+  assert.equal(r.placeable, true, `drawFrameWithSlot32 must be seam-placeable; got: ${r.error}`);
 });

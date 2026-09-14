@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ccf2 (ROM 0xccf2-0xccf5) -- seeds the fixed sound id 0x7f then BNE-delegates
+// Memory-equivalence for cueMovingSpikeEndSound (ROM 0xccf2-0xccf5) -- seeds the fixed sound id 0x7f then BNE-delegates
 // (always taken) into the sound gate. The idiomatic dissolves the m.call(0xccc3) into requestSoundIfEnabled(m, 0x7f, x, y);
 // caller X/Y pass through as register inputs. Live-out is memory only (A at RTS is incidental), so arms
 // compare RAM (dumpState minus STACK_SCRATCH). A leaf: the module omits the ROM ret, the seam completes it.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ccf2 as oracle } from "../../translated/loc_ccf2.js";
-import { loc_ccf2 } from "../loc_ccf2.js";
+import { cueMovingSpikeEndSound } from "../cueMovingSpikeEndSound.js";
 import { loadSoundVoiceSlots } from "../loadSoundVoiceSlots.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xccf2 dispatches -- loc_ccf2 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xccf2 dispatches -- cueMovingSpikeEndSound == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ccf2(c);
+    oracle(o); cueMovingSpikeEndSound(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ test("CRAFTED gate-open: bit7 of $05 set -> sound 0x7f registers via the dissolv
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ccf2(c);
+  oracle(o); cueMovingSpikeEndSound(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after gated registration");
   assert.equal(c.mem.read8(loc_31), 0x5a, "$31 = caller X (call fired)");
   assert.equal(c.mem.read8(loc_32), 0x3c, "$32 = caller Y (call fired)");
@@ -70,7 +70,7 @@ test("CRAFTED gate-closed: bit7 of $05 clear -> nothing registers", () => {
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ccf2(c);
+  oracle(o); cueMovingSpikeEndSound(c);
   assert.equal(ramDiff(o, c), null, "RAM equal when gate blocks");
   assert.equal(c.mem.read8(loc_31), 0x00, "$31 untouched (gate blocked the call)");
 });
@@ -96,7 +96,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ccf2, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ccf2 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, cueMovingSpikeEndSound, TARGET, m);
+  assert.equal(r.placeable, true, `cueMovingSpikeEndSound must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

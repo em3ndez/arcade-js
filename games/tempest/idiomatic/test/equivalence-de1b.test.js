@@ -2,7 +2,7 @@
 // Memory-equivalence for stepEaromTransfer (ROM 0xde1b-0xdf08) -- the EAROM state-machine step over $01c6..$01cf
 // and the $6000/$6040/$6050 port block. Contract: RAM (dumpState, minus STACK_SCRATCH) PLUS the exit X/Y,
 // which the idiomatic form returns as [x, y] and the frozen oracle leaves in regs.x/regs.y at RTS -- a
-// load-bearing register live-out (seedFramePhaseAndTick forwards them to the sound call loc_ccfa). A leaf: the module
+// load-bearing register live-out (seedFramePhaseAndTick forwards them to the sound call requestActiveSoundCue). A leaf: the module
 // omits the ROM ret and the seam completes it, so RAM arms compare RAM (-stack), NOT pc/SP.
 // The routine's $6000-block reads/writes are the EAROM (deterministic, cloned) -- not POKEY random.
 // Run: node --test games/tempest/idiomatic/test/equivalence-de1b.test.js

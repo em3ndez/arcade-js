@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for retireSpawnedObject (ROM 0xa36f-0xa38d) -- fires the sound gate (loc_ccc1), stages the slot's
+// Memory-equivalence for retireSpawnedObject (ROM 0xa36f-0xa38d) -- fires the sound gate (gateSound1f), stages the slot's
 // source/target ($02db,y -> $29 and $02b5,y -> $2d), re-inserts a zeroed object (insertTimedObjectOfType with A=0), clears
 // $02db,y, decrements $a6, and flags $02f2,x. The idiomatic side dissolves the two jsr into direct
-// loc_ccc1/insertTimedObjectOfType calls, passing the entry X/Y (preserved across both callees). Live-out is memory only
+// gateSound1f/insertTimedObjectOfType calls, passing the entry X/Y (preserved across both callees). Live-out is memory only
 // (A at RTS incidental; X/Y restored to entry), so each arm compares RAM (minus STACK_SCRATCH) and X/Y.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a36f.test.js
 
@@ -15,7 +15,7 @@ import { retireSpawnedObject } from "../retireSpawnedObject.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { loc_ccc1 } from "../loc_ccc1.js";
+import { gateSound1f } from "../gateSound1f.js";
 import { insertTimedObjectOfType } from "../insertTimedObjectOfType.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_29, COORD_LIST_PTR_HI, ACTIVE_ENEMY_COUNT, loc_2db, loc_2b5, HIT_TALLY } from "../names.js";
 
@@ -80,7 +80,7 @@ test("TEETH: a twin that indexes with a stale Y (and lane X) diverges in RAM", (
   oracle(o);
   const broken = (m, x = m.regs.x, y = m.regs.y) => {
     const { mem8 } = m;
-    loc_ccc1(m, x, y);
+    gateSound1f(m, x, y);
     mem8[loc_29] = mem8[u16(loc_2db + 0x00)]; // BUG: stale Y=0 index
     mem8[COORD_LIST_PTR_HI] = mem8[u16(loc_2b5 + 0x00)];
     insertTimedObjectOfType(m, 0x00, x, y);

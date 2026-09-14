@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ccbd (ROM 0xccbd-0xccc0) -- a sound trampoline: loads the fixed sound id 0x8f
+// Memory-equivalence for gateSound8f (ROM 0xccbd-0xccc0) -- a sound trampoline: loads the fixed sound id 0x8f
 // and tail-calls the gate-register routine, carrying the caller's X/Y. The idiomatic side dissolves the
 // jsr $ccc3 into a direct requestSoundIfEnabled(m, 0x8f, x, y) call. Live-out is memory only (RAM incl. $31/$32 and the
 // per-slot sound cells $c0+/$e0+/$f0+), so each arm compares RAM (dumpState minus STACK_SCRATCH); A/X/Y at
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ccbd as oracle } from "../../translated/loc_ccbd.js";
-import { loc_ccbd } from "../loc_ccbd.js";
+import { gateSound8f } from "../gateSound8f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-test("CAPTURE: real 0xccbd dispatches -- loc_ccbd == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xccbd dispatches -- gateSound8f == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ccbd(c);
+    oracle(o); gateSound8f(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ function seed(m) {
 test("CRAFTED: sound 0x8f -- RAM equal and $31/$32 stamped with the caller's X/Y", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_ccbd(c);
+  oracle(o); gateSound8f(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after registration");
   assert.equal(c.mem.read8(loc_31), 0x12, "$31 = X");
   assert.equal(c.mem.read8(loc_32), 0x34, "$32 = Y");
@@ -92,6 +92,6 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ccbd, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ccbd must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, gateSound8f, TARGET, m);
+  assert.equal(r.placeable, true, `gateSound8f must be seam-placeable; got: ${r.error}`);
 });

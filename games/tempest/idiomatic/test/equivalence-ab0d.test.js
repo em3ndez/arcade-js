@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_ab0d (ROM 0xab0d-0xab13) -- emits a vector word {0x20,0x80} at the cursor
+// Memory-equivalence for emitFixedVectorWord (ROM 0xab0d-0xab13) -- emits a vector word {0x20,0x80} at the cursor
 // origin ($74/$75), then steps the cursor past it. A pure tail-caller that dissolves the jmp into a direct
 // emitVectorWord call. All live-out is RAM (the two emitted bytes + the advanced cursor); the oracle also leaves
 // A = the new cursor-low byte (a df5f-family live-out the idiomatic tail does not reproduce), and ab0d
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_ab0d as oracle } from "../../translated/loc_ab0d.js";
-import { loc_ab0d } from "../loc_ab0d.js";
+import { emitFixedVectorWord } from "../emitFixedVectorWord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
@@ -45,10 +45,10 @@ function seed(m, s = {}) {
   return ptr;
 }
 
-test("CAPTURE: real 0xab0d dispatches -- loc_ab0d == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xab0d dispatches -- emitFixedVectorWord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_ab0d(c);
+    oracle(o); emitFixedVectorWord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -58,7 +58,7 @@ test("CRAFTED: emits {0x20,0x80} at the cursor and advances it by 2", () => {
   const ptr = 0x2500;
   const o = new Machine(ROM, OPTS); seed(o, { ptr });
   const c = new Machine(ROM, OPTS); seed(c, { ptr });
-  oracle(o); loc_ab0d(c);
+  oracle(o); emitFixedVectorWord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.mem.read8(ptr), 0x20, "low byte emitted");
   assert.equal(c.mem.read8(ptr + 1), 0x80, "high byte emitted");
@@ -69,7 +69,7 @@ test("CRAFTED (non-default seed): a cursor that carries into $75 still matches t
   const ptr = 0x25ff; // stepping by 2 overflows the low byte -> carry into $75
   const o = new Machine(ROM, OPTS); seed(o, { ptr });
   const c = new Machine(ROM, OPTS); seed(c, { ptr });
-  oracle(o); loc_ab0d(c);
+  oracle(o); emitFixedVectorWord(c);
   assert.equal(ramDiff(o, c), null, "RAM equal across the high-byte carry");
 });
 
@@ -92,6 +92,6 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_ab0d, TARGET, m);
-  assert.equal(r.placeable, true, `loc_ab0d must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitFixedVectorWord, TARGET, m);
+  assert.equal(r.placeable, true, `emitFixedVectorWord must be seam-placeable; got: ${r.error}`);
 });

@@ -164,7 +164,7 @@ test("TEETH: a twin that skips the ccb5 gate diverges from the oracle", () => {
     const hi = mem8[COORD_LIST_PTR_LO] >> 4;
     mem8[loc_2a] = hi;
     mem8[loc_2b] = (hi + 1) & 0x0f;
-    /* BUG: no loc_ccb5 call -- $31/$32 never seated */
+    /* BUG: no cueRimRotationSound call -- $31/$32 never seated */
     mem8[PLAYER_SEGMENT] = mem8[loc_2a];
     mem8[PLAYER_FINE_ANGLE] = mem8[loc_2b];
     mem8[RIM_ROT_OFFSET] = mem8[COORD_LIST_PTR_LO];

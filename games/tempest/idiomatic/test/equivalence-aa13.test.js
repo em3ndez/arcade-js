@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for stageTextLineWithCount (ROM 0xaa13-0xaa59) -- chooses a length from flags, points the copy
 // target at page $2f60, copies that many source bytes down into it, on the negative-flag path emits a
-// packed counter via loc_af77, then restores the low target byte and tail-jmps loc_df09. The idiomatic
-// side dissolves jsr $af77 (into loc_af77(m, $9f+1)) and the jmp $df09 tail (into loc_df09(m)). Live-out
+// packed counter via emitByteAsBcdDigits, then restores the low target byte and tail-jmps emitRecordBodyC0. The idiomatic
+// side dissolves jsr $af77 (into emitByteAsBcdDigits(m, $9f+1)) and the jmp $df09 tail (into emitRecordBodyC0(m)). Live-out
 // is memory only (pure tail-caller into the header emitter, reads no register after), so each arm compares
 // RAM (dumpState minus STACK_SCRATCH). ROM source/count tables live at $ce66/$cde6.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aa13.test.js
@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa13 as oracle } from "../../translated/loc_aa13.js";
 import { stageTextLineWithCount } from "../stageTextLineWithCount.js";
-import { loc_df09 } from "../loc_df09.js";
+import { emitRecordBodyC0 } from "../emitRecordBodyC0.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -115,7 +115,7 @@ test("TEETH: a twin skipping the final y=0 copy diverges from the oracle", () =>
     } while (y !== 0);
     // BUG: skips the final y=0 copy
     mem8[DRAW_CURSOR_LO] = savedSum;
-    return loc_df09(m);
+    return emitRecordBodyC0(m);
   };
   brokenAa13(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped final copy");

@@ -3,7 +3,7 @@
 // (MODE_DISPATCH_SEL/GAME_MODE/GAME_MODE_PENDING), and when the level id LEVEL_ID differs from the last-seen loc_3d AND STATUS_FLAGS is
 // negative it installs the new-level timers (MODE_DISPATCH_SEL/GAME_MODE/MODE_DELAY_TIMER, the last picked by loc_117) and swaps
 // the paired tables via swapParallelTables; then it converges: selectProjectionScale, index PLAYER_LEVEL_TBL by loc_3d into loc_9f,
-// loc_9025 (startup init), and TAIL-DELEGATES to resetBothPokeyChips (readout reset). Live-out is RAM only
+// runLevelInit (startup init), and TAIL-DELEGATES to resetBothPokeyChips (readout reset). Live-out is RAM only
 // (dumpState minus STACK_SCRATCH): c940 takes no input register and tail-jmps resetBothPokeyChips, so its exit
 // registers are the delegate's -- both layers run the identical delegate from the identical clone, so
 // registers are not part of this routine's contract. Oracle is the frozen translated setupLevelTimers.

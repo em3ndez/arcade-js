@@ -8,12 +8,12 @@ import { selectProjectionScale } from "./selectProjectionScale.js";
 import { emitColorStatIfChanged } from "./emitColorStatIfChanged.js";
 import { loc_df6a } from "./loc_df6a.js";
 import { drawSlotShapeWithHeader } from "./drawSlotShapeWithHeader.js";
-import { loc_aa92 } from "./loc_aa92.js";
+import { drawSlotThenDigitRun } from "./drawSlotThenDigitRun.js";
 import { drawSlotShapeRecord } from "./drawSlotShapeRecord.js";
-import { loc_ab0d } from "./loc_ab0d.js";
-import { loc_af77 } from "./loc_af77.js";
+import { emitFixedVectorWord } from "./emitFixedVectorWord.js";
+import { emitByteAsBcdDigits } from "./emitByteAsBcdDigits.js";
 import { emitScaledCoordinateRecord } from "./emitScaledCoordinateRecord.js";
-import { loc_b0c6 } from "./loc_b0c6.js";
+import { emitTableValueDigitRun } from "./emitTableValueDigitRun.js";
 import { drawTubeShapeOutline } from "./drawTubeShapeOutline.js";
 import { emitNibbleDigitRun } from "./emitNibbleDigitRun.js";
 import { nudgeBlasterRimPosition } from "./nudgeBlasterRimPosition.js";
@@ -28,7 +28,7 @@ export function drawTubeWell(m) {
   mem8[VG_LAST_STAT] = 0x01;
   loc_df6a(m, 0x01);
   drawSlotShapeWithHeader(m, 0x60, 0x2c);
-  loc_aa92(m);
+  drawSlotThenDigitRun(m);
 
   // Rim segments: top index down through zero.
   mem8[SLOT_LOOP_INDEX] = 0x07;
@@ -74,16 +74,16 @@ export function drawTubeWell(m) {
   do {
     emitColorStatIfChanged(m, 0x05);
     mem8[VG_RECORD_HEADER] = 0x00;
-    loc_ab0d(m);
+    emitFixedVectorWord(m);
     emitScaledCoordinateRecord(m, (mem8[u16(WELL_SEGMENT_COORD_TABLE + mem8[SLOT_LOOP_INDEX])] + 0xf8) & 0xff, 0xd8);
     // Skip the row body once the depth value reaches the far edge.
     if (mem8[u16(SLOT_THRESHOLD_TABLE + mem8[WELL_DEPTH_ROW])] < 0x63) {
-      loc_af77(m, (mem8[u16(SLOT_THRESHOLD_TABLE + mem8[WELL_DEPTH_ROW])] + 1) & 0xff);
+      emitByteAsBcdDigits(m, (mem8[u16(SLOT_THRESHOLD_TABLE + mem8[WELL_DEPTH_ROW])] + 1) & 0xff);
       emitColorStatIfChanged(m, 0x03);
-      loc_ab0d(m);
+      emitFixedVectorWord(m);
       emitScaledCoordinateRecord(m, (mem8[u16(WELL_SEGMENT_COORD_TABLE + mem8[SLOT_LOOP_INDEX])] + 0xec) & 0xff, 0xba);
-      loc_b0c6(m, mem8[WELL_DEPTH_ROW]);
-      loc_ab0d(m);
+      emitTableValueDigitRun(m, mem8[WELL_DEPTH_ROW]);
+      emitFixedVectorWord(m);
       emitScaledCoordinateRecord(m, mem8[u16(WELL_SEGMENT_COORD_TABLE + mem8[SLOT_LOOP_INDEX])], 0xcc);
       drawTubeShapeOutline(m, mem8[u16(SLOT_THRESHOLD_TABLE + mem8[WELL_DEPTH_ROW])]);
     }
@@ -93,11 +93,11 @@ export function drawTubeWell(m) {
 
   // Trailer: a framing draw plus a four-entry table walk.
   mem8[VG_RECORD_HEADER] = 0x00;
-  loc_ab0d(m);
+  emitFixedVectorWord(m);
   drawSlotShapeRecord(m, 0x1c);
   emitNibbleDigitRun(m, 0x04, 0x01);
   emitColorStatIfChanged(m, 0x00);
-  loc_ab0d(m);
+  emitFixedVectorWord(m);
   const [nudged] = nudgeBlasterRimPosition(m);
   const idx = (nudged - mem8[SEG_SPREAD_A_LO_3]) & 0xff;
   emitScaledCoordinateRecord(m, (mem8[u16(WELL_SEGMENT_COORD_TABLE + idx)] - 0x16) & 0xff, 0xb8);

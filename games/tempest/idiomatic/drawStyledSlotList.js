@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { SPIKE_ACTIVE_FLAG, SLOT_LOOP_INDEX, ENEMY_DEPTH, OBJ_DEPTH, ENEMY_SLOT_FLAGS, DRAW_STYLE } from "./names.js";
-import { loc_b5d7 } from "./loc_b5d7.js";
+import { dispatchSlotDrawHandler } from "./dispatchSlotDrawHandler.js";
 
 // When the guard flag is clear, walk seven slots high-to-low; for each nonzero control
 // byte cache it, split the paired slot byte into a style nibble and a doubled selector,
@@ -17,7 +17,7 @@ export function drawStyledSlotList(m) {
       mem8[OBJ_DEPTH] = ctrl;
       const paired = mem8[u16(ENEMY_SLOT_FLAGS + x)];
       mem8[DRAW_STYLE] = (paired & 0x18) >> 3;
-      loc_b5d7(m, (paired & 0x07) << 1, x); // the dispatch handler reads the slot index x
+      dispatchSlotDrawHandler(m, (paired & 0x07) << 1, x); // the dispatch handler reads the slot index x
     }
     const dv = (mem8[SLOT_LOOP_INDEX] - 1) & 0xff;   // decrement and stop once it goes negative
     mem8[SLOT_LOOP_INDEX] = dv;

@@ -3,7 +3,7 @@ import { u8, u16 } from "../../../core/int.js";
 import {
   STATUS_FLAGS, PLAYER_LEVEL_TBL, SLOT_COUNTDOWN, SLOT_COUNTDOWN_HI, loc_3d, ACTIVE_SLOT_COUNT, LEVEL_ID, SPIKE_TABLE_GUARD, DSW_BONUS_CONFIG,
 } from "./names.js";
-import { loc_aba2 } from "./loc_aba2.js";
+import { rebuildControlBlocksIfRequested } from "./rebuildControlBlocksIfRequested.js";
 import { buildLevelLayout } from "./buildLevelLayout.js";
 import { clearChannelStagingBlock } from "./clearChannelStagingBlock.js";
 import { selectWaveStartSlot } from "./selectWaveStartSlot.js";
@@ -14,7 +14,7 @@ import { selectWaveStartSlot } from "./selectWaveStartSlot.js";
 export function resetLevelPlayfieldSlots(m) {
   const { mem8 } = m;
 
-  loc_aba2(m);
+  rebuildControlBlocksIfRequested(m);
   buildLevelLayout(m);
   if ((mem8[STATUS_FLAGS] & 0x80) !== 0) clearChannelStagingBlock(m);
 

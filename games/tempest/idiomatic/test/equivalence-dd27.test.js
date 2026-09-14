@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_dd27 -- a caller that seats a fixed value byte, then dissolves its jmp into
-// the already-idiomatic loc_dd29 (direct call). The routine and its callee chain shape vector work cells;
+// the already-idiomatic emitByteBitsAsDigitsAtF8 (direct call). The routine and its callee chain shape vector work cells;
 // live-out is memory only (registers at exit are incidental), so each side runs on a clone and the contract
 // is RAM (dumpState, minus STACK_SCRATCH). Y flows in via the register bridge.
 // Run: node --test games/tempest/idiomatic/test/equivalence-dd27.test.js
@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_dd27 as oracle } from "../../translated/loc_dd27.js";
 import { loc_dd27 } from "../loc_dd27.js";
-import { loc_dd29 } from "../loc_dd29.js";
+import { emitByteBitsAsDigitsAtF8 } from "../emitByteBitsAsDigitsAtF8.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -64,6 +64,6 @@ test("TEETH: a twin that seats the wrong value byte diverges from the oracle", (
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   // BUG: seats 0x00 instead of the fixed 0xd0 before the dissolved call.
-  loc_dd29(c, c.regs.y, 0x00);
+  emitByteBitsAsDigitsAtF8(c, c.regs.y, 0x00);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong value byte");
 });

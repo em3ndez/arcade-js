@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { GAME_MODE, IRQ_HEARTBEAT } from "./names.js";
 import { resetBothPokeyChips } from "./resetBothPokeyChips.js";
-import { loc_c7bd } from "./loc_c7bd.js";
+import { dispatchFramePhaseHandler } from "./dispatchFramePhaseHandler.js";
 import { seedFramePhaseAndTick } from "./seedFramePhaseAndTick.js";
 import { buildFrameVectors } from "./buildFrameVectors.js";
 
@@ -18,7 +18,7 @@ export function* runMainFrameLoop(m) {
   for (;;) {
     while (mem8[IRQ_HEARTBEAT] < 9) yield;
     mem8[IRQ_HEARTBEAT] = 0;
-    loc_c7bd(m);
+    dispatchFramePhaseHandler(m);
     seedFramePhaseAndTick(m);
     buildFrameVectors(m);
   }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_9b98 (ROM 0x9b98-0x9ba1) -- an RTS-trick COMPUTED-JUMP dispatcher: tay then pushes
+// Equivalence for dispatchSlotMotionHandler (ROM 0x9b98-0x9ba1) -- an RTS-trick COMPUTED-JUMP dispatcher: tay then pushes
 // word($9ba2+Y) and rts, jumping to word+1. The incoming A is a PRE-DOUBLED index (the caller left the
 // 2-byte table offset in it), so entry N sits at A = 2N -- the idiomatic form is TABLE[a >> 1]. The twenty
 // targets each act for their own side effects; none reads the incoming A as data (A is the dispatch index,
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9b98 as oracle } from "../../translated/loc_9b98.js";
-import { loc_9b98 } from "../loc_9b98.js";
+import { dispatchSlotMotionHandler } from "../dispatchSlotMotionHandler.js";
 import { endObjectMotionScript } from "../endObjectMotionScript.js";
 import { writeScriptConstantToSlot } from "../writeScriptConstantToSlot.js";
 import { skipScriptOperandWhenFlagClear } from "../skipScriptOperandWhenFlagClear.js";
@@ -21,7 +21,7 @@ import { noopDispatchStub } from "../noopDispatchStub.js";
 import { stepEnemyDepthInLaneDirection } from "../stepEnemyDepthInLaneDirection.js";
 import { advanceClimberTrackingColumnMin } from "../advanceClimberTrackingColumnMin.js";
 import { writeScriptVariableToSlot } from "../writeScriptVariableToSlot.js";
-import { loc_9e5c } from "../loc_9e5c.js";
+import { stepClimberSegmentGuarded } from "../stepClimberSegmentGuarded.js";
 import { animateFlipperTurn } from "../animateFlipperTurn.js";
 import { toggleEnemyTurnSide } from "../toggleEnemyTurnSide.js";
 import { spawnType5OnCoordMatch } from "../spawnType5OnCoordMatch.js";
@@ -48,7 +48,7 @@ const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM 
 
 const TARGET = 0x9b98;
 const TABLE = [
-  endObjectMotionScript, writeScriptConstantToSlot, skipScriptOperandWhenFlagClear, followScriptGoto, holdSlotPoseUntilTimerExpires, noopDispatchStub, stepEnemyDepthInLaneDirection, advanceClimberTrackingColumnMin, writeScriptVariableToSlot, loc_9e5c,
+  endObjectMotionScript, writeScriptConstantToSlot, skipScriptOperandWhenFlagClear, followScriptGoto, holdSlotPoseUntilTimerExpires, noopDispatchStub, stepEnemyDepthInLaneDirection, advanceClimberTrackingColumnMin, writeScriptVariableToSlot, stepClimberSegmentGuarded,
   animateFlipperTurn, toggleEnemyTurnSide, spawnType5OnCoordMatch, jumpScriptCursorWhenFlagClear, setFlagIfSlotPastSegmentBound, advanceEnemyPursuit, fireHitOnPlayerCollision, steerSlotCoordinate, faceEnemyTowardPlayerSegment, setFlagFromPhaseAccumulatorSign,
 ];
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -63,7 +63,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 4000) : [];
 
-test("CAPTURE: real 0x9b98 dispatches -- loc_9b98 == oracle in RAM (-stack); indices are even (pre-doubled)", () => {
+test("CAPTURE: real 0x9b98 dispatches -- dispatchSlotMotionHandler == oracle in RAM (-stack); indices are even (pre-doubled)", () => {
   const as = new Set();
   let checked = 0;
   for (const cap of CAPS) {
@@ -72,7 +72,7 @@ test("CAPTURE: real 0x9b98 dispatches -- loc_9b98 == oracle in RAM (-stack); ind
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue;
-    loc_9b98(c);
+    dispatchSlotMotionHandler(c);
     assert.equal(ramDiff(o, c), null, `RAM equal for captured A=${cap.regs.a}`);
     checked++;
   }
@@ -80,7 +80,7 @@ test("CAPTURE: real 0x9b98 dispatches -- loc_9b98 == oracle in RAM (-stack); ind
   console.log(`  CAPTURE: ${checked}/${CAPS.length} checked; distinct A: [${[...as].sort((a, b) => a - b).join(",")}]`);
 });
 
-test("CRAFTED: each entry index (A = 2N) -- loc_9b98 == oracle in RAM (-stack)", () => {
+test("CRAFTED: each entry index (A = 2N) -- dispatchSlotMotionHandler == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (let n = 0; n < TABLE.length; n++) {
     const base = new Machine(ROM, OPTS);
@@ -89,7 +89,7 @@ test("CRAFTED: each entry index (A = 2N) -- loc_9b98 == oracle in RAM (-stack)",
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // an entry the bare seed cannot provision -- CAPTURE carries it
-    loc_9b98(c);
+    dispatchSlotMotionHandler(c);
     assert.equal(ramDiff(o, c), null, `RAM equal dispatching entry N=${n} (A=${n << 1})`);
     checked++;
   }
@@ -123,7 +123,7 @@ test("SP-TOOTH: the omitted-ret dispatcher (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.a = 0x00; m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_9b98, TARGET, m);
-  assert.equal(r.placeable, true, `loc_9b98 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchSlotMotionHandler, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchSlotMotionHandler must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret dispatcher (moved 0) placeable");
 });

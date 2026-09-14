@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_902b (ROM 0x902b) -- the new-game reset spine: run six subsystem resets
+// Memory-equivalence for resetWorkingRamForStateEntry (ROM 0x902b) -- the new-game reset spine: run six subsystem resets
 // (clearActiveShots, clearShotTableAndStateFlags, seedSlotRandomTags, clearEightByteTableAndFlag, clearByte50, buildLevelLayout) in order, then set $0124=$0148=0xff and
 // $0123=0x00. Live-out is memory only (A/X at RTS incidental), so each side runs on a clone and the
 // contract is RAM (dumpState, minus STACK_SCRATCH). A body-then-return routine: the module omits the ROM
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_902b as oracle } from "../../translated/loc_902b.js";
-import { loc_902b } from "../loc_902b.js";
+import { resetWorkingRamForStateEntry } from "../resetWorkingRamForStateEntry.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPIKED_SEGMENT_COUNT, RIM_COLOR_ANIM, ENEMY_ANIM_ACCUM, FIRE_GATE, loc_9f } from "../names.js";
@@ -45,10 +45,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
-test("CAPTURE: real 0x902b dispatches -- loc_902b == oracle in RAM (-stack, poly frozen)", () => {
+test("CAPTURE: real 0x902b dispatches -- resetWorkingRamForStateEntry == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()), c = freezePokey(cap.clone());
-    oracle(o); loc_902b(c);
+    oracle(o); resetWorkingRamForStateEntry(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -67,7 +67,7 @@ test("CRAFTED: full reset spine == oracle (RAM -stack); final three flag bytes s
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_902b(c);
+  oracle(o); resetWorkingRamForStateEntry(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after reset");
   assert.equal(c.mem.read8(RIM_COLOR_ANIM), 0xff, "$0124 = 0xff");
   assert.equal(c.mem.read8(ENEMY_ANIM_ACCUM), 0xff, "$0148 = 0xff");
@@ -89,7 +89,7 @@ test("TEETH: a twin that skips the final flag stores diverges from the oracle", 
   oracle(o);
   // Twin: runs the full spine but then re-dirties the three trailing flags, as if it never stored them.
   const broken = (mm) => {
-    loc_902b(mm);
+    resetWorkingRamForStateEntry(mm);
     mm.mem8[RIM_COLOR_ANIM] = 0x11; // BUG: leaves the trailing flags at their pre-reset sentinels
     mm.mem8[ENEMY_ANIM_ACCUM] = 0x22;
     mm.mem8[SPIKED_SEGMENT_COUNT] = 0x33;
@@ -105,7 +105,7 @@ test("SP-TOOTH: the omitted-ret routine (moved 0) is seam-placeable", () => {
   m.mem.write8(loc_9f, 0x30);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam
-  const r = seamPlaceable(withOmittedRet, loc_902b, TARGET, m);
-  assert.equal(r.placeable, true, `loc_902b must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, resetWorkingRamForStateEntry, TARGET, m);
+  assert.equal(r.placeable, true, `resetWorkingRamForStateEntry must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret routine (moved 0) placeable");
 });

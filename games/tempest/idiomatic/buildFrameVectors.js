@@ -5,8 +5,8 @@ import {
   VEC_LIST_HEADER_LO, VEC_LIST_HEADER_HI, VECHEAD0_PLAY, VECHEAD1_PLAY, VECHEAD0_LEVEL,
 } from "./names.js";
 import { resetMathboxInputs } from "./resetMathboxInputs.js";
-import { loc_b20d } from "./loc_b20d.js";
-import { loc_b230 } from "./loc_b230.js";
+import { dispatchDisplayModeHandler } from "./dispatchDisplayModeHandler.js";
+import { drawFrame } from "./drawFrame.js";
 import { seatDrawCursor } from "./seatDrawCursor.js";
 import { closeLayerPointer } from "./closeLayerPointer.js";
 import { emitFrameLink } from "./emitFrameLink.js";
@@ -30,12 +30,12 @@ export function buildFrameVectors(m, dFlag = m.regs.fD) {
   if (mem8[VEC_LIST_HEADER_LO] === mem8[VECHEAD0_LEVEL] && mem8[LEVEL_LAYOUT_TRIGGER] === 0) return;
 
   // Mode zero routes the entire draw through the frame builder.
-  if (mem8[MODE_DISPATCH_SEL] === 0) { loc_b230(m); return; }
+  if (mem8[MODE_DISPATCH_SEL] === 0) { drawFrame(m); return; }
 
   seatDrawCursor(m, 0x00);
   const changed = emitFrameLink(m); // true = a change was published; skip the checksum path
   if (!changed) {
-    loc_b20d(m); // computed-jump dispatch
+    dispatchDisplayModeHandler(m); // computed-jump dispatch
     if (mem8[SCORE_DISPLAY_TIMER] !== 0) {
       const ptr = mem16[DRAW_RECORD_PTR_LO];
       let a = 0x0e;

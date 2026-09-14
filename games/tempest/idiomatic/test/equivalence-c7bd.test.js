@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_c7bd (ROM 0xc7bd-0xc7d9) -- a DSW-gated RTS-trick dispatcher: when (DSW1_COINAGE & 0x83)
+// Equivalence for dispatchFramePhaseHandler (ROM 0xc7bd-0xc7d9) -- a DSW-gated RTS-trick dispatcher: when (DSW1_COINAGE & 0x83)
 // == 0x82 it returns immediately; otherwise it runs a pre-pass (stepSpikeTableCollapse), sets bit7 of INPUT_EDGE_FLAGS, and
 // rts-dispatches to word($c7da+GAME_MODE)+1. The table has 19 entries (idx0..18); idx6 is an unused slot
 // (ROM word 0x0000 -> a jump into RAM, never validly selected). The idiomatic form dissolves the trick
@@ -12,10 +12,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_c7bd as oracle } from "../../translated/loc_c7bd.js";
-import { loc_c7bd } from "../loc_c7bd.js";
+import { dispatchFramePhaseHandler } from "../dispatchFramePhaseHandler.js";
 import { resetLevelPlayfieldSlots } from "../resetLevelPlayfieldSlots.js";
 import { setupLevelTimers } from "../setupLevelTimers.js";
-import { loc_970b } from "../loc_970b.js";
+import { runPerFrameUpdates } from "../runPerFrameUpdates.js";
 import { tickEnemyPacingCountdown } from "../tickEnemyPacingCountdown.js";
 import { reloadPacingFromPeakSlot } from "../reloadPacingFromPeakSlot.js";
 import { commitPendingModeAfterDelay } from "../commitPendingModeAfterDelay.js";
@@ -27,7 +27,7 @@ import { tickWaveSpawnCadence, reseedWaveWorkingSet } from "../selectWaveStartSl
 import { autoAdvanceRimRotation } from "../autoAdvanceRimRotation.js";
 import { seedModeParamsWithBounds } from "../seedModeParamsWithBounds.js";
 import { seedModeParamsMinimal } from "../seedModeParamsMinimal.js";
-import { loc_9729 } from "../loc_9729.js";
+import { runFrameStateUpdaters } from "../runFrameStateUpdaters.js";
 import { armModeAndRebuildIfEnabled } from "../armModeAndRebuildIfEnabled.js";
 import { stepEnemyFleetAndSpawn } from "../stepEnemyFleetAndSpawn.js";
 import { Machine, withOmittedRet } from "../../machine.js";
@@ -44,8 +44,8 @@ const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM 
 const TARGET = 0xc7bd;
 const GARBAGE_IDX = 6; // the only unused slot (ROM word 0x0000)
 const TABLE = [
-  resetLevelPlayfieldSlots, setupLevelTimers, loc_970b, tickEnemyPacingCountdown, reloadPacingFromPeakSlot, commitPendingModeAfterDelay, null, bumpLevelEnemyQuota, buildSortedSoundRequest, tickActiveSoundSlot,
-  seedModeParamsFromMaskedFlags, tickWaveSpawnCadence, autoAdvanceRimRotation, seedModeParamsWithBounds, reseedWaveWorkingSet, seedModeParamsMinimal, loc_9729, armModeAndRebuildIfEnabled, stepEnemyFleetAndSpawn,
+  resetLevelPlayfieldSlots, setupLevelTimers, runPerFrameUpdates, tickEnemyPacingCountdown, reloadPacingFromPeakSlot, commitPendingModeAfterDelay, null, bumpLevelEnemyQuota, buildSortedSoundRequest, tickActiveSoundSlot,
+  seedModeParamsFromMaskedFlags, tickWaveSpawnCadence, autoAdvanceRimRotation, seedModeParamsWithBounds, reseedWaveWorkingSet, seedModeParamsMinimal, runFrameStateUpdaters, armModeAndRebuildIfEnabled, stepEnemyFleetAndSpawn,
 ];
 const OFFSETS = TABLE.map((t, idx) => (t ? idx * 2 : -1)).filter((o) => o >= 0);
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -60,7 +60,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xc7bd dispatches -- loc_c7bd == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc7bd dispatches -- dispatchFramePhaseHandler == oracle in RAM (-stack)", () => {
   let checked = 0, skippedGarbage = 0;
   for (const cap of CAPS) {
     // Only the genuine idx6 garbage slot is skipped (there the oracle jumps into RAM); the coinage gate
@@ -70,7 +70,7 @@ test("CAPTURE: real 0xc7bd dispatches -- loc_c7bd == oracle in RAM (-stack)", ()
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // a real dispatch may reach an unimplemented handler arm; POKEY RANDOM frozen
-    loc_c7bd(c);
+    dispatchFramePhaseHandler(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
@@ -80,12 +80,12 @@ test("CAPTURE: real 0xc7bd dispatches -- loc_c7bd == oracle in RAM (-stack)", ()
 test("GATE: (DSW1 & 0x83)==0x82 -> early return, no dispatch (INPUT_EDGE_FLAGS bit7 untouched)", () => {
   const o = new Machine(ROM, OPTS); o.io.dsw1 = 0x82; o.mem.write8(INPUT_EDGE_FLAGS, 0x00);
   const c = new Machine(ROM, OPTS); c.io.dsw1 = 0x82; c.mem.write8(INPUT_EDGE_FLAGS, 0x00);
-  oracle(o); loc_c7bd(c);
+  oracle(o); dispatchFramePhaseHandler(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the gated (no-dispatch) path");
   assert.equal(c.mem.read8(INPUT_EDGE_FLAGS) & 0x80, 0, "gate closed: the dispatch (and its INPUT_EDGE_FLAGS bit7 set) did not run");
 });
 
-test("CRAFTED: each live entry offset -> loc_c7bd == oracle in RAM (gate open); skip on oracle throw", () => {
+test("CRAFTED: each live entry offset -> dispatchFramePhaseHandler == oracle in RAM (gate open); skip on oracle throw", () => {
   let checked = 0;
   for (const off of OFFSETS) {
     const o = freezePokey(new Machine(ROM, OPTS)); o.io.dsw1 = 0x00; o.mem.write8(GAME_MODE, off);
@@ -93,7 +93,7 @@ test("CRAFTED: each live entry offset -> loc_c7bd == oracle in RAM (gate open); 
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // a handler the generic seed cannot provision
-    loc_c7bd(c);
+    dispatchFramePhaseHandler(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after dispatching offset ${off}`);
     checked++;
   }
@@ -122,9 +122,9 @@ test("TEETH: a twin that dispatches the WRONG entry (off>>1)^1 diverges in RAM",
 });
 
 test("SP-TOOTH: the omitted-ret dispatcher is seam-placeable", () => {
-  const m = freezePokey(new Machine(ROM, OPTS)); m.io.dsw1 = 0x00; m.mem.write8(GAME_MODE, 0x04); // -> loc_970b
+  const m = freezePokey(new Machine(ROM, OPTS)); m.io.dsw1 = 0x00; m.mem.write8(GAME_MODE, 0x04); // -> runPerFrameUpdates
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_c7bd, TARGET, m);
-  assert.equal(r.placeable, true, `loc_c7bd must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, dispatchFramePhaseHandler, TARGET, m);
+  assert.equal(r.placeable, true, `dispatchFramePhaseHandler must be seam-placeable; got: ${r.error}`);
 });

@@ -3,9 +3,9 @@ import { u8, u16 } from "../../../core/int.js";
 import {
   SLOT_LOOP_INDEX, SCRIPT_WALK_CONTINUE, SCRIPT_CURSOR, ENEMY_SLOT_TOP, LANE_ENEMY_COUNT_1, ENEMY_ANIM_DELTA, ENEMY_ANIM_ACCUM, PLAYER_FINE_ANGLE, ENEMY_SCRIPT_CURSOR, ENEMY_DEPTH, MOTION_SCRIPT_TABLE,
 } from "./names.js";
-import { loc_9b98 } from "./loc_9b98.js";
-import { loc_cd06 } from "./loc_cd06.js";
-import { loc_cd02 } from "./loc_cd02.js";
+import { dispatchSlotMotionHandler } from "./dispatchSlotMotionHandler.js";
+import { cueSpikeCollisionSound } from "./cueSpikeCollisionSound.js";
+import { requestMotionFlipSound } from "./requestMotionFlipSound.js";
 
 // When PLAYER_FINE_ANGLE is nonnegative, walk slots SLOT_LOOP_INDEX = ENEMY_SLOT_TOP down to 0: for each nonzero ENEMY_DEPTH,x run a
 // per-entry motion pass — SCRIPT_CURSOR indexes a table into the motion dispatcher, advancing SCRIPT_CURSOR
@@ -29,7 +29,7 @@ export function runObjectMotionScripts(m, xIn = m.regs.x) {
         mem8[SCRIPT_CURSOR] = mem8[u16(ENEMY_SCRIPT_CURSOR + x)];
         do {
           // the slot x rides into the dispatcher's handlers as an explicit arg
-          loc_9b98(m, mem8[u16(MOTION_SCRIPT_TABLE + mem8[SCRIPT_CURSOR])], x); // dispatch on the table entry at the cursor
+          dispatchSlotMotionHandler(m, mem8[u16(MOTION_SCRIPT_TABLE + mem8[SCRIPT_CURSOR])], x); // dispatch on the table entry at the cursor
           mem8[SCRIPT_CURSOR] = u8(mem8[SCRIPT_CURSOR] + 1);
         } while (mem8[SCRIPT_WALK_CONTINUE] !== 0);
         mem8[u16(ENEMY_SCRIPT_CURSOR + x)] = mem8[SCRIPT_CURSOR];
@@ -44,9 +44,9 @@ export function runObjectMotionScripts(m, xIn = m.regs.x) {
   mem8[ENEMY_ANIM_ACCUM] = sum;
   if ((sum ^ old148) & 0x80) {                  // the accumulate crossed a sign boundary
     if (sum & 0x80) {
-      loc_cd06(m, lastX); // the loop's leftover X feeds the sound cue; Y stays the loop's leftover
+      cueSpikeCollisionSound(m, lastX); // the loop's leftover X feeds the sound cue; Y stays the loop's leftover
     } else if (mem8[LANE_ENEMY_COUNT_1] !== 0 && (mem8[PLAYER_FINE_ANGLE] & 0x80) === 0) {
-      loc_cd02(m, lastX);
+      requestMotionFlipSound(m, lastX);
     }
   }
 

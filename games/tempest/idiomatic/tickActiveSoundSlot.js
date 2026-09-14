@@ -2,7 +2,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { GAME_MODE, MODE_DISPATCH_SEL, FRAME_COUNTER, loc_3d, INPUT_EDGE_FLAGS, SLOT_METRIC, ACTIVE_SLOT, REARM_COUNTER, PASS_COUNTER, SLOT_VALUE } from "./names.js";
 import { foldStepIntoFraction } from "./foldStepIntoFraction.js";
-import { loc_ddf7 } from "./loc_ddf7.js";
+import { requestWriteLowRegions } from "./requestWriteLowRegions.js";
 import { armRequestedSoundSlot } from "./armRequestedSoundSlot.js";
 
 // Per-frame tick of the active slot: while a countdown is idle, expire it into a reset;
@@ -36,7 +36,7 @@ export function tickActiveSoundSlot(m) {
   mem8[REARM_COUNTER] = step;
   if ((step & 0x80) !== 0) {
     const idx = mem8[loc_3d];
-    if (mem8[u16(SLOT_METRIC + idx)] < 0x04) loc_ddf7(m);
+    if (mem8[u16(SLOT_METRIC + idx)] < 0x04) requestWriteLowRegions(m);
     armRequestedSoundSlot(m);
     return;
   }

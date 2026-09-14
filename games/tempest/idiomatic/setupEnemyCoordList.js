@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_29, loc_2b, SAVED_INDEX2 } from "./names.js";
-import { loc_9a88 } from "./loc_9a88.js";
+import { dispatchCoordListSetup } from "./dispatchCoordListSetup.js";
 import { seatCoordListPointer } from "./seatCoordListPointer.js";
 
 // Set up a coordinate list for the packed index in loc_2b, saving and restoring the caller's
@@ -12,7 +12,7 @@ export function setupEnemyCoordList(m, y = m.regs.y, x = m.regs.x) {
   mem8[SAVED_INDEX2] = y;
   const idx = mem8[loc_2b];
   if (mem8[loc_29] >= 0x20) {
-    loc_9a88(m, idx, x); // slot x threaded on to the list-setup dispatch
+    dispatchCoordListSetup(m, idx, x); // slot x threaded on to the list-setup dispatch
   } else {
     seatCoordListPointer(m, idx);
   }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { loc_29, loc_2a, loc_2b, SLOT_LOOP_INDEX, ACTIVE_OBJECT_COUNT, TARGET_SEG, SLOT_STATE, HIT_TALLY, LANE_TARGET_FLAG, LANE_LIMIT } from "./names.js";
-import { loc_ccf6 } from "./loc_ccf6.js";
+import { requestSegmentHitSound } from "./requestSegmentHitSound.js";
 import { addBcdScoreAndAwardAtThreshold } from "./addBcdScoreAndAwardAtThreshold.js";
 
 // Advance a slot's counter toward its per-target limit; on reaching a nonzero limit, clamp/clear
@@ -19,7 +19,7 @@ export function advanceShotAndScoreLaneHit(m, x = m.regs.x) {
     mem8[u16(LANE_LIMIT + y)] = counter < 0xf0 ? counter : 0x00; // clamp: clear unless already saturated
     mem8[u16(HIT_TALLY + x)] = mem8[u16(HIT_TALLY + x)] + 1;      // bump hit tally
     mem8[u16(LANE_TARGET_FLAG + y)] = 0xc0;                            // flag the target
-    loc_ccf6(m, x, y);                                        // chime
+    requestSegmentHitSound(m, x, y);                                        // chime
     mem8[loc_2a] = 0x00;
     mem8[loc_2b] = 0x00;
     mem8[loc_29] = 0x01;

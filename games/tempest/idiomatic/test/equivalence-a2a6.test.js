@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for spawnClimbersFromSourceSlots -- scans the seven source slots and, for an armed slot whose timer
 // underflows and whose RNG roll beats the per-wave gate, copies the spawn fields into the first free
-// destination slot and cues the sound via a dissolved jsr $ccbd -> loc_ccbd(m, x, y). Live-out is memory
+// destination slot and cues the sound via a dissolved jsr $ccbd -> gateSound8f(m, x, y). Live-out is memory
 // (the destination slot fields, the reseeded timer, the wave index $a6, and the sound cells ccbd stamps);
 // the internal loop counters are scratch, so each arm compares RAM (dumpState minus STACK_SCRATCH). POKEY
 // polys are frozen so RANDOM ($60ca) is stable across both arms -> the RNG gate is deterministic (0xff).
@@ -16,7 +16,7 @@ import { spawnClimbersFromSourceSlots } from "../spawnClimbersFromSourceSlots.js
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { loc_ccbd } from "../loc_ccbd.js";
+import { gateSound8f } from "../gateSound8f.js";
 import {
   STACK_SCRATCH, STATUS_FLAGS, SPAWN_TIMER_RELOAD, FLYER_SLOT_TOP, PLAYER_FINE_ANGLE, ENEMY_SLOT_FLAGS, ENEMY_SLOT_DIR, ENEMY_TIMER,
   loc_2b5, ENEMY_SEGMENT, loc_2c8, ENEMY_PHASE, loc_2db, ENEMY_DEPTH, POKEY1_RANDOM, ACTIVE_ENEMY_COUNT, SPAWN_RATE_TABLE,
@@ -122,7 +122,7 @@ test("TEETH (marshalling): a twin that passes the wrong Y to ccbd diverges", () 
           mem8[u16(loc_2b5 + y)] = mem8[u16(ENEMY_SEGMENT + x)];
           mem8[u16(loc_2c8 + y)] = mem8[u16(ENEMY_PHASE + x)];
           mem8[u16(ENEMY_TIMER + x)] = mem8[SPAWN_TIMER_RELOAD];
-          loc_ccbd(m, x, 0); // BUG: stale/wrong Y
+          gateSound8f(m, x, 0); // BUG: stale/wrong Y
           mem8[ACTIVE_ENEMY_COUNT] = u8(mem8[ACTIVE_ENEMY_COUNT] + 1);
           y = 0;
         }

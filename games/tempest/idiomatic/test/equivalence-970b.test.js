@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_970b -- the per-frame update driver: runs nine per-frame passes in order then
+// Equivalence for runPerFrameUpdates -- the per-frame update driver: runs nine per-frame passes in order then
 // tail-delegates to ageShotsAndAdvanceFrameClock. Contract: RAM (dumpState minus STACK_SCRATCH). Oracle = frozen translated.
 // Run: node --test games/tempest/idiomatic/test/equivalence-970b.test.js
 
@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_970b as oracle } from "../../translated/loc_970b.js";
-import { loc_970b } from "../loc_970b.js";
+import { runPerFrameUpdates } from "../runPerFrameUpdates.js";
 import { rotateBlasterAroundRim } from "../rotateBlasterAroundRim.js";
 import { spawnEntityIntoFreeSlot } from "../spawnEntityIntoFreeSlot.js";
 import { stepAttractEnemySweepTimer } from "../stepAttractEnemySweepTimer.js";
@@ -41,27 +41,27 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(12, 3000) : [];
 
-test("CAPTURE: real 0x970b dispatches -- loc_970b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x970b dispatches -- runPerFrameUpdates == oracle in RAM (-stack)", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue; // a real per-frame dispatch may reach an unimplemented draw arm in a sub
-    loc_970b(c);
+    runPerFrameUpdates(c);
     assert.equal(ramDiff(o, c), null);
     checked++;
   }
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-test("CRAFTED: a fresh-machine frame -- loc_970b == oracle in RAM (skip on oracle throw)", () => {
+test("CRAFTED: a fresh-machine frame -- runPerFrameUpdates == oracle in RAM (skip on oracle throw)", () => {
   const o = new Machine(ROM, OPTS);
   const c = new Machine(ROM, OPTS);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  CRAFTED: oracle hit an unimplemented arm on a fresh frame -- skipped"); return; }
-  loc_970b(c);
+  runPerFrameUpdates(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full per-frame pass");
 });
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_df09 (ROM 0xdf09-0xdf0c) -- presets the body byte 0xc0 and (0xc0 being
+// Memory-equivalence for emitRecordBodyC0 (ROM 0xdf09-0xdf0c) -- presets the body byte 0xc0 and (0xc0 being
 // nonzero, the branch is always taken) enters the shared record tail at emitRecordBodyByte, storing 0xc0 at the
 // cursor origin ($74) and running the record chain. A pure tail-caller: it dissolves the branch into a
 // direct emitRecordBodyByte(m, 0xc0) call. All live-out is RAM (the stored byte + the chain's writes); the oracle
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_df09 as oracle } from "../../translated/loc_df09.js";
-import { loc_df09 } from "../loc_df09.js";
+import { emitRecordBodyC0 } from "../emitRecordBodyC0.js";
 import { emitRecordBodyByte } from "../emitHeaderedBodyRecord.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -47,10 +47,10 @@ function seed(m, s = {}) {
   return ptr;
 }
 
-test("CAPTURE: real 0xdf09 dispatches -- loc_df09 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xdf09 dispatches -- emitRecordBodyC0 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_df09(c);
+    oracle(o); emitRecordBodyC0(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ test("CRAFTED: stores 0xc0 at the cursor origin and matches the oracle in RAM", 
   const ptr = 0x2500;
   const o = new Machine(ROM, OPTS); seed(o, { ptr });
   const c = new Machine(ROM, OPTS); seed(c, { ptr });
-  oracle(o); loc_df09(c);
+  oracle(o); emitRecordBodyC0(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.mem.read8(ptr), 0xc0, "body byte 0xc0 stored at cursor origin");
 });
@@ -69,7 +69,7 @@ test("CRAFTED (non-default seed): a different cursor origin still matches the or
   const ptr = 0x2680;
   const o = new Machine(ROM, OPTS); seed(o, { ptr });
   const c = new Machine(ROM, OPTS); seed(c, { ptr });
-  oracle(o); loc_df09(c);
+  oracle(o); emitRecordBodyC0(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (non-default cursor)");
 });
 
@@ -87,6 +87,6 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS); seed(m);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_df09, TARGET, m);
-  assert.equal(r.placeable, true, `loc_df09 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, emitRecordBodyC0, TARGET, m);
+  assert.equal(r.placeable, true, `emitRecordBodyC0 must be seam-placeable; got: ${r.error}`);
 });

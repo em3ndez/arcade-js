@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { ACTIVE_SLOT_COUNT, STATUS_FLAGS, loc_43, loc_44, loc_45, DRAW_CURSOR_LO, DRAW_CURSOR_HI, loc_9f, TEMPLATE_COPY_LEN, VECTOR_TEMPLATE_BLOCK } from "./names.js";
-import { loc_af77 } from "./loc_af77.js";
-import { loc_df09 } from "./loc_df09.js";
+import { emitByteAsBcdDigits } from "./emitByteAsBcdDigits.js";
+import { emitRecordBodyC0 } from "./emitRecordBodyC0.js";
 
 // Choose a length from flags, aim the copy target at a fixed page, then copy
 // that many source bytes down into it. On the negative-flag path also emit a
@@ -25,8 +25,8 @@ export function stageTextLineWithCount(m) {
   if (mem8[STATUS_FLAGS] & 0x80) {
     mem8[DRAW_CURSOR_HI] = 0x2f;
     mem8[DRAW_CURSOR_LO] = 0xa6;
-    loc_af77(m, (mem8[loc_9f] + 1) & 0xff);
+    emitByteAsBcdDigits(m, (mem8[loc_9f] + 1) & 0xff);
   }
   mem8[DRAW_CURSOR_LO] = savedSum;
-  return loc_df09(m);
+  return emitRecordBodyC0(m);
 }

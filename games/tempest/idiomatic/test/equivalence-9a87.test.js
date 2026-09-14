@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for dispatchListSetupByColumn (ROM 0x9a87) -- a lone `txa` (A=X) that falls through into the RTS-trick
 // COMPUTED-JUMP dispatcher at 0x9a88. The idiomatic form dissolves the txa+fall-through into passing X
-// as the dispatch index: dispatchListSetupByColumn(m, x) === loc_9a88(m, x). The five list-setup entries are selected by
+// as the dispatch index: dispatchListSetupByColumn(m, x) === dispatchCoordListSetup(m, x). The five list-setup entries are selected by
 // X (0..4) and none reads the incoming A/Y/X as data (X is the dispatch index, consumed), so this is a
 // tail delegation -- the exit registers are the delegate's, NOT dispatchListSetupByColumn's. Contract is RAM
 // (dumpState minus STACK_SCRATCH); the oracle's stack gymnastics land in STACK_SCRATCH and are excluded.
@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_9a87 as oracle } from "../../translated/loc_9a87.js";
 import { dispatchListSetupByColumn } from "../dispatchListSetupByColumn.js";
-import { loc_9a88 } from "../loc_9a88.js";
+import { dispatchCoordListSetup } from "../dispatchCoordListSetup.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_29, LIST_PTR_HI, LIST_SELECT_FLAGS } from "../names.js";
@@ -91,7 +91,7 @@ test("TEETH: a twin that dispatches the WRONG entry (x^1) diverges in RAM", () =
     if (flipped > 4) continue;
     const c = base.clone();
     let brokeThrew = false;
-    try { loc_9a88(c, flipped); } catch { brokeThrew = true; } // twin: dispatch the wrong index
+    try { dispatchCoordListSetup(c, flipped); } catch { brokeThrew = true; } // twin: dispatch the wrong index
     if (brokeThrew) continue;
     tried++;
     if (ramDiff(o, c) !== null) { caught = true; break; }

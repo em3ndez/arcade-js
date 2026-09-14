@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for setupEnemyCoordList (ROM 0x9b07-0x9b1d) -- sets up a coordinate list for the packed index in
 // loc_2b, saving/restoring the caller's index in SAVED_INDEX2 around the call. When loc_29 >= 0x20 the index is
-// dispatched through the loc_9a88 list-setup selector; otherwise seatCoordListPointer seats the pointer pair directly.
+// dispatched through the dispatchCoordListSetup list-setup selector; otherwise seatCoordListPointer seats the pointer pair directly.
 // The caller's index (entry Y) is preserved across the call, so live-out is RAM (dumpState minus
 // STACK_SCRATCH) PLUS Y (and A, which the setup callee reloads). Oracle is the frozen translated setupEnemyCoordList.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9b07.test.js
@@ -60,7 +60,7 @@ function seed(m, a29, idx, y) {
 }
 
 test("CRAFTED: high count dispatches through the selector -- RAM, Y and A equal", () => {
-  const o = new Machine(ROM, OPTS); seed(o, 0x30, 0x00, 0x55); // loc_29>=0x20 -> loc_9a88(idx=0 -> seatDemoCoordListPointer)
+  const o = new Machine(ROM, OPTS); seed(o, 0x30, 0x00, 0x55); // loc_29>=0x20 -> dispatchCoordListSetup(idx=0 -> seatDemoCoordListPointer)
   const c = new Machine(ROM, OPTS); seed(c, 0x30, 0x00, 0x55);
   oracle(o); setupEnemyCoordList(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the selector path");

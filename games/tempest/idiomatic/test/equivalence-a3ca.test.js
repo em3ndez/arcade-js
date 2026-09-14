@@ -2,7 +2,7 @@
 // Memory-equivalence for insertObjectFromSlotDepth (ROM 0xa3ca-0xa3d3) -- rings the fixed sound cue (jsr $ccc1), copies the
 // y-indexed byte $02df,y into scratch $29, then falls through into insertTimedObjectOfType (stash A -> $2c, insert an object
 // into the 8-slot table). The idiomatic side dissolves jsr $ccc1 and the fall-through into direct
-// loc_ccc1(...)/insertTimedObjectOfType(...) calls. Live-out is memory only (A/X/Y at exit are incidental -- the ROM's
+// gateSound1f(...)/insertTimedObjectOfType(...) calls. Live-out is memory only (A/X/Y at exit are incidental -- the ROM's
 // ccc1 chain restores X/Y, and the tail routine consumes A), so each arm compares RAM (dumpState minus
 // STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-a3ca.test.js
 
@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_a3ca as oracle } from "../../translated/loc_a3ca.js";
 import { insertObjectFromSlotDepth } from "../insertObjectFromSlotDepth.js";
-import { loc_ccc1 } from "../loc_ccc1.js";
+import { gateSound1f } from "../gateSound1f.js";
 import { insertTimedObjectOfType } from "../insertTimedObjectOfType.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -76,7 +76,7 @@ test("CRAFTED: $29 <- $02df,y and A -> $2c; RAM equal after the insert", () => {
 // Marshalling teeth: a twin that swaps X/Y into the dissolved ccc1 call must diverge -- proves the caller's
 // X/Y are threaded through in the right order (only visible with the sound gate open, as seed() sets it).
 function loc_a3caSwapped(m, a = m.regs.a, x = m.regs.x, y = m.regs.y) {
-  loc_ccc1(m, y, x); // BUG: X and Y swapped into ccc1
+  gateSound1f(m, y, x); // BUG: X and Y swapped into ccc1
   m.mem8[loc_29] = m.mem8[u16(ENEMY_DEPTH + y)];
   return insertTimedObjectOfType(m, a, x, y);
 }
@@ -90,7 +90,7 @@ test("TEETH (marshalling): swapped X/Y into ccc1 diverges from the oracle", () =
 
 // A faithful twin minus the single defect (the $02df,y -> $29 copy): proves the omission alone is caught.
 function loc_a3caPartial(m, a = m.regs.a, x = m.regs.x, y = m.regs.y) {
-  loc_ccc1(m, x, y);
+  gateSound1f(m, x, y);
   // BUG: skip mem8[loc_29] = mem8[ENEMY_DEPTH + y]
   return insertTimedObjectOfType(m, a, x, y);
 }

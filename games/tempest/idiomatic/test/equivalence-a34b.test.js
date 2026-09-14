@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for primeTopPriorityObject (ROM 0xa34b-0xa36e) -- seeds a fresh top-priority object's flag/source/
-// target cells, then fires the sound gate (loc_ccb0) and the table insert (insertTimedObject), then raises two ready
-// flags. The idiomatic side dissolves the two jsr into direct loc_ccb0/insertTimedObject calls, passing the entry
+// target cells, then fires the sound gate (gateSound5f) and the table insert (insertTimedObject), then raises two ready
+// flags. The idiomatic side dissolves the two jsr into direct gateSound5f/insertTimedObject calls, passing the entry
 // X/Y (preserved across both callees). Live-out is memory only (A at RTS is incidental; X/Y are restored to
 // their entry values), so each arm compares RAM (dumpState minus STACK_SCRATCH) and checks X/Y unchanged.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a34b.test.js
@@ -14,7 +14,7 @@ import { loc_a34b as oracle } from "../../translated/loc_a34b.js";
 import { primeTopPriorityObject } from "../primeTopPriorityObject.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_ccb0 } from "../loc_ccb0.js";
+import { gateSound5f } from "../gateSound5f.js";
 import { insertTimedObject } from "../insertTimedObject.js";
 import { STACK_SCRATCH, STATUS_FLAGS, loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH } from "../names.js";
 
@@ -82,7 +82,7 @@ test("TEETH: a twin that passes a stale X/Y to the sound gate and insert diverge
     mem8[COORD_LIST_PTR_LO] = 0x01;
     mem8[loc_29] = mem8[PLAYER_SHOT_DEPTH];
     mem8[COORD_LIST_PTR_HI] = mem8[PLAYER_SEGMENT];
-    loc_ccb0(m, 0x00, 0x00); // BUG: stale X/Y -> wrong $31/$32
+    gateSound5f(m, 0x00, 0x00); // BUG: stale X/Y -> wrong $31/$32
     insertTimedObject(m, 0x00, 0x00); // BUG: stale X/Y -> wrong $35/$36
     mem8[PLAYER_FINE_ANGLE] = 0x81;
     mem8[OBJECT_ANIM_TIMER] = 0x01;

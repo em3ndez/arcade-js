@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for addBcdScoreAndAwardAtThreshold (ROM 0xca6c-0xcaf0) -- adds a three-byte BCD amount into the $40..$42+y
 // score trio, range-checks the high byte against $0156, and on a qualifying result (with a per-slot $48,x
-// counter under six) bumps the counter, fires sound loc_ccb9, and sets $0124. The oracle runs the translated
+// counter under six) bumps the counter, fires sound requestScoreAwardSound, and sets $0124. The oracle runs the translated
 // sound via m.call; the idiomatic dissolves it to requestSoundIfEnabled(A=0x4f) threading the slot x and y. Live-out is
 // memory only (registers at RTS incidental), so both sides run on a clone and the contract is RAM (-stack).
 // Run: node --test games/tempest/idiomatic/test/equivalence-ca6c.test.js

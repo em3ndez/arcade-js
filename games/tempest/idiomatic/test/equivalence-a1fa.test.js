@@ -2,7 +2,7 @@
 // Memory-equivalence for advanceShotAndScoreLaneHit (ROM 0xa1fa-0xa23e) -- steps a slot's counter toward its per-target
 // limit; on reaching it, clamps the limit cell, bumps the hit tally, flags the target, then chimes
 // (jsr $ccf6) and awards (jsr $ca6c); after two hits it resets the counter and drops a life. The
-// idiomatic side dissolves the two jsr into direct loc_ccf6 / addBcdScoreAndAwardAtThreshold calls. Output is RAM plus the
+// idiomatic side dissolves the two jsr into direct requestSegmentHitSound / addBcdScoreAndAwardAtThreshold calls. Output is RAM plus the
 // exit slot index X (loaded from $37 on the work path, entry X on the skip path), so each arm compares
 // RAM (dumpState minus STACK_SCRATCH) and the returned X vs o.regs.x.
 // Run: node --test games/tempest/idiomatic/test/equivalence-a1fa.test.js

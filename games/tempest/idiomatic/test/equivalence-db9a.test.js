@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for stepVectorPhaseAnimation -- advances a phase counter (gated by a frame byte), picks a slot from
 // three parallel tables to seed two output cells, and emits three header words via dissolved emitCoordinateVectorWord /
-// loc_df6c. Live-out is memory only, so each arm runs on a clone and compares RAM (dumpState minus
+// emitVectorWordTag70. Live-out is memory only, so each arm runs on a clone and compares RAM (dumpState minus
 // STACK_SCRATCH). Run: node --test games/tempest/idiomatic/test/equivalence-db9a.test.js
 
 import nodeTest from "node:test";

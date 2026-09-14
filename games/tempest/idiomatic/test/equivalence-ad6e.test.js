@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for tickActiveSoundSlot (ROM 0xad6e-0xadcd) -- a CALLER that dissolves three m.calls into direct
-// idiomatic calls: foldStepIntoFraction (fold/clamp the active slot value, consuming its returned A), loc_ddf7 (arm the
+// idiomatic calls: foldStepIntoFraction (fold/clamp the active slot value, consuming its returned A), requestWriteLowRegions (arm the
 // merge with mask 3), and armRequestedSoundSlot (walk the request word). Effect is memory only, so each side runs on a
 // clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
 // Run: node --test games/tempest/idiomatic/test/equivalence-ad6e.test.js
@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_ad6e as oracle } from "../../translated/loc_ad6e.js";
 import { tickActiveSoundSlot } from "../tickActiveSoundSlot.js";
 import { foldStepIntoFraction } from "../foldStepIntoFraction.js";
-import { loc_ddf7 } from "../loc_ddf7.js";
+import { requestWriteLowRegions } from "../requestWriteLowRegions.js";
 import { armRequestedSoundSlot } from "../armRequestedSoundSlot.js";
 import { Machine } from "../../machine.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -119,7 +119,7 @@ test("TEETH: a twin that skips the $4e mask (& 0x67) diverges from the oracle", 
     mem8[REARM_COUNTER] = step;
     if ((step & 0x80) !== 0) {
       const idx = mem8[loc_3d];
-      if (mem8[u16(SLOT_METRIC + idx)] < 0x04) loc_ddf7(m);
+      if (mem8[u16(SLOT_METRIC + idx)] < 0x04) requestWriteLowRegions(m);
       armRequestedSoundSlot(m);
       return;
     }

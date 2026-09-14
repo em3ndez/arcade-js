@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_aa62 -- primes a draw slot via ab17($30,0), runs the shared prep aa92, then
+// Memory-equivalence for drawFrameWithSlot00 -- primes a draw slot via ab17($30,0), runs the shared prep aa92, then
 // tail-dispatches the per-frame driver a8e7. Dissolves all three m.calls into direct idiomatic calls; the
 // oracle m.calls the frozen callees, the idiomatic calls the idiomatic ones. Output is RAM, so each arm
 // compares the RAM diff (minus the dead stack). An omitted-ret rewrite.
@@ -10,9 +10,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_aa62 as oracle } from "../../translated/loc_aa62.js";
-import { loc_aa62 } from "../loc_aa62.js";
+import { drawFrameWithSlot00 } from "../drawFrameWithSlot00.js";
 import { drawSlotShapeWithHeader } from "../drawSlotShapeWithHeader.js";
-import { loc_aa92 } from "../loc_aa92.js";
+import { drawSlotThenDigitRun } from "../drawSlotThenDigitRun.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_MODE, STATUS_FLAGS } from "../names.js";
@@ -48,10 +48,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-test("CAPTURE: real 0xaa62 dispatches -- loc_aa62 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xaa62 dispatches -- drawFrameWithSlot00 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_aa62(c);
+    oracle(o); drawFrameWithSlot00(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: idle and active driver states == oracle (RAM)", () => {
     const seat = (m) => { seedPipe(m); m.mem.write8(GAME_MODE, s.c00); m.mem.write8(STATUS_FLAGS, s.c05); };
     const o = new Machine(ROM, OPTS); seat(o);
     const c = new Machine(ROM, OPTS); seat(c);
-    oracle(o); loc_aa62(c);
+    oracle(o); drawFrameWithSlot00(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
 });
@@ -76,7 +76,7 @@ test("TEETH: a twin that omits the ab17/aa92 prep and only runs the driver MUST 
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
-  const broken = (m) => { loc_aa92(m); void drawSlotShapeWithHeader; }; // BUG: skips ab17 slot prime
+  const broken = (m) => { drawSlotThenDigitRun(m); void drawSlotShapeWithHeader; }; // BUG: skips ab17 slot prime
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped ab17 prime");
 });
@@ -87,6 +87,6 @@ test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   m.mem.write8(GAME_MODE, 0x04);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  const r = seamPlaceable(withOmittedRet, loc_aa62, TARGET, m);
-  assert.equal(r.placeable, true, `loc_aa62 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawFrameWithSlot00, TARGET, m);
+  assert.equal(r.placeable, true, `drawFrameWithSlot00 must be seam-placeable; got: ${r.error}`);
 });

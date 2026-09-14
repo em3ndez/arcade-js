@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for drawOverlayFrame (ROM 0xaaa8-0xaaf2) -- per-frame draw driver: draws the phase slot via
 // drawSlotShapeRecord, ticks $016e, chooses computeDisplayListChecksum or the alternate drawSlotShapeRecord(0x32) draw by the $0a/$03 gates,
-// redraws slots 0x2c/0x2e, clamps $06 to <=0x28, draws its count via loc_af77, then posts an optional
+// redraws slots 0x2c/0x2e, clamps $06 to <=0x28, draws its count via emitByteAsBcdDigits, then posts an optional
 // word via emitCoordinateVectorWord when $17 is live. Dissolves every m.call. All output is RAM (draw setup + timer +
 // clamp + emitted words), so each arm compares the RAM diff (minus the dead stack). Omitted-ret.
 // Run: node --test games/tempest/idiomatic/test/equivalence-aaa8.test.js
