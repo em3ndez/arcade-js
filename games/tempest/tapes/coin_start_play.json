@@ -1,0 +1,14 @@
+{
+  "_comment": "tempest whole-game GAMEPLAY tape (runbook §5), replayed through the shipped idiomatic engine (runIdiomaticIrqGame) by test/tape.test.js. Reaches real play then exercises fire + spinner IN COMBAT. Ports: digital inputs via inputAssert {port,bits} -- port 0 = IN0 (coin 0x04, active-low), port 2 = IN2 via pokey2 pots (start1 0x20, fire 0x10, active-low pressed-clears). Spinner = analog dial deltas applied via io.applyTrackball(0,delta). Empirically: coin gates start (no coin -> start never reaches play); start takes STATUS(0x05) bit7 0->1 (attract demo runs the same modes with bit7 CLEAR); fire launches a shot (PLAYER_SHOT_DEPTH 0x202 leaves its 0x10 rim seed); spinner sweeps PLAYER_SEGMENT 0x200 and raises SPINNER_ACCUM 0x50.",
+  "inputs": [
+    { "port": 0, "bits": 4, "frame": 30, "dur": 15 },
+    { "port": 2, "bits": 32, "frame": 70, "dur": 20 },
+    { "port": 2, "bits": 16, "frame": 150, "dur": 12 },
+    { "port": 2, "bits": 16, "frame": 180, "dur": 12 },
+    { "port": 2, "bits": 16, "frame": 250, "dur": 8 },
+    { "port": 2, "bits": 16, "frame": 290, "dur": 8 }
+  ],
+  "spinner": [
+    { "delta": 3, "frame": 220, "dur": 130 }
+  ]
+}
