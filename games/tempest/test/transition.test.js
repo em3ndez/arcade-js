@@ -28,6 +28,23 @@ const BOOT_ADDR = 0xd93f;
 const IRQ_VBLANK = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 const FRAMES = 900;              // game-over is reached ~f627 from a passive death; leave margin
 const STATUS = 0x05;             // bit7 = play/active
+const VEC_LO = 0x2000, VEC_HI = 0x3000;   // AVG display-list RAM (the built screen)
+const SCORE = [0x40, 0x41, 0x42];         // BCD score triplet (lo, mid, hi)
+
+// count the non-header display-list bytes that are set -- a rough "is a screen built here" measure.
+function vecContentBytes(mm) {
+  let n = 0;
+  for (let a = VEC_LO + 2; a < VEC_HI; a++) if (mm.mem.read8(a) !== 0) n++;
+  return n;
+}
+// snapshot the whole display-list RAM so two frames can be compared for distinctness.
+function vecSnapshot(mm) {
+  const v = new Uint8Array(VEC_HI - VEC_LO);
+  for (let a = VEC_LO; a < VEC_HI; a++) v[a - VEC_LO] = mm.mem.read8(a);
+  return v;
+}
+const vecEqual = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+const validBcd = (b) => (b & 0x0f) <= 9 && (b >> 4) <= 9;
 
 // coin + start + two skill-select fires to commit the wave; then NO further input (passive player dies).
 const INPUTS = [
@@ -50,7 +67,7 @@ function applyInputs(mm, f, drop = {}) {
 async function drive(drop = {}) {
   const overrides = await resolveAllIdiomatic();
   const m = new Machine(rom("maincpu.bin"), { overrides, vectorrom: rom("vectorrom.bin"), avgprom: rom("avgprom.bin") });
-  const w = { enteredPlayF: -1, gameOverF: -1 };
+  const w = { enteredPlayF: -1, gameOverF: -1, playVec: null, gameOverVec: null, gameOverScore: null };
   let wasPlaying = false;
   const res = runIdiomaticIrqGame(m, {
     bootAddr: BOOT_ADDR, irqVblank: IRQ_VBLANK, maxFrames: FRAMES,
@@ -59,8 +76,12 @@ async function drive(drop = {}) {
       applyInputs(mm, f, drop);
       const playing = (mm.mem.read8(STATUS) & 0x80) !== 0;
       if (playing && !wasPlaying && w.enteredPlayF < 0) w.enteredPlayF = f;
+      // snapshot the live-PLAY screen ~90f into play (tube + enemies + score panel) as the contrast frame.
+      if (playing && w.enteredPlayF > 0 && f === w.enteredPlayF + 90) w.playVec = vecSnapshot(mm);
       // game-over = leaving play at least 30f after entering it (not the pre-start attract sample).
       if (!playing && wasPlaying && w.enteredPlayF > 0 && f > w.enteredPlayF + 30 && w.gameOverF < 0) w.gameOverF = f;
+      // snapshot the SETTLED game-over screen 30f after the arc, once the display builder has redrawn it.
+      if (w.gameOverF > 0 && f === w.gameOverF + 30) { w.gameOverVec = vecSnapshot(mm); w.gameOverScore = SCORE.map((a) => mm.mem.read8(a)); }
       wasPlaying = playing;
     },
   });
@@ -74,6 +95,24 @@ test("forced transition: attract -> play -> game-over (lives drain, returns to a
   assert.ok(w.enteredPlayF > 0, "coin/start never entered a live game (STATUS bit7 never set)");
   assert.ok(w.gameOverF > 0, `the passive player never game-overed within ${FRAMES} frames (entered play at f${w.enteredPlayF})`);
   assert.ok(w.gameOverF > w.enteredPlayF, `game-over (f${w.gameOverF}) not after play entry (f${w.enteredPlayF})`);
+});
+
+// SCREEN CONTENT: reaching game-over (bit7 1->0) is not enough -- a transition-only display-builder bug could
+// leave the game-over screen unbuilt (blank) or frozen on the last play frame and this gate would never see it.
+// So assert the SETTLED game-over screen's content: (1) the AVG display list is non-empty (a screen was built),
+// (2) it is DISTINCT from the mid-play display list (the builder redrew a game-over screen, not a stale play
+// frame), and (3) the score triplet survives to game-over as a coherent, accrued BCD value (it is shown on the
+// game-over screen). Grounded on the passive-death run: play f~161 content=2562/score=0, settled game-over
+// content~2730/score=0x0300 -- deterministic under the frozen POKEY LFSR (no entropy pin in this state test).
+test("game-over screen content: display list rebuilt distinct from play + score intact", { skip: !HAVE_ROM }, async () => {
+  const w = await drive();
+  assert.ok(w.enteredPlayF > 0 && w.gameOverF > 0, "never reached play->game-over (see the arc test)");
+  assert.ok(w.playVec && w.gameOverVec, "did not capture both the play and settled game-over display lists");
+  const goBytes = vecContentBytes({ mem: { read8: (a) => w.gameOverVec[a - VEC_LO] } });
+  assert.ok(goBytes > 1000, `game-over display list looks unbuilt/blank (only ${goBytes} content bytes)`);
+  assert.ok(!vecEqual(w.gameOverVec, w.playVec), "game-over display list is byte-identical to the play frame -- the builder did not redraw a game-over screen");
+  assert.ok(w.gameOverScore.every(validBcd), `game-over score is not valid BCD: [${w.gameOverScore.map((b) => b.toString(16))}]`);
+  assert.ok(w.gameOverScore.some((b) => b !== 0), "game-over score triplet is all-zero -- no accrued score reached the game-over screen");
 });
 
 // NULL-MUTANT: drop the coin -> the game never enters play, so the play->game-over transition cannot occur.
