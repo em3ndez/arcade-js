@@ -3,6 +3,8 @@
 // the game's machine + board Inputs, takes the page's sha256-verified ROMs (web/romzip.js)
 // or fetches the built .bin, and runs the real engine unedited.
 
+import { writeBase } from "./frame-ring.js";
+
 const C_IN0 = 0, C_IN1 = 1, C_IN2 = 2, C_PAUSED = 3, C_COUNTER = 4,
       C_RUNNING = 5, C_RESET = 6, C_SLEEP = 7,
       // Accumulated analog trackball deltas (player.html Atomics.add's pointer movement; the worker
@@ -70,7 +72,7 @@ function readInputsInto(machine) {
 /** Publish an RGB frame to the shared double-buffered framebuffer. */
 function publishFrame(frame) {
   const counter = Atomics.load(ctrl, C_COUNTER);
-  fb.set(frame, (counter % 2) * FRAME_BYTES);
+  fb.set(frame, writeBase(counter, FRAME_BYTES)); // 3-slot ring (frame-ring.js): reader gets 2 frames of slack
   Atomics.store(ctrl, C_COUNTER, counter + 1);
 }
 

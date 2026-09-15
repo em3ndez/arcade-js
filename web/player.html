@@ -135,6 +135,7 @@
 <script type="module">
 import { assembleImages } from "./romzip.js";
 import { getCached, putCached, clearCached } from "./romstore.js";
+import { SLOTS, snapshotFrame } from "./frame-ring.js";
 
 (async () => {
   const statusEl = document.getElementById("status");
@@ -215,8 +216,9 @@ import { getCached, putCached, clearCached } from "./romstore.js";
 
   const ctrlSAB = new SharedArrayBuffer(16 * 4);
   const ctrl = new Int32Array(ctrlSAB);
-  const fbSAB = new SharedArrayBuffer(2 * FRAME_BYTES);
+  const fbSAB = new SharedArrayBuffer(SLOTS * FRAME_BYTES);
   const fb = new Uint8Array(fbSAB);
+  const snap = new Uint8Array(FRAME_BYTES); // private per-frame snapshot: present() transforms from here, never from fb
   Atomics.store(ctrl, C_RUNNING, 1);
 
   const canvas = document.getElementById("screen");
@@ -298,23 +300,27 @@ import { getCached, putCached, clearCached } from "./romstore.js";
   function present() {
     const counter = Atomics.load(ctrl, C_COUNTER);
     if (counter !== lastCounter) {
-      const base = (((counter - 1) % 2) + 2) % 2 * FRAME_BYTES;
-      // Apply the game's MAME orientation generically (swapXY/flipX/flipY, above): for each
-      // display pixel, un-flip then un-swap to find its source pixel. No game-specific rotation
-      // is baked in — DK (ROT270) and The Pit (ROT90) fall out of the same code.
-      for (let dy = 0; dy < DISP_H; dy++) {
-        let d = dy * DISP_W * 4;
-        for (let dx = 0; dx < DISP_W; dx++, d += 4) {
-          const ux = flipX ? DISP_W - 1 - dx : dx;
-          const uy = flipY ? DISP_H - 1 - dy : dy;
-          const sx = swapXY ? uy : ux;
-          const sy = swapXY ? ux : uy;
-          const s = base + (sy * SRC_W + sx) * 3;
-          rgba[d] = fb[s]; rgba[d + 1] = fb[s + 1]; rgba[d + 2] = fb[s + 2];
+      // Snapshot the last completed frame with one fast bulk copy + seqlock re-check (frame-ring.js): a torn
+      // frame is never presented even if the reader stalls and the writer laps mid-copy. Discard-and-retry
+      // (leave lastCounter) if it lapped -- the next rAF gets a fresh frame.
+      if (snapshotFrame(fb, snap, FRAME_BYTES, counter, () => Atomics.load(ctrl, C_COUNTER))) {
+        // Apply the game's MAME orientation generically (swapXY/flipX/flipY, above): for each display pixel,
+        // un-flip then un-swap to find its source pixel in the private snapshot. No game-specific rotation is
+        // baked in — DK (ROT270) and The Pit (ROT90) fall out of the same code.
+        for (let dy = 0; dy < DISP_H; dy++) {
+          let d = dy * DISP_W * 4;
+          for (let dx = 0; dx < DISP_W; dx++, d += 4) {
+            const ux = flipX ? DISP_W - 1 - dx : dx;
+            const uy = flipY ? DISP_H - 1 - dy : dy;
+            const sx = swapXY ? uy : ux;
+            const sy = swapXY ? ux : uy;
+            const s = (sy * SRC_W + sx) * 3;
+            rgba[d] = snap[s]; rgba[d + 1] = snap[s + 1]; rgba[d + 2] = snap[s + 2];
+          }
         }
+        ctx.putImageData(img, 0, 0);
+        lastCounter = counter;
       }
-      ctx.putImageData(img, 0, 0);
-      lastCounter = counter;
     }
     document.getElementById("pause").classList.toggle("hot", Atomics.load(ctrl, C_PAUSED) === 1);
     requestAnimationFrame(present);
