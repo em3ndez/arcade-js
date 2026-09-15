@@ -97,6 +97,12 @@ FORCE_DATA = {
          "stray-stack POPs. The real routine is at $4A0F.",
          None),
     ],
+    "tempest": [
+        (0xcfd9, 0xcfe0, "data table",
+         "A short data table subtracted from a running value via `sbc $cfd9,y` (y=0..3) by the routine "
+         "just above; a fall-through mis-decoded its first byte as an undefined opcode. Real code resumes at $cfe1.",
+         None),
+    ],
     "pooyan": [
         (0x5119, 0x511a, "checksum sentinel",
          "the expected-sum byte the checksum fold at $50FD reads and compares against ($510E CP (HL) "
@@ -450,6 +456,7 @@ def build_notes(gdir):
 # no named cells and its VRAM-address constants are not work-RAM cells), so name the (lo, hi) here.
 CA_WORK_RAM = {
     "invaders": (0x2000, 0x23ff),
+    "tempest": (0x0000, 0x07ff),
 }
 
 # CPU address where the maincpu ROM image begins. Z80/8080 games map it at 0x0000
@@ -457,6 +464,7 @@ CA_WORK_RAM = {
 # round-trip must compare emitted[base+i] against rom[i].
 CA_ROM_BASE = {
     "centiped": 0x2000,
+    "tempest": 0x9000,
 }
 
 
@@ -596,7 +604,7 @@ def _line_addr(line):
     m = re.match(r"^loc_([0-9a-f]+):\s*$", line)
     if m:
         return int(m.group(1), 16)
-    if re.match(r"^    [a-z]", line):
+    if re.match(r"^    [a-z.]", line):  # instruction OR a `.byte` data fallback line
         _, sep_, comment = line.partition(";")
         am = re.match(r"\s*([0-9a-f]+)\s", comment) if sep_ else None
         if am:
@@ -763,8 +771,8 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes, rom=None):
                 # and to spans that enclose UNREACHED/defb rows. Advance past every
                 # dk.asm line the span covers (start address <= e), so the outer loop
                 # resumes exactly at the next region.
-                assert e < len(rom), f"force-data 0x{s:04x}: end past ROM (0x{len(rom):04x})"
-                data = list(rom[s:e + 1])
+                assert e - ROM_LO < len(rom), f"force-data 0x{s:04x}: end past ROM (0x{len(rom):04x})"
+                data = list(rom[s - ROM_LO:e + 1 - ROM_LO])  # rom file is base-relative; s/e are CPU addrs
                 while j < n:
                     sa = _line_start_addr(raw_lines[j])
                     if sa is not None and sa > e:

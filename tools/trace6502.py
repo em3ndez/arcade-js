@@ -36,7 +36,7 @@ def rom_range(game):
     its 0x2000-byte image at 0x2000-0x3FFF."""
     # The centiped image is 0x2000 bytes at 0x2000. Kept explicit per game; a new
     # 6502 game adds its base here rather than guessing from the image size.
-    bases = {"centiped": 0x2000}
+    bases = {"centiped": 0x2000, "tempest": 0x9000}
     manifest = open(os.path.join(REPO, "games", game, "manifest.js")).read()
     m = re.search(r"maincpu:\s*\{.*?size:\s*(0x[0-9a-fA-F]+)", manifest, re.S)
     size = int(m.group(1), 16)
@@ -52,17 +52,22 @@ def load_mem(game, lo, hi):
 
 
 def routine_entries(game, lo, hi):
-    """Routine entry addresses in [lo,hi): the translated/loc_<addr>.js filenames.
-    These are the port's actual routine entries -- including the indexed-JMP /
-    dispatch-table targets a static walk cannot resolve -- NOT arbitrary hex
-    constants (data-cell addresses) that a names.js grep would wrongly seed."""
+    """Routine entry addresses in [lo,hi): the translated/loc_<addr>.js filenames
+    AND any extra `export function loc_<addr>` inside a file. These are the port's
+    actual routine entries -- including indexed-JMP / dispatch-table targets a
+    static walk cannot resolve. A dispatch target that shares a file with its
+    sibling (loc_9700 living in loc_96f4.js) is a real entry a filename-only scan
+    misses. NOT arbitrary hex constants (data cells) a names.js grep would wrongly seed."""
     addrs = set()
     for fn in glob.glob(os.path.join(REPO, "games", game, "translated", "loc_*.js")):
         m = re.search(r"loc_([0-9a-f]{4})\.js$", fn)
-        if m:
-            a = int(m.group(1), 16)
-            if lo <= a < hi:
-                addrs.add(a)
+        if m and lo <= int(m.group(1), 16) < hi:
+            addrs.add(int(m.group(1), 16))
+        with open(fn) as f:
+            for em in re.finditer(r"export function loc_([0-9a-f]{4})\b", f.read()):
+                a = int(em.group(1), 16)
+                if lo <= a < hi:
+                    addrs.add(a)
     return addrs
 
 

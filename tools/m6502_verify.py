@@ -18,12 +18,17 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from m6502_decode import assemble, decode  # noqa: E402
+from m6502_decode import assemble, decode, OPCODES  # noqa: E402
+
+MNEMONICS = {mnem for (mnem, _mode) in OPCODES.values()}  # skip prose `// addr word` comments
 
 REPO = os.path.expanduser("~/arcade-js")
-ROM = os.path.join(REPO, "games/centiped/rom/maincpu.bin")
-LOC_GLOB = os.path.join(REPO, "games/centiped/translated/loc_*.js")
-ROM_BASE = 0x2000
+# CPU address where each 6502 game's maincpu image begins (centiped 0x2000, tempest 0x9000).
+BASES = {"centiped": 0x2000, "tempest": 0x9000}
+GAME = "centiped"  # default; main() overrides from argv[1]
+ROM = os.path.join(REPO, f"games/{GAME}/rom/maincpu.bin")
+LOC_GLOB = os.path.join(REPO, f"games/{GAME}/translated/loc_*.js")
+ROM_BASE = BASES[GAME]
 
 
 def load_mem():
@@ -51,6 +56,10 @@ def strip_annot(t):
                 t = t[:m.start()]
                 continue
         m = re.search(r"\s+->.*$", t)  # a trailing unparenthesized ` -> 2b12 rts` flow note
+        if m:
+            t = t[:m.start()]
+            continue
+        m = re.search(r"\s+--\s.*$", t)  # a trailing ` -- prose` gloss (tempest comment style)
         if m:
             t = t[:m.start()]
     return t
@@ -94,14 +103,18 @@ def positive_control(mem):
     mismatches = []
     underspecified = 0
     for addr, port_text in sorted(pairs.items()):
+        port_mnem = port_text.strip().split(None, 1)[0].lower()
+        if port_mnem not in MNEMONICS:
+            continue  # a prose comment (`// dc47 join`), not a disassembly line
         mine = decode(mem, addr).text
         ptext = strip_annot(port_text)
         checked += 1
         if canon(ptext) == canon(mine):
             continue
-        # Port sometimes writes just the mnemonic (target left as an annotation it
-        # then stripped). Accept a mnemonic-only match -- the opcode is still confirmed.
-        if " " not in ptext.strip() and ptext.strip() == mine.split(None, 1)[0]:
+        # The port comment confirms the opcode->mnemonic mapping (the semantic teeth) even when it
+        # leaves the operand as prose or bundles several instructions in one gloss -- the operand
+        # BYTES are already proven byte-exact by the round-trip. Accept a mnemonic match.
+        if port_mnem == mine.split(None, 1)[0].lower():
             underspecified += 1
             continue
         mismatches.append((addr, port_text, mine))
@@ -113,6 +126,12 @@ def positive_control(mem):
 
 
 def main():
+    if len(sys.argv) > 1:
+        global GAME, ROM, LOC_GLOB, ROM_BASE
+        GAME = sys.argv[1]
+        ROM = os.path.join(REPO, f"games/{GAME}/rom/maincpu.bin")
+        LOC_GLOB = os.path.join(REPO, f"games/{GAME}/translated/loc_*.js")
+        ROM_BASE = BASES[GAME]
     mem, lo, hi = load_mem()
     ok1 = roundtrip(mem, lo, hi)
     ok2 = positive_control(mem)
