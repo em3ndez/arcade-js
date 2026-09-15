@@ -181,7 +181,13 @@ export class Io {
   // reads the 4-bit position and computes its own per-frame delta, so a rotation is just a running position.
   applyTrackball(axis, delta) {
     if (axis !== 0) return;
-    const d = delta > 127 ? delta - 256 : delta;
+    let d = delta > 127 ? delta - 256 : delta;
+    // The game forms the per-frame spinner step by sign-extending the 4-bit knob delta
+    // (serviceHeartbeatInterrupt: `if (a >= 0x08) a |= 0xf0`), so a step of 8..15 reads as a
+    // NEGATIVE rotation. A mouse feeds tens of movementX per frame, so an un-clamped step
+    // crosses that ±8 boundary and the claw twitches back and forth. Clamp to the unambiguous
+    // signed range so the rotation always tracks the mouse direction (rate-capped, never reversed).
+    if (d > 7) d = 7; else if (d < -7) d = -7;
     this.knob = (this.knob + d) & 0x0f;
   }
   // Clock-free RNG tick (both chips): advance only the poly RNG indices so RANDOM free-runs when no CPU

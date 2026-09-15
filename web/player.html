@@ -374,11 +374,27 @@ import { SLOTS, snapshotFrame } from "./frame-ring.js";
       if (document.pointerLockElement !== screen) screen.requestPointerLock();
     });
     const clampByte = (d) => Math.max(-127, Math.min(127, d));
+    const invX = inputs.trackball.invertX ? -1 : 1; // some dials read the opposite way (tempest spinner)
     addEventListener("pointermove", (e) => {
       if (document.pointerLockElement !== screen) return;
-      if (e.movementX) Atomics.add(ctrl, C_TRACK_X, clampByte(e.movementX));
+      if (e.movementX) Atomics.add(ctrl, C_TRACK_X, clampByte(invX * e.movementX));
       if (e.movementY) Atomics.add(ctrl, C_TRACK_Y, clampByte(e.movementY));
     });
+    // Left mouse button fires while pointer-locked -- the hand on the dial is the hand on the button.
+    // The first click (before lock) only grabs the pointer above; a locked click fires.
+    const fire = actions.fire;
+    if (fire) {
+      const applyFire = (on) => {
+        if (fire.port === ports.in0) { in0 = on ? in0 | fire.bit : in0 & ~fire.bit; push0(); }
+        else if (fire.port === ports.in1) { in1 = on ? in1 | fire.bit : in1 & ~fire.bit; push1(); }
+        else { in2 = on ? in2 | fire.bit : in2 & ~fire.bit; push2(); }
+      };
+      screen.addEventListener("mousedown", (e) => {
+        if (e.button !== 0 || document.pointerLockElement !== screen) return;
+        e.preventDefault(); applyFire(true);
+      });
+      addEventListener("mouseup", (e) => { if (e.button === 0) applyFire(false); });
+    }
   }
   const togglePause = () => Atomics.store(ctrl, C_PAUSED, Atomics.load(ctrl, C_PAUSED) ? 0 : 1);
   // Pulse a momentary action (coin/start) on whichever port the manifest puts it on.
