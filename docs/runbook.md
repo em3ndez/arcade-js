@@ -737,6 +737,21 @@ deliberate handling. These four are one problem and are decided together, once, 
     genuine logic regression still shows (it never touches vector generation, proven by the gate's null-mutant).
     A clock-free layer that runs one update per rendered frame consumes RNG faster than MAME's higher-Hz render,
     so the capture must cover the JS layer's game-time.
+  - **The PINNED gates are BLIND to the free-run states the shipped game reaches — add a standing FREE-RUN
+    idiomatic-vs-oracle DISPLAY gate.** The pin is testing-only and the shipped clock-free RNG diverges from
+    MAME's per-cycle timing, so the game builds display lists in states MAME never visits — and BOTH the
+    per-routine equivalence tests and the pixel gate feed MAME's captured RANDOM, so a display-list port bug
+    that only diverges in an unpinned state passes every one of them and surfaces only as a stray on-screen
+    vector (Tempest: `emitEnemySlotEntry` discarded a callee's advanced cursor and emitted a 2-byte-short
+    record, shifting every later enemy record → a stray green line in ~1% of attract frames, green while every
+    gate was clean). Close the blind spot with a standing gate that runs the idiomatic layer UNPINNED over the
+    full attract and, each frame, rebuilds the ORACLE's display list from the SAME entry state and the SAME
+    RANDOM values the idiomatic frame consumed, then asserts the render inputs (vector RAM + colour RAM + beam
+    flips) are byte-equal — pixel-confirmed on any mismatch (stale post-terminator bytes tolerated; any
+    RENDERED divergence fails). It replays the per-frame display chain on a no-override oracle Machine, so it
+    needs no pin and no golden: pure idiomatic-vs-oracle, fast, null-mutant-proven (reintroduce the bug → it
+    fails). This is the class-level teeth for the "wrong only in an unpinned RNG state" bug the pinned gates
+    cannot see. Model: `games/tempest/test/freerun-equivalence.test.js`.
 - **Loose (convergent) pixel gating.** With entropy pinned, RNG- and DMA-driven pixels don't land
   byte-identical — they **converge**. Gate them with an **align-tolerant diff** (each frame vs its nearest
   golden frame): small deviations allowed, but the residual must **reconverge, never diverge**. **Never
