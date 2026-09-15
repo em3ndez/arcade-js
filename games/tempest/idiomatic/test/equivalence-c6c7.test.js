@@ -2,8 +2,9 @@
 // Memory-equivalence for emitEnemySlotEntry (ROM 0xc6c7-0xc73b) -- a CALLER: it dissolves m.call into direct
 // idiomatic calls (c453, c098, c73c, bd3e). Effect is memory only (cursor $a9 + vector RAM via ($74)),
 // so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). The bit6-set
-// branch reads POKEY RANDOM ($60ca), so that path is validated by CAPTURE (both sides replay identical
-// clones, so the random byte matches); CRAFTED exercises the deterministic inactive branch.
+// (target-flag) branch is only reached in specific free-running states CAPTURE's cycle-driven run never hits,
+// which hid a stale-cursor bug (it discarded appendNormalizedMantissaExponent's advanced offset, emitting a
+// 2-byte-short record); CRAFTED now exercises BOTH the inactive branch and that bit6 branch.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c6c7.test.js
 
 import nodeTest from "node:test";
@@ -14,7 +15,7 @@ import { loc_c6c7 as oracle } from "../../translated/loc_c6c7.js";
 import { emitEnemySlotEntry } from "../emitEnemySlotEntry.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, TABLE_CURSOR, LANE_LIMIT, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DRAW_CURSOR_OFFSET } from "../names.js";
+import { STACK_SCRATCH, TABLE_CURSOR, LANE_LIMIT, LANE_TARGET_FLAG, SEG_MID_X, SEG_MID_Y, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DRAW_CURSOR_OFFSET } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -70,6 +71,25 @@ test("CRAFTED: inactive slot ($03ac,x == 0) writes four 0x00/0x71 pairs and adva
     assert.equal(c.mem.read8(0x2001 + i * 2), 0x71, `pair ${i} hi`);
   }
   assert.equal(c.mem.read8(DRAW_CURSOR_OFFSET), 0x08, "cursor advanced by 8");
+});
+
+test("CRAFTED: active slot, target-flag bit6 SET -- emitEnemySlotEntry == oracle (the branch that hid the stale-cursor bug)", () => {
+  const seed = (m) => {
+    seedCursor(m);
+    m.mem.write8(TABLE_CURSOR, 0x00);
+    m.mem.write8((LANE_LIMIT + 0x00) & 0xffff, 0x08);        // active slot (nonzero depth)
+    m.mem.write8((LANE_TARGET_FLAG + 0x00) & 0xffff, 0x40);  // target flag bit6 -> the randomized-word branch
+    m.mem.write8((SEG_MID_X + 0x00) & 0xffff, 0x40);         // seat the projection point (both sides run the same passes)
+    m.mem.write8((SEG_MID_Y + 0x00) & 0xffff, 0x40);
+  };
+  const o = new Machine(ROM, OPTS); seed(o);
+  const c = new Machine(ROM, OPTS); seed(c);
+  oracle(o); emitEnemySlotEntry(c);
+  assert.equal(ramDiff(o, c), null, "RAM equal after the bit6 branch -- cursor $a9 + the appended record");
+  // The record is a 4-byte append (mantissa, exponent, template LO, HI) after the delta-vector pair. The bug
+  // advanced $a9 by only 2 and clobbered the mantissa/exponent, so the cursor + those bytes diverge; assert
+  // the fixed idiomatic cursor matches the oracle's.
+  assert.equal(c.mem.read8(DRAW_CURSOR_OFFSET), o.mem.read8(DRAW_CURSOR_OFFSET), "cursor $a9 matches the oracle");
 });
 
 test("TEETH: a twin that emits only three pairs (and skips the $a9 update) diverges from the oracle", () => {

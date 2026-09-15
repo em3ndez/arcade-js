@@ -26,10 +26,10 @@ import { appendNormalizedMantissaExponent } from "./appendNormalizedMantissaExpo
  * clamp via snapCoordUpToReference (c453), PROJ_PT_Y = SEG_MID_X+x, PROJ_PT_X = SEG_MID_Y+x —
  * project the point through the math box (projectPointThroughMathbox, c098), and emit its
  * delta words (emitDeltaVectorPair, c73c). Then read the target flag: kind = (LANE_TARGET_FLAG
- * + loc_38) & 0x40. If set, append a normalized mantissa/exponent word, pick a random even
- * offset idx = (POKEY1_RANDOM & 0x02) + 0x1c, write the two adjacent template words
- * OBJ_TEMPLATE_WORD_HI/LO+idx, and advance the cursor by two. If clear, write the fixed marker
- * word (0x00, 0x68, BLANK_SLOT_VEC_LO, BLANK_SLOT_VEC_HI) and advance by four.
+ * + loc_38) & 0x40. If set, append a normalized mantissa/exponent pair (bd3e advances the cursor
+ * by two and returns the new offset), then write the two adjacent template words
+ * OBJ_TEMPLATE_WORD_LO/HI+idx at that offset and advance by two more -- a four-byte record. If
+ * clear, write the fixed marker word (0x00, 0x68, BLANK_SLOT_VEC_LO, BLANK_SLOT_VEC_HI), also four.
  *
  * Live-out: the enemy's projected/marker bytes appended through the draw pointer and the draw
  * cursor offset loc_a9 advanced; the projection scratch fields (OBJ_DEPTH, PROJ_PT_X/Y) and
@@ -60,10 +60,12 @@ export function emitEnemySlotEntry(m) {
   emitDeltaVectorPair(m);                             // emit the projected delta vectors (c73c)
 
   const kind = mem8[u16(LANE_TARGET_FLAG + mem8[TABLE_CURSOR])] & 0x40;  // target flag bit6
-  let y = mem8[DRAW_CURSOR_OFFSET];
   if (kind !== 0) {
-    // Randomized word: a random even offset selects one of two adjacent table words.
-    appendNormalizedMantissaExponent(m);
+    // Randomized word: append the mantissa/exponent pair FIRST -- appendNormalizedMantissaExponent writes 2
+    // bytes at the cursor and returns the advanced offset ($a9 + 2) WITHOUT storing $a9 back, so the ROM
+    // consumes that returned Y for the two template words at [$a9+2, $a9+3] and advances $a9 by 2 more (a
+    // 4-byte record). Reusing the pre-call cursor here clobbers the pair and leaves the record 2 bytes short.
+    const y = appendNormalizedMantissaExponent(m) & 0xff;
     const idx = (mem8[POKEY1_RANDOM] & 0x02) + 0x1c;
     mem8[u16(base + u8(y + 1))] = mem8[u16(OBJ_TEMPLATE_WORD_HI + idx)];
     mem8[u16(base + y)] = mem8[u16(OBJ_TEMPLATE_WORD_LO + idx)];
@@ -72,6 +74,7 @@ export function emitEnemySlotEntry(m) {
   }
 
   // Fixed marker word.
+  let y = mem8[DRAW_CURSOR_OFFSET];
   mem8[u16(base + y)] = 0x00; y = u8(y + 1);
   mem8[u16(base + y)] = 0x68; y = u8(y + 1);
   mem8[u16(base + y)] = mem8[BLANK_SLOT_VEC_LO]; y = u8(y + 1);
