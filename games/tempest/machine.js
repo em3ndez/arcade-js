@@ -160,6 +160,9 @@ export class Machine {
       // Idiomatic clock-free mode: the main loop holds no live CPU registers across the frame yield and the
       // handler is SP-neutral, so fire the vector handler as a DIRECT call -- no PC/P push, no I mask, no
       // seam. This retires the guest stack pointer (the last CPU register) from the idiomatic layer.
+      // Clock-free has no cycle clock to advance the POKEY RANDOM LFSR (m.cycles stays 0), so RANDOM would
+      // freeze at 0xff; step the RNG polys per IRQ by one IRQ period (game-time) so the shipped RNG free-runs.
+      this.io.advanceRngPolys(IRQ_PERIOD);
       return this.call(this.mem.read16(IRQ_VECTOR));
     }
     if (this.regs.fI) return false;

@@ -184,6 +184,10 @@ export class Io {
     const d = delta > 127 ? delta - 256 : delta;
     this.knob = (this.knob + d) & 0x0f;
   }
+  // Clock-free RNG tick (both chips): advance only the poly RNG indices so RANDOM free-runs when no CPU
+  // cycle clock is running (the idiomatic layer). See pokey.js advanceRngPolys.
+  advanceRngPolys(steps) { for (const p of this.pokeys) p.advanceRngPolys(steps); }
+
   pokeyRead(chip, reg, cycles) { return this.pokeys[chip].read(reg, cycles); }
   pokeyWrite(chip, reg, v, cycles) { this.pokeys[chip].write(reg, v, cycles); }
 

@@ -88,6 +88,16 @@ export class Pokey {
     }
   }
 
+  // Clock-free RNG tick: advance ONLY the poly RNG indices by `steps` (leaving the pot ADC ramp untouched).
+  // The idiomatic layer charges no CPU cycles, so read(reg,cycle) with a frozen cycle never advances the LFSR
+  // and RANDOM would stick at poly index 0 (0xff). The machine calls this per IRQ in clock-free mode so the
+  // RNG free-runs on game-time; the cycle-driven path advances the same indices via _advance(cycle) instead.
+  advanceRngPolys(steps) {
+    if (!(this.skctl & SK_RESET)) return; // polys frozen under master reset (same gate as _advance)
+    this.p9 = (this.p9 + steps) % 0x1ff;
+    this.p17 = (this.p17 + steps) % 0x1ffff;
+  }
+
   _potgo() {
     if (!(this.skctl & SK_RESET)) return; // POTGO no-op unless gated on
     this.allpot = 0;
