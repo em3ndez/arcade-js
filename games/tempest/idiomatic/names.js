@@ -248,9 +248,9 @@ export const PLAYER_SEGMENT = 0x0200;  // [seen] Player Blaster rim segment (coa
 export const PLAYER_FINE_ANGLE = 0x0201;  // [seen] Player fine rotation offset with bit7 as the rotation/object-pending flag
 export const PLAYER_SHOT_DEPTH = 0x0202;  // [seen] Shared depth position of the player shot down the tube (0x10 rim .. 0xf0 far), a collision reference
 export const OBJECT_INDEX_TABLE = 0x0203;  // [seen] Per-entry object index / segment nibble in the 64-entry object-record bank (0x203..0x242)
-export const OBJECT_AXIS0_FRAC = 0x0223;  // [guess] Axis-0 position-fraction low byte in the free-flight three-axis object integrator
+export const OBJECT_AXIS0_FRAC = 0x0223;  // [seen] Axis-0 position-fraction low byte in the free-flight three-axis object integrator
 export const OBJECT_RECORD_TABLE = 0x0243;  // [seen] 64-entry object-record table: per-slot growth/spawn timer, also its kind byte and random tag
-export const OBJECT_AXIS1_POS = 0x0263;  // [guess] Axis-1 whole-coordinate byte in the free-flight three-axis object integrator
+export const OBJECT_AXIS1_POS = 0x0263;  // [seen] Axis-1 whole-coordinate byte in the free-flight three-axis object integrator
 export const ENEMY_SLOT_FLAGS = 0x0283;  // [seen] Per-enemy-slot state byte: nonzero while alive, low 3 bits = lane/segment kind, bit6 = side, bit7 = live
 export const ENEMY_SLOT_DIR = 0x028a;  // [seen] Per-enemy-slot direction/state byte: bit7 = climb direction, bit6 = armed, low bits = kind
 export const ENEMY_SCRIPT_CURSOR = 0x0291;  // [seen] per-slot saved motion-script cursor for the climbing-enemy slot
