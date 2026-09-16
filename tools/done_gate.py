@@ -174,7 +174,7 @@ def check_pixel(game):
         return False, "no pixel_suite.py"
     # Legacy pre-runbook ports (runbook "Legacy games": do not retrofit) are grandfathered on the attract
     # pixel gate; the --done gameplay bar is the go-forward standard for games ported under the runbook.
-    LEGACY_ATTRACT_ONLY = {"frogger", "timeplt", "thepit"}
+    LEGACY_ATTRACT_ONLY = {"timeplt", "thepit"}
     if "--done" not in open(suite, encoding="utf-8", errors="replace").read():
         if game not in LEGACY_ATTRACT_ONLY:
             return False, "pixel_suite.py has no --done mode (attract-only gate is blind to gameplay)"
