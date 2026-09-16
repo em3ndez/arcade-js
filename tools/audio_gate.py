@@ -274,10 +274,11 @@ def selftest():
         if silent_check("synthgame", g_bad) == 0:
             fail("a non-legacy game with a sign-off MISSING clips passed (must be RED)")
 
-        g_legacy = f"{tmp}/legacy"
-        make_tree(g_legacy, with_signoff=False)
-        if silent_check("frogger", g_legacy) != 0:
-            fail("a legacy-named game without a sign-off was blocked (should be grandfathered)")
+        if LEGACY_NO_SIGNOFF:  # pick the example from the live set so de-grandfathering a game never staled it
+            g_legacy = f"{tmp}/legacy"
+            make_tree(g_legacy, with_signoff=False)
+            if silent_check(sorted(LEGACY_NO_SIGNOFF)[0], g_legacy) != 0:
+                fail("a legacy-named game without a sign-off was blocked (should be grandfathered)")
 
         # SYNTH branch: proven by a per-voice null-mutant test (RUN), no clip sign-off needed.
         g_syn = f"{tmp}/synth_ok"
