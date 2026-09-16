@@ -56,7 +56,7 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
         # the rev4 parent, but the port targets the "centiped3" rev3 clone -- a different program,
         # reset 0x3B04 vs 0x3B4B). --set overrides which machine runs; it defaults to hw.driver so
         # every existing game (driver == set == parent) is unchanged.
-        args.set or hw.driver,
+        getattr(args, "set", None) or hw.driver,
         "-rompath",
         args.rompath,
         "-norotate",  # frame contract: compare unrotated WxH
@@ -296,7 +296,7 @@ def main():
 
         manifest = {
             "mame_argv": argv,
-            "mame_set": args.set or hw.driver,  # the machine actually launched (may be a clone != driver)
+            "mame_set": getattr(args, "set", None) or hw.driver,  # the machine actually launched (may be a clone != driver)
             "seconds": args.seconds,
             "refresh_hz": hw.refresh_hz,
             "playback": args.playback,

@@ -16,8 +16,10 @@ lied: a game could pass (1)-(4) while the audio was NEVER RECORDED and never lis
 also requires a committed BY-EAR SIGN-OFF at games/<game>/audio/RECORDING-SIGNOFF.md - a structured
 attestation with ALL of `rom_sha256:`, `clips:` (integer > 0), `date:` and `by_ear:` (non-empty). The
 rom sha + clip count come from running the recorder (games/<game>/tools/record_samples.py); the by_ear
-line is the human confirmation that the recorded clips actually sound right. GREEN <=> a human recorded
-the clips AND listened + confirmed. Missing file or any missing/empty field => RED.
+line is an AUTONOMOUS attestation (runbook §5), NOT a human listen: the recorder drives real MAME and
+captures MAME's OWN audio per sound trigger, so the clips are oracle-correct BY SOURCE (stronger than
+"sounds plausible"). GREEN <=> the clips were recorded from MAME AND the map/wiring coverage is proven.
+Missing file or any missing/empty field => RED.
 
 Legacy pre-runbook ports (frogger/timeplt/thepit - runbook "Legacy games": do not retrofit) are
 grandfathered off the sign-off requirement (exactly like tools/done_gate.py check_pixel grandfathers
@@ -48,7 +50,7 @@ import tempfile
 # Pre-sign-off-gate ports grandfathered off the RECORDING-SIGNOFF requirement (runbook "Legacy games":
 # do not retrofit). dkong's audio IS recorded (games/dkong/audio/samples/ has real clips) -- it predates
 # this gate, not unrecorded; a new game with no committed clips (e.g. pooyan) is NOT grandfathered.
-LEGACY_NO_SIGNOFF = {"frogger", "timeplt", "thepit", "dkong"}
+LEGACY_NO_SIGNOFF = {"timeplt", "thepit", "dkong"}
 
 # The by-ear sign-off attestation (CLIPS model only). Each must be present + non-empty; `clips` int > 0.
 SIGNOFF_FIELDS = ("rom_sha256", "clips", "date", "by_ear")
