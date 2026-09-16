@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_29f9  —  ROM 0x29f9 (0x29f9–0x2a69)  ·  grounding: [seen]
+ * moveSpriteObjectArmA  —  ROM 0x29f9 (0x29f9–0x2a69)  ·  grounding: [seen]
  *
  * WHAT IT IS
  *   The motion arm for one dispatcher-A sprite object — a free-drifting, two-tile river creature carried
@@ -39,7 +39,7 @@ const ROW_THRESHOLD = 96;
 // together, so a creature that turns around also faces the way it now moves.
 const FLIP_BIT = 0x80;
 
-export function loc_29f9(m, obj = m.regs.ix, spr = m.regs.iy) {
+export function moveSpriteObjectArmA(m, obj = m.regs.ix, spr = m.regs.iy) {
   const { mem8 } = m;
 
   // ── Gate 1: is this object slot live? ────────────────────────────────────────────────

@@ -13,7 +13,7 @@
  *   Fired from the per-frame board-start dispatcher setUpBoardOrContinueLife, which runs it exactly once
  *   per completed board — only while a board-advance is pending (BOARD_ADVANCE_REQUEST 0x826d != 0), and
  *   clears that request immediately afterward so this pass does not repeat. The completion itself is
- *   raised upstream by the goal handler chain (loc_05d3) once the active player's home tally hits 5.
+ *   raised upstream by the goal handler chain (armBoardCompleteReveal) once the active player's home tally hits 5.
  *
  * LIVE-OUT
  *   Memory only. Every effect is a RAM write or a delegated write inside a callee (sound queue,

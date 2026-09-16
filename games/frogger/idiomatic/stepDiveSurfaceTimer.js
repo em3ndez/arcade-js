@@ -10,7 +10,7 @@
  *   hands the actual VRAM blit to a copier.
  *
  * WHERE IT SITS
- *   Reached every in-play frame through the level-gated dive driver loc_27ea (0x27ea): on levels 2..4 the
+ *   Reached every in-play frame through the level-gated dive driver driveDiveAnimByLevel (0x27ea): on levels 2..4 the
  *   mid-band arm resetDiveSurfaceCounter (0x288c) falls into it, and on level 5+ the high-band arm
  *   armDiveHighPhase (0x2874) does — either way this routine runs once per frame while a dive is armed.
  *   It shares one block of arm/gate/latch state with the sibling *figure* animation (animateTwoPairFigure

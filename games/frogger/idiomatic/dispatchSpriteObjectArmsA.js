@@ -37,7 +37,7 @@
  */
 import { spawnSpriteObjectArmA } from "./spawnSpriteObjectArmA.js";
 import { animateSpriteObjectFrame } from "./animateSpriteObjectFrame.js";
-import { loc_29f9 } from "./loc_29f9.js";
+import { moveSpriteObjectArmA } from "./moveSpriteObjectArmA.js";
 import { placeSpriteObjectSlotAndRetire } from "./placeSpriteObjectSlotAndRetire.js";
 import { flagSpriteObjectFrogHit } from "./flagSpriteObjectFrogHit.js";
 
@@ -56,13 +56,13 @@ export function dispatchSpriteObjectArmsA(m, ix = m.regs.ix, iy = m.regs.iy) {
   // decides WHICH frame the creature shows before the later arms decide where it sits.
   animateSpriteObjectFrame(m, ix, iy);
 
-  // Arm 3 — MOTION (loc_29f9, 0x29f9 — the dispatcher-A motion arm; role understood, name is still a
+  // Arm 3 — MOTION (moveSpriteObjectArmA, 0x29f9 — the dispatcher-A motion arm; role understood, name is still a
   // loc_ placeholder). Runs only while the object is active (+6 != 0) AND the global hit gate loc_842c
   // (0x842c) is clear, so a frog hit freezes all dispatcher-A motion. It counts the +9 move timer down
   // (reload 8), sets the "has-moved / eligible-to-retire" flag +7 = 1, then either steps +3 vertically
   // by +/-2 (for an object on a low sprite row) or drifts +2 toward FREE_RUNNING_POS_COUNTER (0x8014)
   // along the +0/+1 band edges, flipping direction/flip bit +5 at each band edge.
-  loc_29f9(m, ix, iy);
+  moveSpriteObjectArmA(m, ix, iy);
 
   // Arm 4 — PLACE SLOT & RETIRE (placeSpriteObjectSlotAndRetire, 0x2af3). Turns the record's internal
   // position into an actual on-screen sprite: computes the X (a parked object with +4 >= 0x60 uses its

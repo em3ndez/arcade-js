@@ -12,7 +12,7 @@
  * WHERE IT SITS
  *   Part of the empty-bay creature cycle driven each in-play frame from the collision/scoring
  *   orchestrator. A rotating cursor (HOME_BAY_SLOT_CURSOR 0x8123, advanced once per in-play frame by
- *   loc_23eb as an increment-and-wrap mod 6) names which bay is animating: values 1..5 name a bay, 0 is a
+ *   advanceHomeBaySlotCursor as an increment-and-wrap mod 6) names which bay is animating: values 1..5 name a bay, 0 is a
  *   rest phase. A free-running phase counter (SCROLL_TIMER_COUNTER 0x8122) times the animation, and the
  *   low bit of LIVES_COUNT (0x83b7) selects the creature — crocodile when clear, fly when set. On the fly
  *   path only two stampers fire: THIS routine at the counter's wrap to 0, and the shared eraser

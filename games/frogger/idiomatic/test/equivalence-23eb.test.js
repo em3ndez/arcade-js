@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_23eb — memory + A equivalent to the frozen oracle at ROM 0x23EB.
+ * advanceHomeBaySlotCursor — memory + A equivalent to the frozen oracle at ROM 0x23EB.
  * GATE: crafted-entry. Attract never dispatches this home-bay slot cursor (probe: 0 dispatches
  * over ENTRY_FRAMES; its callers are in-play home-bay handlers attract does not reach), so a post-boot
  * attract machine is cloned and the counter cell (0x8123) is poked across the wrap edge. LIVE-OUT is
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_23eb } from "../loc_23eb.js";
+import { advanceHomeBaySlotCursor } from "../advanceHomeBaySlotCursor.js";
 import { loc_23eb as oracle } from "../../translated/loc_23eb.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -65,19 +65,19 @@ function brokenWrongWrap(m) { // wraps at 5 instead of 6
   const p = n < 5 ? n : 0;
   mem8[COUNTER] = p; regs.a = p;
 }
-function brokenWrongA(m) { loc_23eb(m); m.regs.a = (m.regs.a + 1) & 0xff; } // correct RAM, wrong A
+function brokenWrongA(m) { advanceHomeBaySlotCursor(m); m.regs.a = (m.regs.a + 1) & 0xff; } // correct RAM, wrong A
 
-test("EQUAL (crafted): loc_23eb == oracle on RAM + A across the wrap edge", { skip }, () => {
+test("EQUAL (crafted): advanceHomeBaySlotCursor == oracle on RAM + A across the wrap edge", { skip }, () => {
   assert.ok(CASES.length > 0, "vacuous: no crafted entries");
   for (const v of CASES) {
-    assert.equal(unitDiff(loc_23eb, craft(v)), null, `diverged at counter=${v}`);
+    assert.equal(unitDiff(advanceHomeBaySlotCursor, craft(v)), null, `diverged at counter=${v}`);
     const chk = craft(v).clone(); oracle(chk);
     const expected = ((v + 1) & 0xff) < PHASE_COUNT ? ((v + 1) & 0xff) : 0;
     assert.equal(chk.mem8[COUNTER], expected, `oracle memory mismatch at ${v}`);
     assert.equal(chk.regs.a, expected, `oracle A mismatch at ${v}`); // pin the encoding
   }
   assert.ok(ramDiff(brokenNoOp, craft(3)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${CASES.length} crafted counter values, loc_23eb == oracle (RAM + A)`);
+  console.log(`  EQUAL: ${CASES.length} crafted counter values, advanceHomeBaySlotCursor == oracle (RAM + A)`);
 });
 
 test("TEETH: broken twins are caught across memory and the A arm", { skip }, () => {

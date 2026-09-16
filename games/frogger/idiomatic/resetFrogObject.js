@@ -41,7 +41,7 @@ export function resetFrogObject(m) {
   for (let i = 0; i < FROG_OBJECT_INIT.length; i++) mem8[FROG_X + i] = FROG_OBJECT_INIT[i];
 
   // ── Take the frog out of the demo/frozen state ────────────────────────────────────────
-  // FROG_STATE_DEMO_FLAG (0x83cd) is the demo/frozen gate: the board-completion re-arm (loc_05d3)
+  // FROG_STATE_DEMO_FLAG (0x83cd) is the demo/frozen gate: the board-completion re-arm (armBoardCompleteReveal)
   // and the attract demo set it to 1, and while it is set the move dispatcher returns early and the
   // per-frame timer stops ticking. Clearing it here makes the freshly spawned frog live and
   // interactive again.

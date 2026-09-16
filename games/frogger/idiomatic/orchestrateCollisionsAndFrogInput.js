@@ -26,11 +26,11 @@
 import { PLAY_FLAG, HOME_GOAL_SPRITE_ARM_CELL, LIVES_COUNT, FROG_Y, SCROLL_TIMER_COUNTER } from "./names.js";
 import { mountOrKillFrogOnTwoPairFigure } from "./mountOrKillFrogOnTwoPairFigure.js";
 import { animateTwoPairFigure } from "./animateTwoPairFigure.js";
-import { loc_27ea } from "./loc_27ea.js";
+import { driveDiveAnimByLevel } from "./driveDiveAnimByLevel.js";
 import { animateFlyEatCollision } from "./animateFlyEatCollision.js";
 import { enqueueLaneScrollSyncedCommand } from "./enqueueLaneScrollSyncedCommand.js";
 import { clearFourByteCounterBlock } from "./clearFourByteCounterBlock.js";
-import { loc_23eb } from "./loc_23eb.js";
+import { advanceHomeBaySlotCursor } from "./advanceHomeBaySlotCursor.js";
 import { stampHomeBayFly } from "./stampHomeBayFly.js";
 import { stampHomeBaySlot } from "./stampHomeBaySlot.js";
 import { stampHomeBayGatorEmerging } from "./stampHomeBayGatorEmerging.js";
@@ -73,13 +73,13 @@ export function orchestrateCollisionsAndFrogInput(m) {
   // The first three are the river diver in its ROM-fixed order (see mechanisms.md "The river diver"):
   //   mountOrKillFrogOnTwoPairFigure (0x28bb) — frog-vs-diver box test: ride the surfacing diver or die.
   //   animateTwoPairFigure           (0x291d) — advance the diver figure's 2x2 tile animation.
-  //   loc_27ea                       (0x27ea) — the dive-animation driver (paints the descending column).
+  //   driveDiveAnimByLevel                       (0x27ea) — the dive-animation driver (paints the descending column).
   // Then the fly-bonus and lane-scroll arms:
   //   animateFlyEatCollision         (0x26a6) — the tongue/fly-eat state machine.
   //   enqueueLaneScrollSyncedCommand (0x2906) — queues the log/turtle scroll sound when the lane wraps.
   mountOrKillFrogOnTwoPairFigure(m);
   animateTwoPairFigure(m);
-  loc_27ea(m);
+  driveDiveAnimByLevel(m);
   animateFlyEatCollision(m);
   enqueueLaneScrollSyncedCommand(m);
 
@@ -90,10 +90,10 @@ export function orchestrateCollisionsAndFrogInput(m) {
   if (mem8[HOME_GOAL_SPRITE_ARM_CELL] !== 0) interiorTimingArm(m);
 
   // ── Home-bay slot cursor step ──────────────────────────────────────────────────────────
-  // loc_23eb (0x23eb) advances HOME_BAY_SLOT_CURSOR (0x8123) by one, wrapping to 0 at 6. Values 1..5
+  // advanceHomeBaySlotCursor (0x23eb) advances HOME_BAY_SLOT_CURSOR (0x8123) by one, wrapping to 0 at 6. Values 1..5
   // name the bay the empty-bay creature is currently drawn in; 0 is a rest phase. The creature stampers
   // below read this cursor to know which bay to draw into.
-  loc_23eb(m);
+  advanceHomeBaySlotCursor(m);
 
   // ── Empty-bay creature timer: crocodile path OR fly path ───────────────────────────────
   // The low bit of the level/life count LIVES_COUNT (0x83b7) selects which creature cycles through the

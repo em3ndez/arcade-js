@@ -24,7 +24,7 @@
  *   Memory only, and only on a hit: it raises HOLD_FLAG (0x8004) = 1 and the global hit gate
  *   loc_842c (0x842c) = 1. It returns nothing and leaves no register the caller reads; on every miss it
  *   falls through one of the early `return`s and touches no memory at all. Raising loc_842c is load-
- *   bearing beyond marking the catch: dispatcher-A's motion arm (loc_29f9, 0x29f9) only steps its objects
+ *   bearing beyond marking the catch: dispatcher-A's motion arm (moveSpriteObjectArmA, 0x29f9) only steps its objects
  *   while that gate is 0, so setting it here freezes every dispatcher-A creature the instant the frog dies.
  */
 import { FROG_Y, FROG_X, HOLD_FLAG, loc_842c } from "./names.js";

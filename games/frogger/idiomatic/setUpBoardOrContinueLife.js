@@ -69,7 +69,7 @@ export function setUpBoardOrContinueLife(m) {
   }
 
   // ── If a board-complete is pending, run the board-advance foreground ──────────────────
-  // BOARD_ADVANCE_REQUEST (0x826d) is raised to 1 by loc_05d3 when all five frogs reach home. When set, we
+  // BOARD_ADVANCE_REQUEST (0x826d) is raised to 1 by armBoardCompleteReveal when all five frogs reach home. When set, we
   // run the once-per-board advance pass advanceBoardForeground (ROM 0x05f0): it queues the fanfare cues,
   // bumps the active player's difficulty index (wrapping at 5), reseeds the field, reloads the new board's
   // lane parameters, and adds the board-advance score bonus. The request cell is cleared later, below.

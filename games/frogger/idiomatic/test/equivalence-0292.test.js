@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0292 — memory-equivalent to the frozen oracle at ROM 0x0292.
+ * tickFrogRespawnDelay — memory-equivalent to the frozen oracle at ROM 0x0292.
  * GATE: real-state capture. Plain attract NEVER dispatches this routine in 15000 frames (it is the
  * NMI in-play tail, called from the 0x0066 in-game branch at 0x023e, which the attract demo does not
  * enter), so — unlike the reference 0x0766 gate — there is no self-dispatch to hook. We harvest real
- * attract STATES via a high-frequency neighbour (0x0028) and drive loc_0292 directly. Valid because
- * loc_0292 takes NO register live-in (it reads only the work-RAM word 0x829d).
- * loc_0292 is BRANCHY on (0x829d): ==0 returns untouched; !=0 decrements; and when the decrement
+ * attract STATES via a high-frequency neighbour (0x0028) and drive tickFrogRespawnDelay directly. Valid because
+ * tickFrogRespawnDelay takes NO register live-in (it reads only the work-RAM word 0x829d).
+ * tickFrogRespawnDelay is BRANCHY on (0x829d): ==0 returns untouched; !=0 decrements; and when the decrement
  * reaches 0 it also clears (0x83ae). Attract states leave 0x829d arbitrary, so the BRANCH test seeds
  * it to 0, 1 (the reach-zero path) and 2 (decrement-only) to exercise all three paths.
  * LIVE-OUT: memory-only; A/HL/flags are clobbered but not live-out. RAM is compared; three broken twins.
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0292 } from "../loc_0292.js";
+import { tickFrogRespawnDelay } from "../tickFrogRespawnDelay.js";
 import { loc_0292 as oracle } from "../../translated/loc_0292.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -78,16 +78,16 @@ function brokenWrongDec(m) { // decrements by 2 instead of 1
 test("CAPTURE: oracle == rewrite on every real attract state", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: no attract states were harvested");
-  for (const e of entries) assert.equal(ramDiff(loc_0292, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(tickFrogRespawnDelay, e), null, "a captured machine diverged");
   console.log(`  CAPTURE: ${entries.length} states, oracle == rewrite`);
 });
 
 test("BRANCH: all three count paths equal (0x829d = 0, 1, 2)", { skip }, () => {
   const e = capture()[0];
   assert.ok(e, "no capture to seed");
-  assert.equal(ramDiffSeeded(loc_0292, e, 0), null, "count==0 (no-write path) diverged");
-  assert.equal(ramDiffSeeded(loc_0292, e, 1), null, "count==1 (reach-zero + clear-flag path) diverged");
-  assert.equal(ramDiffSeeded(loc_0292, e, 2), null, "count==2 (decrement-only path) diverged");
+  assert.equal(ramDiffSeeded(tickFrogRespawnDelay, e, 0), null, "count==0 (no-write path) diverged");
+  assert.equal(ramDiffSeeded(tickFrogRespawnDelay, e, 1), null, "count==1 (reach-zero + clear-flag path) diverged");
+  assert.equal(ramDiffSeeded(tickFrogRespawnDelay, e, 2), null, "count==2 (decrement-only path) diverged");
   console.log("  BRANCH: 0x829d = 0 / 1 / 2 all equal");
 });
 

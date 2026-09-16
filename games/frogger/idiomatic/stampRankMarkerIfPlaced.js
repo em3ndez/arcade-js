@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c4a  —  ROM 0x0C4A-0x0C50  ·  grounding: [seen]
+ * stampRankMarkerIfPlaced  —  ROM 0x0C4A-0x0C50  ·  grounding: [seen]
  *
  * WHAT IT IS
  *   A one-cell work-RAM store helper. Given a RAM page (H), a row base (D), an offset (C), and a byte
@@ -29,7 +29,7 @@
  * REGISTER ABI (parameters default to the live Z80 registers, so the caller may pass them positionally)
  *   c = offset into the row  ·  d = row base  ·  h = RAM page  ·  e = byte to store
  */
-export function loc_0c4a(m, c = m.regs.c, d = m.regs.d, h = m.regs.h, e = m.regs.e) {
+export function stampRankMarkerIfPlaced(m, c = m.regs.c, d = m.regs.d, h = m.regs.h, e = m.regs.e) {
   const { mem8 } = m;
 
   // ── The C==0 skip: no offset, no write ───────────────────────────────────────────────

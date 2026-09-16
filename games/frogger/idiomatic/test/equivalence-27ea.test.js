@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_27ea — memory-equivalent to the frozen oracle at ROM 0x27EA.
+ * driveDiveAnimByLevel — memory-equivalent to the frozen oracle at ROM 0x27EA.
  * GATE: crafted-entry. Attract never dispatches this dive-animation driver (probe: 0 dispatches over
  * ENTRY_FRAMES; its caller is the in-play collision orchestrator attract does not reach), so a
  * post-boot attract machine is cloned and the dive-phase cell (0x83B7) plus its supporting counters
@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_27ea } from "../loc_27ea.js";
+import { driveDiveAnimByLevel } from "../driveDiveAnimByLevel.js";
 import { loc_27ea as oracle } from "../../translated/loc_27ea.js";
 
 const DIVE_PHASE = 0x83b7;
@@ -76,12 +76,12 @@ function brokenSkipReset(m) { // omits the middle band's reset call
   return m.call(0x27fe);
 }
 
-test("EQUAL (crafted): loc_27ea == oracle on every dive-phase arm", { skip }, () => {
+test("EQUAL (crafted): driveDiveAnimByLevel == oracle on every dive-phase arm", { skip }, () => {
   const entries = [MID, HIGH, LOW, MIDB].map(craft);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_27ea, e), null, "a crafted arm diverged");
+  for (const e of entries) assert.equal(ramDiff(driveDiveAnimByLevel, e), null, "a crafted arm diverged");
   assert.ok(ramDiff(brokenNoOp, craft(MID)), "vacuous: oracle wrote nothing on the middle arm");
-  console.log(`  EQUAL: ${entries.length} crafted dive-phase arms, loc_27ea == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted dive-phase arms, driveDiveAnimByLevel == oracle`);
 });
 
 test("TEETH: broken twins are caught on the middle arm", { skip }, () => {

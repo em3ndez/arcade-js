@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_05d3  —  ROM 0x05d3  ·  grounding: [seen,poked]
+ * armBoardCompleteReveal  —  ROM 0x05d3  ·  grounding: [seen,poked]
  *
  * WHAT IT IS
  *   The board-completion re-arm handler. In Frogger a board is finished when all five home bays across
@@ -13,7 +13,7 @@
  *   Reached from the per-frame in-play service cascade (under serviceVblankNmi, ROM 0x0066). That cascade
  *   watches the per-player filled-bay count PLAYER1_SLOT (0x825c) / PLAYER2_SLOT (0x825d); when the active
  *   player's count hits 5 it first zeros that player's five home-bay occupancy gates and their slot count,
- *   then calls loc_05d3 to arm the reveal. It fires exactly once per completed board, for whichever player
+ *   then calls armBoardCompleteReveal to arm the reveal. It fires exactly once per completed board, for whichever player
  *   just filled their fifth bay. Everything it writes is consumed on later frames by other routines — this
  *   handler itself does no animation, it only sets the stage.
  *
@@ -22,7 +22,7 @@
  */
 import { BOARD_ADVANCE_REQUEST, PLAYER_START_DEMO_FLAG, FROG_STATE_DEMO_FLAG, TWO_PLAYER_START_FLAG, BOARD_LAYOUT_GATE, HOME_REVEAL_COUNTDOWN, HOME_REVEAL_DELAY_TIMER } from "./names.js";
 
-export function loc_05d3(m) {
+export function armBoardCompleteReveal(m) {
   const { mem8 } = m;
 
   // ── Request the board advance ────────────────────────────────────────────────────────

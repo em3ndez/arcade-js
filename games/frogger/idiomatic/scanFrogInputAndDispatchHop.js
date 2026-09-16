@@ -38,7 +38,7 @@ import {
   FROG_HOP_DOWN_ARRIVAL, FROG_HOP_UP_ARRIVAL, FROG_HOP_RIGHT_ARRIVAL, FROG_HOP_LEFT_ARRIVAL,
   FROG_HOP_DOWN_ANIM_COUNTER, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_RIGHT_ANIM_COUNTER, FROG_HOP_LEFT_ANIM_COUNTER,
 } from "./names.js";
-import { loc_23eb } from "./loc_23eb.js";
+import { advanceHomeBaySlotCursor } from "./advanceHomeBaySlotCursor.js";
 import {
   beginFrogHopDown, advanceFrogHopDown, beginFrogHopUp, advanceFrogHopUp,
   beginFrogHopRight, advanceFrogHopRight, beginFrogHopLeft, advanceFrogHopLeft,
@@ -69,12 +69,12 @@ export function scanFrogInputAndDispatchHop(m) {
   // ── Gate 2: hop-input hold-off timer ─────────────────────────────────────────────────
   // FROG_HOP_INPUT_TIMER (0x8268) is a countdown lock armed on the home-goal path (never during ordinary
   // land play, so this gate is transparent while hopping normally). While it counts, new joystick input is
-  // ignored; each such frame only decrements the timer and steps the home-bay slot cursor via loc_23eb
+  // ignored; each such frame only decrements the timer and steps the home-bay slot cursor via advanceHomeBaySlotCursor
   // (0x23eb), which advances HOME_BAY_SLOT_CURSOR (0x8123) mod 6. POKE-grounded: with the timer counting a
   // LEFT press produced no hop; a hop only occurred after it drained to 0.
   if (mem8[FROG_HOP_INPUT_TIMER] !== 0) {
     mem8[FROG_HOP_INPUT_TIMER] = mem8[FROG_HOP_INPUT_TIMER] - 1;
-    return loc_23eb(m);
+    return advanceHomeBaySlotCursor(m);
   }
 
   // ── Gate 3: hit/hold flag ────────────────────────────────────────────────────────────

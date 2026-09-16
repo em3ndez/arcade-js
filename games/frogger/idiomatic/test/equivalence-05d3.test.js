@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_05d3 — memory-equivalent to the frozen oracle at ROM 0x05D3.
+ * armBoardCompleteReveal — memory-equivalent to the frozen oracle at ROM 0x05D3.
  * GATE: real-state capture. Plain attract NEVER dispatches this routine in 15000 frames (it is one of
  * the 0x0066 NMI attract-state-machine tails, 0x0271/0x028f), so — unlike the reference 0x0766 gate —
  * there is no self-dispatch to hook. Instead we harvest real attract machine STATES via a
- * high-frequency neighbour (0x0028, ~12k dispatches) and drive loc_05d3 directly on each. That is a
- * valid equivalence test because loc_05d3 takes NO register live-in — it only stores seven fixed
+ * high-frequency neighbour (0x0028, ~12k dispatches) and drive armBoardCompleteReveal directly on each. That is a
+ * valid equivalence test because armBoardCompleteReveal takes NO register live-in — it only stores seven fixed
  * constants — so a real attract state is as representative as a real dispatch would be.
  *
  * LIVE-OUT: memory-only (registers are not live-out: loc_0066 returns to epilogue() at both sites
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_05d3 } from "../loc_05d3.js";
+import { armBoardCompleteReveal } from "../armBoardCompleteReveal.js";
 import { loc_05d3 as oracle } from "../../translated/loc_05d3.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -65,7 +65,7 @@ function brokenMissingWrite(m) {
 test("CAPTURE: oracle == rewrite on every real attract state", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: no attract states were harvested");
-  for (const e of entries) assert.equal(ramDiff(loc_05d3, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(armBoardCompleteReveal, e), null, "a captured machine diverged");
   console.log(`  CAPTURE: ${entries.length} states, oracle == rewrite`);
 });
 

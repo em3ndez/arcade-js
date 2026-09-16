@@ -51,6 +51,6 @@ export function raiseActivePlayerStartFlag(m) {
   // Any player other than 1 skips the guard entirely and writes TWO_PLAYER_START_FLAG (0x825b) = 1
   // directly. Downstream this makes renderFrogAnimTileColumns (0x0ff1) suppress the frog's sprite-column
   // plot, parking the frog off-board while the board is laid out. It is later cleared again by the
-  // board-setup path (e.g. loc_05d3, setUpPlayStartOnce, swapOutActivePlayerPages) once the board is up.
+  // board-setup path (e.g. armBoardCompleteReveal, setUpPlayStartOnce, swapOutActivePlayerPages) once the board is up.
   mem8[TWO_PLAYER_START_FLAG] = 1;
 }

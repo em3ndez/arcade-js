@@ -62,7 +62,7 @@ export function handOffToOtherPlayer(m) {
 
   // ── Re-arm the incoming player's start state ─────────────────────────────────────────
   // PER_PLAYER_RESET_CELL (0x83b6) is cleared and PLAYER_START_DEMO_FLAG (0x825a) is raised to 1 — the
-  // same start/demo flag loc_05d3 sets on a board reveal. Together they tell the board dispatcher that
+  // same start/demo flag armBoardCompleteReveal sets on a board reveal. Together they tell the board dispatcher that
   // this player is (re)entering play, so it lays out a fresh start rather than resuming mid-frame.
   mem8[PER_PLAYER_RESET_CELL] = 0;
   mem8[PLAYER_START_DEMO_FLAG] = 1;

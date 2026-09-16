@@ -33,7 +33,7 @@ export function raiseTwoPlayerStartFlag(m) {
   const { mem8 } = m;
 
   // ── Guard: only raise the flag while a board advance is pending ───────────────────────
-  // BOARD_ADVANCE_REQUEST (0x826d) is the board-complete-pending flag: loc_05d3 (0x05d3) sets it to 1
+  // BOARD_ADVANCE_REQUEST (0x826d) is the board-complete-pending flag: armBoardCompleteReveal (0x05d3) sets it to 1
   // when all five frogs have reached their home bays, and the board-advance foreground reads it before
   // clearing it. This is the cell whose old, mistaken "two-player mode flag" reading gave this routine
   // its name — grounding OVERTURNED that: it is a board-advance request, not a mode bit.
@@ -46,7 +46,7 @@ export function raiseTwoPlayerStartFlag(m) {
   // ── Raise the start / plot-suppression flag ──────────────────────────────────────────
   // A board advance IS pending. Set TWO_PLAYER_START_FLAG (0x825b) = 1. Downstream this makes
   // renderFrogAnimTileColumns (0x0ff1) skip plotting the frog's sprite columns, parking the frog out of
-  // the reveal animation. It is later cleared again by the board-setup path (e.g. loc_05d3, setUpPlayStartOnce,
+  // the reveal animation. It is later cleared again by the board-setup path (e.g. armBoardCompleteReveal, setUpPlayStartOnce,
   // swapOutActivePlayerPages) once the new board is laid out.
   mem8[TWO_PLAYER_START_FLAG] = 1;
 }

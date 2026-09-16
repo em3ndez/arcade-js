@@ -59,8 +59,8 @@ import { advanceScrollLaneObjects } from "./advanceScrollLaneObjects.js";
 import { dispatchFrogMoveAgainstLanes } from "./dispatchFrogMoveAgainstLanes.js";
 import { driveSpriteObjectCluster } from "./driveSpriteObjectCluster.js";
 import { tickGatedCountdown } from "./tickGatedCountdown.js";
-import { loc_0292 } from "./loc_0292.js";
-import { loc_05d3 } from "./loc_05d3.js";
+import { tickFrogRespawnDelay } from "./tickFrogRespawnDelay.js";
+import { armBoardCompleteReveal } from "./armBoardCompleteReveal.js";
 import { stampHomeBayFrogByColumn } from "./stampHomeBayFrogByColumn.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { driveAttractDemoSequencer } from "./driveAttractDemoSequencer.js";
@@ -311,7 +311,7 @@ export function serviceVblankNmi(m) {
   // The rest of the per-frame world update, in order: drive the frog death animation
   // (driveFrogDeathAnimation 0x16f8), move the lane objects and carry the frog (moveLaneObjectsAndCarryFrog
   // 0x14b7), update the sprite-object cluster (driveSpriteObjectCluster 0x2970), tick the gated countdown
-  // (tickGatedCountdown), and run loc_0292 (0x0292, which decrements the in-play countdown word). Finally,
+  // (tickGatedCountdown), and run tickFrogRespawnDelay (0x0292, which decrements the in-play countdown word). Finally,
   // if the home-reveal countdown HOME_REVEAL_COUNTDOWN (0x8297) is non-zero, use it as a column selector to
   // stamp that home bay's frog (stampHomeBayFrogByColumn 0x06a2). Then to the epilogue.
   function b_022f() {
@@ -319,7 +319,7 @@ export function serviceVblankNmi(m) {
     moveLaneObjectsAndCarryFrog(m);
     driveSpriteObjectCluster(m);
     tickGatedCountdown(m);
-    loc_0292(m);
+    tickFrogRespawnDelay(m);
     const sel = mem8[HOME_REVEAL_COUNTDOWN];
     if (sel !== 0) stampHomeBayFrogByColumn(m, sel);
     return epilogue();
@@ -337,11 +337,11 @@ export function serviceVblankNmi(m) {
   // ── Player-1 board complete (ROM 0x025e) ─────────────────────────────────────────────
   // All five of player 1's home bays are filled (PLAYER1_SLOT == 5). Clear the five PRIMARY-bank home-bay
   // occupancy gates HOME_BAY1_OCCUPANCY_PRIMARY (0x825e) through HOME_BAY5_OCCUPANCY_PRIMARY (0x8262),
-  // reset PLAYER1_SLOT (0x825c) to 0, and run the board-complete handler loc_05d3 (0x05d3). Then epilogue.
+  // reset PLAYER1_SLOT (0x825c) to 0, and run the board-complete handler armBoardCompleteReveal (0x05d3). Then epilogue.
   function b_025e() {
     for (let a = HOME_BAY1_OCCUPANCY_PRIMARY; a <= HOME_BAY5_OCCUPANCY_PRIMARY; a++) mem8[a] = 0;
     mem8[PLAYER1_SLOT] = 0;
-    loc_05d3(m);
+    armBoardCompleteReveal(m);
     return epilogue();
   }
 
@@ -349,12 +349,12 @@ export function serviceVblankNmi(m) {
   // Player 2 is active. If player 2 does NOT yet have all five bays home (PLAYER2_SLOT != 5), fall through
   // to the normal reveal chain (b_0199). Otherwise the mirror of b_025e against the ALTERNATE bank: clear
   // HOME_BAY1_OCCUPANCY_ALT (0x8263) through HOME_BAY5_OCCUPANCY_ALT (0x8267), reset PLAYER2_SLOT (0x825d)
-  // to 0, and run the board-complete handler loc_05d3 (0x05d3). Then epilogue.
+  // to 0, and run the board-complete handler armBoardCompleteReveal (0x05d3). Then epilogue.
   function b_0274() {
     if (mem8[PLAYER2_SLOT] !== 0x05) return b_0199();
     for (let a = HOME_BAY1_OCCUPANCY_ALT; a <= HOME_BAY5_OCCUPANCY_ALT; a++) mem8[a] = 0;
     mem8[PLAYER2_SLOT] = 0;
-    loc_05d3(m);
+    armBoardCompleteReveal(m);
     return epilogue();
   }
 

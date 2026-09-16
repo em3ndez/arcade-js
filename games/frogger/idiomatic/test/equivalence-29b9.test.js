@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { romsPresent, craft, ramDiff } from "./_frogHop.js";
 import { dispatchSpriteObjectArmsA as cand } from "../dispatchSpriteObjectArmsA.js";
 import { loc_29b9 as oracle } from "../../translated/loc_29b9.js";
-import { loc_29f9 } from "../loc_29f9.js";
+import { moveSpriteObjectArmA } from "../moveSpriteObjectArmA.js";
 import { placeSpriteObjectSlotAndRetire } from "../placeSpriteObjectSlotAndRetire.js";
 import { flagSpriteObjectFrogHit } from "../flagSpriteObjectFrogHit.js";
 
@@ -37,7 +37,7 @@ test("EQUAL (crafted): dispatchSpriteObjectArmsA == oracle running the five arms
 test("TEETH: broken twins are caught", { skip }, () => {
   const noOp = () => {};
   const dropAnimate = (m) => {
-    m.push16(0x29bc); m.call(0x2a6a); loc_29f9(m); placeSpriteObjectSlotAndRetire(m); flagSpriteObjectFrogHit(m);
+    m.push16(0x29bc); m.call(0x2a6a); moveSpriteObjectArmA(m); placeSpriteObjectSlotAndRetire(m); flagSpriteObjectFrogHit(m);
   };
   assert.ok(ramDiff(oracle, noOp, armed(1)()), "no-op twin escaped");
   assert.ok(ramDiff(oracle, dropAnimate, armed(1)()), "drop-animate twin escaped");

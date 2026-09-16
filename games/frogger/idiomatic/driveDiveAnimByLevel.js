@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_27ea  —  ROM 0x27EA  ·  grounding: [seen,poked]
+ * driveDiveAnimByLevel  —  ROM 0x27EA  ·  grounding: [seen,poked]
  *
  * WHAT IT IS
  *   The per-frame DRIVER for the river's two-pair diver animation — the rideable/lethal figure whose
@@ -30,7 +30,7 @@ import { armDiveHighPhase } from "./armDiveHighPhase.js";
 import { resetDiveSurfaceCounter } from "./resetDiveSurfaceCounter.js";
 import { stepDiveSurfaceTimer } from "./stepDiveSurfaceTimer.js";
 
-export function loc_27ea(m) {
+export function driveDiveAnimByLevel(m) {
   const { mem8 } = m;
 
   // ── Read the level, then dispatch on it ──────────────────────────────────────────────

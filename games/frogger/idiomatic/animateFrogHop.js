@@ -41,7 +41,7 @@ import {
   FROG_HOP_VERTICAL_DELTA, FROG_HOP_HORIZONTAL_DELTA,
   FROG_HOP_DOWN_ANIM_RELOAD, FROG_HOP_UP_ANIM_RELOAD, FROG_HOP_RIGHT_ANIM_RELOAD, FROG_HOP_LEFT_ANIM_RELOAD,
 } from "./names.js";
-import { loc_23eb } from "./loc_23eb.js";
+import { advanceHomeBaySlotCursor } from "./advanceHomeBaySlotCursor.js";
 import { scoreFrogRowProgress } from "./scoreFrogRowProgress.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
@@ -170,9 +170,9 @@ export function beginFrogHopUp(m) {
 export function advanceFrogHopUp(m) {
   const { mem8 } = m;
 
-  // Step the home-bay slot cursor (loc_23eb 0x23eb) once per UP-advance frame; its A output is scratch
+  // Step the home-bay slot cursor (advanceHomeBaySlotCursor 0x23eb) once per UP-advance frame; its A output is scratch
   // here and discarded — UP-advance just piggybacks the cursor tick that the goal machinery expects.
-  loc_23eb(m); // advance the home-bay slot cursor; its A output is discarded below
+  advanceHomeBaySlotCursor(m); // advance the home-bay slot cursor; its A output is discarded below
 
   // One-hop-per-press latch, same meaning as the shared body (FROG_HOP_UP_ARRIVAL 0x824d).
   if (mem8[FROG_HOP_UP_ARRIVAL] !== 0) return;

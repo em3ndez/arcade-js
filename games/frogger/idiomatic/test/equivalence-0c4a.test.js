@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c4a — memory-equivalent to the frozen oracle at ROM 0x0C4A.
+ * stampRankMarkerIfPlaced — memory-equivalent to the frozen oracle at ROM 0x0C4A.
  * GATE: crafted-entry. Attract never dispatches this intro-digit stamper (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and its D/C/E/H registers poked to drive
  * each path — a normal row, the 8-bit wrap when D<C, and the C==0 no-write skip. The target cell is
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0c4a } from "../loc_0c4a.js";
+import { stampRankMarkerIfPlaced } from "../stampRankMarkerIfPlaced.js";
 import { loc_0c4a as oracle } from "../../translated/loc_0c4a.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -58,12 +58,12 @@ function brokenNoSkip(m) { // ignores the C==0 skip -> writes where the oracle d
   mem8[(regs.h << 8) | ((regs.d - regs.c) & 0xff)] = regs.e;
 }
 
-test("EQUAL (crafted): loc_0c4a == oracle on every register path", { skip }, () => {
+test("EQUAL (crafted): stampRankMarkerIfPlaced == oracle on every register path", { skip }, () => {
   const entries = CASES.map((c) => entry(...c));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0c4a, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(stampRankMarkerIfPlaced, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(0x80, 0x30, 5, 0x04)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted register paths, loc_0c4a == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted register paths, stampRankMarkerIfPlaced == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0292  —  ROM 0x0292  ·  grounding: [seen]
+ * tickFrogRespawnDelay  —  ROM 0x0292  ·  grounding: [seen]
  *
  * WHAT IT IS
  *   The frog-spawn "ready delay" tick. Between the moment a frog is consumed (lost, drowned, or safely
@@ -25,7 +25,7 @@
  */
 import { INPLAY_COUNTDOWN_WORD, COUNTDOWN_EXPIRY_FLAG } from "./names.js";
 
-export function loc_0292(m) {
+export function tickFrogRespawnDelay(m) {
   const { mem8, mem16 } = m;
 
   // ── Read the ready-delay word; do nothing once it has already drained ─────────────────

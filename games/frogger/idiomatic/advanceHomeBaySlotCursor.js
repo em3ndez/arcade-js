@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_23eb  —  ROM 0x23EB  ·  grounding: [seen]
+ * advanceHomeBaySlotCursor  —  ROM 0x23EB  ·  grounding: [seen]
  *
  * WHAT IT IS
  *   One step of the home-bay slot cursor. Frogger's board ends in five home bays across the top row;
@@ -31,7 +31,7 @@ import { HOME_BAY_SLOT_CURSOR } from "./names.js";
 // threshold the ROM tests at 0x23f2 — the number of animation phases, five bays plus one rest phase.
 const SLOT_CYCLE = 6;
 
-export function loc_23eb(m) {
+export function advanceHomeBaySlotCursor(m) {
   const { regs, mem8 } = m;
 
   // ── Read and increment ───────────────────────────────────────────────────────────────

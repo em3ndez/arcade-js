@@ -12,7 +12,7 @@
  * WHERE IT SITS
  *   Called once per in-play frame from the NMI service tree (serviceVblankNmi, ROM 0x0066), but only
  *   during the reveal. The selector it dispatches on is HOME_REVEAL_COUNTDOWN (0x8297): the board-complete
- *   handler loc_05d3 seeds that cell to 255, and once the reveal delay HOME_REVEAL_DELAY_TIMER (0x8298)
+ *   handler armBoardCompleteReveal seeds that cell to 255, and once the reveal delay HOME_REVEAL_DELAY_TIMER (0x8298)
  *   has drained from 64, the service tree decrements the countdown by one per frame and hands its current
  *   value in as the selector here. So this routine sees the countdown sweep 255 → 0, and the reveal is
  *   spelled out entirely by WHICH countdown values happen to line up with a bay's fixed column number.

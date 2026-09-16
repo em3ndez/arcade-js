@@ -9,7 +9,7 @@
  *   cycle runs without re-seeding.
  *
  * WHERE IT SITS
- *   Called from the per-frame dive driver loc_27ea (0x27ea) on levels 2..4 only, and only on the frame
+ *   Called from the per-frame dive driver driveDiveAnimByLevel (0x27ea) on levels 2..4 only, and only on the frame
  *   the figure is idle (FIGURE_ANIM_PHASE 0x8101 == 0) — i.e. the moment a fresh dive begins — just
  *   before the shared surface-timer step stepDiveSurfaceTimer (0x27fe). It is the structural twin of the
  *   level>=5 arm armTwoPairFigureFrame (0x287e); the ONLY difference is that this one INCREMENTS the step

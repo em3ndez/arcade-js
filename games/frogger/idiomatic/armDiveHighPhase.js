@@ -11,7 +11,7 @@
  *   no logic of its own, it just chooses whether to arm and then hands off to the pacer.
  *
  * WHERE IT SITS
- *   This is the level>=5 branch of the per-frame dive driver loc_27ea (0x27ea), which dispatches on the
+ *   This is the level>=5 branch of the per-frame dive driver driveDiveAnimByLevel (0x27ea), which dispatches on the
  *   level/difficulty count LIVES_COUNT (0x83b7): below level 2 there is no diver and it returns; on the
  *   middle band (levels 2..4) it arms via resetDiveSurfaceCounter (0x288c); on level 5+ it hands here. That
  *   driver is run every in-play frame by the collision orchestrator orchestrateCollisionsAndFrogInput

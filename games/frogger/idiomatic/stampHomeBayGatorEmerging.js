@@ -15,7 +15,7 @@
  *   the free-running home-bay frame counter wraps to 0. The creature to draw is chosen by the low bit of
  *   LIVES_COUNT (0x83b7): bit clear picks the crocodile path (this routine + stampHomeBayGatorFull), bit
  *   set picks the fly path (stampHomeBayFly). Which bay it acts on is chosen by the rotating slot cursor
- *   HOME_BAY_SLOT_CURSOR (0x8123), advanced once per in-play frame by loc_23eb.
+ *   HOME_BAY_SLOT_CURSOR (0x8123), advanced once per in-play frame by advanceHomeBaySlotCursor.
  *
  * LIVE-OUT
  *   Memory only. It publishes the slot cursor to the mirror cell and, when the target bay is still empty,
