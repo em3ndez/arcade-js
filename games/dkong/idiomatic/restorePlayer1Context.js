@@ -1,19 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * restorePlayer1Context — restore player 1's saved context, re-derive the board, and arm the next
- * sub-state.
- *
- * Run at the start of player 1's turn. Three acts, in this order:
- *
- *   1. RESTORE. Copy P1's saved 8-byte context over the LIVE context block, whose first cell is
- *      LIVES: lives, level, the board-sequence pointer, and the progress bytes after it.
- *   2. RE-DERIVE the board type: follow the just-restored board-sequence pointer and copy the byte
- *      it points at into BOARD (1 = 25m, 2 = 50m, 3 = 75m, 4 = 100m). THE ORDERING IS
- *      LOAD-BEARING: the copy in act 1 spans the pointer itself, so this deref must read the
- *      freshly restored pointer, not the one that was there before.
- *   3. ARM the next sub-state from TWO_PLAYER_GAME. A two-player game gets the player-alternation
- *      screen — a 120-frame hold, sub-state 2 — while a one-player game proceeds immediately, with
- *      a 1-frame hold and sub-state 5. Any non-zero value counts as two-player.
+ * restorePlayer1Context — at the start of P1's turn: copy P1's saved 8-byte context over the live
+ * block (LIVES..progress), re-derive BOARD by dereferencing the just-restored board-sequence
+ * pointer, then arm the next sub-state (two-player -> alternation screen, 0x78 hold / sub-state 2;
+ * one-player -> proceed, 1 hold / sub-state 5). The restore-before-deref ordering is load-bearing.
  *
  * LIVE-OUT: memory-only.
  */
@@ -28,23 +18,20 @@ import {
 } from "./names.js";
 
 export function restorePlayer1Context(m) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
-  // 1. Restore P1's saved 8-byte context into the live context block. This overwrites
-  //    BOARD_SEQ_PTR, so act 2 reads the restored pointer, not the old one.
+  // Restore spans BOARD_SEQ_PTR, so the deref below must follow it.
   for (let i = 0; i < 8; i++) {
-    mem.write8(LIVES + i, mem.read8(P1_CONTEXT + i));
+    mem8[LIVES + i] = mem8[P1_CONTEXT + i];
   }
 
-  // 2. Re-derive the board type by dereferencing the (now-restored) sequence pointer.
-  mem.write8(BOARD, mem.read8(mem.read16(BOARD_SEQ_PTR)));
+  mem8[BOARD] = mem8[mem16[BOARD_SEQ_PTR]];
 
-  // 3. Arm the next sub-state: two-player -> alternation screen; one-player -> proceed.
-  if (mem.read8(TWO_PLAYER_GAME) === 0) {
-    mem.write8(SUBSTATE_TIMER, 0x01);
-    mem.write8(GAME_SUBSTATE, 0x05);
+  if (mem8[TWO_PLAYER_GAME] === 0) {
+    mem8[SUBSTATE_TIMER] = 0x01;
+    mem8[GAME_SUBSTATE] = 0x05;
   } else {
-    mem.write8(SUBSTATE_TIMER, 0x78);
-    mem.write8(GAME_SUBSTATE, 0x02);
+    mem8[SUBSTATE_TIMER] = 0x78;
+    mem8[GAME_SUBSTATE] = 0x02;
   }
 }
