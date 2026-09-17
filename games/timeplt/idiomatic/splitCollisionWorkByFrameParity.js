@@ -14,37 +14,23 @@ import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJE
 
 
 export function splitCollisionWorkByFrameParity(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   if (mem8[FRAME_TICK] & 0x01) return dispatchShotSweepByMotherShipArmed(m);
 
   destroyFixedTargetHitByShots(m);
 
-  regs.b = 4;
-  regs.de = ACTOR_RECORD_SLOT0;
-  regs.iy = ACTOR_ENTRY_SLOT0;
-  regs.l = 5;
-  regs.h = 11;
-  destroyPlayerAndObjectsTouchingIt(m);
+  destroyPlayerAndObjectsTouchingIt(m, ACTOR_RECORD_SLOT0, ACTOR_ENTRY_SLOT0, 5, 11, 4);
 
-  // The slot sweep is handed the record/entry cursors the sweep above left, one past its last.
+  // The sweep above left the record cursor in the low byte of the record pointer (its page unchanged
+  // from ACTOR_RECORD_SLOT0) and the entry cursor in IY; the slot sweep reads them one past its last.
   const armed = mem8[MOTHER_SHIP_ARMED] !== 0;
-  regs.b = armed ? 5 : 7;
-  regs.l = 7;
-  regs.h = 15;
-  destroySlotsAndPlayerOnContact(m);
+  destroySlotsAndPlayerOnContact(m, (ACTOR_RECORD_SLOT0 & 0xff00) | m.regs.e, m.regs.iy, armed ? 5 : 7, 7, 15);
   if (armed) ramTestPlayerVsMotherShip(m);
   destroyFixedTargetReachedByPlayer(m);
 
-  regs.b = 1;
-  regs.de = ERA_OBJECT_RECORD_SLOT2;
-  regs.iy = ERA_OBJECT_ENTRY_SLOT2;
-  regs.l = 5;
-  regs.h = 11;
-  destroyPlayerAndObjectsTouchingIt(m);
+  destroyPlayerAndObjectsTouchingIt(m, ERA_OBJECT_RECORD_SLOT2, ERA_OBJECT_ENTRY_SLOT2, 5, 11, 1);
 
-  // The tail marks objects near the player using the cursors that sweep just left.
-  regs.b = 1;
-  regs.l = 8;
-  regs.h = 17;
-  return markObjectsTouchingPlayer(m);
+  // The tail marks objects near the player using the cursors that sweep just left (record page from
+  // ERA_OBJECT_RECORD_SLOT2, index/entry and the compare flags carried in E/IY/F).
+  return markObjectsTouchingPlayer(m, m.regs.f, 8, 17, ERA_OBJECT_RECORD_SLOT2 & 0xff00, m.regs.e, m.regs.iy, 1);
 }
