@@ -29,16 +29,9 @@ const ENTRY_SECOND_AXIS = 49;
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
 /** Advance a cursor a whole record on WITHOUT leaving its page — the carry is dropped. */
-const nextRecord = (cursor) => (cursor & 0xff00) | u8(cursor + RECORD_STRIDE);
+const nextRecord = (cursor) => (cursor - (cursor & 0xff)) + u8(cursor + RECORD_STRIDE);
 
-export function destroyTargetsReachedByFixedAttacker(
-  m,
-  target = m.regs.de,
-  entry = m.regs.iy,
-  targets = m.regs.b,
-  reach = m.regs.l,
-  span = m.regs.h,
-) {
+export function destroyTargetsReachedByFixedAttacker(m, target = m.regs.de, entry = m.regs.iy, targets = m.regs.b, reach = m.regs.l, span = m.regs.h) {
   const { mem8, regs } = m;
   if (mem8[PLAYER_STATE] !== LIVE) return;
 
@@ -65,6 +58,5 @@ export function destroyTargetsReachedByFixedAttacker(
     left = u8(left - 1);
   } while (left !== 0);
 
-  regs.de = targetCursor;
-  regs.iy = entryCursor;
+  return (regs.de = targetCursor, regs.iy = entryCursor);
 }

@@ -9,7 +9,6 @@ import { velocityForHeading } from "./velocityForHeading.js";
 
 export function doubledVelocityForHeading(m, table = m.regs.hl, heading = m.regs.a) {
   const { regs } = m;
-  velocityForHeading(m, table, heading);
-  regs.de = u16(2 * regs.de);
-  regs.bc = u16(2 * regs.bc);
+  const [de, bc] = velocityForHeading(m, table, heading);
+  return (regs.de = u16(2 * de), regs.bc = u16(2 * bc));
 }

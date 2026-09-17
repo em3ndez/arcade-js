@@ -8,7 +8,7 @@ import { BONUS_LIFE_SETTING, CREDIT_COUNT, stampCopyrightStrip_ADDR } from "./na
 
 export function postAttractInfoCaptions(m) {
   const { mem8, regs } = m;
-  // each frozen callee pops a parked slot; the dissolved advanceSequenceSubStep tail takes no return.
+  // each frozen callee pops a parked slot; the dissolved advanceSequenceSubStep calls take no return.
   const call = (addr) => { m.push16(0); m.call(addr); };
   call(stampCopyrightStrip_ADDR);
   call(0x0b39);
@@ -26,7 +26,7 @@ export function postAttractInfoCaptions(m) {
 
   if (mem8[CREDIT_COUNT] >= 2) {
     post(0x19);
-    call(0x0f1a);
+    advanceSequenceSubStep(m);
     return advanceSequenceSubStep(m);
   }
   post(0x17);

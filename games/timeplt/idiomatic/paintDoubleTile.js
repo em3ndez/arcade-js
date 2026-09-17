@@ -9,19 +9,17 @@
 import { u16, u8 } from "../../../core/int.js";
 import { retreatCharCursor } from "./retreatCharCursor.js";
 
-const CHARACTER_PLANE_BIT = 0x0400;
+const CHARACTER_PLANE_BIT = 0x400;
 
-export function paintDoubleTile(m) {
-  const { regs, mem8 } = m;
-  const cursor = regs.de;
+export function paintDoubleTile(m, cursor = m.regs.de, code = m.regs.b, colour = m.regs.c) {
+  const { mem8 } = m;
   const below = u16(cursor - 1);
-  mem8[cursor] = u8(regs.b + 1);
-  mem8[below] = regs.b;
+  mem8[cursor] = u8(code + 1);
+  mem8[below] = code;
 
-  const colour = below & ~CHARACTER_PLANE_BIT;
-  mem8[colour] = regs.c;
-  mem8[u16(colour + 1)] = regs.c;
+  const colourCell = below & ~CHARACTER_PLANE_BIT;
+  mem8[colourCell] = colour;
+  mem8[u16(colourCell + 1)] = colour;
 
-  regs.de = u16(colour + 1) | CHARACTER_PLANE_BIT;
-  retreatCharCursor(m);
+  return retreatCharCursor(m, u16(colourCell + 1) | CHARACTER_PLANE_BIT);
 }

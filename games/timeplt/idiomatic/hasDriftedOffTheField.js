@@ -14,9 +14,8 @@ const BAND = 3;
 const STARTS_BELOW_WRAP = 16;
 
 export function hasDriftedOffTheField(m, spriteEntry = m.regs.iy) {
-  const { mem8, regs } = m;
-  const arrived = u8(mem8[u16(spriteEntry + COORDINATE)] + STARTS_BELOW_WRAP) < BAND;
-  if (!arrived) return hasReachedHorizontalEdgeWindow(m, spriteEntry);
-  regs.f |= F_C;
-  return true;
+  const { mem8 } = m;
+  const coordinate = u8(mem8[u16(spriteEntry + COORDINATE)] + STARTS_BELOW_WRAP);
+  if (coordinate >= BAND) return hasReachedHorizontalEdgeWindow(m, spriteEntry);
+  return (m.regs.a = coordinate, m.regs.f = F_C, true);
 }

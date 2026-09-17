@@ -18,7 +18,7 @@ const CELLS_PER_LINE = 32;
 const CELL_STEP = 32;
 const BLANK_GLYPH = 241;
 const LINE_COLOUR = 16;
-const CHARACTER_PLANE_BIT = 0x0400;
+const CHARACTER_PLANE_BIT = 0x400;
 
 export function blankNextLine(m) {
   const { mem8, mem16 } = m;

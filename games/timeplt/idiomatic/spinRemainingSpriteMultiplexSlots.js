@@ -17,10 +17,9 @@ const TAIL_SLOTS = [
   { request: SPRITE_BANK1_SLOT23_Y, partner: SPRITE_BANK0_SLOT23_X },
 ];
 
-export function spinRemainingSpriteMultiplexSlots(m) {
-  const { regs, mem8 } = m;
-  const held = regs.a;
-  if (!regs.fZ) {
+export function spinRemainingSpriteMultiplexSlots(m, held = m.regs.a, firstSlotRequestClear = m.regs.fZ) {
+  const { mem8 } = m;
+  if (!firstSlotRequestClear) {
     if (((held + mem8[SCANLINE_COUNTER]) & 0x100) === 0) return loc_10f8(m);
     mem8[SPRITE_BANK1_SLOT19_Y] = held & 0x7f;
     mem8[SPRITE_BANK0_SLOT19_X] = mem8[SPRITE_BANK0_SLOT19_X] + HALF_RANGE;

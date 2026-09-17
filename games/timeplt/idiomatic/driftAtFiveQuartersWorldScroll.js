@@ -9,11 +9,7 @@
 import { displaceByFiveQuarters } from "./displaceByFiveQuarters.js";
 import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
 
-export function driftAtFiveQuartersWorldScroll(m) {
-  const { regs } = m;
-  const object = regs.ix;
-  const sprite = regs.iy;
-
+export function driftAtFiveQuartersWorldScroll(m, object = m.regs.ix, sprite = m.regs.iy) {
   driftCoordinate(m, sprite + 49, object + 3, m.mem16[WORLD_SCROLL_Y]);
   driftCoordinate(m, sprite, object + 5, m.mem16[WORLD_SCROLL_X]);
 }

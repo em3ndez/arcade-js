@@ -31,12 +31,11 @@ const ROW = 0x20;
 const END_OF_SCRIPT = 0xff;
 
 export function advanceScriptedCharPlaneBandTo2(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   if ((mem8[BAND_TO2_PASS_COUNTDOWN] & 1) === 0) {
-    regs.a = BLANK_TILE;
-    regs.hl = CHAR_PLANE_LOWER_RUN_BOTTOM; fillCellRun(m);
-    regs.hl = CHAR_PLANE_UPPER_RUN_BOTTOM; fillCellRun(m);
+    fillCellRun(m, BLANK_TILE, CHAR_PLANE_LOWER_RUN_BOTTOM);
+    fillCellRun(m, BLANK_TILE, CHAR_PLANE_UPPER_RUN_BOTTOM);
     for (const cell of [CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM]) {
       mem8[cell] = BLANK_TILE;
       mem8[cell - ROW] = BLANK_TILE;

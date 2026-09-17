@@ -25,14 +25,7 @@ const SECOND_WIDTH = 17;
 const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
 
-export function destroySlotsAndPlayerOnContact(
-  m,
-  records = m.regs.de,
-  entries = m.regs.iy,
-  slots = m.regs.b,
-  bias = m.regs.l,
-  width = m.regs.h,
-) {
+export function destroySlotsAndPlayerOnContact(m, records = m.regs.de, entries = m.regs.iy, slots = m.regs.b, bias = m.regs.l, width = m.regs.h) {
   const { mem8 } = m;
   if (mem8[PLAYER_STATE] !== WHOLE) return;
 
@@ -51,12 +44,11 @@ export function destroySlotsAndPlayerOnContact(
       mem8[record] = HIT;
       postChainedHitScore(m);
     }
-    record = (record & 0xff00) | u8(record + RECORD_STRIDE);
+    record = (record - (record & 0xff)) | u8(record + RECORD_STRIDE);
     entry = u16(entry + ENTRY_STRIDE);
     left = u8(left - 1);
   } while (left !== 0);
 
   // Hand the threaded cursors back (E only, D untouched; IY whole) for a caller tail-running the same thread.
-  m.regs.e = record;
-  m.regs.iy = entry;
+  return (m.regs.e = record, m.regs.iy = entry);
 }

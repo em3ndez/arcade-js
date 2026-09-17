@@ -25,14 +25,7 @@ const LIVE = 0xff;
 const DESTROYED = 0xf0;
 const COUNT_ZERO_MEANS = 256;
 
-export function destroyPlayerAndObjectsTouchingIt(
-  m,
-  occupancy = m.regs.de,
-  entry = m.regs.iy,
-  slack = m.regs.l,
-  reach = m.regs.h,
-  targets = m.regs.b,
-) {
+export function destroyPlayerAndObjectsTouchingIt(m, occupancy = m.regs.de, entry = m.regs.iy, slack = m.regs.l, reach = m.regs.h, targets = m.regs.b) {
   const { mem8 } = m;
   if (mem8[PLAYER_STATE] !== LIVE) return;
 
@@ -48,10 +41,9 @@ export function destroyPlayerAndObjectsTouchingIt(
         mem8[occupancyAt] = DESTROYED;
       }
     }
-    occupancyAt = (occupancyAt & 0xff00) | u8(occupancyAt + OCCUPANCY_STRIDE);
+    occupancyAt = (occupancyAt - (occupancyAt & 0xff)) + u8(occupancyAt + OCCUPANCY_STRIDE);
     entryAt = u16(entryAt + ENTRY_STRIDE);
   }
 
-  m.regs.e = occupancyAt;
-  m.regs.iy = entryAt;
+  return (m.regs.e = occupancyAt, m.regs.iy = entryAt);
 }

@@ -33,7 +33,8 @@ export function sendOneQueuedSoundThenUnwindTheFrameInterrupt(m) {
   // next value off the stack, so the LS259 enable bit is set at no cost to the restored registers.
   mem8[NMI_ENABLE_LATCH] = mem8[NMI_REENABLE_BYTE];
 
-  // Restore every register of both banks and return through the pushed resume address. The bank
-  // swap seats the first six words as the shadow set before the second bank overwrites the main set.
-  return (regs.iy = iy, regs.ix = ix, regs.hl = shadowHl, regs.de = shadowDe, regs.bc = shadowBc, regs.af = shadowAf, regs.exx(), regs.exAf(), regs.hl = mainHl, regs.de = mainDe, regs.bc = mainBc, regs.af = mainAf, m.ret());
+  // Restore every register of both banks and return through the pushed resume address. The first
+  // four popped pairs seat the shadow set directly, byte by byte; the last four seat the main set
+  // the interrupted code was running in.
+  return (regs.iy = iy, regs.ix = ix, regs.h_ = shadowHl >> 8, regs.l_ = shadowHl & 0xff, regs.d_ = shadowDe >> 8, regs.e_ = shadowDe & 0xff, regs.b_ = shadowBc >> 8, regs.c_ = shadowBc & 0xff, regs.a_ = shadowAf >> 8, regs.f_ = shadowAf & 0xff, regs.hl = mainHl, regs.de = mainDe, regs.bc = mainBc, regs.af = mainAf, m.ret());
 }

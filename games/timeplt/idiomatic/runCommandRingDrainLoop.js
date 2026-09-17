@@ -36,22 +36,19 @@ export function* runCommandRingDrainLoop(m) {
     mem8[argumentCell] = FREE;
     mem8[COMMAND_READ_CURSOR] = u8(argumentCell + 1) & (RING_CELLS - 1);
 
-    regs.hl = COMMAND_HANDLER_TABLE;
-    regs.a = command;
-    regs.and(HANDLER_BITS);
-    fetchWideTableWord(m);
-    const handler = regs.de;
+    const handler = fetchWideTableWord(m, COMMAND_HANDLER_TABLE, command & HANDLER_BITS);
 
+    // seat the pair the chosen handler reads on entry, then dispatch to it with a fixed way back.
     regs.c = command;
     regs.b = argument;
     regs.a = argument;
     regs.de = enterCommandRingDrain_ADDR;
     regs.hl = handler;
     m.push16(enterCommandRingDrain_ADDR);
-    m.call(handler);
+    m.call(handler); // COMPUTED dispatch: the target is a table word read at runtime, so it stays a call
     // ⚠ ASK what came back: a blind return strands a coroutine nobody drives, silently.
     if (m.pc !== enterCommandRingDrain_ADDR) {
-      const wentTo = m.call(m.pc);
+      const wentTo = m.call(m.pc); // the handler jumped off; its landing is only known at runtime
       return wentTo && typeof wentTo.next === "function" ? yield* wentTo : wentTo;
     }
   }

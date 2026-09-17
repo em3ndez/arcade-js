@@ -17,7 +17,6 @@ export function flashCopyrightLine(m) {
     enqueueFixedCommandOnRing(m);
     return;
   }
-  m.regs.d = COMMAND;
-  m.regs.e = ARGUMENT_ON_THE_ODD_TURN;
   postCommand(m, COMMAND, ARGUMENT_ON_THE_ODD_TURN);
+  return [(m.regs.d = COMMAND), (m.regs.e = ARGUMENT_ON_THE_ODD_TURN)];
 }

@@ -52,6 +52,6 @@ export function destroyMotherShipAndShotOnMutualHit(m) {
       mem8[u16(slot + STATE)] = DESTROYED;
       postChainedHitScore(m);
     }
-    slot = (slot & 0xff00) | u8(slot + RECORD_STRIDE);
+    slot = (slot - (slot & 0xff)) | u8(slot + RECORD_STRIDE);
   }
 }

@@ -16,13 +16,8 @@ const FIRST_AXIS_FRACTION = 3;
 const SECOND_AXIS_WHOLE = 0;
 const SECOND_AXIS_FRACTION = 5;
 
-export function flyAlongHeadingAtDoubleVelocity(m, table = m.regs.hl) {
-  const object = m.regs.ix;
-  const sprite = m.regs.iy;
-
-  velocityForHeading(m, table, m.mem8[object + CURRENT_HEADING]);
-  const alongFirstAxis = m.regs.de;
-  const alongSecondAxis = m.regs.bc;
+export function flyAlongHeadingAtDoubleVelocity(m, table = m.regs.hl, object = m.regs.ix, sprite = m.regs.iy) {
+  const [alongFirstAxis, alongSecondAxis] = velocityForHeading(m, table, m.mem8[object + CURRENT_HEADING]);
 
   advanceCoordinate(
     m,

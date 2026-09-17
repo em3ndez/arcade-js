@@ -40,7 +40,7 @@ const SECOND_AXIS_BAND = 17;
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
 /** Advance a cursor a whole record on WITHOUT leaving its page — the carry is dropped. */
-const nextRecord = (cursor) => (cursor & 0xff00) | u8(cursor + RECORD_STRIDE);
+const nextRecord = (cursor) => (cursor - (cursor & 0xff)) | u8(cursor + RECORD_STRIDE);
 
 function reached(mem8, shot, entry, target, reach, span) {
   if (mem8[target + STATE] !== LIVE) return false;
@@ -54,17 +54,7 @@ function reached(mem8, shot, entry, target, reach, span) {
   );
 }
 
-export function destroyTargetsHitByShots(
-  m,
-  shot = m.regs.ix,
-  entry = m.regs.iy,
-  target = m.regs.de,
-  targetsFirstPass = m.regs.b,
-  targetsPerPass = m.regs.a_,
-  shots = m.regs.c,
-  reach = m.regs.l,
-  span = m.regs.h,
-) {
+export function destroyTargetsHitByShots(m, shot = m.regs.ix, entry = m.regs.iy, target = m.regs.de, targetsFirstPass = m.regs.b, targetsPerPass = m.regs.a_, shots = m.regs.c, reach = m.regs.l, span = m.regs.h) {
   const { mem8, mem16 } = m;
   let shotSlot = shot;
   let entryCursor = entry;

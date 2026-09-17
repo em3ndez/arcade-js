@@ -10,6 +10,7 @@ const ARM_MASK = 0x07;
 const ENTRY_WIDTH = 2;
 
 export function dispatchSequencePhase0SubStepArm(m) {
-  const arm = m.mem16[PHASE0_SUBSTEP_DISPATCH_TABLE + ENTRY_WIDTH * (m.mem8[SEQUENCE_SUBSTEP] & ARM_MASK)];
-  return m.call(arm);
+  const index = m.mem8[SEQUENCE_SUBSTEP] & ARM_MASK;
+  const arm = m.mem16[PHASE0_SUBSTEP_DISPATCH_TABLE + ENTRY_WIDTH * index];
+  return (m.regs.a = index, m.call(arm));
 }

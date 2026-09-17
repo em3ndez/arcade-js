@@ -13,12 +13,10 @@ import { TAMPER_IMAGE_SIGNATURE, TAMPER_SIGNATURE_SEED_BYTE, TAMPER_FOLD_FLAG, g
 const ALL_BITS = 255;
 
 export function foldImageBlockIntoSignatureThenAdvanceSequence(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   mem8[TAMPER_FOLD_FLAG] = ALL_BITS;
 
-  trampolineToSelectFoldBlock(m);
-  const blockStart = regs.hl;
-  const blockLength = regs.b;
+  const [blockStart, blockLength] = trampolineToSelectFoldBlock(m);
   mem8[TAMPER_IMAGE_SIGNATURE] = foldBlockIntoTotal(
     m,
     mem8[TAMPER_SIGNATURE_SEED_BYTE],

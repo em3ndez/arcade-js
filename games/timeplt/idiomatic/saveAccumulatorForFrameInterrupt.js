@@ -5,8 +5,7 @@
 
 import { serviceVerticalBlankInterrupt_ADDR } from "./names.js";
 
-export function saveAccumulatorForFrameInterrupt(m) {
-  const { regs } = m;
-  m.push16(regs.af);
+export function saveAccumulatorForFrameInterrupt(m, af = m.regs.af) {
+  m.push16(af);
   return m.call(serviceVerticalBlankInterrupt_ADDR);
 }

@@ -12,9 +12,9 @@ const SHAPE_SLOT = 0x01;
 const ATTRIBUTE_SLOT = 0x30;
 
 export function refreshSpriteFromHeading(m, entry = m.regs.iy) {
-  const { regs, mem8 } = m;
-  spriteForHeading(m);
-  mem8[u16(entry + ATTRIBUTE_SLOT)] = regs.c;
-  regs.a = regs.b;
-  mem8[u16(entry + SHAPE_SLOT)] = regs.a;
+  const { mem8 } = m;
+  const [shape, mirror] = spriteForHeading(m);
+  mem8[u16(entry + ATTRIBUTE_SLOT)] = mirror;
+  mem8[u16(entry + SHAPE_SLOT)] = shape;
+  return (m.regs.a = shape);
 }
