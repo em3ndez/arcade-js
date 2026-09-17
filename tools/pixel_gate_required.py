@@ -66,16 +66,12 @@ SUITES = {
     "galaxian": [(["python3", "games/galaxian/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "centiped": [(["python3", "games/centiped/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "tempest": [(["python3", "games/tempest/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
+    "dkong": [(["python3", "games/dkong/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
-MANUAL = {
-    "dkong": (
-        "Donkey Kong's pixel gates are games/dkong/tools/move_suite.py and prize_suite.py, not a\n"
-        "  single pixel_suite.py. Both always exit 0 and their PASS-line formats differ, so no\n"
-        "  predicate is encoded here -- an unverified one would be trusted and is worse than none.\n"
-        "  Run both by hand and paste the verdicts into the review."
-    ),
-}
+#: game -> a human hint printed when the game is absent from SUITES. Empty: every game now
+#: declares a pixel_suite.py. (move_suite.py/prize_suite.py remain dkong's separate unit gates.)
+MANUAL = {}
 
 #: game -> the written reason this game's pixel gate is not required.
 #: ★ AN ENTRY EXEMPTS THE GAME UNTIL REMOVED, waiving every later commit silently. Kept NEAR-EMPTY
