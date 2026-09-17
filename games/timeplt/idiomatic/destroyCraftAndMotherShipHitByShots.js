@@ -42,7 +42,7 @@ const SECOND_AXIS_SPAN = 31;
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
 /** Advance a cursor a whole record on WITHOUT leaving its page — the carry is dropped. */
-const nextRecord = (cursor) => (cursor & 0xff00) | u8(cursor + RECORD_STRIDE);
+const nextRecord = (cursor) => (cursor - (cursor & 0xff)) | u8(cursor + RECORD_STRIDE);
 
 export function destroyCraftAndMotherShipHitByShots(m) {
   const { mem8, mem16 } = m;

@@ -3,8 +3,9 @@
  * of velocity samples sets. Choosing it is all this entry does; an incoming pointer is discarded. LIVE-OUT: the pair. */
 
 import { velocityForHeading } from "./velocityForHeading.js";
+import { loc_2e3e } from "./names.js";
 
-const VELOCITY_TABLE = 0x2e3e;
+const VELOCITY_TABLE = loc_2e3e;
 
 export function loc_5965(m) {
   velocityForHeading(m, VELOCITY_TABLE);

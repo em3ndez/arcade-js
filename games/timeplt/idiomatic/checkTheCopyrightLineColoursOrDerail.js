@@ -45,12 +45,12 @@ export function checkTheCopyrightLineColoursOrDerail(m) {
   for (let owed = CELLS; owed > 0; owed--) {
     colour = mem8[cell];
     if (!EITHER_COLOUR.includes(colour)) {
-      return (regs.a = colour, regs.f = rejectFlags(colour), regs.hl = cell, regs.b = owed, m.call(loc_49fa));
+      // The stride is laid down before the pointer advances, so a rejection on the very first cell
+      // leaves the stride register untouched while every later exit hands it on.
+      const strode = owed < CELLS;
+      return (regs.a = colour, regs.f = rejectFlags(colour), regs.hl = cell, regs.b = owed, strode ? (regs.de = u16(STRIDE_BACK)) : 0, m.call(loc_49fa));
     }
-    // The stride is laid down before the pointer advances, so a rejection on the very first cell
-    // leaves it untouched while every later exit hands it on.
-    regs.de = u16(STRIDE_BACK);
     cell = u16(cell + STRIDE_BACK);
   }
-  return (regs.a = colour, regs.f = CLEAN_EXIT_FLAGS, regs.hl = cell, regs.b = 0);
+  return (regs.a = colour, regs.f = CLEAN_EXIT_FLAGS, regs.hl = cell, regs.b = 0, regs.de = u16(STRIDE_BACK));
 }

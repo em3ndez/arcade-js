@@ -7,7 +7,6 @@ import { doubledVelocityForHeading } from "./doubledVelocityForHeading.js";
 
 const HEADING_CELL = 2;
 
-export function loc_599d(m) {
-  const { regs } = m;
-  doubledVelocityForHeading(m, regs.hl, m.mem8[regs.ix + HEADING_CELL]);
+export function loc_599d(m, table = m.regs.hl, record = m.regs.ix) {
+  doubledVelocityForHeading(m, table, m.mem8[record + HEADING_CELL]);
 }

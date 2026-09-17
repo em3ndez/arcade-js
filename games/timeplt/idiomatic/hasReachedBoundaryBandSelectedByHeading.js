@@ -4,8 +4,9 @@
  * band closest to the wrap; the other half tests the band of three that sits directly below it on
  * the same sprite-entry coordinate, and only when that misses does the question pass to the test
  * taken on the other coordinate. The two halves of the compass therefore ask about two adjacent
- * and non-overlapping bands, so which side the object is coming from picks its own line. Nothing
- * is written. LIVE-OUT: the answer, returned and mirrored into carry. */
+ * and non-overlapping bands, so which side the object is coming from picks its own line. No memory
+ * is written. LIVE-OUT: the answer, returned and mirrored into carry, with the biased coordinate
+ * the direct hit tested left in the accumulator on the line this file decides itself. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { F_C } from "../../../core/cpu/z80.js";
@@ -24,8 +25,7 @@ export function hasReachedBoundaryBandSelectedByHeading(m, object = m.regs.ix, s
   const turned = u8(mem8[u16(object + HEADING_IN_RECORD)] + QUARTER_TURN);
   if (turned >= HALF_A_TURN) return hasDriftedOffTheField(m, spriteEntry);
 
-  const arrived = u8(mem8[u16(spriteEntry + COORDINATE)] + STARTS_BELOW_WRAP) < BAND;
-  if (!arrived) return hasReachedHorizontalEdgeWindow(m, spriteEntry);
-  regs.f |= F_C;
-  return true;
+  const biased = u8(mem8[u16(spriteEntry + COORDINATE)] + STARTS_BELOW_WRAP);
+  if (biased >= BAND) return hasReachedHorizontalEdgeWindow(m, spriteEntry);
+  return (regs.a = biased, regs.f = F_C, true);
 }
