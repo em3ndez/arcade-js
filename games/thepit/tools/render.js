@@ -36,9 +36,10 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Machine, UnregisteredRoutine } from "../machine.js";
+import { Machine, UnregisteredRoutine, resolveAllIdiomatic } from "../machine.js";
 import { UnmappedAccess } from "../../../boards/thepit/memory.js";
 import { installEntropyPin } from "../../../core/entropy-pin.js";
+import { runIdiomaticGame } from "../../../core/frame-stepped.js";
 import manifest from "../manifest.js";
 
 const GAME_DIR = dirname(dirname(fileURLToPath(import.meta.url))); // games/thepit
@@ -60,6 +61,8 @@ function parseArgs(argv) {
     inputs: [],
     pokes: [],
     pin: false,
+    idiomatic: false,
+    tapeOrigin: 0,
   };
   // Same --input/--poke grammar as emit.js so a tape renders identically to how it
   // state-emits: PORT=BITS@FRAME[:hold[N]|once] / ADDR=VAL@FRAME[:hold[N]|once].
@@ -78,6 +81,14 @@ function parseArgs(argv) {
       }
       case "--frames-out": args.framesOut = argv[++i]; break;
       case "--pin": args.pin = true; break; // entropy-pin the RNG (match a --pin-entropy MAME golden)
+      // --idiomatic renders the IDIOMATIC layer THROUGH THE ENGINE THAT SHIPS (core/frame-stepped.js
+      // runIdiomaticGame — the coroutine engine, whose control spine is generators that yield at each
+      // vblank), swapping the CLOCK as well as the routine map. The default path runs the frozen
+      // translated oracle on the cycle-driven engine (runFrames). --tape-origin is the boot gap: this
+      // engine burns NO frames on the power-on settle delay MAME spends ~20 frames on, so the two sides
+      // share no frame origin; the tape must ride the golden's numbering. pixel_suite.py measures + pins it.
+      case "--idiomatic": args.idiomatic = true; break;
+      case "--tape-origin": args.tapeOrigin = Number(argv[++i]); break;
       case "--poke": {
         const mt = argv[++i].match(SPEC);
         if (!mt) throw new Error(`--poke expects ADDR=VAL@FRAME[:hold[N]|once]`);
@@ -144,11 +155,81 @@ function writeFrames(dir, shots) {
   return buf.length;
 }
 
+/**
+ * Paint `want` frames of the IDIOMATIC game under runIdiomaticGame (the coroutine engine
+ * that ships). The spine (boot, main/wait loops) are GENERATORS yielding at each vblank;
+ * onFrame samples at the yield (pre-NMI) and renders the whole frame — The Pit composes a
+ * frame in one shot (no beam), so renderFrame() is the snapshot, exactly what the web
+ * worker's serviceIdiomaticFrame does for this game.
+ *
+ * THE TWO SIDES SHARE NO FRAME ORIGIN: this engine burns no frames on the power-on settle
+ * delay MAME spends ~20 real frames on (coldBootInit's settle loop touches no memory, so
+ * nothing models it). The tape origin is that gap: onFrame applies inputs/pokes at
+ * `frame + tapeOrigin` so a coin keyed to the golden's absolute frame number fires on the
+ * matching generator frame. pixel_suite.py measures + pins tapeOrigin (LANDMARK).
+ */
+async function renderIdiomatic(args, rom, gfx, proms) {
+  const overrides = await resolveAllIdiomatic(new URL("../machine.js", import.meta.url));
+  const machine = await Machine.create(rom, { gfx, proms, overrides });
+  if (args.pin) installEntropyPin(machine, manifest.entropyPin); // freeze RNG to match a --pin-entropy golden
+  machine.inputTape = args.inputs.length ? args.inputs : null;
+  machine.pokes = args.pokes.length ? args.pokes : null;
+
+  const shots = [];
+  const want = args.frames;
+  const r = runIdiomaticGame(machine, {
+    nmiReturnPC: manifest.convergence.idiomatic.nmiReturnPC,
+    maxFrames: want,
+    onFrame: (m, f) => {
+      if (f === 0) return; // power-on, before the boot generator runs: no golden frame matches it
+      m.applyInputs(f + args.tapeOrigin);
+      m.applyPokes(f + args.tapeOrigin);
+      shots.push(m.renderFrame());
+    },
+  });
+
+  if (shots.length === 0) throw new Error("no frames painted by the idiomatic generator");
+  const bytes = writeFrames(args.framesOut, shots);
+  const distinct = new Set(shots.map((fr) => sha256(Buffer.from(fr)))).size;
+  console.log(
+    `wrote ${shots.length} idiomatic frame(s) x ${BYTES_PER_FRAME} bytes (${bytes} bytes) ` +
+      `-> ${join(args.framesOut, "frames.rgb")}\n  ${distinct} DISTINCT image(s)`,
+  );
+
+  const err = r.stopError;
+  if (err instanceof UnregisteredRoutine) {
+    console.error(`\nBOOT GAP: unregistered routine at ${hex4(err.addr)} after ${shots.length} painted frames.`);
+    return 1;
+  }
+  if (err instanceof UnmappedAccess) {
+    console.error(`\nSTOP: unmapped memory access — ${err.message}.`);
+    return 1;
+  }
+  if (err) {
+    console.error(`\nSTOP: ${r.stop}.`);
+    return 1;
+  }
+  if (shots.length < want - 1) {
+    console.error(
+      `\nNOTE: asked for ${want} frames, painted only ${shots.length} (stop: ${r.stop}) — ` +
+        "investigate before trusting this run.",
+    );
+    return 1;
+  }
+  console.log(
+    `\nCLEAN: painted ${shots.length} idiomatic frames (vblank yields, ${machine.nmiCount} NMI(s)) ` +
+      "with no translation gap. Pixel-diff frames.rgb against the MAME golden.",
+  );
+  return 0;
+}
+
 async function main() {
   const args = parseArgs(process.argv);
   const rom = new Uint8Array(readFileSync(args.rom));
   const gfx = assembleImage("gfx", manifest.rom.images.gfx, args.romset);
   const proms = assembleImage("proms", manifest.rom.images.proms, args.romset);
+
+  if (args.idiomatic) return renderIdiomatic(args, rom, gfx, proms);
 
   const machine = await Machine.create(rom, { gfx, proms });
   if (args.pin) installEntropyPin(machine, manifest.entropyPin); // freeze RNG to match a --pin-entropy golden
