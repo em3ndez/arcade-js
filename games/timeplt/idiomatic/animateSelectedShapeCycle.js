@@ -20,10 +20,8 @@ const ATTRIBUTE = 0x30;
 const FIRST_SHAPE = 0xd8;
 const ATTRIBUTE_VALUE = 0x61;
 
-export function animateSelectedShapeCycle(m) {
-  const { regs, mem8 } = m;
-  const object = regs.ix;
-  const entry = regs.iy;
+export function animateSelectedShapeCycle(m, object = m.regs.ix, entry = m.regs.iy) {
+  const { mem8 } = m;
 
   const phase = (mem8[FRAME_TICK] >> PHASE_SHIFT) & (PHASES - 1);
   const block = u8(mem8[object + SHAPE_BLOCK] - 1);

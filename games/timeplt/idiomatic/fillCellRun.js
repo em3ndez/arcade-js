@@ -11,13 +11,14 @@ import { u16 } from "../../../core/int.js";
 const RUN_CELLS = 13;
 const CELL_STEP = -32;
 
-export function fillCellRun(m) {
-  const { regs, mem8 } = m;
-  const fill = regs.a;
-  let cursor = regs.hl;
+export function fillCellRun(m, fill = m.regs.a, start = m.regs.hl) {
+  const { mem8 } = m;
+  let cursor = start;
   for (let i = 0; i < RUN_CELLS; i++) {
     mem8[cursor] = fill;
     cursor = u16(cursor + CELL_STEP);
   }
-  regs.de = u16(CELL_STEP);
+  // The cell-step register is a load-bearing live-out: the (frozen) callers walk on from it
+  // without reloading, reading it straight from the register bridge — set it AND return it.
+  return (m.regs.de = u16(CELL_STEP));
 }

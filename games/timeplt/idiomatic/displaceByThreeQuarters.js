@@ -9,8 +9,7 @@ import { u16 } from "../../../core/int.js";
 export function displaceByThreeQuarters(m, displacement = m.regs.hl, coordinate = m.regs.de) {
   const shortened = displacement - signedQuarter(displacement);
   const moved = u16(coordinate + shortened);
-  m.regs.hl = moved;
-  return moved;
+  return (m.regs.hl = moved); // HL is the load-bearing register-out for the frozen dispatch AND the idiomatic return
 }
 
 /** A quarter of a displacement that may run either way, rounded toward the negative. */

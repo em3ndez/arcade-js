@@ -6,14 +6,12 @@
  * establishes what the byte measures. LIVE-OUT: the answer, returned and mirrored into carry; memory untouched. */
 
 import { u8 } from "../../../core/int.js";
-import { F_C } from "../../../core/cpu/z80.js";
 
 const WINDOW = 4;
 const STARTS_BELOW_WRAP = 2;
 
 export function hasReachedHorizontalEdgeWindow(m, spriteEntry = m.regs.iy) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   const arrived = u8(mem8[spriteEntry] + STARTS_BELOW_WRAP) < WINDOW;
-  regs.f = (regs.f & ~F_C) | (arrived ? F_C : 0);
-  return arrived;
+  return (m.regs.fC = arrived);
 }

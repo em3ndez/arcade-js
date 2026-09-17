@@ -7,9 +7,10 @@ import { ATTACKER_SPAWN_COOLDOWN_PERIOD } from "./names.js";
 
 const RECORD_BYTE = 14;
 
-export function retireSlotIntoSharedCooldown(m) {
-  const { regs, mem8 } = m;
-  retireSlot(m);
-  regs.a = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD];
-  mem8[regs.ix + RECORD_BYTE] = regs.a;
+export function retireSlotIntoSharedCooldown(m, record = m.regs.ix, entry = m.regs.iy) {
+  const { mem8 } = m;
+  retireSlot(m, record, entry);
+  const cooldown = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD];
+  mem8[record + RECORD_BYTE] = cooldown;
+  return (m.regs.a = cooldown);
 }

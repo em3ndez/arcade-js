@@ -3,8 +3,8 @@
 
 import { advanceSequenceUnlessImageTampered } from "./advanceSequenceUnlessImageTampered.js";
 
-export function parkTheImageTotalForTheTamperVerdict(m) {
-  const { regs } = m;
-  regs.b = regs.a;
+export function parkTheImageTotalForTheTamperVerdict(m, total = m.regs.a) {
+  // the total flows through B into the verdict arm, which reads it off the register bridge.
+  m.regs.b = total;
   return advanceSequenceUnlessImageTampered(m);
 }

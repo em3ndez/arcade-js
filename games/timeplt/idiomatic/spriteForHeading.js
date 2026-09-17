@@ -21,6 +21,7 @@ export function spriteForHeading(m, object = m.regs.ix) {
   const heading = mem8[u16(object + HEADING)];
   const sector = Math.floor(u8(heading + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
   const farHalf = (mem8[FRAME_TICK] & FAR_HALF_BIT) !== 0;
-  regs.b = mem8[SPRITE_SHAPE_BY_SECTOR_TABLE + sector] + (farHalf ? SHAPES_PER_HALF : 0);
-  regs.c = mem8[SPRITE_MIRROR_BY_SECTOR_TABLE + sector];
+  const shape = mem8[SPRITE_SHAPE_BY_SECTOR_TABLE + sector] + (farHalf ? SHAPES_PER_HALF : 0);
+  const mirror = mem8[SPRITE_MIRROR_BY_SECTOR_TABLE + sector];
+  return [regs.b = shape, regs.c = mirror];
 }

@@ -4,6 +4,7 @@
  * cell is armed, and queue one display command. When the pair still agrees it does nothing.
  * LIVE-OUT: memory. */
 
+import { u16 } from "../../../core/int.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
 import { PLAYER_STATE, TAMPER_GLYPH_COPY, TAMPER_GLYPH_SOURCE_CELL } from "./names.js";
@@ -18,10 +19,10 @@ export function setUpTwoPlayerStartObjectOnce(m, counterBase = m.regs.ix, slotBa
   if (mem8[TAMPER_GLYPH_COPY] === mem8[TAMPER_GLYPH_SOURCE_CELL]) return;
 
   mem8[counterBase] = mem8[counterBase] - 1;
-  mem8[(slotBase + SLOT_VERTICAL_A) & 0xffff] = 0xfe;
-  mem8[(slotBase + SLOT_VERTICAL_B) & 0xffff] = 0xfd;
-  mem8[(slotBase + SLOT_GLYPH_A) & 0xffff] = 0x6c;
-  mem8[(slotBase + SLOT_GLYPH_B) & 0xffff] = 0x6c;
+  mem8[u16(slotBase + SLOT_VERTICAL_A)] = 0xfe;
+  mem8[u16(slotBase + SLOT_VERTICAL_B)] = 0xfd;
+  mem8[u16(slotBase + SLOT_GLYPH_A)] = 0x6c;
+  mem8[u16(slotBase + SLOT_GLYPH_B)] = 0x6c;
 
   if (mem8[PLAYER_STATE] === 0xff) requestMotherShipWarpSound(m);
   return postCommand(m, 0x04, 0x0d);

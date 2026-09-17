@@ -27,10 +27,8 @@ const QUARTER_TURN = 0x40;
 const ATTRIBUTE_FORWARD = 0xed;
 const ATTRIBUTE_REVERSED = 0x6d;
 
-export function mirrorTwoTileObjectByHeading(m) {
-  const { regs, mem8 } = m;
-  const object = regs.ix;
-  const entry = regs.iy;
+export function mirrorTwoTileObjectByHeading(m, object = m.regs.ix, entry = m.regs.iy) {
+  const { mem8 } = m;
 
   const alternate = mem8[FRAME_TICK] & ALTERNATE_BIT;
   const damage = u8(MOST_HITS - mem8[HITS_REMAINING]);

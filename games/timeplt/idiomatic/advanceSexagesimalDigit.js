@@ -25,13 +25,12 @@ function stepPackedDecimal(value) {
   return u8(sum + correction);
 }
 
-export function advanceSexagesimalDigit(m, cell = m.regs.hl) {
-  const { mem8, regs } = m;
+export function advanceSexagesimalDigit(m, cell = m.regs.hl, flags = m.regs.f) {
+  const { mem8 } = m;
   const stepped = stepPackedDecimal(mem8[cell]);
   mem8[cell] = stepped;
 
   const rolledOver = stepped >= ROLLS_OVER_AT;
   if (rolledOver) mem8[cell] = 0;
-  regs.f = (regs.f & ~F_C) | (rolledOver ? 0 : F_C);
-  return rolledOver;
+  return (m.regs.f = (flags & ~F_C) | (rolledOver ? 0 : F_C)), rolledOver;
 }

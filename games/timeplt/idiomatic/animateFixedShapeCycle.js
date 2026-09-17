@@ -14,9 +14,9 @@ const FIRST_SHAPE = 64;
 const SHAPES = 8;
 const CONTROL_BYTE = 68;
 
-export function animateFixedShapeCycle(m) {
-  const { mem8, regs } = m;
+export function animateFixedShapeCycle(m, entry = m.regs.iy) {
+  const { mem8 } = m;
   const frame = (mem8[FRAME_TICK] >> 1) & (SHAPES - 1);
-  mem8[regs.iy + SHAPE_SLOT] = FIRST_SHAPE + frame;
-  mem8[regs.iy + CONTROL_SLOT] = CONTROL_BYTE;
+  mem8[entry + SHAPE_SLOT] = FIRST_SHAPE + frame;
+  mem8[entry + CONTROL_SLOT] = CONTROL_BYTE;
 }

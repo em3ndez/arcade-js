@@ -4,6 +4,5 @@
 
 export function rearmHeldControlRepeat(m, cell = m.regs.hl) {
   m.mem8[cell] = 0;
-  m.regs.a = 0;
-  return 0;
+  return (m.regs.a = 0);
 }

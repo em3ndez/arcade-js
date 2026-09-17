@@ -16,10 +16,10 @@ const THIRD_CODE = 199;
 const FOURTH_CODE = 239;
 
 export function stampGridBox(m, cursor = m.regs.hl) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   mem8[cursor] = FIRST_CODE;
   mem8[cursor + 1] = SECOND_CODE;
   mem8[cursor + NEXT_CELL] = THIRD_CODE;
   mem8[cursor + NEXT_CELL + 1] = FOURTH_CODE;
-  regs.de = SECOND_TO_THIRD;
+  return (m.regs.de = SECOND_TO_THIRD); // DE carries this step to the caller (load-bearing live-out)
 }

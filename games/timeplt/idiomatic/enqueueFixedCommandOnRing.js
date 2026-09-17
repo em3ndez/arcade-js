@@ -10,7 +10,6 @@ const COMMAND = 1;
 const ARGUMENT = 31;
 
 export function enqueueFixedCommandOnRing(m) {
-  m.regs.d = COMMAND;
-  m.regs.e = ARGUMENT;
   postCommand(m, COMMAND, ARGUMENT);
+  return [(m.regs.d = COMMAND), (m.regs.e = ARGUMENT)];
 }

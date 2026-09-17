@@ -16,8 +16,8 @@ export function sumImageBlockForTheTamperCheck(m, base = m.regs.hl, length = m.r
   const run = length === 0 ? LENGTH_ZERO_MEANS : length;
   let total = 0;
   for (let i = 0; i < run; i++) total = u8(total + mem8[u16(base + i)]);
-  regs.a = total;
-  regs.hl = u16(base + run);
-  regs.b = 0;
-  return m.call(parkTheImageTotalForTheTamperVerdict_ADDR);
+  // The total, the walked pointer and the spent counter are the register-out bridge the
+  // continuation reads; they ride the return before the m.call dispatches into it.
+  return (regs.a = total), (regs.hl = u16(base + run)), (regs.b = 0),
+    m.call(parkTheImageTotalForTheTamperVerdict_ADDR);
 }

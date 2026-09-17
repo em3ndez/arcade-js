@@ -22,9 +22,8 @@ const STANDING_BAND = 2;
 const HALF_TURN = 0x80;
 const STEP = 2;
 
-export function steerTowardAimAtFixedRate(m) {
-  const { regs, mem8 } = m;
-  const object = regs.ix;
+export function steerTowardAimAtFixedRate(m, object = m.regs.ix) {
+  const { mem8 } = m;
 
   if ((mem8[FRAME_TICK] & IDLE_PHASE) === 0) return;
 

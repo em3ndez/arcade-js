@@ -8,19 +8,19 @@
  * LIVE-OUT: the two cells written, plus the address in HL and the colour in A. */
 
 import { u8 } from "../../../core/int.js";
-import { PEN_COLOUR, PEN_COLUMN_CELL, PEN_GLYPH, PEN_ROW_CELL } from "./names.js";
+import { CHAR_PLANE_BASE, PEN_COLOUR, PEN_COLUMN_CELL, PEN_GLYPH, PEN_ROW_CELL } from "./names.js";
 
-const CHARACTER_PLANE = 0xa400;
-const COLOUR_PLANE_BIT = 0x0400;
+const COLOUR_PLANE_BIT = 0x400;
 const CELLS_PER_ROW = 32;
 const ROWS_BEFORE_FOLD = 32;
 
 export function plotPenCell(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   const rowStart = (mem8[PEN_ROW_CELL] & (ROWS_BEFORE_FOLD - 1)) * CELLS_PER_ROW;
-  const cell = (CHARACTER_PLANE + (rowStart & 0xff00)) | u8(rowStart + mem8[PEN_COLUMN_CELL]);
+  const cell = (CHAR_PLANE_BASE + (rowStart & ~0xff)) | u8(rowStart + mem8[PEN_COLUMN_CELL]);
   mem8[cell] = mem8[PEN_GLYPH];
   mem8[cell & ~COLOUR_PLANE_BIT] = mem8[PEN_COLOUR];
-  regs.hl = cell;
-  regs.a = mem8[PEN_COLOUR];
+  // the plane address is register-dispatched: the caller reads HL back, and the colour stays in A
+  // -- both are load-bearing live-outs, so they ride the return.
+  return [m.regs.hl = cell, m.regs.a = mem8[PEN_COLOUR]];
 }

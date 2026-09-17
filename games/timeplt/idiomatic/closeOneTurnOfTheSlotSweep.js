@@ -6,9 +6,10 @@
  * back to the head of the turn and does not return here. The record stride is left behind in the
  * wide scratch pair too. LIVE-OUT: memory, the two cursors, the counter and that scratch pair. */
 
-const RECORD_STRIDE = 0x0010;
+import { loc_40ea } from "./names.js";
+
+const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
-const PASS_HEAD = 0x40ea;
 
 export function closeOneTurnOfTheSlotSweep(m) {
   const { regs } = m;
@@ -18,5 +19,5 @@ export function closeOneTurnOfTheSlotSweep(m) {
   regs.b -= 1;
 
   if (regs.b === 0) return;
-  return m.call(PASS_HEAD);
+  return m.call(loc_40ea);
 }

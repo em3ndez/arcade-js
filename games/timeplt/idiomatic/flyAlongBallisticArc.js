@@ -30,10 +30,8 @@ const OFF_ALONG_FROM = 248;
 
 const split = (mem8, whole, fraction) => (mem8[whole] << 8) + mem8[fraction];
 
-export function flyAlongBallisticArc(m) {
-  const { mem8, mem16, regs } = m;
-  const record = regs.ix;
-  const entry = regs.iy;
+export function flyAlongBallisticArc(m, record = m.regs.ix, entry = m.regs.iy) {
+  const { mem8, mem16 } = m;
 
   const acrossWhole = entry + WHOLE_ACROSS;
   const acrossFraction = record + FRACTION_ACROSS;
@@ -53,8 +51,8 @@ export function flyAlongBallisticArc(m) {
   mem8[alongFraction] = along;
 
   if (u8(mem8[acrossWhole] + OFF_ACROSS_LEAD) < OFF_ACROSS_BAND) {
-    retireSlot(m);
+    retireSlot(m, record, entry);
     return;
   }
-  if (mem8[alongWhole] >= OFF_ALONG_FROM) retireSlot(m);
+  if (mem8[alongWhole] >= OFF_ALONG_FROM) retireSlot(m, record, entry);
 }

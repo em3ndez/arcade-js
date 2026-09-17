@@ -14,7 +14,6 @@ import { COIN_ACCEPTED_SLOT_2, COIN_PULSE_TIMER_SLOT_2, COIN_COUNTER_1_LATCH } f
 
 const PHASE_LENGTH = 48;
 const HALFWAY = 24;
-const WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE = 10;
 
 export function pulseSlot2CoinCounter(m) {
   const { mem8 } = m;
@@ -22,7 +21,7 @@ export function pulseSlot2CoinCounter(m) {
 
   if (mem8[COIN_PULSE_TIMER_SLOT_2] === 0) {
     mem8[COIN_PULSE_TIMER_SLOT_2] = PHASE_LENGTH;
-    m.mem.write8(COIN_COUNTER_1_LATCH, 1, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
+    mem8[COIN_COUNTER_1_LATCH] = 1;
     return;
   }
 
@@ -32,5 +31,5 @@ export function pulseSlot2CoinCounter(m) {
     mem8[COIN_ACCEPTED_SLOT_2] = u8(mem8[COIN_ACCEPTED_SLOT_2] - 1);
     return;
   }
-  if (phase === HALFWAY) m.mem.write8(COIN_COUNTER_1_LATCH, 0, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
+  if (phase === HALFWAY) mem8[COIN_COUNTER_1_LATCH] = 0;
 }

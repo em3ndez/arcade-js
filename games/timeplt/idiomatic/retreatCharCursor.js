@@ -4,7 +4,6 @@
 
 import { u16 } from "../../../core/int.js";
 
-export function retreatCharCursor(m) {
-  const { regs } = m;
-  regs.de = u16(regs.de + 32);
+export function retreatCharCursor(m, cursor = m.regs.de) {
+  return (m.regs.de = u16(cursor + 32));
 }

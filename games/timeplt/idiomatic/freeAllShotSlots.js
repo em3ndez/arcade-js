@@ -10,7 +10,7 @@ const SECOND_CLEARED_BYTE = 4;
 
 // Two program-space bytes: the fill (also the stride's high half) and the stride's low half.
 export function freeAllShotSlots(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const fill = mem8[SHOT_SLOT_FILL_BYTE];
   const stride = mem8[PLAYER_SHOT_SLOT_STRIDE] | (fill << 8);
 
@@ -20,5 +20,5 @@ export function freeAllShotSlots(m) {
     mem8[u16(slot + SECOND_CLEARED_BYTE)] = fill;
     slot = u16(slot + stride);
   }
-  regs.ix = slot;
+  return (m.regs.ix = slot);
 }

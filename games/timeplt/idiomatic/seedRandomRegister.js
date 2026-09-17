@@ -13,16 +13,17 @@ const SEED_BYTES = 17;
 const GUARD_BIAS = 0x44;
 
 export function seedRandomRegister(m) {
-  const { mem8, mem16, regs } = m;
+  const { mem8, mem16 } = m;
   for (let i = 0; i < SEED_BYTES; i++) mem8[RANDOM_REGISTER + i] = mem8[RANDOM_REGISTER_SEED_SOURCE + i];
 
-  const a = mem16[RANDOM_SEED_GUARD_WORD0];
-  const b = mem16[RANDOM_SEED_GUARD_WORD1];
-  regs.a = u8((a & 0xff) + (a >> 8) + (b & 0xff) + GUARD_BIAS);
-  if (regs.a !== 0) {
+  const word0 = mem16[RANDOM_SEED_GUARD_WORD0];
+  const word1 = mem16[RANDOM_SEED_GUARD_WORD1];
+  const total = u8((word0 & 0xff) + (word0 >> 8) + (word1 & 0xff) + GUARD_BIAS);
+  if (total !== 0) {
     throw new Error(
-      `guard total ${regs.a} rather than zero: the program space this run is reading is not the ` +
+      `guard total ${total} rather than zero: the program space this run is reading is not the ` +
         "one the guard constant was picked for, and control goes nowhere that exists",
     );
   }
+  return (m.regs.a = total);
 }

@@ -8,9 +8,7 @@ import { u16 } from "../../../core/int.js";
 
 export function displaceByHalf(m, displacement = m.regs.hl, coordinate = m.regs.de) {
   const shortened = displacement - signedHalf(displacement);
-  const moved = u16(coordinate + shortened);
-  m.regs.hl = moved;
-  return moved;
+  return (m.regs.hl = u16(coordinate + shortened));
 }
 
 /** Half a displacement that may run either way, rounded toward the negative. */

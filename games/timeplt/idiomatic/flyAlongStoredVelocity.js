@@ -19,10 +19,7 @@ const FRACTION_LOW_AXIS = 5;
 const WHOLE_HIGH_AXIS = 49;
 const WHOLE_LOW_AXIS = 0;
 
-export function flyAlongStoredVelocity(m) {
-  const object = m.regs.ix;
-  const sprite = m.regs.iy;
-
+export function flyAlongStoredVelocity(m, object = m.regs.ix, sprite = m.regs.iy) {
   advanceCoordinate(
     m, sprite + WHOLE_HIGH_AXIS, object + FRACTION_HIGH_AXIS,
     m.mem16[object + VELOCITY_HIGH_AXIS] + m.mem16[WORLD_SCROLL_Y],

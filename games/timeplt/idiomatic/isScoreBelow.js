@@ -6,12 +6,11 @@
  * LIVE-OUT: the boolean. */
 
 import { u16 } from "../../../core/int.js";
-import { F_C } from "../../../core/cpu/z80.js";
 
 const BYTES = 3;
 
 export function isScoreBelow(m, candidate = m.regs.de, standing = m.regs.hl) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   let below = false;
   for (let i = 0; i < BYTES; i++) {
     const a = mem8[u16(candidate - i)];
@@ -21,6 +20,5 @@ export function isScoreBelow(m, candidate = m.regs.de, standing = m.regs.hl) {
       break;
     }
   }
-  regs.f = (regs.f & ~F_C) | (below ? F_C : 0);
-  return below;
+  return (m.regs.fC = below); // carry mirrors the answer for a register-dispatched caller
 }

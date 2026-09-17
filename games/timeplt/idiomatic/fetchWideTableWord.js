@@ -8,9 +8,6 @@ import { u16 } from "../../../core/int.js";
 
 const ENTRY_WIDTH = 2;
 
-export function fetchWideTableWord(m) {
-  const { regs } = m;
-  const table = regs.hl;
-  const index = regs.a;
-  regs.de = m.mem16[u16(table + ENTRY_WIDTH * index)];
+export function fetchWideTableWord(m, table = m.regs.hl, index = m.regs.a) {
+  return (m.regs.de = m.mem16[u16(table + ENTRY_WIDTH * index)]);
 }

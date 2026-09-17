@@ -11,27 +11,29 @@
 import { sendOldestQueuedSoundCommand } from "./sendOldestQueuedSoundCommand.js";
 import { NMI_ENABLE_LATCH, NMI_REENABLE_BYTE } from "./names.js";
 
-const WRITE_BUS_CYCLE = 10;
-
 export function sendOneQueuedSoundThenUnwindTheFrameInterrupt(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
   sendOldestQueuedSoundCommand(m);
 
-  regs.iy = m.pop16();
-  regs.ix = m.pop16();
-  regs.hl = m.pop16();
-  regs.de = m.pop16();
-  regs.bc = m.pop16();
-  regs.af = m.pop16();
+  // The interrupt frame comes off the stack in the order it was laid down. The first six words
+  // land in the bank the service ran in; a bank swap then puts them in the shadow set, and the
+  // next three plus the final AF restore the bank the interrupted code used. iy/ix bracket both.
+  const iy = m.pop16();
+  const ix = m.pop16();
+  const shadowHl = m.pop16();
+  const shadowDe = m.pop16();
+  const shadowBc = m.pop16();
+  const shadowAf = m.pop16();
+  const mainHl = m.pop16();
+  const mainDe = m.pop16();
+  const mainBc = m.pop16();
+  const mainAf = m.pop16();
 
-  regs.exx();
-  regs.exAf();
+  // Reopen the interrupt gate from a program-image byte (0x01); the AF this rides through is the
+  // next value off the stack, so the LS259 enable bit is set at no cost to the restored registers.
+  mem8[NMI_ENABLE_LATCH] = mem8[NMI_REENABLE_BYTE];
 
-  regs.hl = m.pop16();
-  regs.de = m.pop16();
-  regs.bc = m.pop16();
-  mem.write8(NMI_ENABLE_LATCH, mem.read8(NMI_REENABLE_BYTE), WRITE_BUS_CYCLE);
-  regs.af = m.pop16();
-
-  m.ret();
+  // Restore every register of both banks and return through the pushed resume address. The bank
+  // swap seats the first six words as the shadow set before the second bank overwrites the main set.
+  return (regs.iy = iy, regs.ix = ix, regs.hl = shadowHl, regs.de = shadowDe, regs.bc = shadowBc, regs.af = shadowAf, regs.exx(), regs.exAf(), regs.hl = mainHl, regs.de = mainDe, regs.bc = mainBc, regs.af = mainAf, m.ret());
 }

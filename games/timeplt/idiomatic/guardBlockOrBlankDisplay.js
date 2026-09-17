@@ -13,7 +13,7 @@ import { TAMPER_WITNESS, stampCopyrightStrip_ADDR, COPYRIGHT_STRIP_CHECK_SEED, D
 const GUARDED_BYTES = 51;
 const EXPECTED_TOTAL = 239;
 const LATCH_WRITE_OFFSET = 10;
-const CHARACTER_PLANE_BIT = 0x0400;
+const CHARACTER_PLANE_BIT = 1 << 10;
 
 export function guardBlockOrBlankDisplay(m) {
   const { mem8 } = m;

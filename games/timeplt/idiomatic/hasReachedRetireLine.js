@@ -15,12 +15,10 @@ const RETIRE_ROW = 248;
 
 const atLine = (coord, line) => u8(coord - line + 1) < 3;
 
-export function hasReachedRetireLine(m) {
-  const { mem8, regs } = m;
-  const columnCell = regs.iy;
+export function hasReachedRetireLine(m, entry = m.regs.iy) {
+  const { mem8 } = m;
   const reached =
-    atLine(mem8[u16(columnCell + SCREEN_ROW_CELL)], RETIRE_ROW) ||
-    atLine(mem8[columnCell], RETIRE_COLUMN);
-  regs.f = (regs.f & ~F_C) | (reached ? F_C : 0);
-  return reached;
+    atLine(mem8[u16(entry + SCREEN_ROW_CELL)], RETIRE_ROW) ||
+    atLine(mem8[entry], RETIRE_COLUMN);
+  return (m.regs.f = reached ? F_C : 0, reached);
 }

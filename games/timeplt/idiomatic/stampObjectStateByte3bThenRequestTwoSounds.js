@@ -7,7 +7,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 
 const CLAMPED_TO = 0x3b;
 
-export function stampObjectStateByte3bThenRequestTwoSounds(m) {
-  m.mem8[m.regs.ix] = CLAMPED_TO;
+export function stampObjectStateByte3bThenRequestTwoSounds(m, object = m.regs.ix) {
+  m.mem8[object] = CLAMPED_TO;
   requestTwoSounds(m);
 }

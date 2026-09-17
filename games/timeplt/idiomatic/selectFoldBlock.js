@@ -8,7 +8,6 @@ import { seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR } from "./names.js";
 const BLOCK_BYTES = 30;
 
 export function selectFoldBlock(m) {
-  const { regs } = m;
-  regs.hl = seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR;
-  regs.b = BLOCK_BYTES;
+  // both are register-dispatched live-outs the frozen translated caller reads straight back.
+  return [m.regs.hl = seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR, m.regs.b = BLOCK_BYTES];
 }

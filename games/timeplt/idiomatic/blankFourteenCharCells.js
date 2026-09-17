@@ -7,17 +7,18 @@
  * LIVE-OUT: the twenty-eight cells written. */
 
 import { u16 } from "../../../core/int.js";
+import { KILL_METER_BAR_START_CELL } from "./names.js";
 
-const FIRST_CELL = 0xa79f;
 const CELLS = 14;
 const ONE_ROW_BACK = -32;
 const BLANK = 0xf1;
 const COLOUR = 0x16;
-const COLOUR_PLANE_BIT = 0x0400;
+// Distance from a character-plane cell to its colour-plane twin: clearing this bit crosses to it.
+const COLOUR_PLANE_BIT = 0x400;
 
 export function blankFourteenCharCells(m) {
   const { mem8 } = m;
-  let cell = FIRST_CELL;
+  let cell = KILL_METER_BAR_START_CELL;
   for (let i = 0; i < CELLS; i++) {
     mem8[cell] = BLANK;
     mem8[cell & ~COLOUR_PLANE_BIT] = COLOUR;

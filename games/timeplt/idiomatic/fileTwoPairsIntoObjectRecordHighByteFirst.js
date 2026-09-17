@@ -10,14 +10,7 @@ import { u16 } from "../../../core/int.js";
 const FIRST_PAIR_SLOT = 12;
 const SECOND_PAIR_SLOT = 28;
 
-export function fileTwoPairsIntoObjectRecordHighByteFirst(
-  m,
-  record = m.regs.ix,
-  firstHigh = m.regs.d,
-  firstLow = m.regs.e,
-  secondHigh = m.regs.b,
-  secondLow = m.regs.c,
-) {
+export function fileTwoPairsIntoObjectRecordHighByteFirst(m, record = m.regs.ix, firstHigh = m.regs.d, firstLow = m.regs.e, secondHigh = m.regs.b, secondLow = m.regs.c) {
   const { mem8 } = m;
   mem8[u16(record + FIRST_PAIR_SLOT)] = firstHigh;
   mem8[u16(record + FIRST_PAIR_SLOT + 1)] = firstLow;

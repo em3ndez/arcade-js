@@ -15,11 +15,8 @@ const LINE_STRIDE = 32;
 const COLOUR_PLANE_BELOW = 1024;
 const TILES = 4;
 
-export function paintQuadTile(m) {
-  const { mem8, regs } = m;
-  const cell = regs.de;
-  const firstTile = regs.b;
-  const colour = regs.c;
+export function paintQuadTile(m, cell = m.regs.de, firstTile = m.regs.b, colour = m.regs.c) {
+  const { mem8 } = m;
 
   const quarters = [cell, u16(cell - 1), u16(cell - 1 + LINE_STRIDE), u16(cell + LINE_STRIDE)];
   mem8[quarters[0]] = firstTile + 1;
@@ -28,6 +25,5 @@ export function paintQuadTile(m) {
   mem8[quarters[3]] = firstTile + 3;
   for (let i = TILES - 1; i >= 0; i--) mem8[u16(quarters[i] - COLOUR_PLANE_BELOW)] = colour;
 
-  regs.hl = u16(cell - COLOUR_PLANE_BELOW);
-  regs.de = u16(cell + 2 * LINE_STRIDE);
+  return [(m.regs.hl = u16(cell - COLOUR_PLANE_BELOW)), (m.regs.de = u16(cell + 2 * LINE_STRIDE))];
 }

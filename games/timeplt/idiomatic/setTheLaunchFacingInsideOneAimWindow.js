@@ -11,12 +11,12 @@ const FACING_LINE = 0x78;
 
 const ENTRY_OTHER_COORD = 0x31;
 
-export function setTheLaunchFacingInsideOneAimWindow(m) {
+export function setTheLaunchFacingInsideOneAimWindow(m, entry = m.regs.iy) {
   const { regs, mem8 } = m;
   const half = mem8[ATTACKER_SPAWN_AIM_WINDOW_HALF];
-  const intoWindow = u8(WINDOW_CENTRE - mem8[regs.iy] + half);
+  const intoWindow = u8(WINDOW_CENTRE - mem8[entry] + half);
   if (intoWindow >= u8(half + half)) return;
 
-  regs.c = mem8[u16(regs.iy + ENTRY_OTHER_COORD)] > FACING_LINE ? 1 : 0;
+  regs.c = mem8[u16(entry + ENTRY_OTHER_COORD)] > FACING_LINE ? 1 : 0;
   return m.call(commissionStagedAttackerByEra_ADDR);
 }

@@ -4,15 +4,26 @@
  * slot moves to the far half; a slot with no request is untouched. Each relocation is recorded in
  * m.beamPlan so the beam-sync render can repaint the first appearance in its band. LIVE-OUT: memory, m.beamPlan. */
 
+import {
+  SPRITE_BANK1_SLOT0_Y, SPRITE_BANK0_BASE,
+  SPRITE_BANK1_SLOT1_Y, SPRITE_BANK0_SLOT1_X,
+  SPRITE_BANK1_SLOT2_Y, SPRITE_BANK0_SLOT2_X,
+  SPRITE_BANK1_SLOT19_Y, SPRITE_BANK0_SLOT19_X,
+  SPRITE_BANK1_SLOT20_Y, SPRITE_BANK0_SLOT20_X,
+  SPRITE_BANK1_SLOT21_Y, SPRITE_BANK0_SLOT21_X,
+  SPRITE_BANK1_SLOT22_Y, SPRITE_BANK0_SLOT22_X,
+  SPRITE_BANK1_SLOT23_Y, SPRITE_BANK0_SLOT23_X,
+} from "./names.js";
+
 const SPLIT_SLOTS = [
-  { request: 0xb411, partner: 0xb010 },
-  { request: 0xb413, partner: 0xb012 },
-  { request: 0xb415, partner: 0xb014 },
-  { request: 0xb437, partner: 0xb036 },
-  { request: 0xb439, partner: 0xb038 },
-  { request: 0xb43b, partner: 0xb03a },
-  { request: 0xb43d, partner: 0xb03c },
-  { request: 0xb43f, partner: 0xb03e },
+  { request: SPRITE_BANK1_SLOT0_Y, partner: SPRITE_BANK0_BASE },
+  { request: SPRITE_BANK1_SLOT1_Y, partner: SPRITE_BANK0_SLOT1_X },
+  { request: SPRITE_BANK1_SLOT2_Y, partner: SPRITE_BANK0_SLOT2_X },
+  { request: SPRITE_BANK1_SLOT19_Y, partner: SPRITE_BANK0_SLOT19_X },
+  { request: SPRITE_BANK1_SLOT20_Y, partner: SPRITE_BANK0_SLOT20_X },
+  { request: SPRITE_BANK1_SLOT21_Y, partner: SPRITE_BANK0_SLOT21_X },
+  { request: SPRITE_BANK1_SLOT22_Y, partner: SPRITE_BANK0_SLOT22_X },
+  { request: SPRITE_BANK1_SLOT23_Y, partner: SPRITE_BANK0_SLOT23_X },
 ];
 
 const HALF_RANGE = 128;
