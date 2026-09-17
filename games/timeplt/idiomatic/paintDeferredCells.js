@@ -17,10 +17,11 @@ const ENTRY_BYTES = 4;
 const HEADER_BYTES = 4;
 const ENTRY_COUNT_BITS = 0x1f;
 const ABOVE_SPRITES = 0x10;
-const TO_CHARACTER_PLANE = 0x0400;
+const TO_CHARACTER_PLANE = 0x400;
 
-/** Step the read cursor one byte on WITHOUT leaving its page — the carry is dropped. */
-const nextByte = (cursor) => (cursor & 0xff00) | u8(cursor + 1);
+/** Step the read cursor one byte on WITHOUT leaving its page — the low byte is dropped and the
+ * carry never reaches the high byte. */
+const nextByte = (cursor) => cursor - u8(cursor) + u8(cursor + 1);
 
 export function paintDeferredCells(m) {
   const { mem8, mem16 } = m;

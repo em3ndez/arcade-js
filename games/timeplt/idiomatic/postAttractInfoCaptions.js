@@ -4,16 +4,16 @@
  * sequence counter twice on the high branch and once on the low. LIVE-OUT: memory. */
 
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { BONUS_LIFE_SETTING, CREDIT_COUNT } from "./names.js";
+import { BONUS_LIFE_SETTING, CREDIT_COUNT, stampCopyrightStrip_ADDR } from "./names.js";
 
 export function postAttractInfoCaptions(m) {
   const { mem8, regs } = m;
   // each frozen callee pops a parked slot; the dissolved advanceSequenceSubStep tail takes no return.
   const call = (addr) => { m.push16(0); m.call(addr); };
-  call(0x0b06);
+  call(stampCopyrightStrip_ADDR);
   call(0x0b39);
 
-  const post = (code) => { regs.de = 0x0100 | code; call(0x0038); };
+  const post = (code) => { regs.de = (1 << 8) | code; call(0x0038); };
   post(0x01);
   post(0x14);
   post(0x15);

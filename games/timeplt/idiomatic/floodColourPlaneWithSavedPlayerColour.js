@@ -12,10 +12,12 @@ import { ACTIVE_PLAYER, COLOUR_FLOOD_COUNTDOWN, INTRO_ANIMATION_STEP, PLAYER_ONE
 const NEXT_STEP = 5;
 
 const FIRST_CELL = 0xa044;
-const LAST_CELL = 0xa3be;
 const ROW_STRIDE = 32;
 const ROWS = 28;
 const CELLS_PER_ROW = 27;
+// The far corner the backwards pass starts from: the last cell the forwards pass paints, so the two
+// directions cover the same rectangle.
+const LAST_CELL = FIRST_CELL + ROW_STRIDE * (ROWS - 1) + (CELLS_PER_ROW - 1);
 
 export function floodColourPlaneWithSavedPlayerColour(m) {
   const { mem8 } = m;

@@ -54,7 +54,7 @@ function appendCell(m, cell, glyph, attribute) {
   let out = mem16[DEFERRED_WRITE_CURSOR];
   for (const byte of [cell & 0xff, cell >> 8, glyph, attribute]) {
     mem8[out] = byte;
-    out = (out & 0xff00) | u8(out + 1);
+    out = (out - (out & 0xff)) + u8(out + 1); // step the low half only; the list stays in its page
   }
   mem16[DEFERRED_WRITE_CURSOR] = out;
 }
