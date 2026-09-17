@@ -9,11 +9,11 @@
  */
 import { loc_00ca } from "../translated/loc_00ca.js";
 
-export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)") {
+export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)", a = m.regs.a) {
   const { regs, mem8 } = m;
 
   // Double the selector into a byte offset: an 8-bit result, so 0x80 wraps to 0.
-  regs.add(regs.a);
+  regs.add(a);
 
   regs.hl = m.pop16();
 

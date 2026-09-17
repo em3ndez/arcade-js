@@ -11,14 +11,14 @@
  * LIVE-OUT: the two digit cells, the tens cell on the value-10 arm, and the target cell and digit
  * pair the second pass runs with.
  */
-export function writeDigitPairWithCarry(m) {
+export function writeDigitPairWithCarry(m, e = m.regs.e, d = m.regs.d, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
-  mem8[regs.hl] = regs.e;
-  const secondCell = (regs.hl + 2) & 0xffff;
-  mem8[secondCell] = regs.d;
+  mem8[hl] = e;
+  const secondCell = (hl + 2) & 0xffff;
+  mem8[secondCell] = d;
 
-  if (regs.d === 0x0a) {
+  if (d === 0x0a) {
     mem8[secondCell] = 0x00; // ones digit
     mem8[0x758e] = 0x01; //    tens digit
   }

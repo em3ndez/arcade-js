@@ -14,15 +14,15 @@ import { mirrorObjectPositionToSprite } from "./mirrorObjectPositionToSprite.js"
 
 const TRAVEL_LIMIT = 248;
 
-export function loc_2e84(m) {
-  const { regs, mem8 } = m;
+export function loc_2e84(m, ix = m.regs.ix) {
+  const { mem8 } = m;
 
-  const newY = u8(mem8[regs.ix + OBJ_Y] + 3);
-  mem8[regs.ix + OBJ_Y] = newY;
+  const newY = u8(mem8[ix + OBJ_Y] + 3);
+  mem8[ix + OBJ_Y] = newY;
 
   if (newY >= TRAVEL_LIMIT) {
-    mem8[regs.ix + OBJ_X] = 0;
-    mem8[regs.ix + OBJ_ACTIVE] = 0;
+    mem8[ix + OBJ_X] = 0;
+    mem8[ix + OBJ_ACTIVE] = 0;
   }
 
   mirrorObjectPositionToSprite(m);

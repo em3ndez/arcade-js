@@ -13,13 +13,13 @@ import { MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, 
 const OBJ_X_DISPLACEMENT = 0x0e;
 const OBJ_Y_DISPLACEMENT = 0x0f;
 
-export function commitSpriteRecordAtMarioOffset(m) {
-  const { regs, mem8 } = m;
+export function commitSpriteRecordAtMarioOffset(m, de = m.regs.de, ix = m.regs.ix, b = m.regs.b, c = m.regs.c) {
+  const { mem8 } = m;
 
-  const recordAddr = regs.de; // destination sprite record (the caller's swapped pointer)
-  const objBase = regs.ix;    // the object record this sprite belongs to
-  const spriteCode = regs.b;  // tile code byte to store
-  const spriteAttr = regs.c;  // attribute byte to store
+  const recordAddr = de; // destination sprite record (the caller's swapped pointer)
+  const objBase = ix;    // the object record this sprite belongs to
+  const spriteCode = b;  // tile code byte to store
+  const spriteAttr = c;  // attribute byte to store
 
   const x = mem8[MARIO_X] + mem8[objBase + OBJ_X_DISPLACEMENT];
   mem8[recordAddr + SPRITE_X] = x;

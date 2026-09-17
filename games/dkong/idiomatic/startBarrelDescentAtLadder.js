@@ -16,9 +16,9 @@ import { MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT } from "./names.js";
 // Multiplexed engine-scratch gate: clear = start immediately; set = run the grading below.
 const SPAWN_MODE_GATE = 0x6348;
 
-export function startBarrelDescentAtLadder(m) {
+export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix) {
   const { regs, mem8 } = m;
-  const rec = (off) => (regs.ix + off) & 0xffff; // a field of the object record the caller pointed at
+  const rec = (off) => (ix + off) & 0xffff; // a field of the object record the caller pointed at
 
   if (!findOppositeLadderEnd(m)) return;
 
@@ -26,7 +26,6 @@ export function startBarrelDescentAtLadder(m) {
   if (regs.a !== 1) return;
 
   const slotByte = regs.b; // the paired slot byte the lookup handed back
-  const disc = regs.d;     // the discriminator, passed through unchanged
   const key = regs.e;      // the search key, echoed back
 
   // Stamp the descent target on every tag-1 hit, before the grading gates.

@@ -11,11 +11,11 @@
 import { OBJ_X, OBJ_Y, SPRITE_X, SPRITE_Y } from "./names.js";
 import { advanceToNextObject } from "./advanceToNextObject.js";
 
-export function mirrorObjectPositionToSprite(m) {
-  const { regs, mem8 } = m;
+export function mirrorObjectPositionToSprite(m, iy = m.regs.iy, ix = m.regs.ix) {
+  const { mem8 } = m;
 
-  mem8[regs.iy + SPRITE_X] = mem8[regs.ix + OBJ_X];
-  mem8[regs.iy + SPRITE_Y] = mem8[regs.ix + OBJ_Y];
+  mem8[iy + SPRITE_X] = mem8[ix + OBJ_X];
+  mem8[iy + SPRITE_Y] = mem8[ix + OBJ_Y];
 
   advanceToNextObject(m);
 }

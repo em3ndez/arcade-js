@@ -11,11 +11,19 @@
 
 import { OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
 
-export function findCollidingObject(m) {
+export function findCollidingObject(
+  m,
+  ix = m.regs.ix,
+  c = m.regs.c,
+  l = m.regs.l,
+  iy = m.regs.iy,
+  h = m.regs.h,
+  de = m.regs.de,
+) {
   const { regs, mem8 } = m;
 
   // Walk a local copy of the base so the caller's own base register is preserved.
-  let rec = regs.ix;
+  let rec = ix;
 
   for (;;) {
     let hit = false;
@@ -26,21 +34,21 @@ export function findCollidingObject(m) {
       if (regs.fZ) break record; // inactive slot -> next record
 
       // Axis 1: |ref - record[+5]| + 1, inside the base window or the record's extra span.
-      regs.a = regs.c;
+      regs.a = c;
       regs.sub(mem8[(rec + 0x05) & 0xffff]);
       if (!regs.fNC) regs.neg();
       regs.a = regs.inc8(regs.a);
-      regs.sub(regs.l);
+      regs.sub(l);
       if (!regs.fC) {
         regs.sub(mem8[(rec + OBJ_HIT_EXTENT_Y) & 0xffff]);
         if (regs.fNC) break record; // out of range on axis 1 -> next record
       }
 
       // Axis 2: |ref[+3] - record[+3]|, inside the base window or the record's extra span.
-      regs.a = mem8[(regs.iy + 0x03) & 0xffff];
+      regs.a = mem8[(iy + 0x03) & 0xffff];
       regs.sub(mem8[(rec + 0x03) & 0xffff]);
       if (!regs.fNC) regs.neg();
-      regs.sub(regs.h);
+      regs.sub(h);
       if (!regs.fC) {
         regs.sub(mem8[(rec + OBJ_HIT_EXTENT_X) & 0xffff]);
         if (regs.fNC) break record; // out of range on axis 2 -> next record
@@ -54,7 +62,7 @@ export function findCollidingObject(m) {
       return false; // FALSE = a hit was found (caller-skip)
     }
 
-    rec = (rec + regs.de) & 0xffff;
+    rec = (rec + de) & 0xffff;
     regs.djnz();
     if (regs.b === 0) break;
   }

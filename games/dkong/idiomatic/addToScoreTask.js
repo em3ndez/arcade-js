@@ -15,10 +15,10 @@ import { drawHighScore } from "./drawHighScore.js";
 
 const SCORE_ADDEND_TABLE = 0x3529;
 
-export function addToScoreTask(m) {
+export function addToScoreTask(m, a = m.regs.a) {
   const { regs, mem8 } = m;
 
-  const payload = regs.a & 0xff;
+  const payload = a & 0xff;
 
   if (!gameActiveGuard(m)) return;
 

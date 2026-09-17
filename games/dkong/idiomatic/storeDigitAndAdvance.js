@@ -6,12 +6,12 @@
  *
  * LIVE-OUT: memory + IX (advanced by DE, the next digit's cell) + A (the masked nibble).
  */
-export function storeDigitAndAdvance(m) {
+export function storeDigitAndAdvance(m, a = m.regs.a, ix = m.regs.ix, de = m.regs.de) {
   const { regs, mem8 } = m;
 
-  const digit = regs.a & 0x0f;
-  mem8[regs.ix] = digit;
-  regs.ix = (regs.ix + regs.de) & 0xffff;
+  const digit = a & 0x0f;
+  mem8[ix] = digit;
+  regs.ix = (ix + de) & 0xffff;
 
   regs.a = digit;
 }

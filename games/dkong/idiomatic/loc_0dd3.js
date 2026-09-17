@@ -31,18 +31,18 @@ import {
   SEG_KIND,
 } from "./names.js";
 
-export function loc_0dd3(m) {
+export function loc_0dd3(m, a = m.regs.a, c = m.regs.c) {
   const { regs, mem8, mem16 } = m;
 
   // The accumulator arrives holding the segment's height.
-  mem8[SEG_HEIGHT] = regs.a;
+  mem8[SEG_HEIGHT] = a;
 
   // Step to the second point's x: the run is the difference of the two x values, and its low
   // three bits are the second point's sub-tile position.
   regs.de = (regs.de + 1) & 0xffff;
   const x2 = mem8[regs.de];
   regs.l = x2;
-  mem8[SEG_RUN] = (x2 - regs.c) & 0xff;
+  mem8[SEG_RUN] = (x2 - c) & 0xff;
   mem8[SEG_SUBTILE2] = x2 & 0x07;
 
   // Convert the second point to a tile address. The conversion clobbers the record pointer, so

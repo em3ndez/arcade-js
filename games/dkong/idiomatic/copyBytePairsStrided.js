@@ -10,14 +10,12 @@
  *
  * LIVE-OUT: memory-only — two destination bytes per pass.
  */
-export function copyBytePairsStrided(m) {
-  const { regs, mem8 } = m;
+export function copyBytePairsStrided(m, src = m.regs.hl, de = m.regs.de, stride = m.regs.c, b = m.regs.b) {
+  const { mem8 } = m;
 
-  let src = regs.hl;
-  const page = regs.de & 0xff00;
-  let lo = regs.de & 0xff;
-  const stride = regs.c; // extra low-byte advance beyond the fixed +2
-  const passes = regs.b === 0 ? 256 : regs.b;
+  const page = de & 0xff00;
+  let lo = de & 0xff;
+  const passes = b === 0 ? 256 : b;
 
   for (let i = 0; i < passes; i++) {
     mem8[page | lo] = mem8[src];

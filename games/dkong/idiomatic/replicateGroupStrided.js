@@ -9,15 +9,11 @@
  * duplicate in A, and the pass count run to zero. Gap size, destination page and source pointer
  * are preserved.
  */
-export function replicateGroupStrided(m) {
+export function replicateGroupStrided(m, src = m.regs.hl, stride = m.regs.c, page = m.regs.d << 8, b = m.regs.b, e = m.regs.e) {
   const { regs, mem8 } = m;
 
-  const src = regs.hl;
-  const stride = regs.c;
-  const page = regs.d << 8;
-  const groups = regs.b === 0 ? 256 : regs.b; // count decremented before test: 0 means 256
+  const groups = b === 0 ? 256 : b; // count decremented before test: 0 means 256
 
-  let e = regs.e;
   for (let g = 0; g < groups; g++) {
     for (let i = 0; i < 4; i++) {
       mem8[page | e] = mem8[(src + i) & 0xffff];

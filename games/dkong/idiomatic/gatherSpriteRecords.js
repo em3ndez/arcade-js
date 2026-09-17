@@ -10,15 +10,11 @@
  * A = last byte written, B = 0, dest advanced 4 per record within its page, source base
  * advanced one stride per record. The stride is read-only.
  */
-export function gatherSpriteRecords(m) {
+export function gatherSpriteRecords(m, stride = m.regs.de, b = m.regs.b, hi = m.regs.h << 8, l = m.regs.l, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
-  const stride = regs.de;
-  const count = regs.b === 0 ? 256 : regs.b;
+  const count = b === 0 ? 256 : b;
 
-  const hi = regs.h << 8; // fixed destination page
-  let l = regs.l;
-  let ix = regs.ix;
   let a = 0;
 
   for (let i = 0; i < count; i++) {

@@ -13,13 +13,13 @@ import { loc_2ff0 } from "../translated/loc_2ff0.js";
 import { loc_0dd3 } from "./loc_0dd3.js";
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js";
 
-export function drawBoardLayout(m) {
+export function drawBoardLayout(m, sp = m.regs.sp) {
   const { regs, mem8, mem16 } = m;
 
   // The conversion leaf and the per-segment step each pop the guest stack with no matching push
   // on this path; the hardware balances to no net movement per record, so sp is pinned back to
   // this base each iteration. A stack seam, not logic, and not a live-out.
-  const spBase = regs.sp;
+  const spBase = sp;
 
   for (;;) {
     regs.sp = spBase;

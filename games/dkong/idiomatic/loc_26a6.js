@@ -7,14 +7,14 @@
  *
  * LIVE-OUT: memory — the two counters — plus the P+4 result, which the caller reads back.
  */
-export function loc_26a6(m) {
+export function loc_26a6(m, hl = m.regs.hl, l = m.regs.l, de = m.regs.de) {
   const { regs, mem8 } = m;
 
-  const page = regs.hl & 0xff00;
-  const p = page | ((regs.l + 1) & 0xff);
-  const p4 = page | ((regs.l + 5) & 0xff);
+  const page = hl & 0xff00;
+  const p = page | ((l + 1) & 0xff);
+  const p4 = page | ((l + 5) & 0xff);
 
-  const countUpAtP = (mem8[regs.de] & 0x80) === 0;
+  const countUpAtP = (mem8[de] & 0x80) === 0;
 
   let result;
   if (countUpAtP) {

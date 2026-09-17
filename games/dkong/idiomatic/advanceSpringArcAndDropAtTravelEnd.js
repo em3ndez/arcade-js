@@ -19,14 +19,13 @@ const X_BOUNDARY = 0xb7;
 const STRING_TERMINATOR = 0x7f;
 const NEXT_STATE = 4;
 
-export function advanceSpringArcAndDropAtTravelEnd(m) {
-  const { regs, mem8 } = m;
-  const ix = regs.ix;
+export function advanceSpringArcAndDropAtTravelEnd(m, ix = m.regs.ix, l = m.regs.l, h = m.regs.h, c = m.regs.c) {
+  const { mem8 } = m;
 
-  mem8[ix + OBJ_STR_PTR] = regs.l;
-  mem8[ix + OBJ_STR_PTR + 1] = regs.h;
+  mem8[ix + OBJ_STR_PTR] = l;
+  mem8[ix + OBJ_STR_PTR + 1] = h;
 
-  if (mem8[ix + OBJ_X] >= X_BOUNDARY && regs.c === STRING_TERMINATOR) {
+  if (mem8[ix + OBJ_X] >= X_BOUNDARY && c === STRING_TERMINATOR) {
     mem8[ix + OBJ_STATE] = NEXT_STATE;
     mem8[SND_TRIGGER + 3] = 0;
     mem8[SND_TRIGGER + 4] = 3;

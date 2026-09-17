@@ -18,13 +18,10 @@ export function allSlotsClear(mem, base, stride) {
  * allSlotsClearFromRegisters — the seam entry the override resolvers dispatch as fn(m). Base and
  * stride arrive in HL/DE; the verdict is the caller-skip boolean (true = all clear, caller
  * continues; false = a slot is occupied, caller aborts). Writes no memory.
- * The all-clear arm replays the walk's final register/flag state (register-exact); the occupied
- * arm drops its residuals (dead at the caller-skip).
+ * The all-clear arm replays the walk's final register/flag state; the occupied arm drops residuals.
  */
-export function allSlotsClearFromRegisters(m) {
+export function allSlotsClearFromRegisters(m, base = m.regs.hl, stride = m.regs.de) {
   const { regs, mem } = m;
-  const base = regs.hl;
-  const stride = regs.de;
 
   if (!allSlotsClear(mem, base, stride)) return false; // caller-skip; residuals dropped
 
