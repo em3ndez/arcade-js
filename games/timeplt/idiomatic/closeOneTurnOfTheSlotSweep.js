@@ -11,13 +11,7 @@ import { loc_40ea } from "./names.js";
 const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
 
-export function closeOneTurnOfTheSlotSweep(m) {
-  const { regs } = m;
-  regs.de = RECORD_STRIDE;
-  regs.ix += RECORD_STRIDE;
-  regs.iy += ENTRY_STRIDE;
-  regs.b -= 1;
-
-  if (regs.b === 0) return;
-  return m.call(loc_40ea);
+export function closeOneTurnOfTheSlotSweep(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b) {
+  b = b - 1;
+  return (m.regs.de = RECORD_STRIDE, m.regs.ix = ix + RECORD_STRIDE, m.regs.iy = iy + ENTRY_STRIDE, m.regs.b = b, b === 0 ? undefined : m.call(loc_40ea));
 }

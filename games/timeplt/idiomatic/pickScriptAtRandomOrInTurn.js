@@ -14,16 +14,15 @@ const FIRST_IN_BAND = 5;
 const CYCLE_LENGTH = 5;
 
 export function pickScriptAtRandomOrInTurn(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const drawn = drawRandomByte(m);
 
   if (drawn >= mem8[SCRIPT_PICK_THRESHOLD]) {
-    regs.a = (drawn % BAND_SIZE) + FIRST_IN_BAND;
-    return regs.a;
+    return (m.regs.a = (drawn % BAND_SIZE) + FIRST_IN_BAND);
   }
 
   const stepped = u8(mem8[SCRIPT_CYCLE_COUNTER] + 1);
-  regs.a = stepped < CYCLE_LENGTH ? stepped : 0;
-  mem8[SCRIPT_CYCLE_COUNTER] = regs.a;
-  return regs.a;
+  const answer = stepped < CYCLE_LENGTH ? stepped : 0;
+  mem8[SCRIPT_CYCLE_COUNTER] = answer;
+  return (m.regs.a = answer);
 }

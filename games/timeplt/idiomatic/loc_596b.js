@@ -4,7 +4,7 @@
 
 import { velocityForHeading } from "./velocityForHeading.js";
 
-const VELOCITY_TABLE = 0x08fa;
+const VELOCITY_TABLE = 0x8fa;
 
 export function loc_596b(m) {
   velocityForHeading(m, VELOCITY_TABLE);

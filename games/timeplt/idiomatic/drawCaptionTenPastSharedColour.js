@@ -17,13 +17,11 @@ const GLYPHS_FROM = 3;
 const COLOUR_BIAS = 10;
 const COLOUR_MASK = 0x0f;
 
-export function drawCaptionTenPastSharedColour(m) {
-  const { regs, mem8, mem16 } = m;
-  regs.hl = CAPTION_RECORD_TABLE;
-  fetchWideTableWord(m);
-  const record = regs.de;
-  regs.de = mem16[record];
-  regs.hl = u16(record + GLYPHS_FROM);
-  regs.c = u8(mem8[PEN_COLOUR] + COLOUR_BIAS) & COLOUR_MASK;
-  return drawTextRun(m);
+export function drawCaptionTenPastSharedColour(m, index = m.regs.a) {
+  const { mem8, mem16 } = m;
+  const record = fetchWideTableWord(m, CAPTION_RECORD_TABLE, index);
+  const cursor = mem16[record];
+  const run = u16(record + GLYPHS_FROM);
+  const colour = u8(mem8[PEN_COLOUR] + COLOUR_BIAS) & COLOUR_MASK;
+  return (m.regs.c = colour, drawTextRun(m, run, cursor, colour));
 }

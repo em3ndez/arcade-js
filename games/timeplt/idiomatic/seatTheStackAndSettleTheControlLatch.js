@@ -19,9 +19,9 @@ const STORE_TO_A_FIXED_ADDRESS = 10;
 const STORE_THROUGH_A_POINTER = 7;
 
 export function seatTheStackAndSettleTheControlLatch(m) {
-  const { regs, mem } = m;
+  const { regs, mem, mem8 } = m;
 
-  regs.a = mem.read8(EXPANSION_SOCKET_PROBE);
+  regs.a = mem8[EXPANSION_SOCKET_PROBE];
   regs.cp(EXPANSION_FITTED);
   if (regs.fZ) {
     throw new Error(
@@ -37,7 +37,7 @@ export function seatTheStackAndSettleTheControlLatch(m) {
     mem.write8(NMI_ENABLE_LATCH + i, 0, STORE_THROUGH_A_POINTER);
   }
 
-  regs.a = mem.read8(DISPLAY_ON_VALUE);
+  regs.a = mem8[DISPLAY_ON_VALUE];
   mem.write8(VIDEO_ENABLE_LATCH, regs.a, STORE_TO_A_FIXED_ADDRESS);
 
   return m.call(clearWorkRamAndSpriteBanksThenColdInit_ADDR);

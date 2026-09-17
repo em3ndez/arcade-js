@@ -14,14 +14,10 @@ import { CAPTION_RECORD_TABLE } from "./names.js";
 const HEADER_BYTES = 3;
 
 export function drawTextRunByIndex(m, caption = m.regs.a) {
-  const { regs, mem8 } = m;
-  regs.a = caption;
-  regs.hl = CAPTION_RECORD_TABLE;
-  fetchWideTableWord(m);
-
-  const record = regs.de;
-  regs.de = mem8[record] | (mem8[u16(record + 1)] << 8);
-  regs.c = mem8[u16(record + 2)];
-  regs.hl = u16(record + HEADER_BYTES);
-  drawTextRun(m);
+  const { mem8 } = m;
+  const record = fetchWideTableWord(m, CAPTION_RECORD_TABLE, caption);
+  const cursor = mem8[record] | (mem8[u16(record + 1)] << 8);
+  const colour = mem8[u16(record + 2)];
+  const run = u16(record + HEADER_BYTES);
+  return (m.regs.c = colour, drawTextRun(m, run, cursor, colour));
 }

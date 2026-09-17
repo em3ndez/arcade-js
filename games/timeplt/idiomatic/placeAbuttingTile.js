@@ -12,12 +12,11 @@ const SPRITE_PITCH = 16;
 const STEPPED_COORDINATE = 49;
 const COPIED_COORDINATE = 0;
 
-export function placeAbuttingTile(m) {
-  const { mem8, regs } = m;
-  const entry = regs.iy;
+export function placeAbuttingTile(m, entry = m.regs.iy) {
+  const { mem8 } = m;
   const nextEntry = entry + ENTRY_STRIDE;
 
   mem8[nextEntry + STEPPED_COORDINATE] = mem8[entry + STEPPED_COORDINATE] + SPRITE_PITCH;
   mem8[nextEntry + COPIED_COORDINATE] = mem8[entry + COPIED_COORDINATE];
-  advanceToNextSlot(m);
+  return advanceToNextSlot(m);
 }

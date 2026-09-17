@@ -12,10 +12,7 @@ import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
 
 const CURRENT_HEADING = 2;
 
-export function flyAlongHeading(m, table = m.regs.hl) {
-  const object = m.regs.ix;
-  const sprite = m.regs.iy;
-
+export function flyAlongHeading(m, table = m.regs.hl, object = m.regs.ix, sprite = m.regs.iy) {
   velocityForHeading(m, table, m.mem8[object + CURRENT_HEADING]);
   const alongFirstAxis = m.regs.de;
   const alongSecondAxis = m.regs.bc;

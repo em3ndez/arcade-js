@@ -14,13 +14,10 @@ import { PEN_COLOUR, CAPTION_RECORD_TABLE } from "./names.js";
 const COLOUR_FIELD = 0x0f;
 const GLYPHS_START = 3;
 
-export function drawCaptionInPenColour(m) {
-  const { regs, mem8 } = m;
-  regs.hl = CAPTION_RECORD_TABLE;
-  fetchWideTableWord(m);
-  const record = regs.de;
-  regs.de = m.mem16[record];
-  regs.hl = u16(record + GLYPHS_START);
-  regs.c = mem8[PEN_COLOUR] & COLOUR_FIELD;
-  drawTextRun(m);
+export function drawCaptionInPenColour(m, index = m.regs.a) {
+  const { mem8 } = m;
+  const record = fetchWideTableWord(m, CAPTION_RECORD_TABLE, index);
+  const colour = mem8[PEN_COLOUR] & COLOUR_FIELD;
+  drawTextRun(m, u16(record + GLYPHS_START), m.mem16[record], colour);
+  return (m.regs.c = colour);
 }

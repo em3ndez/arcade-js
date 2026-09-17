@@ -17,10 +17,10 @@ const BLANK_GLYPH = 0xf1;
 const BLANK_COLOUR = 0x10;
 const CHECKSUM_TARGET = 0x69;
 
-export function drawCountAsPictogramStrip(m) {
+export function drawCountAsPictogramStrip(m, a = m.regs.a) {
   const { regs, mem16 } = m;
 
-  let value = regs.a >= 100 ? 99 : regs.a;
+  let value = a >= 100 ? 99 : a;
   const thirties = Math.floor(value / 30); value %= 30;
   const tens = Math.floor(value / 10); value %= 10;
   const fives = Math.floor(value / 5); value %= 5;

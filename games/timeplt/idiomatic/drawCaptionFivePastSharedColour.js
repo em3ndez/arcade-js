@@ -17,14 +17,10 @@ const STORED_COLOUR_BYTES = 1;
 const COLOUR_PHASE = 5;
 const COLOUR_MASK = 0x0f;
 
-export function drawCaptionFivePastSharedColour(m) {
-  const { mem8, mem16, regs } = m;
-  regs.hl = CAPTION_RECORD_TABLE;
-  fetchWideTableWord(m);
-  const record = regs.de;
-
-  regs.de = mem16[record];
-  regs.hl = u16(record + DESTINATION_BYTES + STORED_COLOUR_BYTES);
-  regs.c = (mem8[PEN_COLOUR] + COLOUR_PHASE) & COLOUR_MASK;
-  drawTextRun(m);
+export function drawCaptionFivePastSharedColour(m, index = m.regs.a) {
+  const { mem8, mem16 } = m;
+  const record = fetchWideTableWord(m, CAPTION_RECORD_TABLE, index);
+  const colour = (mem8[PEN_COLOUR] + COLOUR_PHASE) & COLOUR_MASK;
+  drawTextRun(m, u16(record + DESTINATION_BYTES + STORED_COLOUR_BYTES), mem16[record], colour);
+  return (m.regs.c = colour);
 }

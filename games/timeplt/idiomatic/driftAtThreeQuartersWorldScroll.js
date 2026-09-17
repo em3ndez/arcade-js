@@ -9,11 +9,7 @@
 import { displaceByThreeQuarters } from "./displaceByThreeQuarters.js";
 import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
 
-export function driftAtThreeQuartersWorldScroll(m) {
-  const { regs } = m;
-  const object = regs.ix;
-  const sprite = regs.iy;
-
+export function driftAtThreeQuartersWorldScroll(m, object = m.regs.ix, sprite = m.regs.iy) {
   moveCoordinate(m, sprite + 49, object + 3, m.mem16[WORLD_SCROLL_Y]);
   moveCoordinate(m, sprite, object + 5, m.mem16[WORLD_SCROLL_X]);
 }

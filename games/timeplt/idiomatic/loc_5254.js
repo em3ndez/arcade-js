@@ -13,18 +13,11 @@ import { SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const RECORD_STRIDE = 16;
 
-export function loc_5254(
-  m,
-  shot = m.regs.ix,
-  shots = m.regs.c,
-  targetsPerPass = m.regs.a_,
-  reach = m.regs.l,
-  span = m.regs.h,
-) {
+export function loc_5254(m, shot = m.regs.ix, shots = m.regs.c, targetsPerPass = m.regs.a_, reach = m.regs.l, span = m.regs.h) {
   const { mem16 } = m;
   const shotsLeft = u8(shots - 1);
   if (shotsLeft === 0) return;
-  const nextShot = (shot & 0xff00) | u8(shot + RECORD_STRIDE);
+  const nextShot = (shot - (shot & 0xff)) | u8(shot + RECORD_STRIDE);
   destroyTargetsHitByShots(
     m,
     nextShot,
