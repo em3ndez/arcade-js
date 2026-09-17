@@ -1,28 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * buildBoard — build a board: wipe the playfield, arm the palette bank and the opening
- * task, then dispatch to the per-board setup arm selected by BOARD.
+ * buildBoard — build a board: wipe the playfield, reset the bonus readout, post the opening task,
+ * select palette bank 2, then dispatch to the per-board setup arm selected by BOARD (1 = 25m
+ * girders, 2 = 50m conveyors, 3 = 75m elevators). Any other value falls into the inline 100m-rivet
+ * arm, which stamps the rivet bands, raises palette bit0 to bank 3, queues the rivet tune, and runs
+ * the shared draw/setup tail.
  *
- * Runs during board setup, from inside the vblank service. It does a fixed prologue and
- * then a data-dependent dispatch:
- *
- *   1. Clear the tilemap playfield and the sprite shadow buffer for the fresh board.
- *   2. Reset the on-screen bonus readout BONUS_DISPLAY to 0 — every board build starts
- *      that counter's display cell from zero before the board's own setup seeds it.
- *   3. Post the opening deferred task (opcode 5, argument 1) onto the work queue.
- *   4. Select palette bank 2 for the build — clear bit0, set bit1 of the two-bit
- *      hardware palette-bank latch. The display reads that bank to pick its colour set.
- *   5. Read BOARD and hand off to the matching per-board setup arm: 25m girders,
- *      50m conveyors, or 75m elevators. Any other value (in play, board 4) falls into
- *      the inline 100m-rivet arm, which clears the sprite rows, raises palette bit0 to
- *      reach bank 3, queues the rivet background tune, points at the rivet layout
- *      table, and runs the same shared draw/setup tail the other arms converge on.
- *
- * Every arm's eventual return is this routine's return; its caller consumes no value.
- *
- * LIVE-OUT: memory (BONUS_DISPLAY, the enqueued task, SND_BGM on the taken arm, and
- * everything the arm and the shared tail draw), PLUS the palette-bank output latch — a
- * device register the display reads rather than a RAM cell.
+ * LIVE-OUT: memory (BONUS_DISPLAY, the enqueued task, SND_BGM on the taken arm, and everything the
+ * arm and shared tail draw) plus the palette-bank output latch.
  */
 
 import { BOARD, SND_BGM, BONUS_DISPLAY } from "./names.js";
@@ -34,48 +19,37 @@ import { setUp75mBoard } from "./setUp75mBoard.js";
 import { stampRivetBoardBands } from "./stampRivetBoardBands.js";
 import { loc_0cc6 } from "./loc_0cc6.js";
 
-// The two-bit palette-bank select latch: a board control OUTPUT the display reads to pick
-// its colour set, not work RAM. The first address is bit0 and the second bit1; together
-// they select bank 0..3.
+// Two-bit palette-bank select latch: board control outputs, not work RAM (bit0, then bit1).
 const PALETTE_BANK_BIT0 = 0x7d86;
 const PALETTE_BANK_BIT1 = 0x7d87;
 
-// The opening deferred task posted for every board build: opcode 0x05, argument 0x01,
-// packed as the message pair the task-ring primitive reads from the register image.
-const OPENING_TASK = 0x0501;
-
-// The 100m-rivet layout table, handed to the shared tail through the register image.
+const OPENING_TASK = 0x0501; // opcode 0x05, argument 0x01, packed for the task-ring primitive
 const LAYOUT_TABLE_RIVET = 0x3c8b;
 
 export function buildBoard(m) {
-  const { regs, mem } = m;
+  const { regs, mem, mem8 } = m;
 
-  // Wipe the playfield tilemap and the sprite shadow buffer for the fresh board.
   clearPlayfieldAndSprites(m);
 
-  // Reset the on-screen bonus readout for the fresh board.
-  mem.write8(BONUS_DISPLAY, 0);
+  mem8[BONUS_DISPLAY] = 0;
 
-  // Post the opening task onto the deferred-work queue.
-  regs.de = OPENING_TASK; // the task-ring primitive reads the message pair from the registers
+  regs.de = OPENING_TASK;
   enqueueTask(m);
 
-  // Select palette bank 2 for the build: bit0 clear, bit1 set.
+  // Select palette bank 2: bit0 clear, bit1 set.
   mem.write8(PALETTE_BANK_BIT0, 0);
   mem.write8(PALETTE_BANK_BIT1, 1);
 
-  // Dispatch to the per-board setup arm selected by BOARD.
-  const board = mem.read8(BOARD);
-  if (board === 1) { setup25mGirderBoard(m); return; }   // 25m girders
-  if (board === 2) { setup50mConveyorBoard(m); return; } // 50m conveyors
-  if (board === 3) { setUp75mBoard(m); return; }         // 75m elevators
+  const board = mem8[BOARD];
+  if (board === 1) { setup25mGirderBoard(m); return; }
+  if (board === 2) { setup50mConveyorBoard(m); return; }
+  if (board === 3) { setUp75mBoard(m); return; }
 
-  // 100m-rivet arm — BOARD == 4 (and any other value, matching the decrement cascade).
-  // Clear the sprite rows, raise palette bit0 to reach bank 3, queue the rivet tune,
-  // and hand the rivet layout table to the shared draw/setup tail.
+  // 100m-rivet arm (BOARD == 4 and any other value): stamp the bands, raise palette bit0 to
+  // bank 3, queue the rivet tune, and hand the rivet layout table to the shared tail.
   stampRivetBoardBands(m);
   mem.write8(PALETTE_BANK_BIT0, 1);
-  mem.write8(SND_BGM, 0x0b);
-  regs.de = LAYOUT_TABLE_RIVET; // the shared tail walks whichever layout table is selected here
+  mem8[SND_BGM] = 0x0b;
+  regs.de = LAYOUT_TABLE_RIVET;
   loc_0cc6(m);
 }

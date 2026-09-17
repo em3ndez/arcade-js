@@ -1,37 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * addToScoreTask — the "add to a score" task: bump the player-up's score by a table
- * amount, redraw it, and promote it to the high score if it now leads.
- *
- * Dispatched as task opcode 0 (add-to-score). The task payload chosen by the
- * enqueuer selects a three-byte packed-BCD addend from a fixed table (payload 1 ->
- * +100, 5 -> +500, 11 -> +1000, ...; payload 0 and 10 add nothing).
- *
- * The work, in order:
- *   1. A caller-skip guard: while no credited game is in progress (attract), the
- *      whole task is skipped and nothing happens.
- *   2. Pick the score counter of the player currently up.
- *   3. Add the selected addend into that three-byte counter, least-significant
- *      byte first, rippling the carry upward and BCD-correcting each byte.
- *   4. Repaint the player's score readout from the updated counter.
- *   5. Compare the updated score against the stored high score, most-significant
- *      byte first. If the new score is lower, stop. If every byte is equal, stop.
- *      As soon as a byte is greater, the score leads: copy just the bytes not yet
- *      proven equal (the low end) over the high-score counter and repaint the
- *      on-screen high score.
- *
- * The high-score compare walks DOWN from the top byte while the add walked UP, so
- * the end-of-counter pointer is saved across the repaint and repositioned to the
- * top byte for the compare. The count left when a greater byte is found is exactly
- * how many low bytes still need copying — reloading it to three would clobber bytes
- * the compare already proved equal, so it is deliberately carried over.
- *
- * The BCD add starts with a clear carry so the first byte is not perturbed by any
- * leftover carry from computing the table index.
+ * addToScoreTask — bump the player-up's score by a table amount, redraw it, and promote
+ * it to the high score if it now leads. Skipped during attract.
  *
  * LIVE-OUT: memory-only — the updated score counter, the high-score counter (when it
- * leads), and the six-digit score and high-score readouts. The task dispatcher issues
- * its next task without reading any register or flag this leaves.
+ * leads), and the six-digit score and high-score readouts.
  */
 
 import { CURRENT_PLAYER, HIGH_SCORE } from "./names.js";
@@ -40,70 +13,59 @@ import { selectCurrentPlayerScoreCounter } from "./selectCurrentPlayerScoreCount
 import { loc_056b } from "./loc_056b.js";
 import { drawHighScore } from "./drawHighScore.js";
 
-const SCORE_ADDEND_TABLE = 0x3529; // 3-byte packed-BCD addends, one per task payload
+const SCORE_ADDEND_TABLE = 0x3529;
 
 export function addToScoreTask(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
 
-  // The enqueuer left the task payload in the accumulator; it indexes the addend table.
   const payload = regs.a & 0xff;
 
-  // Skip the whole task while no credited game is in progress (attract).
   if (!gameActiveGuard(m)) return;
 
-  // The score counter of the player currently up (base of its 3 packed-BCD bytes).
   regs.de = selectCurrentPlayerScoreCounter(m);
 
-  // Each addend is 3 bytes; the index is (payload * 3) taken as a single byte — the
-  // multiply is 8-bit, so a large payload wraps back into the table.
+  // (payload * 3) taken as a single byte — a large payload wraps back into the table.
   let addendPtr = (SCORE_ADDEND_TABLE + ((payload * 3) & 0xff)) & 0xffff;
 
-  // Add the addend into the counter, least-significant byte first. The chain starts with
-  // a clear carry; each BCD-corrected byte's carry feeds the next.
   let carry = 0;
   for (let i = 0; i < 3; i++) {
-    regs.a = mem.read8(regs.de);
-    regs.add(mem.read8(addendPtr), carry); // add addend byte + carry-in
-    regs.daa();                            // BCD-correct (follows an add: no-borrow correction)
-    carry = regs.fC ? 1 : 0;               // carry-out for the next byte
-    mem.write8(regs.de, regs.a);
-    regs.de = (regs.de + 1) & 0xffff;      // walk the counter up
-    addendPtr = (addendPtr + 1) & 0xffff;  // walk the addend up
+    regs.a = mem8[regs.de];
+    regs.add(mem8[addendPtr], carry);
+    regs.daa();
+    carry = regs.fC ? 1 : 0;
+    mem8[regs.de] = regs.a;
+    regs.de = (regs.de + 1) & 0xffff;
+    addendPtr = (addendPtr + 1) & 0xffff;
   }
   const scoreEnd = regs.de; // one past the counter's top byte
 
-  // Repaint the player's score readout. The renderer takes the player selector in the
-  // accumulator and the render source at the counter's most-significant pair; it clobbers
-  // the counter pointer, so the end pointer is kept for the compare below.
-  regs.de = (scoreEnd - 1) & 0xffff;   // most-significant pair, the render source
-  regs.a = mem.read8(CURRENT_PLAYER);  // selector: the player up now
+  regs.de = (scoreEnd - 1) & 0xffff;
+  regs.a = mem8[CURRENT_PLAYER];
   loc_056b(m);
 
-  // Compare the updated score against the high score, top byte first, walking down.
-  regs.de = (scoreEnd - 1) & 0xffff;   // counter's top byte
-  let hsPtr = (HIGH_SCORE + 2) & 0xffff; // high score's top byte
-  let width = 3;                        // bytes still to resolve (also the copy width)
+  // Compare against the high score, top byte first, walking down.
+  regs.de = (scoreEnd - 1) & 0xffff;
+  let hsPtr = (HIGH_SCORE + 2) & 0xffff;
+  let width = 3; // bytes still to resolve — also the copy width, carried over deliberately
   for (;;) {
-    const scoreByte = mem.read8(regs.de);
-    const hsByte = mem.read8(hsPtr);
-    if (scoreByte < hsByte) return;      // new score lower here -> it does not lead
-    if (scoreByte !== hsByte) break;     // new score greater here -> promote the low bytes
+    const scoreByte = mem8[regs.de];
+    const hsByte = mem8[hsPtr];
+    if (scoreByte < hsByte) return;
+    if (scoreByte !== hsByte) break;
     regs.de = (regs.de - 1) & 0xffff;
     hsPtr = (hsPtr - 1) & 0xffff;
     width -= 1;
-    if (width === 0) return;             // every byte equal -> nothing to promote
+    if (width === 0) return;
   }
 
-  // The new score leads. Re-fetch the counter base (the compare walked the pointer down)
-  // and copy the still-unresolved low bytes over the high score, low byte first.
+  // The new score leads: copy the still-unresolved low bytes over the high score.
   regs.de = selectCurrentPlayerScoreCounter(m);
   let hsDst = HIGH_SCORE;
   for (let i = 0; i < width; i++) {
-    mem.write8(hsDst, mem.read8(regs.de));
+    mem8[hsDst] = mem8[regs.de];
     regs.de = (regs.de + 1) & 0xffff;
     hsDst = (hsDst + 1) & 0xffff;
   }
 
-  // Repaint the on-screen high score from the promoted counter.
   drawHighScore(m);
 }

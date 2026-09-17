@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * powerOnInit — game-state-0 handler: the one-time power-on init. Runs once (its penultimate
- * act advances GAME_STATE to 1) as straight-line code: clear the playfield and sprite buffer;
- * seed the three score slots from a 9-byte template; set ATTRACT/LEVEL/LIVES = 1 and repaint
- * the lives-and-level indicator; unpack the dip switches; raise the flip-screen latch, advance
- * to attract, select the 25m board, clear the sub-state; stamp the "1UP" marker; post the three
- * opening tasks.
+ * powerOnInit — game-state-0 handler: the one-time power-on init. Clears the playfield and sprite
+ * buffer, seeds the score slots, sets ATTRACT/LEVEL/LIVES = 1 and repaints the indicator, unpacks
+ * the dip switches, raises the flip-screen latch, advances to attract on board 25m, stamps "1UP",
+ * and posts the three opening tasks.
  *
  * LIVE-OUT: memory-only — seeded work RAM, the task ring and tail, indicator and marker video
  * cells, the settings block, the cleared playfield and sprite buffer, and the flip-screen latch.
@@ -57,13 +55,12 @@ export function powerOnInit(m) {
   decodeDipSwitches(m);
 
   mem.write8(FLIPSCREEN, 1);
-  mem8[GAME_STATE] = 1; // attract from here on
-  mem8[BOARD] = 1; // 25m
+  mem8[GAME_STATE] = 1;
+  mem8[BOARD] = 1;
   mem8[GAME_SUBSTATE] = 0;
 
   draw1UpLabel(m);
 
-  // The ring primitive reads the opcode/argument pair out of a register pair; set it each post.
   for (const [opcode, argument] of OPENING_TASKS) {
     regs.d = opcode;
     regs.e = argument;

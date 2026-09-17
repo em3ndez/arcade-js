@@ -1,29 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b91 — commit Mario's adjusted X to both his game position and his sprite record.
+ * loc_2b91 — commit Mario's adjusted X (in A) to MARIO_X and to his sprite record's X field, so
+ * the on-screen sprite tracks the new position on the same frame.
  *
- * The accept arm of a tile probe. The adjusted X arrives in the accumulator and is stored into
- * MARIO_X and into the X field of Mario's sprite record, so the on-screen sprite tracks the new
- * position on the same frame — this write pair is why those two bytes hold the same value in play.
+ * THE RETURN IS A PROTOCOL: `false` means the accept happened and the caller must unwind two
+ * levels, not one. A is left holding 1, the accept signal read back up the chain.
  *
- * THE RETURN IS A PROTOCOL, not a value. `false` means the accept happened and control must NOT
- * resume where it was called from: the caller unwinds two levels rather than one. The accumulator
- * is left holding 1, the accept signal read back up that chain.
- *
- * LIVE-OUT: memory (MARIO_X and the sprite record's X field), the accumulator, and the protocol
- * return.
+ * LIVE-OUT: memory (MARIO_X and the sprite record's X), A, and the protocol return.
  */
 import { MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X } from "./names.js";
 
-/**
- * @param {object} m  the machine; the adjusted X arrives in the accumulator.
- * @returns {boolean} false — the caller-skip signal (unwind two levels).
- */
 export function loc_2b91(m) {
-  const { regs, mem } = m;
-  const x = regs.a; // the adjusted X the probe computed
-  mem.write8(MARIO_X, x);
-  mem.write8((MARIO_SPRITE_RECORD + SPRITE_X) & 0xffff, x);
-  regs.a = 0x01; // the accept signal
+  const { regs, mem8 } = m;
+  const x = regs.a;
+  mem8[MARIO_X] = x;
+  mem8[(MARIO_SPRITE_RECORD + SPRITE_X) & 0xffff] = x;
+  regs.a = 0x01; // accept signal
   return false; // caller-skip: unwind two levels
 }

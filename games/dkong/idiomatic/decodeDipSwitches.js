@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * decodeDipSwitches — read the cabinet's dip-switch bank once at power-on and fan it out into the
- * seven operator settings bytes (lives, bonus-life threshold, four coinage counters, cabinet
- * type), then copy the fixed option/attract table into work RAM. A leaf: reads the switch port
- * and the constant table, writes only work RAM.
+ * decodeDipSwitches — read the dip-switch bank once at power-on and fan it out into the seven
+ * operator settings bytes (lives, bonus-life, four coinage counters, cabinet type), then copy the
+ * fixed option/attract table into work RAM.
  *
  * LIVE-OUT: memory-only — the seven settings bytes and the copied option table.
  */
@@ -18,10 +17,8 @@ import {
   DIP_UPRIGHT,
 } from "./names.js";
 
-// Read-only, side-effect-free board port, not work RAM.
-const DSW0 = 0x7d80;
+const DSW0 = 0x7d80; // board port, not work RAM
 
-// Bonus-life thresholds in packed decimal, indexed by switch bits 2-3; index 0 is also the default.
 const BONUS_LIFE_BCD = [0x07, 0x10, 0x15, 0x20];
 
 const OPTION_TABLE_ROM = 0x3565;
@@ -36,13 +33,11 @@ export function decodeDipSwitches(m) {
 
   mem8[DIP_BONUS_LIFE] = BONUS_LIFE_BCD[(dsw0 >> 2) & 0x03];
 
-  // Defaults when no coinage bit is set.
   let coinsFor1p = 0x01;
   let coinsFor2p = 0x02;
   let coinsPerCredit = 0x01;
   let creditsPerCoin = 0x01;
   if (dsw0 & 0x70) {
-    // Bits 5-6 are a 0..3 selector; bit 4 chooses how it is spread across the counters.
     const rot = (dsw0 >> 5) & 0x03;
     if (dsw0 & 0x10) {
       const a = (rot + 0x02) & 0xff;

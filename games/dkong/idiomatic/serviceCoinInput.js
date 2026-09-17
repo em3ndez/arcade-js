@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * serviceCoinInput — debounce the coin line, tally pulses, and award BCD credits.
- *
- * Run once per vblank. COIN_EDGE is a one-bit edge latch held armed while the line is
- * clear, so a held coin counts at most once. On a fresh insertion it fires the coin
- * chime (unless a game is running), bumps COINS_PARTIAL, and once a full group is
- * reached awards DIP_CREDITS_PER_COIN to CREDITS (BCD, capped) and enqueues a credit task.
+ * serviceCoinInput — debounce the coin line, tally pulses, and award BCD credits once per vblank.
+ * COIN_EDGE is a one-bit edge latch armed while the line is clear, so a held coin counts once.
  *
  * LIVE-OUT: memory-only — COIN_EDGE, COINS_PARTIAL, CREDITS, the coin-chime trigger, task ring.
  */
@@ -28,12 +24,9 @@ const GAME_RUNNING = 0x03;
 const COIN_CHIME = SND_TRIGGER + 3;
 const SND_ASSERT_FRAMES = 0x03; // a trigger value = frames to assert
 const CREDIT_CAP = 0x90;
-const CREDIT_TASK = 0x0400; // opcode 0x04, arg 0x00
+const CREDIT_TASK = 0x0400;
 
-/**
- * 8-bit BCD addition (Z80 DAA in its addition form), reconstructing the plain add's
- * half-carry and carry to drive the ±0x06 / ±0x60 corrections. Score-critical path.
- */
+/** 8-bit BCD addition (Z80 DAA in its addition form). Score-critical path. */
 function bcdAdd(a, b) {
   const sum = a + b;
   const lo = sum & 0xff;
@@ -51,11 +44,10 @@ export function serviceCoinInput(m) {
   const coinPresent = (mem.read8(IN2_PORT) & COIN1_BIT) !== 0;
 
   if (!coinPresent) {
-    mem8[COIN_EDGE] = 0x01; // re-arm the edge latch
+    mem8[COIN_EDGE] = 0x01;
     return;
   }
 
-  // Counts only on the rising edge, i.e. while the latch is armed.
   if (mem8[COIN_EDGE] === 0) return;
 
   if (mem8[GAME_STATE] !== GAME_RUNNING) {

@@ -31,17 +31,17 @@ const PALETTE_BANK_BIT1 = 0x7d87;
 const CLIMB_FIGURE_INDEX = 0x63a7;
 const CLIMB_FIGURE_WALK_PTR = 0x63a8;
 const CLIMB_FIGURE_WALK_START = 0x76dc;
-const CLIMB_FIGURE_ROM_TABLE = 0x3cf0; // 4-byte figure records; 3 bytes read, 1 skipped
-const CLIMB_FIGURE_FOOT_TILE = 0x8b; // fixed tile written just below each figure
+const CLIMB_FIGURE_ROM_TABLE = 0x3cf0; // 4-byte records; 3 bytes read, 1 skipped
+const CLIMB_FIGURE_FOOT_TILE = 0x8b;
 
 const GIRDER_VRAM_BASE = 0x75bc;
 const GIRDER_TILE_FIRST = 0x50;
 const GIRDER_TILE_LAST = 0x67;
 const GIRDER_GROUP_STRIDE = 0x23;
-const GIRDER_ROW_STEP = -0xa1 & 0xffff; // back one girder row
+const GIRDER_ROW_STEP = -0xa1 & 0xffff;
 
-const HEIGHT_MAX = 5; // the height index is clamped to at most this
-const SUBSTATE_TIMER_RELOAD = 0xa0; // re-armed before handing off
+const HEIGHT_MAX = 5;
+const SUBSTATE_TIMER_RELOAD = 0xa0;
 
 export function buildHowHighScreen(m) {
   const { regs, mem, mem8, mem16 } = m;
@@ -56,12 +56,12 @@ export function buildHowHighScreen(m) {
   regs.e = mem8[MARIO_ACTIVE];
   enqueueTask(m);
 
-  mem.write8(PALETTE_BANK_BIT0, 0x01); //          palette bank 1: bit 0 set
-  mem.write8(PALETTE_BANK_BIT1, 0x00); //                          bit 1 clear
-  mem8[SND_PRIORITY] = 0x02; //               level-start tune
-  mem8[SND_PRIORITY_FRAMES] = 0x03; //        held 3 frames
-  mem8[CLIMB_FIGURE_INDEX] = 0x00; //         record index reset
-  mem16[CLIMB_FIGURE_WALK_PTR] = CLIMB_FIGURE_WALK_START; // sprite-slot walk pointer
+  mem.write8(PALETTE_BANK_BIT0, 0x01); // palette latch (device)
+  mem.write8(PALETTE_BANK_BIT1, 0x00); // palette latch (device)
+  mem8[SND_PRIORITY] = 0x02;
+  mem8[SND_PRIORITY_FRAMES] = 0x03;
+  mem8[CLIMB_FIGURE_INDEX] = 0x00;
+  mem16[CLIMB_FIGURE_WALK_PTR] = CLIMB_FIGURE_WALK_START;
 
   // Height rises when the board-order pointer moved since last build (player advanced a board).
   if (mem8[HOW_HIGH_INDEX] >= HEIGHT_MAX + 1) mem8[HOW_HIGH_INDEX] = HEIGHT_MAX;
@@ -87,17 +87,17 @@ export function buildHowHighScreen(m) {
     }
 
     const idx = mem8[CLIMB_FIGURE_INDEX];
-    mem8[CLIMB_FIGURE_INDEX] = idx + 1; // step the index for the next row
+    mem8[CLIMB_FIGURE_INDEX] = idx + 1;
     let recPtr = (CLIMB_FIGURE_ROM_TABLE + ((idx << 2) & 0xff)) & 0xffff;
-    const ix = mem16[CLIMB_FIGURE_WALK_PTR]; // current sprite-slot walk pointer
+    const ix = mem16[CLIMB_FIGURE_WALK_PTR];
 
     mem8[(ix + 0x60) & 0xffff] = mem8[recPtr]; recPtr = (recPtr + 1) & 0xffff;
     mem8[(ix + 0x40) & 0xffff] = mem8[recPtr]; recPtr = (recPtr + 1) & 0xffff;
     mem8[(ix + 0x20) & 0xffff] = mem8[recPtr];
     mem8[(ix - 0x20) & 0xffff] = CLIMB_FIGURE_FOOT_TILE; // negative displacement
 
-    mem16[CLIMB_FIGURE_WALK_PTR] = ix - 4; // next sprite slot, 4 back
-    fillPtr = (fillPtr + GIRDER_ROW_STEP) & 0xffff; //        next girder row
+    mem16[CLIMB_FIGURE_WALK_PTR] = ix - 4;
+    fillPtr = (fillPtr + GIRDER_ROW_STEP) & 0xffff;
 
     rows = (rows - 1) & 0xff;
   } while (rows !== 0);
