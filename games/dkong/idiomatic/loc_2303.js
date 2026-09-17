@@ -12,10 +12,8 @@ import { RANDOM, MARIO_X, OBJ_X } from "./names.js";
 const OBJ_STEP_DIR = 0x10; // 0x01 = toward-right, 0xFF = toward-left
 const OBJ_STEP_MAG = 0x11;
 
-export function loc_2303(m) {
-  const { regs, mem8 } = m;
-
-  const objBase = regs.ix;
+export function loc_2303(m, objBase = m.regs.ix) {
+  const { mem8 } = m;
 
   mem8[(objBase + OBJ_STEP_MAG) & 0xffff] = mem8[RANDOM];
 

@@ -9,10 +9,10 @@
  */
 import { ITEM_COLLECTED, BOARD, SND_PRIORITY, SND_PRIORITY_FRAMES } from "./names.js";
 
-export function loc_1d95(m) {
-  const { regs, mem8 } = m;
+export function loc_1d95(m, a = m.regs.a) {
+  const { mem8 } = m;
 
-  mem8[ITEM_COLLECTED] = regs.a & 0xff;
+  mem8[ITEM_COLLECTED] = a & 0xff;
 
   if (mem8[BOARD] === 1) return;
 

@@ -5,8 +5,8 @@
  *
  * LIVE-OUT: memory-only — the one byte at the caller's pointer.
  */
-export function reverseStepDirection(m) {
-  const { regs, mem8 } = m;
-  const v = mem8[regs.hl];
-  mem8[regs.hl] = (v & 0x80) ? 0x02 : 0xfe; // bit 7 set -> +2, else -2
+export function reverseStepDirection(m, hl = m.regs.hl) {
+  const { mem8 } = m;
+  const v = mem8[hl];
+  mem8[hl] = (v & 0x80) ? 0x02 : 0xfe; // bit 7 set -> +2, else -2
 }

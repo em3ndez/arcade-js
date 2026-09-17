@@ -14,13 +14,13 @@ const SPRITE_ATTR = 0x07;     // record byte +2
 const BOARD_MASK = 0x05;      // bit0 25m, bit2 75m
 const SOUND_LATCH = 0x6085;   // storing 3 asserts this sound for 3 frames
 
-export function stampScorePopupSprite(m) {
+export function stampScorePopupSprite(m, a = m.regs.a, b = m.regs.b, c = m.regs.c) {
   const { regs, mem8 } = m;
 
-  mem8[POPUP_SPRITE + 0] = regs.a;
-  mem8[POPUP_SPRITE + 1] = regs.b;
+  mem8[POPUP_SPRITE + 0] = a;
+  mem8[POPUP_SPRITE + 1] = b;
   mem8[POPUP_SPRITE + 2] = SPRITE_ATTR;
-  mem8[POPUP_SPRITE + 3] = regs.c;
+  mem8[POPUP_SPRITE + 3] = c;
 
   regs.a = BOARD_MASK;
   if (!boardBitGate(m)) return;

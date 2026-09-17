@@ -10,9 +10,8 @@
  */
 import { MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X } from "./names.js";
 
-export function loc_2b91(m) {
+export function loc_2b91(m, x = m.regs.a) {
   const { regs, mem8 } = m;
-  const x = regs.a;
   mem8[MARIO_X] = x;
   mem8[(MARIO_SPRITE_RECORD + SPRITE_X) & 0xffff] = x;
   regs.a = 0x01; // accept signal

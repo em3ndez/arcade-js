@@ -24,11 +24,11 @@ const LEVEL_UNITS_CELL = 0x74a3;
 const LEVEL_TENS_CELL = 0x74c3;
 const LEVEL_MAX = 0x63; // 99 decimal
 
-export function drawLivesAndLevel(m) {
-  const { regs, mem8 } = m;
+export function drawLivesAndLevel(m, a = m.regs.a) {
+  const { mem8 } = m;
 
   // Captured before the guard, exactly as the hardware does; callers pass 1 (lives in play).
-  const livesInPlay = regs.a & 0xff;
+  const livesInPlay = a & 0xff;
 
   if (!gameActiveGuard(m)) return;
 

@@ -5,10 +5,10 @@
  *
  * LIVE-OUT: memory-only — the one byte written at the displaced address.
  */
-export function copyByteDisplaced(m) {
-  const { regs, mem8 } = m;
+export function copyByteDisplaced(m, hl = m.regs.hl, bc = m.regs.bc, de = m.regs.de) {
+  const { mem8 } = m;
 
-  const src = (regs.hl + regs.bc) & 0xffff;
-  const dst = (src + regs.de) & 0xffff;
+  const src = (hl + bc) & 0xffff;
+  const dst = (src + de) & 0xffff;
   mem8[dst] = mem8[src];
 }

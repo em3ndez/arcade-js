@@ -15,12 +15,12 @@ const OBJ_STEPPED_COORD = 0x0f;
 
 const BOARD_GIRDER = 0x01;
 
-export function settleFireOnGirderSlope(m) {
+export function settleFireOnGirderSlope(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
   if (mem8[BOARD] !== BOARD_GIRDER) return;
 
-  const objBase = regs.ix;
+  const objBase = ix;
 
   const companion = mem8[(objBase + OBJ_COMPANION_COORD) & 0xffff];
   const coord = mem8[(objBase + OBJ_STEPPED_COORD) & 0xffff];

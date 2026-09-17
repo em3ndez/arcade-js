@@ -22,10 +22,10 @@ const DIR_BACKWARD = 0x02;
 const FORWARD_SEED = 0x7e;
 const BACKWARD_SEED = 0x80;
 
-export function loc_3478(m) {
+export function loc_3478(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
-  const base = regs.ix;
+  const base = ix;
   const field = (off) => (base + off) & 0xffff;
 
   let ptr = mem8[field(OBJ_WALK_PTR_LO)] | (mem8[field(OBJ_WALK_PTR_HI)] << 8);

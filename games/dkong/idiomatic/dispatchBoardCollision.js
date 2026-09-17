@@ -14,13 +14,13 @@ import { loc_00ca } from "../translated/loc_00ca.js";
 const BOARD_COLLISION_TABLE = 0x2874;
 const DISPATCH_TABLE_2874 = "0x2874 (0x6227 collision dispatch)";
 
-export function dispatchBoardCollision(m) {
-  const { regs, mem8 } = m;
+export function dispatchBoardCollision(m, hl = m.regs.hl) {
+  const { mem8 } = m;
 
   const board = mem8[BOARD];
 
   // Pushed FIRST, below the dispatch frame, so the handler's opening pop recovers it.
-  m.push16(regs.hl);
+  m.push16(hl);
 
   // 8-bit offset double: board 128 wraps back to 0.
   const entry = (BOARD_COLLISION_TABLE + ((board * 2) & 0xff)) & 0xffff;

@@ -12,13 +12,13 @@ import { triggerMarioFall } from "./triggerMarioFall.js";
 
 const ONE_ROW = 0x20;
 
-export function decideSlopeGirderFooting(m) {
+export function decideSlopeGirderFooting(m, d = m.regs.d, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
-  const probeX = regs.d;
+  const probeX = d;
   if ((probeX & 0x07) === 0) return triggerMarioFall(m);
 
-  const upperTile = mem8[(regs.hl - ONE_ROW) & 0xffff];
+  const upperTile = mem8[(hl - ONE_ROW) & 0xffff];
 
   // Solid girder = code >= 0xB0 with low nibble under 8; anything else is not ground.
   if (upperTile < 0xb0) return triggerMarioFall(m);

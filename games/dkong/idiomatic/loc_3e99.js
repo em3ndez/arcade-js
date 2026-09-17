@@ -17,7 +17,7 @@ const GROUP1_RECORDS = 10;
 const GROUP2_RECORDS = 5;
 const RECORD_STRIDE = 32;
 
-export function loc_3e99(m) {
+export function loc_3e99(m, iyBase = m.regs.iy, cProbe = m.regs.c) {
   const { regs, mem8 } = m;
 
   // Bounds word stacked across the trampoline: low byte = vertical, high byte = horizontal tolerance.
@@ -28,8 +28,8 @@ export function loc_3e99(m) {
   mem8[OVERLAP_COUNT] = 0; // both scans accumulate into this
 
   const probe = {
-    probeBase: regs.iy, // Mario's record
-    probeA: regs.c, // vertical coordinate: MARIO_Y a dozen pixels lower
+    probeBase: iyBase, // Mario's record
+    probeA: cProbe, // vertical coordinate: MARIO_Y a dozen pixels lower
     stride: RECORD_STRIDE,
     threshA: verticalTolerance,
     threshB: horizontalTolerance,

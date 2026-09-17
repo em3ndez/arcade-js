@@ -15,10 +15,9 @@ import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 const WALK_SUBSTEP_FRAMES = 2;
 
-export function beginWalkStep(m) {
-  const { regs, mem8 } = m;
+export function beginWalkStep(m, spriteCode = m.regs.a) {
+  const { mem8 } = m;
 
-  const spriteCode = regs.a;
   mem8[MARIO_SPRITE_CODE] = spriteCode;
 
   // Footstep on alternate steps only: the low bit of the walk-cycle counter toggles each step.

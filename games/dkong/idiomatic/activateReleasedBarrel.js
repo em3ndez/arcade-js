@@ -23,11 +23,8 @@ const SCRATCH_B = 0x6392; // cleared each terminator (shared engine scratch)
 const SPRITE_TEMPLATE = 0x385c; // stored template reloaded into the sprite-object block
 const Y_COLUMN_DELTA = 0xfc; // -4, added to every record's Y field
 
-export function activateReleasedBarrel(m) {
+export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de) {
   const { regs, mem8, mem16 } = m;
-
-  const obj = regs.ix; // barrel record base, handed over by the caller
-  const renderPtr = regs.de; // the renderer's destination pointer
 
   mem16[RENDER_STR_PTR] = STRING_RESTART;
 

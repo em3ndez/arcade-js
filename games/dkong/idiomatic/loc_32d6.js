@@ -15,9 +15,8 @@ const ARM_FLAG = 0x1d;      // == 1 arms the position-compare branch; then disar
 const LIMIT_FIELD = 0x0f;   // compared against MARIO_Y (borrow => below)
 const EXIT_FIELD_19 = 0x19; // cleared to 0 alongside the counter on the tick-out branches
 
-export function loc_32d6(m) {
+export function loc_32d6(m, record = m.regs.ix) {
   const { mem8 } = m;
-  const record = m.regs.ix;
   const at = (off) => (record + off) & 0xffff;
 
   const clearExitAndTick = () => {

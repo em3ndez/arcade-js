@@ -11,8 +11,8 @@ import { armBarrelRelease } from "./armBarrelRelease.js";
 
 const MODE_BYTE = 0x03;
 
-export function loc_2c86(m) {
-  const { regs, mem8 } = m;
+export function loc_2c86(m, c = m.regs.c) {
+  const { mem8 } = m;
   mem8[BARREL_CLAIM_MODE] = 0;
-  armBarrelRelease(m, MODE_BYTE, regs.c);
+  armBarrelRelease(m, MODE_BYTE, c);
 }

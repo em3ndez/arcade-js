@@ -19,10 +19,10 @@ import { enqueueTask } from "./enqueueTask.js";
 // Flip-screen control latch — board hardware, not work RAM.
 const FLIPSCREEN = 0x7d82;
 
-export function configureFlipScreenAndComposeScreen(m) {
+export function configureFlipScreenAndComposeScreen(m, a = m.regs.a) {
   const { regs, mem, mem8 } = m;
 
-  mem.write8(FLIPSCREEN, (regs.a | mem8[DIP_UPRIGHT]) & 0xff);
+  mem.write8(FLIPSCREEN, (a | mem8[DIP_UPRIGHT]) & 0xff);
   mem8[SUBSTATE_TIMER] = 0x00;
   mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
 

@@ -7,10 +7,10 @@
  *
  * LIVE-OUT: memory-only — 34 tilemap cells, 17 of each tile.
  */
-export function fillTileRowPair(m) {
-  const { regs, mem8 } = m;
+export function fillTileRowPair(m, hl = m.regs.hl) {
+  const { mem8 } = m;
 
-  let addr = regs.hl;
+  let addr = hl;
 
   for (let i = 0; i < 0x11; i++) {
     mem8[addr] = 0xfd;

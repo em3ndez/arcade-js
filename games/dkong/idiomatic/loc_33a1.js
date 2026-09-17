@@ -13,11 +13,11 @@ const BOARDS_25M_50M_75M = 0x07;
 const RECORD_Y_BASE = 0x0f;
 const ABANDON_ABOVE_Y = 89;
 
-export function loc_33a1(m) {
+export function loc_33a1(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
   regs.a = BOARDS_25M_50M_75M;
   if (!boardBitGate(m)) return true;
 
-  return mem8[regs.ix + RECORD_Y_BASE] >= ABANDON_ABOVE_Y;
+  return mem8[ix + RECORD_Y_BASE] >= ABANDON_ABOVE_Y;
 }

@@ -10,10 +10,10 @@
 const HIGH_DIGIT_CELL = 0x74e6;
 const LOW_DIGIT_CELL = 0x74c6;
 
-export function stampTwoDigitField(m) {
+export function stampTwoDigitField(m, a = m.regs.a, b = m.regs.b) {
   const { regs, mem8 } = m;
 
-  mem8[HIGH_DIGIT_CELL] = regs.a;
-  regs.a = regs.b;
+  mem8[HIGH_DIGIT_CELL] = a;
+  regs.a = b;
   mem8[LOW_DIGIT_CELL] = regs.a;
 }

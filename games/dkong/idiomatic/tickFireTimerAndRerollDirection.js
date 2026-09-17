@@ -12,10 +12,10 @@ const TIMER = 0x16; // object-record field: periodic countdown
 const STATE = 0x0d; // object-record field: 0/1 phase, advanced on a random beat
 const RELOAD = 43;  // the shared decrement then leaves 42
 
-export function tickFireTimerAndRerollDirection(m) {
-  const { regs, mem8 } = m;
+export function tickFireTimerAndRerollDirection(m, ix = m.regs.ix) {
+  const { mem8 } = m;
 
-  const record = regs.ix;
+  const record = ix;
   const timerAddr = (record + TIMER) & 0xffff;
   const stateAddr = (record + STATE) & 0xffff;
 

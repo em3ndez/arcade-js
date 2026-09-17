@@ -11,10 +11,10 @@
 import { MARIO_X, MARIO_SPRITE_RECORD } from "./names.js";
 import { limitMarioHorizontalTravel } from "./limitMarioHorizontalTravel.js";
 
-export function moveMarioX(m) {
-  const { regs, mem8 } = m;
+export function moveMarioX(m, a = m.regs.a, b = m.regs.b) {
+  const { mem8 } = m;
 
-  const newX = regs.a + regs.b;
+  const newX = a + b;
   mem8[MARIO_X] = newX;
   mem8[MARIO_SPRITE_RECORD] = newX;
 

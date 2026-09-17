@@ -23,10 +23,10 @@ function reject(regs) {
   return true;
 }
 
-export function probeTileForLanding(m) {
+export function probeTileForLanding(m, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
-  const pixel = regs.hl;
+  const pixel = hl;
   const y = (pixel >> 8) & 0xff;
   const x = pixel & 0xff;
   regs.hl = tileAddrForPixel(y, x);

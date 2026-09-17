@@ -14,7 +14,7 @@ import { TASK_TAIL, TASK_RING } from "./names.js";
 const PAGE = TASK_RING & 0xff00;
 const RING_BASE = TASK_RING & 0x00ff; // low byte of the first slot, and the wrap floor
 
-export function enqueueTask(m) {
+export function enqueueTask(m, d = m.regs.d, e = m.regs.e) {
   const { regs, mem8 } = m;
 
   const tail = mem8[TASK_TAIL];
@@ -23,8 +23,8 @@ export function enqueueTask(m) {
   // Full here if bit 7 of the slot's opcode is clear: drop the message, leave the tail alone.
   if ((mem8[slot] & 0x80) === 0) return;
 
-  mem8[slot] = regs.d;
-  mem8[PAGE | ((tail + 1) & 0xff)] = regs.e;
+  mem8[slot] = d;
+  mem8[PAGE | ((tail + 1) & 0xff)] = e;
 
   let next = (tail + 2) & 0xff;
   if (next < RING_BASE) next = RING_BASE;

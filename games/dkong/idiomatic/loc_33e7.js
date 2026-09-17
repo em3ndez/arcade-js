@@ -12,10 +12,10 @@ import { OBJ_STATE } from "./names.js";
 const OBJ_STEP_COUNTER = 0x0f;
 const OBJ_SUB_TIMER = 0x14;
 
-export function loc_33e7(m) {
-  const { regs, mem8 } = m;
+export function loc_33e7(m, ix = m.regs.ix) {
+  const { mem8 } = m;
 
-  const objBase = regs.ix;
+  const objBase = ix;
 
   // Animation runs first, before any state/counter field below is read.
   stepObjectSpriteFrame(m, objBase);

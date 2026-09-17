@@ -12,10 +12,9 @@
  */
 import { MARIO_Y, EFFECT_STATE, EFFECT_SELECT, EFFECT_PARAM_PTR } from "./names.js";
 
-export function confirmObjectHit(m) {
-  const { regs, mem8, mem16 } = m;
+export function confirmObjectHit(m, record = m.regs.hl) {
+  const { mem8, mem16 } = m;
 
-  const record = regs.hl;
   const page = record & 0xff00;
   const base = record & 0x00ff;
   const recByte = (off) => mem8[page | ((base + off) & 0xff)];

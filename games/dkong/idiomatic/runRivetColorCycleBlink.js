@@ -21,10 +21,10 @@ const BRIGHT_BAND_COLOR = 223; // the brighter band the left-half arm repaints c
 const SWEEP_PHASE_BIT = 0x40;
 const RIGHT_HALF_X = 128; // Mario X screen-half split; >= is the right half
 
-export function runRivetColorCycleBlink(m) {
+export function runRivetColorCycleBlink(m, c = m.regs.c) {
   const { regs, mem8 } = m;
 
-  const sweepCounter = regs.c;
+  const sweepCounter = c;
 
   regs.a = BASE_COLOR;
   regs.hl = COLUMN_A_TOP;

@@ -12,10 +12,10 @@ import { SPRITE_OBJ_BLOCK } from "./names.js";
 
 const OBJ_BLOCK_BYTES = 0x28; // 10 sprite records x 4 bytes
 
-export function loadSpriteObjectBlock(m) {
+export function loadSpriteObjectBlock(m, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
-  let src = regs.hl;
+  let src = hl;
   let dst = SPRITE_OBJ_BLOCK;
   for (let i = 0; i < OBJ_BLOCK_BYTES; i++) {
     mem8[dst] = mem8[src];

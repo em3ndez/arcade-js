@@ -7,15 +7,15 @@
  * LIVE-OUT: memory-only — the 70 written tilemap cells.
  */
 
-export function fillTileBlock(m) {
-  const { regs, mem8 } = m;
+export function fillTileBlock(m, hl = m.regs.hl) {
+  const { mem8 } = m;
 
   const TILE = 0x10;
   const WIDTH = 5;
   const ROWS = 0x0e;
   const ROW_BACKSTEP = 0x25; // net -0x20 per row = one tilemap row up at the same left edge
 
-  let addr = regs.hl;
+  let addr = hl;
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < WIDTH; col++) {
       mem8[addr] = TILE;

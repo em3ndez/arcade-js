@@ -7,10 +7,10 @@
  */
 import { BOARD } from "./names.js";
 
-export function boardBitGate(m) {
-  const { regs, mem8 } = m;
+export function boardBitGate(m, a = m.regs.a) {
+  const { mem8 } = m;
 
   const count = mem8[BOARD] || 256; // board 0 -> 256 rotations, same as selecting bit 7
-  const boardBit = (regs.a >> ((count - 1) & 7)) & 1;
+  const boardBit = (a >> ((count - 1) & 7)) & 1;
   return boardBit === 1;
 }

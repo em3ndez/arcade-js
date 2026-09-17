@@ -8,13 +8,13 @@
  *
  * LIVE-OUT: memory-only — the eleven bytes written.
  */
-export function loc_11fa(m) {
-  const { regs, mem8 } = m;
+export function loc_11fa(m, hl = m.regs.hl) {
+  const { mem8 } = m;
 
   const REC = 0x66a0;
   const ARR = 0x6a28;
 
-  const src = regs.hl;
+  const src = hl;
   const b0 = mem8[(src + 0) & 0xffff];
   const b1 = mem8[(src + 1) & 0xffff];
   const b2 = mem8[(src + 2) & 0xffff];

@@ -8,9 +8,9 @@
  *
  * LIVE-OUT: the five written record bytes plus the new coordinate-B value, returned in HL.
  */
-export function stepBallisticMotion(m) {
+export function stepBallisticMotion(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
-  const at = (d) => (regs.ix + d) & 0xffff;
+  const at = (d) => (ix + d) & 0xffff;
 
   const posA = (mem8[at(0x03)] << 8) | mem8[at(0x04)];
   const velA = (mem8[at(0x10)] << 8) | mem8[at(0x11)];

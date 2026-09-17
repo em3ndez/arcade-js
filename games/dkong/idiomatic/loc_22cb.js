@@ -19,10 +19,8 @@ import { loc_231a } from "./loc_231a.js";
 // for its role here.
 const VELOCITY_MODE_LATCH = 0x6348;
 
-export function loc_22cb(m) {
-  const { regs, mem8 } = m;
-
-  const objRecord = regs.ix;
+export function loc_22cb(m, objRecord = m.regs.ix) {
+  const { mem8 } = m;
 
   if (mem8[VELOCITY_MODE_LATCH] === 0) {
     return loc_22e1(m, objRecord);

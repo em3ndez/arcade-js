@@ -11,11 +11,11 @@
 import { u8 } from "../../../core/int.js";
 import { SPIN_COUNT } from "./names.js";
 
-export function loc_03f2(m) {
-  const { regs, mem8 } = m;
+export function loc_03f2(m, hl = m.regs.hl, b = m.regs.b) {
+  const { mem8 } = m;
 
-  const dest = regs.hl; // caller-supplied destination address
-  const value = regs.b; // caller-supplied byte to store
+  const dest = hl; // caller-supplied destination address
+  const value = b; // caller-supplied byte to store
 
   mem8[dest] = value;
 

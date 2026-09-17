@@ -11,9 +11,8 @@ import { P1_SCORE, P2_SCORE, HIGH_SCORE } from "./names.js";
 import { drawScoreTask } from "./drawScoreTask.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 
-export function resetScoreCounter(m) {
-  const { regs, mem8 } = m;
-  const payload = regs.a;
+export function resetScoreCounter(m, payload = m.regs.a) {
+  const { mem8 } = m;
 
   if (payload >= 3) {
     throw new NotImplemented(

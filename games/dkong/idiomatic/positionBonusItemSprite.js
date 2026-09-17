@@ -11,12 +11,12 @@ import { SPRITE_BUFFER } from "./names.js";
 const POSITION_GRID = 0x360f;
 const RECORD = SPRITE_BUFFER + 0x74;
 
-export function positionBonusItemSprite(m) {
-  const { regs, mem8 } = m;
+export function positionBonusItemSprite(m, b = m.regs.b, c = m.regs.c) {
+  const { mem8 } = m;
 
   // BC is the full index; B is always 0 here, but the 16-bit add is preserved.
-  const doubledC = (regs.c << 1) & 0xff;
-  const index = ((regs.b << 8) | doubledC) & 0xffff;
+  const doubledC = (c << 1) & 0xff;
+  const index = ((b << 8) | doubledC) & 0xffff;
   const entry = (POSITION_GRID + index) & 0xffff;
 
   const x = mem8[entry];

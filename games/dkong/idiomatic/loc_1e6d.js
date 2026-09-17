@@ -12,8 +12,8 @@
 import { MARIO_SPRITE_RECORD, SPRITE_CODE } from "./names.js";
 import { enterBoardAdvanceAndUnwind } from "./enterBoardAdvanceAndUnwind.js";
 
-export function loc_1e6d(m) {
-  const { regs, mem8 } = m;
-  mem8[MARIO_SPRITE_RECORD + SPRITE_CODE] = regs.fC ? 0x00 : 0x80;
+export function loc_1e6d(m, fC = m.regs.fC) {
+  const { mem8 } = m;
+  mem8[MARIO_SPRITE_RECORD + SPRITE_CODE] = fC ? 0x00 : 0x80;
   return enterBoardAdvanceAndUnwind(m);
 }

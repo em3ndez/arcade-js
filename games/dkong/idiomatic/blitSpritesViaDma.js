@@ -31,12 +31,11 @@ const DMA_PROGRAM_PORTS = [
   DMA_CH1_COUNT, DMA_CH1_COUNT,
 ];
 
-export function blitSpritesViaDma(m) {
-  const { regs, mem, mem8 } = m;
+export function blitSpritesViaDma(m, block = m.regs.hl) {
+  const { mem, mem8 } = m;
 
   mem.write8(DMA_DRQ, 0);
 
-  let block = regs.hl;
   for (const port of DMA_PROGRAM_PORTS) {
     mem.write8(port, mem8[block]);
     block = (block + 1) & 0xffff;

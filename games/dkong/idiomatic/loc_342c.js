@@ -14,10 +14,10 @@ import { loc_3445 } from "./loc_3445.js";
 const TABLE_START = 0x3a8c;
 const X_SEED = 38;
 
-export function loc_342c(m) {
+export function loc_342c(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
-  const base = regs.ix;
+  const base = ix;
   const field = (off) => (base + off) & 0xffff;
 
   const saved = mem8[field(OBJ_WALK_PTR_LO)] | (mem8[field(OBJ_WALK_PTR_HI)] << 8);

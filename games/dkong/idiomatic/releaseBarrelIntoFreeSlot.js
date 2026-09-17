@@ -25,16 +25,14 @@ const SPRITE_RECORD_BYTES = 4;
 const BONUS_TASK_OPCODE = 5;
 const BONUS_TASK_STEP_DOWN = 1;
 
-export function releaseBarrelIntoFreeSlot(m) {
+export function releaseBarrelIntoFreeSlot(m, record = m.regs.ix, b = m.regs.b) {
   const { regs, mem8, mem16 } = m;
-
-  const record = regs.ix;
 
   mem16[RENDER_OBJ_PTR] = record;
   mem8[record + OBJ_ACTIVE] = SLOT_CLAIMED;
 
   // Ten-minus-the-scan-count is the record's index; carried as a single byte.
-  const slotOffset = u8((BARREL_SLOTS - regs.b) * SPRITE_RECORD_BYTES);
+  const slotOffset = u8((BARREL_SLOTS - b) * SPRITE_RECORD_BYTES);
   mem16[RENDER_DST_PTR] = ACTOR_SPRITES + slotOffset;
 
   mem8[EVENT_GATE] = 1;

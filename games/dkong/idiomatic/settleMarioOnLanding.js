@@ -22,11 +22,11 @@ import {
 import { loc_1d95 } from "./loc_1d95.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
-export function settleMarioOnLanding(m) {
+export function settleMarioOnLanding(m, a = m.regs.a) {
   const { regs, mem8 } = m;
 
   // Caller passes the landing flag (0 in play) in a register.
-  mem8[MARIO_AIRBORNE] = regs.a;
+  mem8[MARIO_AIRBORNE] = a;
 
   // Alive unless this landing was a fatal fall: MARIO_ACTIVE is the fatal-fall flag flipped.
   mem8[MARIO_ACTIVE] = mem8[MARIO_FATAL_FALL] ^ 1;

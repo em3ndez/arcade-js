@@ -9,7 +9,7 @@
  */
 import { FRAME } from "./names.js";
 
-export function signStepHalfRate(m) {
+export function signStepHalfRate(m, ptr = m.regs.hl) {
   const { regs, mem8 } = m;
 
   if ((mem8[FRAME] & 0x01) === 0) {
@@ -17,7 +17,7 @@ export function signStepHalfRate(m) {
     return;
   }
 
-  const step = (mem8[regs.hl] & 0x80) ? 0xff : 0x01;
-  mem8[regs.hl] = step;
+  const step = (mem8[ptr] & 0x80) ? 0xff : 0x01;
+  mem8[ptr] = step;
   regs.a = step;
 }

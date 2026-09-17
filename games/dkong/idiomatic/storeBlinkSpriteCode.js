@@ -11,10 +11,8 @@ import { SPRITE_BUFFER } from "./names.js";
 
 const SPRITE1_CODE = SPRITE_BUFFER + 5; // record 1 (+4), code field (+1)
 
-export function storeBlinkSpriteCode(m) {
-  const { regs, mem8 } = m;
-  const code = regs.a;
-  const counter = regs.c;
+export function storeBlinkSpriteCode(m, code = m.regs.a, counter = m.regs.c) {
+  const { mem8 } = m;
 
   const advanceTile = (counter & 0x47) === 0x40;
 

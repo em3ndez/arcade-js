@@ -35,11 +35,10 @@ const OBJ_X_DISPLACEMENT = 0x0e; // added to Mario's X by the record write
 const RECORD_ATTR = 0x07;
 const EXPIRY_HIGH = 0x02; // high byte at which the ~512-count lifetime is up
 
-export function updateActiveHammer(m) {
+export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c) {
   const { regs, mem8 } = m;
-  const objBase = regs.ix;
 
-  mem8[MARIO_SPRITE_RECORD + SPRITE_CODE] = regs.c;
+  mem8[MARIO_SPRITE_RECORD + SPRITE_CODE] = c;
   regs.c = RECORD_ATTR;
 
   // Tick the low byte; while it advances without wrapping, just lay down the record.

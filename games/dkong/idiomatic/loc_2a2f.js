@@ -15,9 +15,8 @@ import { u8 } from "../../../core/int.js";
 import { OBJ_X, OBJ_Y } from "./names.js";
 import { tileAddrForPixel } from "./tileAddrForPixel.js";
 
-export function loc_2a2f(m) {
+export function loc_2a2f(m, objPtr = m.regs.ix) {
   const { regs, mem8 } = m;
-  const objPtr = regs.ix;
 
   const objX = mem8[(objPtr + OBJ_X) & 0xffff];
   // Probe point: 4 px BELOW the object (larger Y is lower on screen).

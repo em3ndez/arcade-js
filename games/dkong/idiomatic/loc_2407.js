@@ -15,9 +15,8 @@ const PACKED = 0x14;      // two 4-bit digits packed into one byte (highDigit, l
 const OPERAND_HI = 0x12;  // upper byte of the 16-bit operand to subtract
 const OPERAND_LO = 0x13;  // lower byte of the 16-bit operand to subtract
 
-export function loc_2407(m) {
+export function loc_2407(m, record = m.regs.ix) {
   const { regs, mem8 } = m;
-  const record = regs.ix;
 
   const packed = mem8[(record + PACKED) & 0xffff];
   const highDigit = packed >> 4;

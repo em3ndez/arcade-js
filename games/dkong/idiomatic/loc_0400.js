@@ -13,10 +13,10 @@ import { SPRITE_OBJ_BLOCK, M50_OBJ1_STEP, M50_OBJ_ROW_SHIFT } from "./names.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 import { serviceColorCycle } from "./serviceColorCycle.js";
 
-export function loc_0400(m) {
+export function loc_0400(m, nz = m.regs.fNZ) {
   const { regs, mem8 } = m;
 
-  if (regs.fNZ) {
+  if (nz) {
     serviceColorCycle(m);
     return;
   }

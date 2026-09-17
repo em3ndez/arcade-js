@@ -22,13 +22,13 @@ const WALK_FLAG_A = 0x13;
 const WALK_FLAG_B = 0x18;
 const WALK_FLAG_C = 0x1c;
 
-export function loc_3445(m) {
+export function loc_3445(m, ix = m.regs.ix, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
-  const base = regs.ix;
+  const base = ix;
   const field = (off) => (base + off) & 0xffff;
 
-  const entry = mem8[regs.hl];
+  const entry = mem8[hl];
 
   if (entry === TABLE_TERMINATOR) {
     mem8[field(WALK_FLAG_A)] = 0;
@@ -44,7 +44,7 @@ export function loc_3445(m) {
 
   mem8[field(OBJ_Y)] = entry;
 
-  const next = u16(regs.hl + 1);
+  const next = u16(hl + 1);
   mem8[field(OBJ_WALK_PTR_LO)] = next;
   mem8[field(OBJ_WALK_PTR_HI)] = next >> 8;
 }

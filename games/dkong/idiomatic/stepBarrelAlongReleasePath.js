@@ -16,10 +16,10 @@ const TERMINATOR = 0x7f; // ends the path; doubles as the mask that strips the f
 const ATTRIBUTE_BIT = 0x80; // set on a waypoint's X byte -> flip the barrel's animation bits
 const FIELD_FLIP = 0x03; // the two sprite-code bits that flip
 
-export function stepBarrelAlongReleasePath(m) {
+export function stepBarrelAlongReleasePath(m, hl = m.regs.hl) {
   const { regs, mem8, mem16 } = m;
 
-  const src = regs.hl;
+  const src = hl;
   const objPtr = mem16[RENDER_OBJ_PTR];
   const dstPtr = mem16[RENDER_DST_PTR];
   const ch = mem8[src];

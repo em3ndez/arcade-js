@@ -6,12 +6,12 @@
  * LIVE-OUT: the three memory cells, plus the trailing registers — value 3 lower, pointer advanced
  * three strides, spent loop counter.
  */
-export function fillDescendingColumn(m) {
+export function fillDescendingColumn(m, hl = m.regs.hl, a = m.regs.a, de = m.regs.de) {
   const { regs, mem8 } = m;
 
-  let addr = regs.hl & 0xffff;
-  let val = regs.a & 0xff;
-  const stride = regs.de & 0xffff;
+  let addr = hl & 0xffff;
+  let val = a & 0xff;
+  const stride = de & 0xffff;
 
   for (let pass = 0; pass < 3; pass++) {
     mem8[addr] = val;

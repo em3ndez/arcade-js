@@ -9,11 +9,11 @@
 import { SEG_TILE, SEG_HEIGHT } from "./names.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 
-export function fillColumnAndContinueWalk(m) {
+export function fillColumnAndContinueWalk(m, hl = m.regs.hl, de = m.regs.de) {
   const { regs, mem8 } = m;
 
   const tile = mem8[SEG_TILE]; // loop-invariant, hoisted
-  let addr = regs.hl;
+  let addr = hl;
   for (;;) {
     mem8[addr] = tile;
     addr = (addr + 0x20) & 0xffff; // step one whole tilemap row
@@ -22,6 +22,6 @@ export function fillColumnAndContinueWalk(m) {
     if (height < 0x08) break; // subtraction borrowed -> height spent, column done
   }
 
-  regs.de = (regs.de + 1) & 0xffff;
+  regs.de = (de + 1) & 0xffff;
   drawBoardLayout(m);
 }

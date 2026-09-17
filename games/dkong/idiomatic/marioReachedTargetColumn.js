@@ -15,12 +15,12 @@ import { reportNoHitAndSkipCaller } from "./reportNoHitAndSkipCaller.js";
 // Larger Y is LOWER on screen, so the reach band is the rows ABOVE this one.
 const REACH_Y = 122;
 
-export function marioReachedTargetColumn(m) {
-  const { regs, mem8 } = m;
+export function marioReachedTargetColumn(m, hl = m.regs.hl) {
+  const { mem8 } = m;
 
   if (mem8[MARIO_Y] >= REACH_Y) return reportNoHitAndSkipCaller(m);
   if (mem8[MARIO_AIRBORNE] !== 0) return reportNoHitAndSkipCaller(m);
-  if (mem8[MARIO_X] !== mem8[regs.hl]) return reportNoHitAndSkipCaller(m);
+  if (mem8[MARIO_X] !== mem8[hl]) return reportNoHitAndSkipCaller(m);
 
   return true;
 }

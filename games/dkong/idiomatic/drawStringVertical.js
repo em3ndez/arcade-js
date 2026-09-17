@@ -18,10 +18,10 @@ const STRING_TERMINATOR = 0x3f;
 const BLANK_TILE = 0x10;
 const TABLE_INDEX_MASK = 0x7f; //   keeps the doubled index, drops the erase flag's remnant
 
-export function drawStringVertical(m) {
-  const { regs, mem8, mem16 } = m;
+export function drawStringVertical(m, a = m.regs.a) {
+  const { mem8, mem16 } = m;
 
-  const payload = regs.a & 0xff;
+  const payload = a & 0xff;
   const blankMode = (payload & 0x80) !== 0;
   const index = ((payload << 1) & 0xff) & TABLE_INDEX_MASK;
 

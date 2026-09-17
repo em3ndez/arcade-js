@@ -14,10 +14,8 @@ import { MARIO_X, OBJ_X } from "./names.js";
 const OBJ_STEP_DIR = 0x10; // toward-player step code
 const OBJ_STEP_MAG = 0x11; // step delta
 
-export function loc_231a(m) {
-  const { regs, mem8 } = m;
-
-  const objBase = regs.ix;
+export function loc_231a(m, objBase = m.regs.ix) {
+  const { mem8 } = m;
 
   const playerX = mem8[MARIO_X];
   const objX = mem8[(objBase + OBJ_X) & 0xffff];

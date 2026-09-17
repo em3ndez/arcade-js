@@ -18,14 +18,14 @@ const AWARD_SOUND = SND_TRIGGER + 5;
 const SND_ASSERT_FRAMES = 3;
 const SPRITE_ATTR = 0x07;
 
-export function awardScorePopup(m) {
+export function awardScorePopup(m, b = m.regs.b) {
   const { regs, mem8 } = m;
 
   enqueueTask(m);
 
   const popupY = (mem8[MARIO_Y] + POPUP_Y_OFFSET) & 0xff;
   mem8[POPUP_SPRITE + 0] = mem8[MARIO_X];
-  mem8[POPUP_SPRITE + 1] = regs.b;
+  mem8[POPUP_SPRITE + 1] = b;
   mem8[POPUP_SPRITE + 2] = SPRITE_ATTR;
   mem8[POPUP_SPRITE + 3] = popupY;
 

@@ -10,12 +10,11 @@
 import { u8 } from "../../../core/int.js";
 import { MARIO_AIR_PREV_Y, MARIO_Y } from "./names.js";
 
-export function resolveAirborneTileLanding(m) {
+export function resolveAirborneTileLanding(m, boundary = m.regs.c, ix = m.regs.ix, e = m.regs.e) {
   const { regs, mem8 } = m;
 
-  const boundary = regs.c;
-  const objectY = mem8[(regs.ix + 5) & 0xffff];
-  const probe = u8(mem8[MARIO_AIR_PREV_Y] - objectY + regs.e);
+  const objectY = mem8[(ix + 5) & 0xffff];
+  const probe = u8(mem8[MARIO_AIR_PREV_Y] - objectY + e);
 
   if (probe > boundary) {
     regs.a = 2;

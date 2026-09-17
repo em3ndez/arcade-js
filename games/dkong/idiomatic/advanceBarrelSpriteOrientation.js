@@ -12,11 +12,8 @@ import { nextAnimationStep } from "./nextAnimationStep.js";
 
 const OBJ_ORIENT_COUNTDOWN = 0x0f;
 
-export function advanceBarrelSpriteOrientation(m) {
+export function advanceBarrelSpriteOrientation(m, objBase = m.regs.ix, dirCode = m.regs.c) {
   const { regs, mem8 } = m;
-
-  const objBase = regs.ix;
-  const dirCode = regs.c;
 
   const counterAddr = (objBase + OBJ_ORIENT_COUNTDOWN) & 0xffff;
   const counter = mem8[counterAddr];

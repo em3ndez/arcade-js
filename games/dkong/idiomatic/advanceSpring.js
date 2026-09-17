@@ -25,10 +25,8 @@ const CROSS_STEP = 2;              // pixels of horizontal travel per frame — 
 const RETIRE_STATE = 4;            // the OBJ_STATE the step-and-deactivate handler owns
 const STRING_TERMINATOR = 0x7f;    // end of the height string: rewind and bounce again
 
-export function advanceSpring(m) {
+export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
   const { regs, mem8 } = m;
-  const record = regs.ix;        // the spring's own record
-  const spriteRecord = regs.iy;  // the sprite record drawn for it
 
   if ((mem8[record + OBJ_ACTIVE] & 0x01) === 0) {
     spawnObjectIntoInactiveSlot(m);

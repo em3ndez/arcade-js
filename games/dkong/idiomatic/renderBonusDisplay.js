@@ -10,10 +10,10 @@
 import { SND_BGM } from "./names.js";
 import { stampTwoDigitField } from "./stampTwoDigitField.js";
 
-export function renderBonusDisplay(m) {
+export function renderBonusDisplay(m, a = m.regs.a) {
   const { regs, mem8 } = m;
 
-  const digitByte = regs.a;
+  const digitByte = a;
   const unitsDigit = digitByte & 0x0f;
   const tensDigit = (digitByte >> 4) & 0x0f;
 

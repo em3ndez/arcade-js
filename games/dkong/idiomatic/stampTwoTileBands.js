@@ -7,10 +7,10 @@
  * LIVE-OUT: memory-only — the eight tilemap cells.
  */
 
-export function stampTwoTileBands(m) {
-  const { regs, mem8 } = m;
+export function stampTwoTileBands(m, hl = m.regs.hl) {
+  const { mem8 } = m;
 
-  let addr = regs.hl;
+  let addr = hl;
 
   for (let i = 0; i < 4; i++) {
     mem8[addr] = 0xfd;

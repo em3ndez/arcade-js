@@ -22,10 +22,10 @@ const OBJ_WORKING_X = 0x0e;
 const SPRITE_FLIP = 0x80;
 const STATE_STEP_UP = 1;
 
-export function walkFireOneStep(m) {
-  const { regs, mem8 } = m;
+export function walkFireOneStep(m, ix = m.regs.ix) {
+  const { mem8 } = m;
 
-  const objBase = regs.ix;
+  const objBase = ix;
   const codeAddr = (objBase + OBJ_SPRITE_CODE) & 0xffff;
   const xAddr = (objBase + OBJ_WORKING_X) & 0xffff;
 

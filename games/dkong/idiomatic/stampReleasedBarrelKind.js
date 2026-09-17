@@ -12,10 +12,10 @@
 import { BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./names.js";
 import { advanceBarrelRelease } from "./advanceBarrelRelease.js";
 
-export function stampReleasedBarrelKind(m) {
-  const { regs, mem8 } = m;
+export function stampReleasedBarrelKind(m, ix = m.regs.ix) {
+  const { mem8 } = m;
 
-  const obj = regs.ix;
+  const obj = ix;
 
   if ((mem8[BARREL_CLAIM_MODE] & 0x80) === 0) {
     mem8[(obj + OBJ_SPRITE_CODE) & 0xffff] = 0x15;

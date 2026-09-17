@@ -15,11 +15,11 @@ const COUNTDOWN_SPRITES = 0x69a8;
 const COUNTDOWN_RECORDS = 4;
 const SPRITE_RECORD_BYTES = 4;
 
-export function loc_2ce6(m) {
-  const { regs, mem8 } = m;
+export function loc_2ce6(m, hl = m.regs.hl) {
+  const { mem8 } = m;
 
   // The caller left its pointer on the bonus counter it just decremented for this release.
-  const remaining = mem8[regs.hl];
+  const remaining = mem8[hl];
 
   if (remaining < COUNTDOWN_RECORDS) {
     mem8[COUNTDOWN_SPRITES + remaining * SPRITE_RECORD_BYTES + SPRITE_X] = 0;

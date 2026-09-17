@@ -18,12 +18,9 @@ const FAR_SLOT = 0x2a;
  * @param {object} m  the machine. Live-in registers: search key, entry count, discriminator.
  * @returns {boolean} true on a hit (results in registers); false on a miss.
  */
-export function findOppositeLadderEnd(m) {
+export function findOppositeLadderEnd(m, key = m.regs.a, disc = m.regs.d, count = m.regs.bc) {
   const { regs, mem8 } = m;
 
-  const key = regs.a;
-  const disc = regs.d;
-  let count = regs.bc;
   let addr = OBJ_PARAM_TABLE0;
 
   for (;;) {

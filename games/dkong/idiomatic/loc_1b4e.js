@@ -10,11 +10,11 @@
 import { MARIO_CLIMB_LIMIT_A, MARIO_CLIMB_LIMIT_B } from "./names.js";
 import { climbUpWhileHeld } from "./climbUpWhileHeld.js";
 
-export function loc_1b4e(m) {
-  const { regs, mem8 } = m;
+export function loc_1b4e(m, b = m.regs.b, d = m.regs.d) {
+  const { mem8 } = m;
 
-  mem8[MARIO_CLIMB_LIMIT_A] = regs.b;
-  mem8[MARIO_CLIMB_LIMIT_B] = regs.d;
+  mem8[MARIO_CLIMB_LIMIT_A] = b;
+  mem8[MARIO_CLIMB_LIMIT_B] = d;
 
   climbUpWhileHeld(m);
 }

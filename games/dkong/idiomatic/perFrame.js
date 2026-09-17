@@ -29,12 +29,12 @@ const NMI_GAME_STATE = [
   dispatchInGameSubstate, // 3 — in-game sub-state dispatch
 ];
 
-export function perFrame(m) {
+export function perFrame(m, sp = m.regs.sp) {
   const { regs, mem, mem8 } = m;
 
   // Snapshot the entry stack pointer: the dispatch does not reliably restore it, but is
   // stack-neutral overall, so the epilogue is a pure function of this value.
-  const frameBase = regs.sp;
+  const frameBase = sp;
 
   mem8[FRAME] = (mem8[FRAME] - 1) & 0xff;
 

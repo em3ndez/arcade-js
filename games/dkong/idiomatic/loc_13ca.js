@@ -15,14 +15,14 @@ const RAW_SCORE = 0x61c7;
 const DIGITS = 0x61b1;
 const TABLE_KEY = 0x61a5;
 
-export function loc_13ca(m) {
-  const { mem8, regs } = m;
+export function loc_13ca(m, a = m.regs.a, scorePtr = m.regs.hl) {
+  const { mem8 } = m;
 
-  mem8[PARAM_SLOT] = regs.a;
+  mem8[PARAM_SLOT] = a;
 
   if (!gameActiveGuard(m)) return;
 
-  const src = regs.hl;
+  const src = scorePtr;
   for (let i = 0; i < 3; i++) mem8[RAW_SCORE + i] = mem8[(src + i) & 0xffff];
 
   // Unpack the 3 BCD bytes read back-to-front into 6 nibbles (high then low), MS digit first.
