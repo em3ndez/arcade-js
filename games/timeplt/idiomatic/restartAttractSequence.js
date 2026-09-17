@@ -22,6 +22,6 @@ export function restartAttractSequence(m) {
 
   regs.a = mem8[ATTRACT_RESTART_FOLD_BYTE];
   regs.hl = mem16[PLAYER_ANIM_COL_COUNT];
-  offsetAddress(m);
-  mem8[SEQUENCE_SUBSTEP] = u8(regs.a ^ (regs.hl >> 8)) - FOLD_BIAS;
+  const moved = offsetAddress(m);
+  mem8[SEQUENCE_SUBSTEP] = u8(u8(moved) ^ (moved >> 8)) - FOLD_BIAS;
 }

@@ -25,14 +25,10 @@ export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
   regs.de = EMBLEM_STRIP_TOP;
   let emblems = count > MAX_EMBLEMS ? MAX_EMBLEMS : count;
   if (emblems !== 0) {
-    regs.b = EMBLEM_BASE;
-    regs.c = EMBLEM_COLOUR;
-    for (; emblems !== 0; emblems--) stampTwoByTwoTileBlock(m);
+    for (; emblems !== 0; emblems--) stampTwoByTwoTileBlock(m, EMBLEM_BASE, EMBLEM_COLOUR);
   }
 
-  regs.b = BLANK_GLYPH;
-  regs.c = BLANK_COLOUR;
-  while (regs.de >= EMBLEM_STRIP_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m);
+  while (regs.de >= EMBLEM_STRIP_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m, regs.de, BLANK_GLYPH, BLANK_COLOUR);
 
   let check = 0;
   for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[IMAGE_GUARD_BLOCK_0711_BASE + i];

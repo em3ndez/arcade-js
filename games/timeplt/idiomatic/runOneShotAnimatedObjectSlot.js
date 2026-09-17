@@ -21,7 +21,7 @@ export function runOneShotAnimatedObjectSlot(m) {
   const object = regs.ix;
   const sprite = regs.iy;
 
-  if (mem8[object + COUNTER] >= REARM_AT) stampObjectStateByte3bThenRequestSound(m);
+  if (mem8[object + COUNTER] >= REARM_AT) stampObjectStateByte3bThenRequestSound(m, object);
 
   mem8[object + COUNTER] = (mem8[object + COUNTER] - 1) & 0xff;
   if (mem8[object + COUNTER] === 0) {
@@ -30,14 +30,13 @@ export function runOneShotAnimatedObjectSlot(m) {
     return;
   }
 
-  driftWithWorldScroll(m);
+  driftWithWorldScroll(m, object, sprite);
 
   const counter = mem8[object + COUNTER];
   if (counter < SHAPE_FLOOR) return;
   // counter above the floor, rotated right twice, low nibble: the shape-table index.
-  regs.a = ((((counter - SHAPE_FLOOR) & 0xff) >> 2) | (((counter - SHAPE_FLOOR) & 0xff) << 6)) & 0x0f;
-  regs.hl = ONE_SHOT_OBJECT_SHAPE_TABLE;
-  fetchTableByte(m);
-  mem8[sprite + SPRITE_SHAPE] = regs.a;
+  const index = ((((counter - SHAPE_FLOOR) & 0xff) >> 2) | (((counter - SHAPE_FLOOR) & 0xff) << 6)) & 0x0f;
+  const shape = fetchTableByte(m, ONE_SHOT_OBJECT_SHAPE_TABLE, index);
+  mem8[sprite + SPRITE_SHAPE] = shape;
   mem8[sprite + SPRITE_ATTR] = SHAPE_ATTR;
 }

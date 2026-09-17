@@ -28,9 +28,7 @@ export function steerTowardAimHeading(m, object = m.regs.ix) {
   mem8[headingCell] = away < HALF_TURN ? heading + step : heading - step;
 }
 
-/** The table fetch wants its base and its index in the registers it reads them from. */
+/** The table fetch takes its base and its index as arguments. */
 function turnRate(m, index) {
-  m.regs.hl = TURN_RATE_BY_ERA_TABLE;
-  m.regs.a = index;
-  return fetchTableByte(m);
+  return fetchTableByte(m, TURN_RATE_BY_ERA_TABLE, index);
 }

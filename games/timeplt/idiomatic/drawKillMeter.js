@@ -30,9 +30,7 @@ export function drawKillMeter(m) {
   const barGlyphs = [mem8[row], mem8[u16(row + 1)]];
 
   const owed = mem8[KILLS_REMAINING];
-  regs.hl = u16(row + 2);
-  regs.a = owed & (END_GLYPHS - 1);
-  const endGlyph = fetchTableByte(m);
+  const endGlyph = fetchTableByte(m, u16(row + 2), owed & (END_GLYPHS - 1));
 
   let cursor = KILL_METER_BAR_START_CELL;
   const cells = Math.floor(owed / KILLS_PER_CELL) & LONGEST_BAR;
