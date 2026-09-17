@@ -31,7 +31,6 @@ export function seatTheStackAndSettleTheControlLatch(m) {
     );
   }
 
-  regs.sp = SPRITE_RAM_BASE;
   mem.write8(WATCHDOG_RESET, regs.a, STORE_TO_A_FIXED_ADDRESS);
   for (let i = 0; i < CONTROL_LINE_ADDRESSES; i++) {
     mem.write8(NMI_ENABLE_LATCH + i, 0, STORE_THROUGH_A_POINTER);
@@ -40,5 +39,5 @@ export function seatTheStackAndSettleTheControlLatch(m) {
   regs.a = mem8[DISPLAY_ON_VALUE];
   mem.write8(VIDEO_ENABLE_LATCH, regs.a, STORE_TO_A_FIXED_ADDRESS);
 
-  return m.call(clearWorkRamAndSpriteBanksThenColdInit_ADDR);
+  return (regs.sp = SPRITE_RAM_BASE, m.call(clearWorkRamAndSpriteBanksThenColdInit_ADDR));
 }

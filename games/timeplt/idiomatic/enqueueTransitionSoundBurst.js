@@ -9,7 +9,7 @@ import { enqueueSoundUnconditional } from "./enqueueSoundUnconditional.js";
 import { ERA_INDEX } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
-const FIXED_CODE_SOURCES = [0x167c, 0x0a9c, 0x1484, 0x0c78, 0x07d3, 0x33b4];
+const FIXED_CODE_SOURCES = [0x167c, 0xa9c, 0x1484, 0xc78, 0x7d3, 0x33b4];
 const ERA_CODE_BASE = 140;
 
 export function enqueueTransitionSoundBurst(m) {

@@ -10,7 +10,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 
-const RECORDS = 0x0d1b;
+const RECORDS = 0xd1b;
 const CELLS = 3;
 const PLANE_GAP_HIGH = 4;
 
@@ -27,6 +27,6 @@ export function copyThreeTilemapCellsFromBothPlanes(m) {
     const second = mem8[otherPlane];
 
     mem8[keep] = second;
-    mem8[(keep & 0xff00) | u8(keep + 1)] = first;
+    mem8[(keep - (keep & 0xff)) | u8(keep + 1)] = first;
   }
 }

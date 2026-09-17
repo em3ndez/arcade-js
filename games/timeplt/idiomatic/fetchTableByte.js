@@ -7,12 +7,8 @@
 
 import { u16 } from "../../../core/int.js";
 
-export function fetchTableByte(m) {
-  const { regs, mem8 } = m;
-  const tableBase = regs.hl;
-  const index = regs.a;
+export function fetchTableByte(m, tableBase = m.regs.hl, index = m.regs.a) {
+  const { mem8 } = m;
   const entry = u16(tableBase + index);
-  regs.hl = entry;
-  regs.a = mem8[entry];
-  return regs.a;
+  return (m.regs.hl = entry, m.regs.a = mem8[entry]);
 }

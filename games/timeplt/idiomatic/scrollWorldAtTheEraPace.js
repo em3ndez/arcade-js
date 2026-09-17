@@ -13,7 +13,7 @@ import { ERA_INDEX } from "./names.js";
 
 const OPENING_ERA_PACE = 0x5e00;
 const EARLY_ERA_PACE = 0x2e3e;
-const LATER_ERA_PACE = 0x08fa;
+const LATER_ERA_PACE = 0x8fa;
 const FIRST_LATER_ERA = 3;
 
 export function scrollWorldAtTheEraPace(m) {

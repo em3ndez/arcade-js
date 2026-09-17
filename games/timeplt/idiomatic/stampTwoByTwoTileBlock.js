@@ -12,7 +12,7 @@
 import { u16 } from "../../../core/int.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
 
-const COLOUR_PLANE_GAP = 0x0400;
+const COLOUR_PLANE_GAP = 0x400;
 const NEXT_LINE = 32;
 
 export function stampTwoByTwoTileBlock(m, base = m.regs.b, colour = m.regs.c) {

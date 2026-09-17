@@ -16,15 +16,5 @@ const SPAN = 15;
 
 export function stagePlayerShotSweepAgainstTargetsAndRun(m) {
   const { mem16, regs } = m;
-  regs.de = ERA_OBJECT_RECORD_SLOT0;
-  regs.iy = ERA_OBJECT_ENTRY_SLOT0;
-  regs.ix = PLAYER_SHOT_ARRAY;
-  regs.a_ = TARGETS;
-  regs.b = TARGETS;
-  regs.c = SHOTS;
-  mem16[SCRATCH_PTR_B] = ERA_OBJECT_RECORD_SLOT0;
-  mem16[SCRATCH_PTR_A] = ERA_OBJECT_ENTRY_SLOT0;
-  regs.l = REACH;
-  regs.h = SPAN;
-  destroyTargetsHitByShots(m);
+  return (regs.de = ERA_OBJECT_RECORD_SLOT0, regs.iy = ERA_OBJECT_ENTRY_SLOT0, regs.ix = PLAYER_SHOT_ARRAY, regs.a_ = TARGETS, regs.b = TARGETS, regs.c = SHOTS, mem16[SCRATCH_PTR_B] = ERA_OBJECT_RECORD_SLOT0, mem16[SCRATCH_PTR_A] = ERA_OBJECT_ENTRY_SLOT0, regs.l = REACH, regs.h = SPAN, destroyTargetsHitByShots(m));
 }
