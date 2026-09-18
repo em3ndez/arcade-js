@@ -5,55 +5,23 @@
  * frame (dig-carve/hazards → chamber creature → enemies → enemy-3).
  * It reads fire (input bit 4) and, with a horizontal facing, launches/flies a laser bolt; otherwise
  * it runs the reaction object — the short animation the player plays as it digs or pushes into
- * terrain. Each frame it decides what that shared object does:
- *   - A goal crossing or an armed dig object already owns the frame: show the rest sprite and
- *     publish the object's sprite record.
- *   - A horizontal scroll already in progress: advance the object a step at a time across the
- *     terrain, stopping (and resetting it) when the cell ahead is one of that sub-column's stops.
- *   - An edge collision was just flagged: maybe start such a scroll — reading the input and the
- *     object's facing to seed the scroll window — or, failing the gates, clear the scroll mode.
- *   - Otherwise run the active reaction phase (one of four, one per 8-pixel direction): while the
- *     phase timer ticks, slide the object to a fixed 8-pixel offset from the tracked object and
- *     cycle its animation; when the timer expires, settle to the rest sprite, write the resolved
- *     tiles into the actor's map cell, publish a facing code, and — for three of the four phases —
- *     spawn the dug entity. The timer passing 24 on the way down cues the reaction sound.
+ * terrain — dispatching per frame to a goal/dig owner, an in-progress scroll, an edge-collision arm,
+ * or the active reaction phase (one of four, one per 8-pixel direction). A phase that expires writes
+ * the resolved tiles into the actor's map cell, publishes a facing, and (three of the four) spawns
+ * the dug entity; the timer passing 24 on the way down cues the reaction sound.
  * Every path finishes by building the object's 4-byte sprite record and handing the frame to the
  * dig-object driver, whose own return unwinds to this routine's caller.
  */
 
 import { u8 } from "../../../core/int.js";
-import {
-  PIT_CROSS_ACTIVE,
-  DIG_COLLISION_STATE,
-  HAZARD_ACTIVE_COUNT,
-  REACTION_STATE,
-  REACTION_TIMER,
-  REACTION_OBJ_X,
-  REACTION_OBJ_Y,
-  PLAYER_Y,
-  PLAYER_X,
-  PLAYER_CELL_PTR,
-  EXPECTED_TILE,
-  NEXT_TILE,
-  PLAYER_FACING,
-  SPRITE_COORD_BIAS,
-  PLAYER_ACTIVE,
-  BOARD_END_PHASE,
-  GOAL_TILE_LATCH,
-  IN0_DEBOUNCED,
-  SPRITE_STAGING_BASE,
-  REACTION_OBJ_CODE,
-  REACTION_OBJ_ATTR,
-  LASER_SCAN_PTR,
-  SCROLL_SUBPHASE,
-} from "./names.js";
+import { PIT_CROSS_ACTIVE, DIG_COLLISION_STATE, HAZARD_ACTIVE_COUNT, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_X, REACTION_OBJ_Y, PLAYER_Y, PLAYER_X, PLAYER_CELL_PTR, EXPECTED_TILE, NEXT_TILE, PLAYER_FACING, SPRITE_COORD_BIAS, PLAYER_ACTIVE, BOARD_END_PHASE, GOAL_TILE_LATCH, IN0_DEBOUNCED, SPRITE_STAGING_BASE, REACTION_OBJ_CODE, REACTION_OBJ_ATTR, LASER_SCAN_PTR, SCROLL_SUBPHASE, LASER_STATE } from "./names.js";
 import { spawnDigEntity } from "./spawnDigEntity.js";
 import { requestSound9 } from "./requestSound9.js";
 import { requestSound12 } from "./requestSound12.js";
 import { advanceDigCarveObject } from "./advanceDigCarveObject.js";
 
 // The horizontal-scroll state (a persistent 3-byte block driving the terrain walk).
-const SCROLL_STEP = 0x80a1; // signed per-frame X step; bit 3 set marks a scroll in progress,
+const SCROLL_STEP = LASER_STATE; // signed per-frame X step; bit 3 set marks a scroll in progress,
 //                             bit 7 its direction (set -> window +32/row, clear -> -32/row)
 const STOP_TILE_TABLE = 0x277a; // eight 32-byte per-sub-column lists of stop tiles
 
@@ -93,13 +61,10 @@ export function advancePlayerLaser(m) {
     return buildReactionRecord(m);
   }
 
-  // A horizontal scroll already in progress: advance it.
   if ((mem8[SCROLL_STEP] & 0x08) !== 0) return advanceScroll(m);
 
-  // An edge collision was just flagged: maybe start a scroll.
   if (mem8[HAZARD_ACTIVE_COUNT] === 2) return handleEdgeCollision(m);
 
-  // The reaction timer reaching 24 on its way down cues the reaction sound.
   if (mem8[REACTION_TIMER] === 24) requestSound9(m);
 
   // Run the active reaction phase; anything else is idle -> the edge-collision arm.
@@ -123,7 +88,6 @@ function runReactionPhase(m, phase) {
     return buildReactionRecord(m);
   }
 
-  // Reaction finished: settle to rest, write the resolved tiles, publish the facing, and (except phase 3) spawn the dug entity.
   if (phase.clearStateFirst) mem8[REACTION_STATE] = 0;
   mem8[REACTION_OBJ_CODE] = REST_SPRITE;
   const cell = mem16[PLAYER_CELL_PTR];

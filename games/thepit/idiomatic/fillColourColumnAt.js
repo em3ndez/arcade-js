@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { BOARD_MODE } from "./names.js";
 /**
  * fillColourColumnAt — paint a full-height colour-RAM column with one colour.
  * `columnOffset` picks the column (an offset into colour RAM from its top-of-column anchor) and
@@ -11,7 +12,7 @@ export function fillColourColumnAt(m, columnOffset = m.regs.a, colour = m.regs.c
   const { mem8 } = m;
 
   // Record the colour as the shared colour index the sibling colour fills read.
-  mem8[0x8057] = colour;
+  mem8[BOARD_MODE] = colour;
 
   // Top cell of the chosen column: the top-of-column anchor sits two rows below the base.
   let cell = 0x8840 + columnOffset;

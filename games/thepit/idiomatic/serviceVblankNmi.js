@@ -2,38 +2,12 @@
 /**
  * serviceVblankNmi — the per-frame vblank interrupt service: acknowledge, guard the credit
  * count, fire a queued sound, blit sprites, tick timers, debounce inputs, and bank coins.
- *
- * Runs once per vertical blank. Its first act drops the interrupt-enable line to acknowledge
- * the interrupt so a following vblank cannot re-enter mid-service; the normal path re-raises it
- * before returning. A watchdog guards the credit count (three redundant copies) and cold-resets
- * the machine if any copy disagrees or the count runs past its cap. It then services the frame
- * in order — one queued sound to the audio latch, the sprite blit, the frame timers, input
- * debounce — and finally banks coins: each slot's switch is edge-detected through a two-sentinel
- * accumulator, and a completed pulse banks a credit and shows the credit screen or starts a game.
+ * Its first act drops the interrupt-enable line so a following vblank cannot re-enter mid-service;
+ * the normal path re-raises it before returning. A watchdog cold-resets the machine if the credit
+ * count's three redundant copies disagree or it runs past its cap.
  */
 
-import {
-  FRAME_WAIT_COUNTDOWN,
-  PLAY_PHASE_COUNTER,
-  SECONDS_PRESCALER,
-  IN0_DEBOUNCED,
-  IN0_PREV,
-  IN1_DEBOUNCED,
-  IN1_PREV,
-  GAME_STATE,
-  VARIANT,
-  SOUND_HEAD,
-  SOUND_RING,
-  SPRITE_STAGING_BASE,
-  CREDIT_COUNT,
-  CREDIT_MIRROR_A,
-  CREDIT_MIRROR_B,
-  COIN_SW_ACCUM,
-  START1_SW_ACCUM,
-  START2_SW_ACCUM,
-  COINS_PER_CREDIT_A,
-  COINS_PER_CREDIT_B,
-} from "./names.js";
+import { FRAME_WAIT_COUNTDOWN, PLAY_PHASE_COUNTER, SECONDS_PRESCALER, IN0_DEBOUNCED, IN0_PREV, IN1_DEBOUNCED, IN1_PREV, GAME_STATE, VARIANT, SOUND_HEAD, SOUND_RING, SPRITE_STAGING_BASE, CREDIT_COUNT, CREDIT_MIRROR_A, CREDIT_MIRROR_B, COIN_SW_ACCUM, START1_SW_ACCUM, START2_SW_ACCUM, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B, SOUND_TAIL, FRAME_COUNTER_PRESCALER } from "./names.js";
 import { coldBootInit } from "./coldBootInit.js";
 import { showCreditScreen } from "./showCreditScreen.js";
 import { startGame } from "./startGame.js";
@@ -45,8 +19,6 @@ const CREDIT_CAP = 10; // one past the highest bankable credit (banking clamps t
 export function serviceVblankNmi(m) {
   const { mem8 } = m;
 
-  // Acknowledge the interrupt by dropping the enable line, so a second vblank cannot
-  // re-enter this handler before the frame's service completes.
   mem8[0xb000] = 0;
 
   // Credit watchdog: the count lives in three redundant copies. A disagreement or an
@@ -85,13 +57,13 @@ export function serviceVblankNmi(m) {
 function fireQueuedSound(m) {
   const { mem8 } = m;
 
-  const readIndex = mem8[0x801f];
-  if (mem8[SOUND_HEAD] === readIndex) return; // ring empty
+  const readIndex = mem8[SOUND_TAIL];
+  if (mem8[SOUND_HEAD] === readIndex) return;
 
-  mem8[0x801f] = (readIndex + 1) & 7; // advance the read index (8-slot ring)
+  mem8[SOUND_TAIL] = (readIndex + 1) & 7; // advance the read index (8-slot ring)
   const command = mem8[SOUND_RING + readIndex];
   mem8[SOUND_RING + readIndex] = 0; // consume the slot
-  if (command & 0x80) mem8[0xb800] = command; // fire the queued command
+  if (command & 0x80) mem8[0xb800] = command;
 }
 
 /** Copy the 32-byte (8 sprites x 4) staging buffer into hardware sprite RAM each frame. */
@@ -118,11 +90,11 @@ function tickFrameTimers(m) {
   }
 
   // A second 60-frame divider that counts PLAY_PHASE_COUNTER up on each rollover.
-  const upDivider = mem8[0x8007] - 1;
-  mem8[0x8007] = upDivider;
+  const upDivider = mem8[FRAME_COUNTER_PRESCALER] - 1;
+  mem8[FRAME_COUNTER_PRESCALER] = upDivider;
   if (upDivider === 0) {
     mem8[PLAY_PHASE_COUNTER] = mem8[PLAY_PHASE_COUNTER] + 1;
-    mem8[0x8007] = 60;
+    mem8[FRAME_COUNTER_PRESCALER] = 60;
   }
 }
 
@@ -164,7 +136,7 @@ function bankCoinInput(m) {
   if (coinSwitches & 0x01) {
     mem8[COIN_SW_ACCUM] = 0x55; // line asserted: arm the detector
   } else {
-    const armed = mem8[COIN_SW_ACCUM] === 0x55; // was it armed on the previous frame?
+    const armed = mem8[COIN_SW_ACCUM] === 0x55;
     mem8[COIN_SW_ACCUM] = 0xaa;
     if (armed) {
       // A completed line-1 pulse: bank one credit, clamped to 9.
@@ -213,7 +185,7 @@ function bankCreditAndStart(m, cost, slot) {
   const { mem8 } = m;
 
   const remaining = mem8[CREDIT_COUNT] - cost;
-  if (remaining < 0) return false; // not enough banked yet
+  if (remaining < 0) return false;
 
   mem8[CREDIT_COUNT] = remaining;
   mem8[CREDIT_MIRROR_A] = remaining;

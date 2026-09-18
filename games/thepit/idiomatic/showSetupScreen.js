@@ -27,11 +27,11 @@ import { copyTileColumn } from "./copyTileColumn.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { blankScreen } from "./blankScreen.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B } from "./names.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B, LOOP_COUNTER } from "./names.js";
 
 const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
 const HOLD_FRAMES = 15; // video frames each hold pass waits
-const HOLD_COUNTER = 0x800a; // where the hold count is stored + drained to 0
+const HOLD_COUNTER = LOOP_COUNTER; // where the hold count is stored + drained to 0
 
 // Glyph-run source pointers and lengths for a count field's label. A nonzero count
 // gets the longer "plural" run; a zero count gets the shorter "singular" run.

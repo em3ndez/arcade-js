@@ -27,11 +27,11 @@ import { requestSound8 } from "./requestSound8.js";
 import { addScore } from "./addScore.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { waitFrames } from "./waitFrames.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./names.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, LOOP_COUNTER, CRYSTAL_COUNT, DIAMOND_COUNT } from "./names.js";
 
-const CONFIG_A = 0x8081; // first gameplay config byte; == 4 adds a tier
-const CONFIG_B = 0x8082; // second gameplay config byte; == 3 adds a tier
-const TIER_COUNTER = 0x800a; // holds the tier count, then drained to 0 by the hold loop
+const CONFIG_A = CRYSTAL_COUNT; // first gameplay config byte; == 4 adds a tier
+const CONFIG_B = DIAMOND_COUNT; // second gameplay config byte; == 3 adds a tier
+const TIER_COUNTER = LOOP_COUNTER; // holds the tier count, then drained to 0 by the hold loop
 
 // The two upper text rows each pick a label strip by tier; the third row is fixed.
 const ROW1_STRIP = { hi: 0x4a2e, mid: 0x4a21, lo: 0x4a14 }; // tier 15 / 10 / 5

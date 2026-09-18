@@ -11,10 +11,10 @@
  * record and returns straight to this routine's caller.
  */
 
-import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE } from "./names.js";
+import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE, PLAYER_STEP_Y } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
-const STEP = 0x806c;
+const STEP = PLAYER_STEP_Y;
 
 export function walkActor(m) {
   const { mem8 } = m;

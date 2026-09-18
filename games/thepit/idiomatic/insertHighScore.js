@@ -14,14 +14,14 @@
  * or 3) is published to a result byte the caller pre-clears to 0, so "no placement" reads as 0.
  */
 
-import { SCORE_HI, SCORE_LO } from "./names.js";
+import { SCORE_HI, SCORE_LO, HIGH_SCORE_TABLE, VARIANT } from "./names.js";
 
 // The ranked table: rank 1 (top) at TABLE_TOP, then rank 2, rank 3, each a 5-byte
 // record of [initial, initial, initial, score-low, score-high].
-const TABLE_TOP = 0x8039;
+const TABLE_TOP = HIGH_SCORE_TABLE;
 const RANK_STRIDE = 5;
 
-const LANDED_RANK = 0x8048; // set to the rank (1/2/3) the score landed at; 0 = no placement
+const LANDED_RANK = VARIANT; // set to the rank (1/2/3) the score landed at; 0 = no placement
 const INITIALS_PLACEHOLDER = 0xff; // stamped over freed initials for the player to overwrite
 
 const initialsAddr = (rank) => TABLE_TOP + RANK_STRIDE * (rank - 1);

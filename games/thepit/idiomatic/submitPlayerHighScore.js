@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { VARIANT } from "./names.js";
 /**
  * submitPlayerHighScore — offer the finishing player's final score to the high-score table
  * and repaint the score readouts.  Run once per player at end-of-round teardown; the caller
@@ -12,7 +13,7 @@ import { loadPlayerState } from "./loadPlayerState.js";
 import { insertHighScore } from "./insertHighScore.js";
 import { renderScoreReadouts } from "./renderScoreReadouts.js";
 
-const LANDED_RANK = 0x8048; // rank (1/2/3) the score placed at; 0 = it did not make the table
+const LANDED_RANK = VARIANT; // rank (1/2/3) the score placed at; 0 = it did not make the table
 
 export function submitPlayerHighScore(m) {
   const { mem8 } = m;

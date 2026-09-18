@@ -9,13 +9,13 @@
  * this. A count of zero is not a no-op: checked only after the first cell, zero paints 256.
  */
 
-import { COLOUR_RAM_CURSOR, PLOT_RUN_LENGTH } from "./names.js";
+import { COLOUR_RAM_CURSOR, PLOT_RUN_LENGTH, BOARD_MODE } from "./names.js";
 export function fillColourColumn(m) {
   const { mem8, mem16 } = m;
 
   const cursor = mem16[COLOUR_RAM_CURSOR]; // address of the column's top colour cell
   const count = mem8[PLOT_RUN_LENGTH]; // how many cells to paint down the column
-  const colour = mem8[0x8057]; // the colour byte to stamp into each cell
+  const colour = mem8[BOARD_MODE]; // the colour byte to stamp into each cell
 
   const rows = count === 0 ? 256 : count;
 

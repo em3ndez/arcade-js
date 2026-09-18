@@ -11,13 +11,13 @@
  */
 
 import { unpackScoreDigits } from "./unpackScoreDigits.js";
-import { SCORE_DISPLAY_LOW, SCORE_READOUT_DEST } from "./names.js";
+import { SCORE_DISPLAY_LOW, SCORE_READOUT_DEST, HIGH_SCORE_TABLE } from "./names.js";
 
 const READOUT_COUNT = 3;
 
 // The three source records sit back to back: each is a 3-tile label block then a
 // two-byte value, so records start 5 bytes apart.
-const SOURCE_BASE = 0x8039;
+const SOURCE_BASE = HIGH_SCORE_TABLE;
 const SOURCE_STRIDE = 5;
 const LABEL_TILES = 3; // also the offset of the value within a record
 

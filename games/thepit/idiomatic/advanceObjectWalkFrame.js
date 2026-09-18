@@ -9,10 +9,10 @@
  * two codes, then hands the phase forward and builds the object's deferral record directly.
  */
 
-import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE } from "./names.js";
+import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE, PLAYER_STEP_Y } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
-const REFERENCE = 0x806c;
+const REFERENCE = PLAYER_STEP_Y;
 
 export function advanceObjectWalkFrame(m) {
   const { regs, mem8 } = m;

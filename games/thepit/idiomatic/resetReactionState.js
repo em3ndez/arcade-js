@@ -9,7 +9,7 @@
  */
 
 import { seedDigObjectBlock } from "./seedDigObjectBlock.js";
-import { REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_ATTR, REACTION_PERIOD } from "./names.js";
+import { REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_ATTR, REACTION_PERIOD, LASER_STATE } from "./names.js";
 
 export function resetReactionState(m) {
   const { mem8 } = m;
@@ -20,7 +20,7 @@ export function resetReactionState(m) {
   mem8[REACTION_PERIOD] = 24;
 
   // Seed the companion control bytes to their fixed start values.
-  mem8[0x80a1] = 1;
+  mem8[LASER_STATE] = 1;
   mem8[REACTION_OBJ_X] = 0;
   mem8[REACTION_OBJ_ATTR] = 3;
   mem8[REACTION_OBJ_Y] = 0;

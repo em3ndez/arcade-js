@@ -3,33 +3,16 @@
  * resolveActorTerrainStep — resolve a moving actor's horizontal step against the terrain it is
  * entering: collect a loot tile, hold against a wall, bump-react on a blocked diagonal, or walk on.
  *
- * The horizontal counterpart of the vertical/climb handler. It is handed the actor's tile-cell
- * pointer (the cell it stands on; the cell one step ahead is the next byte) and its move direction,
- * and decides the whole outcome of this frame's step by writing to work RAM:
- *   - On a grid step it first tries to COLLECT loot the actor aligned onto: tile 58 awards 10
- *     points, tiles 59..61 award 20 (gated by a one-shot latch that first opens only while the
- *     guard byte is clear). A collected tile is blanked and the actor walks on.
- *   - Otherwise it CLASSIFIES the terrain being entered. Hard tile codes and a solid band block
- *     the step (hold, rebuild the record in place). Tiles in the walkable band are checked against
- *     a direction-keyed table of what the terrain should be for this heading; a mismatch on a grid
- *     step arms a bump reaction. The same check then runs for the tile one step ahead; anything
- *     clearing both lets the actor walk.
- * Walking hands off to walkActor; holding and bump-reacting to stageObjectSpriteRecord. Both
- * returns are this routine's return.
+ * The horizontal counterpart of the vertical/climb handler. Handed the actor's tile-cell pointer
+ * (the cell it stands on; the cell one step ahead is the next byte) and its move direction, it first
+ * tries on a grid step to COLLECT the loot the actor aligned onto (tile 58 pays 10, tiles 59..61 pay
+ * 20 behind a one-shot latch that first opens only while the guard byte is clear); otherwise it
+ * CLASSIFIES the terrain, holding on hard/solid codes and checking walkable-band tiles (and the tile
+ * one step ahead) against a direction-keyed expected-terrain table — a mismatch on a grid step arms
+ * a bump reaction. Walking hands off to walkActor, holding/bump-reacting to stageObjectSpriteRecord.
  */
 
-import {
-  CUR_TILE,
-  NEXT_TILE,
-  PRIZE_GATE,
-  HAZARD_ACTIVE_COUNT,
-  PLAYER_CELL_PTR,
-  REACTION_STATE,
-  REACTION_TIMER,
-  PLAYER_FACING,
-  REACTION_PERIOD,
-  AHEAD_TILE_RAW,
-} from "./names.js";
+import { CUR_TILE, NEXT_TILE, PRIZE_GATE, HAZARD_ACTIVE_COUNT, PLAYER_CELL_PTR, REACTION_STATE, REACTION_TIMER, PLAYER_FACING, REACTION_PERIOD, AHEAD_TILE_RAW, EXPECTED_TILE, TREASURE_COLLECTED, CRYSTAL_COUNT, DIAMOND_COUNT } from "./names.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
 import { walkActor } from "./walkActor.js";
@@ -37,12 +20,11 @@ import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 // Scratch that mirrors the tile under the actor: the direction check overwrites CUR_TILE_COPY with
 // the tile it expects, and the final walk-vs-react decision re-reads it.
-const CUR_TILE_COPY = 0x80a7;
+const CUR_TILE_COPY = EXPECTED_TILE;
 
-// The two per-kind pickup counters and the one-shot latch that gates the +20 loot.
-const FIRST_LOOT_COUNT = 0x8081; // times a tile-58 pickup was collected
-const SECOND_LOOT_COUNT = 0x8082; // times a tile-59..61 pickup was collected
-const SECOND_LOOT_LATCH = 0x8078; // one-shot latch that opens the +20 loot
+const FIRST_LOOT_COUNT = CRYSTAL_COUNT; // times a tile-58 pickup was collected
+const SECOND_LOOT_COUNT = DIAMOND_COUNT; // times a tile-59..61 pickup was collected
+const SECOND_LOOT_LATCH = TREASURE_COLLECTED; // one-shot latch that opens the +20 loot
 
 // Direction-keyed expected-terrain tables: one for the current tile, one for the tile ahead
 // (row = tile - WALK_BAND_LO, column = the direction's low bits).
@@ -114,7 +96,6 @@ export function resolveActorTerrainStep(m, tilePtr = m.regs.ix, moveDir = m.regs
       mem8[SECOND_LOOT_COUNT] = mem8[SECOND_LOOT_COUNT] + 1;
       return consumeLootAndWalk(m);
     }
-    // Not a collectible (or gated off) — fall through to the terrain classify.
   }
 
   // ---- Classify the terrain the actor is moving into ----

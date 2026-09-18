@@ -10,10 +10,10 @@
  * (0 in normal play). The two sources are the primary object record and its mirrored twin.
  */
 
-import { ENEMY3_X, ENEMY3_TWIN_X, ENEMY3_SPRITE_SLOT, ENEMY3_TWIN_SPRITE_SLOT } from "./names.js";
+import { ENEMY3_X, ENEMY3_TWIN_X, ENEMY3_SPRITE_SLOT, ENEMY3_TWIN_SPRITE_SLOT, SPRITE_COORD_BIAS } from "./names.js";
 
 // The shared vertical offset added to every staged sprite's Y (dip-switch param).
-const SPRITE_Y_OFFSET = 0x8051;
+const SPRITE_Y_OFFSET = SPRITE_COORD_BIAS;
 
 /** Build one 4-byte sprite record from an object record: three bytes verbatim, then the fourth
  *  (the record's Y) with the shared offset added (kept to a byte). */

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { BOARD_MODE } from "./names.js";
 /**
  * cycleColumnColour — advance the shared colour index and repaint one screen column with it.
  *
@@ -14,8 +15,8 @@ export function cycleColumnColour(m, column = m.regs.a) {
   const { mem8 } = m;
 
   // Advance the shared colour index one shade, keeping one palette bit clear, and store it back.
-  const colour = (mem8[0x8057] + 1) & 0xf7;
-  mem8[0x8057] = colour;
+  const colour = (mem8[BOARD_MODE] + 1) & 0xf7;
+  mem8[BOARD_MODE] = colour;
 
   // Stamp it down the selected column: 28 cells, each one screen row (32 cells) further along.
   let cell = 0x8840 + column;

@@ -7,10 +7,10 @@
  * new position (base or mirrored, flipping every two units), then handed to drawActorWalkFrame, which commits and records it.
  */
 
-import { PLAYER_X } from "./names.js";
+import { PLAYER_X, PLAYER_STEP_X } from "./names.js";
 import { drawActorWalkFrame } from "./drawActorWalkFrame.js";
 
-const STEP = 0x806d;
+const STEP = PLAYER_STEP_X;
 
 export function advanceActorWalk(m) {
   const { mem8 } = m;

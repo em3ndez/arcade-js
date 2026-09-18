@@ -15,21 +15,14 @@
  * terrain resolver, whose result is this routine's result.
  */
 
-import {
-  CUR_TILE,
-  EXPECTED_TILE,
-  CRYSTAL_COUNT,
-  DIAMOND_COUNT,
-  HAZARD_ACTIVE_COUNT,
-  PLAYER_CELL_PTR,
-} from "./names.js";
+import { CUR_TILE, EXPECTED_TILE, CRYSTAL_COUNT, DIAMOND_COUNT, HAZARD_ACTIVE_COUNT, PLAYER_CELL_PTR, TREASURE_COLLECTED } from "./names.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { resolveObjectTerrainStep } from "./resolveObjectTerrainStep.js";
 
 // One-shot latch that opens the 20-point loot: once armed, tiles 59..61 always score.
-const SECOND_LOOT_LATCH = 0x8078;
+const SECOND_LOOT_LATCH = TREASURE_COLLECTED;
 
 const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup
 
@@ -43,13 +36,11 @@ function clearCollectedCellAndWalk(m) {
 export function collectAlignedLootElseResolveTile(m, column = m.regs.d, cellPtr = m.regs.ix) {
   const { mem8 } = m;
 
-  // The tile the object is sitting on. Record it as the saved-current and starting
-  // expected-tile before anything reclassifies it.
+  // The tile the object is sitting on, recorded before anything reclassifies it.
   const underTile = mem8[cellPtr];
   mem8[CUR_TILE] = underTile;
   mem8[EXPECTED_TILE] = underTile;
 
-  // Only a grid-aligned object (squarely inside a cell) collects the loot beneath it.
   const onGrid = (column & 7) === 0;
 
   if (onGrid) {

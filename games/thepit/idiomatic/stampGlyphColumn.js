@@ -11,7 +11,7 @@
  * shared background-animation update as a tail hand-off whose return is this routine's return.
  */
 
-import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "./names.js";
+import { PLAYER_CELL_PTR, TRANSITION_TIMER, TREASURE_COLLECTED } from "./names.js";
 import { advanceChamberCreature } from "./advanceChamberCreature.js";
 
 // The glyph's fixed tile codes, top cell to bottom cell.
@@ -43,7 +43,7 @@ export function stampGlyphColumn(m) {
 
   // Clear the object's per-event latch and re-arm its state timer. On this dig-glyph path the byte
   // reads as a per-event latch, distinct from the loot-collect completion flow that shares it.
-  mem8[0x8078] = 0;
+  mem8[TREASURE_COLLECTED] = 0;
   mem8[TRANSITION_TIMER] = 180;
 
   // Tail hand-off to the background-animation update; its return is this routine's exit.

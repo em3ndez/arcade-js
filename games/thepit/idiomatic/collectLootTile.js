@@ -13,16 +13,16 @@
  * pickup, queues the sound, blanks the cell, and continues into the shared movement tail.
  */
 
-import { PLAYER_CELL_PTR, HAZARD_ACTIVE_COUNT, PRIZE_GATE } from "./names.js";
+import { PLAYER_CELL_PTR, HAZARD_ACTIVE_COUNT, PRIZE_GATE, TREASURE_COLLECTED, CRYSTAL_COUNT, DIAMOND_COUNT } from "./names.js";
 import { triggerDigReaction } from "./triggerDigReaction.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
 
 // Per-kind running pickup counters and the one-shot latch that gates the second kind.
-const FIRST_TILE_COUNT = 0x8081; // times a tile-58 pickup was collected
-const SECOND_TILE_COUNT = 0x8082; // times a tile-59..61 pickup was collected
-const SECOND_TILE_LATCH = 0x8078; // one-shot latch that opens the second pickup
+const FIRST_TILE_COUNT = CRYSTAL_COUNT; // times a tile-58 pickup was collected
+const SECOND_TILE_COUNT = DIAMOND_COUNT; // times a tile-59..61 pickup was collected
+const SECOND_TILE_LATCH = TREASURE_COLLECTED; // one-shot latch that opens the second pickup
 
 const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup
 

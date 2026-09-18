@@ -18,7 +18,7 @@
  *   3. Stamps the fixed right edge column and the playfield column with its trim.
  * Which specific game screen this skeleton belongs to is not pinned, so the name stays neutral.
  */
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER } from "./names.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER, BOARD_MODE } from "./names.js";
 import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
@@ -31,7 +31,7 @@ import { drawBestScoresTodayLabel } from "./drawBestScoresTodayLabel.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
 // The colour attribute the colour fills stamp (a staged colour byte, not a mode).
-const FILL_ATTR = 0x8057;
+const FILL_ATTR = BOARD_MODE;
 
 export function drawSharedPanel(m) {
   const { mem8 } = m;

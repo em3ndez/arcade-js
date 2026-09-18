@@ -13,7 +13,7 @@
  * paint the round-setup screen) and hands off to the reset/entry handler, which returns to attract.
  */
 
-import { GAME_STATE, ACTIVE_PLAYER, STACK_TOP } from "./names.js";
+import { GAME_STATE, ACTIVE_PLAYER, STACK_TOP, VARIANT } from "./names.js";
 import { requestSound5 } from "./requestSound5.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
 import { waitFrames } from "./waitFrames.js";
@@ -22,7 +22,7 @@ import { runHighScoreInitialsEntry } from "./runHighScoreInitialsEntry.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { showSetupScreen } from "./showSetupScreen.js";
 
-const LANDED_RANK = 0x8048; // rank the just-submitted score placed at; 0 = it did not place
+const LANDED_RANK = VARIANT; // rank the just-submitted score placed at; 0 = it did not place
 const GAMEOVER_BOARD_MODE = 0xe0; // board-mode / screen-wide colour byte for the game-over display
 const GAMEOVER_HOLD_FRAMES = 20; // video frames the game-over display is held before scoring
 

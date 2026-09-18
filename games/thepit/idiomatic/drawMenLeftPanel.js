@@ -13,14 +13,14 @@
  * field it draws and what the live byte counts are not pinned, and it is one of a near family.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, MEN_LEFT } from "./names.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, MEN_LEFT, BOARD_MODE } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 
 // The colour attribute the panel is painted in (here the byte is the fill colour, not a mode).
-const FILL_ATTR = 0x8057;
+const FILL_ATTR = BOARD_MODE;
 
 // Glyph sources for the two labels (walked backwards by the copy helper).
 const DEFAULT_LABEL = 0x49ba;

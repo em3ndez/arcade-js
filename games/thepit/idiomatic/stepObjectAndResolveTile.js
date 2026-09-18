@@ -15,23 +15,7 @@
  * the name stays generic because the routine does more than climb.
  */
 
-import {
-  MOVE_BLOCK_FLAG,
-  PLAYER_FACING,
-  PLAYER_Y,
-  PLAYER_TILE_ROW,
-  PLAYER_X,
-  PLAYER_TILE_COL,
-  BOARD_END_PHASE,
-  GOAL_TILE_LATCH,
-  PLAYER_CELL_PTR,
-  NEXT_TILE,
-  CUR_TILE,
-  REACTION_STATE,
-  REACTION_TIMER,
-  REACTION_PERIOD,
-  AHEAD_TILE_RAW,
-} from "./names.js";
+import { MOVE_BLOCK_FLAG, PLAYER_FACING, PLAYER_Y, PLAYER_TILE_ROW, PLAYER_X, PLAYER_TILE_COL, BOARD_END_PHASE, GOAL_TILE_LATCH, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW, EXPECTED_TILE, TREASURE_COLLECTED, CRYSTAL_COUNT, DIAMOND_COUNT, PLAYER_STEP_X } from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { awardTenPoints } from "./awardTenPoints.js";
@@ -45,18 +29,12 @@ const VRAM_BASE = 0x9000;
 const EXPECTED_TILE_TABLE = 0x2118;
 const NEIGHBOUR_TILE_TABLE = 0x2280;
 
-// Loot bookkeeping shared with the horizontal collector (roles legible here, not yet grounded
-// across the game, so kept as addresses).
-const FIRST_LOOT_TALLY = 0x8081; // times a 10-point pickup was collected
-const SECOND_LOOT_TALLY = 0x8082; // times a 20-point pickup was collected
-const SECOND_LOOT_LATCH = 0x8078; // records the collected 20-point code; gates the top-rung flag
+const FIRST_LOOT_TALLY = CRYSTAL_COUNT; // times a 10-point pickup was collected
+const SECOND_LOOT_TALLY = DIAMOND_COUNT; // times a 20-point pickup was collected
+const SECOND_LOOT_LATCH = TREASURE_COLLECTED; // records the collected 20-point code; gates the top-rung flag
 
-// Carve-reaction scratch (the reaction state/timer are named; these three are not yet grounded).
-const EXPECTED_TILE = 0x80a7; // the under-tile, then overwritten with the cell's expected terrain
+const STEP_DELTA = PLAYER_STEP_X; // how far the object moves along its column each step
 
-const STEP_DELTA = 0x806d; // how far the object moves along its column each step
-
-// Tile codes and sprite frames (opaque data values, not bit operations, so written in decimal).
 const BLANK_TILE = 112; // stamped over a collected pickup
 const TEN_POINT_LOOT = 58;
 const TWENTY_POINT_LOOT_LO = 59;
@@ -79,8 +57,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   // Default walk-frame sprite; the tile resolution below overrides it where needed.
   mem8[PLAYER_FACING] = WALK_FRAME_A;
 
-  // Which map row is the object on? Bias the vertical counter, drop it to an 8-pixel cell, and
-  // flip it so screen-top is the highest index (32 rows, indices 0..31).
+  // Which map row: bias the vertical counter, drop to an 8-pixel cell, flip so screen-top is index 0..31.
   const row = 31 - (u8(mem8[PLAYER_Y] + 3) >> 3);
   mem8[PLAYER_TILE_ROW] = row;
 
@@ -116,14 +93,12 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const onCellBoundary = (positionAccumulator & 7) === 0;
   if (onCellBoundary) {
     if (tile === TEN_POINT_LOOT) {
-      // 10-point pickup: award, count it, blank the cell, keep moving.
       awardTenPoints(m);
       mem8[FIRST_LOOT_TALLY] = mem8[FIRST_LOOT_TALLY] + 1;
       mem8[cellPtr] = BLANK_TILE;
       return advanceStepAndStage(m);
     }
     if (tile >= TWENTY_POINT_LOOT_LO && tile <= TWENTY_POINT_LOOT_HI) {
-      // 20-point pickup: record its code, award, count it, blank the cell, keep moving.
       mem8[SECOND_LOOT_LATCH] = tile;
       awardTwentyPoints(m);
       mem8[SECOND_LOOT_TALLY] = mem8[SECOND_LOOT_TALLY] + 1;
@@ -157,7 +132,6 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const expected = mem8[EXPECTED_TILE_TABLE + (tile - DIGGABLE_LOW) * 8 + (7 - subCell)];
   mem8[EXPECTED_TILE] = expected;
 
-  // Terrain still matches what's there — nothing has changed, keep moving.
   if (expected === tile) return advanceStepAndStage(m);
 
   // Mismatch: the object has run into fresh terrain — arm the carve reaction.

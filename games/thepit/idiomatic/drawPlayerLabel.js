@@ -12,7 +12,7 @@
  * order, the last a tail hand-off back to our caller.
  */
 
-import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH } from "./names.js";
+import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH, BOARD_MODE } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -20,7 +20,7 @@ import { copyTileColumn } from "./copyTileColumn.js";
 import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 
 // The shared tile-plotter's scratch parameter block: the plotter ABI, so its cells stay hex here.
-const PLOT_FILL_BYTE = 0x8057; // the colour byte the colour-column paint writes
+const PLOT_FILL_BYTE = BOARD_MODE; // the colour byte the colour-column paint writes
 
 const PANEL_TILE_TABLE = 0x49b1;
 

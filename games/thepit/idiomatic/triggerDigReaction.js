@@ -14,7 +14,7 @@
  * off to the record builder or the movement continuation, whose return unwinds to our caller.
  */
 
-import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW } from "./names.js";
+import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW, REACTION_TIMER, EXPECTED_TILE } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
@@ -24,8 +24,7 @@ const EXPECTED_TILE_TABLE = 0x1e48;
 const NEIGHBOUR_TILE_TABLE = 0x1fb0;
 
 // Classifier scratch (roles not pinned).
-const REACTION_PARAM = 0x80a4;
-const EXPECTED_TILE = 0x80a7; // the current cell's expected tile, recorded for the reaction
+const REACTION_PARAM = REACTION_TIMER;
 
 const REACTION_SPRITE_FRAME = 54; // the sprite frame the actor shows while reacting
 const REACTION_SOUND = 20; // sound requested when an armed reaction fires

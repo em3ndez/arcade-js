@@ -8,10 +8,10 @@
  * four, calls nothing. What downstream code does with the record is not pinned here.
  */
 
-import { PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR } from "./names.js";
+import { PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR, SPRITE_STAGING_BASE, SPRITE_COORD_BIAS } from "./names.js";
 
-const RECORD = 0x8220; // base of the 4-byte deferral record built for the object
-const BIAS = 0x8051; // the end-bias, held in the dip-switch parameter block
+const RECORD = SPRITE_STAGING_BASE; // base of the 4-byte deferral record built for the object
+const BIAS = SPRITE_COORD_BIAS; // the end-bias, held in the dip-switch parameter block
 
 export function stageObjectSpriteRecord(m) {
   const { mem8 } = m;

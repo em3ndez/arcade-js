@@ -10,14 +10,14 @@
  * glyphs spell is not pinned, so the name stays neutral.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./names.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, BOARD_MODE } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 
 // The flat colour every cell of the strip is painted in (a staged colour byte, not a mode).
-const FILL_COLOUR = 0x8057;
+const FILL_COLOUR = BOARD_MODE;
 
 // Top of the descending glyph table the strip's nine codes are copied from.
 const GLYPH_SOURCE = 0x49a5;

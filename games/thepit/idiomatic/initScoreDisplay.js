@@ -10,7 +10,7 @@
  */
 
 import { renderScoreReadouts } from "./renderScoreReadouts.js";
-import { SCORE_READOUT_STRIP } from "./names.js";
+import { SCORE_READOUT_STRIP, HIGH_SCORE_TABLE } from "./names.js";
 
 // The blank display tile — same value the score digit formatter uses to blank a cell.
 const BLANK_TILE = 36;
@@ -26,7 +26,7 @@ export function initScoreDisplay(m) {
 
   // Seed the three readout source records back to back, each label + zero value.
   for (let r = 0; r < 3; r++) {
-    const base = 0x8039 + r * READOUT_RECORD.length;
+    const base = HIGH_SCORE_TABLE + r * READOUT_RECORD.length;
     for (let i = 0; i < READOUT_RECORD.length; i++) mem8[base + i] = READOUT_RECORD[i];
   }
 

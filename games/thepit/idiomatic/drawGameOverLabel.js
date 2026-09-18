@@ -10,14 +10,14 @@
  * and video write cursors, copy the nine glyphs down the video column one row apart, then tint all
  * nine cells one colour as the last act.
  */
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./names.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, BOARD_MODE } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 
 // The colour attribute the whole label is painted in (here the byte is a fill colour, not a mode).
-const FILL_ATTR = 0x8057;
+const FILL_ATTR = BOARD_MODE;
 
 // Source of the nine "GAME OVER" glyphs; the copy helper walks it downward, handed the last byte.
 const GAME_OVER_SOURCE = 0x49a5;
