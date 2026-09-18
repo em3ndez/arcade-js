@@ -96,7 +96,7 @@ export const VARIANT = 0x8048;
  *  (0x01/0x02/0x04/0x08, never combined), seeded once at round start and then written per active
  *  frame by steerDemoPlayer, and read by the movement dispatcher IN PLACE OF the joystick when the
  *  game-mode byte is >= 3 — a synthetic move direction, NOT a mask of blocked directions.
- *  (one-hot: exactly one of the four move-direction bits set). [code] */
+ *  (one-hot: exactly one of the four move-direction bits set). [seen] */
 export const DEMO_STEER_DIR = 0x801b;
 
 /** MOVE_BLOCK_FLAG (0x8080) — movement blocker. A falling rock/arrow overlapping the player sets it
@@ -658,7 +658,7 @@ export const EXPECTED_TILE = 0x80a7;
 /**
  *  STAGED_TARGET_X (0x80b6) — Staged X coord = REACTION_OBJ_X-4 written by spawnDigEntity, promoted
  *  into HAZARD_X 0x80a9 by commitDigEntity and X-axis bbox-tested vs PLAYER_Y 0x8068 by advanceDigCarveObject; both
- *  namers converged, grounded across all three. [code]
+ *  namers converged, grounded across all three. [seen]
  */
 export const STAGED_TARGET_X = 0x80b6;
 /**
@@ -677,7 +677,7 @@ export const STAGED_CELL_PTR = 0x80ba;
 /**
  *  STAGED_DIG_TIMER (0x80bc) — spawnDigEntity writes REACTION_PERIOD<<1 here; commitDigEntity promotes it
  *  verbatim into the named DIG_OBJ_TIMER (0x80b1) -- a clean single writer/reader staging
- *  cell for the dig timer, A+B converged. [code]
+ *  cell for the dig timer, A+B converged. [seen]
  */
 export const STAGED_DIG_TIMER = 0x80bc;
 /**
@@ -758,7 +758,7 @@ export const INITIALS_REMAINING = 0x804b;
 export const COINS_PER_CREDIT_A = 0x804c;
 /** COINS_PER_CREDIT_B (0x804d) — DSW coin cost for coin line 3. [code] */
 export const COINS_PER_CREDIT_B = 0x804d;
-/** LOOP_DELAY_BASE (0x804e) — DSW main-loop pacing base that MAIN_LOOP_DELAY derives from. [code] */
+/** LOOP_DELAY_BASE (0x804e) — DSW main-loop pacing base that MAIN_LOOP_DELAY derives from. [seen] */
 export const LOOP_DELAY_BASE = 0x804e;
 /** STARTING_MEN (0x8053) — DSW starting lives ((dsw&0x40)?4:3); startGame seeds MEN_LEFT from it. [code] */
 export const STARTING_MEN = 0x8053;
