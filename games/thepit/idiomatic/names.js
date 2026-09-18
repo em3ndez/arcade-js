@@ -754,9 +754,9 @@ export const SOUND_TAIL = 0x801f;
 export const MEN_LEFT = 0x802b;
 /** INITIALS_REMAINING (0x804b) — high-score initials-entry down-counter (seeded 3, →0 ends entry). [code] */
 export const INITIALS_REMAINING = 0x804b;
-/** COINS_PER_CREDIT_A (0x804c) — DSW coin cost for coin line 2 (0 = free play). NOT bonus/lives. [code] */
+/** COINS_PER_CREDIT_A (0x804c) — DSW coin cost for coin line 2 (0 = free play). NOT bonus/lives. [seen] */
 export const COINS_PER_CREDIT_A = 0x804c;
-/** COINS_PER_CREDIT_B (0x804d) — DSW coin cost for coin line 3. [code] */
+/** COINS_PER_CREDIT_B (0x804d) — DSW coin cost for coin line 3. [seen] */
 export const COINS_PER_CREDIT_B = 0x804d;
 /** LOOP_DELAY_BASE (0x804e) — DSW main-loop pacing base that MAIN_LOOP_DELAY derives from. [seen] */
 export const LOOP_DELAY_BASE = 0x804e;
