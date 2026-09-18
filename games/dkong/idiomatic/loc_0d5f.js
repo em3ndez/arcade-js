@@ -50,15 +50,9 @@ export function loc_0d5f(m) {
     addToSpriteObjectColumn(m);
 
     regs.de = 0x0004;
-    regs.b = 0x02;
-    regs.c = 0x10;
-    regs.hl = SPRITE_BUFFER;
-    addStrided(m);
+    addStrided(m, 0x10, regs.de, 0x02, SPRITE_BUFFER);
 
-    regs.b = 0x02;
-    regs.c = 0xf8;
-    regs.hl = SPRITE_BUFFER + 3;
-    addStrided(m);
+    addStrided(m, 0xf8, regs.de, 0x02, SPRITE_BUFFER + 3);
     return;
   }
 

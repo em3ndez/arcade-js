@@ -34,6 +34,5 @@ export function seedSpriteObjectPair(m) {
   // Step 4 — gather each record into a consecutive 4-byte hardware sprite record.
   regs.hl = 0x6a18;
   regs.b = 0x02;
-  regs.de = 0x0010;
-  gatherSpriteRecords(m);
+  gatherSpriteRecords(m, 0x0010);
 }

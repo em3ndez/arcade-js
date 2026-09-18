@@ -47,20 +47,16 @@ export function loc_17b6(m) {
   // Colour and step chain across the two column fills — the second reuses what the first left.
   regs.a = 0x10;
   regs.de = 0x0020;
-  regs.hl = 0x7623;
-  fillDescendingColumn(m);
-  regs.hl = 0x7583;
-  fillDescendingColumn(m);
+  fillDescendingColumn(m, 0x7623);
+  fillDescendingColumn(m, 0x7583);
 
   for (const [tileDest, segTable] of RENDER_ITEMS) {
-    regs.hl = tileDest;
-    fillTileBlock(m);
+    fillTileBlock(m, tileDest);
     regs.de = segTable;
     drawBoardLayout(m);
   }
 
-  regs.hl = SPRITE_TEMPLATE;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, SPRITE_TEMPLATE);
   regs.hl = SPRITE_OBJ_BLOCK;
   regs.c = SPRITE_X_SHIFT;
   addToSpriteObjectColumn(m);

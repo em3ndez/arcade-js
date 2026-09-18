@@ -65,9 +65,7 @@ export function runBonusItemValueDisplay(m) {
     mem16[SLOT_PTR] = slot;
     mem16[SLOT_COL_PTR] = (slot - 0x0d) & 0xffff;
 
-    regs.b = 0x00;
-    regs.c = mem8[POS_INDEX];
-    positionBonusItemSprite(m);
+    positionBonusItemSprite(m, 0x00, mem8[POS_INDEX]);
   }
 
   const displayTimer = (mem8[DISPLAY_TIMER] - 1) & 0xff;
@@ -132,9 +130,7 @@ export function runBonusItemValueDisplay(m) {
         pos = inc === 0x1e ? 0x00 : inc;
       }
       mem8[POS_INDEX] = pos;
-      regs.b = 0x00;
-      regs.c = pos;
-      positionBonusItemSprite(m);
+      positionBonusItemSprite(m, 0x00, pos);
     }
   } else {
     mem8[POS_RELOAD] = 0x01;
@@ -174,9 +170,7 @@ function exitBonusItemDisplay(m) {
   }
 
   for (let arg = 0x14; arg <= 0x18; arg++) {
-    regs.de = 0x0300 | arg;
-    enqueueTask(m);
+    enqueueTask(m, 0x03, arg);
   }
-  regs.de = 0x031a;
-  enqueueTask(m);
+  enqueueTask(m, 0x03, 0x1a);
 }

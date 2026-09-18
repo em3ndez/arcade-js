@@ -60,11 +60,7 @@ export function loc_1880(m) {
   regs.de = SEGMENT_TABLE; // the table base, read live-in by the draw
   drawBoardLayout(m);
 
-  regs.hl = SPRITE_BUF_Y;
-  regs.de = SPRITE_BUF_STRIDE; // 4
-  regs.b = SPRITE_BUF_COUNT; // 2 records
-  regs.c = SPRITE_BUF_Y_SHIFT; // +0x28
-  addStrided(m);
+  addStrided(m, SPRITE_BUF_Y_SHIFT, SPRITE_BUF_STRIDE, SPRITE_BUF_COUNT, SPRITE_BUF_Y);
 
   mem8[PACE_COUNTER] = 0x00;
   mem8[SND_LATCH] = SND_ASSERT_FRAMES;

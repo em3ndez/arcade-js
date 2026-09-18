@@ -26,10 +26,9 @@ function blockCopy(mem8, dst, src, count) {
 export function seed75mBoardObjects(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = 0x3dec; // 4-byte source group, re-read for every record — a broadcast
   regs.de = OBJ_ARRAY_64 + 0x07; // dest: +7 of the first fire record
   regs.bc = 0x051c; // 5 records, record stride 0x20
-  replicateGroupStrided(m);
+  replicateGroupStrided(m, 0x3dec);
 
   seedObjectBlockSprites(m);
 
@@ -37,21 +36,18 @@ export function seed75mBoardObjects(m) {
 
   for (let i = 0; i < 3; i++) mem8[(OBJ_ARRAY_66 + OBJ_STATE + i * 0x10) & 0xffff] = 0x08;
 
-  regs.hl = 0x3e64; // contiguous source, 12 bytes
   regs.de = OBJ_ARRAY_66 + 0x03; // dest base — each pair lands at +0 and +2 from here
   regs.bc = 0x060e; // 6 pairs, record stride 0x10
-  copyBytePairsStrided(m);
+  copyBytePairsStrided(m, 0x3e64);
 
-  regs.hl = 0x3e60;
   regs.de = OBJ_ARRAY_66 + 0x07;
   regs.bc = 0x060c; // 6 records, record stride 0x10
-  replicateGroupStrided(m);
+  replicateGroupStrided(m, 0x3e60);
 
   regs.ix = OBJ_ARRAY_66; // object-record base
   regs.hl = 0x6958; // dest — an unnamed slot in the sprite buffer
   regs.b = 0x06; // record count
-  regs.de = 0x0010; // per-record source stride
-  gatherSpriteRecords(m);
+  gatherSpriteRecords(m, 0x0010);
 
   blockCopy(mem8, OBJECT_COLLISION_SPRITES, 0x3e48, 0x0c);
 

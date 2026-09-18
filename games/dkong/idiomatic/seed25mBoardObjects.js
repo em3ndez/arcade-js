@@ -22,13 +22,11 @@ export function seed25mBoardObjects(m) {
 
   blockCopy(mem8, 0x3ddc, 0x69a8, 0x10);
 
-  regs.hl = 0x3dec; // source group
   regs.de = 0x6407; // destination base
   regs.bc = 0x051c; // B = 5 records, C = the stride gap (record size 0x20)
-  replicateGroupStrided(m);
+  replicateGroupStrided(m, 0x3dec); // source group
 
-  regs.hl = 0x3df4;
-  loc_11fa(m);
+  loc_11fa(m, 0x3df4);
 
   blockCopy(mem8, 0x3e00, 0x69fc, 0x04);
 

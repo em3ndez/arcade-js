@@ -33,7 +33,7 @@ const CONTEXT_BYTES = 8;
 const BLOCK_FILL_TOPLEFT = 0x76d3;
 
 export function loc_1344(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   silenceSound(m);
 
@@ -53,19 +53,12 @@ export function loc_1344(m) {
   }
 
   // Lives exhausted — this player's game over.
-  regs.a = 0x03;
-  regs.hl = P2_SCORE;
-  loc_13ca(m);
+  loc_13ca(m, 0x03, P2_SCORE);
 
-  regs.d = 0x03;
-  regs.e = 0x03;
-  enqueueTask(m);
-  regs.d = 0x03;
-  regs.e = 0x00;
-  enqueueTask(m);
+  enqueueTask(m, 0x03, 0x03);
+  enqueueTask(m, 0x03, 0x00);
 
-  regs.hl = BLOCK_FILL_TOPLEFT;
-  fillTileBlock(m);
+  fillTileBlock(m, BLOCK_FILL_TOPLEFT);
 
   mem8[SUBSTATE_TIMER] = 0xc0;
   mem8[GAME_SUBSTATE] = 0x11;

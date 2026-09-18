@@ -27,26 +27,22 @@ function copyBlock(mem8, src, dst, n) {
 export function seed50mBoardObjects(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = 0x3dec;
   regs.de = OBJ_ARRAY_64 + 0x07; // field +7 of the first of 5 stride-0x20 records
   regs.bc = 0x051c; // 5 records; stride byte 0x1c (record stride = this + 4)
-  replicateGroupStrided(m);
+  replicateGroupStrided(m, 0x3dec);
 
   seedObjectBlockSprites(m);
 
-  regs.hl = 0x3e18;
   regs.de = OBJ_ARRAY_65A0 + 0x07; // field +7 of the first of 6 stride-0x10 records
   regs.bc = 0x060c; // 6 records; stride byte 0x0c (record stride = this + 4)
-  replicateGroupStrided(m);
+  replicateGroupStrided(m, 0x3e18);
 
   regs.ix = OBJ_ARRAY_65A0;
   regs.hl = OBJ_65A0_SPRITES;
-  regs.de = 0x0010;
   regs.b = 0x06;
-  gatherSpriteRecords(m);
+  gatherSpriteRecords(m, 0x0010);
 
-  regs.hl = 0x3dfa;
-  loc_11fa(m);
+  loc_11fa(m, 0x3dfa);
 
   copyBlock(mem8, 0x3e04, 0x69fc, 0x0004);
   copyBlock(mem8, 0x3e1c, 0x6944, 0x0008);
