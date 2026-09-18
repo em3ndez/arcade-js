@@ -8,9 +8,12 @@ is JS 401 and MAME 402, 13 bytes each side. Discriminating: at +1 the state diff
 over all 1802 frames, at +2 it fails at 402. Re-derive if the tape's timing changes.
 """
 import argparse
+import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GAME = os.path.dirname(HERE)
@@ -56,6 +59,34 @@ DIFF_FROM = 0
 INPUT_LATCH = 0xA9AE   # raw IN0 mirror, rewritten every NMI: 0x01 coin held, 0x08 start held
 COIN_TAKEN = 0xA981    # 0 -> non-zero when the machine ACCEPTS the coin (debounced rising edge)
 PLAY_ACTIVE = 0xAD30   # explicit flag: stored 0xFF when play begins, cleared with xor a
+
+# ══ --done: the runbook DONE BAR (attract COMPLETENESS + tape-driven GAMEPLAY vs MAME) ══════════
+# The default main() path below is the per-commit fixed-offset gameplay TRIPWIRE that tools/
+# pixel_gate_required.py invokes plain. --done is the go-forward SHIP bar: it reconverges the WHOLE
+# run with the drift-tolerant "nearest-golden-frame" rule (docs/pixel-gate.md, tools/convergence.mjs),
+# adding the attract COMPLETENESS pass an attract-blind gate structurally lacks (runbook 5: an
+# attract-only gate must NOT count green for done) AND the tape-driven GAMEPLAY-vs-MAME pass.
+#
+#   ★ WHY THIS SUITE RECONVERGES IN-PROCESS INSTEAD OF SHELLING `node tools/convergence.mjs`:
+#   convergence.mjs's pixel mode renders the machine through its OWN generic renderRun, which snapshots
+#   with m.renderFrame() -- the POST-NMI whole-frame image (2810px vs MAME here). Time Pilot's idiomatic
+#   layer ships a SCANLINE-band renderer that must snapshot at the VBLANK YIELD (finishBeamFrame(),
+#   1324px vs MAME), which ONLY games/timeplt/tools/render.js's runGeneratorFrames produces -- render.js's
+#   own header proves the yield instant is the correct one and the post-NMI instant is not. So --done
+#   renders through render.js exactly as the default path does, then applies convergence.mjs's OWN
+#   reconverge rule here, byte-for-byte: an 8px downsample grid, each scored JS frame matched to its
+#   NEAREST golden frame over the WHOLE golden, PASS iff none diverges past a FIXED %-threshold. The
+#   threshold is convergence.mjs's default and is NEVER tuned; --done tunes only seconds/origin/tape.
+#
+# Time Pilot is DETERMINISTIC without a pin (module docstring: the coin tape reconverges byte-for-byte
+# over all 1802 state frames), so both parts run UNpinned -- there is no spin-counter RNG to fork the way
+# DK's does, and nothing to pin on either side.
+DONE_ATTRACT_SECONDS = 30        # a full attract window (title/demo/score), reconverged
+DONE_GAMEPLAY_SECONDS = SECONDS  # coin -> start -> play, the same 30s window the default gate drives
+RECON_STRIDE = 15                # score every 15th JS frame (convergence.mjs default --frame-stride)
+RECON_S = 8                      # 8px downsample grid (convergence.mjs default sample stride)
+RECON_PX_THRESHOLD = 5.0         # FIXED %-floor (convergence.mjs default --px-threshold); NEVER tuned here
+MIN_DISTINCT = 10                # positive control: a frozen/black screen proves nothing -- require motion
 
 
 def lua_tape(path):
@@ -165,6 +196,181 @@ def game_responded(golden_dir):
     }
 
 
+# ── --done helpers ─────────────────────────────────────────────────────────────────────────────
+def done_capture(rompath, out, seconds, tape=None):
+    """Fresh certified MAME golden for one --done part. `tape` (a lua tape) composes coin/start for
+    the gameplay golden; omitted, it is the input-free attract golden. Time Pilot is deterministic
+    without a pin, so neither side pins. Returns True iff mame_golden CERTIFIED the capture -- its
+    nonzero exit on a poisoned capture (watchdog reset, unverified DSW/reset) IS the poison guard, so
+    a poisoned golden fails closed here."""
+    cmd = [sys.executable, os.path.join(REPO, "tools", "mame_golden.py"),
+           "--hardware", HW, "--lua-dir", os.path.join(HERE, "lua"),
+           "--rompath", rompath, "--out", out, "--seconds", str(seconds)]
+    if tape:
+        cmd += ["--tape", tape]
+    return subprocess.run(cmd).returncode == 0
+
+
+def render_attract(out, frames, idiomatic):
+    """Render `frames` of INPUT-FREE attract for the chosen layer (mirrors render_js but with no coin/
+    start tape). Idiomatic rides the golden's numbering via --tape-origin LANDMARK, exactly as the
+    gameplay render does. Returns True iff render.js exited clean (nonzero == boot gap / dropped frame)."""
+    cmd = ["node", os.path.join(HERE, "render.js"), "--frames", str(frames), "--frames-out", out]
+    if idiomatic:
+        cmd += ["--idiomatic", "--tape-origin", str(LANDMARK)]
+    return subprocess.run(cmd).returncode == 0
+
+
+def frame_count(dir):
+    with open(os.path.join(dir, "frames.json")) as fh:
+        return json.load(fh)["count"]
+
+
+def distinct_count(dir):
+    """DISTINCT images the emitter recorded (render.js and mame_golden both write per-frame sha256)."""
+    with open(os.path.join(dir, "frames.json")) as fh:
+        j = json.load(fh)
+    return len({f["sha256"] for f in j["frames"]})
+
+
+def reconverge(js_rgb, golden_rgb):
+    """convergence.mjs's drift-tolerant pixel rule, in-process (see the --done block comment for why).
+
+    Downsample every frame on an 8px grid; score every RECON_STRIDE-th JS frame against its NEAREST
+    golden frame over the WHOLE golden (alignment-free -- absorbs the +236 boot gap and the repeating
+    attract loop without a hardcoded offset); return (worst%, worst JS frame, frames over threshold,
+    scored, samples). Deriving PASS from `worst` alone would read an EMPTY overlap as clean, so the
+    caller also proves the run played (game_responded / distinct control) and that the render covered
+    the golden's content."""
+    w, h, bpf = pixel_gate.screen_geometry(HW)
+    ys = np.arange(0, h, RECON_S)
+    xs = np.arange(0, w, RECON_S)
+    samples = len(ys) * len(xs)
+
+    def load_grid(path):
+        n = os.path.getsize(path) // bpf
+        buf = np.fromfile(path, dtype=np.uint8, count=n * bpf).reshape(n, h, w, 3)
+        return buf[:, ys][:, :, xs].reshape(n, samples, 3)   # (n, samples, 3)
+
+    g = load_grid(golden_rgb)                # (ngd, samples, 3)
+    j = load_grid(js_rgb)                     # (njs, samples, 3)
+    njs = j.shape[0]
+    worst, worst_frame, over, scored = 0.0, -1, 0, 0
+    for i in range(0, njs, RECON_STRIDE):
+        # nearest golden frame: min differing-sample count over the whole golden.
+        d = np.any(g != j[i], axis=2).sum(axis=1)          # (ngd,) samples differing per golden frame
+        mn = 100.0 * int(d.min()) / samples
+        scored += 1
+        if mn > RECON_PX_THRESHOLD:
+            over += 1
+        if mn > worst:
+            worst, worst_frame = mn, i
+    return worst, worst_frame, over, scored, samples
+
+
+def _done_part(work, name, rompath, seconds, idiomatic, offset, tape=None, gameplay=False):
+    """Capture a golden and reconverge one --done part; returns (ok, why). Fail-closed: a poisoned
+    capture, a short render, a dead positive control, or any over-threshold frame -> False. The JS render
+    is capped to `gc - offset` frames so its content never advances PAST the golden's last frame (the
+    +236 boot gap would otherwise leave the tail JS frames with no golden match); nearest-frame absorbs
+    the offset itself. Prints the reconverge line for the record."""
+    gdir = os.path.join(work, name + "_golden")
+    if not done_capture(rompath, gdir, seconds, tape=tape):
+        return False, f"{name}: mame_golden refused to certify the capture (poisoned golden)."
+    gc = frame_count(gdir)
+    jdir = os.path.join(work, name + "_js")
+    want = gc - offset          # render.js paints want-1 frames; last content = golden gc-1-offset+offset
+    try:
+        if gameplay:
+            render_js(jdir, want, idiomatic)
+        elif not render_attract(jdir, want, idiomatic):
+            return False, f"{name}: render.js stopped early (boot gap / dropped frame); a short artifact must not be diffed."
+    except subprocess.CalledProcessError:
+        return False, f"{name}: render.js stopped early (boot gap / dropped frame); a short artifact must not be diffed."
+
+    # positive control -- prove the golden is a LIVE run, not two idle/frozen screens.
+    if gameplay:
+        for label, frames in game_responded(gdir).items():
+            if not frames:
+                return False, f"{name}: golden shows no '{label}' -- comparing idle screens proves nothing."
+            print(f"  golden: {label:22} frames {frames[0]}..{frames[-1]}")
+    else:
+        gd, jd = distinct_count(gdir), distinct_count(jdir)
+        print(f"  golden {gc} frames, {gd} distinct   render {frame_count(jdir)} frames, {jd} distinct")
+        if gd < MIN_DISTINCT or jd < MIN_DISTINCT:
+            return False, (f"{name}: fewer than {MIN_DISTINCT} distinct frames "
+                           f"(golden {gd}, render {jd}); a frozen screen proves nothing.")
+
+    _, _, bpf = pixel_gate.screen_geometry(HW)
+    njs = os.path.getsize(os.path.join(jdir, "frames.rgb")) // bpf
+    if njs < want - 1 - RECON_STRIDE:
+        return False, f"{name}: render delivered {njs} of ~{want - 1} frames; the run did not cover the golden."
+
+    jrgb, grgb = os.path.join(jdir, "frames.rgb"), os.path.join(gdir, "frames.rgb")
+    worst, wf, over, scored, samples = reconverge(jrgb, grgb)
+    verdict = "PASS" if over == 0 else "FAIL"
+    print(f"  [{name}] reconverge: worst nearest-diff {worst:.2f}% @JS frame {wf} "
+          f"(threshold {RECON_PX_THRESHOLD:.0f}%, over={over}, {scored} scored, {samples} samples) -> {verdict}")
+    if over:
+        return False, f"{name}: {over} frame(s) diverge past {RECON_PX_THRESHOLD:.0f}% (worst {worst:.2f}% @frame {wf})."
+
+    # Gameplay carries a SECOND, tighter teeth dimension: the default gate's raw-pixel band over rows
+    # BAND_FROM.. (the whole-frame reconverge weakly-guards the top band -- MAME paints as the beam
+    # descends while the yield clock snapshots FINAL RAM, a structural residual that spends ~2.3% of the
+    # 5%). The coarse 8px/%-downsample reconverge ranks the whole run (gross divergence + completeness);
+    # band_worst measures RAW differing px per frame in rows BAND_FROM.., catching a mid-size regression
+    # the % rule ranks below threshold. Same render+golden -- no extra capture. (Both share the top-band
+    # hole: a sub-~floor localized shift inside rows 0..BAND_FROM-1 trips neither; a GROSS/global
+    # regression exceeds the band, exactly as the per-commit gate.)
+    if gameplay:
+        bworst, bover, bat = band_worst(jrgb, grgb, offset, DIFF_FROM)
+        bverdict = "PASS" if bover == 0 else "FAIL"
+        print(f"  [{name}] tight band rows {BAND_FROM}..: worst {bworst}px @frame {bat} "
+              f"(budget {BAND_MAX_PX}px, over={bover}) -> {bverdict}")
+        if bover:
+            return False, f"{name}: {bover} frame(s) over the {BAND_MAX_PX}px band (worst {bworst}px @frame {bat})."
+    return True, ""
+
+
+def run_done(a):
+    """--done: the ship bar. Verify the romset, then reconverge attract COMPLETENESS + tape GAMEPLAY vs
+    fresh MAME goldens. Fail-closed: prints `pixel_suite: PASS` ONLY when BOTH parts converge; if it
+    cannot run (no mame/romset) it exits WITHOUT printing PASS (the DONE gate keys on that line, never
+    the exit code)."""
+    try:
+        verified = subprocess.run(["mame", "-rompath", a.rompath, "-verifyroms", DRIVER],
+                                  capture_output=True, text=True).returncode == 0
+    except FileNotFoundError:
+        print("pixel_suite: SKIP -- no `mame` on PATH; cannot build a golden to compare against.")
+        return 0
+    if not verified:
+        print(f"pixel_suite: SKIP -- romset {DRIVER} not found under {a.rompath}.")
+        return 0
+
+    idiomatic = (a.layer == "idiomatic") if a.layer else (runtime() == "idiomatic")
+    offset = GEN_OFFSET if idiomatic else FROZEN_OFFSET
+    print(f"  layer: {'IDIOMATIC (generator engine)' if idiomatic else 'oracle (cycle-driven)'}"
+          f"  (--done: attract completeness + tape gameplay, nearest-frame reconverge)")
+    work = tempfile.mkdtemp(prefix="timeplt_pixel_done_")
+    try:
+        # PART A -- attract COMPLETENESS (input-free golden, a full attract window, reconverged).
+        ok, why = _done_part(work, "attract", a.rompath, DONE_ATTRACT_SECONDS, idiomatic, offset)
+        if not ok:
+            print(f"pixel_suite: FAIL -- {why}")
+            return 1
+        # PART B -- tape-driven GAMEPLAY vs MAME (the attract-blind hole).
+        tape = lua_tape(os.path.join(work, "tape.lua"))
+        ok, why = _done_part(work, "gameplay", a.rompath, DONE_GAMEPLAY_SECONDS, idiomatic, offset,
+                             tape=tape, gameplay=True)
+        if not ok:
+            print(f"pixel_suite: FAIL -- {why}")
+            return 1
+        print("pixel_suite: PASS")
+        return 0
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--rompath", default=os.path.join(GAME, "rom"))
@@ -173,7 +379,15 @@ def main():
     p.add_argument("--layer", choices=("idiomatic", "oracle"), default=None,
                    help="which layer to render vs MAME. Default reads manifest.runtime; the pixel "
                         "gate passes this explicitly, chosen from which layer's files changed.")
+    p.add_argument("--done", action="store_true",
+                   help="the runbook DONE bar: attract COMPLETENESS + tape-driven GAMEPLAY vs MAME "
+                        "(drift-tolerant whole-run reconverge), NOT the per-commit fixed-offset tripwire.")
     a = p.parse_args()
+
+    # --done: the ship bar (attract completeness + gameplay reconverge). Separate from the default
+    # fixed-offset path below, which the per-commit pixel_gate_required.py still calls plain.
+    if a.done:
+        return run_done(a)
 
     try:
         verified = subprocess.run(["mame", "-rompath", a.rompath, "-verifyroms", DRIVER],
