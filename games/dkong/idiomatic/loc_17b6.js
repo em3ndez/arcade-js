@@ -66,6 +66,6 @@ export function loc_17b6(m) {
   mem8[SUBSTATE_TIMER] = 0x20;
   mem8[HOW_HIGH_ANIM] = 0x80;
 
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
   mem16[SEQ_ADVANCE_PTR] = BOARD_ADVANCE_STEP;
 }

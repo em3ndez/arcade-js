@@ -16,5 +16,5 @@ export function clearScreenAndSelectSubstate(m) {
 
   clearTilemapAndSprites(m);
 
-  mem8[GAME_SUBSTATE] = (mem8[ACTIVE_PLAYER_INDEX] + PHASE_GROUP_BASE) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[ACTIVE_PLAYER_INDEX] + PHASE_GROUP_BASE);
 }

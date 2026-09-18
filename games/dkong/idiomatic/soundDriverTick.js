@@ -34,7 +34,7 @@ export function soundDriverTick(m) {
     if (shadow === 0) {
       bit = 0;
     } else {
-      mem8[SND_TRIGGER + i] = (shadow - 1) & 0xff;
+      mem8[SND_TRIGGER + i] = (shadow - 1);
       bit = 1;
     }
     mem.write8(SOUND_TRIGGER_LATCH + i, bit);
@@ -43,7 +43,7 @@ export function soundDriverTick(m) {
   const priorityFrames = mem8[SND_PRIORITY_FRAMES];
   let tune;
   if (priorityFrames !== 0) {
-    mem8[SND_PRIORITY_FRAMES] = (priorityFrames - 1) & 0xff;
+    mem8[SND_PRIORITY_FRAMES] = (priorityFrames - 1);
     tune = mem8[SND_PRIORITY];
   } else {
     tune = mem8[SND_BGM];
@@ -55,7 +55,7 @@ export function soundDriverTick(m) {
   if (irqTrigger === 0) {
     irq = 0;
   } else {
-    mem8[SND_IRQ_TRIGGER] = (irqTrigger - 1) & 0xff;
+    mem8[SND_IRQ_TRIGGER] = (irqTrigger - 1);
     irq = 1;
   }
   mem.write8(SOUND_IRQ, irq);

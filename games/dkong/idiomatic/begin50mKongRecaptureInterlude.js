@@ -36,5 +36,5 @@ export function begin50mKongRecaptureInterlude(m) {
   regs.c = shift;
   addToSpriteObjectColumn(m);
 
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

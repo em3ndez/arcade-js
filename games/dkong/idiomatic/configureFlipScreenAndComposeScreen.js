@@ -24,7 +24,7 @@ export function configureFlipScreenAndComposeScreen(m, a = m.regs.a) {
 
   mem.write8(FLIPSCREEN, (a | mem8[DIP_UPRIGHT]) & 0xff);
   mem8[SUBSTATE_TIMER] = 0x00;
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 
   regs.d = 0x03;
   for (let arg = 0x0d; arg <= 0x18; arg++) {

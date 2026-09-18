@@ -36,7 +36,7 @@ export function perFrame(m, sp = m.regs.sp) {
   // stack-neutral overall, so the epilogue is a pure function of this value.
   const frameBase = sp;
 
-  mem8[FRAME] = (mem8[FRAME] - 1) & 0xff;
+  mem8[FRAME] = (mem8[FRAME] - 1);
 
   stirRandomSeed(m);
   serviceCoinInput(m);

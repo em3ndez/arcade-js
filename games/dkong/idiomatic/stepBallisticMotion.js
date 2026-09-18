@@ -16,7 +16,7 @@ export function stepBallisticMotion(m, ix = m.regs.ix) {
   const velA = (mem8[at(0x10)] << 8) | mem8[at(0x11)];
   const newA = (posA + velA) & 0xffff;
   mem8[at(0x03)] = newA >> 8;
-  mem8[at(0x04)] = newA & 0xff;
+  mem8[at(0x04)] = newA;
 
   const posB = (mem8[at(0x05)] << 8) | mem8[at(0x06)];
   const velB = (mem8[at(0x12)] << 8) | mem8[at(0x13)];
@@ -24,8 +24,8 @@ export function stepBallisticMotion(m, ix = m.regs.ix) {
   const gravity = 16 * t + 8;           // (2·t+1)·8
   const newB = (posB - velB + gravity) & 0xffff;
   mem8[at(0x05)] = newB >> 8;
-  mem8[at(0x06)] = newB & 0xff;
-  mem8[at(0x14)] = (t + 1) & 0xff;
+  mem8[at(0x06)] = newB;
+  mem8[at(0x14)] = (t + 1);
 
   regs.h = newB >> 8;
   regs.l = newB & 0xff;

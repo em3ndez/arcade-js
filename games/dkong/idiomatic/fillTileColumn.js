@@ -32,7 +32,7 @@ export function fillTileColumn(m, de = m.regs.de) {
     mem8[addr] = tile;
     addr = (addr + 0x20) & 0xffff;
     const height = mem8[SEG_HEIGHT];
-    mem8[SEG_HEIGHT] = (height - 0x08) & 0xff;
+    mem8[SEG_HEIGHT] = (height - 0x08);
     if (height < 0x08) break;
   }
 

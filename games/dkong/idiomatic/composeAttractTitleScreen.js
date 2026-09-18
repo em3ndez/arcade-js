@@ -44,7 +44,7 @@ export function composeAttractTitleScreen(m) {
   enqueueTaskBatch(m);
 
   mem8[SUBSTATE_TIMER] = 0x02;
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 
   clearPlayfieldAndSprites(m);
   draw1UpLabel(m);

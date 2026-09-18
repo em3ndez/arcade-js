@@ -42,7 +42,7 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c) {
   regs.de = (regs.de + 1) & 0xffff;
   const x2 = mem8[regs.de];
   regs.l = x2;
-  mem8[SEG_RUN] = (x2 - c) & 0xff;
+  mem8[SEG_RUN] = (x2 - c);
   mem8[SEG_SUBTILE2] = x2 & 0x07;
 
   // Convert the second point to a tile address. The conversion clobbers the record pointer, so
@@ -62,7 +62,7 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c) {
 
   // Kinds 0 and 1: fold the second point's sub-tile x into the run before the span fill.
   const step = (mem8[SEG_RUN] - 0x10) & 0xff;
-  mem8[SEG_RUN] = (mem8[SEG_SUBTILE1] + step) & 0xff;
+  mem8[SEG_RUN] = (mem8[SEG_SUBTILE1] + step);
 
   // Stamp the two endpoint-cap tiles at the first point's address. The step to the next cell
   // wraps within the page rather than carrying, and the address is left for the span fill.
@@ -70,7 +70,7 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c) {
   regs.hl = mem16[SEG_ADDR1];
   mem8[regs.hl] = cap1;
   regs.l = (regs.l + 1) & 0xff;
-  mem8[regs.hl] = (cap1 - 0x30) & 0xff;
+  mem8[regs.hl] = (cap1 - 0x30);
 
   // Kind 1 zeroes the run, so no span is laid — just the two caps.
   if (mem8[SEG_KIND] === 0x01) {

@@ -37,5 +37,5 @@ export function runIntroClimbStep(m) {
   mem8[SND_PRIORITY] = 0x01;
   mem8[SND_PRIORITY_FRAMES] = 0x03;
 
-  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1) & 0xff;
+  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1);
 }

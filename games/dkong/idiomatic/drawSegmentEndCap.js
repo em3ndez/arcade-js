@@ -19,14 +19,14 @@ export function drawSegmentEndCap(m) {
   const page = ptr & 0xff00; // neighbour steps wrap within this page
   const col = ptr & 0x00ff;
 
-  mem8[ptr] = (remainder + 0xd0) & 0xff;
+  mem8[ptr] = (remainder + 0xd0);
 
   if (mem8[SEG_KIND] === 0x01) {
     mem8[page | ((col - 1) & 0xff)] = 0xc0;
   }
 
   if (remainder !== 0) {
-    mem8[page | ((col + 1) & 0xff)] = (remainder + 0xe0) & 0xff;
+    mem8[page | ((col + 1) & 0xff)] = (remainder + 0xe0);
   }
 
   regs.de = (regs.de + 1) & 0xffff;

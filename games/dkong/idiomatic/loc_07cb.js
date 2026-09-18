@@ -47,7 +47,7 @@ export function loc_07cb(m) {
 
   if (timer === 0) {
     mem8[SUBSTATE_TIMER] = 0x02;
-    mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+    mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
     mem8[ANIM_TIMER] = 0x00;
     mem8[ANIM_PATTERN] = 0x00;
     return;
@@ -56,7 +56,7 @@ export function loc_07cb(m) {
   // Decode the top two pattern bits into the latches, then rotate the pattern left by two.
   mem.write8(LATCH_BIT7, (pattern >> 7) & 1);
   mem.write8(LATCH_BIT6, (pattern >> 6) & 1);
-  mem8[ANIM_PATTERN] = ((pattern << 2) | (pattern >> 6)) & 0xff;
+  mem8[ANIM_PATTERN] = ((pattern << 2) | (pattern >> 6));
 
   let hl = FILL_TABLE;
   for (;;) {

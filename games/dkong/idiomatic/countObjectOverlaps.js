@@ -54,7 +54,7 @@ export function countObjectOverlaps(m, { objectBase, probeBase, count, probeA, s
         }
 
         if (overlapsAxis2) {
-          mem8[OVERLAP_COUNT] = (mem8[OVERLAP_COUNT] + 1) & 0xff;
+          mem8[OVERLAP_COUNT] = (mem8[OVERLAP_COUNT] + 1);
         }
       }
     }

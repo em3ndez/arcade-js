@@ -19,7 +19,7 @@ export function loc_12de(m) {
   loc_30db(m);
 
   const extra = mem8[ACTIVE_PLAYER_INDEX] !== 0 ? 1 : 0;
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1 + extra) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1 + extra);
 
   mem8[SUBSTATE_TIMER] = 0x01;
 }

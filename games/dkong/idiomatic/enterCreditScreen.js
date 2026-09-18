@@ -29,7 +29,7 @@ export function enterCreditScreen(m) {
   regs.de = CREDIT_SCREEN_TASK;
   enqueueTask(m);
 
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 
   enqueueTaskBatch(m);
 

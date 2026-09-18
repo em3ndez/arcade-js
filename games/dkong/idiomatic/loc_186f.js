@@ -24,5 +24,5 @@ export function loc_186f(m) {
   loadSpriteObjectBlock(m, COPY_SOURCE);
 
   mem8[SND_LATCH] = SND_ASSERT_FRAMES;
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

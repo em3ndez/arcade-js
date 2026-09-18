@@ -11,5 +11,5 @@ import { MARIO_MOVE_STEP_TIMER } from "./names.js";
 
 export function tickMoveStepTimer(m) {
   const { mem8 } = m;
-  mem8[MARIO_MOVE_STEP_TIMER] = (mem8[MARIO_MOVE_STEP_TIMER] - 1) & 0xff;
+  mem8[MARIO_MOVE_STEP_TIMER] = (mem8[MARIO_MOVE_STEP_TIMER] - 1);
 }

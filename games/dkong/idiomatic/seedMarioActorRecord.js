@@ -41,7 +41,7 @@ export function seedMarioActorRecord(m) {
   mem8[MARIO_SPRITE_RECORD + 3] = startY;
   mem8[MARIO_MOVE_STEP_TIMER] = 0x01;
 
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 
   enqueueTask(m, 0x06, 0x01);
 }

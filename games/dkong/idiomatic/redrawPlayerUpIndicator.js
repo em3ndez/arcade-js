@@ -41,7 +41,7 @@ export function redrawPlayerUpIndicator(m) {
   }
 
   let addr = colBase;
-  mem8[addr] = (selector + 1) & 0xff;
+  mem8[addr] = (selector + 1);
   addr = (addr + ROW_BACK) & 0xffff;
   mem8[addr] = 0x25;
   addr = (addr + ROW_BACK) & 0xffff;

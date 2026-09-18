@@ -36,7 +36,7 @@ export function runAttractState(m) {
 
   if (mem8[CREDITS] !== 0) {
     mem8[GAME_SUBSTATE] = 0x00;
-    mem8[GAME_STATE] = (mem8[GAME_STATE] + 1) & 0xff;
+    mem8[GAME_STATE] = (mem8[GAME_STATE] + 1);
     return;
   }
 

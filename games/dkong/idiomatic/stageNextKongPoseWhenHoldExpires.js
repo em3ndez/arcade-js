@@ -28,7 +28,7 @@ export function stageNextKongPoseWhenHoldExpires(m) {
   loadSpriteObjectBlock(m, ANIM_FRAME_SRC);
 
   mem8[SUBSTATE_TIMER] = POSE_HOLD_FRAMES;
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 
   regs.a = BOARD_MASK_75M;
   if (!boardBitGate(m)) return;

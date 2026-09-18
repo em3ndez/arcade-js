@@ -42,9 +42,9 @@ export function loc_3478(m, ix = m.regs.ix) {
   }
 
   if (mem8[field(OBJ_STATE)] === DIR_FORWARD) {
-    mem8[field(OBJ_X)] = (mem8[field(OBJ_X)] + 1) & 0xff;
+    mem8[field(OBJ_X)] = (mem8[field(OBJ_X)] + 1);
   } else {
-    mem8[field(OBJ_X)] = (mem8[field(OBJ_X)] - 1) & 0xff;
+    mem8[field(OBJ_X)] = (mem8[field(OBJ_X)] - 1);
   }
 
   // Hand over to the shared walk tail with the table pointer.

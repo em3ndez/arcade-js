@@ -15,7 +15,7 @@ export function loc_13a1(m) {
   if (!tickSubstateTimer(m)) return;
 
   // Re-arm the just-expired countdown to 1 so the handler fires again next frame.
-  mem8[SUBSTATE_TIMER] = (mem8[SUBSTATE_TIMER] + 1) & 0xff;
+  mem8[SUBSTATE_TIMER] = (mem8[SUBSTATE_TIMER] + 1);
 
   const p1 = mem8[P1_CONTEXT];
   mem8[GAME_SUBSTATE] = p1 !== 0 ? 0x17 : 0x14;

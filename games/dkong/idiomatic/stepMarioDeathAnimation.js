@@ -46,6 +46,6 @@ function advancePhase(m) {
   const code = mem8[MARIO_SPRITE_RECORD + 1];
   mem8[MARIO_SPRITE_RECORD + 1] = (code & 0x80) | 0x7a; // keep old mirror bit, settle tile
 
-  mem8[DEATH_ANIM_PHASE] = (mem8[DEATH_ANIM_PHASE] + 1) & 0xff;
+  mem8[DEATH_ANIM_PHASE] = (mem8[DEATH_ANIM_PHASE] + 1);
   mem8[SUBSTATE_TIMER] = 0x80;
 }

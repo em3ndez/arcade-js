@@ -33,7 +33,7 @@ export function climbKongFigureAndBreakHeart(m) {
 
   // Break the heart: step its sprite code on by one — the same heart, cracked.
   const codeByte = SPRITE_BUFFER + 0x121;
-  mem8[codeByte] = (mem8[codeByte] + 1) & 0xff;
+  mem8[codeByte] = (mem8[codeByte] + 1);
 
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

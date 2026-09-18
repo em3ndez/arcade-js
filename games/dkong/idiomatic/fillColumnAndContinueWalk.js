@@ -18,7 +18,7 @@ export function fillColumnAndContinueWalk(m, hl = m.regs.hl, de = m.regs.de) {
     mem8[addr] = tile;
     addr = (addr + 0x20) & 0xffff; // step one whole tilemap row
     const height = mem8[SEG_HEIGHT];
-    mem8[SEG_HEIGHT] = (height - 0x08) & 0xff;
+    mem8[SEG_HEIGHT] = (height - 0x08);
     if (height < 0x08) break; // subtraction borrowed -> height spent, column done
   }
 

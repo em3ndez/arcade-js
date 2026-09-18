@@ -52,7 +52,7 @@ export function loc_0b06(m) {
 
   if (byte !== WALK_TERMINATOR) {
     // Advance the pointer and add the byte, taken as signed, into the sprite-object Y column.
-    mem16[INTRO_WALK_PTR_A] = (ptr + 1) & 0xffff;
+    mem16[INTRO_WALK_PTR_A] = (ptr + 1);
     regs.hl = DISPLAY_Y_CELL;
     regs.c = byte;
     addToSpriteObjectColumn(m);
@@ -98,6 +98,6 @@ export function loc_0b06(m) {
   mem8[VIDEO_CELL_B] = 0x10;
   mem8[CUTSCENE_BAND_COUNT] = 0x05;
   mem8[SUBSTATE_TIMER] = 0x20; // arm the 32-frame phase countdown
-  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1) & 0xff;
+  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1);
   mem16[SEQ_ADVANCE_PTR] = INTRO_STEP;
 }

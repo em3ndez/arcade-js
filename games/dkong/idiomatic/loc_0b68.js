@@ -44,7 +44,7 @@ export function loc_0b68(m) {
 
   if (delta !== SENTINEL) {
     // Diagonal scroll: Y += signed delta, X -= 1 across all ten records.
-    mem16[INTRO_WALK_PTR_B] = (cursor + 1) & 0xffff;
+    mem16[INTRO_WALK_PTR_B] = (cursor + 1);
     strideAddTen(m, OBJ_Y, delta);
     strideAddTen(m, OBJ_X, 0xff);
     return;
@@ -63,5 +63,5 @@ export function loc_0b68(m) {
   if (bandsLeft !== 0) return;
 
   mem8[SUBSTATE_TIMER] = 0xb0; // 176-frame hold
-  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1) & 0xff;
+  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1);
 }

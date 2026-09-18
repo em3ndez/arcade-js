@@ -19,7 +19,7 @@ export function loc_138f(m) {
   if (!tickSubstateTimer(m)) return;
 
   // Re-arm the timer to 1: one frame of grace before the next sub-state runs.
-  mem8[SUBSTATE_TIMER] = (mem8[SUBSTATE_TIMER] + 1) & 0xff;
+  mem8[SUBSTATE_TIMER] = (mem8[SUBSTATE_TIMER] + 1);
 
   mem8[GAME_SUBSTATE] = mem8[P2_CONTEXT] !== 0 ? SUBSTATE_P2_LIVE : SUBSTATE_P2_DEAD;
 }

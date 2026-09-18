@@ -15,7 +15,7 @@ export function drawLadder(m) {
 
   for (;;) {
     const span = mem8[SEG_RUN];
-    mem8[SEG_RUN] = (span - 0x08) & 0xff; // store back every step, borrow or not
+    mem8[SEG_RUN] = (span - 0x08); // store back every step, borrow or not
     if (span < 0x08) break; // borrowed -> span exhausted
     regs.l = (regs.l + 1) & 0xff;
     mem8[regs.hl] = 0xc0;

@@ -24,5 +24,5 @@ export function reloadObjectBlockAndAdvanceStep(m) {
 
   mem8[BOARD_OBJECT_SCRATCH] = 0x00;
 
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

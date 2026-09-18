@@ -38,7 +38,7 @@ export function stepSpriteAnimationSequence(m) {
     // Wrap: stamp the base figure, re-arm the hold timer, advance to the next step.
     stampFigure(m, BASE_FIGURE);
     mem8[SUBSTATE_TIMER] = HOLD_FRAMES;
-    mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+    mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
     return;
   }
 

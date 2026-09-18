@@ -32,14 +32,14 @@ export function runIntroRoarStep(m) {
   if (countdown === ROAR_MARK) {
     mem8[SND_PRIORITY] = ROAR_TUNE;
     mem8[SND_PRIORITY_FRAMES] = PRIORITY_PULSE;
-    mem8[CUTSCENE_SPRITE_BYTE] = (mem8[CUTSCENE_SPRITE_BYTE] + 1) & 0xff;
+    mem8[CUTSCENE_SPRITE_BYTE] = (mem8[CUTSCENE_SPRITE_BYTE] + 1);
   } else if (countdown === LOWER_MARK) {
-    mem8[CUTSCENE_SPRITE_BYTE] = (mem8[CUTSCENE_SPRITE_BYTE] - 1) & 0xff;
+    mem8[CUTSCENE_SPRITE_BYTE] = (mem8[CUTSCENE_SPRITE_BYTE] - 1);
   }
 
   if (!tickSubstateTimer(m)) return;
 
   mem8[INTRO_STEP] = 0;
-  mem8[SUBSTATE_TIMER] = (mem8[SUBSTATE_TIMER] + 1) & 0xff;
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[SUBSTATE_TIMER] = (mem8[SUBSTATE_TIMER] + 1);
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 }

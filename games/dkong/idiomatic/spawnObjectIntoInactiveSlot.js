@@ -40,8 +40,8 @@ export function spawnObjectIntoInactiveSlot(m, ix = m.regs.ix) {
   mem8[ix + OBJ_X] = (seed & 0x0f) - 8;
 
   mem8[ix + OBJ_ACTIVE] = 1;
-  mem8[ix + OBJ_ANIM_PTR] = ANIMATION_STRING_BASE & 0xff;
-  mem8[ix + OBJ_ANIM_PTR + 1] = (ANIMATION_STRING_BASE >> 8) & 0xff;
+  mem8[ix + OBJ_ANIM_PTR] = ANIMATION_STRING_BASE;
+  mem8[ix + OBJ_ANIM_PTR + 1] = (ANIMATION_STRING_BASE >> 8);
 
   advanceToNextObject(m);
 }

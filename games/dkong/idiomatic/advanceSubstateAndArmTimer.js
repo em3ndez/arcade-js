@@ -12,6 +12,6 @@ const SUBSTATE_WAIT_FRAMES = 0x40;
 
 export function advanceSubstateAndArmTimer(m) {
   const { mem8 } = m;
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
   mem8[SUBSTATE_TIMER] = SUBSTATE_WAIT_FRAMES;
 }

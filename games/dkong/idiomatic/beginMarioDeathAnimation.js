@@ -29,7 +29,7 @@ export function beginMarioDeathAnimation(m) {
   const code = mem8[SPRITE_CODE];
   mem8[SPRITE_CODE] = (code & 0x80) | 0x78;
 
-  mem8[DEATH_ANIM_PHASE] = (mem8[DEATH_ANIM_PHASE] + 1) & 0xff;
+  mem8[DEATH_ANIM_PHASE] = (mem8[DEATH_ANIM_PHASE] + 1);
   mem8[DEATH_ANIM_TICKS_LEFT] = 0x0d;
   mem8[SUBSTATE_TIMER] = 0x08;
 

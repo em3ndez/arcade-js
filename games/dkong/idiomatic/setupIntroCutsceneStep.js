@@ -41,5 +41,5 @@ export function setupIntroCutsceneStep(m) {
   mem16[INTRO_WALK_PTR_B] = 0x38cb;
 
   mem8[SUBSTATE_TIMER] = 0x40;
-  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1) & 0xff;
+  mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1);
 }

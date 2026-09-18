@@ -29,5 +29,5 @@ export function advanceBoardStepWhenSpritesCleared(m) {
   if (!allSlotsClear(mem, regs.hl, regs.de)) return;
 
   mem8[SUBSTATE_TIMER] = SUBSTATE_DWELL;
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

@@ -42,7 +42,7 @@ export function losePlayer1Life(m) {
 
   // Skip the next life's intro and spend a life before the snapshot, so the saved slot is post-death.
   mem8[PLAY_INTRO] = 0;
-  mem8[LIVES] = (mem8[LIVES] - 1) & 0xff;
+  mem8[LIVES] = (mem8[LIVES] - 1);
   const remaining = mem8[LIVES];
 
   // Source and destination do not overlap, so a plain forward copy is faithful.

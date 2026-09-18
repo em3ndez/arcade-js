@@ -64,5 +64,5 @@ export function loc_1880(m) {
 
   mem8[PACE_COUNTER] = 0x00;
   mem8[SND_LATCH] = SND_ASSERT_FRAMES;
-  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
+  mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

@@ -14,5 +14,5 @@ export function clearScreenAndAdvanceSubstate(m) {
 
   clearPlayfieldAndSprites(m);
 
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 }

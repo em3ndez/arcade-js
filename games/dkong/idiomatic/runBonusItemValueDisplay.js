@@ -63,7 +63,7 @@ export function runBonusItemValueDisplay(m) {
       slot = (slot + 0x22) & 0xffff;
     }
     mem16[SLOT_PTR] = slot;
-    mem16[SLOT_COL_PTR] = (slot - 0x0d) & 0xffff;
+    mem16[SLOT_COL_PTR] = (slot - 0x0d);
 
     positionBonusItemSprite(m, 0x00, mem8[POS_INDEX]);
   }
@@ -112,8 +112,8 @@ export function runBonusItemValueDisplay(m) {
       // Skip the stamp when the pointer is already at the floor sentinel.
       const cur = mem16[VIDEO_PTR];
       if (cur !== COL_LOW_SENTINEL) {
-        mem8[cur] = (pos + 0x11) & 0xff;
-        mem16[VIDEO_PTR] = (cur - 0x20) & 0xffff;
+        mem8[cur] = (pos + 0x11);
+        mem16[VIDEO_PTR] = (cur - 0x20);
       }
     }
   } else if (input & 0x03) {
@@ -162,7 +162,7 @@ function exitBonusItemDisplay(m) {
 
   mem8[mem16[SLOT_PTR]] = 0x00;
   mem8[SUBSTATE_TIMER] = 0x80;
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] - 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] - 1);
 
   const dst = mem16[SLOT_COL_PTR];
   for (let i = 0; i < 0x0c; i++) {

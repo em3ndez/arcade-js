@@ -25,7 +25,7 @@ export function composeScreenAndAdvanceSubstate(m) {
     enqueueTask(m, opcode, argument);
   }
 
-  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
+  mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 
   draw1UpLabel(m);
 }
