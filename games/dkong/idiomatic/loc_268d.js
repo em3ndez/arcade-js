@@ -16,8 +16,7 @@ const OBJ3_SPRITE_PAIR = 0x69f4;
 export function loc_268d(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = M50_OBJ3_STEP_DIR;
-  signStepHalfRate(m);
+  signStepHalfRate(m, M50_OBJ3_STEP_DIR);
   mem8[M50_OBJ3_STEP] = regs.a;
 
   if ((mem8[FRAME] & 0x1f) !== 0x02) return;

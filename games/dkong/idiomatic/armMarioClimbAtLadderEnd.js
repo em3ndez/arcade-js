@@ -56,9 +56,7 @@ export function armMarioClimbAtLadderEnd(m) {
 
   if (tag === 0) {
     // Ordinary order: commit callee takes the slot byte in B and (Y+8) in D, then climbs up.
-    regs.b = slotByte;
-    regs.d = yLimit;
-    loc_1b4e(m);
+    loc_1b4e(m, slotByte, yLimit);
     return;
   }
 

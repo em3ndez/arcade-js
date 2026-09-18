@@ -10,13 +10,11 @@ import { BONUS_DISPLAY } from "./names.js";
 import { addToScoreTask } from "./addToScoreTask.js";
 
 export function awardRemainingBonusToScore(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const packed = mem8[BONUS_DISPLAY];
 
-  regs.a = packed & 0x0f;
-  addToScoreTask(m);
+  addToScoreTask(m, packed & 0x0f);
 
-  regs.a = ((packed >> 4) + 0x0a) & 0xff;
-  addToScoreTask(m);
+  addToScoreTask(m, ((packed >> 4) + 0x0a) & 0xff);
 }

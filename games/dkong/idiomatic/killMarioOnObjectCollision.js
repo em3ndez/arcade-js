@@ -19,8 +19,7 @@ export function killMarioOnObjectCollision(m) {
 
   regs.iy = MARIO_ACTIVE; // base of Mario's context block (handler reads MARIO_X from it)
   regs.c = mem8[MARIO_Y];
-  regs.hl = MARIO_HITBOX;
-  dispatchBoardCollision(m);
+  dispatchBoardCollision(m, MARIO_HITBOX);
 
   if (regs.a === 0) return;
 

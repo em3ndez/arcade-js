@@ -53,8 +53,7 @@ export function drawBoardLayout(m, sp = m.regs.sp) {
     regs.de = (regs.de + 1) & 0xffff;
     const y2 = mem8[regs.de];
     regs.h = y2;
-    regs.a = Math.abs(y2 - y) & 0xff;
 
-    loc_0dd3(m);
+    loc_0dd3(m, Math.abs(y2 - y) & 0xff);
   }
 }

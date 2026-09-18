@@ -25,8 +25,7 @@ export function stageNextKongPoseWhenHoldExpires(m) {
 
   if (!tickSubstateTimer(m)) return;
 
-  regs.hl = ANIM_FRAME_SRC;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, ANIM_FRAME_SRC);
 
   mem8[SUBSTATE_TIMER] = POSE_HOLD_FRAMES;
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;

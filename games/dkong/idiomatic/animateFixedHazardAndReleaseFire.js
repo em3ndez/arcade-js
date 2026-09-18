@@ -44,15 +44,11 @@ export function animateFixedHazardAndReleaseFire(m) {
   if ((phase & 0x02) === 0) {
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff] = 0x02;
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x00;
-    regs.hl = SPRITE_DEST;
-    regs.b = SPRITE_BYTE_A;
-    loc_03f2(m);
+    loc_03f2(m, SPRITE_DEST, SPRITE_BYTE_A);
   } else {
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff] = 0x02;
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x02;
-    regs.hl = SPRITE_DEST;
-    regs.b = SPRITE_BYTE_B;
-    loc_03f2(m);
+    loc_03f2(m, SPRITE_DEST, SPRITE_BYTE_B);
 
     const decB = (mem8[ARM_COUNTER] - 1) & 0xff;
     mem8[ARM_COUNTER] = decB;

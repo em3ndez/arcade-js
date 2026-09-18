@@ -20,8 +20,7 @@ export function carryMarioOnConveyorRow(m) {
   const y = mem8[MARIO_Y];
 
   if (y === 0x50) {
-    regs.a = mem8[M50_OBJ1_STEP];
-    moveMarioX(m);
+    moveMarioX(m, mem8[M50_OBJ1_STEP]);
     return;
   }
   if (y === 0x78) {
@@ -29,8 +28,7 @@ export function carryMarioOnConveyorRow(m) {
     return;
   }
   if (y === 0xc8) {
-    regs.a = mem8[M50_OBJ3_STEP];
-    moveMarioX(m);
+    moveMarioX(m, mem8[M50_OBJ3_STEP]);
     return;
   }
 }

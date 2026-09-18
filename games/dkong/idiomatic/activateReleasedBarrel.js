@@ -48,8 +48,7 @@ export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de
   mem8[obj + OBJ_X] = mem8[renderPtr];
   mem8[obj + OBJ_Y] = mem8[renderPtr + SPRITE_Y];
 
-  regs.hl = SPRITE_TEMPLATE;
-  loadSpriteObjectBlock(m); // copies 40 bytes from HL into SPRITE_OBJ_BLOCK
+  loadSpriteObjectBlock(m, SPRITE_TEMPLATE); // copies 40 bytes from HL into SPRITE_OBJ_BLOCK
 
   regs.hl = SPRITE_OBJ_BLOCK + SPRITE_Y; // the Y column
   regs.c = Y_COLUMN_DELTA; // -4

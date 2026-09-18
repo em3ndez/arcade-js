@@ -40,10 +40,9 @@ const BLANK_TILE = 0x10;       // erase tile written to the three rivet cells
 const rotl8 = (v) => ((v << 1) | (v >> 7)) & 0xff;
 
 export function collectEdgeRivet(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = BOARD_GATE_MASK;
-  if (!boardBitGate(m)) return; // gate closed (not 100m) — do nothing
+  if (!boardBitGate(m, BOARD_GATE_MASK)) return; // gate closed (not 100m) — do nothing
 
   const x = mem8[MARIO_X];
   if (x === EDGE_X_LEFT || x === EDGE_X_RIGHT) {
@@ -87,7 +86,6 @@ export function collectEdgeRivet(m) {
 
   const airborne = mem8[MARIO_AIRBORNE];
   if (airborne === 0) {
-    regs.a = airborne;
-    loc_1d95(m);
+    loc_1d95(m, airborne);
   }
 }

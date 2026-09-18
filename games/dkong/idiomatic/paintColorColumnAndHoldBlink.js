@@ -13,11 +13,9 @@ const COLOR_COLUMN_TOP = 0x75c4;
 const SPRITE1_CODE = SPRITE_BUFFER + 5;
 
 export function paintColorColumnAndHoldBlink(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.hl = COLOR_COLUMN_TOP;
-  fillDescendingColumn(m);
+  fillDescendingColumn(m, COLOR_COLUMN_TOP);
 
-  regs.a = mem8[SPRITE1_CODE];
-  storeBlinkSpriteCode(m);
+  storeBlinkSpriteCode(m, mem8[SPRITE1_CODE]);
 }

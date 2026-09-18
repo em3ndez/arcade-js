@@ -37,8 +37,7 @@ export function serviceVblankNmi(m, sp = m.regs.sp) {
     );
   }
 
-  regs.hl = DMA_SETUP_BLOCK;
-  blitSpritesViaDma(m);
+  blitSpritesViaDma(m, DMA_SETUP_BLOCK);
 
   if (mem8[ATTRACT] === 0) {
     readControls(m);

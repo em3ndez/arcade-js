@@ -28,10 +28,7 @@ export function spawnInterludeHeart(m) {
 
   mem8[BLINK_SPRITE_CODE] = 0x13;
 
-  regs.hl = TILEMAP_COLUMN;
-  regs.de = 0x0020;
-  regs.a = 0x10;
-  fillDescendingColumn(m);
+  fillDescendingColumn(m, TILEMAP_COLUMN, 0x10, 0x0020);
 
   mem8[SND_PRIORITY] = 0x07;
   mem8[SND_PRIORITY_FRAMES] = 0x03;

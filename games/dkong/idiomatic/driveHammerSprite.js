@@ -45,8 +45,7 @@ const SWING_ALT_BIT = 0x01;      // low bit set on both codes during the alterna
 export function driveHammerSprite(m) {
   const { regs, mem8 } = m;
 
-  regs.a = HAMMER_BOARDS;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, HAMMER_BOARDS)) return;
 
   if (!marioActiveGuard(m)) return;
 

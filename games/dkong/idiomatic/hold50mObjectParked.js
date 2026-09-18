@@ -14,7 +14,7 @@ import { marioReachedTargetColumn as loc_2243 } from "./marioReachedTargetColumn
 const OBJECT_FLAG = 0x621a; // shared object flag; several unrelated writers, so it stays local
 
 export function hold50mObjectParked(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const base = m.pop16();
 
@@ -23,13 +23,11 @@ export function hold50mObjectParked(m) {
 
   if (timer === 0) {
     mem8[base] = mem8[base] + 1;
-    regs.hl = base + 2;
-    if (!loc_2243(m)) return;
+    if (!loc_2243(m, base + 2)) return;
     mem8[OBJECT_FLAG] = 1;
     return;
   }
 
-  regs.hl = base + 2;
-  if (!loc_2243(m)) return;
+  if (!loc_2243(m, base + 2)) return;
   mem8[OBJECT_FLAG] = 0;
 }

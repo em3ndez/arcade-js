@@ -17,8 +17,7 @@ export function advanceInterludeStepAndLiftKongFigure(m) {
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;
 
   // 25m only (bit 0 of the board mask); any other board skips the lift.
-  regs.a = 0x01;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, 0x01)) return;
 
   regs.hl = SPRITE_OBJ_BLOCK + 3;
   regs.c = 0xfc; // -4, 8-bit

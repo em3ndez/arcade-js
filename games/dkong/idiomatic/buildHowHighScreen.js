@@ -44,7 +44,7 @@ const HEIGHT_MAX = 5;
 const SUBSTATE_TIMER_RELOAD = 0xa0;
 
 export function buildHowHighScreen(m) {
-  const { regs, mem, mem8, mem16 } = m;
+  const { mem, mem8, mem16 } = m;
 
   silenceSound(m);
 
@@ -52,9 +52,7 @@ export function buildHowHighScreen(m) {
 
   clearPlayfieldAndSprites(m);
 
-  regs.d = 0x06;
-  regs.e = mem8[MARIO_ACTIVE];
-  enqueueTask(m);
+  enqueueTask(m, 0x06, mem8[MARIO_ACTIVE]);
 
   mem.write8(PALETTE_BANK_BIT0, 0x01); // palette latch (device)
   mem.write8(PALETTE_BANK_BIT1, 0x00); // palette latch (device)
@@ -102,9 +100,7 @@ export function buildHowHighScreen(m) {
     rows = (rows - 1) & 0xff;
   } while (rows !== 0);
 
-  regs.d = 0x03;
-  regs.e = 0x07;
-  enqueueTask(m);
+  enqueueTask(m, 0x03, 0x07);
 
   mem8[SUBSTATE_TIMER] = SUBSTATE_TIMER_RELOAD;
   mem8[GAME_SUBSTATE] = mem8[GAME_SUBSTATE] + 2;

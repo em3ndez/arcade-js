@@ -17,10 +17,8 @@ export function scrollClimbGraphicStep(m) {
   regs.bc = mem8[INTRO_SCROLL_INDEX];
   regs.de = ROW; // set once, reused by both copies
 
-  regs.hl = 0x7600;
-  copyByteDisplaced(m);
-  regs.hl = 0x75c0;
-  copyByteDisplaced(m);
+  copyByteDisplaced(m, 0x7600);
+  copyByteDisplaced(m, 0x75c0);
 
   mem8[INTRO_SCROLL_INDEX] = (mem8[INTRO_SCROLL_INDEX] - 1) & 0xff;
 }

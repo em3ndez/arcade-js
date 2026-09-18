@@ -79,8 +79,7 @@ export function loc_07cb(m) {
   regs.de = (regs.de + 1) & 0xffff;
   enqueueTask(m);
 
-  regs.hl = SPRITE_TEMPLATE;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, SPRITE_TEMPLATE);
   loc_3f24(m);
 
   regs.hl = SPRITE_OBJ_BLOCK;

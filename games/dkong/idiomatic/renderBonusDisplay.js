@@ -11,16 +11,14 @@ import { SND_BGM } from "./names.js";
 import { stampTwoDigitField } from "./stampTwoDigitField.js";
 
 export function renderBonusDisplay(m, a = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const digitByte = a;
   const unitsDigit = digitByte & 0x0f;
   const tensDigit = (digitByte >> 4) & 0x0f;
 
   if (tensDigit !== 0) {
-    regs.a = tensDigit;
-    regs.b = unitsDigit;
-    stampTwoDigitField(m);
+    stampTwoDigitField(m, tensDigit, unitsDigit);
     return;
   }
 
@@ -28,7 +26,5 @@ export function renderBonusDisplay(m, a = m.regs.a) {
   mem8[0x7486] = 0x70;
   mem8[0x74a6] = 0x70;
 
-  regs.a = 0x10;                 // blank tile for the suppressed leading digit
-  regs.b = 0x70 + unitsDigit;    // units digit shifted into the second tile row
-  stampTwoDigitField(m);
+  stampTwoDigitField(m, 0x10, 0x70 + unitsDigit);
 }

@@ -35,9 +35,7 @@ export function startMarioFallWhenGroundGivesWay(m) {
   // Not a solid flat girder (slope tile, or girder tile with low nibble 8+): defer to the
   // slope-footing decision, which reads probe-X and the foot-cell pointer from registers.
   if (tile < 0xb0 || (tile & 0x0f) >= 8) {
-    regs.d = probeX;
-    regs.hl = footCell;
-    return decideSlopeGirderFooting(m);
+    return decideSlopeGirderFooting(m, probeX, footCell);
   }
 
   // Solid flat girder under the foot: level footing, nothing to do.

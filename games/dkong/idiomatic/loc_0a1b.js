@@ -17,17 +17,13 @@ const PALETTE_BANK_LO = 0x7d86; // palette-bank bit 0
 const PALETTE_BANK_HI = 0x7d87; // palette-bank bit 1
 
 export function loc_0a1b(m) {
-  const { regs, mem, mem8 } = m;
+  const { mem, mem8 } = m;
 
   mem.write8(PALETTE_BANK_LO, 0);
   mem.write8(PALETTE_BANK_HI, 0);
 
-  regs.d = 0x03;
-  regs.e = 0x03;
-  enqueueTask(m);
-  regs.d = 0x02;
-  regs.e = 0x01;
-  enqueueTask(m);
+  enqueueTask(m, 0x03, 0x03);
+  enqueueTask(m, 0x02, 0x01);
 
   draw2UpLabel(m);
 

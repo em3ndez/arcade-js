@@ -22,15 +22,12 @@ const SWEEP_PHASE_BIT = 0x40;
 const RIGHT_HALF_X = 128; // Mario X screen-half split; >= is the right half
 
 export function runRivetColorCycleBlink(m, c = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const sweepCounter = c;
 
-  regs.a = BASE_COLOR;
-  regs.hl = COLUMN_A_TOP;
-  fillDescendingColumn(m);
-  regs.hl = COLUMN_B_TOP; // value carries over from the first column (resumes at 13)
-  fillDescendingColumn(m);
+  fillDescendingColumn(m, COLUMN_A_TOP, BASE_COLOR);
+  fillDescendingColumn(m, COLUMN_B_TOP); // value carries over from the first column (resumes at 13)
 
   if ((sweepCounter & SWEEP_PHASE_BIT) === 0) {
     blinkSpritePairByX(m);
@@ -42,8 +39,6 @@ export function runRivetColorCycleBlink(m, c = m.regs.c) {
     return;
   }
 
-  regs.a = BRIGHT_BAND_COLOR;
-  regs.hl = COLUMN_A_TOP;
-  fillDescendingColumn(m);
+  fillDescendingColumn(m, COLUMN_A_TOP, BRIGHT_BAND_COLOR);
   blinkSpritePairOn(m);
 }

@@ -21,7 +21,7 @@ import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { enqueueTask } from "./enqueueTask.js";
 
 export function seedMarioActorRecord(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Gate: skip until SUBSTATE_TIMER expires.
   if (!tickSubstateTimer(m)) return;
@@ -43,7 +43,5 @@ export function seedMarioActorRecord(m) {
 
   mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;
 
-  regs.d = 0x06;
-  regs.e = 0x01;
-  enqueueTask(m);
+  enqueueTask(m, 0x06, 0x01);
 }

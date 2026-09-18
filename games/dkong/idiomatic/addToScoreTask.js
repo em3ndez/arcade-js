@@ -40,8 +40,7 @@ export function addToScoreTask(m, a = m.regs.a) {
   const scoreEnd = regs.de; // one past the counter's top byte
 
   regs.de = (scoreEnd - 1) & 0xffff;
-  regs.a = mem8[CURRENT_PLAYER];
-  loc_056b(m);
+  loc_056b(m, mem8[CURRENT_PLAYER]);
 
   // Compare against the high score, top byte first, walking down.
   regs.de = (scoreEnd - 1) & 0xffff;

@@ -24,8 +24,7 @@ export function loc_2602(m) {
     mem8[M50_OBJ1_REVERSE_TIMER] = next;
     if (next === 0) {
       mem8[M50_OBJ1_REVERSE_TIMER] = 0x80;
-      regs.hl = M50_OBJ1_STEP_DIR;
-      reverseStepDirection(m);
+      reverseStepDirection(m, M50_OBJ1_STEP_DIR);
     }
   }
 

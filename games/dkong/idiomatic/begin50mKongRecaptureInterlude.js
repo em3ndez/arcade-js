@@ -30,8 +30,7 @@ export function begin50mKongRecaptureInterlude(m) {
   // Read BEFORE the copy below overwrites this byte — the shift must measure the OLD X.
   const shift = (mem8[RECORD2_X] - TEMPLATE_ANCHOR_X) & 0xff;
 
-  regs.hl = FIGURE_TEMPLATE;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, FIGURE_TEMPLATE);
 
   regs.hl = SPRITE_OBJ_BLOCK;
   regs.c = shift;

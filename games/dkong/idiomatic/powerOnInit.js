@@ -62,8 +62,6 @@ export function powerOnInit(m) {
   draw1UpLabel(m);
 
   for (const [opcode, argument] of OPENING_TASKS) {
-    regs.d = opcode;
-    regs.e = argument;
-    enqueueTask(m);
+    enqueueTask(m, opcode, argument);
   }
 }

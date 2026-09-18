@@ -14,7 +14,7 @@ const SEQ_TABLE_WRAP = 0x3a73; // where the board order restarts at the table's 
 const SEQ_TERMINATOR = 0x7f;
 
 export function advanceToNextBoard(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   if (!tickSubstateTimer(m)) return;
 
@@ -28,9 +28,7 @@ export function advanceToNextBoard(m) {
   mem16[BOARD_SEQ_PTR] = ptr;
   mem8[BOARD] = board;
 
-  regs.d = 0x05;
-  regs.e = 0x00;
-  enqueueTask(m);
+  enqueueTask(m, 0x05, 0x00);
 
   mem8[BOARD_ADVANCE_STEP] = 0x00;
   mem8[SUBSTATE_TIMER] = 0x30;

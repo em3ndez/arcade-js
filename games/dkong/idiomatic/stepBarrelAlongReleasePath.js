@@ -26,9 +26,7 @@ export function stepBarrelAlongReleasePath(m, hl = m.regs.hl) {
 
   // Terminator: hand the barrel and its sprite slot to release completion via registers.
   if (ch === TERMINATOR) {
-    regs.ix = objPtr;
-    regs.de = dstPtr;
-    return activateReleasedBarrel(m);
+    return activateReleasedBarrel(m, objPtr, dstPtr);
   }
 
   mem8[dstPtr + SPRITE_X] = ch & TERMINATOR;

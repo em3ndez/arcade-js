@@ -16,11 +16,10 @@ import { enqueueTask } from "./enqueueTask.js";
 import { BONUS_TICK, BONUS_PERIOD, BONUS, BONUS_EXPIRED_STEP, SPAWN_REQUEST } from "./names.js";
 
 export function tickTimedBoardBonus(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Mask has boards 2/3/4 set: opens on 50m/75m/100m, closed on 25m.
-  regs.a = 0x0e;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, 0x0e)) return;
 
   const tick = mem8[BONUS_TICK] - 1;
   mem8[BONUS_TICK] = tick;
@@ -29,9 +28,7 @@ export function tickTimedBoardBonus(m) {
   // Period elapsed: post the spawn request in the two cells that carry it together, enqueue a task.
   mem8[0x62b9] = 3; // bookkeeping byte that moves with the spawn request
   mem8[SPAWN_REQUEST] = 3;
-  regs.d = 0x05; // task message opcode
-  regs.e = 0x01; // task message argument
-  enqueueTask(m);
+  enqueueTask(m, 0x05, 0x01);
 
   mem8[BONUS_TICK] = mem8[BONUS_PERIOD];
 

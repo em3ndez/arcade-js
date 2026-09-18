@@ -37,14 +37,11 @@ export function releaseBarrelIntoFreeSlot(m, record = m.regs.ix, b = m.regs.b) {
 
   mem8[EVENT_GATE] = 1;
 
-  regs.d = BONUS_TASK_OPCODE;
-  regs.e = BONUS_TASK_STEP_DOWN;
-  enqueueTask(m);
+  enqueueTask(m, BONUS_TASK_OPCODE, BONUS_TASK_STEP_DOWN);
 
   const remaining = u8(mem8[BONUS] - 1);
   mem8[BONUS] = remaining;
   if (remaining === 0) mem8[BONUS_EXPIRED_STEP] = 1;
 
-  regs.hl = BONUS;
-  return loc_2ce6(m);
+  return loc_2ce6(m, BONUS);
 }

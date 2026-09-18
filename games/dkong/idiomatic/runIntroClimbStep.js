@@ -20,8 +20,7 @@ export function runIntroClimbStep(m) {
 
   if (!tickSubstateTimer(m)) return;
 
-  regs.hl = CLIMB_RECORDS_SRC;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, CLIMB_RECORDS_SRC);
 
   // Two strided add-passes (stride 4, ten records): field 0 takes one constant, field 3 another.
   regs.hl = SPRITE_OBJ_BLOCK;

@@ -23,8 +23,7 @@ const OBJ2_PAIR_LOW = 0x69ed;
 export function loc_264c(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = M50_OBJ2_STEP_DIR;
-  signStepHalfRate(m);
+  signStepHalfRate(m, M50_OBJ2_STEP_DIR);
   const step = regs.a;
   mem8[M50_OBJ2_STEP_POS] = step;
   mem8[M50_OBJ2_STEP_NEG] = u8(-step);

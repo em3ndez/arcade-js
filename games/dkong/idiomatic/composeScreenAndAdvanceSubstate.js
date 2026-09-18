@@ -19,12 +19,10 @@ const SCREEN_TASKS = [
 ];
 
 export function composeScreenAndAdvanceSubstate(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   for (const [opcode, argument] of SCREEN_TASKS) {
-    regs.d = opcode;
-    regs.e = argument;
-    enqueueTask(m);
+    enqueueTask(m, opcode, argument);
   }
 
   mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1) & 0xff;

@@ -57,9 +57,7 @@ export function losePlayer1Life(m) {
   }
 
   // No lives left: format player 1's final score for display and ranking.
-  regs.a = SCORE_FORMAT_P1;
-  regs.hl = P1_SCORE;
-  loc_13ca(m);
+  loc_13ca(m, SCORE_FORMAT_P1, P1_SCORE);
 
   // In a 2-player game the banner starts one column left, with an extra render task ahead of it.
   let bannerTop = BANNER_VRAM_TOP;
