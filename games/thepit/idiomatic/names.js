@@ -87,7 +87,7 @@ export const ACTIVE_PLAYER = 0x8002;
 export const BOARD_MODE = 0x8057;
 
 /** Variant selector read at round setup (loc_0391/loc_03a5) and by the fill dispatch (loc_4e2e
- *  "variant selector"). [guess] */
+ *  "variant selector"). [seen] */
 export const VARIANT = 0x8048;
 
 // ── Player dig / movement ─────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export const DEMO_STEER_DIR = 0x801b;
 /** MOVE_BLOCK_FLAG (0x8080) — movement blocker. A falling rock/arrow overlapping the player sets it
  *  (`loc_2c04`), and the vertical/climb routine `loc_1a02` bails to its epilogue while it is nonzero —
  *  so hazards **freeze movement, they do not kill** (§2.5, grounded). (The earlier "climb gate" reading
- *  was refuted; it is a pure blocker.) [code] */
+ *  was refuted; it is a pure blocker.) [seen] */
 export const MOVE_BLOCK_FLAG = 0x8080;
 
 // ── Enemy #3 — a 2-sprite actor (primary 0x810a + twin 0x811b), NOT a "ship" (§2.7, grounded) ──
@@ -132,14 +132,14 @@ export const ENEMY3_TIMER = 0x8112;
 
 /** Enemy work-slot sprite/state byte (0x8083+1) — the sprite/orientation code of whichever enemy is
  *  currently ldir'd into the shared work slot; the enemy-catch sets it to 0x17 (§2.4). Re-armed by the
- *  mover epilogue (loc_34fa/loc_34cf). [code] */
+ *  mover epilogue (loc_34fa/loc_34cf). [seen] */
 export const ENEMY_WORK_SPRITE = 0x8084;
 
 // ── Free-running counters ─────────────────────────────────────────────────────
 
 /** ENEMY_ACTION_TIMER (0x808b) — mover-record offset 8: a decrementing cadence/dwell timer every mover
  *  routine drives (stepEnemyMover dwell/respawn countdown; stepMoverUp/stepMoverDown/stepMoverMirrored/stepMoverUnmirrored per-step cadence),
- *  parallel to ENEMY1_TIMER/ENEMY2_TIMER. (The earlier "random/animation" reading is refuted.) [code] */
+ *  parallel to ENEMY1_TIMER/ENEMY2_TIMER. (The earlier "random/animation" reading is refuted.) [seen] */
 export const ENEMY_ACTION_TIMER = 0x808b;
 
 /** PLAY_PHASE_COUNTER (0x8010) — the board-startup ramp: cleared to 0 at reset/board rebuild, then
@@ -281,7 +281,7 @@ export const SPRITE_COORD_BIAS = 0x8051;
  *  (advanceTwoSpriteActor, alongside its PLAYER_Y tile), cleared when it exits at a boundary (advanceAltPhaseActor,
  *  together with PLAYER_Y); read as the "nothing active, done" guard by the object/state
  *  dispatcher (advanceTrackedObject) and as the "nothing to classify" gate by steerDemoPlayer. Consistent
- *  0/0xff presence role across 6 routines. [code] */
+ *  0/0xff presence role across 6 routines. [seen] */
 export const PLAYER_ACTIVE = 0x8079;
 
 /** TRANSITION_TIMER (0x807c) — the MASTER board-transition countdown (§2.9). Each frame the player
@@ -307,23 +307,23 @@ export const POST_TRANSITION_MODE = 0x807d;
 /**
  *  SCORE_LO (0x8031) — Low packed-BCD byte of the active player's 2-byte score; BCD-added by
  *  awardTwentyPoints/addScore, split to digits by drawScoreDigits, read as hiscore candidate by insertHighScore, cleared
- *  by resetScoreAndSoundQueue -- four independent users. [code]
+ *  by resetScoreAndSoundQueue -- four independent users. [seen]
  */
 export const SCORE_LO = 0x8031;
 /**
  *  SCORE_HI (0x8034) — High packed-BCD byte of the active score paired with 0x8031, same four
  *  routines (addScore carry target, drawScoreDigits render with leading-zero blank, insertHighScore
- *  candidate, resetScoreAndSoundQueue clear). [code]
+ *  candidate, resetScoreAndSoundQueue clear). [seen]
  */
 export const SCORE_HI = 0x8034;
 /**
  *  SCORE_DISPLAY_LOW (0x8037) — Low byte of the 16-bit score value staged by renderScoreReadouts per
- *  high-score record and unpacked into digit tiles by unpackScoreDigits/unpackScoreDigits. [code]
+ *  high-score record and unpacked into digit tiles by unpackScoreDigits/unpackScoreDigits. [seen]
  */
 export const SCORE_DISPLAY_LOW = 0x8037;
 /**
  *  SCORE_DISPLAY_HIGH (0x8038) — High byte of the 16-bit score value staged at 0x8037 for the
- *  digit unpacker; written by renderScoreReadouts, read MSB-first by unpackScoreDigits. [code]
+ *  digit unpacker; written by renderScoreReadouts, read MSB-first by unpackScoreDigits. [seen]
  */
 export const SCORE_DISPLAY_HIGH = 0x8038;
 
@@ -361,12 +361,12 @@ export const COLOUR_RAM_CURSOR = 0x805e;
 /**
  *  MOUNTAIN_ERODE_PTR (0x8065) — 16-bit VRAM write cursor for the mountain erosion (§2.6): seeded
  *  0x9104 by seedMountainErosion, deref'd via IX and walked +0x20/step down the mountain column (writing
- *  tile 0x31) by erodeMountain as the mountain visibly eats away. Grounded (§2.6). [code] */
+ *  tile 0x31) by erodeMountain as the mountain visibly eats away. Grounded (§2.6). [seen] */
 export const MOUNTAIN_ERODE_PTR = 0x8065;
 /**
  *  MOUNTAIN_ERODE_TIMER (0x8067) — per-step countdown pacing the erosion: armed level-scaled
  *  (diffBase 0x804f − 4*LEVEL, so erosion runs faster every level) by seedMountainErosion, decremented each
- *  frame by erodeMountain which advances one step only on expiry. Grounded (§2.6). [code] */
+ *  frame by erodeMountain which advances one step only on expiry. Grounded (§2.6). [seen] */
 export const MOUNTAIN_ERODE_TIMER = 0x8067;
 
 // ── Tracked-object tile cell + sprite attribute ──
@@ -394,21 +394,21 @@ export const PLAYER_TILE_ROW = 0x8073;
  *  PROBE_CELL_PTR (0x8089) — 16-bit VRAM/tilemap cell pointer (base 0x9000) written in
  *  stepEnemyMover/loc_3289 and dereferenced+stepped ±0x20/row by the tile-probe helpers
  *  tileInProbeRow/probeRowBackTilePair/nextTileInProbeRow/probeRowAheadTilePair; A, B and my derivation all agree, grounded across writer + four
- *  readers. [code]
+ *  readers. [seen]
  */
 export const PROBE_CELL_PTR = 0x8089;
 /**
  *  SUBTILE_PHASE (0x808d) — Sub-tile phase / probe-table row index derived from the pixel
  *  position in loc_3289 and loaded as the DE row selector (D=0) by all four probe helpers
  *  (0x34fe/0x35fe ±0x20 rows); both namers and my derivation converge, grounded across five
- *  routines. [code]
+ *  routines. [seen]
  */
 export const SUBTILE_PHASE = 0x808d;
 /**
  *  ENEMY_WORK_STATE (0x8090) — signed state byte of the enemy in the 0x8083 work slot: stepEnemyMover
  *  dispatches on its sign (neg->advanceDormantMover dormant tick, zero->arm 0x808b countdown,
  *  positive->player-box branch) and advanceDormantMover bumps it each call. Also the LASER-KILL death
- *  marker: a shot enemy is parked at 0xc0 and free-run to respawn (§2.3/§2.4, grounded). [code]
+ *  marker: a shot enemy is parked at 0xc0 and free-run to respawn (§2.3/§2.4, grounded). [seen]
  */
 export const ENEMY_WORK_STATE = 0x8090;
 
@@ -453,7 +453,7 @@ export const DIG_OBJ_SUBTYPE = 0x80c0;
  *  DIG_COLLISION_STATE (0x80c1) — arm/capture state of the carve object
  *  (0=idle,1=armed/captured,2=latched): gates advanceTrackedObject dispatch, set by capture captureTargetOnOverlap and
  *  arm triggerDigReaction, cleared with the block by seedDigObjectBlock; grounded across 7 routines, role
- *  converged (name prefix normalised to the DIG_OBJ family) [code]
+ *  converged (name prefix normalised to the DIG_OBJ family) [seen]
  */
 export const DIG_COLLISION_STATE = 0x80c1;
 
@@ -471,7 +471,7 @@ export const CHAMBER_CREATURE_FRAME = 0x80dc;
 /**
  *  CHAMBER_CREATURE_ATTR (0x80dd) — byte2 attribute (color low bits + priority) of the creature sprite; bumped by
  *  advanceChamberCreature with `and 0xf7` holding priority bit3 clear while cycling color, init 0xc0;
- *  role converged (normalised to ATTR per video.js decode) [code] */
+ *  role converged (normalised to ATTR per video.js decode) [seen] */
 export const CHAMBER_CREATURE_ATTR = 0x80dd;
 /**
  *  CHAMBER_CREATURE_FALL_Y (0x80de) — Y (byte3) of the creature: its OWN accelerating vertical fall
@@ -490,7 +490,7 @@ export const CHAMBER_CREATURE_ANIM_PHASE = 0x80e3;
 /**
  *  PIT_FLOOR_REVEAL_PERIOD (0x80e4) — Level-derived reload period (7..3 via A^=0x07 from 0x8028) for
  *  the Pit sliding-floor reveal gate 0x80e5; written by seedChamberCreature, consumed by revealTerrainColumn/advanceChamberCreature on gate wrap —
- *  both namers converge, derivation confirms. [code]
+ *  both namers converge, derivation confirms. [seen]
  */
 export const PIT_FLOOR_REVEAL_PERIOD = 0x80e4;
 /**
@@ -512,13 +512,13 @@ export const PIT_FLOOR_REVEAL_CURSOR = 0x80e6;
  *  (seedEnemyRecords/stepEnemyMover), copied to sprite record 0x8230 byte 0 by updateEnemy1 — the SAME structural
  *  field as ENEMY2_X (0x80f9), so X by the house convention (offset 0 = X, ENEMY3_X/PLAYER_Y). Under
  *  ROT90 the sprite's hardware-Y byte is the on-screen horizontal, which the codebase calls X.
- *  (The record's Y is the offset-3 byte ENEMY1_Y 0x80eb.) [code]
+ *  (The record's Y is the offset-3 byte ENEMY1_Y 0x80eb.) [seen]
  */
 export const ENEMY1_X = 0x80e8;
 /**
  *  ENEMY1_SPRITE (0x80e9) — Object-1 record byte1: seeded 0x09 by seedEnemyRecords, copied to
  *  sprite byte 0x8231 by updateEnemy1; video.js decodes it as code&0x3f + flipX(0x40) +
- *  flipY(0x80) — sprite code+orientation confirmed. [code]
+ *  flipY(0x80) — sprite code+orientation confirmed. [seen]
  */
 export const ENEMY1_SPRITE = 0x80e9;
 /**
@@ -542,13 +542,13 @@ export const ENEMY1_TARGET_COL = 0x80f8;
 /**
  *  ENEMY2_X (0x80f9) — Base (offset 0) of the second 17-byte object record: staged/emitted as
  *  sprite byte 0 by updateEnemy2, position-tested in stepEnemyMover, seeded 0x00; matches house
- *  convention ENEMY3_X=offset 0 -- A/B agree. [code]
+ *  convention ENEMY3_X=offset 0 -- A/B agree. [seen]
  */
 export const ENEMY2_X = 0x80f9;
 /**
  *  ENEMY2_SPRITE (0x80fa) — Object-2 record offset 1 sprite tile/code byte: seeded 0x09, emitted
  *  verbatim to sprite byte 1 (updateEnemy2), rewritten with the direction/orientation code
- *  (stepEnemyMover/stepMoverUp); matches house convention ENEMY3_TILE=offset 1 -- A/B agree. [code]
+ *  (stepEnemyMover/stepMoverUp); matches house convention ENEMY3_TILE=offset 1 -- A/B agree. [seen]
  */
 export const ENEMY2_SPRITE = 0x80fa;
 /**
@@ -568,7 +568,7 @@ export const ENEMY3_STEP_X = 0x810e;
 /**
  *  ENEMY3_STEP_Y (0x810f) — High byte of the actor step vector: advanceTwoSpriteActor loads it into H and
  *  adds it to ENEMY3_Y (0x810d) each cadence tick; seeded alongside 0x810e. Real reader, A and
- *  B agree, my derivation confirms. [code]
+ *  B agree, my derivation confirms. [seen]
  */
 export const ENEMY3_STEP_Y = 0x810f;
 /**
@@ -617,7 +617,7 @@ export const TREASURE_COLLECTED = 0x8078;
  *  HIGH_SCORE_TABLE (0x8039) — Base/top rank of the descending three-entry high-score table
  *  (5-byte records: 3 initials + 16-bit score at 0x8039/0x803e/0x8043); seeded by initScoreDisplay,
  *  rendered by renderScoreReadouts, ranked-inserted with 0xFF initials placeholders by insertHighScore, blitted
- *  by runHighScoreInitialsEntry. [code]
+ *  by runHighScoreInitialsEntry. [seen]
  */
 export const HIGH_SCORE_TABLE = 0x8039;
 
@@ -643,7 +643,7 @@ export const PLAYER_STEP_X = 0x806d;
 /**
  *  ENEMY_WORK_DIR (0x8092) — Published travel-direction index: stamped 0/1/2/3 by the four
  *  direction presets (stepMoverUp/stepMoverMirrored/stepMoverDown/stepMoverUnmirrored) at 0x34a0, consumed by stepEnemyMover's dec-a/jp-z
- *  direction fan-out at 0x32ce and 0x3345; A and B and my derivation all converge. [code]
+ *  direction fan-out at 0x32ce and 0x3345; A and B and my derivation all converge. [seen]
  */
 export const ENEMY_WORK_DIR = 0x8092;
 
@@ -728,29 +728,29 @@ export const LOOP_COUNTER = 0x800a;
 
 /** CREDIT_COUNT (0x8000) — the credit counter: banked from the coin lines (clamp 9), spent on start;
  *  the corruption-watchdog anchor (serviceVblankNmi cold-boots if the mirrors disagree); rearmMachineAndBranchOnCredits
- *  tests it >0 to show the credit screen. [code] */
+ *  tests it >0 to show the credit screen. [seen] */
 export const CREDIT_COUNT = 0x8000;
-/** CREDIT_MIRROR_A (0x801c) — redundant copy of CREDIT_COUNT, read by the corruption watchdog. [code] */
+/** CREDIT_MIRROR_A (0x801c) — redundant copy of CREDIT_COUNT, read by the corruption watchdog. [seen] */
 export const CREDIT_MIRROR_A = 0x801c;
-/** CREDIT_MIRROR_B (0x812c) — third redundant copy of CREDIT_COUNT, also watchdog-read. [code] */
+/** CREDIT_MIRROR_B (0x812c) — third redundant copy of CREDIT_COUNT, also watchdog-read. [seen] */
 export const CREDIT_MIRROR_B = 0x812c;
 /** COIN_SW_ACCUM (0x8003) — coin switch (IN1 bit0) edge-detect accumulator (0x55/0xaa); a completed
- *  pulse banks a credit. [code] */
+ *  pulse banks a credit. [seen] */
 export const COIN_SW_ACCUM = 0x8003;
 /** START1_SW_ACCUM (0x8004) — 1P-start switch (IN1 bit2) edge accumulator; a completed pulse pays a
- *  credit and starts a 1-player game. [code] */
+ *  credit and starts a 1-player game. [seen] */
 export const START1_SW_ACCUM = 0x8004;
-/** START2_SW_ACCUM (0x8005) — 2P-start switch (IN1 bit1) edge accumulator; starts a 2-player game. [code] */
+/** START2_SW_ACCUM (0x8005) — 2P-start switch (IN1 bit1) edge accumulator; starts a 2-player game. [seen] */
 export const START2_SW_ACCUM = 0x8005;
-/** FRAME_COUNTER_PRESCALER (0x8007) — /60 down-divider; on rollover reloads 60 and ticks PLAY_PHASE_COUNTER. [code] */
+/** FRAME_COUNTER_PRESCALER (0x8007) — /60 down-divider; on rollover reloads 60 and ticks PLAY_PHASE_COUNTER. [seen] */
 export const FRAME_COUNTER_PRESCALER = 0x8007;
 /** MAIN_LOOP_DELAY (0x8011) — per-frame busy-wait length mainLoop burns; seeded = LOOP_DELAY_BASE − LEVEL
- *  (higher level → faster). [code] */
+ *  (higher level → faster). [seen] */
 export const MAIN_LOOP_DELAY = 0x8011;
 /** SOUND_TAIL (0x801f) — sound-command ring READ/dequeue index (mod 8); pairs with SOUND_HEAD/SOUND_RING. [seen] */
 export const SOUND_TAIL = 0x801f;
 /** MEN_LEFT (0x802b) — active player's working men/lives count; drawn by drawMenLeftPanel, docked at a
- *  round boundary, seeded from STARTING_MEN. Field 1 of the player record; P1/P2 backups PLAYER1_MEN_BACKUP/PLAYER2_MEN_BACKUP (0x802c/0x802d). [code] */
+ *  round boundary, seeded from STARTING_MEN. Field 1 of the player record; P1/P2 backups PLAYER1_MEN_BACKUP/PLAYER2_MEN_BACKUP (0x802c/0x802d). [seen] */
 export const MEN_LEFT = 0x802b;
 /** INITIALS_REMAINING (0x804b) — high-score initials-entry down-counter (seeded 3, →0 ends entry). [code] */
 export const INITIALS_REMAINING = 0x804b;
@@ -763,35 +763,35 @@ export const LOOP_DELAY_BASE = 0x804e;
 /** STARTING_MEN (0x8053) — DSW starting lives ((dsw&0x40)?4:3); startGame seeds MEN_LEFT from it. [code] */
 export const STARTING_MEN = 0x8053;
 /** REACTION_OBJ_CODE (0x8095) — sprite/frame-code byte (byte1) of the reaction object's 4-byte record
- *  (ends REACTION_OBJ_X/Y already named). [code] */
+ *  (ends REACTION_OBJ_X/Y already named). [seen] */
 export const REACTION_OBJ_CODE = 0x8095;
 /** REACTION_OBJ_ATTR (0x8096) — attribute/anim byte (byte2) of that reaction record. [seen] */
 export const REACTION_OBJ_ATTR = 0x8096;
-/** ENEMY2_MOVE_PERIOD (0x8107) — OBJ2 mover cadence reload period; structural mirror of ENEMY1_MOVE_PERIOD. [code] */
+/** ENEMY2_MOVE_PERIOD (0x8107) — OBJ2 mover cadence reload period; structural mirror of ENEMY1_MOVE_PERIOD. [seen] */
 export const ENEMY2_MOVE_PERIOD = 0x8107;
 /** ENEMY2_TARGET_COL (0x8109) — OBJ2 mover target column (seed 5 → stepEnemyMover steer path); mirror of ENEMY1_TARGET_COL. [code] */
 export const ENEMY2_TARGET_COL = 0x8109;
-/** ENEMY1_TIMER (0x80f0) — OBJ1 mover cadence/dwell countdown (record offset 8). [code] */
+/** ENEMY1_TIMER (0x80f0) — OBJ1 mover cadence/dwell countdown (record offset 8). [seen] */
 export const ENEMY1_TIMER = 0x80f0;
 /** ENEMY1_STATE (0x80f5) — OBJ1 mover signed state byte stepEnemyMover sign-dispatches on (record offset 13). [code] */
 export const ENEMY1_STATE = 0x80f5;
-/** ENEMY2_TIMER (0x8101) — OBJ2 mover cadence/dwell countdown (mirror of ENEMY1_TIMER). [code] */
+/** ENEMY2_TIMER (0x8101) — OBJ2 mover cadence/dwell countdown (mirror of ENEMY1_TIMER). [seen] */
 export const ENEMY2_TIMER = 0x8101;
-/** ENEMY2_STATE (0x8106) — OBJ2 mover signed state byte (mirror of ENEMY1_STATE). [code] */
+/** ENEMY2_STATE (0x8106) — OBJ2 mover signed state byte (mirror of ENEMY1_STATE). [seen] */
 export const ENEMY2_STATE = 0x8106;
-/** ENEMY_WORK_MOVE_PERIOD (0x8091) — working-block mover cadence reload period (parallels ENEMY1_MOVE_PERIOD). [code] */
+/** ENEMY_WORK_MOVE_PERIOD (0x8091) — working-block mover cadence reload period (parallels ENEMY1_MOVE_PERIOD). [seen] */
 export const ENEMY_WORK_MOVE_PERIOD = 0x8091;
-/** ENEMY_WORK_TARGET_COL (0x8093) — working-block mover target column stepEnemyMover steers toward. [code] */
+/** ENEMY_WORK_TARGET_COL (0x8093) — working-block mover target column stepEnemyMover steers toward. [seen] */
 export const ENEMY_WORK_TARGET_COL = 0x8093;
 /** CARVE_SEAM_LEFT (0x807e) — flag advanceDigCarveObject sets when a dug channel abuts the object's tile column on
  *  one side; stepObjectRowFlipped reads it to defer that step. Axis confirmed screen-HORIZONTAL; the specific
- *  left-vs-right assignment is rotation-ambiguous (which arm is "left" is not pinned). [code] */
+ *  left-vs-right assignment is rotation-ambiguous (which arm is "left" is not pinned). [seen] */
 export const CARVE_SEAM_LEFT = 0x807e;
 /** CARVE_SEAM_RIGHT (0x807f) — mirror seam flag for the opposite move arm (stepObjectRowUnflipped reads it). [code] */
 export const CARVE_SEAM_RIGHT = 0x807f;
-/** LASER_SCAN_PTR (0x809a, 16-bit) — tilemap cell the horizontal terrain-scroll walker samples. [code] */
+/** LASER_SCAN_PTR (0x809a, 16-bit) — tilemap cell the horizontal terrain-scroll walker samples. [seen] */
 export const LASER_SCAN_PTR = 0x809a;
-/** SCROLL_SUBPHASE (0x809e) — sub-tile column phase selecting the ROM stop-tile slice for the scroll. [code] */
+/** SCROLL_SUBPHASE (0x809e) — sub-tile column phase selecting the ROM stop-tile slice for the scroll. [seen] */
 export const SCROLL_SUBPHASE = 0x809e;
 /** DROP_QUEUE (0x80c3) — base of the 24-slot pending-spawn column queue (12 left paired to 12 right). [code] */
 export const DROP_QUEUE = 0x80c3;
@@ -837,7 +837,7 @@ export const PLAYER1_LEVEL_BACKUP = 0x8029;
 export const PLAYER1_MEN_BACKUP = 0x802c;
 /** Player 2's backup copy of the working man count (field 1, offset 3 of P2's record). At the P1
  *  round boundary it is cleared ('the other player's backup man count'); read as a condition
- *  byte by the round-boundary phase sequencer; written by saveActivePlayerRecord. [code] */
+ *  byte by the round-boundary phase sequencer; written by saveActivePlayerRecord. [seen] */
 export const PLAYER2_MEN_BACKUP = 0x802d;
 /** Signed per-frame motion mode of the tracked object/actor: dispatcher branches on its sign; each
  *  stepper then rewrites it with the derived sub-tile phase, so it also carries the walk phase;
@@ -959,8 +959,8 @@ export const ROUTINES = {
   0x13c9: { name: "dispatchObjectFrameByStateTimer", role: "per-frame head of the object/state dispatcher (also the master board-transition gate) — gate on the state-lockout timer, and on its expiry vector to lose-a-life or advance-a-level", cert: "seen" },
   0x13de: { name: "advanceTrackedObject", role: "route the tracked object to its per-frame movement handler by its chain of state gates", cert: "seen" },
   0x1420: { name: "stepObjectFromControl", role: "advance the tracked object one frame from its control input (real joystick in play, demo stream in attract)", cert: "seen" },
-  0x1434: { name: "advanceObjectFrame", role: "pick the tracked object's per-frame update from its mode byte and move command", cert: "code" },
-  0x144c: { name: "routeIdleObjectByMoveCommand", role: "route an at-rest object to its per-frame handler on its move-command bits", cert: "code" },
+  0x1434: { name: "advanceObjectFrame", role: "pick the tracked object's per-frame update from its mode byte and move command", cert: "seen" },
+  0x144c: { name: "routeIdleObjectByMoveCommand", role: "route an at-rest object to its per-frame handler on its move-command bits", cert: "seen" },
   0x1468: { name: "windUpObjectMove", role: "settle the object's animation phase toward its move command, then run its handler", cert: "seen" },
   0x1493: { name: "stepObjectRowFlipped", role: "step the tracked object the flipped way along its move axis — derive its tile row, route on it, firing the dig one-shot at the boundary row", cert: "seen" },
   0x14cd: { name: "locateObjectCellCheckGoal", role: "locate the object's tilemap cell, latch a goal crossing if the goal is just ahead, else resolve the tile under it", cert: "seen" },
@@ -1007,7 +1007,7 @@ export const ROUTINES = {
   0x319d: { name: "stepEnemyMover", role: "per-frame step for one enemy/mover — arrival, laser/player collision, retarget, and steer into a travel-direction preset (the maze-follower AI)", cert: "seen" },
   0x33bc: { name: "tileInProbeRow", role: "is the tile at an enemy's probe cell listed in this phase's probe-table row? (a can-step-this-way gate)", cert: "seen" },
   0x33da: { name: "probeRowBackTilePair", role: "probe two phase-keyed ROM tables for the tile one memory-row back from the enemy's probe cell", cert: "seen" },
-  0x3410: { name: "nextTileInProbeRow", role: "one of four sibling table searches the mover AI uses to decide whether a move in a given direction is allowed", cert: "code" },
+  0x3410: { name: "nextTileInProbeRow", role: "one of four sibling table searches the mover AI uses to decide whether a move in a given direction is allowed", cert: "seen" },
   0x3425: { name: "probeRowAheadTilePair", role: "two-stage table probe — does the tile one memory-row ahead of the enemy's cell (and, conditionally, its neighbour) belong to this phase's table rows?", cert: "seen" },
   0x3458: { name: "tickObjectDwellThenTransition", role: "tick the enemy-catch dwell countdown; blink the sprite while it runs and, on expiry, hand off to lose-a-life (the enemy-contact death)", cert: "seen" },
   0x3476: { name: "stepMoverUp", role: "one fixed-direction preset of the patrol mover — step its position and, on the cadence beat, republish this preset's travel direction", cert: "seen" },
