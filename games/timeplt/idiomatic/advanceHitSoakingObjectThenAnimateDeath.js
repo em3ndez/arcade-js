@@ -13,11 +13,11 @@ import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { postCommand } from "./postCommand.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 
-export function advanceHitSoakingObjectThenAnimateDeath(m) {
+export function advanceHitSoakingObjectThenAnimateDeath(m, ix = m.regs.ix, iy = m.regs.iy, a = m.regs.a) {
   const { regs, mem8 } = m;
-  const record = regs.ix;
-  const entry = regs.iy;
-  const head = u8(regs.a - 1);
+  const record = ix;
+  const entry = iy;
+  const head = u8(a - 1);
 
   if (mem8[HITS_REMAINING] !== 0) {
     mem8[HITS_REMAINING] = mem8[HITS_REMAINING] - 1;

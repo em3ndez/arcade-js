@@ -16,10 +16,8 @@ const SPRITE_ATTR = 0x30;
 const SPRITE_TAIL = 0x31;
 const SHAPE_ATTR = 0x0e;
 
-export function runOneShotAnimatedObjectSlot(m) {
-  const { regs, mem8 } = m;
-  const object = regs.ix;
-  const sprite = regs.iy;
+export function runOneShotAnimatedObjectSlot(m, object = m.regs.ix, sprite = m.regs.iy) {
+  const { mem8 } = m;
 
   if (mem8[object + COUNTER] >= REARM_AT) stampObjectStateByte3bThenRequestSound(m, object);
 

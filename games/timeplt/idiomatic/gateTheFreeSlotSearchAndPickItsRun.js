@@ -11,9 +11,9 @@ const LAUNCH_TICKS = [0x00, 0x30];
 const OWED_RUN = { records: CRAFT_RECORD_SLOT6, entries: CRAFT_ENTRY_SLOT6 };
 const CLEARED_RUN = { records: CRAFT_RECORD_SLOT4, entries: CRAFT_ENTRY_SLOT4, slots: 5 };
 
-export function gateTheFreeSlotSearchAndPickItsRun(m) {
+export function gateTheFreeSlotSearchAndPickItsRun(m, hl = m.regs.hl) {
   const { regs, mem8 } = m;
-  if (!LAUNCH_TICKS.includes(mem8[regs.hl])) return;
+  if (!LAUNCH_TICKS.includes(mem8[hl])) return;
 
   const cleared = mem8[KILLS_REMAINING] === 0;
   const run = cleared ? CLEARED_RUN : OWED_RUN;

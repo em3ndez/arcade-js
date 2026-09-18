@@ -18,10 +18,8 @@ const TURN_PHASE = 15;
 const AIM_HEADING = 1;
 const PHASE_WHEEL = 15;
 
-export function chaseOneAimPointAndRetireAtTheLine(m) {
+export function chaseOneAimPointAndRetireAtTheLine(m, held = m.regs.bc, object = m.regs.ix) {
   const { regs, mem8 } = m;
-  const held = regs.bc;
-  const object = regs.ix;
 
   if ((mem8[FRAME_TICK] & PHASE_WHEEL) === mem8[u16(object + TURN_PHASE)]) {
     mem8[u16(object + AIM_HEADING)] = headingToward(m, ENEMY_STANDOFF_AIM_MAIN);

@@ -16,10 +16,10 @@ const RECORD_STRIDE = 0x10;
 const FIRST_LINE = 0x78;
 const SECOND_LINE = 0x84;
 
-export function launchAttackerIntoFreeSlot(m) {
+export function launchAttackerIntoFreeSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
 
-  if ((mem8[FRAME_TICK] & 7) + PHASE_BIAS !== mem8[regs.ix + 0x0f]) return;
+  if ((mem8[FRAME_TICK] & 7) + PHASE_BIAS !== mem8[ix + 0x0f]) return;
 
   if (mem8[ATTACKER_SPAWN_COOLDOWN] !== 0) {
     mem8[ATTACKER_SPAWN_COOLDOWN] = mem8[ATTACKER_SPAWN_COOLDOWN] - 1;
@@ -44,13 +44,13 @@ export function launchAttackerIntoFreeSlot(m) {
 
   const margin = mem8[ATTACKER_SPAWN_WINDOW_HALF];
   const window = u8(margin + margin);
-  const along = u8(FIRST_LINE - mem8[regs.iy + 0x31] + margin);
+  const along = u8(FIRST_LINE - mem8[iy + 0x31] + margin);
   if (along < window) {
-    const across = u8(SECOND_LINE - mem8[regs.iy + 0x00] + margin);
+    const across = u8(SECOND_LINE - mem8[iy + 0x00] + margin);
     if (across < window) return;
   }
 
-  regs.c = mem8[regs.ix + 0x02];
+  regs.c = mem8[ix + 0x02];
   if (mem8[ERA_INDEX] === 0) return setTheLaunchFacingInsideOneAimWindow(m);
   return commissionStagedAttackerByEra(m);
 }

@@ -13,10 +13,8 @@ const SECOND_AXIS = 49;
 const RECORD_BYTE = 14;
 const RECORD_CODE = 95;
 
-export function retireEntryPairIntoCooldown(m) {
+export function retireEntryPairIntoCooldown(m, record = m.regs.ix, entry = m.regs.iy) {
   const { regs, mem8 } = m;
-  const record = regs.ix;
-  const entry = regs.iy;
   regs.a = 0;
   mem8[record] = 0;
   mem8[entry] = 0;

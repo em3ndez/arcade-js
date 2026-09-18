@@ -15,12 +15,12 @@ import { flyTowardShipStandoffThenEndApproach } from "./flyTowardShipStandoffThe
 
 const COUNTDOWN = 4;
 
-export function stepSlotApproachThenBreakawayRetire(m) {
+export function stepSlotApproachThenBreakawayRetire(m, ix = m.regs.ix, bc = m.regs.bc) {
   const { regs, mem8 } = m;
-  const countdown = u16(regs.ix + COUNTDOWN);
+  const countdown = u16(ix + COUNTDOWN);
 
   if (mem8[countdown] === 0) {
-    const held = regs.bc; // the object work clobbers BC; the sweep count rides in B
+    const held = bc; // the object work clobbers BC; the sweep count rides in B
     loc_58b6(m);
     animateFixedShapeCycleAtHalfRate(m);
     const reached = hasReachedRetireLine(m);

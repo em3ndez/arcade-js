@@ -10,10 +10,10 @@ import { paintSuppressedDigit } from "./paintSuppressedDigit.js";
 
 const HIGH_DIGIT_SHIFT = 4;
 
-export function paintTwoSuppressedDigitsFromByte(m) {
+export function paintTwoSuppressedDigitsFromByte(m, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
-  regs.a = mem8[regs.hl] >> HIGH_DIGIT_SHIFT;
+  regs.a = mem8[hl] >> HIGH_DIGIT_SHIFT;
   paintSuppressedDigit(m);
   advanceCharCursor(m);
 

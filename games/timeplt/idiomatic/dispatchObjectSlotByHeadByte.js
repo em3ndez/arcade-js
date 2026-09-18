@@ -9,8 +9,8 @@ import { runSlotCountdownDriftAndAnimateElseRetire } from "./runSlotCountdownDri
 
 const ALL_ONES = 255;
 
-export function dispatchObjectSlotByHeadByte(m) {
-  const head = m.mem8[m.regs.ix];
+export function dispatchObjectSlotByHeadByte(m, ix = m.regs.ix) {
+  const head = m.mem8[ix];
   if (head === 0) return;
   return head === ALL_ONES
     ? flyAndRetireSlotCyclingShapeInEra4(m)

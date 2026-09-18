@@ -16,9 +16,8 @@ const HIGH_AXIS = 49;
 const LOW_AXIS = 0;
 const DIAGONAL_STEP = -SPRITE_PITCH * 256 + SPRITE_PITCH;
 
-export function placeDiagonallyAbuttingTile(m) {
-  const { mem8, regs } = m;
-  const entry = regs.iy;
+export function placeDiagonallyAbuttingTile(m, entry = m.regs.iy) {
+  const { mem8 } = m;
   const nextEntry = entry + ENTRY_STRIDE;
 
   const moved = u16((mem8[entry + HIGH_AXIS] << 8) + mem8[entry + LOW_AXIS] + DIAGONAL_STEP);

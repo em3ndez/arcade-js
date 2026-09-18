@@ -19,9 +19,9 @@ const ACTIVE = 0xff;
 const HELD = 0xfe;
 const STEER_MASK = 3;
 
-export function serviceEra2EnemyCraftSlot(m) {
+export function serviceEra2EnemyCraftSlot(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
-  const state = mem8[regs.ix];
+  const state = mem8[ix];
   if (state === 0) return;
 
   if (state === ACTIVE) {

@@ -11,11 +11,11 @@ const RECORD_STRIDE = 0x10;
 const ENTRY_STRIDE = 2;
 const BALLISTIC = 0xff;
 
-export function sweepObjectSlotBankByHead(m) {
+export function sweepObjectSlotBankByHead(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b) {
   const { regs, mem8 } = m;
-  let record = regs.ix;
-  let entry = regs.iy;
-  let count = regs.b;
+  let record = ix;
+  let entry = iy;
+  let count = b;
 
   for (;;) {
     // Re-seat the cursor each turn; the services read it off ix/iy and need not hand it back.

@@ -20,10 +20,9 @@ const SHAPES_PER_HALF = 8;
 const SHAPE_IN_ENTRY = 1;
 const BESIDE_IT_IN_ENTRY = 48;
 
-export function dressSpriteForFineHeading(m) {
+export function dressSpriteForFineHeading(m, entry = m.regs.iy, object = m.regs.ix) {
   const { mem8, regs } = m;
-  const entry = regs.iy;
-  const heading = mem8[u16(regs.ix + HEADING)];
+  const heading = mem8[u16(object + HEADING)];
   const sector = Math.floor(u8(heading + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
 
   regs.hl = FINE_HEADING_SHAPE_TABLE;

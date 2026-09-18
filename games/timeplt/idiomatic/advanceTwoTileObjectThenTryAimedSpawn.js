@@ -16,9 +16,8 @@ const TILE_X = 0x00;
 const SECOND_TILE_X = 0x02;
 const TILE_DROP = 0x10;
 
-export function advanceTwoTileObjectThenTryAimedSpawn(m) {
-  const { regs, mem8 } = m;
-  const sprite = regs.iy;
+export function advanceTwoTileObjectThenTryAimedSpawn(m, sprite = m.regs.iy) {
+  const { mem8 } = m;
 
   flyAlongStoredVelocity(m);
   mem8[u16(sprite + SECOND_TILE_Y)] = u8(mem8[u16(sprite + TILE_Y)] + TILE_DROP);

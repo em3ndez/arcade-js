@@ -20,9 +20,9 @@ const RATE_INDEX_RESEATED = 4;
 const withinWindow = (probe) =>
   REFERENCES.some((ref) => u8(ref - probe + HALF_WINDOW) < WINDOW);
 
-export function steerEnemyTowardShip(m) {
+export function steerEnemyTowardShip(m, iy = m.regs.iy) {
   const { mem8 } = m;
-  if (withinWindow(mem8[m.regs.iy + PROBE])) {
+  if (withinWindow(mem8[iy + PROBE])) {
     mem8[ERA_INDEX] = RATE_INDEX_WHILE_TURNING;
     steerTowardAimHeading(m);
     mem8[ERA_INDEX] = RATE_INDEX_RESEATED;

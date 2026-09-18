@@ -7,10 +7,10 @@
 import { u16 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
 
-export function presentChecksumForTamperTest(m) {
+export function presentChecksumForTamperTest(m, hl = m.regs.hl, de = m.regs.de, b = m.regs.b) {
   const { regs } = m;
-  regs.hl = u16(regs.hl + regs.de);
+  regs.hl = u16(hl + de);
   offsetAddress(m);
-  regs.a = regs.b;
+  regs.a = b;
   return regs.a;
 }

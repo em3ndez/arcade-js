@@ -30,7 +30,7 @@ export function petWatchdogThroughStartupDelayThenStartMachine(m, value = m.regs
   }
   regs.bc = 0;
 
-  regs.xor(regs.a);
+  regs.xor(value);
   sendSoundCommand(m);
 
   regs.a = mem.read8(NMI_ENABLE_BYTE);

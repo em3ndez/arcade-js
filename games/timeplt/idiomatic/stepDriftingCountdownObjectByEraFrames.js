@@ -23,9 +23,9 @@ const SPRITE_STATE = 0x30;
 const NEAR_STATE = 0x0d;
 const FAR_STATE = 0x02;
 
-export function stepDriftingCountdownObjectByEraFrames(m) {
+export function stepDriftingCountdownObjectByEraFrames(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
-  const object = regs.ix;
+  const object = ix;
 
   if (mem8[object + COUNT] >= RESET_MARK) stampObjectStateByte3bThenRequestSound(m);
   driftWithWorldScroll(m);
@@ -39,7 +39,7 @@ export function stepDriftingCountdownObjectByEraFrames(m) {
   const far = mem8[ERA_INDEX] >= FINAL_ERA;
   regs.hl = far ? FAR_TABLE : NEAR_TABLE;
   regs.a = frame;
-  const sprite = regs.iy;
+  const sprite = iy;
   mem8[sprite + SPRITE_CODE] = fetchTableByte(m);
   mem8[sprite + SPRITE_STATE] = far ? FAR_STATE : NEAR_STATE;
 }

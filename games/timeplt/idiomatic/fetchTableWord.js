@@ -9,9 +9,9 @@
 import { u8 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
 
-export function fetchTableWord(m) {
+export function fetchTableWord(m, a = m.regs.a) {
   const { regs, mem16 } = m;
-  const entryNumber = regs.a;
+  const entryNumber = a;
   regs.a = u8(entryNumber + entryNumber);
   const entryAddress = offsetAddress(m);
   const word = mem16[entryAddress];

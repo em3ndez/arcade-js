@@ -18,8 +18,8 @@ const IDLE = 0;
 const LIVE = 0xff;
 const HELD = 0xfe;
 
-export function serviceEra3EnemyCraftSlot(m) {
-  const state = m.mem8[m.regs.ix];
+export function serviceEra3EnemyCraftSlot(m, ix = m.regs.ix) {
+  const state = m.mem8[ix];
   if (state === IDLE) return;
   if (state !== LIVE) {
     if (state === HELD) return releaseHeldObject(m);

@@ -15,8 +15,8 @@ const FREE = 0;
 const HELD = 0xfe;
 const LIVE = 0xff;
 
-export function serviceEra4EnemyCraftSlot(m) {
-  const state = m.mem8[m.regs.ix];
+export function serviceEra4EnemyCraftSlot(m, ix = m.regs.ix) {
+  const state = m.mem8[ix];
   if (state === FREE) return;
   if (state === HELD) return releaseHeldObject(m);
   if (state !== LIVE) return stepDyingObjectState(m);

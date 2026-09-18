@@ -17,9 +17,8 @@ const STEPS = 4;
 const COMMAND = 4;
 const PAST_THE_LAST_STEP = 15;
 
-export function postNextParachutistBonus(m) {
+export function postNextParachutistBonus(m, record = m.regs.ix) {
   const { mem8, regs } = m;
-  const record = regs.ix;
 
   mem8[record + COUNTDOWN] = mem8[record + COUNTDOWN] - 1;
   const step = mem8[record + STEP];

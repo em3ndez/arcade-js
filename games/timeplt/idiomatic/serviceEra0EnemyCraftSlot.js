@@ -17,8 +17,8 @@ const EMPTY = 0;
 const HELD = 0xfe;
 const ACTIVE = 0xff;
 
-export function serviceEra0EnemyCraftSlot(m) {
-  const status = m.mem8[m.regs.ix];
+export function serviceEra0EnemyCraftSlot(m, ix = m.regs.ix) {
+  const status = m.mem8[ix];
   if (status === EMPTY) return;
   if (status === HELD) return releaseHeldObject(m);
   if (status !== ACTIVE) return stepDyingObjectState(m);
