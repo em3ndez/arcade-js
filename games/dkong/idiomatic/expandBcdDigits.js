@@ -16,11 +16,9 @@ export function expandBcdDigits(m) {
     const src = mem8[regs.hl];
 
     // Swap the nibbles so the HIGH digit sits where the shared store's mask will find it.
-    regs.a = ((src >> 4) | (src << 4)) & 0xff;
-    storeDigitAndAdvance(m);
+    storeDigitAndAdvance(m, ((src >> 4) | (src << 4)) & 0xff);
 
-    regs.a = mem8[regs.hl];
-    storeDigitAndAdvance(m);
+    storeDigitAndAdvance(m, mem8[regs.hl]);
 
     regs.hl = (regs.hl - 1) & 0xffff;
     regs.b = (regs.b - 1) & 0xff;

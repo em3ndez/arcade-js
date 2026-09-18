@@ -39,8 +39,7 @@ export function scheduleBarrelRelease(m) {
   }
 
   if ((mem8[BARREL_CLAIM_MODE] & 0x02) !== 0) {
-    regs.c = bonus;
-    return loc_2c86(m);
+    return loc_2c86(m, bonus);
   }
 
   // Periodic phase test: match the low 5 bits of FRAME against the difficulty countdown.

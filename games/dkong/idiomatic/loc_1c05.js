@@ -58,8 +58,7 @@ export function loc_1c05(m) {
 
   const framesToTrigger = u8(mem8[MARIO_AIR_FRAMES] - LAND_CHECK_TRIGGER_FRAME);
   if (framesToTrigger !== 0) {
-    regs.a = framesToTrigger;
-    return loc_1c33(m);
+    return loc_1c33(m, framesToTrigger);
   }
 
   // Trigger frame: arm the fall-height test, then run the overlap search once.
@@ -74,6 +73,5 @@ export function loc_1c05(m) {
   mem8[EFFECT_STATE] = 1;
   mem8[ITEM_COLLECTED] = 1;
 
-  regs.a = 1;
-  return loc_1c33(m);
+  return loc_1c33(m, 1);
 }

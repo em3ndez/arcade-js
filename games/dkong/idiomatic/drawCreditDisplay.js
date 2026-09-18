@@ -20,8 +20,7 @@ const DIGIT_ROW_STEP = 0xffe0; // step one tilemap row up between the two digits
 export function drawCreditDisplay(m) {
   const { regs } = m;
 
-  regs.a = CREDIT_STRING_INDEX;
-  drawStringVertical(m);
+  drawStringVertical(m, CREDIT_STRING_INDEX);
 
   // The expander takes source pointer, destination cursor, per-digit stride, source-byte count.
   regs.hl = CREDITS;

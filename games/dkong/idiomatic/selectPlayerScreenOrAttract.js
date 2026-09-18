@@ -30,7 +30,7 @@ function anyRecordEquals(mem8, value) {
 }
 
 export function selectPlayerScreenOrAttract(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   drawCreditDisplay(m);
 
@@ -44,8 +44,7 @@ export function selectPlayerScreenOrAttract(m) {
 
   // Player 1 still up (a record == 1) -> compose player 1's screen with flip key 1.
   if (anyRecordEquals(mem8, 0x01)) {
-    regs.a = 0x01;
-    configureFlipScreenAndComposeScreen(m);
+    configureFlipScreenAndComposeScreen(m, 0x01);
     return;
   }
 

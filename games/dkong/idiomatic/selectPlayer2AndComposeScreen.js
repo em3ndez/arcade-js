@@ -11,11 +11,10 @@ import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX } from "./names.js";
 import { configureFlipScreenAndComposeScreen } from "./configureFlipScreenAndComposeScreen.js";
 
 export function selectPlayer2AndComposeScreen(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[ACTIVE_PLAYER_INDEX] = 0x01;
   mem8[CURRENT_PLAYER] = 0x01;
 
-  regs.a = 0x00;
-  configureFlipScreenAndComposeScreen(m);
+  configureFlipScreenAndComposeScreen(m, 0x00);
 }

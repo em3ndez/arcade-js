@@ -24,7 +24,7 @@ const IN2_WATCHDOG = 0x7d00; // read kicks the watchdog; bit 0 = SERVICE switch
 const DMA_SETUP_BLOCK = 0x0138; // 9-byte i8257 setup block
 
 export function serviceVblankNmi(m, sp = m.regs.sp) {
-  const { regs, mem, mem8 } = m;
+  const { mem, mem8 } = m;
 
   // Acknowledge the NMI (and lock out re-entry until the tail re-enables it).
   mem.write8(NMI_ENABLE, 0);
@@ -44,6 +44,5 @@ export function serviceVblankNmi(m, sp = m.regs.sp) {
   }
 
   // Reserve the 12-byte register-save frame the hardware prologue pushed, then run the tail.
-  regs.sp = (sp - 12) & 0xffff;
-  perFrame(m);
+  perFrame(m, (sp - 12) & 0xffff);
 }

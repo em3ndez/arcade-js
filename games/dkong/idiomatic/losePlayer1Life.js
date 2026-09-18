@@ -62,15 +62,13 @@ export function losePlayer1Life(m) {
   // In a 2-player game the banner starts one column left, with an extra render task ahead of it.
   let bannerTop = BANNER_VRAM_TOP;
   if (mem8[TWO_PLAYER_GAME] !== 0) {
-    regs.de = 0x0302;
-    enqueueTask(m);
+    enqueueTask(m, 0x03, 0x02);
     bannerTop = (BANNER_VRAM_TOP - 1) & 0xffff;
   }
   regs.hl = bannerTop;
   loc_1826(m); // fills 70 tiles from there
 
-  regs.de = 0x0300;
-  enqueueTask(m);
+  enqueueTask(m, 0x03, 0x00);
   mem8[SUBSTATE_TIMER] = GAMEOVER_WAIT;
   mem8[GAME_SUBSTATE] = GAMEOVER_SUBSTATE;
 }
