@@ -1888,14 +1888,14 @@ export const loc_49fa = 0x49fa; // §code: derail into a caption record decoded 
 
 export const ROUTINES = {
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "code" },
-  0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "code" },
+  0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "seen" },
   0x31b4: { name: "reaimAndAnimateEnemyCraftOnPhaseTick", role: "on the 00s and 30s tenths of the packed-decimal life counter 0xad05, service enemy-craft slot (units digit, only slots 0-6 whose record head at 0xa850 reads 0xff): advance that record's shape animation, then unless the state byte at ix+8 is 0x10 re-aim its heading toward a point the state byte indexes out of the aim table at 0xac65 -- state 0x11 aims at the table base, stores heading+0x80 into ix+1 and resets the record to state 0x10, every other state stores the heading straight into ix+1; on every other tenth hand off to layOutEnemyAimPointsFromScrollAngle", cert: "seen" },
-  0x36af: { name: "driveEnemyWaveForLifePhase", role: "enemy-wave substep: while the wave-hold cell 0xacc6 is clear, dispatch by era and life-phase -- era 4 to spawnEnemyWaveIntoFreeSlots, phase 7 to stopFiveSlotAnimations, phase below 7 to gateTheFreeSlotSearchAndPickItsRun, phase 8 to spawnEnemyCraftWhenBandUnderTwo; at phase 9+ with the low life-tick 0xad05 spent, spawn a fresh wave inline across the 0xa850/0xaa1a craft band from a heading-biased shape run, then request a sound once enough of the five slots filled", cert: "code" },
+  0x36af: { name: "driveEnemyWaveForLifePhase", role: "enemy-wave substep: while the wave-hold cell 0xacc6 is clear, dispatch by era and life-phase -- era 4 to spawnEnemyWaveIntoFreeSlots, phase 7 to stopFiveSlotAnimations, phase below 7 to gateTheFreeSlotSearchAndPickItsRun, phase 8 to spawnEnemyCraftWhenBandUnderTwo; at phase 9+ with the low life-tick 0xad05 spent, spawn a fresh wave inline across the 0xa850/0xaa1a craft band from a heading-biased shape run, then request a sound once enough of the five slots filled", cert: "seen" },
   0x40d6: { name: "sweepEra2PlusObjectBank", role: "entry to the per-slot sweep over an object bank: return early below era 2 (ERA_INDEX 0xad04) or when the bank's slot count (0xa8c6) is zero, else seat the record cursor (0xa8c0), the sprite-entry cursor (0xaa28) and the turn count, and run the sweep body at 0x40ea", cert: "code" },
   0x3b5f: { name: "serviceEra1BomberObject", role: "era-1 only: dispatch the single object at record 0xa8c0 by its head byte -- 0 arms its fire timer (armBomberSlotWhenTimerFires), 0xff runs the two-tile move (advanceTwoTileObjectThenTryAimedSpawn), any other value advances a hit-soaking object toward death (advanceHitSoakingObjectThenAnimateDeath); returns untouched outside era 1", cert: "code" },
   0x3fea: { name: "serviceEra0BallisticObjectBank", role: "era-zero-gated top-of-frame entry to the three-slot ballistic-object bank (dispatched as serviceRoundThenResolvePlayerState's substep 7): returns at once unless ERA_INDEX 0xad04 is 0, else seats the cursors (record ix=0xa8c0, sprite iy=0xaa28, count b=3) and routes the first slot by its marker byte -- step an empty slot via advanceSlotThenSweepObjectBankByHead, fly a ballistic (0xFF) slot then step it, else hand any other marker to sweepObjectSlotBankServicingFirstSlot", cert: "code" },
-  0x4e4f: { name: "dispatchCollisionPassByEra", role: "dispatch one round's per-frame collision pass by ERA_INDEX (0xad04): era 4 to dispatchEra4CollisionByFrameParity, era 1 to splitCollisionWorkByFrameParity, every other era split on FRAME_TICK's (0xa980) low bit to dispatchShotSweepByMotherShipArmed (odd) else runAllCollisionSweepsThisFrame (even); reached from the substep-7 dispatcher 0x1199", cert: "code" },
-  0x2927: { name: "serviceEra0EnemyCraftSlot", role: "era-0 per-object update dispatched by index 0 of the rst-0x30 era table at 0x2914: on the object status byte at (ix+0) it leaves an empty slot (0), releases a held object (0xFE), steps a dying one (any other value), or steers/flies/refreshes an active craft (0xFF) and lets it spawn, retiring it the frame it reaches the line", cert: "code" },
+  0x4e4f: { name: "dispatchCollisionPassByEra", role: "dispatch one round's per-frame collision pass by ERA_INDEX (0xad04): era 4 to dispatchEra4CollisionByFrameParity, era 1 to splitCollisionWorkByFrameParity, every other era split on FRAME_TICK's (0xa980) low bit to dispatchShotSweepByMotherShipArmed (odd) else runAllCollisionSweepsThisFrame (even); reached from the substep-7 dispatcher 0x1199", cert: "seen" },
+  0x2927: { name: "serviceEra0EnemyCraftSlot", role: "era-0 per-object update dispatched by index 0 of the rst-0x30 era table at 0x2914: on the object status byte at (ix+0) it leaves an empty slot (0), releases a held object (0xFE), steps a dying one (any other value), or steers/flies/refreshes an active craft (0xFF) and lets it spawn, retiring it the frame it reaches the line", cert: "seen" },
   0x2984: { name: "serviceEra2EnemyCraftSlot", role: "era-2 per-slot object handler (index 2 of the 0x2914 rst-0x30 era table, ERA_INDEX 0xad04 low three bits == 2), dispatched on the slot's state byte (ix+0): 0x00 idle returns; 0xFF active steers toward its aim 3 frames in 4, flies at the slowest speed, retires the slot once it reaches a retire line, else dresses its sprite and runs two gated enemy-launch attempts; 0xFE releases the held object; any other value steps the dying-object state", cert: "code" },
   0x29b0: { name: "serviceEra3EnemyCraftSlot", role: "era-3 per-object-slot step, dispatched on the slot's lifecycle byte at ix+0: idle does nothing; a live slot (0xff) is steered, dressed, then retired at the line or flown on and given a spawn attempt; 0xfe releases a held slot; a lower value is a death-countdown step", cert: "code" },
   0x29d5: { name: "serviceEra4EnemyCraftSlot", role: "era-4 (ERA_INDEX 0xad04=4) per-object slot service, index 4 of the 0x2914 rst-0x30 table: on the slot's lifecycle byte at (ix+0) it returns when free (0), releases when held (0xfe), steps the dying animation for any other value, and when live (0xff) steers the slot toward the ship then either retires it once it reaches a retire line or animates its shape, runs the gated launch attempt, and launches an attacker into a free slot", cert: "code" },
@@ -1908,8 +1908,8 @@ export const ROUTINES = {
   0x3b77: { name: "advanceTwoTileObjectThenTryAimedSpawn", role: "advance a two-tile object one frame: fly it along its stored velocity, then seat its second tile directly under the first (same X, Y+0x10); if hasReachedBoundaryBandSelectedByHeading answers it has reached a boundary retire it, otherwise dress the pair by heading and run the aimed-spawn attempt", cert: "code" },
   0x167b: { name: "advanceSequenceElseStartFreePlayGame", role: "a shared tail of the two-level sequence machine: when the packed-decimal credit count (0xA986) is nonzero, step the outer sequence phase and return; otherwise, only when the free-play flag (0xA9C0) is set and a start-button bit (0xA9AE & 0x18) is held, hide every sprite and start a game charging no credit", cert: "code" },
   0x23e3: { name: "fireAndSweepPlayerShots", role: "fire and sweep the player's shots: on a fire-button rising edge arm and seed one shot into a free slot of the six-slot shot bank at 0xaa80 aimed along PLAYER_HEADING; then advance every live shot by the world scroll, queue its character-cell tiles, and cull any that leaves the field or holds a stale head", cert: "seen" },
-  0x1edf: { name: "dispatchPlayerFrameByState", role: "seat the player record (ix=0xa800) and its paired sprite entry (iy=0xaa10), then branch on the player-state byte 0xa800: return while it is 0, run the tile-animation step (0x2010) while it is any other non-0xff value, and once it is 0xff either fly the attract demo pilot (0x214b when PLAY_ACTIVE 0xad30 is 0), turn the ship toward the read control stick (0x1f01 when the low control nibble is nonzero), or just scroll the world (0x1f42) when the stick is centred", cert: "code" },
-  0x48be: { name: "serviceCoinInputs", role: "one frame of coin-input service: run the two coin-slot debounce/accept handlers and the phase-gated credit drip in turn, then pulse each mechanical coin counter once per coin still owed; dead unless an input edge or a pending debt is present", cert: "code" },
+  0x1edf: { name: "dispatchPlayerFrameByState", role: "seat the player record (ix=0xa800) and its paired sprite entry (iy=0xaa10), then branch on the player-state byte 0xa800: return while it is 0, run the tile-animation step (0x2010) while it is any other non-0xff value, and once it is 0xff either fly the attract demo pilot (0x214b when PLAY_ACTIVE 0xad30 is 0), turn the ship toward the read control stick (0x1f01 when the low control nibble is nonzero), or just scroll the world (0x1f42) when the stick is centred", cert: "seen" },
+  0x48be: { name: "serviceCoinInputs", role: "one frame of coin-input service: run the two coin-slot debounce/accept handlers and the phase-gated credit drip in turn, then pulse each mechanical coin counter once per coin still owed; dead unless an input edge or a pending debt is present", cert: "seen" },
   0x4243: { name: "launchAttackerIntoFreeSlot", role: "on this object's turn of the eight-frame round, once the shared spawn cooldown (0xA8F4) has expired, walk the object-record bank for a free slot, stash its record/entry pointers at 0xA991/0xA993, and if the new object clears the two fixed lines hand the caller's facing (C=IX+0x02) to the era-0 aim launcher (0x429C) or the heading-follows launcher (0x42B7); otherwise tick the cooldown down or leave everything untouched", cert: "seen" },
   0x400b: { name: "advanceSlotThenSweepObjectBankByHead", role: "advance-step entry of the object-bank sweep: stride one slot forward (record +0x10, sprite entry +2) and return when the count runs out; step over an empty slot, fly a ballistic (0xFF) slot a frame and step over it, and hand the first slot bearing any other marker to the servicing sweep for the rest of the bank", cert: "code" },
   0x30a5: { name: "seatEraSceneryRowThenClearAndRunScenery", role: "sum a fixed 16-byte run against a constant as a discarded tamper tripwire, copy eight bytes of the ERA_INDEX-keyed row from the 0x3176 table into the stride-two run at 0xAA31, then tail into the scenery clear+run carrying the era in C and the fill byte 0x28 at era four else 0xCC", cert: "seen" },
@@ -2014,12 +2014,12 @@ export const ROUTINES = {
   0x4d72: {
     name: "drawEmblemStripThenGuardImage",
     role: "ring command 5's handler (word-table slot 5 at 0x0BBC; reached on coin-start, never in attract): while 0xAD30 is nonzero, stamp up to six 2x2 award emblems leftward from 0xA783 via stampTwoByTwoTileBlock, blank the rest of that row down to 0xA623 via paintGlyphOverBlankInColourThenStepCursor, then XOR-verify program bytes 0x0711-0x0810 -- memory only",
-    cert: "code",
+    cert: "seen",
   },
   0x4e63: {
     name: "runAllCollisionSweepsThisFrame",
     role: "run one round's collision-and-destruction pass: sweep the player's shots against targets, then the player against a run of objects, then -- picked by whether the mother-ship is armed -- either the player-vs-slots contact sweep plus the mother-ship mutual-kill box, or a wider player-vs-slots sweep; then a three-target attacker sweep and a final mark of objects touching the player. The object/slot cursor pair threads through DE/IY across the chain, each stage continuing where the last left off",
-    cert: "code",
+    cert: "seen",
   },
   0x4ebc: {
     name: "splitCollisionWorkByFrameParity",
@@ -2029,7 +2029,7 @@ export const ROUTINES = {
   0x5303: {
     name: "advanceSequenceUnlessImageTampered",
     role: "run the image-checksum tamper test and relay by its verdict: present the carried checksum, step the attract sequence on the one genuine value, else spring the tamper trap",
-    cert: "code",
+    cert: "seen",
   },
   0x0167: {
     name: "loc_0167",
@@ -2134,19 +2134,19 @@ export const ROUTINES = {
   0x0008: {
     name: "fetchTableByte",
     role: "step a table pointer on by an index and return the byte it lands on, leaving the pointer at that entry",
-    cert: "code",
+    cert: "seen",
     why: 'most call sites consume the returned byte immediately (ld (iy+n),a, ld (de),a) while only a few read on through the surviving pointer, so the fetch is the product. Siblings 0x0010 and 0x018c already read as "fetch what an index selects", and this is the byte-table member of that family',
   },
   0x0018: {
     name: "offsetAddress",
     role: "move a 16-bit address forward by an unsigned byte offset, echoing the low half of the result back",
-    cert: "code",
+    cert: "seen",
     why: "loc_20af hands it a table base and an index and then does its OWN ld a,(hl), so the caller owns the fetch and this must stop at the arithmetic; fetchTableWord uses it as the first half of a word-table fetch",
   },
   0x0020: {
     name: "advanceCharCursor",
     role: "step the character-cell cursor on to the next cell of the line being drawn",
-    cert: "code",
+    cert: "seen",
     why: "paintTwoUnsuppressedDigitsFromByte draws a two-digit pair as high nibble, step, low nibble, so the step is reading order; MAME's ROT90 (clockwise) maps a decreasing native row to an increasing display column, and every base feeding these drawers lies inside video RAM",
   },
   0x0038: {
@@ -2163,7 +2163,7 @@ export const ROUTINES = {
   0x07e6: {
     name: "stepCopyrightScreenAwaitingStart",
     role: "copyright / insert-coin attract sequence arm (table-dispatched): re-stamp the copyright strip, re-request the flashing copyright line, sample one character cell (0xA61C) into a two-byte record (0xABFE), then read the IN0 mirror -- hand off to the one-player game start when 1-player start (bit 3) is held, return when the credit count at 0xA986 is one, otherwise queue ring command 1/argument 25 and step the sequence sub-step",
-    cert: "code",
+    cert: "seen",
   },
   0x08fa: {
     name: "loc_08fa",
@@ -2427,7 +2427,7 @@ export const ROUTINES = {
   0x290e: {
     name: "dispatchSeatedSlotByEraIndex",
     role: "run the arm the LOW THREE BITS of the ERA INDEX select out of a word table laid down inline just behind this entry; the arm is entered as a transfer with no place parked for it to come back to, so it returns past this entry and nothing here runs after it",
-    cert: "code",
+    cert: "seen",
   },
   0x291e: {
     name: "foldBlockIntoTotal",
@@ -2455,7 +2455,7 @@ export const ROUTINES = {
   0x2c22: {
     name: "moveObjectByStateByteThenRunAppearance",
     role: "move one object for the frame according to its state byte, then run the shared appearance step over that same object: from thirty-two up it counts the state byte down and flies on at the slowest table speed, below thirty-two it only drifts with the world and the state byte is left alone; the appearance step runs on both paths",
-    cert: "code",
+    cert: "seen",
   },
   0x3cc4: {
     name: "hasReachedBoundaryBandSelectedByHeading",
@@ -2475,7 +2475,7 @@ export const ROUTINES = {
   0x3e6c: {
     name: "flyAndRetireSlotCyclingShapeInEra4",
     role: "fly one object a step along the velocity it carries and retire its slot once that step has put it on a retire line; in one era of the game, and only that one, the object is also given the next frame of a fixed shape cycle before it moves, and the retire is last so a shape written this tick may go out in the same breath",
-    cert: "code",
+    cert: "seen",
   },
   0x3e8e: {
     name: "runSlotCountdownDriftAndAnimateElseRetire",
@@ -2507,7 +2507,7 @@ export const ROUTINES = {
   0x56d2: {
     name: "requestRoundIntroSoundBurst",
     role: "ask for three sounds whose codes come from bytes of the program image, all three refused unless a game is being played, then leave through the two-request tail whose permission is looser -- so a state that drops the three can still admit the pair",
-    cert: "code",
+    cert: "seen",
   },
   0x58aa: {
     name: "loc_58aa",
@@ -2532,17 +2532,17 @@ export const ROUTINES = {
   0x59cb: {
     name: "loc_59cb",
     role: "hand back the doubled component pair a heading handed straight in calls for, at the pace a second fixed table of samples sets; choosing that table is all this entry does",
-    cert: "code",
+    cert: "seen",
   },
   0x59d1: {
     name: "loc_59d1",
     role: "hand back the doubled component pair a heading handed straight in calls for, at the pace a third fixed table of samples sets; choosing that table is all this entry does",
-    cert: "code",
+    cert: "seen",
   },
   0x2b83: {
     name: "hasReachedRetireLine",
     role: "answer whether an actor has drifted onto either of two fixed retire lines, within a narrow wrapped window, which is what makes its caller free the slot",
-    cert: "code",
+    cert: "seen",
     why: "resetPlayfieldAndArmNewRound pins the player's own sprite entry at (0x84, 0x78) and loc_20af never rewrites those two bytes, so the two lines at 0x04 and 0xF8 are each exactly +0x80 -- the antipode in a coordinate that wraps at 256; the callers that act on the carry use it to free the slot, though at least one path discards it",
   },
   0x2d62: {
@@ -2656,13 +2656,13 @@ export const ROUTINES = {
   0x0010: {
     name: "fetchTableWord",
     role: "fetch the two-byte entry an index selects from a word table and hand back both the word and the address past it",
-    cert: "code",
+    cert: "seen",
     why: "batch 1 named 0x0008 fetchTableByte and 0x0018 offsetAddress, and this routine calls 0x0018 and then reads a word -- it is the word member of that family by construction; it is reached by a one-byte restart where the wide-index sibling needs a three-byte call, which is what makes it the default form",
   },
   0x0028: {
     name: "retreatCharCursor",
     role: "step the character-cell cursor one cell back along the line being drawn, the inverse of the advance vector",
-    cert: "code",
+    cert: "seen",
     why: "loc_0eeb calls it on a blanked digit and returns so the caller's following advanceCharCursor nets to zero -- a suppressed digit consuming no cell is only coherent if the two are exact inverses on the same axis; MAME's ROT90 maps an increasing native row to a decreasing display column, which is the direction retreat names",
   },
   0x00a8: {
@@ -2686,7 +2686,7 @@ export const ROUTINES = {
   0x018c: {
     name: "fetchWideTableWord",
     role: "fetch the word an index selects from a word table, with the index doubling carrying into the high byte so the table may run past the reach of its narrow sibling",
-    cert: "code",
+    cert: "seen",
     why: "the only thing separating it from fetchTableWord is that the index doubling carries into the high byte, so this is the form a table wider than 128 entries needs -- a distinction no call site currently exercises, which is exactly why the name must carry it rather than the call sites",
   },
   0x0b06: {
@@ -2814,7 +2814,7 @@ export const ROUTINES = {
   0x51de: {
     name: "postChainedHitScore",
     role: "post a scoring command to the ring, stepping the award up while consecutive hits keep landing inside the chain window and wrapping back round after the eighth",
-    cert: "code",
+    cert: "seen",
     why: "expireHitChain, an entry in the round engine's service block, ticks the chain window down and clears the step cell when it expires -- without that outside reset the argument would not restart, so the chaining is fixed by a routine other than this one; and it posts through postCommand, which drops the pair on a full ring, so it posts rather than awards",
   },
   0x565f: {
@@ -2855,12 +2855,12 @@ export const ROUTINES = {
   0x56e4: {
     name: "requestInterRoundSoundPair",
     role: "read the byte at 0x27CB and request it as a sound code, then do the same with the byte at 0x33A0; each request goes through the door at 0x5617, which admits it while a game is being played or while the cell at 0xA9C6 is set. It is reached two ways -- as a call from advanceScriptedCharPlaneBandTo4, in the arm that steps that routine's script pointer on, and by falling out of the bottom of requestRoundIntroSoundBurst, which has just asked for three other codes through the play-only door at 0x560C -- and it is the same two-load, two-request shape as requestTwoSounds at 0x5683 with a different pair of program bytes",
-    cert: "code",
+    cert: "seen",
   },
   0x57f1: {
     name: "requestCoinSound",
     role: "read the byte at 0x322E and request it as a sound code, with no permission test",
-    cert: "code",
+    cert: "seen",
   },
   0x57f7: {
     name: "requestCurrentEraSound",
@@ -2905,7 +2905,7 @@ export const ROUTINES = {
   0x5840: {
     name: "flyAtSlowestSpeed",
     role: "fly one object a single step at the slowest of the velocity-table speeds, choosing that table for the flier and deciding nothing else; reached as a call from two per-slot actor handlers and as a tail jump from a third",
-    cert: "code",
+    cert: "seen",
     why: "every entry into flyAlongHeading is a two-instruction shim fixing one of several velocity tables whose peak magnitudes step evenly in 8.8 fixed point, so what an entry contributes is a rung on that ladder and not the act of fixing a table. Those tables are one waveform scaled -- each is the 256-peak table times its own peak to within two units of the last place, with identical off-symmetry headings -- so magnitude is the only degree of freedom a shim has, which is what makes a speed the right kind of thing to name it for. The ladder's ORDER is fixed from outside the flier: the routine that arms the player reads the era index and climbs the same tables as it rises, and an enemy shim selects the table that routine reaches at the top -- an enemy flying the player's own rung, which is what gameplay.md describes when it records the fourth era's jets as as fast and manoeuvrable as you. This entry's table sits below the slowest the player is ever given. A MAME run saw every dispatch here predicted exclusively by that table, while a sibling shim ran on the SAME slot array with a faster one, so an entry selects a speed and not an object class. cert stays code because 'slowest' is a rank over ROM tables and must stay one: two rungs of this ladder are selected only by shims whose addresses appear nowhere in the image, so no capture can ever watch the whole rank. A run reaching the later eras would put every REACHABLE rung under observation, and the name survives that ordering too",
   },
   0x5860: {
@@ -2926,7 +2926,7 @@ export const ROUTINES = {
   0x596e: {
     name: "velocityForHeading",
     role: "look up the velocity vector for a heading: two perpendicular components a quarter turn apart, read from the table the caller supplies",
-    cert: "code",
+    cert: "seen",
     why: "negateVelocityIntoWorldScrollThenDressSprite negates the pair this returns into the very cells driftWithWorldScroll adds to every world-static object -- negated player velocity applied to everything else is the camera, which gameplay.md records independently; the selectable tables hold a near-constant magnitude around the heading circle, not an exact one, with anomalous words widening the spread",
   },
   0x0bff: {
@@ -2962,7 +2962,7 @@ export const ROUTINES = {
   0x1ed1: {
     name: "readPlayerControls",
     role: "hand back the control word of whichever cabinet panel currently faces the picture",
-    cert: "code",
+    cert: "seen",
     why: "the flag it selects on is the byte the vblank service latches into the LS259 bit MAME reports as flip-screen, and the two cells it chooses between are the frame mirrors of the driver's mono panel and its cocktail twin -- so which panel faces the picture is fixed by hardware outside this routine. Its callers then split the returned word three different ways (the stick nibble, the fire bit edge-detected into a burst, and, in initials entry, individual bits each shifted into their own one-bit edge history), which is what makes the whole word the product rather than any one field",
   },
   0x2a3c: {
@@ -2980,7 +2980,7 @@ export const ROUTINES = {
   0x2a57: {
     name: "spriteForHeading",
     role: "pick the sprite shape, and the byte beside it, that show an object pointing the way it is heading, alternating between two shape banks as a frame counter's bit turns over",
-    cert: "code",
+    cert: "seen",
     why: "its callers store the two returned bytes into a sprite entry's tile-code and control slots and nothing else, so the pair is a sprite and not a state code; the attribute table's colour field is identical in every entry while only its two flip bits vary, so that byte is a flip attribute rather than a per-sector palette pick, and it is the MIRRORING those bits give that lets a handful of shapes cover the whole circle. Two object classes use it, so it is not the player's",
   },
   0x2e31: {
@@ -3033,7 +3033,7 @@ export const ROUTINES = {
   0x0b46: {
     name: "enqueueFixedCommandOnRing",
     role: "queue one fixed command, with its one fixed argument, in the command ring -- both bytes are chosen here and whatever the caller held is discarded; the pair is dropped when the slot the write cursor names has not been consumed, and this entry never learns that",
-    cert: "code",
+    cert: "seen",
   },
   0x0b93: {
     name: "runCommandRingDrainLoop",
@@ -3043,7 +3043,7 @@ export const ROUTINES = {
   0x0c0f: {
     name: "drawCaptionInPenColour",
     role: "paint the caption a caller's index selects, taking the glyph run from a record in the table at 0x0C50 and colouring every cell from the low nibble of the shared colour cell instead of from the record's own colour byte",
-    cert: "code",
+    cert: "seen",
     why: "which byte the colour comes from is the only thing separating this entry from its siblings, and a sibling settles it the other way: loc_0bf2 walks the same table and the same record layout and loads the colour FROM the record's third byte -- the byte this routine steps over -- so that byte is the record's own colour and skipping it is the whole of what this entry contributes; loc_0c23 is the same skip with a fixed offset added. mechanisms.md reaches the same split from a colour-cell write tap, recording that four handlers draw from one record table, one taking the record's colour and the others deriving it from a single cell",
   },
   0x0c23: {
@@ -3187,7 +3187,7 @@ export const ROUTINES = {
   0x59a0: {
     name: "doubledVelocityForHeading",
     role: "turn a heading handed straight in into the velocity pair the caller's table gives for it, doubled; the doubling wraps at sixteen bits and nothing is written",
-    cert: "code",
+    cert: "seen",
     why: "'doubled' distinguishes this body from velocityForHeading, and its consumers show the doubling is the product rather than an artefact: the three shims that fix a table tail-jump here, and their callers bank the pair straight into an object record's +0x0A..+0x0D, which flyAlongStoredVelocity then integrates every frame. 'ForHeading' rather than 'ForObject' is the other half -- loc_599d enters this same body after reading the heading off an object, so taking it as a value is exactly what this entry contributes",
   },
   0x08ae: {
@@ -3294,7 +3294,7 @@ export const ROUTINES = {
   0x5683: {
     name: "requestTwoSounds",
     role: "request two sounds in a row, each code fetched from its own byte of the program image, both admitted by the shared play-or-demo permission",
-    cert: "code",
+    cert: "seen",
     why: "'sounds' is a claim about where the codes end up, and it is settled outside this routine by the rest of the path: the drain at 0x55d4 takes the queue's head, hands it to 0x55f8, which writes it to 0xC000 -- the sound-data latch in the driver's memory map -- and pulses the LS259 bit MAME wires to the second Z80's IRQ trigger. So the bytes reach another processor as commands rather than sitting in RAM. Neither code is baked in: each is read from a program byte, and the two bytes are far apart, so this is a chosen pair and not a run walked through",
   },
   0x5628: {
@@ -3305,12 +3305,12 @@ export const ROUTINES = {
   0x5617: {
     name: "enqueueSoundIfGameOrAttract",
     role: "queue a sound code when either the play flag or the cell at 0xA9C6 is set; only with both clear is the request dropped",
-    cert: "code",
+    cert: "seen",
   },
   0x560c: {
     name: "enqueueSoundIfGameInProgress",
     role: "queue a sound code, but only while a game is being played; with the play flag clear the request is dropped and nothing is left behind for a later frame",
-    cert: "code",
+    cert: "seen",
   },
   0x0b4c: {
     name: "sumByteRunAndCompareToExpected",
@@ -3576,7 +3576,7 @@ export const ROUTINES = {
   0x2d3f: {
     name: "showCreditLine",
     role: "one sequence step that puts the credit line up: while FREE_PLAY is set it does nothing but move the sequence's inner index on; otherwise it repaints the panel field from the packed-decimal credit count at 0xA986, queues caption record 8 -- whose glyph run reads CREDIT -- and then reads a guard byte that decides everything after. Anything but zero transfers to 0x2E3E, which carries no routine, so that transfer RAISES rather than running; zero stamps the copyright strip into the display list, asks for its line in this frame's colour, and folds the twenty-byte run at 0x086B into a total for the chain that judges it. What writes the guard byte is not established here",
-    cert: "code",
+    cert: "seen",
     why: "'credit' is fixed twice over from outside this body. The caption: record 8 of the table at 0x0C50 holds the glyph run 0x77 0xD7 0x34 0x87 0xFD 0xDC, which the tile ROM draws as C R E D I T. The count: the cell it repaints through paintCreditCountPanel is 0xA986, the same packed-decimal byte startOnePlayerGame takes one off at the one-player start and startTwoPlayerGame takes two off at the two-player one -- and startGameOnFreePlay's entry already records that free play charges nothing, which is exactly the arm this entry paints nothing on. The derail target is checkable rather than merely absent: 0x2E3E is the amplitude-306 sample table scrollWorldAtTheEraPace hands to velocityForHeading for the middle eras, so the tamper arm enters a sine table as code",
   },
   0x3215: {
@@ -3642,7 +3642,7 @@ export const ROUTINES = {
   0x0000: {
     name: "trampolineToSeatTheStackAndSettleTheControlLatch",
     role: "a bare transfer to 0x07B1 and no return; no cell is read or written and no register moves",
-    cert: "code",
+    cert: "seen",
     why: "named by its transfer target under the trampolineTo convention: the three bytes `c3 b1 07` are a bare `jp 0x07B1` whose entire content is the jump to seatTheStackAndSettleTheControlLatch, so the name states exactly what the bytes do. This supersedes the earlier keep-hex note, which rejected a RESET-flavoured name -- rightly, since reset is a property of the Z80 and the board wiring, not of these three bytes -- but never considered naming by the transfer target, which claims nothing beyond the jump. Its twin at 0x4BD9 (`c3 ae 08`) takes the parallel trampolineToSelectFoldBlock; the two transfer to different routines, so naming both asserts no false distinction",
   },
   0x00d8: {
@@ -3666,7 +3666,7 @@ export const ROUTINES = {
   0x07ad: {
     name: "parkTheImageTotalForTheTamperVerdict",
     role: "park the eight-bit total the image fold arrives with into B, where the helper the verdict arm calls hands it back to A after its own address arithmetic has clobbered A; then hand on by jump, so the verdict's own exits carry this entry too. Nothing is read or written and no flag moves",
-    cert: "code",
+    cert: "seen",
     why: "the two-instruction shape argues for hex and the CHAIN overrules it, because three of its four links are already named: sumImageBlockForTheTamperCheck (0x43E8) -> this entry -> 0x5303 -> presentChecksumForTamperTest (0x200C). 0x43E8 is `xor a / add a,(hl) / inc hl / djnz / jp 0x07ad`, equally generic in HL and B, and the house named it off that same chain; 0x200C is `add hl,de / rst 0x18 / ld a,b / ret`, MORE register-generic than `ld b,a / jp`, and the house named it at cert seen. So leaving this link hex is itself a claim -- that its role is undecidable -- and its two named neighbours' own entries contradict it. The register move has a derivable purpose rather than a generic one: 0x5303's `call 0x200c` runs `add hl,de` and `rst 0x18`, both of which clobber A, and 0x200C's last act `ld a,b` hands the total back for the `cp 0x67` at 0x5306. The loc_598e / loc_5994 precedent does NOT govern: those are kept hex because they are one of six interchangeable siblings and nothing reachable from a shim decides what their pace means, where this entry has no siblings and the chain either side of it decides its meaning. A scan of the whole 24 KB for the little-endian word 0x07AD, at every alignment, finds two occurrences -- the operand of the `jp 0x07ad` at 0x43ED, and an accidental pair at 0x1A9C straddling the operand of `ld a,(0xad04)` and the `rlca` after it. Operand scan only, with no write or dispatch tap, so no exclusivity is claimed",
   },
   0x07b1: {
@@ -3720,7 +3720,7 @@ export const ROUTINES = {
   0x3847: {
     name: "closeOneTurnOfTheFreeSlotSearch",
     role: "close one turn of the search for a free object slot and decide whether there is another: step the record cursor back one whole sixteen-byte record and the sprite-entry cursor back one two-byte entry, so the search walks its bank downward, strike one off the turn count, and while any remain transfer back to the body that tries one slot; when the last is struck off the search ends having filled nothing and this entry simply returns. The wide scratch pair the backward step is built from is left standing on the way out",
-    cert: "code",
+    cert: "seen",
     why: "it is `dec b` followed by `jp nz` and not `djnz`, so the flags the jump reads are the decrement's -- which is the difference from closeOneTurnOfTheSlotSweep, whose otherwise twin body ends in a real `djnz`. A scan of the whole 24 KB for the little-endian word 0x3847, at every alignment, finds one occurrence, the operand of the `jp nz,0x3847` at 0x37DA, which is the body's SLOT-IS-OCCUPIED arm: every turn closed here is a turn that found the slot taken, and that is what makes 'search' the right noun and 'sweep' the wrong one. ★ Why this is not kept hex alongside loc_3793, on loc_10f8's own two criteria: the reference is ABSOLUTE -- the address appears as a word behind a jump opcode, the exact thing loc_10f8 recorded as absent for itself -- and it has a job of its own, a complete loop-closing act, where advanceToNextSlot is already registered for almost this body minus the loop. It is the shared tail of a different routine, not a stretch of one",
   },
   0x410b: {
@@ -3732,7 +3732,7 @@ export const ROUTINES = {
   0x429c: {
     name: "setTheLaunchFacingInsideOneAimWindow",
     role: "the last gate in front of a launch, and the one thing the launcher is told: on one of the two coordinates the sprite entry carries, the firing object must lie inside a window centred on a fixed line whose half-width is READ FROM 0xA8E6 rather than baked in, and outside it this entry ends and nothing is launched; inside it the OTHER coordinate is compared against a second fixed line, and which side it falls on is handed to the launcher at 0x42B7 in the narrow scratch byte as a plain zero or one, which that routine turns into a mirroring of the NEW object's sprite rather than of the firing one's. ★ 0xA8E6 is one of the two aim windows applyEraRungSettings scatters, which is why the name says 'one' and not 'the'; the cell also has a NON-WINDOW reader at 0x43AE (`ld a,(0xa8e6) / ld (ix+0x04),a`, seeding a record countdown), and mechanisms.md marks what each of those twelve scattered cells governs as not fully settled",
-    cert: "code",
+    cert: "seen",
     why: "the window is not a plain 'within the half-width', which is why the role claims a centre and no width: the cell is doubled and the coordinate re-centred in a BYTE, so half-widths of 0x00 and 0x80 both shut the window over every coordinate and anything above 0x80 reopens it narrower and off centre. That 0xA8E6 is a window at all is checked by the idiom rather than by a count of cells: the shape `ld a,(cell) / ld d|b,a / add a,a / ld c|e,a / ld a,LINE / sub (iy+off) / add a,d|b / cp c|e` occurs at four sites -- 0x3D47 and 0x4278 on 0xA8D6, 0x3F9E and this entry on 0xA8E6 -- so exactly two cells serve as half-widths, matching the 'two aim windows' applyEraRungSettings's registered role already names, and the indefinite article is right. The mirroring was followed rather than assumed: 0x42B7 copies the firing object's coordinates into the free slot the pointers at 0xA991 / 0xA993 name and stores the handed byte at the new record's +0x01, and the first-era arm at 0x42EC does `ld a,c / rrca / sra a / and 0xc0 / add a,0x0b`, giving attribute 0x0B for zero and 0xCB for one -- the two flip bits, and nothing else, differing. ★ The player is kept out of the name deliberately, following hasReachedRetireLine, whose role says 'two fixed retire lines' and leaves the derivation to its why: 0x84 and 0x78 are immediates here, and that they are the player's own pinned sprite-entry pair is a fact about the caller and not about these bytes. One static inbound, `jp z,0x429c` at 0x4296, taken when ERA_INDEX reads zero, with the other arm of that same test reaching 0x42B7 carrying the object's own heading -- so what this entry is, is the first era's substitution of an alignment-and-side facing for a heading-follows one",
   },
 };
