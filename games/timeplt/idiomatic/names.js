@@ -1900,7 +1900,7 @@ export const ROUTINES = {
   0x29b0: { name: "serviceEra3EnemyCraftSlot", role: "era-3 per-object-slot step, dispatched on the slot's lifecycle byte at ix+0: idle does nothing; a live slot (0xff) is steered, dressed, then retired at the line or flown on and given a spawn attempt; 0xfe releases a held slot; a lower value is a death-countdown step", cert: "seen" },
   0x29d5: { name: "serviceEra4EnemyCraftSlot", role: "era-4 (ERA_INDEX 0xad04=4) per-object slot service, index 4 of the 0x2914 rst-0x30 table: on the slot's lifecycle byte at (ix+0) it returns when free (0), releases when held (0xfe), steps the dying animation for any other value, and when live (0xff) steers the slot toward the ship then either retires it once it reaches a retire line or animates its shape, runs the gated launch attempt, and launches an attacker into a free slot", cert: "seen" },
   0x0069: { name: "clearWorkRamAndSpriteBanksThenColdInit", role: "cold-start clear reached once at boot via 0x07B1: kicks the watchdog four times, zeroes the 0xB410 sprite-bank run and the whole 2 KB work RAM, sums the fixed 256-byte program run at 0x00D8 and runs the frame service out of band on a non-genuine total, then hands off to the screen-RAM clear and image verify", cert: "seen" },
-  0x210e: { name: "seedDemoAutopilotScript", role: "seeds the attract-demo autopilot: picks a heading-command script by the demo selector (0xad14), writes its dwell counter to 0xadf2 and little-endian pointer to 0xadf3/4, then on a failed tile-image tamper readback (0xadfb/0xadfc) tail-jumps into the trap", cert: "code" },
+  0x210e: { name: "seedDemoAutopilotScript", role: "seeds the attract-demo autopilot: picks a heading-command script by the demo selector (0xad14), writes its dwell counter to 0xadf2 and little-endian pointer to 0xadf3/4, then on a failed tile-image tamper readback (0xadfb/0xadfc) tail-jumps into the trap", cert: "seen" },
   0x5866: { name: "clearScreenRamAndVerifyImageThenColdInit", role: "cold-start clear then ROM tamper check: fill colour RAM 0xA000-0xA3FF with 0x10 and video RAM 0xA400-0xA7FF with 0xf1 (bases from ROM pointers at 0x2581/0x4A37), sum the whole program ROM 0x0000-0x5FFF and test the total against 0xAF, kicking the watchdog after the first fill and once per summed byte; a genuine image tail-calls cold-start init, a tampered one derails into data at 0x59D7", cert: "seen" },
   0x4bdc: { name: "paintFiveLabelledNumericReadouts", role: "paint five labelled numeric readouts up the tile plane: seat each of five source records (0xab08, stride 8), its tile-plane cursor cell (0xa711, stride 2) and its pen colour, then hand to the column painter paintLabelledNumericReadoutColumn; writes tile/colour cells 0xa0f1-0xa719", cert: "code" },
   0x19f0: { name: "resetPlayfieldAndArmNewRound", role: "reset the whole playfield for a new round: clear scroll/control cells, seat the ship sprite + shot slots, retire every object slot (hold/shared-cooldown/cooldown/sub-pixel variants), clear four sprite entries, seat the era scenery band via seatEraSceneryRowThenClearAndRunScenery, then scatter one era-selected 10-byte record from the 0x1B04 word table into the cells that arm the round", cert: "seen" },
@@ -1914,8 +1914,8 @@ export const ROUTINES = {
   0x400b: { name: "advanceSlotThenSweepObjectBankByHead", role: "advance-step entry of the object-bank sweep: stride one slot forward (record +0x10, sprite entry +2) and return when the count runs out; step over an empty slot, fly a ballistic (0xFF) slot a frame and step over it, and hand the first slot bearing any other marker to the servicing sweep for the rest of the bank", cert: "seen" },
   0x30a5: { name: "seatEraSceneryRowThenClearAndRunScenery", role: "sum a fixed 16-byte run against a constant as a discarded tamper tripwire, copy eight bytes of the ERA_INDEX-keyed row from the 0x3176 table into the stride-two run at 0xAA31, then tail into the scenery clear+run carrying the era in C and the fill byte 0x28 at era four else 0xCC", cert: "seen" },
   0x48e7: { name: "awardOneCreditOnDebouncedInputEdge", role: "per-frame debounce of IN0 bit 2 (port mirror 0xA9AE): rotate that bit into the bottom of the rolling history at 0xA983 (rl (hl)), fire only on a clean leading edge — the low three history bits reading 001 (idle, idle, pressed) — else return; on the edge request a sound (0x57F1) and award exactly one credit outright (C=1 into awardCoinCreditThenPulseCoinCounter, which folds it into the BCD credit count at 0xA986 and pulses the coin counter), a flat-credit path distinct from the coinage-metered coin-1 handler at 0x4941", cert: "seen" },
-  0x188a: { name: "stepTwoCreditCopyrightScreenAwaitingStart", role: "the two-credit copyright screen's await-start step: stamp the fixed copyright caption strip and flash its line, then dispatch on the two start-button bits of IN0_MIRROR (0xA9AE) -- bit 4 tail-calls the two-player start, bit 3 the one-player start (bit 4 wins when both are held), and with neither held it returns so the screen shows again", cert: "code" },
-  0x4c1f: { name: "paintLabelledNumericReadoutColumn", role: "paint a labelled numeric readout as one upward tile-plane column: a table-indexed three-tile pictogram (source lead byte x3 into 0x4cb4), a six-digit field, then a three-tile suffix, each cell paired into the colour plane with the caller's pen colour", cert: "code" },
+  0x188a: { name: "stepTwoCreditCopyrightScreenAwaitingStart", role: "the two-credit copyright screen's await-start step: stamp the fixed copyright caption strip and flash its line, then dispatch on the two start-button bits of IN0_MIRROR (0xA9AE) -- bit 4 tail-calls the two-player start, bit 3 the one-player start (bit 4 wins when both are held), and with neither held it returns so the screen shows again", cert: "seen" },
+  0x4c1f: { name: "paintLabelledNumericReadoutColumn", role: "paint a labelled numeric readout as one upward tile-plane column: a table-indexed three-tile pictogram (source lead byte x3 into 0x4cb4), a six-digit field, then a three-tile suffix, each cell paired into the colour plane with the caller's pen colour", cert: "seen" },
   0x4911: { name: "meterCoinageTowardCreditOnEdge", role: "phase-gated credit drip: rotate a selector bit (from 0xA9AE) into the phase cell 0xA9CA and act only when its low 3 bits read 1 -- request a sound, bump the counter at 0xA982, step the low byte at 0xA9CB up by 0x10; once the high byte at 0xA9CC still trails the raised low byte, pull the low byte back by (high&0xF0)+0x10 and tail into awardCoinCreditThenPulseCoinCounter with C = the high byte", cert: "seen" },
   0x379f: { name: "spawnEnemyCraftWhenBandUnderTwo", role: "gate a spawn tick on the packed-decimal phase byte the caller points at (return unless it is 0x00 or 0x30), count the busy heads across the seven-record enemy-craft band at 0xa850, and while fewer than two are busy run the free-slot search -- the cleared run via loc_3793 when the owed-kills cell 0xad02 is zero, else the owed run (b from the round's craft count 0xacc1, seated at 0xa8b0/0xaa26) via spawnEnemyIntoFreeSlotElseStepSearch; stages nothing when the gate is shut or two heads are busy", cert: "seen" },
   0x4f2a: { name: "dispatchEra4CollisionByFrameParity", role: "era-4 (ERA_INDEX 0xad04=4) per-frame collision dispatch split by frame parity (FRAME_TICK 0xa980), reached only as dispatchCollisionPassByEra's era-4 tail: even frames run the whole player-vs-object collision-and-destruction pass; odd frames stage one shot-vs-target sweep over the object-slot run at 0xa810/0xaa12 (six shots, box l=7/h=0x0f), restaging the shared body's two reload cursors 0xa991/0xa993 first -- while MOTHER_SHIP_ARMED (0xad0d) is set the run is nine long and a mother-ship mutual-kill pass (0x4fe0) follows, while clear the run is eleven long and none does", cert: "seen" },
@@ -1923,7 +1923,7 @@ export const ROUTINES = {
   0x4941: { name: "tallyCoinSlot1AndAwardCredit", role: "one frame of coin slot 1 accounting: clock the raw coin line into a debounce shift register and, on a clean rising edge, count the coin -- blip the coin sound, bump the tally, add a unit to the coins-inserted accumulator; once it passes the coinage threshold (coins-per-credit high nibble, credits awarded low) carry the overshoot forward and, unless the no-credit flag is set, add the low nibble to the packed-decimal credit count (saturated at 99) and repaint its panel; either overshoot path then pulses the mechanical coin counter", cert: "seen" },
   0x4a0f: { name: "paintSelfTestScreenPhaseThenStepSequence", role: "lay out one phase of the sequenced intro/self-test screen: stock an 8-byte control block at 0xA9F0 (ROM shape byte 0x3213, fixed fields, parked ROM pointer 0x56F1), write a fixed attribute run at 0xA400, colour three colour-plane rows and a small block by adding the base colour at 0xAD0C to fixed offsets, seed the active player's saved pen from its era, then tail-step the sequence sub-step; unreached by either tape", cert: "code" },
   0x27b1: { name: "armRoundStartThenStepSequence", role: "round-start sequence arm: seat two player-object records (0xAD0C-0xAD2E) and position seeds (0xAC64=0x78,0xAC65=0x84), request a sound and load the difficulty record, then split on PLAY_ACTIVE(0xAD30) -- mid-game it queues command de=0x0400 and folds a +1 XOR checksum of 256 program bytes at 0x1550 into control latch 0xC308 (0xA9EB=0x96); on a fresh round it cycles the 1..3 stage counter at 0xA9D0, reseeds the random register, clears 0xAA80-0xAADF and 0xA800-0xA97F, SUB-checksums 256 bytes at 0x3310 into 0xA9AB (xor 0x90) and paints star field 0xAC74-0xAC83 with 0x80 (0xA9EB=0x5A); both arms tail-advance the sequence sub-step", cert: "seen" },
-  0x4cc3: { name: "fileScoreIntoHighScoreTable", role: "file the active player's finished score into the five-record high-score board: walk the standing scores top-down comparing each (isScoreBelow) to find the first the new score is not below, slide the records beneath down one slot (lddr), write the new score with blank 0xf1 name-cell sentinels, look up its initial-glyph row pointer, and renumber the rank column 0..4; carry returns clear when filed, set when the score beat none", cert: "code" },
+  0x4cc3: { name: "fileScoreIntoHighScoreTable", role: "file the active player's finished score into the five-record high-score board: walk the standing scores top-down comparing each (isScoreBelow) to find the first the new score is not below, slide the records beneath down one slot (lddr), write the new score with blank 0xf1 name-cell sentinels, look up its initial-glyph row pointer, and renumber the rank column 0..4; carry returns clear when filed, set when the score beat none", cert: "seen" },
   0x326c: { name: "layOutEnemyAimPointsFromScrollAngle", role: "when the mode byte in C selects sub-mode 7 (low nibble == 7), fill sprite object 0xac64's twelve coordinate fields (0x10-0x1b) with six XY pairs around centre (0x78 across, 0x84 down): the scroll angle +0x40 and the scroll angle itself, each drawn through the velocity table (via 0x59d1) at x8 and x16 radii, the +0x40 direction also mirrored to its negatives; other sub-modes return without writing", cert: "seen" },
   0x2251: { name: "loc_2251", role: "tamper-trap data table jumped into as code when the tile-ROM check fails; register churn then a store through BC that faults writing to ROM (else the hard-coded 0x228B store faults), else halt", cert: "code" },
   0x2010: { name: "advancePlayerAnimationStrip", role: "advance a phase-byte-driven tile animation: on the first frame (phase>=0xb4) clamp the phase, flag the paired entry, and cue sounds (56d2 always, 5679 past level 2) unless two game-state cells divert to loc_1f2e; else step the phase down and, on one of seven keyframe values, blit a 5x6 shape strip into video+colour RAM", cert: "seen" },
@@ -1944,7 +1944,7 @@ export const ROUTINES = {
   0x189e: {
     name: "startTwoPlayerGame",
     role: "start a two-player game: park the caption sprites, raise PLAY_ACTIVE and the flag beside it, load both players' lives from the starting-count settings cell, run the two-player-start arm, deduct two credits in packed BCD from 0xA986 and repaint the panel field, then send the sequence machine to its last phase",
-    cert: "code",
+    cert: "seen",
   },
   0x2511: {
     name: "initColdStartRamThenSeedConfig",
@@ -2039,7 +2039,7 @@ export const ROUTINES = {
   0x074b: {
     name: "erasePenRouteThenAdvanceStep",
     role: "attract-sequence arm (phase 1, sub-step 0, reached by rst-30 computed dispatch from dispatchSequencePhase1SubStepArm): fold the fixed 256-byte run at 0x4AA0 into an eight-bit total and derail into the checksum-failure landing 0x08FA on any total but 0xB8; otherwise set the pen colour 0xAD0C to 5 and the stamp glyph 0xAD0B to the blanking glyph 0xF1 (so the pen erases), re-arm the pen route via 0x01E1, then step the sequence sub-step 0x0F1A -- twice when the pen colour already held 5",
-    cert: "code",
+    cert: "seen",
   },
   0x0f8d: {
     name: "loc_0f8d",
@@ -2049,7 +2049,7 @@ export const ROUTINES = {
   0x1734: {
     name: "advancePenRunAnimationStep",
     role: "one interpolated-run sequence step: call drawInterpolatedPenRun to draw/advance one pen run and ret nz unless it reseated to a zero row integer, then store the two's-complement checksum of the 34-byte code block at 0x1748 into 0xA817 (0x00 on a clean image) and tail-jump to 0x0F1A (advanceSequenceSubStep) to step the sequence sub-index",
-    cert: "code",
+    cert: "seen",
   },
   0x1f2e: {
     name: "loc_1f2e",
@@ -2089,7 +2089,7 @@ export const ROUTINES = {
   0x418b: {
     name: "flyLiveSlotAndTickCountdown",
     role: "service one live slot of the per-slot object sweep: fly the slot's object a step along its stored velocity (retiring it once it crosses a retire line), tick down the slot's own countdown at record offset 0x0e, then close the turn of the sweep; reached only for a slot whose marker byte reads 0xFF with a nonzero countdown, outside the fourth era",
-    cert: "code",
+    cert: "seen",
   },
   0x41b8: {
     name: "flyTowardShipStandoffThenEndApproach",
@@ -2261,7 +2261,7 @@ export const ROUTINES = {
   0x12e7: {
     name: "passTurnToOtherPlayerIfLivesElseStepSequence",
     role: "hand the turn over to the other player when that player's saved lives count is non-zero, and otherwise step the inner sequence index; both exits are tails, so this entry chooses between two continuations rather than returning to anything",
-    cert: "code",
+    cert: "seen",
   },
   0x12fb: {
     name: "restartAttractSequence",
@@ -2329,12 +2329,12 @@ export const ROUTINES = {
   0x17e2: {
     name: "foldImageBlockIntoSignatureThenAdvanceSequence",
     role: "raise one flag cell to all bits, fold a fixed block of the program image into a running total seeded from an image byte and bank the result, then step the inner sequence index -- one step of the tamper-check sequence",
-    cert: "code",
+    cert: "seen",
   },
   0x17fb: {
     name: "trampolineToAdvanceSequenceSubStep",
     role: "a sequence step that does no work of its own -- it only moves the inner index on, so reaching it costs one turn and changes nothing else",
-    cert: "code",
+    cert: "seen",
   },
   0x17fe: {
     name: "dispatchSequencePhase2SubStepArm",
@@ -2387,7 +2387,7 @@ export const ROUTINES = {
   0x214b: {
     name: "flyDemoShipByScript",
     role: "attract demo auto-pilot step: ticks the packed dwell/turn countdown at 0xadf2, steps the heading-command script at 0xadf3/4 when the dwell expires, turns PLAYER_HEADING (0xa802) by the 2-bit command, then tail-jumps to the mover at 0x1f42",
-    cert: "code",
+    cert: "seen",
   },
   0x28b7: {
     name: "seatCraftSlot0ThenDispatchByEra",
@@ -2870,7 +2870,7 @@ export const ROUTINES = {
   0x57ff: {
     name: "requestParachutistAwardSound",
     role: "read the byte at 0x079B and request it as a sound code, only while a game is being played",
-    cert: "code",
+    cert: "seen",
   },
   0x5805: {
     name: "requestBonusLifeSound",
@@ -2890,7 +2890,7 @@ export const ROUTINES = {
   0x5817: {
     name: "requestEnemyWaveSound",
     role: "read the byte at 0x273A and request it as a sound code, only while a game is being played",
-    cert: "code",
+    cert: "seen",
   },
   0x5834: {
     name: "requestRoundStartSound",
@@ -2900,7 +2900,7 @@ export const ROUTINES = {
   0x583a: {
     name: "loc_583a",
     role: "read the byte at 0x18FA and request it as a sound code, only while a game is being played",
-    cert: "code",
+    cert: "seen",
   },
   0x5840: {
     name: "flyAtSlowestSpeed",
@@ -3193,7 +3193,7 @@ export const ROUTINES = {
   0x08ae: {
     name: "selectFoldBlock",
     role: "hand back where a fixed block of the program image starts and how many bytes of it to take; nothing is read and nothing is written",
-    cert: "code",
+    cert: "seen",
     why: "the name says the pair it returns is a fold's source and count, and the caller could have refuted that: the only transfer into this address is a tail jump from 0x4bd9, whose single caller loads a seed byte and then immediately calls 0x291e -- which IS add a,(hl) / inc hl / djnz, over exactly the count returned here -- and banks the total in a cell a later sequence arm reads. A copy would have used ldir and a painter would have used the character cursor; neither appears anywhere on that path",
   },
   0x0b2b: {
@@ -3210,7 +3210,7 @@ export const ROUTINES = {
   0x0d61: {
     name: "paintPlayerTwoScoreReadout",
     role: "enter the shared packed-decimal digit routine at 0x0D73 with a second fixed triple -- first cell 0xA501, the three-byte field whose high end is 0xAD38, and a fixed colour; choosing that triple is the whole entry and whatever the caller held is discarded",
-    cert: "code",
+    cert: "seen",
   },
   0x0d6b: {
     name: "paintHighScoreReadout",
@@ -3546,7 +3546,7 @@ export const ROUTINES = {
   0x12e2: {
     name: "loc_12e2",
     role: "run the sequence delay down by one and, on the frame it reaches zero and only then, let the sequence take its next decision; the countdown wraps rather than sticking, so a delay that starts at zero buys a full 256 frames before that decision comes round again, and on every other frame the one decremented cell is the whole effect",
-    cert: "code",
+    cert: "seen",
     why: "an English name was proposed and REFUSED; the refusal is recorded so it is not proposed again. It described the SHARED PROLOGUE and not this routine: a byte-pattern scan of the image finds `ld hl,0xA9EB / dec (hl)` at seven sites -- 0x12E2, 0x16D6, 0x174E, 0x1792, 0x196A, 0x330B and 0x56B8 -- so the countdown is an idiom the image reuses and any name built out of it names all seven. Two of the seven are arms of the SAME inline jump table at 0x0F29, 0x330B at arm 8 and this address at arm 11, so the table alone holds two routines a delay name could not tell apart. What is left once the prologue is subtracted is the single tail this entry chooses, passTurnToOtherPlayerIfLivesElseStepSequence, and passTurnToOtherPlayerIfLivesElseStepSequence's own entry already carries that decision",
   },
   0x1748: {
@@ -3600,7 +3600,7 @@ export const ROUTINES = {
   0x44c9: {
     name: "restartAnimationCounterThenDressFlutterSprite",
     role: "close out one object's animation and dress its sprite entry: the counter the caller carries is read without the top bit that selected this path, and once what is left has reached three the counter cell in the object's record is put back to zero -- below three it is left alone. Either way both attribute slots of the sprite entry take the one code fixed here, and the two shape codes are then chosen by the flutter this entry hands on to",
-    cert: "code",
+    cert: "seen",
     why: "an English name that said what the animation IS would overclaim: what the object ends up looking like is settled a routine further on (dressSpriteFlutterShapesByFrameTickBit), the counter it may clear is an offset in a record whose owner it never reads, and the top bit it masks away was set by the caller that chose this path. So the name takes only the MECHANISM this body performs -- restart the record counter once what is left reaches three, write the one attribute code into the two fixed slots, hand the shapes on -- and says what the entry DOES here, not what the animation downstream means",
   },
   0x4b67: {
