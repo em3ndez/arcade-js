@@ -19,7 +19,7 @@ const LEFT_WALK_RING = 0x01; // ring selector: steps MARIO_WALK_ANIM 0 -> 1 -> 4
 const WALK_TILE_MASK = 0x03;
 
 export function walkMarioLeft(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[MARIO_MOVE_STEP_TIMER] !== 0) {
     return advanceMarioWalkX(m, WALK_STEP_LEFT);
@@ -28,6 +28,5 @@ export function walkMarioLeft(m) {
   const nextAnim = nextAnimationStep(LEFT_WALK_RING, mem8[MARIO_WALK_ANIM]).a;
   mem8[MARIO_WALK_ANIM] = nextAnim;
 
-  regs.a = nextAnim & WALK_TILE_MASK;
-  return beginWalkStep(m);
+  return beginWalkStep(m, nextAnim & WALK_TILE_MASK);
 }

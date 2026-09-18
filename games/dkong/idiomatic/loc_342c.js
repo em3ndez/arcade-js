@@ -15,7 +15,7 @@ const TABLE_START = 0x3a8c;
 const X_SEED = 38;
 
 export function loc_342c(m, ix = m.regs.ix) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const base = ix;
   const field = (off) => (base + off) & 0xffff;
@@ -32,6 +32,5 @@ export function loc_342c(m, ix = m.regs.ix) {
 
   mem8[field(OBJ_X)] = mem8[field(OBJ_X)] + 1;
 
-  regs.hl = ptr;
-  loc_3445(m);
+  loc_3445(m, ix, ptr);
 }

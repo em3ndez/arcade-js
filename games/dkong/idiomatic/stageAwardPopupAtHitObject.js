@@ -20,7 +20,5 @@ export function stageAwardPopupAtHitObject(m) {
   regs.a = mem8[block];
   mem8[block] = 0x00;
 
-  regs.c = mem8[(block & 0xff00) | ((block + 3) & 0xff)];
-
-  stampScorePopupSprite(m);
+  stampScorePopupSprite(m, m.regs.a, m.regs.b, mem8[(block & 0xff00) | ((block + 3) & 0xff)]);
 }

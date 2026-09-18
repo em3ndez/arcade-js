@@ -28,7 +28,5 @@ export function walkRightWhileHeld(m) {
     return walkMarioRight(m);
   }
 
-  // The LEFT arm reads both inputs from the register file, as the fall-through delivered them.
-  regs.a = control;
-  return walkLeftWhileHeld(m);
+  return walkLeftWhileHeld(m, regs.d, control);
 }

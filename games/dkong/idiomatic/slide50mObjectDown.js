@@ -44,8 +44,7 @@ export function slide50mObjectDown(m, recordBase) {
   }
 
   // Is Mario on this object's column (+2)? On a miss the shared caller-skip unwinds two levels.
-  regs.hl = field(2);
-  if (!marioReachedTargetColumn(m)) return;
+  if (!marioReachedTargetColumn(m, field(2))) return;
 
   // Above the settle line (smaller Y) or on an odd row: keep stepping him down in the climb pose.
   const marioY = mem8[MARIO_Y];

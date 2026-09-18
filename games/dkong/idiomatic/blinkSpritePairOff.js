@@ -14,10 +14,9 @@ const SPRITE0_CODE = SPRITE_BUFFER + 1;
 const SPRITE1_CODE = SPRITE_BUFFER + 5;
 
 export function blinkSpritePairOff(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[SPRITE0_CODE] = mem8[SPRITE0_CODE] & 0x7f;
 
-  regs.a = mem8[SPRITE1_CODE] & 0x7f;
-  storeBlinkSpriteCode(m);
+  storeBlinkSpriteCode(m, mem8[SPRITE1_CODE] & 0x7f);
 }

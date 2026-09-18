@@ -22,8 +22,7 @@ const PAIR_STRIDE = 0x10;
 export function latchHammerTouch(m) {
   const { regs, mem8 } = m;
 
-  regs.a = HAMMER_BOARDS;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, HAMMER_BOARDS)) return;
 
   findHammerOverlappingMario(m);
   const touching = regs.a; // 1 = overlapping a hammer, 0 = neither

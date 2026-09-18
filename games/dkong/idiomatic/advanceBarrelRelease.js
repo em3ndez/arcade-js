@@ -38,8 +38,7 @@ export function advanceBarrelRelease(m) {
   }
   const source = (ANIM_TABLE + ((index * RECORD_STRIDE) & 0xff)) & 0xffff;
 
-  regs.hl = source;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, source);
 
   const stepped = (mem8[ANIM_COUNTER] - 1) & 0xff;
   mem8[ANIM_COUNTER] = stepped;

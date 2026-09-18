@@ -9,10 +9,9 @@
 import { boardBitGate } from "./boardBitGate.js";
 
 export function stamp50mBoardTiles(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = 0x02;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, 0x02)) return;
 
   mem8[0x776c] = 0x10;
   mem8[0x776e] = 0xc0;

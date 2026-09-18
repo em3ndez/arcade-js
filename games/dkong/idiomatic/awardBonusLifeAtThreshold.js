@@ -18,7 +18,7 @@ import {
 import { drawLivesAndLevel } from "./drawLivesAndLevel.js";
 
 export function awardBonusLifeAtThreshold(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[BONUS_LIFE_AWARDED] !== 0) return;
 
@@ -36,6 +36,5 @@ export function awardBonusLifeAtThreshold(m) {
   mem8[LIVES] = mem8[LIVES] + 1;
 
   // "One Mario in play" so the marker column shows the freshly-earned reserve life.
-  regs.a = 1;
-  drawLivesAndLevel(m);
+  drawLivesAndLevel(m, 1);
 }

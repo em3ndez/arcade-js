@@ -33,8 +33,7 @@ const SPRITE_STRIDE = 0x04;
 export function update50mMovingObjects(m) {
   const { regs, mem8 } = m;
 
-  regs.a = BOARD_MASK_50M;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, BOARD_MASK_50M)) return;
 
   service50mObjectSpawnRequest(m);
 

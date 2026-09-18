@@ -21,7 +21,7 @@ const WALK_TILE_MASK = 0x03;
 const FACING_RIGHT = 0x80; // sprite-code bit 7 — horizontal flip, Mario faces right
 
 export function walkMarioRight(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Mid-step frame: the pacer has not run out, so just a 1px slide.
   if (mem8[MARIO_MOVE_STEP_TIMER] !== 0) return advanceMarioWalkX(m, WALK_RIGHT_STEP);
@@ -29,6 +29,5 @@ export function walkMarioRight(m) {
   const nextAnim = nextAnimationStep(WALK_CYCLE_RIGHT_KEY, mem8[MARIO_WALK_ANIM]).a;
   mem8[MARIO_WALK_ANIM] = nextAnim;
 
-  regs.a = (nextAnim & WALK_TILE_MASK) | FACING_RIGHT;
-  return beginWalkStep(m);
+  return beginWalkStep(m, (nextAnim & WALK_TILE_MASK) | FACING_RIGHT);
 }

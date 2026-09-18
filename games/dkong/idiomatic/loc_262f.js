@@ -34,7 +34,6 @@ export function loc_262f(m) {
 
   // Expired: reload the timer and reverse the step-direction sign.
   mem8[M50_OBJ2_REVERSE_TIMER] = 0xc0;
-  regs.hl = M50_OBJ2_STEP_DIR;
-  reverseStepDirection(m);
+  reverseStepDirection(m, M50_OBJ2_STEP_DIR);
   return loc_264c(m);
 }

@@ -23,7 +23,7 @@ import { stageAward800Popup } from "./stageAward800Popup.js";
 const EFFECT_SOUND = SND_TRIGGER + 5;
 
 export function armScorePopupAndSelectAward(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[EFFECT_TIMER] = 0x40;
   mem8[EFFECT_STATE] = 0x02;
@@ -31,8 +31,7 @@ export function armScorePopupAndSelectAward(m) {
   const select = mem8[EFFECT_SELECT];
 
   if (select & 0x01) {
-    regs.a = select >> 1; // tier from the select bits above bit 0
-    return pickAwardTierByObjectCount(m);
+    return pickAwardTierByObjectCount(m, select >> 1); // tier from the select bits above bit 0
   }
   if (select & 0x02) return stageAward300Popup(m);
   if (select & 0x04) return pickRandomAwardTier(m);

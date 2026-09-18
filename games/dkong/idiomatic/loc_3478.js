@@ -23,7 +23,7 @@ const FORWARD_SEED = 0x7e;
 const BACKWARD_SEED = 0x80;
 
 export function loc_3478(m, ix = m.regs.ix) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const base = ix;
   const field = (off) => (base + off) & 0xffff;
@@ -47,7 +47,6 @@ export function loc_3478(m, ix = m.regs.ix) {
     mem8[field(OBJ_X)] = (mem8[field(OBJ_X)] - 1) & 0xff;
   }
 
-  // Hand over to the shared walk tail with the table pointer live.
-  regs.hl = ptr;
-  loc_3445(m);
+  // Hand over to the shared walk tail with the table pointer.
+  loc_3445(m, m.regs.ix, ptr);
 }

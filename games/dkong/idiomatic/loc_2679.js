@@ -22,7 +22,6 @@ export function loc_2679(m) {
   if (remaining !== 0) return loc_268d(m);
 
   mem8[M50_OBJ3_REVERSE_TIMER] = 0xff;
-  regs.hl = M50_OBJ3_STEP_DIR; // the reversal helper flips the byte at this pointer
-  reverseStepDirection(m);
+  reverseStepDirection(m, M50_OBJ3_STEP_DIR);
   return loc_268d(m);
 }

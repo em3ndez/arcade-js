@@ -17,7 +17,7 @@ const OBJ_RELOAD_GATE = 0x6393;
 const OBJ_TEMPLATE = 0x385c;
 
 export function resetColorCycleSweep(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[SWEEP_COUNTER] = 0;
   mem8[COLOUR_CYCLE_ACTIVE] = 0;
@@ -27,7 +27,6 @@ export function resetColorCycleSweep(m) {
     return;
   }
 
-  regs.hl = OBJ_TEMPLATE; // the block loader reads its source pointer from a register
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, OBJ_TEMPLATE);
   dispatchColorCascadeByBoard(m);
 }

@@ -9,7 +9,6 @@ import { RENDER_STR_PTR } from "./names.js";
 import { stepBarrelAlongReleasePath } from "./stepBarrelAlongReleasePath.js";
 
 export function loc_2d51(m) {
-  const { regs, mem16 } = m;
-  regs.hl = mem16[RENDER_STR_PTR];
-  return stepBarrelAlongReleasePath(m);
+  const { mem16 } = m;
+  return stepBarrelAlongReleasePath(m, mem16[RENDER_STR_PTR]);
 }

@@ -20,12 +20,11 @@ const CLEAR_B = SPRITE_OBJ_BLOCK + 0x24;
 const BOARD_BOOKKEEPING = 0x62af;
 
 export function stageKongClimbPose(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (!tickSubstateTimer(m)) return;
 
-  regs.hl = COPY_SOURCE;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, COPY_SOURCE);
 
   mem8[STAMP_ADDR] = STAMP_VALUE;
   mem8[CLEAR_A] = 0;

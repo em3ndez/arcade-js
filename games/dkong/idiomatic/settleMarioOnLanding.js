@@ -23,7 +23,7 @@ import { loc_1d95 } from "./loc_1d95.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function settleMarioOnLanding(m, a = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Caller passes the landing flag (0 in play) in a register.
   mem8[MARIO_AIRBORNE] = a;
@@ -39,8 +39,7 @@ export function settleMarioOnLanding(m, a = m.regs.a) {
 
   // Pending pickup latched to 1 -> commit it (the commit clears the latch, storing the value here).
   if (mem8[ITEM_COLLECTED] === 1) {
-    regs.a = 0;
-    loc_1d95(m);
+    loc_1d95(m, 0);
   }
 
   writeMarioSpriteRecord(m);

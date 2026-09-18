@@ -17,8 +17,7 @@ const BOARD_MASK = 0x0a; // current-board bit only on 50m/100m
 export function raisePeriodicObjectSpawnRequests(m) {
   const { regs, mem8 } = m;
 
-  regs.a = BOARD_MASK;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, BOARD_MASK)) return;
 
   if (!marioActiveGuard(m)) return;
 

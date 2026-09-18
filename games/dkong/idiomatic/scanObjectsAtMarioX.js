@@ -13,14 +13,13 @@ const RECORD_COUNT = 3;
 const RECORD_STRIDE = 4;
 
 export function scanObjectsAtMarioX(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const marioX = mem8[MARIO_X];
 
   for (let i = 0; i < RECORD_COUNT; i++) {
     const record = OBJECT_COLLISION_SPRITES + i * RECORD_STRIDE;
     if (marioX === mem8[record]) {
-      regs.hl = record;
-      confirmObjectHit(m);
+      confirmObjectHit(m, record);
       return;
     }
   }

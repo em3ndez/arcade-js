@@ -22,8 +22,7 @@ export function stampScorePopupSprite(m, a = m.regs.a, b = m.regs.b, c = m.regs.
   mem8[POPUP_SPRITE + 2] = SPRITE_ATTR;
   mem8[POPUP_SPRITE + 3] = c;
 
-  regs.a = BOARD_MASK;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, BOARD_MASK)) return;
 
   mem8[SOUND_LATCH] = 0x03;
 }

@@ -19,7 +19,7 @@ const SND_ASSERT_FRAMES = 3;
 const SPRITE_ATTR = 0x07;
 
 export function awardScorePopup(m, b = m.regs.b) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   enqueueTask(m);
 
@@ -29,7 +29,6 @@ export function awardScorePopup(m, b = m.regs.b) {
   mem8[POPUP_SPRITE + 2] = SPRITE_ATTR;
   mem8[POPUP_SPRITE + 3] = popupY;
 
-  regs.a = SOUND_BOARD_MASK;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, SOUND_BOARD_MASK)) return;
   mem8[AWARD_SOUND] = SND_ASSERT_FRAMES;
 }

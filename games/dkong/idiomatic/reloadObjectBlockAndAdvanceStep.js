@@ -15,8 +15,7 @@ const BOARD_OBJECT_SCRATCH = 0x62af;
 export function reloadObjectBlockAndAdvanceStep(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = OBJECT_RECORDS_SRC;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, OBJECT_RECORDS_SRC);
 
   // Patch three record field-0 bytes AFTER the copy (write order is load-bearing).
   mem8[SPRITE_OBJ_BLOCK + 0x04] = 0x66;

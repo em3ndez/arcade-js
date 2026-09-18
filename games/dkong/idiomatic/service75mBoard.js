@@ -19,10 +19,9 @@ const BOARD_MASK = 0x04; // bit2 selects board 3
 const OFF_TRACK_Y = 240; // MARIO_Y at/above this is the bottom of the screen (no X band)
 
 export function service75mBoard(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = BOARD_MASK;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, BOARD_MASK)) return;
 
   if (mem8[MARIO_Y] >= OFF_TRACK_Y) {
     killMarioAtEndOfLiftTravel(m);

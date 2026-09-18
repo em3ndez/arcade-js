@@ -44,8 +44,7 @@ export function advanceColorCycleSweep(m) {
     return;
   }
 
-  regs.hl = (counter & TEMPLATE_BIT) !== 0 ? TEMPLATE_BIT5_SET : TEMPLATE_BIT5_CLEAR;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, (counter & TEMPLATE_BIT) !== 0 ? TEMPLATE_BIT5_SET : TEMPLATE_BIT5_CLEAR);
   mem8[SND_TRIGGER + 2] = 3;
   dispatchColorCascadeByBoard(m);
 }

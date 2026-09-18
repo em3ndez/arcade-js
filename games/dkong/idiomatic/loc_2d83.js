@@ -14,10 +14,9 @@ import { stepBarrelAlongReleasePath } from "./stepBarrelAlongReleasePath.js";
 const STRING_START = 0x39cc;
 
 export function loc_2d83(m) {
-  const { regs, mem16 } = m;
+  const { mem16 } = m;
 
-  regs.hl = STRING_START;
   mem16[RENDER_STR_PTR] = STRING_START;
 
-  return stepBarrelAlongReleasePath(m);
+  return stepBarrelAlongReleasePath(m, STRING_START);
 }

@@ -17,12 +17,11 @@ const ANIM_FRAME_SRC = 0x385c;
 const POSE_HOLD_FRAMES = 0x20;
 
 export function beginKongRecaptureInterlude(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   spawnInterludeHeart(m);
 
-  regs.hl = ANIM_FRAME_SRC;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, ANIM_FRAME_SRC);
 
   mem8[SUBSTATE_TIMER] = POSE_HOLD_FRAMES;
 

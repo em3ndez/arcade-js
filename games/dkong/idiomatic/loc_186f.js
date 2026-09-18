@@ -21,8 +21,7 @@ export function loc_186f(m) {
 
   if (!tickSubstateTimer(m)) return;
 
-  regs.hl = COPY_SOURCE; // the copy reads its source from the register image
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, COPY_SOURCE);
 
   mem8[SND_LATCH] = SND_ASSERT_FRAMES;
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1) & 0xff;

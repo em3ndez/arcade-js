@@ -19,10 +19,9 @@ import { raise50mObjectAndPark } from "./raise50mObjectAndPark.js";
 const BOARD_MASK = 0x02;
 
 export function dispatch50mObjectState(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = BOARD_MASK;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, BOARD_MASK)) return;
 
   const recordBase =
     (mem8[FRAME] & 1) === 1 ? BOARD_OBJ_SCRATCH : BOARD_OBJ_SCRATCH + 8;
