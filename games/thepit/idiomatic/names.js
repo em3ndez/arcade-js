@@ -266,7 +266,7 @@ export const PIT_CROSS_ACTIVE = 0x8077;
  *  (0 in an upright cabinet): a +2 sprite-Y nudge biased into published sprite coordinates, computed
  *  once by the DSW decode applyDipSwitches. It is NOT the screen flip itself — the real 180° flip is
  *  the hardware LS259 flipscreen latch lines b6/b7 that loc_4b55 writes to 0xb006/0xb007, not this
- *  cell. [code] */
+ *  cell. [seen] */
 export const SPRITE_COORD_BIAS = 0x8051;
 
 // ── Player / board-transition control block (0x8079-0x807d) ───────────────────
@@ -337,7 +337,7 @@ export const FRAME_WAIT_COUNTDOWN = 0x8009;
 /**
  *  STEP_TIMER_BASE (0x804f) — DSW-decoded base (applyDipSwitches) that seeds the step timer 0x8067 =
  *  0x804f - 4*LEVEL (seedMountainErosion); 0x8067 is the per-step countdown erodeMountain decrements each
- *  frame. [code]
+ *  frame. [seen]
  */
 export const STEP_TIMER_BASE = 0x804f;
 /**
@@ -760,7 +760,7 @@ export const COINS_PER_CREDIT_A = 0x804c;
 export const COINS_PER_CREDIT_B = 0x804d;
 /** LOOP_DELAY_BASE (0x804e) — DSW main-loop pacing base that MAIN_LOOP_DELAY derives from. [seen] */
 export const LOOP_DELAY_BASE = 0x804e;
-/** STARTING_MEN (0x8053) — DSW starting lives ((dsw&0x40)?4:3); startGame seeds MEN_LEFT from it. [code] */
+/** STARTING_MEN (0x8053) — DSW starting lives ((dsw&0x40)?4:3); startGame seeds MEN_LEFT from it. [seen] */
 export const STARTING_MEN = 0x8053;
 /** REACTION_OBJ_CODE (0x8095) — sprite/frame-code byte (byte1) of the reaction object's 4-byte record
  *  (ends REACTION_OBJ_X/Y already named). [seen] */
