@@ -22,13 +22,13 @@ export function meterCoinageTowardCreditOnEdge(m) {
   if ((mem8[COIN_SLOT_2_DEBOUNCE] & PHASE_MASK) !== READY) return;
 
   requestCoinSound(m);
-  mem8[COIN_ACCEPTED_SLOT_2] = (mem8[COIN_ACCEPTED_SLOT_2] + 1) & 0xff;
+  mem8[COIN_ACCEPTED_SLOT_2] = (mem8[COIN_ACCEPTED_SLOT_2] + 1);
 
   const stepped = (mem8[COIN_SLOT_2_ACCUMULATOR] + STEP) & 0xff;
   mem8[COIN_SLOT_2_ACCUMULATOR] = stepped;
   if (mem8[COIN_SLOT_2_RATIO] >= stepped) return; // stop once the high byte has caught up
 
   regs.c = mem8[COIN_SLOT_2_RATIO];
-  mem8[COIN_SLOT_2_ACCUMULATOR] = (stepped - ((mem8[COIN_SLOT_2_RATIO] & 0xf0) + STEP)) & 0xff;
+  mem8[COIN_SLOT_2_ACCUMULATOR] = (stepped - ((mem8[COIN_SLOT_2_RATIO] & 0xf0) + STEP));
   return awardCoinCreditThenPulseCoinCounter(m);
 }

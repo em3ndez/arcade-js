@@ -29,7 +29,7 @@ export function seedSceneryEntriesThenRunScenery(m) {
   do {
     const tint = mem8[regs.hl];
     mem8[(regs.iy + 0x31) & 0xffff] = tint;
-    mem8[(regs.iy + 0x33) & 0xffff] = (tint + 0x10) & 0xff;
+    mem8[(regs.iy + 0x33) & 0xffff] = (tint + 0x10);
     const shape = mem8[(regs.hl + 1) & 0xffff];
     mem8[regs.iy & 0xffff] = shape;
     mem8[(regs.iy + 2) & 0xffff] = shape;

@@ -21,7 +21,7 @@ export function runOneShotAnimatedObjectSlot(m, object = m.regs.ix, sprite = m.r
 
   if (mem8[object + COUNTER] >= REARM_AT) stampObjectStateByte3bThenRequestSound(m, object);
 
-  mem8[object + COUNTER] = (mem8[object + COUNTER] - 1) & 0xff;
+  mem8[object + COUNTER] = (mem8[object + COUNTER] - 1);
   if (mem8[object + COUNTER] === 0) {
     mem8[sprite] = 0;
     mem8[sprite + SPRITE_TAIL] = 0;

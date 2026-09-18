@@ -26,7 +26,7 @@ export function paintSelfTestScreenPhaseThenStepSequence(m) {
   mem8[INTRO_ANIMATION_STEP + 0x3] = 0x04;
   mem8[INTRO_ANIMATION_STEP + 0x4] = 0xff;
   mem8[INTRO_ANIMATION_STEP + 0x6] = 0x08; // the following cell is deliberately left untouched
-  mem8[INTRO_ANIMATION_STEP + 0x7] = PARKED_POINTER & 0xff;
+  mem8[INTRO_ANIMATION_STEP + 0x7] = PARKED_POINTER;
   mem8[INTRO_ANIMATION_STEP + 0x8] = PARKED_POINTER >> 8;
 
   let cur = CHAR_PLANE_BASE;

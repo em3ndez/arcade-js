@@ -53,7 +53,7 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
     mem8[entry + 0x01] = 0x4f;
     let a = ((facing >> 1) | (facing << 7)) & 0xff; // rrca
     a = (a >> 1) | (a & 0x80); // sra a: keep only the facing's bit 0, in bits 7 and 6
-    mem8[entry + 0x30] = ((a & 0xc0) + 0x0b) & 0xff;
+    mem8[entry + 0x30] = ((a & 0xc0) + 0x0b);
     mem8[record + 0x07] = 0x00;
     mem8[record + 0x08] = 0xff;
     return tailOff(requestAttackerSpawnSoundEra0);
@@ -83,7 +83,7 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
   } else {
     let a = ((mem8[record + 0x0f] >> 1) | (mem8[record + 0x0f] << 7)) & 0xff; // rrca
     a = (a & 0x80) + 0x40; // +/- half a turn from bit 0 of the stored byte
-    mem8[record + 0x02] = (a + mem8[record + 0x01]) & 0xff;
+    mem8[record + 0x02] = (a + mem8[record + 0x01]);
   }
   dressSpriteShapeAndAttributeForHeadingSector(m);
   mem8[record + 0x0e] = 0x00;

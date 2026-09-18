@@ -16,7 +16,7 @@ export function seedDemoAutopilotScript(m) {
     : 0x22fa;
 
   mem8[DEMO_SCRIPT_DWELL] = u8(mem8[script] + 1); // dwell counter, one past the script's leading byte
-  mem8[DEMO_SCRIPT_POINTER_LO] = script & 0xff;
+  mem8[DEMO_SCRIPT_POINTER_LO] = script;
   mem8[DEMO_SCRIPT_POINTER_HI] = script >> 8;
 
   // a genuine tile image returns; a failed readback drops into the trap, carrying the cursor it read

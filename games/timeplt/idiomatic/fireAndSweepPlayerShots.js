@@ -53,7 +53,7 @@ function spawnIntoFreeSlot(m, slot) {
 
   mem8[slot + OCC] = u8(mem8[slot + OCC] - 1);
   mem8[slot + AXIS1] = 0;
-  mem8[slot + AXIS1 + 1] = velocity & 0xff;
+  mem8[slot + AXIS1 + 1] = velocity;
   mem8[slot + AXIS2] = 0;
   mem8[slot + AXIS2 + 1] = velocity >> 8;
 

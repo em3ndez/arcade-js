@@ -29,7 +29,7 @@ export function stepSlotApproachThenBreakawayRetire(m, ix = m.regs.ix, bc = m.re
     return closeOneTurnOfTheSlotSweep(m);
   }
 
-  mem8[countdown] = (mem8[countdown] - 1) & 0xff;
+  mem8[countdown] = (mem8[countdown] - 1);
   flyTowardShipStandoffThenEndApproach(m);
   return closeOneTurnOfTheSlotSweep(m);
 }
