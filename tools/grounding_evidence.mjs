@@ -29,10 +29,13 @@ const hx = (v) => "0x" + (v & 0xffffff).toString(16);
 export async function stackWindow(game) {
   const url = pathToFileURL(`${process.cwd()}/games/${game}/idiomatic/names.js`).href;
   const { STACK_SCRATCH } = await import(url);
-  if (!STACK_SCRATCH || typeof STACK_SCRATCH.lo !== "number") {
-    throw new Error(`games/${game}/idiomatic/names.js has no numeric STACK_SCRATCH {lo,hi}`);
-  }
-  return STACK_SCRATCH;
+  if (STACK_SCRATCH && typeof STACK_SCRATCH.lo === "number") return STACK_SCRATCH;
+  // Fallback for a game whose names.js does not yet declare STACK_SCRATCH (adding it there would trip
+  // understanding_gate CHECK A and couple grounding to a mechanisms.md regen). Pass the measured dead
+  // return-stack window via env: STACK_SCRATCH_LO / STACK_SCRATCH_HI (hex ok).
+  const lo = process.env.STACK_SCRATCH_LO, hi = process.env.STACK_SCRATCH_HI;
+  if (lo != null && hi != null) return { lo: Number(lo), hi: Number(hi) };
+  throw new Error(`games/${game}/idiomatic/names.js has no numeric STACK_SCRATCH {lo,hi} (and no STACK_SCRATCH_LO/HI env)`);
 }
 
 export function parseGwtrace(text) {
