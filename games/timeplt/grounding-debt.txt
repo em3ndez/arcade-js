@@ -1,0 +1,10 @@
+# grounding-debt: routines genuinely un-groundable on a good ROM (reviewer-verified, R39).
+# One "0xADDR  reason" per line. done_gate.check_grounding subtracts these from the ungrounded count.
+
+0x2251  [anti-tamper] names.js role: tamper-trap data table jumped into as code when the tile-ROM chec
+0x0f8d  [anti-tamper] names.js role: image-checksum tamper trap -- drops four return words to unwind t
+0x08fa  [anti-tamper] names.js role: checksum-failure landing whose bytes are really a read-as-data ta
+0x0167  [anti-tamper] names.js role: caption-record data run as code on the checksum-MISMATCH derail a
+0x1f2e  [dead-code] names.js role: the direction table's bytes DECODED AS CODE; never reached from t
+0x1f99  [dead-code] names.js role: direction-table bytes decoded as code; 'no input tape dispatches 
+0x15b5  [dead-code] names.js role: a single ROM byte `ret`, slot 15 of the 0x0F29 substep dispatch t

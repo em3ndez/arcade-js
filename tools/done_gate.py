@@ -80,12 +80,21 @@ def _count_grounding(lines):
     # JSDoc; a routine's is on the cert line) so check_grounding can subtract the accounted-for allowlist.
     cells = routines = 0
     cell_addrs, rout_addrs = [], []
+    # A ROUTINES entry may be MULTI-LINE (`0xADDR: {` opens it, `cert:` sits on a later line), so the
+    # cert line itself carries no address. Track the enclosing entry opener and use it as the address
+    # fallback -- else the entry counts as ungrounded but is un-allowlistable (grounding-debt can't
+    # subtract an addr the counter reports as None, and check_grounding wrongly flags such debt "stale").
+    entry_opener = re.compile(r"^\s*(0x[0-9a-fA-F]+)\s*:\s*\{")
+    cur_entry = None
     for i, ln in enumerate(lines):
+        om = entry_opener.match(ln)
+        if om:
+            cur_entry = int(om.group(1), 16)
         if CERT_ANY.search(ln):
             if CERT_UNGROUNDED.search(ln):
                 routines += 1
                 m = ROUT_ADDR.match(ln)
-                rout_addrs.append(int(m.group(1), 16) if m else None)
+                rout_addrs.append(int(m.group(1), 16) if m else cur_entry)
         elif _line_ungrounded(ln):
             cells += 1
             a = None
