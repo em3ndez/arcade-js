@@ -61,7 +61,7 @@ export function serviceRoundThenResolvePlayerState(m) {
   drawKillMeter(m);
   multiplexSpriteSlots(m);
 
-  const state = m.mem.read8(PLAYER_STATE);
+  const state = m.mem8[PLAYER_STATE];
   if (state === ALIVE) return advanceRoundWhenFieldCleared(m);
   if (state !== 0) return;
   return loseLifeAndHandOver(m);

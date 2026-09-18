@@ -15,29 +15,29 @@ const CHECKSUM_SPAN = 0x100;
 const CHECKSUM_TOTAL = 0xc5;
 
 export function finishBootSelfTestAndColdStart(m) {
-  const { regs, mem } = m;
+  const { regs, mem, mem8 } = m;
 
   regs.rrca();
   const rolled = regs.a;
   regs.and(0x07);
-  mem.write8(DIFFICULTY_SETTING, regs.a);
+  mem8[DIFFICULTY_SETTING] = regs.a;
 
   regs.a = rolled;
   regs.rrca();
   regs.rrca();
   regs.rrca();
   regs.and(0x01);
-  mem.write8(DEMO_SOUNDS_ENABLE, regs.a);
+  mem8[DEMO_SOUNDS_ENABLE] = regs.a;
   mem.write8(WATCHDOG_RESET, regs.a, STORE);
 
-  regs.a = mem.read8(FLIPSCREEN_INIT_BYTE);
+  regs.a = mem8[FLIPSCREEN_INIT_BYTE];
   mem.write8(FLIPSCREEN_LATCH, regs.a, STORE);
 
   tileCharPlaneWithBoxLattice(m);
 
   let total = 0;
   for (let i = 0; i < CHECKSUM_SPAN; i++) {
-    total = (total + mem.read8((BOOT_SELFTEST_CHECKSUM_BASE + i) & 0xffff)) & 0xff;
+    total = (total + mem8[(BOOT_SELFTEST_CHECKSUM_BASE + i) & 0xffff]) & 0xff;
   }
   regs.a = (total - CHECKSUM_TOTAL) & 0xff;
   if (regs.a !== 0) return saveAccumulatorForFrameInterrupt(m); // tampered image: derail into the frame handler

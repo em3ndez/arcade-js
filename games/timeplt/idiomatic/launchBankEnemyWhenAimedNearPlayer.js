@@ -25,7 +25,7 @@ const VELOCITY = 0x0a;
 const RECORD_STRIDE = 0x10;
 
 export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEntry = m.regs.iy) {
-  const { regs, mem8, mem } = m;
+  const { regs, mem8, mem16 } = m;
 
   regs.a = mem8[FRAME_TICK];
   regs.and(0x07);
@@ -49,8 +49,8 @@ export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEnt
   } while (regs.b !== 0);
   if (!freeSlot) return; // bank full
 
-  mem.write16(SCRATCH_PTR_A, regs.hl);
-  mem.write16(SCRATCH_PTR_B, regs.de);
+  mem16[SCRATCH_PTR_A] = regs.hl;
+  mem16[SCRATCH_PTR_B] = regs.de;
 
   // margin window against the player entry: vertical, and horizontal only if the vertical is close
   regs.a = mem8[BANK_LAUNCH_NEAR_HALF_Y];
@@ -106,8 +106,8 @@ export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEnt
   const savedIy = regs.iy;
   regs.d = mem8[u16(savedIy + COORD_Y)];
   regs.e = mem8[savedIy];
-  regs.ix = mem.read16(SCRATCH_PTR_A);
-  regs.iy = mem.read16(SCRATCH_PTR_B);
+  regs.ix = mem16[SCRATCH_PTR_A];
+  regs.iy = mem16[SCRATCH_PTR_B];
   mem8[u16(regs.iy + COORD_Y)] = regs.d;
   mem8[regs.iy] = regs.e;
 

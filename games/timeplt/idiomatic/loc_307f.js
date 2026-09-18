@@ -8,9 +8,9 @@ import { fetchTableWord } from "./fetchTableWord.js";
 import { placeDiagonallyAbuttingTile } from "./placeDiagonallyAbuttingTile.js";
 
 export function loc_307f(m, hl = m.regs.hl, e = m.regs.e) {
-  const { regs, mem } = m;
-  mem.write8(hl, e);
-  regs.and(mem.read8(hl));
+  const { regs, mem, mem8 } = m;
+  mem8[hl] = e;
+  regs.and(mem8[hl]);
   if (regs.djnz() !== 0) return placeTileAtTableSuppliedOffset(m);
 
   fetchTableWord(m);

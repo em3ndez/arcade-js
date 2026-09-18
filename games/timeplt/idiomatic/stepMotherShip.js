@@ -66,13 +66,13 @@ export function stepMotherShip(m) {
 }
 
 export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8, mem16 } = m;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
   regs.h = mem8[X(0x0c)];
   regs.l = mem8[X(0x0d)];
-  regs.de = mem.read16(WORLD_SCROLL_Y);
+  regs.de = mem16[WORLD_SCROLL_Y];
   regs.addHl(regs.de);
   regs.d = mem8[Y(0x31)];
   regs.e = mem8[X(0x03)];
@@ -82,7 +82,7 @@ export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   regs.h = mem8[X(0x1c)];
   regs.l = mem8[X(0x1d)];
-  regs.de = mem.read16(WORLD_SCROLL_X);
+  regs.de = mem16[WORLD_SCROLL_X];
   regs.addHl(regs.de);
   regs.d = mem8[Y(0x00)];
   regs.e = mem8[X(0x05)];
@@ -372,13 +372,13 @@ export function loc_43f0_4734(m) {
 }
 
 export function loc_43f0_474c(m) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem, mem8, mem16 } = m;
   const X = (d) => u16(regs.ix + d);
   const Y = (d) => u16(regs.iy + d);
 
-  mem.write16(SCRATCH_PTR_A, regs.hl);
+  mem16[SCRATCH_PTR_A] = regs.hl;
   regs.exx();
-  mem.write16(SCRATCH_PTR_B, regs.hl);
+  mem16[SCRATCH_PTR_B] = regs.hl;
 
   requestEnemyLaunchSound(m);
 
@@ -396,8 +396,8 @@ export function loc_43f0_474c(m) {
 
   regs.b = mem8[Y(0x31)];
   regs.c = mem8[Y(0x00)];
-  regs.ix = mem.read16(SCRATCH_PTR_A); // retarget at the new entry
-  regs.iy = mem.read16(SCRATCH_PTR_B);
+  regs.ix = mem16[SCRATCH_PTR_A]; // retarget at the new entry
+  regs.iy = mem16[SCRATCH_PTR_B];
   mem8[X(0x02)] = regs.a; // heading
   mem8[Y(0x31)] = regs.b;
   mem8[Y(0x00)] = regs.c;

@@ -18,11 +18,11 @@ const RECORD_STRIDE = 0x08;
 const NAME_SENTINEL = 0xf1;
 
 export function fileScoreIntoHighScoreTable(m) {
-  const { regs, mem } = m;
+  const { regs, mem8, mem16 } = m;
 
   regs.hl = HIGH_SCORE_REC0_SCORE_HI;
   regs.b = RECORD_COUNT;
-  regs.a = mem.read8(ACTIVE_PLAYER);
+  regs.a = mem8[ACTIVE_PLAYER];
   regs.and(regs.a);
   regs.de = regs.fZ ? PLAYER1_SCORE_HI : PLAYER2_SCORE_HI;
 
@@ -61,27 +61,27 @@ export function fileScoreIntoHighScoreTable(m) {
 
   for (let i = 0; i < 3; i++) {
     regs.hl = (regs.hl - 1) & 0xffff;
-    mem.write8(regs.hl, NAME_SENTINEL);
+    mem8[regs.hl] = NAME_SENTINEL;
   }
-  mem.write16(SCRATCH_PTR_A, regs.hl);
+  mem16[SCRATCH_PTR_A] = regs.hl;
   regs.hl = (regs.hl - 1) & 0xffff;
   regs.de = savedDe;
   regs.bc = 0x0003;
   regs.exDeHl();
   m.lddrAt(0x4d09, 0x4d0b); // copy the three score cells in
 
-  regs.a = mem.read8(regs.de); // the rank the copy uncovered
+  regs.a = mem8[regs.de]; // the rank the copy uncovered
   regs.hl = HIGH_SCORE_INITIALS_CELL_BASE;
   regs.add(regs.a);
   fetchTableByte(m);
-  mem.write16(SCRATCH_PTR_B, regs.hl);
+  mem16[SCRATCH_PTR_B] = regs.hl;
 
   regs.hl = HIGH_SCORE_TABLE_BASE;
   regs.de = RECORD_STRIDE;
   regs.b = RECORD_COUNT;
   regs.xor(regs.a);
   for (;;) {
-    mem.write8(regs.hl, regs.a);
+    mem8[regs.hl] = regs.a;
     regs.addHl(regs.de);
     regs.a = regs.inc8(regs.a);
     if (regs.djnz() !== 0) continue;

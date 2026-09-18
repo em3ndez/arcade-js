@@ -33,6 +33,6 @@ export function petWatchdogThroughStartupDelayThenStartMachine(m, value = m.regs
   regs.xor(value);
   sendSoundCommand(m);
 
-  regs.a = mem.read8(NMI_ENABLE_BYTE);
+  regs.a = mem8[NMI_ENABLE_BYTE];
   return enableInterruptAndEnterForegroundLoop(m);
 }
