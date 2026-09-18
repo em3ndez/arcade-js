@@ -382,8 +382,7 @@ export function loc_43f0_474c(m) {
 
   requestEnemyLaunchSound(m);
 
-  regs.hl = ENEMY_STANDOFF_AIM_MAIN;
-  headingToward(m);
+  headingToward(m, ENEMY_STANDOFF_AIM_MAIN);
 
   regs.h = regs.a;
   regs.exDeHl(); // park the heading byte in DE

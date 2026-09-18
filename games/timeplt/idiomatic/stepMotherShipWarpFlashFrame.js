@@ -81,8 +81,7 @@ export function stepMotherShipWarpFlashFrame(m) {
       mem8[Y(0x32)] = 0x6c;
       regs.a = regs.inc8(mem8[PLAYER_STATE]);
       if (regs.fZ) requestMotherShipWarpSound(m);
-      regs.de = 0x040d;
-      return postCommand(m);
+      return postCommand(m, 0x04, 0x0d);
     }
     if (!regs.fC) {
       // above the trigger: pick this frame's shape from the eight-entry table
@@ -92,8 +91,7 @@ export function stepMotherShipWarpFlashFrame(m) {
       regs.rrca();
       regs.a = regs.dec8(regs.a);
       regs.and(0x07);
-      regs.hl = MOTHER_SHIP_WARP_SHAPE_TABLE;
-      fetchTableByte(m);
+      fetchTableByte(m, MOTHER_SHIP_WARP_SHAPE_TABLE);
       mem8[Y(0x03)] = regs.a;
       regs.a = regs.inc8(regs.a);
       mem8[Y(0x01)] = regs.a;

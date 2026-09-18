@@ -9,8 +9,7 @@ import { offsetAddress } from "./offsetAddress.js";
 
 export function presentChecksumForTamperTest(m, hl = m.regs.hl, de = m.regs.de, b = m.regs.b) {
   const { regs } = m;
-  regs.hl = u16(hl + de);
-  offsetAddress(m);
+  offsetAddress(m, u16(hl + de));
   regs.a = b;
   return regs.a;
 }

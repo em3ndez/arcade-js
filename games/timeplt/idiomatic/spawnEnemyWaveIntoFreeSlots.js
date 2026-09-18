@@ -27,9 +27,7 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
   let remaining = count;
   do {
     if (mem8[slot] === 0) {
-      regs.a = drawRandomByte(m) & 0xfc;
-      regs.hl = ENEMY_SPAWN_RECORD_TABLE;
-      const shapeIndex = fetchTableByte(m);
+      const shapeIndex = fetchTableByte(m, ENEMY_SPAWN_RECORD_TABLE, drawRandomByte(m) & 0xfc);
       const record = regs.hl;
       mem8[entry + 0x31] = shapeIndex;
       mem8[entry] = mem8[record + 1];
@@ -37,9 +35,7 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
       mem8[slot + 0x01] = slotField;
       mem8[slot + 0x02] = slotField;
 
-      regs.a = u8(configuredCount - remaining);
-      regs.hl = WAVE_RUN_SELECTOR_TABLE;
-      mem8[slot + 0x0a] = fetchTableByte(m);
+      mem8[slot + 0x0a] = fetchTableByte(m, WAVE_RUN_SELECTOR_TABLE, u8(configuredCount - remaining));
       mem8[slot + 0x09] = 0x20;
 
       regs.ix = slot;

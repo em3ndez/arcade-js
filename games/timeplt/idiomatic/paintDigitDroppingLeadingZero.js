@@ -30,9 +30,7 @@ export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m
   regs.b = 0;
 
   const runPointer = hl;
-  regs.hl = DIGIT_GLYPH_TABLE_2;
-  regs.a = digit;
-  const glyph = fetchTableByte(m);
+  const glyph = fetchTableByte(m, DIGIT_GLYPH_TABLE_2, digit);
   regs.hl = runPointer;
 
   mem8[de] = glyph;

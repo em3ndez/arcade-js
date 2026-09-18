@@ -20,7 +20,7 @@ const ROW = 0x20;
 // that folds a tilemap address down into colour RAM; the low copies sit one row (ROW) back.
 
 export function paintCaptionColourBandAndStepSequence(m, head = m.regs.a, body = m.regs.c, hl = m.regs.hl) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   let cur = u16(hl + 1);
   mem8[cur] = head;
@@ -29,12 +29,8 @@ export function paintCaptionColourBandAndStepSequence(m, head = m.regs.a, body =
 
   const base = mem8[PEN_COLOUR];
 
-  regs.hl = CAPTION_COLOUR_LOWER_RUN_BOTTOM;
-  regs.a = u8(0xa0 + base);
-  fillCellRun(m);
-  regs.hl = CAPTION_COLOUR_UPPER_RUN_BOTTOM;
-  regs.a = u8(0x20 + base);
-  fillCellRun(m);
+  fillCellRun(m, u8(0xa0 + base), CAPTION_COLOUR_LOWER_RUN_BOTTOM);
+  fillCellRun(m, u8(0x20 + base), CAPTION_COLOUR_UPPER_RUN_BOTTOM);
 
   mem8[CAPTION_BAND_COLOUR_CELL0] = u8(0xa0 + base);
   mem8[u16(CAPTION_BAND_COLOUR_CELL0 - ROW)] = u8(0x20 + base);

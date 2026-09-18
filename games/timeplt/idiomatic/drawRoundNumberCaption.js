@@ -23,8 +23,7 @@ export function drawRoundNumberCaption(m) {
   const value = mem8[ROUND_NUMBER];
   if (value >= 100) return;
 
-  regs.a = FIELD_CAPTION;
-  drawCaptionInPenColour(m);
+  drawCaptionInPenColour(m, FIELD_CAPTION);
   retreatCharCursor(m);
   retreatCharCursor(m);
 

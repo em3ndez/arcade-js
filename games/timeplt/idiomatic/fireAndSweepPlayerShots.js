@@ -46,9 +46,7 @@ function spawnIntoFreeSlot(m, slot) {
   mem16[slot + SEED1] = u16(-4 * mem16[WORLD_SCROLL_Y]);
   mem16[slot + SEED2] = u16(-4 * mem16[WORLD_SCROLL_X]);
 
-  regs.hl = PLAYER_SHOT_VELOCITY_TABLE;
-  regs.a = (u8(mem8[PLAYER_HEADING] + 4) >> 3) & 0x1f;
-  fetchWideTableWord(m);
+  fetchWideTableWord(m, PLAYER_SHOT_VELOCITY_TABLE, (u8(mem8[PLAYER_HEADING] + 4) >> 3) & 0x1f);
   const velocity = regs.de;
 
   mem8[slot + OCC] = u8(mem8[slot + OCC] - 1);

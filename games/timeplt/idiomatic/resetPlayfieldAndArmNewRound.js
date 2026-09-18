@@ -45,9 +45,7 @@ export function resetPlayfieldAndArmNewRound(m) {
   freeAllShotSlots(m);
   retireObjectAndHold(m, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_ENTRY_SLOT0);
 
-  regs.ix = ERA_OBJECT_RECORD_SLOT2;
-  regs.iy = ERA_OBJECT_ENTRY_SLOT2;
-  retireSlotIntoSharedCooldown(m);
+  retireSlotIntoSharedCooldown(m, ERA_OBJECT_RECORD_SLOT2, ERA_OBJECT_ENTRY_SLOT2);
 
   retireSlotIntoCooldown(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
 

@@ -75,8 +75,7 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
     return tailOff(requestTwoSoundsWhilePlaying);
   }
 
-  regs.hl = ENEMY_STANDOFF_AIM_MAIN;
-  headingToward(m);
+  headingToward(m, ENEMY_STANDOFF_AIM_MAIN);
   mem8[record + 0x01] = regs.a;
   if (era >= 3) {
     mem8[record + 0x02] = regs.a;

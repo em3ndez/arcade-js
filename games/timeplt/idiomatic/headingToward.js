@@ -36,9 +36,7 @@ export function headingToward(m, point = m.regs.hl, object = m.regs.iy) {
   const secondLeg = Math.abs(secondReach);
 
   if (firstLeg === secondLeg) {
-    regs.hl = DIAGONAL_HEADING_TABLE;
-    regs.a = sector;
-    return fetchTableByte(m);
+    return fetchTableByte(m, DIAGONAL_HEADING_TABLE, sector);
   }
   if (firstLeg < secondLeg) sector |= FIRST_IS_SHORTER;
 

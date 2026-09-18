@@ -18,7 +18,7 @@ const ROW_STEP = -32;
 const toColour = (cell) => cell & 0xfbff; // clear bit 10: attribute plane -> colour plane
 
 export function paintSelfTestScreenPhaseThenStepSequence(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[INTRO_ANIMATION_STEP + 0x0] = mem8[SELFTEST_INTRO_SHAPE_SEED];
   mem8[INTRO_ANIMATION_STEP + 0x1] = 0x00;
@@ -38,13 +38,9 @@ export function paintSelfTestScreenPhaseThenStepSequence(m) {
 
   const base = mem8[PEN_COLOUR];
 
-  regs.hl = toColour(CHAR_PLANE_LOWER_RUN_BOTTOM);
-  regs.a = u8(0xa0 + base);
-  fillCellRun(m);
+  fillCellRun(m, u8(0xa0 + base), toColour(CHAR_PLANE_LOWER_RUN_BOTTOM));
 
-  regs.hl = toColour(CHAR_PLANE_UPPER_RUN_BOTTOM);
-  regs.a = u8(0x20 + base);
-  fillCellRun(m);
+  fillCellRun(m, u8(0x20 + base), toColour(CHAR_PLANE_UPPER_RUN_BOTTOM));
 
   // three columns of the colour plane, each a cell and the cell one row above it
   paintColumn(mem8, toColour(CHAR_PLANE_STUB_LEFT_BOTTOM), u8(0xa0 + base), u8(0x20 + base));

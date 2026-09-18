@@ -23,10 +23,7 @@ const FILL_BYTE = 0xcc;
 export function seatEraSceneryRowThenClearAndRunScenery(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = BOOT_CONFIG_CHECKSUM_BASE;
-  regs.c = CHECK_EXPECTED;
-  regs.b = CHECK_LEN;
-  sumByteRunAndCompareToExpected(m); // tamper checksum; its answer is discarded here
+  sumByteRunAndCompareToExpected(m, BOOT_CONFIG_CHECKSUM_BASE, CHECK_LEN, CHECK_EXPECTED); // tamper checksum; its answer is discarded here
 
   regs.a = u8(mem8[ERA_INDEX] * ROW_STRIDE);
   regs.c = regs.a;
@@ -47,6 +44,5 @@ export function seatEraSceneryRowThenClearAndRunScenery(m) {
   regs.cp(ERA_FOUR);
   regs.c = regs.a;
   if (regs.fZ) return seatSceneryFillByte0x28ThenClearEraScenery(m);
-  regs.a = FILL_BYTE;
-  return clearSceneryEntriesThenRunEraScenery(m);
+  return clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE);
 }

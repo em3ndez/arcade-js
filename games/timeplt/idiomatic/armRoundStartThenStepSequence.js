@@ -18,7 +18,7 @@ const ZERO_CELLS = [PLAYER_ONE_ERA_INDEX, PLAYER_TWO_ERA_INDEX, ACTIVE_PLAYER, P
 const ONE_CELLS = [PLAYER_ONE_ROUND_NUMBER, PLAYER_TWO_ROUND_NUMBER, PLAYER_ONE_ROUND_ARMED, PLAYER_TWO_ROUND_ARMED];
 
 export function armRoundStartThenStepSequence(m) {
-  const { mem8, mem16, regs } = m;
+  const { mem8, mem16 } = m;
 
   requestRoundStartSound(m);
 
@@ -40,11 +40,9 @@ export function armRoundStartThenStepSequence(m) {
     mem8[PLAYER2_SCORE_LO] = 0x00;
     mem16[PLAYER2_SCORE_MID] = 0x0000;
 
-    regs.de = 0x0400;
-    postCommand(m);
+    postCommand(m, 0x04, 0x00);
 
-    regs.a = mem8[DIFFICULTY_SETTING];
-    loadDifficultyRecord(m);
+    loadDifficultyRecord(m, mem8[DIFFICULTY_SETTING]);
 
     let a = 0;
     for (let hl = DISPLAY_LATCH_CHECKSUM_BASE, i = 0; i < 256; i++, hl++) a ^= mem8[hl];
@@ -71,8 +69,7 @@ export function armRoundStartThenStepSequence(m) {
   for (let cell = PLAYER_SHOT_ARRAY; cell <= PLAYER_SHOT_ARRAY_END; cell++) mem8[cell] = 0x00;
   for (let cell = PLAYER_STATE; cell <= PLAYER_STATE_BLOCK_END; cell++) mem8[cell] = 0x00;
 
-  regs.a = 0x02;
-  loadDifficultyRecord(m);
+  loadDifficultyRecord(m, 0x02);
 
   const r = mem8[START_RUNG_ROUNDS_1_5];
   mem8[PLAYER_ONE_START_RUNG] = r;
