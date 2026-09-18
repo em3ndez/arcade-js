@@ -13,6 +13,7 @@
  */
 import { F_Z } from "../../../core/cpu/z80.js";
 import { SUBTILE_PHASE, PROBE_CELL_PTR, SAVED_CELL_PTR } from "./names.js";
+import { u16 } from "../../../core/int.js";
 
 // Bases of the two phase-keyed probe tables' rows.
 const TABLE_A = 0x34fe;
@@ -22,7 +23,7 @@ export function probeRowBackTilePair(m) {
   const { regs, mem8, mem16 } = m;
 
   // Look one tilemap row back from the probe cell, and stash it (a later step reloads the pointer).
-  const oneRowBack = (mem16[PROBE_CELL_PTR] - 32) & 0xffff;
+  const oneRowBack = u16(mem16[PROBE_CELL_PTR] - 32);
   mem16[SAVED_CELL_PTR] = oneRowBack;
 
   const phase = mem8[SUBTILE_PHASE];
@@ -34,7 +35,7 @@ export function probeRowBackTilePair(m) {
   // A hit at phase 0 is final — there is no table-B row to consult at phase 0.
   if (matched && phase !== 0) {
     // Second lookup: the following tile, against table B's phase row (phase - 32).
-    const followingTile = mem8[(oneRowBack + 1) & 0xffff];
+    const followingTile = mem8[u16(oneRowBack + 1)];
     matched = romRowHas(m, TABLE_B + ((phase - 32) & 0xff), followingTile);
   }
 

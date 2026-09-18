@@ -7,7 +7,7 @@
  * stands in for the joystick), then run the per-frame game services in order.
  */
 
-import { GAME_STATE, STACK_TOP } from "./names.js";
+import { GAME_STATE, STACK_TOP, WATCHDOG_KICK } from "./names.js";
 import { enableNmi } from "./enableNmi.js";
 import { steerDemoPlayer } from "./steerDemoPlayer.js";
 import { dispatchObjectFrameByStateTimer } from "./dispatchObjectFrameByStateTimer.js";
@@ -17,7 +17,6 @@ import { advancePlayerLaser } from "./advancePlayerLaser.js";
 
 // Reading this hardware port pets the watchdog timer; the value read is discarded,
 // the read itself is the effect. (The write side of the same port is the sound latch.)
-const WATCHDOG_KICK = 0xb800;
 
 // The attract demo runs the game itself with the auto-player steering; the game-mode byte holds this value.
 const DEMO_MODE = 4;

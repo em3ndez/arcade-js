@@ -93,8 +93,8 @@ lethal. Starting lives = 3 (DSW `0x8053` → `0x802b`). `[seen]`/`[code]`
 ### 2.1 Frame loop, NMI, game state, input, RNG
 
 **Main loop** `loc_0348` runs forever; each pass it re-seats SP (`0x83ff`), kicks the watchdog (reads
-`0xb800`), then calls, in order: `[code]`
-1. `0x4b14` — **ENABLE the NMI** (writes `0x01` to LS259 `0xb000` b0 = the NMI mask). This is *not* a
+`WATCHDOG_KICK 0xb800`), then calls, in order: `[code]`
+1. `0x4b14` — **ENABLE the NMI** (writes `0x01` to LS259 `NMI_MASK_LATCH 0xb000` b0 = the NMI mask). This is *not* a
    per-frame service routine — the per-frame service is the NMI itself (`loc_0066`). `[code]`
 2. `0x03e8` **only when gameState (`0x8001`) == 4** (`call z`) — the attract-**demo** autopilot nav.
 3. `0x13c9 → 0x13de` — the **player dispatcher**, which is ALSO the **master board-transition gate**
@@ -117,7 +117,7 @@ off by the laser routine each frame.
 - acknowledges the NMI (LS259 b0 = 0), runs the coin/credit corruption watchdog (three redundant
   copies `0x8000`/`0x801c`/`0x812c` cross-checked; any mismatch → reset `0x01a4`),
 - drains **one** sound-ring slot: reads `ring[0x801f]`, and writes it to the hardware sound latch
-  `0xb800` **only if bit 7 is set** (`bit 7,a`/`jr z` skips it) — see §2.14,
+  `SOUND_CMD_LATCH 0xb800` **only if bit 7 is set** (`bit 7,a`/`jr z` skips it) — see §2.14,
 - LDIRs the 0x20-byte sprite-staging block `0x8220 → 0x9840` (sprite RAM),
 - runs **TWO independent /60 dividers**:
   - `0x8007 → 0x8010` — the **live** one: decrements `0x8007` each frame, and on the 60→0 rollover
@@ -126,7 +126,7 @@ off by the laser routine each frame.
     rollover decrements a per-second counter `0x800f` — but **no *consumer* reads `0x800f`** in this
     ROM rev (the consumer was removed). Its own divider read-modify-writes it each rollover, so it is
     **not write-only** — it is simply **dead**. `[code]`
-- debounces the two input ports (IN1 `0xa800 → 0x8015`, IN0 `0xa000 → 0x8018`, each latched only on
+- debounces the two input ports (IN1 `COIN_START_PORT 0xa800 → 0x8015`, IN0 `JOYSTICK_INPUT_PORT 0xa000 → 0x8018`, each latched only on
   two equal reads), and runs coin/credit/start accounting off the debounced edges. `[seen]`/`[code]`
 
 **gameState `0x8001`:** 0 attract · 1 one-player game · 2 two-player · 3 credit-standby · 4 attract
@@ -342,7 +342,7 @@ mountain-gone routes to the level-**ADVANCE** path. `[seen]`/`[code]`
     `MOUNTAIN_ERODE_TIMER 0x8067 = diffBase(0x804f) − 4×level(0x8028)` — **erosion runs faster every
     level**.
   - `loc_241c` bails until phase `0x8010 ≥ 0x0a`, then each expiry walks the pointer down the mountain
-    column writing tile `0x31`, advancing `0x8065` by `0x20` until the `0x92a4`/`0x93c0` boundary — the
+    column writing tile `0x31`, advancing `0x8065` by `0x20` until the `MOUNTAIN_ERODE_SPAWN_TILE 0x92a4`/`0x93c0` boundary — the
     mountain visibly eating away. In **pure idle** the pointer merely oscillates (no net progress) — it
     animates but never fully erodes on its own. `[seen]`
   - **When the mountain is gone** `loc_241c` reads `boardEndPhase 0x807b`: `[seen]`/`[code]`
@@ -387,7 +387,7 @@ doc names `0x80db`–`0x80de` **`CHAMBER_CREATURE_*`** and `loc_2f71` **`advance
 - **(b) Stage-1 (gated on goal-zone latch `0x80e7`): the Pit sliding-floor REVEAL.** `[code]`/`[seen]`
   Once the goal-zone latch `0x80e7 != 0` is set, a 6-tile bar in column 12 dissolves top-to-bottom,
   paced by the reveal gate `0x80e5` (period `0x80e4`, level-scaled): each expiry of `0x80e5` copies 6
-  bytes from ROM table `0x3048 + cursor 0x80e6` up a VRAM column at `0x938c` (tiles progress
+  bytes from ROM table `0x3048 + cursor 0x80e6` up a VRAM column at `PIT_FLOOR_REVEAL_COLUMN_BOTTOM 0x938c` (tiles progress
   `0x36→0x37→0x38→0x39→0x27`), stepping the cursor back 6 per reveal until it underflows (~130 frames).
   The extra condition `PIT_CROSS_ACTIVE 0x8077 != 0` **and** player column `0x806b == 0x6b` gates only
   the one-shot **reveal sound**, not the dissolve. The dispatcher `loc_13de` reads `0x80e6 == 0` as the

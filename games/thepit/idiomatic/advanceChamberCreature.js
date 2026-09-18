@@ -23,22 +23,23 @@ import { advanceRandom } from "./advanceRandom.js";
 import { updateEnemy1 } from "./updateEnemy1.js";
 import { u8 } from "../../../core/int.js";
 import {
+  CHAMBER_CREATURE_ANIM_PHASE,
+  CHAMBER_CREATURE_ATTR,
+  CHAMBER_CREATURE_FALL_STEP,
+  CHAMBER_CREATURE_FALL_Y,
+  CHAMBER_CREATURE_FRAME,
+  CHAMBER_CREATURE_SPRITE,
+  CHAMBER_CREATURE_X,
+  CHAMBER_CREATURE_X_VELOCITY,
   GOAL_TILE_LATCH,
+  PATTERN_SOURCE_PTR,
   PIT_CROSS_ACTIVE,
-  PLAYER_X,
+  PIT_FLOOR_REVEAL_COLUMN_BOTTOM,
+  PIT_FLOOR_REVEAL_CURSOR,
   PIT_FLOOR_REVEAL_GATE,
   PIT_FLOOR_REVEAL_PERIOD,
-  PIT_FLOOR_REVEAL_CURSOR,
-  CHAMBER_CREATURE_ANIM_PHASE,
-  CHAMBER_CREATURE_X,
-  CHAMBER_CREATURE_FRAME,
-  CHAMBER_CREATURE_ATTR,
-  CHAMBER_CREATURE_FALL_Y,
+  PLAYER_X,
   SPRITE_COORD_BIAS,
-  CHAMBER_CREATURE_X_VELOCITY,
-  CHAMBER_CREATURE_FALL_STEP,
-  PATTERN_SOURCE_PTR,
-  CHAMBER_CREATURE_SPRITE,
 } from "./names.js";
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
@@ -47,7 +48,7 @@ const TILES_PER_COLUMN = 6;
 
 // The video-RAM cell of the revealed column's bottom tile; each tile above it sits one
 // tile-row (32 cells) higher in memory.
-const COLUMN_BOTTOM_CELL = 0x938c;
+const COLUMN_BOTTOM_CELL = PIT_FLOOR_REVEAL_COLUMN_BOTTOM;
 const ONE_ROW_UP = 32;
 
 // The element's two shimmer tile codes; the flip toggles strictly between them.

@@ -19,16 +19,19 @@
  *      BOARD_END_PHASE reached, and cues a sound. The tile-code bytes are opaque graphics indices.
  */
 import {
-  PLAY_PHASE_COUNTER,
   BOARD_END_PHASE,
-  ENEMY3_Y,
   ENEMY3_TWIN_Y,
-  MOUNTAIN_ERODE_TIMER,
+  ENEMY3_Y,
   MOUNTAIN_ERODE_PTR,
+  MOUNTAIN_ERODE_SPAWN_TILE,
+  MOUNTAIN_ERODE_TIMER,
+  PLAY_PHASE_COUNTER,
+  VIDEO_RAM_END_EXCLUSIVE,
 } from "./names.js";
 import { requestSound15 } from "./requestSound15.js";
 import { requestSound7 } from "./requestSound7.js";
 import { seedMountainErosion } from "./seedMountainErosion.js";
+import { u16 } from "../../../core/int.js";
 
 const ROW = 32; // one tilemap row is 32 columns apart
 
@@ -88,13 +91,13 @@ export function erodeMountain(m) {
   function extendFillColumn() {
     let ptr = mem16[MOUNTAIN_ERODE_PTR];
     // Stop once the cursor has stepped past the bottom tilemap row.
-    if (ptr >= 0x9400) return;
+    if (ptr >= VIDEO_RAM_END_EXCLUSIVE) return;
     // Stamp the fill tile, then step the cursor down one row and store it.
     mem8[ptr] = 0x31;
-    ptr = (ptr + ROW) & 0xffff;
+    ptr = u16(ptr + ROW);
     mem16[MOUNTAIN_ERODE_PTR] = ptr;
     // Only the trigger cell finalises the spawn; every other cell waits for the next frame.
-    if (ptr !== 0x92a4) return;
+    if (ptr !== MOUNTAIN_ERODE_SPAWN_TILE) return;
 
     // Trigger cell reached: finalise the spawn phase.
     const phase = mem8[BOARD_END_PHASE];

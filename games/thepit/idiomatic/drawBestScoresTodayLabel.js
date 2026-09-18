@@ -10,6 +10,7 @@
  * identical copy loop; the fill ends by returning straight to this routine's caller.
  */
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
+import { BOOT_TEXT_COLUMN30_BOTTOM } from "./names.js";
 
 export function drawBestScoresTodayLabel(m) {
   const { mem8 } = m;
@@ -19,7 +20,7 @@ export function drawBestScoresTodayLabel(m) {
 
   // Copy the 32-byte picture strip up the video column, top cell first.
   let source = 0x4acb;
-  let cell = 0x93fe;
+  let cell = BOOT_TEXT_COLUMN30_BOTTOM;
   for (let i = 0; i < 32; i++) {
     mem8[cell] = mem8[source];
     source += 1;

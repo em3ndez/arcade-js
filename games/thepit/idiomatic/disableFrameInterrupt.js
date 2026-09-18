@@ -1,3 +1,4 @@
+import { NMI_MASK_LATCH } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * disableFrameInterrupt — switch the per-frame (vblank) interrupt off.
@@ -9,5 +10,5 @@
  */
 export function disableFrameInterrupt(m) {
   // Drive the per-frame interrupt line off; the latch takes the low bit, so 0 is off.
-  m.mem8[0xb000] = 0;
+  m.mem8[NMI_MASK_LATCH] = 0;
 }

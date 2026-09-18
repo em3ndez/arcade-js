@@ -1,3 +1,4 @@
+import { SOUND_ENABLE_LATCH } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * disableSound — pull the sound-enable control line low, silencing the audio.
@@ -9,5 +10,5 @@
  */
 export function disableSound(m) {
   // Drive the sound-enable control line low; only the low bit reaches the latch, so 0 clears it.
-  m.mem8[0xb003] = 0;
+  m.mem8[SOUND_ENABLE_LATCH] = 0;
 }

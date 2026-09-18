@@ -1,3 +1,4 @@
+import { SOUND_ENABLE_LATCH } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * enableSound — switch the master sound-enable line on (unmute the audio).
@@ -8,5 +9,5 @@
  */
 export function enableSound(m) {
   // Each control-latch address carries one line and takes the low bit, so storing 1 turns sound on.
-  m.mem8[0xb003] = 1;
+  m.mem8[SOUND_ENABLE_LATCH] = 1;
 }

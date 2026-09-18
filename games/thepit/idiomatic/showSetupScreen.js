@@ -27,7 +27,19 @@ import { copyTileColumn } from "./copyTileColumn.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { blankScreen } from "./blankScreen.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B, LOOP_COUNTER } from "./names.js";
+import {
+  COINS_PER_CREDIT_A,
+  COINS_PER_CREDIT_B,
+  LOOP_COUNTER,
+  PLOT_RUN_LENGTH,
+  SETUP_COINAGE_A_COUNT_TILE,
+  SETUP_COINAGE_A_MARKER_TILE,
+  SETUP_COINAGE_A_PLURAL_CELL,
+  SETUP_COINAGE_B_COUNT_TILE,
+  SETUP_COINAGE_B_MARKER_TILE,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 
 const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
 const HOLD_FRAMES = 15; // video frames each hold pass waits
@@ -81,7 +93,7 @@ export function* showSetupScreen(m) {
 
   // ── 2. HUD records ──────────────────────────────────────────────────────────
   // A fixed marker cell, then its label run and colour.
-  mem8[0x928c] = 1;
+  mem8[SETUP_COINAGE_A_MARKER_TILE] = 1;
   mem8[TILE_COL] = 12;
   mem8[TILE_ROW] = 13;
   rowColToTileOffset(m);
@@ -92,13 +104,13 @@ export function* showSetupScreen(m) {
 
   // First count field (COINS_PER_CREDIT_A), at column 14.
   const countA = mem8[COINS_PER_CREDIT_A];
-  stampCountField(m, 0x928e, countA, 14);
+  stampCountField(m, SETUP_COINAGE_A_COUNT_TILE, countA, 14);
   // When the count is exactly one, patch the cell above to the singular-form glyph.
-  if (countA === 1) mem8[0x918e] = 0x24;
+  if (countA === 1) mem8[SETUP_COINAGE_A_PLURAL_CELL] = 0x24;
   fillColourColumnAt(m, 14, 7); // colour this field's column 14 in colour 7
 
   // A second fixed marker cell, then its label run and colour.
-  mem8[0x9292] = 2;
+  mem8[SETUP_COINAGE_B_MARKER_TILE] = 2;
   mem8[TILE_COL] = 18;
   mem8[TILE_ROW] = 12;
   rowColToTileOffset(m);
@@ -109,7 +121,7 @@ export function* showSetupScreen(m) {
 
   // Second count field (COINS_PER_CREDIT_B), at column 20. No singular patch here.
   const countB = mem8[COINS_PER_CREDIT_B];
-  stampCountField(m, 0x9294, countB, 20);
+  stampCountField(m, SETUP_COINAGE_B_COUNT_TILE, countB, 20);
   fillColourColumnAt(m, 20, 3); // colour this field's column 20 in colour 3
 
   // ── 3. Hold the intro, cycling the accent colour ────────────────────────────

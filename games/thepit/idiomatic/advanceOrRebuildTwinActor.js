@@ -13,17 +13,19 @@
  */
 
 import {
+  ENEMY3_ATTR,
+  ENEMY3_FIGURE_ANCHOR_CELL,
+  ENEMY3_FIGURE_COLOUR_ANCHOR,
   ENEMY3_STEP_X,
   ENEMY3_STEP_Y,
   ENEMY3_TILE,
   ENEMY3_TIMER,
-  ENEMY3_X,
-  ENEMY3_Y,
-  ENEMY3_TWIN_Y,
+  ENEMY3_TWIN_ATTR,
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_X,
-  ENEMY3_ATTR,
-  ENEMY3_TWIN_ATTR,
+  ENEMY3_TWIN_Y,
+  ENEMY3_X,
+  ENEMY3_Y,
 } from "./names.js";
 import { paceActorCadence } from "./paceActorCadence.js";
 
@@ -32,8 +34,8 @@ const PAIRED_DISPLAY = 147; // value stamped on both paired-display bytes
 // The actor's figure: a 2-wide x 4-tall tile block re-stamped into the tilemap and its
 // colour map, anchored at a fixed display cell. The eight cells take consecutive tile
 // codes 184..191 in a fixed paint order (the offsets below), all sharing one colour.
-const VIDEO_ANCHOR = 0x93a3; // anchor display cell (tilemap RAM)
-const COLOUR_ANCHOR = 0x8ba3; // matching cell in colour RAM
+const VIDEO_ANCHOR = ENEMY3_FIGURE_ANCHOR_CELL; // anchor display cell (tilemap RAM)
+const COLOUR_ANCHOR = ENEMY3_FIGURE_COLOUR_ANCHOR; // matching cell in colour RAM
 const FIRST_TILE = 184;
 const FIGURE_COLOUR = 151;
 // Cell offsets from the anchor, in paint order; the tile code steps up by one per cell.

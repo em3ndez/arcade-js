@@ -15,7 +15,13 @@
  */
 
 import { advanceChamberCreatureAnimation } from "./advanceChamberCreatureAnimation.js";
-import { PIT_FLOOR_REVEAL_CURSOR, PIT_FLOOR_REVEAL_GATE, PIT_FLOOR_REVEAL_PERIOD, PATTERN_SOURCE_PTR } from "./names.js";
+import {
+  PATTERN_SOURCE_PTR,
+  PIT_FLOOR_REVEAL_COLUMN_BOTTOM,
+  PIT_FLOOR_REVEAL_CURSOR,
+  PIT_FLOOR_REVEAL_GATE,
+  PIT_FLOOR_REVEAL_PERIOD,
+} from "./names.js";
 
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
@@ -23,7 +29,7 @@ const PATTERN_TABLE = 0x3048;
 const TILES_PER_COLUMN = 6;
 
 // The video-RAM cell of the column's bottom tile; each tile above sits one row (32 cells) higher.
-const COLUMN_BOTTOM_CELL = 0x938c;
+const COLUMN_BOTTOM_CELL = PIT_FLOOR_REVEAL_COLUMN_BOTTOM;
 const ONE_ROW_UP = 32;
 
 export function revealTerrainColumn(m) {

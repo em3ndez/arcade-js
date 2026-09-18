@@ -14,9 +14,18 @@
  */
 
 import {
-  BOARD_END_PHASE, ENEMY3_X, ENEMY3_Y, ENEMY3_TILE, ENEMY3_TIMER,
-  ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
-  ENEMY3_ATTR, ENEMY3_TWIN_ATTR,
+  BOARD_END_PHASE,
+  ENEMY3_ATTR,
+  ENEMY3_FIGURE_ANCHOR_CELL,
+  ENEMY3_FIGURE_COLOUR_ANCHOR,
+  ENEMY3_TILE,
+  ENEMY3_TIMER,
+  ENEMY3_TWIN_ATTR,
+  ENEMY3_TWIN_TILE,
+  ENEMY3_TWIN_X,
+  ENEMY3_TWIN_Y,
+  ENEMY3_X,
+  ENEMY3_Y,
 } from "./names.js";
 import { advanceAltPhaseActor } from "./advanceAltPhaseActor.js";
 import { requestSound7 } from "./requestSound7.js";
@@ -33,8 +42,8 @@ const PAIRED_DISPLAY = 151; // shared paired-display byte on both records
 // colour map, growing upward from an anchor cell.
 const BLOCK_TILE = 36;
 const BLOCK_COLOUR = 144;
-const VIDEO_ANCHOR = 0x93a3; // bottom-left display cell of the block (tilemap RAM)
-const COLOUR_ANCHOR = 0x8ba3; // matching cell in colour RAM
+const VIDEO_ANCHOR = ENEMY3_FIGURE_ANCHOR_CELL; // bottom-left display cell of the block (tilemap RAM)
+const COLOUR_ANCHOR = ENEMY3_FIGURE_COLOUR_ANCHOR; // matching cell in colour RAM
 const TILEMAP_ROW = 32;
 const BLOCK_ROWS = 4;
 const BLOCK_COLS = 2;

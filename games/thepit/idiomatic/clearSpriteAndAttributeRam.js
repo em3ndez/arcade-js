@@ -1,3 +1,4 @@
+import { ATTR_SCROLL_RAM_BASE } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * clearSpriteAndAttributeRam — wipe the sprites and per-column scroll for a clean screen.
@@ -12,7 +13,7 @@ export function clearSpriteAndAttributeRam(m) {
   const { mem8 } = m;
 
   // Zero the low half of the display block: column-scroll RAM, sprite slots, and spare.
-  for (let i = 0; i < 128; i++) mem8[0x9800 + i] = 0;
+  for (let i = 0; i < 128; i++) mem8[ATTR_SCROLL_RAM_BASE + i] = 0;
 
   return m.ret();
 }

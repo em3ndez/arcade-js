@@ -8,6 +8,7 @@
  */
 
 import { advanceChamberCreatureAnimation } from "./advanceChamberCreatureAnimation.js";
+import { u16 } from "../../../core/int.js";
 
 export function drawTerrainColumn(m) {
   const { regs, mem8 } = m;
@@ -20,8 +21,8 @@ export function drawTerrainColumn(m) {
   // Copy the run up the column, one cell per screen row; the count is tested only after each write.
   do {
     mem8[dst] = mem8[src];
-    dst = (dst + rowStep) & 0xffff;
-    src = (src + 1) & 0xffff;
+    dst = u16(dst + rowStep);
+    src = u16(src + 1);
     remaining = (remaining - 1 + 256) % 256;
   } while (remaining !== 0);
 

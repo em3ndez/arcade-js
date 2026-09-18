@@ -8,7 +8,15 @@
  */
 import { requestSound21 } from "./requestSound21.js";
 
-import { MOUNTAIN_ERODE_TIMER, MOUNTAIN_ERODE_PTR, LEVEL, STEP_TIMER_BASE } from "./names.js";
+import {
+  LEVEL,
+  MOUNTAIN_ERODE_PTR,
+  MOUNTAIN_ERODE_SOUND_MARKER_TILE,
+  MOUNTAIN_ERODE_TIMER,
+  STEP_TIMER_BASE,
+  loc_90c4,
+  loc_90e4,
+} from "./names.js";
 export function seedMountainErosion(m) {
   const { mem8, mem16 } = m;
 
@@ -19,10 +27,10 @@ export function seedMountainErosion(m) {
   mem8[MOUNTAIN_ERODE_TIMER] = mem8[STEP_TIMER_BASE] - 4 * mem8[LEVEL];
 
   // 3. Cue a sound when the marker cell holds the trigger tile.
-  if (mem8[0x9264] === 0x32) requestSound21(m);
+  if (mem8[MOUNTAIN_ERODE_SOUND_MARKER_TILE] === 0x32) requestSound21(m);
 
   // 4. Stamp the two-tile cap only while the head cell still holds its 0xfe marker.
-  if (mem8[0x90e4] !== 0xfe) return;
-  mem8[0x90e4] = 0xae; // head cell
-  mem8[0x90c4] = 0xac; // the cell one row (32 columns) above it
+  if (mem8[loc_90e4] !== 0xfe) return;
+  mem8[loc_90e4] = 0xae; // head cell
+  mem8[loc_90c4] = 0xac; // the cell one row (32 columns) above it
 }

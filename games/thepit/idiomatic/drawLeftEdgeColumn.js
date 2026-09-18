@@ -1,3 +1,4 @@
+import { LEFT_EDGE_COLOUR2_LOWER_RUN_BOTTOM, LEFT_EDGE_COLOUR3_RUN_BOTTOM, LEFT_EDGE_COLUMN_BOTTOM, LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * drawLeftEdgeColumn — stamp the fixed playfield left-edge column: a 32-tile picture strip up
@@ -19,7 +20,7 @@ export function drawLeftEdgeColumn(m) {
 
   // Copy the 32-byte picture strip up video column 0, bottom cell to top.
   let source = 0x4aab;
-  let cell = 0x93e0;
+  let cell = LEFT_EDGE_COLUMN_BOTTOM;
   for (let i = 0; i < 32; i++) {
     mem8[cell] = mem8[source];
     source += 1;
@@ -28,9 +29,9 @@ export function drawLeftEdgeColumn(m) {
 
   // Tint that column: two 9-cell runs of colour 2, then a 10-cell run of colour 3,
   // each painted upward from its own top cell.
-  paintColourRun(mem8, 0x8ba0, 9, 2);
-  paintColourRun(mem8, 0x8940, 9, 2);
-  paintColourRun(mem8, 0x8a80, 10, 3);
+  paintColourRun(mem8, LEFT_EDGE_COLOUR2_LOWER_RUN_BOTTOM, 9, 2);
+  paintColourRun(mem8, LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM, 9, 2);
+  paintColourRun(mem8, LEFT_EDGE_COLOUR3_RUN_BOTTOM, 10, 3);
 }
 
 /** Write `colour` into `count` colour cells starting at `top` and stepping upward one cell at a time. */

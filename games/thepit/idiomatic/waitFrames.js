@@ -9,18 +9,18 @@
  * watchdog so a long wait never trips a reset; a count of zero still makes one pass and kicks it.
  */
 
-import { FRAME_WAIT_COUNTDOWN } from "./names.js";
+import { FRAME_WAIT_COUNTDOWN, NMI_MASK_LATCH, WATCHDOG_KICK } from "./names.js";
 export function* waitFrames(m, count) {
   const { mem8 } = m;
 
   // Arm the countdown with the frame count, then enable the per-frame interrupt that ticks it.
   mem8[FRAME_WAIT_COUNTDOWN] = count;
-  mem8[0xb000] = 1;
+  mem8[NMI_MASK_LATCH] = 1;
 
   // Spin until the countdown is ticked to zero, kicking the watchdog each pass.
   let remaining;
   do {
-    mem8[0xb800]; // kick the watchdog
+    mem8[WATCHDOG_KICK]; // kick the watchdog
     yield;        // wait one vblank (the interrupt decrements the countdown)
     remaining = mem8[FRAME_WAIT_COUNTDOWN]; // reload the countdown the interrupt is decrementing
   } while (remaining !== 0);

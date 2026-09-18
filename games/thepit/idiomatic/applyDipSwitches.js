@@ -11,12 +11,20 @@
  * another inverts the base orientation — driving the flip control lines and, doubled, the sprite bias.
  */
 
-import { STEP_TIMER_BASE, SPRITE_COORD_BIAS, ACTIVE_PLAYER, COINS_PER_CREDIT_A, LOOP_DELAY_BASE, STARTING_MEN } from "./names.js";
+import {
+  ACTIVE_PLAYER,
+  COINS_PER_CREDIT_A,
+  DSW_PORT,
+  LOOP_DELAY_BASE,
+  SPRITE_COORD_BIAS,
+  STARTING_MEN,
+  STEP_TIMER_BASE,
+} from "./names.js";
 import { showColourTestScreen } from "./showColourTestScreen.js";
 
 export function applyDipSwitches(m) {
   const { mem8, mem16 } = m;
-  const dsw = mem8[0xb000];
+  const dsw = mem8[DSW_PORT];
 
   // Low two bits select coins-per-credit costs, packed low/high; both set = free play (0).
   let coinsPerCreditWord;

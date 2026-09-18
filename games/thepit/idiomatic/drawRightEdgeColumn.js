@@ -13,6 +13,13 @@
  */
 
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
+import {
+  RIGHT_EDGE_ACCENT_LOW_BOTTOM,
+  RIGHT_EDGE_ACCENT_MID_BOTTOM,
+  RIGHT_EDGE_COLUMN_BOTTOM,
+  RIGHT_EDGE_TILE_STRIP,
+  loc_895f,
+} from "./names.js";
 
 export function drawRightEdgeColumn(m) {
   const { mem8 } = m;
@@ -21,8 +28,8 @@ export function drawRightEdgeColumn(m) {
   const ROW = 32;
 
   // Copy the 28-byte tile strip from work RAM up video column 31, bottom cell to top.
-  let source = 0x8282;
-  let cell = 0x93bf;
+  let source = RIGHT_EDGE_TILE_STRIP;
+  let cell = RIGHT_EDGE_COLUMN_BOTTOM;
   for (let i = 0; i < 28; i++) {
     mem8[cell] = mem8[source];
     source += 1;
@@ -33,9 +40,9 @@ export function drawRightEdgeColumn(m) {
   fillColourColumnAt(m, 31, 2);
 
   // Three 3-cell accent bands (rows 26..28, 17..19, 8..10), each painted upward from its bottom cell.
-  paintColourBand(mem8, 0x8b9f, 6);
-  paintColourBand(mem8, 0x8a7f, 4);
-  paintColourBand(mem8, 0x895f, 7);
+  paintColourBand(mem8, RIGHT_EDGE_ACCENT_LOW_BOTTOM, 6);
+  paintColourBand(mem8, RIGHT_EDGE_ACCENT_MID_BOTTOM, 4);
+  paintColourBand(mem8, loc_895f, 7);
 }
 
 /** Write `colour` into three colour cells starting at `bottom` and stepping upward one row at a time. */

@@ -16,7 +16,7 @@ import { drawScoreDigits } from "./drawScoreDigits.js";
 import { drawGameOverLabel } from "./drawGameOverLabel.js";
 import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { loadPlayerState } from "./loadPlayerState.js";
-import { GAME_STATE, ACTIVE_PLAYER } from "./names.js";
+import { ACTIVE_PLAYER, GAME_STATE, SCORE_HUD_COLOUR_LOWER_BOTTOM, SCORE_HUD_COLOUR_UPPER_BOTTOM } from "./names.js";
 
 // One screen row = 32 cells across the 32-wide tile/colour map.
 const ROW = 32;
@@ -24,9 +24,9 @@ const ROW = 32;
 // The status label is picked from the player count: one or two players get the
 // in-game panel, any other count the "GAME OVER" label.
 const HUD_COLOUR = 2;
-const FIRST_COLUMN_BOTTOM = 0x8ba1;
+const FIRST_COLUMN_BOTTOM = SCORE_HUD_COLOUR_LOWER_BOTTOM;
 const FIRST_COLUMN_CELLS = 9;
-const SECOND_COLUMN_BOTTOM = 0x8961;
+const SECOND_COLUMN_BOTTOM = SCORE_HUD_COLOUR_UPPER_BOTTOM;
 const SECOND_COLUMN_CELLS = 10;
 
 export function redrawScoreHud(m) {

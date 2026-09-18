@@ -7,7 +7,34 @@
  * count's three redundant copies disagree or it runs past its cap.
  */
 
-import { FRAME_WAIT_COUNTDOWN, PLAY_PHASE_COUNTER, SECONDS_PRESCALER, IN0_DEBOUNCED, IN0_PREV, IN1_DEBOUNCED, IN1_PREV, GAME_STATE, VARIANT, SOUND_HEAD, SOUND_RING, SPRITE_STAGING_BASE, CREDIT_COUNT, CREDIT_MIRROR_A, CREDIT_MIRROR_B, COIN_SW_ACCUM, START1_SW_ACCUM, START2_SW_ACCUM, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B, SOUND_TAIL, FRAME_COUNTER_PRESCALER } from "./names.js";
+import {
+  COINS_PER_CREDIT_A,
+  COINS_PER_CREDIT_B,
+  COIN_START_PORT,
+  COIN_SW_ACCUM,
+  CREDIT_COUNT,
+  CREDIT_MIRROR_A,
+  CREDIT_MIRROR_B,
+  FRAME_COUNTER_PRESCALER,
+  FRAME_WAIT_COUNTDOWN,
+  GAME_STATE,
+  IN0_DEBOUNCED,
+  IN0_PREV,
+  IN1_DEBOUNCED,
+  IN1_PREV,
+  JOYSTICK_INPUT_PORT,
+  NMI_MASK_LATCH,
+  PLAY_PHASE_COUNTER,
+  SECONDS_PRESCALER,
+  SOUND_CMD_LATCH,
+  SOUND_HEAD,
+  SOUND_RING,
+  SOUND_TAIL,
+  SPRITE_STAGING_BASE,
+  START1_SW_ACCUM,
+  START2_SW_ACCUM,
+  VARIANT,
+} from "./names.js";
 import { coldBootInit } from "./coldBootInit.js";
 import { showCreditScreen } from "./showCreditScreen.js";
 import { startGame } from "./startGame.js";
@@ -19,7 +46,7 @@ const CREDIT_CAP = 10; // one past the highest bankable credit (banking clamps t
 export function serviceVblankNmi(m) {
   const { mem8 } = m;
 
-  mem8[0xb000] = 0;
+  mem8[NMI_MASK_LATCH] = 0;
 
   // Credit watchdog: the count lives in three redundant copies. A disagreement or an
   // overflow means the counter was corrupted, so cold-reset the machine. This handler runs at
@@ -45,7 +72,7 @@ export function serviceVblankNmi(m) {
   // interrupted code. The `ret` pops the PC the NMI pushed on entry — load-bearing when the
   // whole game runs idiomatic and this handler is dispatched by the live vblank rather than a
   // translated caller that would balance the stack itself.
-  mem8[0xb000] = 1;
+  mem8[NMI_MASK_LATCH] = 1;
   return m.ret();
 }
 
@@ -63,7 +90,7 @@ function fireQueuedSound(m) {
   mem8[SOUND_TAIL] = (readIndex + 1) & 7; // advance the read index (8-slot ring)
   const command = mem8[SOUND_RING + readIndex];
   mem8[SOUND_RING + readIndex] = 0; // consume the slot
-  if (command & 0x80) mem8[0xb800] = command;
+  if (command & 0x80) mem8[SOUND_CMD_LATCH] = command;
 }
 
 /** Copy the 32-byte (8 sprites x 4) staging buffer into hardware sprite RAM each frame. */
@@ -106,11 +133,11 @@ function tickFrameTimers(m) {
 function debounceInputs(m) {
   const { mem8 } = m;
 
-  const coinStart = mem8[0xa800]; // coin/start port
+  const coinStart = mem8[COIN_START_PORT]; // coin/start port
   if (coinStart === mem8[IN1_PREV]) mem8[IN1_DEBOUNCED] = coinStart;
   mem8[IN1_PREV] = coinStart;
 
-  const joystick = mem8[0xa000]; // joystick/dig port
+  const joystick = mem8[JOYSTICK_INPUT_PORT]; // joystick/dig port
   if (joystick === mem8[IN0_PREV]) mem8[IN0_DEBOUNCED] = joystick;
   mem8[IN0_PREV] = joystick;
 }

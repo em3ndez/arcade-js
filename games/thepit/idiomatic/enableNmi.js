@@ -1,3 +1,4 @@
+import { NMI_MASK_LATCH } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * enableNmi — switch on the per-frame vblank interrupt. The machine runs its per-frame
@@ -11,5 +12,5 @@ export function enableNmi(m) {
   // Set the NMI mask (bit 0 of the LS259 control latch) so the machine accepts the
   // once-per-frame vblank interrupt; until this bit is set that interrupt is ignored and
   // the game gets no per-frame service.
-  mem8[0xb000] = 1;
+  mem8[NMI_MASK_LATCH] = 1;
 }

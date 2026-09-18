@@ -17,29 +17,31 @@
 
 import {
   ENEMY3_ATTR,
+  ENEMY3_MOVE_PERIOD,
+  ENEMY3_STATE,
+  ENEMY3_TARGET_COL,
   ENEMY3_TILE,
   ENEMY3_TIMER,
-  ENEMY3_X,
-  ENEMY3_Y,
-  ENEMY3_STATE,
-  ENEMY3_MOVE_PERIOD,
-  ENEMY3_TARGET_COL,
-  LEVEL,
   ENEMY3_TWIN_ATTR,
-  ENEMY3_TWIN_Y,
+  ENEMY3_TWIN_MOVE_PERIOD,
+  ENEMY3_TWIN_STATE,
+  ENEMY3_TWIN_TARGET_COL,
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_TIMER,
   ENEMY3_TWIN_X,
-  ENEMY3_TWIN_STATE,
-  ENEMY3_TWIN_MOVE_PERIOD,
-  ENEMY3_TWIN_TARGET_COL,
+  ENEMY3_TWIN_Y,
+  ENEMY3_X,
+  ENEMY3_Y,
+  LEVEL,
+  TWIN_ACTOR_COLOUR_ANCHOR,
+  loc_90e4,
 } from "./names.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 // The eight-cell figure: a 4-row x 2-col tile block anchored at its bottom-left cell; rows sit one
 // tilemap row (32 cells) apart, tiles run consecutively from FIRST_TILE.
-const VIDEO_ANCHOR = 0x90e4; // tilemap RAM
-const COLOR_ANCHOR = 0x88e4; // colour-attribute RAM
+const VIDEO_ANCHOR = loc_90e4; // tilemap RAM
+const COLOR_ANCHOR = TWIN_ACTOR_COLOUR_ANCHOR; // colour-attribute RAM
 const ROW_STRIDE = 32; // one tilemap row
 const FIGURE_ROWS = 4;
 const FIGURE_COLS = 2;

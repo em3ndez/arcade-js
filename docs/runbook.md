@@ -673,6 +673,18 @@ shows only stage A (the renames + the map) and silently omits stage B.
   too; a fresh-vs-patched regeneration is a reviewer call. `names.js` is the single source for a cell's
   name/role/tag; prose cites it, never contradicts it (`names_consistency`). Promotion requires a
   proposer≠confirmer who **independently re-derives** — a prose review is not a confirmation.
+- **Exception — a value-identical CELL-naming pass THREADS the map, it does not blind-regen.** When a
+  commit only ADDS `names.js` cell consts + retrofits raw hex to those imports, proven value-identical
+  (per-routine equivalence 0 fail, **no routine rename, no role/behaviour change, no new `[seen]`
+  grounding**), the mechanism narrative is UNCHANGED — so a blind whole-regen would reproduce identical
+  substance while risking LOSS of hard-won `[code]` insights the current map already holds (a blind
+  re-derivation need not rediscover a subtle finding, e.g. a vestigial divider). Instead THREAD the
+  newly-named cells into the citations the map already makes (matching its `NAME 0xADDR` convention) and
+  re-verify each threaded claim against code, staged in the same commit — this satisfies
+  `understanding_gate` CHECK A (mechanisms.md is staged) without a destructive regen. A routine RENAME,
+  or ANY role/behaviour change, still takes the whole regen above: the ripple through the narrative is
+  real there, so the blind re-derivation earns its cost. (Codified 2026-09-18 on the thepit RAM-naming
+  pass; runbook rule-1 novel-decision.)
 
 ### The clock-free block — handle these four together
 

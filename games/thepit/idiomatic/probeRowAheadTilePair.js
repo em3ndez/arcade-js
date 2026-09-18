@@ -17,6 +17,7 @@
 
 import { F_Z } from "../../../core/cpu/z80.js";
 import { PROBE_CELL_PTR, SAVED_CELL_PTR, SUBTILE_PHASE } from "./names.js";
+import { u16 } from "../../../core/int.js";
 
 
 const FIRST_TABLE = 0x34fe; // base of the first valid-tile table (rows of 32)
@@ -35,7 +36,7 @@ export function probeRowAheadTilePair(m) {
 
   const phase = mem8[SUBTILE_PHASE];
   // Advance the tilemap pointer one row and stash it at SAVED_CELL_PTR for the reload below.
-  const cell = (mem16[PROBE_CELL_PTR] + ROW_LEN) & 0xffff;
+  const cell = u16(mem16[PROBE_CELL_PTR] + ROW_LEN);
   mem16[SAVED_CELL_PTR] = cell;
 
   // First row (selected by the phase, byte-wrapped): must hold the tile under the pointer.
@@ -46,7 +47,7 @@ export function probeRowAheadTilePair(m) {
     matched = rowContains(
       mem8,
       SECOND_TABLE + (phase - ROW_LEN + 256) % 256,
-      mem8[(cell + 1) & 0xffff],
+      mem8[u16(cell + 1)],
     );
   }
 

@@ -34,6 +34,7 @@ import {
 } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
+import { u16 } from "../../../core/int.js";
 
 // The two special tiles the object can sit exactly on, latched for later feature/goal logic.
 const FEATURE_TILE = 38;
@@ -74,7 +75,7 @@ function crossCheckUnderRecord(m) {
 function resolveTileAhead(m, column, cellPtr) {
   const { mem8 } = m;
 
-  const aheadTile = mem8[(cellPtr + 1) & 0xffff];
+  const aheadTile = mem8[u16(cellPtr + 1)];
   mem8[AHEAD_TILE_RAW] = aheadTile;
 
   // Solid tiles ahead: hold and defer.

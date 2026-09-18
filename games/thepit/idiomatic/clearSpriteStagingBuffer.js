@@ -1,3 +1,4 @@
+import { SPRITE_STAGING_END, SPRITE_STAGING_WIPE_BASE } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * clearSpriteStagingBuffer — zero a fixed 64-byte work-RAM block during setup.
@@ -11,7 +12,7 @@
 export function clearSpriteStagingBuffer(m) {
   const { mem8 } = m;
   // Zero every byte of the fixed 64-byte block.
-  for (let addr = 0x8200; addr < 0x8240; addr++) {
+  for (let addr = SPRITE_STAGING_WIPE_BASE; addr < SPRITE_STAGING_END; addr++) {
     mem8[addr] = 0;
   }
 }

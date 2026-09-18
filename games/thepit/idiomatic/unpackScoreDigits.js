@@ -11,6 +11,7 @@
  */
 
 import { SCORE_DISPLAY_HIGH, SCORE_DISPLAY_LOW } from "./names.js";
+import { u16 } from "../../../core/int.js";
 export function unpackScoreDigits(m) {
   const { regs, mem8 } = m;
 
@@ -27,7 +28,7 @@ export function unpackScoreDigits(m) {
   for (let i = start; i < cells.length; i++) {
     mem8[ptr] = cells[i];
     // Advance after every cell except the last — the pointer is left resting on it.
-    if (i < cells.length - 1) ptr = (ptr + 1) & 0xffff;
+    if (i < cells.length - 1) ptr = u16(ptr + 1);
   }
   regs.hl = ptr;
 }

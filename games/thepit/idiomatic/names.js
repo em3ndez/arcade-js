@@ -912,6 +912,124 @@ export const SCORE_READOUT_DEST = 0x8283;
  *  seats SP here, discarding the caller's frame. [code] */
 export const STACK_TOP = 0x83ff;
 
+// --- RAM/MMIO/VRAM cell names (thepit RAM naming pass, understanding stage A; [code] = grounded stage-B later) ---
+/** SPRITE_STAGING_WIPE_BASE (0x8200) — Base of the fixed 64-byte work-RAM block (0x8200..0x823f) zeroed one-shot by clearSpriteStagingBuffer at setup; its top half is the sprite-record stag… [code] */
+export const SPRITE_STAGING_WIPE_BASE = 0x8200;
+/** SPRITE_STAGING_END (0x8240) — Exclusive upper bound of the sprite-staging wipe (SPRITE_STAGING_BASE + 0x40); also the floor of the stack-only region 0x8240..0x87ff that no routine … [code] */
+export const SPRITE_STAGING_END = 0x8240;
+/** RIGHT_EDGE_TILE_STRIP (0x8282) — Base of the 28-byte work-RAM tile strip (0x8282..0x829d) that drawRightEdgeColumn copies up video column 31 (rows 2..29); dynamic, built in RAM unlike… [code] */
+export const RIGHT_EDGE_TILE_STRIP = 0x8282;
+/** COLOUR_COLUMN_ANCHOR (0x8840) — Colour-RAM top-of-column anchor (row 2, col 0 = colour base 0x8800 + two rows). A full-height column fill starts at 0x8840+column and stamps 28 cells … [code] */
+export const COLOUR_COLUMN_ANCHOR = 0x8840;
+/** JEWEL_GLITTER_COLOUR_7 (0x8873) — Colour-attribute cell of the glitter cycle's slot-7 diamond (paired video/glyph cell 0x9073, animating glyph 0x3a, resting colour 7); recoloured each … [code] */
+export const JEWEL_GLITTER_COLOUR_7 = 0x8873;
+/** JEWEL_GLITTER_COLOUR_5 (0x88d9) — Colour-attribute cell of the glitter cycle's slot-5 diamond (paired video/glyph cell 0x90d9, animating glyph 0x3a, resting colour 7); recoloured by gl… [code] */
+export const JEWEL_GLITTER_COLOUR_5 = 0x88d9;
+/** TWIN_ACTOR_COLOUR_ANCHOR (0x88e4) — Bottom-left colour-attribute anchor of the two-body ENEMY3 (twin) actor's fixed 4-row x 2-col tile figure, stamped by spawnTwinActor; all eight cells … [code] */
+export const TWIN_ACTOR_COLOUR_ANCHOR = 0x88e4;
+/** JEWEL_GLITTER_COLOUR_6 (0x895d) — Colour-attribute cell of the glitter cycle's slot-6 diamond (paired video/glyph cell 0x915d, animating glyph 0x3b, resting colour 3); recoloured by gl… [code] */
+export const JEWEL_GLITTER_COLOUR_6 = 0x895d;
+/** SCORE_HUD_COLOUR_UPPER_BOTTOM (0x8961) — Colour/attribute-RAM cell (col 1, row 11): bottom cell of the UPPER score-HUD colour column that redrawScoreHud tints colour 2 walking upward 10 cells… [code] */
+export const SCORE_HUD_COLOUR_UPPER_BOTTOM = 0x8961;
+/** JEWEL_GLITTER_COLOUR_3 (0x89b6) — Colour-RAM attribute of one on-screen diamond (col 22, row 13); glitterJewels steps its colour through 8 shades while its tile shows animating glyph 0… [code] */
+export const JEWEL_GLITTER_COLOUR_3 = 0x89b6;
+/** JEWEL_GLITTER_COLOUR_4 (0x89fd) — Colour-RAM attribute of a diamond (col 29, row 15); glitterJewels value-4 glitter cell (animating glyph 0x3c, resting colour 3). The value-4 step AND … [code] */
+export const JEWEL_GLITTER_COLOUR_4 = 0x89fd;
+/** JEWEL_GLITTER_COLOUR_2 (0x8a7d) — Colour-RAM attribute of a diamond (col 29, row 19); glitterJewels value-2 glitter cell (animating glyph 0x3d, resting colour 3). [code] */
+export const JEWEL_GLITTER_COLOUR_2 = 0x8a7d;
+/** RIGHT_EDGE_ACCENT_MID_BOTTOM (0x8a7f) — Colour-RAM cell at right playfield edge (col 31, row 19): bottom of the MIDDLE 3-cell colour-4 accent band painted upward by drawRightEdgeColumn. [code] */
+export const RIGHT_EDGE_ACCENT_MID_BOTTOM = 0x8a7f;
+/** LEFT_EDGE_COLOUR3_RUN_BOTTOM (0x8a80) — Colour-RAM cell at fixed left playfield edge (col 0, row 20): bottom anchor of the 10-cell colour-3 tint run drawLeftEdgeColumn paints UPWARD up video… [code] */
+export const LEFT_EDGE_COLOUR3_RUN_BOTTOM = 0x8a80;
+/** JEWEL_GLITTER_COLOUR_1 (0x8b3a) — Colour-RAM attribute of a diamond (col 26, row 25); glitterJewels default/value-1 cell (animating glyph 0x3a, resting colour 7), used on countdown val… [code] */
+export const JEWEL_GLITTER_COLOUR_1 = 0x8b3a;
+/** RIGHT_EDGE_ACCENT_LOW_BOTTOM (0x8b9f) — Colour-RAM cell at right playfield edge (col 31, row 28): bottom of the LOW 3-cell colour-6 accent band painted upward by drawRightEdgeColumn. [code] */
+export const RIGHT_EDGE_ACCENT_LOW_BOTTOM = 0x8b9f;
+/** LEFT_EDGE_COLOUR2_LOWER_RUN_BOTTOM (0x8ba0) — Colour-RAM cell at the fixed left playfield edge (col 0, row 29): bottom (starting) cell of the LOWER of the two 9-cell colour-2 tint runs drawLeftEdgeColumn paints upward at stride 32 (rows 29..21). [code] */
+export const LEFT_EDGE_COLOUR2_LOWER_RUN_BOTTOM = 0x8ba0;
+/** SCORE_HUD_COLOUR_LOWER_BOTTOM (0x8ba1) — Colour/attribute-RAM cell (col 1, row 29): bottom cell of the LOWER score-HUD colour column that redrawScoreHud tints colour 2 walking upward 9 cells,… [code] */
+export const SCORE_HUD_COLOUR_LOWER_BOTTOM = 0x8ba1;
+/** ENEMY3_FIGURE_COLOUR_ANCHOR (0x8ba3) — Colour-RAM anchor cell (0x8800-0x8BFF, pairs with tilemap anchor 0x93a3 = 0x8ba3+0x800) where the two-body enemy3 (twin / alt-phase) actor stamps the … [code] */
+export const ENEMY3_FIGURE_COLOUR_ANCHOR = 0x8ba3;
+/** JEWEL_GLITTER_TILE_7 (0x9073) — Video/tilemap (0x9000-0x93FF) glyph cell for the glitter jewel selected on glitterJewels countdown value 7; read each frame, and if it equals the anim… [code] */
+export const JEWEL_GLITTER_TILE_7 = 0x9073;
+/** OTHER_SCORE_COLUMN_BASE (0x90c1) — Video-RAM base cell of the non-player-1 (player 2 / 'any other player') score-digit column; drawScoreDigits stamps the four BCD score digits here one … [code] */
+export const OTHER_SCORE_COLUMN_BASE = 0x90c1;
+/** JEWEL_GLITTER_TILE_5 (0x90d9) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 5; read for the animating glyph 0x3a, paired colour cell 0x88… [code] */
+export const JEWEL_GLITTER_TILE_5 = 0x90d9;
+/** JEWEL_GLITTER_TILE_6 (0x915d) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 6; read for the animating glyph 0x3b (distinct from the 0x3a … [code] */
+export const JEWEL_GLITTER_TILE_6 = 0x915d;
+/** HIGH_SCORE_INITIALS_CELL_RANK3 (0x915f) — Video-RAM cell where the entered initial blinks during high-score initials entry for the rank picked by selector/VARIANT==3 (record HIGH_SCORE_TABLE+1… [code] */
+export const HIGH_SCORE_INITIALS_CELL_RANK3 = 0x915f;
+/** SETUP_COINAGE_A_PLURAL_CELL (0x918e) — Setup-screen video-RAM cell above the first coinage field (COINS_PER_CREDIT_A, column 14): showSetupScreen patches it to glyph 0x24 (=BLANK_TILE 36) o… [code] */
+export const SETUP_COINAGE_A_PLURAL_CELL = 0x918e;
+/** JEWEL_GLITTER_TILE_3 (0x91b6) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 3; read for the animating glyph 0x3a, paired colour cell 0x89… [code] */
+export const JEWEL_GLITTER_TILE_3 = 0x91b6;
+/** JEWEL_GLITTER_TILE_4 (0x91fd) — glitterJewels CELLS[4] video/tilemap glyph cell (paired colour cell 0x89fd, animating glyph 0x3c, resting colour 3). Read to test for the animating di… [code] */
+export const JEWEL_GLITTER_TILE_4 = 0x91fd;
+/** MOUNTAIN_ERODE_SOUND_MARKER_TILE (0x9264) — seedMountainErosion tilemap marker cell: `if (mem8[0x9264]===0x32) requestSound21(m)` — holding trigger tile 0x32 cues the Zonker/erosion sound. Only … [code] */
+export const MOUNTAIN_ERODE_SOUND_MARKER_TILE = 0x9264;
+/** JEWEL_GLITTER_TILE_2 (0x927d) — glitterJewels CELLS[2] video/tilemap glyph cell (paired colour cell 0x8a7d, animating glyph 0x3d, resting colour 3). Selected on countdown value 2. On… [code] */
+export const JEWEL_GLITTER_TILE_2 = 0x927d;
+/** HISCORE_RANK2_INITIALS_TILE (0x927f) — runHighScoreInitialsEntry rankDisplay selector 2: on-screen video cell where the middle rank's initials blink during initials entry (fills HIGH_SCORE_… [code] */
+export const HISCORE_RANK2_INITIALS_TILE = 0x927f;
+/** SETUP_COINAGE_A_MARKER_TILE (0x928c) — showSetupScreen: `mem8[0x928c]=1` — fixed marker/numeral cell heading the first credit-config (coinage A) record before its 6-tile label run is copied… [code] */
+export const SETUP_COINAGE_A_MARKER_TILE = 0x928c;
+/** SETUP_COINAGE_A_COUNT_TILE (0x928e) — showSetupScreen stampCountField(m,0x928e,countA,14): first count-record digit cell on the round-setup screen; its tile is COINS_PER_CREDIT_A (DSW coin… [code] */
+export const SETUP_COINAGE_A_COUNT_TILE = 0x928e;
+/** SETUP_COINAGE_B_MARKER_TILE (0x9292) — showSetupScreen: `mem8[0x9292]=2` — fixed marker/numeral cell heading the second credit-config (coinage B) record before its 7-tile label run at col18… [code] */
+export const SETUP_COINAGE_B_MARKER_TILE = 0x9292;
+/** SETUP_COINAGE_B_COUNT_TILE (0x9294) — showSetupScreen stampCountField(m,0x9294,countB,20): second count-record digit cell on the round-setup screen; its tile is COINS_PER_CREDIT_B (DSW coi… [code] */
+export const SETUP_COINAGE_B_COUNT_TILE = 0x9294;
+/** MOUNTAIN_ERODE_SPAWN_TILE (0x92a4) — erodeMountain landmark cell: when the fill cursor MOUNTAIN_ERODE_PTR steps to exactly this address (`if (ptr!==0x92a4) return`) it finalises the erosi… [code] */
+export const MOUNTAIN_ERODE_SPAWN_TILE = 0x92a4;
+/** P1_SCORE_COLUMN_BASE (0x9301) — drawScoreDigits player-1 score-column base: the four BCD score digits are stamped here and at +32/+64/+96 (one tilemap row apart) when ACTIVE_PLAYER==… [code] */
+export const P1_SCORE_COLUMN_BASE = 0x9301;
+/** JEWEL_GLITTER_TILE_1 (0x933a) — Video-RAM tile byte of glitterJewels' default glitter cell (countdown value 1, and any stray value outside 2..7); read each cycle to decide whether it… [code] */
+export const JEWEL_GLITTER_TILE_1 = 0x933a;
+/** PIT_FLOOR_REVEAL_COLUMN_BOTTOM (0x938c) — Bottom video-RAM cell of the sliding pit-floor / terrain reveal column; 6 tiles (TILES_PER_COLUMN) are stamped upward from here (cell -= 32 per tile) … [code] */
+export const PIT_FLOOR_REVEAL_COLUMN_BOTTOM = 0x938c;
+/** HISCORE_INITIALS_RANK0_CELL (0x939f) — Video-RAM cell where the rank-0 (default/lowest) high-score record's initials blink during initials entry; runHighScoreInitialsEntry.rankDisplay() ret… [code] */
+export const HISCORE_INITIALS_RANK0_CELL = 0x939f;
+/** ENEMY3_FIGURE_ANCHOR_CELL (0x93a3) — Tilemap anchor (bottom-left) cell of the ENEMY3 twin / alt-phase two-body actor's 2-wide x 4-tall tile figure; the 8 cells are stamped at fixed offset… [code] */
+export const ENEMY3_FIGURE_ANCHOR_CELL = 0x93a3;
+/** RIGHT_EDGE_COLUMN_BOTTOM (0x93bf) — Bottom cell of the right-edge playfield tile column (video column 31); drawRightEdgeColumn copies a 28-byte dynamic tile strip from work RAM (0x8282) … [code] */
+export const RIGHT_EDGE_COLUMN_BOTTOM = 0x93bf;
+/** LEFT_EDGE_COLUMN_BOTTOM (0x93e0) — Bottom cell of the fixed left-edge playfield tile column (video column 0, all 32 rows); drawLeftEdgeColumn copies a 32-byte picture strip (0x4aab) upw… [code] */
+export const LEFT_EDGE_COLUMN_BOTTOM = 0x93e0;
+/** BOOT_TEXT_COLUMN25_BOTTOM (0x93f9) — Bottom cell of a fixed 32-tile boot/attract-screen text column laid into tilemap column 25; drawCopyrightLine copies a 32-tile strip (0x49c7) upward f… [code] */
+export const BOOT_TEXT_COLUMN25_BOTTOM = 0x93f9;
+/** BOOT_TEXT_COLUMN30_BOTTOM (0x93fe) — Bottom cell of a fixed boot/attract-screen tile column laid into tilemap column 30; drawBestScoresTodayLabel copies a 32-byte picture strip (0x4acb) u… [code] */
+export const BOOT_TEXT_COLUMN30_BOTTOM = 0x93fe;
+/** VIDEO_RAM_LAST_CELL (0x93ff) — Last (inclusive) cell of the 0x9000-0x93FF tilemap; used as the upper loop bound (cell <= 0x93ff) when fillVideoRam paints all 1024 cells with the bac… [code] */
+export const VIDEO_RAM_LAST_CELL = 0x93ff;
+/** VIDEO_RAM_END_EXCLUSIVE (0x9400) — One-past-the-end (exclusive upper bound) of tilemap RAM 0x9000-0x93FF; erodeMountain stops extending its fill column once the write cursor reaches thi… [code] */
+export const VIDEO_RAM_END_EXCLUSIVE = 0x9400;
+/** ATTR_SCROLL_RAM_BASE (0x9800) — VRAM structural base of the attribute / column-scroll RAM region (0x9800-0x983F, one byte per column), which is also the base of the whole contiguous … [code] */
+export const ATTR_SCROLL_RAM_BASE = 0x9800;
+/** JOYSTICK_INPUT_PORT (0xa000) — MMIO input port IN0 (read): 8-way joystick + dig/fire. Read once in serviceVblankNmi.debounceInputs as `mem8[0xa000] // joystick/dig port`. Board io.r… [code] */
+export const JOYSTICK_INPUT_PORT = 0xa000;
+/** COIN_START_PORT (0xa800) — MMIO input port IN1 (read): coin + start switches, ACTIVE HIGH (idle 0x00, a press sets its bit). Read in serviceVblankNmi.debounceInputs as `mem8[0xa… [code] */
+export const COIN_START_PORT = 0xa800;
+/** SOUND_ENABLE_LATCH (0xb003) — MMIO WRITE: LS259 control latch bit 3 = master sound-enable line (data on d0). enableSound writes 1 (unmute), disableSound writes 0 (mute). [code] */
+export const SOUND_ENABLE_LATCH = 0xb003;
+/** DSW_PORT (0xb000) — DIP-switch input port (READ side of 0xB000): the LS157-muxed DSW byte applyDipSwitches decodes. [code] */
+export const DSW_PORT = 0xb000;
+/** NMI_MASK_LATCH (0xb000) — LS259 control-latch bit0 (WRITE side of 0xB000): 1 arms / 0 masks the vblank NMI. [code] */
+export const NMI_MASK_LATCH = 0xb000;
+/** WATCHDOG_KICK (0xb800) — Watchdog reset (READ side of 0xB800): reading it kicks the watchdog. [code] */
+export const WATCHDOG_KICK = 0xb800;
+/** SOUND_CMD_LATCH (0xb800) — Sound-command latch (WRITE side of 0xB800): the byte handed to the audio Z80. [code] */
+export const SOUND_CMD_LATCH = 0xb800;
+/** LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM (0x8940) — Colour-RAM cell at the fixed left playfield edge (col 0, row 10): bottom (starting) cell of the UPPER 9-cell colour-2 tint run drawLeftEdgeColumn paints upward at stride 32 (rows 10..2). [code] */
+export const LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM = 0x8940;
+/** loc_895f (0x895f) — Colour-RAM cell at column 31 / row 10 written by TWO different features: drawRightEdgeColumn's top 3-cell accent band (bottom cell, colour 7, rows 10/… [guess] (placeholder; names-debt) */
+export const loc_895f = 0x895f;
+/** loc_90c4 (0x90c4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion stamps it to 0xac as the mountain-cap cell one tilemap row above the 0x90e4 head; spaw… [guess] (placeholder; names-debt) */
+export const loc_90c4 = 0x90c4;
+/** loc_90e4 (0x90e4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion checks it for the 0xfe marker then stamps 0xae as the mountain-erosion head cell; spaw… [guess] (placeholder; names-debt) */
+export const loc_90e4 = 0x90e4;
+
 // ═══ ROUTINE LABELS ═══════════════════════════════════════════════════════════
 // Address → { name, role, cert } for every named main-CPU routine (ROM 0x0000-0x4FFF).
 // names.js is the canonical NAMES registry for The Pit: work-RAM cells (above) and

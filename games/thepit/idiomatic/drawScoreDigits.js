@@ -10,13 +10,19 @@
  * blank the two cells above the score.
  */
 
-import { ACTIVE_PLAYER, SCORE_HI, SCORE_LO } from "./names.js";
+import {
+  ACTIVE_PLAYER,
+  OTHER_SCORE_COLUMN_BASE,
+  P1_SCORE_COLUMN_BASE,
+  SCORE_HI,
+  SCORE_LO,
+} from "./names.js";
 
 // The blank tile that replaces a suppressed leading zero.
 const BLANK_TILE = 36;
 
-const P1_SCORE_COLUMN = 0x9301;
-const OTHER_SCORE_COLUMN = 0x90c1;
+const P1_SCORE_COLUMN = P1_SCORE_COLUMN_BASE;
+const OTHER_SCORE_COLUMN = OTHER_SCORE_COLUMN_BASE;
 const ROW = 32; // one tile-map row down the column
 
 export function drawScoreDigits(m) {

@@ -13,20 +13,36 @@
  * outside 2..7 falls to the value-1 cell. Called once per main-loop pass as a decorative recolour.
  */
 
-import { GLITTER_COUNTDOWN } from "./names.js";
+import {
+  GLITTER_COUNTDOWN,
+  JEWEL_GLITTER_TILE_1,
+  JEWEL_GLITTER_TILE_2,
+  JEWEL_GLITTER_TILE_4,
+  JEWEL_GLITTER_TILE_3,
+  JEWEL_GLITTER_TILE_5,
+  JEWEL_GLITTER_TILE_6,
+  JEWEL_GLITTER_TILE_7,
+  JEWEL_GLITTER_COLOUR_5,
+  JEWEL_GLITTER_COLOUR_6,
+  JEWEL_GLITTER_COLOUR_7,
+  JEWEL_GLITTER_COLOUR_1,
+  JEWEL_GLITTER_COLOUR_2,
+  JEWEL_GLITTER_COLOUR_3,
+  JEWEL_GLITTER_COLOUR_4,
+} from "./names.js";
 
 // Countdown value → the cell it recolours:
 //   [ colour-RAM cell (written), video-RAM cell (read), animating glyph, resting colour ]
 const CELLS = {
-  7: [0x8873, 0x9073, 0x3a, 7],
-  6: [0x895d, 0x915d, 0x3b, 3],
-  5: [0x88d9, 0x90d9, 0x3a, 7],
-  4: [0x89fd, 0x91fd, 0x3c, 3],
-  3: [0x89b6, 0x91b6, 0x3a, 7],
-  2: [0x8a7d, 0x927d, 0x3d, 3],
+  7: [JEWEL_GLITTER_COLOUR_7, JEWEL_GLITTER_TILE_7, 0x3a, 7],
+  6: [JEWEL_GLITTER_COLOUR_6, JEWEL_GLITTER_TILE_6, 0x3b, 3],
+  5: [JEWEL_GLITTER_COLOUR_5, JEWEL_GLITTER_TILE_5, 0x3a, 7],
+  4: [JEWEL_GLITTER_COLOUR_4, JEWEL_GLITTER_TILE_4, 0x3c, 3],
+  3: [JEWEL_GLITTER_COLOUR_3, JEWEL_GLITTER_TILE_3, 0x3a, 7],
+  2: [JEWEL_GLITTER_COLOUR_2, JEWEL_GLITTER_TILE_2, 0x3d, 3],
 };
 // Countdown value 1, and any stray value outside 2..7.
-const CELL_DEFAULT = [0x8b3a, 0x933a, 0x3a, 7];
+const CELL_DEFAULT = [JEWEL_GLITTER_COLOUR_1, JEWEL_GLITTER_TILE_1, 0x3a, 7];
 
 function recolorCell(m, colourCell, tileCell, animatingGlyph, restingColor) {
   const { mem8 } = m;
