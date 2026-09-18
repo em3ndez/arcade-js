@@ -123,7 +123,7 @@ export const ENEMY3_TWIN_Y = 0x811e; // twin half: Y (record offset +3) [seen]
 /** BOARD_END_PHASE (0x807b) — end-of-board state read when the mountain is gone (§2.6): 0 = idle
  *  (pure-idle case, just plays a sound), 1 = ESCAPE (player reached the top rung with treasure → forces
  *  the rescue ship down → level advance), ≥2 = done. Also gates enemy-3's alt spawn path (loc_3748).
- *  Grounded (§2.6). [code] */
+ *  Grounded (§2.6). [seen] */
 export const BOARD_END_PHASE = 0x807b;
 
 /** Enemy-3 cadence timer (record offset 8, 0x810a+8) — reloaded and counted down to pace enemy #3
@@ -446,7 +446,7 @@ export const DIG_OBJ_TIMER = 0x80b1;
 /**
  *  DIG_OBJ_SUBTYPE (0x80c0) — sub-type/variant selector of the committed dig entity, written
  *  by spawnDigEntity and dispatched by loc_298a and advanceDigCarveObject (0=plain/ret, 2=special: arm timer +
- *  patch neighbour tiles to 0xc1); grounded across 4 routines, A/B converged [code]
+ *  patch neighbour tiles to 0xc1); grounded across 4 routines, A/B converged [seen]
  */
 export const DIG_OBJ_SUBTYPE = 0x80c0;
 /**
@@ -1015,10 +1015,10 @@ export const ROUTINES = {
   0x3484: { name: "stepMoverDown", role: "one fixed-direction preset of the patrol mover — step its position and re-publish this preset's facing on the cadence beat", cert: "seen" },
   0x348b: { name: "stepMoverUnmirrored", role: "advance one mover step for movement direction 3 — step position on the cadence beat and refresh facing + walk-frame", cert: "seen" },
   0x34da: { name: "advanceDormantMover", role: "mover housekeeping — advance two cadence counters, and on the slow wrap free-run a shot enemy toward respawn", cert: "seen" },
-  0x34f0: { name: "reseedMoverCadenceAndRearmState", role: "periodic mover refresh — reseed the random/animation byte and re-arm the actor state byte", cert: "code" },
+  0x34f0: { name: "reseedMoverCadenceAndRearmState", role: "periodic mover refresh — reseed the random/animation byte and re-arm the actor state byte", cert: "seen" },
   0x36fe: { name: "seedActorSpawnState", role: "put the two-sprite actor (primary + twin) into its fixed starting state and drop it back to the un-spawned phase", cert: "seen" },
   0x3748: { name: "advanceTwoSpriteActor", role: "per-frame update for the two-sprite actor (enemy-3 / rescue-ship / intro set-piece) — dispatch by spawn state and animation phase, marching + walk-animating it inline", cert: "seen" },
-  0x37cf: { name: "spawnAltPhaseActor", role: "bring the alt-phase two-sprite actor to life on its first frame, then animate it every frame after", cert: "code" },
+  0x37cf: { name: "spawnAltPhaseActor", role: "bring the alt-phase two-sprite actor to life on its first frame, then animate it every frame after", cert: "seen" },
   0x384a: { name: "advanceAltPhaseActor", role: "per-frame animate + march for the alt-phase actor — the rescue ship flying in to land on the escape path (→ level advance)", cert: "seen" },
   0x38c8: { name: "advanceOrRebuildTwinActor", role: "per-frame gate for the two-body actor — keep it moving while high in the field, else rebuild it at the start edge and redraw (which specific figure is unpinned)", cert: "seen" },
   0x3945: { name: "paceActorCadence", role: "cadence front end for the actor phase body — tick the period-8 timer down, reload it on expiry, then run the phase body", cert: "seen" },
