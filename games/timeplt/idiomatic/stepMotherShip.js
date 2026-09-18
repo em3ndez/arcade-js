@@ -65,10 +65,10 @@ export function stepMotherShip(m) {
   return loc_43f0_4403(m); // live
 }
 
-export function loc_43f0_4403(m) {
+export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem, mem8 } = m;
-  const X = (d) => u16(regs.ix + d);
-  const Y = (d) => u16(regs.iy + d);
+  const X = (d) => u16(ix + d);
+  const Y = (d) => u16(iy + d);
 
   regs.h = mem8[X(0x0c)];
   regs.l = mem8[X(0x0d)];
@@ -100,19 +100,19 @@ export function loc_43f0_4403(m) {
   return loc_43f0_46f0(m);
 }
 
-export function loc_43f0_4535(m) {
+export function loc_43f0_4535(m, ix = m.regs.ix) {
   const { regs, mem, mem8 } = m;
-  const X = (d) => u16(regs.ix + d);
+  const X = (d) => u16(ix + d);
   regs.a = mem8[X(IDLE_DELAY)];
   regs.and(regs.a);
   if (regs.fZ) return loc_43f0_4663(m);
   regs.decMem8(mem, X(IDLE_DELAY));
 }
 
-export function loc_43f0_4540(m) {
+export function loc_43f0_4540(m, a = m.regs.a, ix = m.regs.ix) {
   const { regs, mem, mem8 } = m;
-  const X = (d) => u16(regs.ix + d);
-  regs.c = regs.a; // C = phase + 1
+  const X = (d) => u16(ix + d);
+  regs.c = a; // C = phase + 1
   regs.a = mem8[X(HOLD_COUNTER)];
   regs.and(regs.a);
   if (regs.fZ) return loc_43f0_4554(m);
@@ -122,12 +122,12 @@ export function loc_43f0_4540(m) {
   return loc_43f0_4403(m);
 }
 
-export function loc_43f0_4554(m) {
+export function loc_43f0_4554(m, c = m.regs.c) {
   const { regs, mem8 } = m;
   const X = (d) => u16(regs.ix + d);
   const Y = (d) => u16(regs.iy + d);
 
-  regs.a = regs.c;
+  regs.a = c;
   regs.cp(REBUILD_TRIGGER);
   if (regs.fNZ) return loc_43f0_45b3(m);
 
@@ -222,10 +222,10 @@ export function loc_43f0_45b3(m) {
   mem8[Y(0x03)] = 0xff;
 }
 
-export function loc_43f0_4623(m) {
+export function loc_43f0_4623(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem, mem8 } = m;
-  const X = (d) => u16(regs.ix + d);
-  const Y = (d) => u16(regs.iy + d);
+  const X = (d) => u16(ix + d);
+  const Y = (d) => u16(iy + d);
 
   regs.decMem8(mem, X(STATE));
   mem8[Y(0x01)] = 0xfe;
@@ -239,9 +239,9 @@ export function loc_43f0_4623(m) {
   return postCommand(m);
 }
 
-export function loc_43f0_4646(m) {
+export function loc_43f0_4646(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
-  const X = (d) => u16(regs.ix + d);
+  const X = (d) => u16(ix + d);
 
   regs.a = 0xff;
   mem8[ROUND_TRANSITION_HOLD] = regs.a;

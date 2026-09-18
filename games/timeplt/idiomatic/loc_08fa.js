@@ -7,16 +7,16 @@
 
 import { loc_2f01, loc_bc00, loc_c600, loc_de00 } from "./names.js";
 
-export function loc_08fa(m) {
+export function loc_08fa(m, a = m.regs.a, l = m.regs.l, h = m.regs.h) {
   const { regs, mem8 } = m;
 
   if (!regs.fC) {
-    mem8[loc_2f01] = regs.a;
+    mem8[loc_2f01] = a;
     return;
   }
 
-  regs.l = regs.l - 1;
-  regs.h = regs.h + 1;
+  regs.l = l - 1;
+  regs.h = h + 1;
   regs.e = 0x01;
   const hi = (m.pop16() >> 8) & 0xff;
   regs.exDeHl();

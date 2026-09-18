@@ -17,19 +17,19 @@ const SUBGUARD_A = 0x05;
 const SUBGUARD_B = 0x10;
 const SEAT_COUNT = 8;
 
-export function clearSceneryEntriesThenRunEraScenery(m) {
+export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era = m.regs.c) {
   const { regs, mem8 } = m;
 
   regs.hl = SCENERY_SPRITE_ATTRIBUTE_SLOT0;
   regs.de = 0x0002;
   regs.b = CLEAR_COUNT;
   do {
-    mem8[regs.hl] = regs.a;
+    mem8[regs.hl] = fillByte;
     regs.hl = (regs.hl + regs.de) & 0xffff;
     regs.b = (regs.b - 1) & 0xff;
   } while (regs.b !== 0);
 
-  regs.a = regs.c;
+  regs.a = era;
   regs.cp(ERA_FLOOR);
   if (regs.fC) return seedSceneryEntriesThenRunScenery(m);
 

@@ -33,10 +33,10 @@ const CLOSED_OUT = 0x80;
 const HEADING_BIAS = 0x40;
 const HALF = 0x80;
 
-export function dressSpriteForHeadingOrRetireAtEdge(m) {
+export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
-  const record = regs.ix;
-  const entry = regs.iy;
+  const record = ix;
+  const entry = iy;
 
   if (hasReachedBoundaryBandSelectedByHeading(m)) return retireEntryPairIntoCooldown(m);
 

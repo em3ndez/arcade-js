@@ -7,10 +7,10 @@
  * nothing ever faults the run falls into HALT and burns cycles until the frame budget unwinds it.
  * LIVE-OUT: the write fault the register churn addresses, else a halt; no return. */
 
-export function loc_2251(m) {
+export function loc_2251(m, a = m.regs.a) {
   const { regs, mem, mem8 } = m;
 
-  regs.a = regs.inc8(regs.a);
+  regs.a = regs.inc8(a);
   regs.a = regs.inc8(regs.a);
   regs.a = regs.inc8(regs.a);
   regs.a = regs.inc8(regs.a);

@@ -28,10 +28,10 @@ const NEW_SHAPE = 0x62;
 // era count != 1 with the scan flag clear selects the second bank; the guard and the seat both ask.
 const useSecondBank = (m) => m.mem8[ATTACKER_SPAWN_SLOT_COUNT] !== 1 && m.mem8[ERA_OBJECT_RECORD_SLOT2] === 0;
 
-export function spawnAimedEnemyIntoEraBankWhenInWindow(m) {
+export function spawnAimedEnemyIntoEraBankWhenInWindow(m, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
-  if (mem8[regs.ix] !== SLOT_FREE) return;
+  if (mem8[ix] !== SLOT_FREE) return;
   if (mem8[ATTACKER_SPAWN_COOLDOWN] !== 0) return;
   if (mem8[ATTACKER_SPAWN_SLOT_COUNT] === 0) return;
   if (!useSecondBank(m) && mem8[ACTOR_RECORD_SLOT3] !== 0) return;

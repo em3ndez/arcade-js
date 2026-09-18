@@ -20,9 +20,9 @@ const AIM_HEADING = 1;
 const SECOND_COORD = 49;
 const ARRIVED = 16;
 
-export function flyTowardShipStandoffThenEndApproach(m) {
+export function flyTowardShipStandoffThenEndApproach(m, bc = m.regs.bc) {
   const { regs, mem8 } = m;
-  const held = regs.bc;
+  const held = bc;
 
   if ((mem8[FRAME_TICK] & REAIM_MASK) === 0) {
     const point = mem8[u16(regs.ix + AIM_SELECTOR)] & 1 ? ENEMY_STANDOFF_AIM_SET : ENEMY_STANDOFF_AIM_CLEAR;

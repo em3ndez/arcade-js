@@ -27,9 +27,9 @@ function plot(m, term, centre, off8, off16, mirror) {
   if (mirror) { regs.a = u8(centre - regs.h); mem8[u16(regs.ix + off16 + 4)] = regs.a; }
 }
 
-export function layOutEnemyAimPointsFromScrollAngle(m) {
+export function layOutEnemyAimPointsFromScrollAngle(m, c = m.regs.c) {
   const { regs, mem8 } = m;
-  if ((regs.c & SUBMODE_MASK) !== SUBMODE) return;
+  if ((c & SUBMODE_MASK) !== SUBMODE) return;
   regs.ix = ENEMY_AIM_ANCHOR_Y;
 
   regs.a = u8(mem8[PLAYER_HEADING] + QUARTER_TURN);

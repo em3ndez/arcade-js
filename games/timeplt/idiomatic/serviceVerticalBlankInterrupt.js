@@ -14,20 +14,20 @@ import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME
 
 const TIMERS = [BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER, ATTACKER_SPAWN_COOLDOWN];
 
-export function serviceVerticalBlankInterrupt(m) {
+export function serviceVerticalBlankInterrupt(m, bc = m.regs.bc, de = m.regs.de, hl = m.regs.hl, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
 
-  m.push16(regs.bc);
-  m.push16(regs.de);
-  m.push16(regs.hl);
+  m.push16(bc);
+  m.push16(de);
+  m.push16(hl);
   regs.exAf();
   regs.exx();
   m.push16(regs.af);
   m.push16(regs.bc);
   m.push16(regs.de);
   m.push16(regs.hl);
-  m.push16(regs.ix);
-  m.push16(regs.iy);
+  m.push16(ix);
+  m.push16(iy);
 
   publishSpriteShadow(m);
   drainBothDeferredCellLists(m);

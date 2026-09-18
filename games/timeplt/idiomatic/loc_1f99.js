@@ -9,17 +9,17 @@
 
 import { loc_1fcf, loc_f1eb, loc_f1f1 } from "./names.js";
 
-export function loc_1f99(m) {
+export function loc_1f99(m, l = m.regs.l) {
   const { regs, mem, mem8 } = m;
 
   regs.af = m.pop16();
   regs.af = m.pop16();
-  regs.c = regs.l;
+  regs.c = l;
   regs.af = m.pop16();
   regs.af = m.pop16();
   regs.af = m.pop16();
   m.push16(regs.hl);
-  regs.l = regs.dec8(regs.l);
+  regs.l = regs.dec8(l);
   regs.l = mem8[regs.hl];
   regs.af = m.pop16();
   regs.af = m.pop16();

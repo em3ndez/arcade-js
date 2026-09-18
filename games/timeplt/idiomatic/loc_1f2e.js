@@ -5,14 +5,14 @@
 import { loc_1f99 } from "./loc_1f99.js";
 import { snapHeadingOntoTheTurnTarget } from "./snapHeadingOntoTheTurnTarget.js";
 
-export function loc_1f2e(m) {
+export function loc_1f2e(m, b = m.regs.b) {
   const { regs } = m;
 
-  regs.add(regs.b);
+  regs.add(b);
   if (regs.fNZ) return m.ret();
   if (regs.fPO) return m.ret();
 
-  regs.and(regs.b);
+  regs.and(b);
   if (regs.fNZ) return loc_1f99(m);
 
   return snapHeadingOntoTheTurnTarget(m);

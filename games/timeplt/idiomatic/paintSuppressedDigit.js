@@ -16,27 +16,27 @@ import { DIGIT_GLYPH_TABLE, LEADING_ZERO_BLANK_GLYPH_INDEX } from "./names.js";
 const CHARACTER_PLANE_BIT = 0x0400;
 const LOW_NIBBLE = 0x0f;
 
-export function paintSuppressedDigit(m) {
+export function paintSuppressedDigit(m, a = m.regs.a, b = m.regs.b, c = m.regs.c, hl = m.regs.hl, de = m.regs.de) {
   const { mem8, regs } = m;
-  const digit = regs.a & LOW_NIBBLE;
+  const digit = a & LOW_NIBBLE;
 
   let entry;
   if (digit !== 0) {
-    regs.b = regs.b + 1;
+    regs.b = b + 1;
     entry = digit;
   } else {
-    entry = regs.b === 0 ? mem8[LEADING_ZERO_BLANK_GLYPH_INDEX] : 0;
+    entry = b === 0 ? mem8[LEADING_ZERO_BLANK_GLYPH_INDEX] : 0;
   }
 
-  const held = regs.hl;
+  const held = hl;
   regs.hl = DIGIT_GLYPH_TABLE;
   regs.a = entry;
   const glyph = fetchTableByte(m);
   regs.hl = held;
 
-  const cell = regs.de;
+  const cell = de;
   mem8[cell] = glyph;
-  regs.a = regs.c;
+  regs.a = c;
   mem8[cell & ~CHARACTER_PLANE_BIT] = regs.a;
   regs.de = cell | CHARACTER_PLANE_BIT;
 }

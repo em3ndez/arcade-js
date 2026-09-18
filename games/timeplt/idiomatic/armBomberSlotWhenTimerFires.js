@@ -9,12 +9,12 @@ import { fetchTableByte } from "./fetchTableByte.js";
 import { loc_5942 } from "./loc_5942.js";
 import { FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_ARMED, PLAYER_HEADING, HEADING_SHAPE_TABLE } from "./names.js";
 
-export function armBomberSlotWhenTimerFires(m) {
+export function armBomberSlotWhenTimerFires(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
 
   if (mem8[FRAME_TICK] & 0x01) return;
 
-  const countdown = (regs.ix + 0x0e) & 0xffff;
+  const countdown = (ix + 0x0e) & 0xffff;
   mem8[countdown] = u8(mem8[countdown] - 1);
   if (mem8[countdown] !== 0) return;
   if (mem8[MOTHER_SHIP_ARMED] !== 0) return;
@@ -29,18 +29,18 @@ export function armBomberSlotWhenTimerFires(m) {
   // shape record: rotate the heading to an even table offset, take its two bytes
   regs.hl = HEADING_SHAPE_TABLE;
   regs.a = ((index >> 2) | (index << 6)) & 0x3e;
-  mem8[(regs.iy + 0x31) & 0xffff] = fetchTableByte(m);
-  mem8[(regs.iy + 0x00) & 0xffff] = mem8[u16(regs.hl + 1)];
+  mem8[(iy + 0x31) & 0xffff] = fetchTableByte(m);
+  mem8[(iy + 0x00) & 0xffff] = mem8[u16(regs.hl + 1)];
 
   const facing = u8(heading + 0xc0) & 0x80;
-  mem8[(regs.ix + 0x02) & 0xffff] = facing;
+  mem8[(ix + 0x02) & 0xffff] = facing;
 
   loc_5942(m);
-  mem8[(regs.ix + 0x0a) & 0xffff] = regs.e;
-  mem8[(regs.ix + 0x0b) & 0xffff] = regs.d;
-  mem8[(regs.ix + 0x0c) & 0xffff] = regs.c;
-  mem8[(regs.ix + 0x0d) & 0xffff] = regs.b;
+  mem8[(ix + 0x0a) & 0xffff] = regs.e;
+  mem8[(ix + 0x0b) & 0xffff] = regs.d;
+  mem8[(ix + 0x0c) & 0xffff] = regs.c;
+  mem8[(ix + 0x0d) & 0xffff] = regs.b;
 
   mem8[HITS_REMAINING] = 3;
-  mem8[(regs.ix + 0x00) & 0xffff] = 0xff;
+  mem8[(ix + 0x00) & 0xffff] = 0xff;
 }

@@ -18,7 +18,7 @@ import { DIGIT_GLYPH_TABLE_2 } from "./names.js";
 const DIGIT_BITS = 0x0f;
 const CHARACTER_PLANE_BIT = 0x0400;
 
-export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m.regs.b, colour = m.regs.c) {
+export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m.regs.b, colour = m.regs.c, hl = m.regs.hl, de = m.regs.de) {
   const { regs, mem8 } = m;
   const digit = value & DIGIT_BITS;
 
@@ -29,13 +29,13 @@ export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m
   }
   regs.b = 0;
 
-  const runPointer = regs.hl;
+  const runPointer = hl;
   regs.hl = DIGIT_GLYPH_TABLE_2;
   regs.a = digit;
   const glyph = fetchTableByte(m);
   regs.hl = runPointer;
 
-  mem8[regs.de] = glyph;
-  mem8[regs.de & ~CHARACTER_PLANE_BIT] = colour;
+  mem8[de] = glyph;
+  mem8[de & ~CHARACTER_PLANE_BIT] = colour;
   regs.de |= CHARACTER_PLANE_BIT;
 }

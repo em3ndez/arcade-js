@@ -14,10 +14,10 @@ const BAND_SLOTS = 0x07;
 const BUSY_CEILING = 0x02;
 const OPEN_PHASE = 0x30;
 
-export function spawnEnemyCraftWhenBandUnderTwo(m) {
+export function spawnEnemyCraftWhenBandUnderTwo(m, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
-  regs.a = mem8[regs.hl];
+  regs.a = mem8[hl];
   regs.and(regs.a);
   if (regs.a !== 0x00) {
     regs.cp(OPEN_PHASE);

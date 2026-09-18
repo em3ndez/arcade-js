@@ -20,14 +20,13 @@ import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN
 
 const OFFSET_STEP = 0x1a;
 
-export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy) {
+export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy, facing = m.regs.c) {
   const { regs, mem8 } = m;
 
   const d = mem8[spawnerEntry + 0x31];
   const e = mem8[spawnerRecord + 0x03];
   const h = mem8[spawnerEntry + 0x00];
   const l = mem8[spawnerRecord + 0x05];
-  const facing = regs.c;
 
   const record = m.mem16[SCRATCH_PTR_A];
   const entry = m.mem16[SCRATCH_PTR_B];

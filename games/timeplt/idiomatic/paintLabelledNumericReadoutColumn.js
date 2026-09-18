@@ -27,9 +27,9 @@ function stamp(m, tile) {
   regs.d = regs.d | COLOUR_PLANE_BIT;
 }
 
-export function paintLabelledNumericReadoutColumn(m) {
+export function paintLabelledNumericReadoutColumn(m, hl = m.regs.hl) {
   const { regs, mem8 } = m;
-  const source = regs.hl;
+  const source = hl;
 
   regs.a = u8(mem8[source] * RECORD_STRIDE);
   regs.hl = READOUT_PICTOGRAM_TABLE;

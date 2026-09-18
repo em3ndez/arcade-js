@@ -7,10 +7,10 @@ import { placeTileAtTableSuppliedOffset } from "./placeTileAtTableSuppliedOffset
 import { fetchTableWord } from "./fetchTableWord.js";
 import { placeDiagonallyAbuttingTile } from "./placeDiagonallyAbuttingTile.js";
 
-export function loc_307f(m) {
+export function loc_307f(m, hl = m.regs.hl, e = m.regs.e) {
   const { regs, mem } = m;
-  mem.write8(regs.hl, regs.e);
-  regs.and(mem.read8(regs.hl));
+  mem.write8(hl, e);
+  regs.and(mem.read8(hl));
   if (regs.djnz() !== 0) return placeTileAtTableSuppliedOffset(m);
 
   fetchTableWord(m);

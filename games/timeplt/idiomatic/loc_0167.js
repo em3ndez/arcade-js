@@ -9,13 +9,13 @@ import { u8 } from "../../../core/int.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
 
-export function loc_0167(m) {
+export function loc_0167(m, a = m.regs.a, b = m.regs.b, c = m.regs.c, d = m.regs.d) {
   const { regs, mem8 } = m;
 
-  regs.l = regs.a;
+  regs.l = a;
   regs.and(mem8[regs.hl]);
-  regs.d = regs.inc8(regs.d);
-  regs.adc(regs.b);
+  regs.d = regs.inc8(d);
+  regs.adc(b);
   regs.d = regs.a;
   regs.and(regs.l);
   regs.cp(regs.a);
@@ -26,7 +26,7 @@ export function loc_0167(m) {
   regs.af = m.pop16();
   regs.sub(mem8[regs.hl]);
   regs.af = m.pop16();
-  regs.cp(regs.c);
+  regs.cp(c);
 
   return sendOneQueuedSoundThenUnwindTheFrameInterrupt(m);
 }

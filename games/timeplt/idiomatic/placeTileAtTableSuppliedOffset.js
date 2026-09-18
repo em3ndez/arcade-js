@@ -10,12 +10,12 @@ import { advanceToNextSlot } from "./advanceToNextSlot.js";
 const ENTRY_STRIDE = 2;
 const SECOND_AXIS_OFFSET = 49;
 
-export function placeTileAtTableSuppliedOffset(m) {
+export function placeTileAtTableSuppliedOffset(m, iy = m.regs.iy, hl = m.regs.hl, c = m.regs.c, b = m.regs.b) {
   const { mem8, regs } = m;
-  const nextEntry = regs.iy + ENTRY_STRIDE;
+  const nextEntry = iy + ENTRY_STRIDE;
 
-  regs.a = mem8[regs.hl] + regs.c;
-  mem8[nextEntry + SECOND_AXIS_OFFSET] = regs.b;
+  regs.a = mem8[hl] + c;
+  mem8[nextEntry + SECOND_AXIS_OFFSET] = b;
   mem8[nextEntry] = regs.a;
   advanceToNextSlot(m);
 }

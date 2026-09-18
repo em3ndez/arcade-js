@@ -11,10 +11,10 @@ import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
 const CREDIT_CAP = 0x99;
 const DIGIT_MASK = 0x0f;
 
-export function awardCoinCreditThenPulseCoinCounter(m) {
+export function awardCoinCreditThenPulseCoinCounter(m, c = m.regs.c) {
   const { regs, mem8 } = m;
   if (mem8[FREE_PLAY] === 0) {
-    regs.a = regs.c & DIGIT_MASK;
+    regs.a = c & DIGIT_MASK;
     regs.add(mem8[CREDIT_COUNT]);
     regs.daa();
     mem8[CREDIT_COUNT] = regs.fNC ? regs.a : CREDIT_CAP;

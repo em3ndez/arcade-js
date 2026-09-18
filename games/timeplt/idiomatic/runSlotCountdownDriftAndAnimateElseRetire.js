@@ -25,28 +25,28 @@ const SHAPE_IN_ENTRY = 1;
 const BESIDE_IT_IN_ENTRY = 48;
 const BESIDE_IT = 3;
 
-export function runSlotCountdownDriftAndAnimateElseRetire(m) {
+export function runSlotCountdownDriftAndAnimateElseRetire(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8, regs } = m;
 
   if (mem8[ERA_INDEX] !== LAST_ERA) {
     retireSlot(m);
     return;
   }
-  const wasAt = mem8[regs.ix + COUNTER];
+  const wasAt = mem8[ix + COUNTER];
   if (wasAt === FLOOR) {
     retireSlot(m);
     return;
   }
 
-  mem8[regs.ix + COUNTER] = wasAt - 1;
+  mem8[ix + COUNTER] = wasAt - 1;
   if (wasAt >= CLAMPED_FROM) stampObjectStateByte3bThenRequestTwoSounds(m);
   driftWithWorldScroll(m);
 
-  const nowAt = mem8[regs.ix + COUNTER];
+  const nowAt = mem8[ix + COUNTER];
   if (nowAt < SHAPES_FROM) return;
 
   regs.hl = COUNTDOWN_SLOT_SHAPE_TABLE;
   regs.a = Math.floor((nowAt - SHAPES_FROM) / HELD_FOR) % SHAPES;
-  mem8[regs.iy + SHAPE_IN_ENTRY] = fetchTableByte(m);
-  mem8[regs.iy + BESIDE_IT_IN_ENTRY] = BESIDE_IT;
+  mem8[iy + SHAPE_IN_ENTRY] = fetchTableByte(m);
+  mem8[iy + BESIDE_IT_IN_ENTRY] = BESIDE_IT;
 }

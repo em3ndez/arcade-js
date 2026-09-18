@@ -48,14 +48,14 @@ const FRAME_ARMS = [
   [0x83, PLAYER_ANIM_STRIP_4],
 ];
 
-export function advancePlayerAnimationStrip(m) {
+export function advancePlayerAnimationStrip(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem, mem8 } = m;
 
-  regs.a = mem8[(regs.ix + PHASE) & 0xffff];
+  regs.a = mem8[(ix + PHASE) & 0xffff];
   regs.cp(FIRST_FRAME);
   if (!regs.fC) {
-    mem8[(regs.ix + PHASE) & 0xffff] = FIRST_FRAME;
-    mem8[(regs.iy + PAIR_FLAG) & 0xffff] = PAIR_MARK;
+    mem8[(ix + PHASE) & 0xffff] = FIRST_FRAME;
+    mem8[(iy + PAIR_FLAG) & 0xffff] = PAIR_MARK;
     regs.a = mem8[ERA_INDEX];
     regs.cp(EXTRA_CUE_LEVEL);
     if (!regs.fC) requestLateEraProgressSound(m);
@@ -74,8 +74,8 @@ export function advancePlayerAnimationStrip(m) {
     }
   }
 
-  regs.decMem8(mem, (regs.ix + PHASE) & 0xffff);
-  regs.a = mem8[(regs.ix + PHASE) & 0xffff];
+  regs.decMem8(mem, (ix + PHASE) & 0xffff);
+  regs.a = mem8[(ix + PHASE) & 0xffff];
 
   let base = null;
   for (const [frame, table] of FRAME_ARMS) {

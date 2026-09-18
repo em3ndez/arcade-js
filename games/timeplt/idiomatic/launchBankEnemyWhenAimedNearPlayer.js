@@ -24,13 +24,13 @@ const COORD_Y = 0x31;
 const VELOCITY = 0x0a;
 const RECORD_STRIDE = 0x10;
 
-export function launchBankEnemyWhenAimedNearPlayer(m) {
+export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEntry = m.regs.iy) {
   const { regs, mem8, mem } = m;
 
   regs.a = mem8[FRAME_TICK];
   regs.and(0x07);
   regs.add(0x05);
-  regs.cp(mem8[u16(regs.ix + PHASE_KEY)]);
+  regs.cp(mem8[u16(ixEntry + PHASE_KEY)]);
   if (regs.fNZ) return; // wrong bank phase this frame
   if (mem8[BANK_LAUNCH_COOLDOWN] !== 0) return; // launch already armed
 
@@ -58,12 +58,12 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   regs.add(regs.a);
   regs.c = regs.a;
   regs.a = 0x78;
-  regs.sub(mem8[u16(regs.iy + COORD_Y)]);
+  regs.sub(mem8[u16(iyEntry + COORD_Y)]);
   regs.add(regs.b);
   regs.cp(regs.c);
   if (!regs.fNC) {
     regs.a = 0x84;
-    regs.sub(mem8[regs.iy]);
+    regs.sub(mem8[iyEntry]);
     regs.add(regs.b);
     regs.cp(regs.c);
     if (regs.fC) return;
@@ -74,7 +74,7 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   regs.add(regs.a);
   regs.c = regs.a;
   regs.a = mem8[PLAYER_HEADING];
-  regs.sub(mem8[u16(regs.ix + OBJ_X)]);
+  regs.sub(mem8[u16(ixEntry + OBJ_X)]);
   regs.add(regs.b);
   regs.cp(regs.c);
   if (regs.fNC) return;
@@ -87,7 +87,7 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
     regs.add(regs.a);
     regs.c = regs.a;
     regs.a = 0x84;
-    regs.sub(mem8[regs.iy]);
+    regs.sub(mem8[iyEntry]);
     regs.add(regs.b);
     regs.cp(regs.c);
     if (regs.fNC) return;
