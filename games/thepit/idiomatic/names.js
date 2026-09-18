@@ -53,14 +53,14 @@ export const PLAYER_Y = 0x8068;
 export const PLAYER_X = 0x806b;
 
 /** Tile-cell COLUMN byte fed to the (row,col)→tilemap-offset calc (rowColToTileOffset-style). Paired with
- *  TILE_ROW; both written by the fill/stamp setup (loc_4e1b/loc_4e55). [code] */
+ *  TILE_ROW; both written by the fill/stamp setup (loc_4e1b/loc_4e55). [seen] */
 export const TILE_COL = 0x8058;
 
-/** Tile-cell ROW byte fed to the tilemap-offset calc; paired with TILE_COL (loc_4e20/loc_4e5a). [code] */
+/** Tile-cell ROW byte fed to the tilemap-offset calc; paired with TILE_COL (loc_4e20/loc_4e5a). [seen] */
 export const TILE_ROW = 0x8059;
 
 /** 16-bit pointer to the actor's current video-RAM display cell (loaded into IX via `ld ix,(0x806e)`
- *  by the draw/dispatch code loc_174f/loc_1a66). [code] */
+ *  by the draw/dispatch code loc_174f/loc_1a66). [seen] */
 export const PLAYER_CELL_PTR = 0x806e;
 
 // ── Player facing / sprite frame ──────────────────────────────────────────────
@@ -79,11 +79,11 @@ export const PLAYER_FACING = 0x8069;
 export const GAME_STATE = 0x8001;
 
 /** Active player index (1 or 2) — armed alongside GAME_STATE (loc_038b/loc_03b2 `(0x8002)=1/2`) and
- *  read on the P1↔P2 handoff. [code] */
+ *  read on the P1↔P2 handoff. [seen] */
 export const ACTIVE_PLAYER = 0x8002;
 
 /** Board/entry-select mode byte — the value the multi-door entry family stows before the shared body
- *  (setupBoardMode90/blankScreen/setupBoardDisplay "entry-selected byte", "mode/variant"). Used across 17 routines. [code] */
+ *  (setupBoardMode90/blankScreen/setupBoardDisplay "entry-selected byte", "mode/variant"). Used across 17 routines. [seen] */
 export const BOARD_MODE = 0x8057;
 
 /** Variant selector read at round setup (loc_0391/loc_03a5) and by the fill dispatch (loc_4e2e
@@ -114,11 +114,11 @@ export const MOVE_BLOCK_FLAG = 0x8080;
 // ~32px-tall actor rendered together by stageActorSpriteRecords. Distinct from the PLAYER (PLAYER_Y/PLAYER_X path).
 
 export const ENEMY3_X = 0x810a; // primary half: X [seen]
-export const ENEMY3_TILE = 0x810b; // primary half: sprite/tile field [code]
-export const ENEMY3_Y = 0x810d; // primary half: Y [code]
-export const ENEMY3_TWIN_X = 0x811b; // twin half: X, locked +16 to ENEMY3_X [code]
-export const ENEMY3_TWIN_TILE = 0x811c; // twin half: sprite/tile field [code]
-export const ENEMY3_TWIN_Y = 0x811e; // twin half: Y (record offset +3) [code]
+export const ENEMY3_TILE = 0x810b; // primary half: sprite/tile field [seen]
+export const ENEMY3_Y = 0x810d; // primary half: Y [seen]
+export const ENEMY3_TWIN_X = 0x811b; // twin half: X, locked +16 to ENEMY3_X [seen]
+export const ENEMY3_TWIN_TILE = 0x811c; // twin half: sprite/tile field [seen]
+export const ENEMY3_TWIN_Y = 0x811e; // twin half: Y (record offset +3) [seen]
 
 /** BOARD_END_PHASE (0x807b) — end-of-board state read when the mountain is gone (§2.6): 0 = idle
  *  (pure-idle case, just plays a sound), 1 = ESCAPE (player reached the top rung with treasure → forces
@@ -127,7 +127,7 @@ export const ENEMY3_TWIN_Y = 0x811e; // twin half: Y (record offset +3) [code]
 export const BOARD_END_PHASE = 0x807b;
 
 /** Enemy-3 cadence timer (record offset 8, 0x810a+8) — reloaded and counted down to pace enemy #3
- *  (loc_3800/loc_38f6/loc_3786). [code] */
+ *  (loc_3800/loc_38f6/loc_3786). [seen] */
 export const ENEMY3_TIMER = 0x8112;
 
 /** Enemy work-slot sprite/state byte (0x8083+1) — the sprite/orientation code of whichever enemy is
@@ -151,15 +151,15 @@ export const PLAY_PHASE_COUNTER = 0x8010;
 // ── Sound ─────────────────────────────────────────────────────────────────────
 
 /** Sound-command ring HEAD index (mod 8) — advanced by the shared enqueue tail enqueueSoundCommand
- *  (`ld a,(0x801e) / inc / and 7 / ld (0x801e),a`). [code]. */
+ *  (`ld a,(0x801e) / inc / and 7 / ld (0x801e),a`). [seen]. */
 export const SOUND_HEAD = 0x801e;
 
-/** Sound-command ring BUFFER base (8 slots) — the enqueue writes `(code|0x80)` at 0x8020+head. [code]. */
+/** Sound-command ring BUFFER base (8 slots) — the enqueue writes `(code|0x80)` at 0x8020+head. [seen]. */
 export const SOUND_RING = 0x8020;
 
 // ── Tile-classifier scratch (0x80a5/0x80a8 — the tile-under-object block; note that
 //    0x80a2/0x80a3/0x80a4 in this range are the reaction state-machine, see REACTION_STATE) ─
-export const CUR_TILE = 0x80a5; // saved current tile under the object (loc_1840 "saved current tile") [code]
+export const CUR_TILE = 0x80a5; // saved current tile under the object (loc_1840 "saved current tile") [seen]
 export const NEXT_TILE = 0x80a8; // next-tile slot, pre-cleared before classify (loc_1706) [code]
 
 // ═══ NAMING PASS 2026-07-26 ═══════════════════════════════════════════════════
@@ -173,33 +173,33 @@ export const NEXT_TILE = 0x80a8; // next-tile slot, pre-cleared before classify 
 // complements the active-low switches), idle IN1 0x00.
 
 /** Debounced IN0 (joystick + dig) — the stable value the NMI latches after two equal reads
- *  of 0xA000; the movement/action code reads THIS, not the raw port. [code] */
+ *  of 0xA000; the movement/action code reads THIS, not the raw port. [seen] */
 export const IN0_DEBOUNCED = 0x8018;
-/** Previous IN0 sample, rolled each frame for the debounce compare. [code] */
+/** Previous IN0 sample, rolled each frame for the debounce compare. [seen] */
 export const IN0_PREV = 0x8019;
-/** Debounced IN1 (coin/start) — stable latched value the coin/credit logic reads. [code] */
+/** Debounced IN1 (coin/start) — stable latched value the coin/credit logic reads. [seen] */
 export const IN1_DEBOUNCED = 0x8015;
-/** Previous IN1 sample, rolled for the debounce. [code] */
+/** Previous IN1 sample, rolled for the debounce. [seen] */
 export const IN1_PREV = 0x8016;
 
 // ── PRNG (the advanceRandom LFSR, little-endian 16-bit) ───────────────────────
 /** PRNG state low byte — also the returned random draw. advanceRandom (0x4b1a) shifts the
- *  16-bit {high,low} right with a feedback bit = low bit1 XOR bit2. [code] */
+ *  16-bit {high,low} right with a feedback bit = low bit1 XOR bit2. [seen] */
 export const PRNG_LOW = 0x800d;
-/** PRNG state high byte. [code] */
+/** PRNG state high byte. [seen] */
 export const PRNG_HIGH = 0x800e;
 
 // ── Round / difficulty ────────────────────────────────────────────────────────
 /** Current player's LEVEL / round counter — inits to 1, +1 per level cleared; every
  *  difficulty subsystem scales off it (countdowns, reloads). Proposer≠confirmer converged
- *  (both graders high-confidence): init=1 (startGame), inc (advanceToNextLevel), scaled in seedMountainErosion/initRoundAndEnterMainLoop/seedChamberCreature. [code] */
+ *  (both graders high-confidence): init=1 (startGame), inc (advanceToNextLevel), scaled in seedMountainErosion/initRoundAndEnterMainLoop/seedChamberCreature. [seen] */
 export const LEVEL = 0x8028;
 
 // ── Shared tile/colour column-plotter parameter block (0x8055-0x8060) ─────────
 /** Run length for the shared column plotter — how many cells the copy/fill helpers
  *  (copyTileColumn/copyCappedTileColumn/fillColourColumn) paint straight down a map column (djnz count,
  *  stride 0x20 = one screen row). Staged by ~18 painter routines before each draw call.
- *  Proposer≠confirmer converged (both graders high-confidence). Sits beside TILE_COL/TILE_ROW. [code] */
+ *  Proposer≠confirmer converged (both graders high-confidence). Sits beside TILE_COL/TILE_ROW. [seen] */
 export const PLOT_RUN_LENGTH = 0x8055;
 
 // ── Falling hazards (rock / arrow) ────────────────────────────────────────────
@@ -219,7 +219,7 @@ export const LASER_STATE = 0x80a1;
  *  1-4 = a specific collision/dig/push reaction is armed + playing; also a busy-lock that
  *  defers the normal frame. Armed to 1-4 by locateObjectCellCheckGoal/collectAlignedLootElseResolveTile/resolveObjectTerrainStep/resolveActorTerrainStep/triggerDigReaction, dispatched by
  *  advancePlayerLaser, deferred by stepObjectFromControl, render-Y-biased at ==4. Proposer≠confirmer
- *  converged (both graders high-confidence). [code] */
+ *  converged (both graders high-confidence). [seen] */
 export const REACTION_STATE = 0x80a2;
 
 // ── Under-tile latches (the classify ladder records these when the tracked object aligns
@@ -242,7 +242,7 @@ export const PRIZE_GATE = 0x8076;
 // ── Naming batch 2 (proposer≠confirmer, all 6 converged) ──────────────────────
 /** Reaction step/animation countdown for the REACTION_STATE machine: reloaded from the period
  *  byte 0x80a3 when a reaction (1-4) is armed, decremented per frame by advancePlayerLaser, and on zero
- *  ends the reaction (clears REACTION_STATE); the value 0x18 also cues a sound. [code] */
+ *  ends the reaction (clears REACTION_STATE); the value 0x18 also cues a sound. [seen] */
 export const REACTION_TIMER = 0x80a4;
 /** HAZARD_X (0x80a9) — X of the falling-hazard / dig-carve target cell (>>3 -> tile column); this ONE
  *  record is shared between a falling rock/arrow and the dig-carve target-capture (loc_29ad drives both).
@@ -331,7 +331,7 @@ export const SCORE_DISPLAY_HIGH = 0x8038;
 /**
  *  FRAME_WAIT_COUNTDOWN (0x8009) — Per-frame countdown decremented each frame by the vblank
  *  NMI (serviceVblankNmi ld/dec/ld) and armed+busy-waited to 0 by waitFrames/waitFrames; both namers
- *  and my derivation agree, grounded in two independent routines. [code]
+ *  and my derivation agree, grounded in two independent routines. [seen]
  */
 export const FRAME_WAIT_COUNTDOWN = 0x8009;
 /**
@@ -343,19 +343,19 @@ export const STEP_TIMER_BASE = 0x804f;
 /**
  *  TILEMAP_OFFSET (0x805a) — 16-bit tilemap offset 32*row+col computed by rowColToTileOffset from
  *  0x8059/0x8058 and consumed by deriveTileWriteCursors to derive colour/video cursors; shared across ~10
- *  painter routines, both converged. [code]
+ *  painter routines, both converged. [seen]
  */
 export const TILEMAP_OFFSET = 0x805a;
 /**
  *  GLITTER_COUNTDOWN (0x805c) — Free-running 8->1 (reload 8) per-frame countdown that
  *  glitterJewels uses to pace the diamond-glitter cell recolour, armed to 1 by
- *  paintScreen/paintScreen; role behaviorally pinned, both converged. [code]
+ *  paintScreen/paintScreen; role behaviorally pinned, both converged. [seen]
  */
 export const GLITTER_COUNTDOWN = 0x805c;
 /**
  *  COLOUR_RAM_CURSOR (0x805e) — 16-bit colour-RAM write cursor = tilemap offset + 0x8800
  *  colour base, stored by deriveTileWriteCursors (paired with the 0x8060 video cursor) and walked down-
- *  column by the fillers fillColourColumn/cyclePanelColumnColour/etc across ~10 routines. [code]
+ *  column by the fillers fillColourColumn/cyclePanelColumnColour/etc across ~10 routines. [seen]
  */
 export const COLOUR_RAM_CURSOR = 0x805e;
 /**
@@ -379,7 +379,7 @@ export const PLAYER_SPRITE_ATTR = 0x806a;
 /**
  *  PLAYER_TILE_COL (0x8071) — tilemap COLUMN cell under the tracked object, derived from
  *  position counter 0x806b (>>3), written by resolveObjectTile/stepObjectAndResolveTile/locateObjectCellCheckGoal/locateActorCellCheckGoal and seeded 5; the low
- *  part of the 0x806e VRAM cell pointer [code]
+ *  part of the 0x806e VRAM cell pointer [seen]
  */
 export const PLAYER_TILE_COL = 0x8071;
 /**
@@ -417,14 +417,14 @@ export const ENEMY_WORK_STATE = 0x8090;
  *  REACTION_OBJ_X (0x8094) — PLAYER_Y-paired position coordinate of the REACTION_STATE (0x80a2)
  *  entity: written each frame by advancePlayerLaser from PLAYER_Y±8, player-box-tested in stepEnemyMover, placed
  *  by spawnDigEntity, written to sprite record byte 0, inited 0 by resetReactionState; both converge, well
- *  grounded. [code]
+ *  grounded. [seen]
  */
 export const REACTION_OBJ_X = 0x8094;
 /**
  *  REACTION_OBJ_Y (0x8097) — PLAYER_X-paired position coordinate of the REACTION_STATE (0x80a2)
  *  entity: written by advancePlayerLaser from PLAYER_X±8, player-box-tested in stepEnemyMover against the 0x8086
  *  axis, written to sprite record byte 3, inited 0 by resetReactionState; both converge, well grounded.
- *  [code]
+ *  [seen]
  */
 export const REACTION_OBJ_Y = 0x8097;
 
@@ -466,7 +466,7 @@ export const CHAMBER_CREATURE_X = 0x80db;
 /**
  *  CHAMBER_CREATURE_FRAME (0x80dc) — creature sprite tile/frame code toggled 0x38<->0x39 every 8 frames
  *  (advanceChamberCreature/advanceChamberCreatureAnimation/setChamberCreatureFrame), init 0x39, published as the code byte of the slot-3
- *  record. Grounded (§2.8). [code] */
+ *  record. Grounded (§2.8). [seen] */
 export const CHAMBER_CREATURE_FRAME = 0x80dc;
 /**
  *  CHAMBER_CREATURE_ATTR (0x80dd) — byte2 attribute (color low bits + priority) of the creature sprite; bumped by
@@ -484,7 +484,7 @@ export const CHAMBER_CREATURE_FALL_Y = 0x80de;
 /**
  *  CHAMBER_CREATURE_ANIM_PHASE (0x80e3) — Down-counter mod 8: decremented per frame, reloads 8 on wrap
  *  and toggles sprite frame 0x80dc, low bits gate the position-step; read by advanceChamberCreatureAnimation and
- *  advanceChamberCreature, seeded 1 by seedChamberCreature — A and B agree, derivation confirms. [code]
+ *  advanceChamberCreature, seeded 1 by seedChamberCreature — A and B agree, derivation confirms. [seen]
  */
 export const CHAMBER_CREATURE_ANIM_PHASE = 0x80e3;
 /**
@@ -562,7 +562,7 @@ export const ENEMY2_ATTR = 0x80fb;
 /**
  *  ENEMY3_STEP_X (0x810e) — Low byte of the actor 16-bit step vector: advanceTwoSpriteActor loads it into L
  *  and adds it to ENEMY3_X (0x810a) each cadence tick; seeded 0xff(-1)/0 by
- *  seedActorSpawnState/3767/advanceOrRebuildTwinActor. Real reader, A and B agree, my derivation confirms. [code]
+ *  seedActorSpawnState/3767/advanceOrRebuildTwinActor. Real reader, A and B agree, my derivation confirms. [seen]
  */
 export const ENEMY3_STEP_X = 0x810e;
 /**
@@ -575,7 +575,7 @@ export const ENEMY3_STEP_Y = 0x810f;
  *  ENEMY3_TWIN_TIMER (0x8123) — Both namers converged and my derivation agrees: twin of
  *  ENEMY3_TIMER(0x8112); record+8 -> scratch 0x808b, decremented/reloaded as the cadence
  *  countdown by stepEnemyMover (0x31b1) and armed (0xb4/0x01) by the spawn seeders. Grounded across
- *  seeders + stepEnemyMover; primary ENEMY3_TIMER already named, so pairing is consistent. [code]
+ *  seeders + stepEnemyMover; primary ENEMY3_TIMER already named, so pairing is consistent. [seen]
  */
 export const ENEMY3_TWIN_TIMER = 0x8123;
 /**
@@ -625,7 +625,7 @@ export const HIGH_SCORE_TABLE = 0x8039;
 /**
  *  PLAYER_ANIM_PHASE (0x801a) — Tracked object's packed animation/command phase byte (high bits
  *  wind-up countdown stepped -0x20, low bits &0x0c = move command vs L); seeded 0 by
- *  seedObjectStartState, reconciled each frame by windUpObjectMove, zeroed on the idle path by routeIdleObjectByMoveCommand. [code]
+ *  seedObjectStartState, reconciled each frame by windUpObjectMove, zeroed on the idle path by routeIdleObjectByMoveCommand. [seen]
  */
 export const PLAYER_ANIM_PHASE = 0x801a;
 /**
@@ -652,7 +652,7 @@ export const ENEMY_WORK_DIR = 0x8092;
  *  EXPECTED_TILE (0x80a7) — The object cell's table-resolved expected tile: seeded from the
  *  raw under-tile then overwritten with the ROM lookup, cross-checked vs CUR_TILE 0x80a5 in
  *  loc_164f to detect a change, and stamped into (ix+0) by advancePlayerLaser; both namers converged
- *  high-confidence, real readers + writers. [code]
+ *  high-confidence, real readers + writers. [seen]
  */
 export const EXPECTED_TILE = 0x80a7;
 /**
@@ -691,26 +691,26 @@ export const STAGED_DIG_SPRITE_ID = 0x80bf;
 /**
  *  ENEMY3_ATTR (0x810c) — Byte+2 of the primary sprite record 0x810a: stageActorSpriteRecords copies it to
  *  sprite-RAM byte2 (0x823a), which video.js decodes as color(bits0-2)+priority(bit3); seeded
- *  by all four spawners. Grounded, A+B converged. [code]
+ *  by all four spawners. Grounded, A+B converged. [seen]
  */
 export const ENEMY3_ATTR = 0x810c;
 /**
  *  ENEMY3_TWIN_ATTR (0x811d) — Byte+2 of the twin record 0x811b; stageActorSpriteRecords copies it to sprite-RAM
  *  byte2 (0x823e), decoded as color+priority by video.js -- mirror of ENEMY3_ATTR, same
- *  seeders. Grounded, A+B converged. [code]
+ *  seeders. Grounded, A+B converged. [seen]
  */
 export const ENEMY3_TWIN_ATTR = 0x811d;
 /**
  *  SPRITE_STAGING_BASE (0x8220) — Base of the 32-byte (8x4) sprite-record staging buffer the
  *  NMI serviceVblankNmi LDIRs to hardware sprite RAM 0x9840 each frame; filled by
  *  stageObjectSpriteRecord/stageActorSpriteRecords, wiped by clearSpriteStagingBuffer.
- *  Grounded, A+B converged. [code]
+ *  Grounded, A+B converged. [seen]
  */
 export const SPRITE_STAGING_BASE = 0x8220;
 /**
  *  LOOP_COUNTER (0x800a) — Memory-resident down-counter seeded to an iteration count then
  *  decremented to 0 to repeat a loop body; grounded identically across setup-repeat
- *  setUpRoundAndHoldIntro/holdRoundIntroLoop, screen-hold showSetupScreen, and animation-tier showBonusScreen. [code]
+ *  setUpRoundAndHoldIntro/holdRoundIntroLoop, screen-hold showSetupScreen, and animation-tier showBonusScreen. [seen]
  */
 export const LOOP_COUNTER = 0x800a;
 
@@ -747,7 +747,7 @@ export const FRAME_COUNTER_PRESCALER = 0x8007;
 /** MAIN_LOOP_DELAY (0x8011) — per-frame busy-wait length mainLoop burns; seeded = LOOP_DELAY_BASE − LEVEL
  *  (higher level → faster). [code] */
 export const MAIN_LOOP_DELAY = 0x8011;
-/** SOUND_TAIL (0x801f) — sound-command ring READ/dequeue index (mod 8); pairs with SOUND_HEAD/SOUND_RING. [code] */
+/** SOUND_TAIL (0x801f) — sound-command ring READ/dequeue index (mod 8); pairs with SOUND_HEAD/SOUND_RING. [seen] */
 export const SOUND_TAIL = 0x801f;
 /** MEN_LEFT (0x802b) — active player's working men/lives count; drawn by drawMenLeftPanel, docked at a
  *  round boundary, seeded from STARTING_MEN. Field 1 of the player record; P1/P2 backups PLAYER1_MEN_BACKUP/PLAYER2_MEN_BACKUP (0x802c/0x802d). [code] */
@@ -765,7 +765,7 @@ export const STARTING_MEN = 0x8053;
 /** REACTION_OBJ_CODE (0x8095) — sprite/frame-code byte (byte1) of the reaction object's 4-byte record
  *  (ends REACTION_OBJ_X/Y already named). [code] */
 export const REACTION_OBJ_CODE = 0x8095;
-/** REACTION_OBJ_ATTR (0x8096) — attribute/anim byte (byte2) of that reaction record. [code] */
+/** REACTION_OBJ_ATTR (0x8096) — attribute/anim byte (byte2) of that reaction record. [seen] */
 export const REACTION_OBJ_ATTR = 0x8096;
 /** ENEMY2_MOVE_PERIOD (0x8107) — OBJ2 mover cadence reload period; structural mirror of ENEMY1_MOVE_PERIOD. [code] */
 export const ENEMY2_MOVE_PERIOD = 0x8107;
@@ -798,9 +798,9 @@ export const DROP_QUEUE = 0x80c3;
 /** SCORE_READOUT_STRIP (0x8280) — base of a 32-cell work-RAM display strip staging the rightmost
  *  on-screen score-readout column. [code] */
 export const SCORE_READOUT_STRIP = 0x8280;
-/** ENEMY3_SPRITE_SLOT (0x8238) — sprite-staging slot 6 (SPRITE_STAGING_BASE+24), the actor body's record. [code] */
+/** ENEMY3_SPRITE_SLOT (0x8238) — sprite-staging slot 6 (SPRITE_STAGING_BASE+24), the actor body's record. [seen] */
 export const ENEMY3_SPRITE_SLOT = 0x8238;
-/** ENEMY3_TWIN_SPRITE_SLOT (0x823c) — sprite-staging slot 7 (SPRITE_STAGING_BASE+28), the twin's record. [code] */
+/** ENEMY3_TWIN_SPRITE_SLOT (0x823c) — sprite-staging slot 7 (SPRITE_STAGING_BASE+28), the twin's record. [seen] */
 export const ENEMY3_TWIN_SPRITE_SLOT = 0x823c;
 
 // ── Centralized 2026-07-31: cells previously referenced by raw hex or by a LOCAL const
@@ -906,7 +906,7 @@ export const ENEMY3_TWIN_TARGET_COL = 0x812b;
 export const CHAMBER_CREATURE_SPRITE = 0x822c;
 /** Base of the first of three 9-byte on-screen numeric-readout display records
  *  (0x8283/0x828c/0x8295): a 3-byte header copied from a ROM template + 4 digit cells (at +3) +
- *  2 blanks. [code] */
+ *  2 blanks. [seen] */
 export const SCORE_READOUT_DEST = 0x8283;
 /** Initial stack pointer = top of work RAM (0x8000-0x83ff); every boot / state-entry routine re-
  *  seats SP here, discarding the caller's frame. [code] */
@@ -937,31 +937,31 @@ export const STACK_TOP = 0x83ff;
 //                      unobserved (mechanisms.md still tags it [guess]).
 export const ROUTINES = {
   0x0000: { name: "resetVector", role: "power-on reset entry — hands straight to cold-boot init and never returns", cert: "code" },
-  0x0066: { name: "serviceVblankNmi", role: "vblank NMI — the per-frame service (input debounce, sound-ring drain, sprite DMA, coin/credit watchdog, /60 timers)", cert: "code" },
-  0x01a4: { name: "coldBootInit", role: "cold boot — bring the machine up from reset, seed work RAM, run the one-time screen/table/sound setup, then hand to attract", cert: "code" },
+  0x0066: { name: "serviceVblankNmi", role: "vblank NMI — the per-frame service (input debounce, sound-ring drain, sprite DMA, coin/credit watchdog, /60 timers)", cert: "seen" },
+  0x01a4: { name: "coldBootInit", role: "cold boot — bring the machine up from reset, seed work RAM, run the one-time screen/table/sound setup, then hand to attract", cert: "seen" },
   0x01f9: { name: "rearmMachineAndBranchOnCredits", role: "boot/restart entry — re-arm the machine, then branch on the credit count to the held credit screen or into play", cert: "code" },
-  0x021c: { name: "showCreditScreen", role: "credit-standby entry — arm game-mode 3, reset the stack, enable the frame interrupt, blank the screen, then hold a static credit screen", cert: "code" },
+  0x021c: { name: "showCreditScreen", role: "credit-standby entry — arm game-mode 3, reset the stack, enable the frame interrupt, blank the screen, then hold a static credit screen", cert: "seen" },
   0x022d: { name: "startGame", role: "set up a fresh game once a credit registers (seed lives from the DSW) and enter play", cert: "seen" },
   0x0278: { name: "dockManAndDispatchRoundBoundary", role: "round-boundary dispatcher — decrement the active player's lives (the death path) + persist their record, then route to next-round setup or game-over teardown", cert: "seen" },
   0x02a1: { name: "stepRoundSubPhaseAndBranch", role: "sequence the round sub-phase byte and hand off to round setup or teardown", cert: "code" },
   0x02ca: { name: "setUpRoundAndHoldIntro", role: "one-time round-start setup — load saved progress, configure difficulty from the DSW, unmute audio, build the board + play the start sound, then hold the intro", cert: "seen" },
-  0x02e1: { name: "holdRoundIntroLoop", role: "the round-start intro-hold loop — repaint the PLAYERS HUD label and a playfield strip across short frame-waits, then hand to round-loop setup", cert: "code" },
+  0x02e1: { name: "holdRoundIntroLoop", role: "the round-start intro-hold loop — repaint the PLAYERS HUD label and a playfield strip across short frame-waits, then hand to round-loop setup", cert: "seen" },
   0x02fd: { name: "advanceToNextLevel", role: "board complete — bump the level counter, persist progress, rebuild the screen, show the bonus screen, then re-init the next (harder) round", cert: "seen" },
   0x031a: { name: "initRoundAndEnterMainLoop", role: "final per-round (re)init — run the pre-play setup chain, derive the main-loop pacing delay, clear the frame counter, then enter the main loop", cert: "seen" },
   0x0348: { name: "mainLoop", role: "the in-game / attract-demo main loop — drive one frame of game work, forever", cert: "code" },
   0x0371: { name: "submitHighScoresAndReset", role: "game-over teardown — offer each finishing player's score to the BEST SCORES TODAY table (initials entry if it places), then reset to attract", cert: "seen" },
-  0x03ac: { name: "resetStateAndShowSetup", role: "reset epilogue — begin a fresh attract cycle with no active player, commit the cabinet settings, show the setup screen, hand to the entry handler", cert: "code" },
+  0x03ac: { name: "resetStateAndShowSetup", role: "reset epilogue — begin a fresh attract cycle with no active player, commit the cabinet settings, show the setup screen, hand to the entry handler", cert: "seen" },
   0x03be: { name: "enterPlayMode", role: "switch the game into active play and seed the per-round counters", cert: "seen" },
   0x03e8: { name: "steerDemoPlayer", role: "generate the attract demo's per-frame steering — emit the one-of-four move direction (where the joystick would go) that walks the auto-played digger along the walls", cert: "code" },
-  0x0673: { name: "paintScreen", role: "lay down a whole screen — a selectable tile+colour layer from ROM, the two edge columns and the score HUD, then arm the cell-animation counter", cert: "code" },
-  0x06ac: { name: "glitterJewels", role: "cycle the colour of on-screen diamond cells so they glitter; a collected diamond drops out and holds a fixed colour", cert: "code" },
-  0x1362: { name: "seedObjectStartState", role: "drop the tracked-object / level state block back to its fixed start-of-play defaults", cert: "code" },
+  0x0673: { name: "paintScreen", role: "lay down a whole screen — a selectable tile+colour layer from ROM, the two edge columns and the score HUD, then arm the cell-animation counter", cert: "seen" },
+  0x06ac: { name: "glitterJewels", role: "cycle the colour of on-screen diamond cells so they glitter; a collected diamond drops out and holds a fixed colour", cert: "seen" },
+  0x1362: { name: "seedObjectStartState", role: "drop the tracked-object / level state block back to its fixed start-of-play defaults", cert: "seen" },
   0x13c9: { name: "dispatchObjectFrameByStateTimer", role: "per-frame head of the object/state dispatcher (also the master board-transition gate) — gate on the state-lockout timer, and on its expiry vector to lose-a-life or advance-a-level", cert: "seen" },
   0x13de: { name: "advanceTrackedObject", role: "route the tracked object to its per-frame movement handler by its chain of state gates", cert: "seen" },
   0x1420: { name: "stepObjectFromControl", role: "advance the tracked object one frame from its control input (real joystick in play, demo stream in attract)", cert: "code" },
   0x1434: { name: "advanceObjectFrame", role: "pick the tracked object's per-frame update from its mode byte and move command", cert: "code" },
   0x144c: { name: "routeIdleObjectByMoveCommand", role: "route an at-rest object to its per-frame handler on its move-command bits", cert: "code" },
-  0x1468: { name: "windUpObjectMove", role: "settle the object's animation phase toward its move command, then run its handler", cert: "code" },
+  0x1468: { name: "windUpObjectMove", role: "settle the object's animation phase toward its move command, then run its handler", cert: "seen" },
   0x1493: { name: "stepObjectRowFlipped", role: "step the tracked object the flipped way along its move axis — derive its tile row, route on it, firing the dig one-shot at the boundary row", cert: "code" },
   0x14cd: { name: "locateObjectCellCheckGoal", role: "locate the object's tilemap cell, latch a goal crossing if the goal is just ahead, else resolve the tile under it", cert: "code" },
   0x1515: { name: "collectAlignedLootElseResolveTile", role: "collect a loot tile the object has landed squarely on (score + remove it), otherwise resolve how it meets the terrain", cert: "seen" },
@@ -971,19 +971,19 @@ export const ROUTINES = {
   0x16b9: { name: "locateActorCellCheckGoal", role: "route a moving actor's horizontal step — latch the goal crossing if it reached the terminator tile, else resolve the terrain step", cert: "code" },
   0x1704: { name: "resolveActorTerrainStep", role: "resolve a moving actor's step against terrain — collect loot in its path, hold against a wall, bump-react on a blocked diagonal, or walk on", cert: "code" },
   0x184a: { name: "walkActor", role: "advance an actor's walk — accumulate its position, pick the walk frame, build its display record", cert: "code" },
-  0x186a: { name: "stampFixedFrameAndResolveTile", role: "stamp the actor's fixed animation frame, then run the shared cell/tile resolve tail", cert: "code" },
-  0x186f: { name: "resolveObjectTile", role: "locate the tracked object's tile cell, read the tile under it, and dispatch to the matching per-frame handler", cert: "code" },
+  0x186a: { name: "stampFixedFrameAndResolveTile", role: "stamp the actor's fixed animation frame, then run the shared cell/tile resolve tail", cert: "seen" },
+  0x186f: { name: "resolveObjectTile", role: "locate the tracked object's tile cell, read the tile under it, and dispatch to the matching per-frame handler", cert: "seen" },
   0x18cf: { name: "collectLootTile", role: "collect the scoring loot tile the actor aligned onto — award points, play the pickup sound, bump that loot kind's count, blank the tile", cert: "seen" },
-  0x191f: { name: "triggerDigReaction", role: "classify the tile under a digging actor and stage its carve reaction", cert: "code" },
+  0x191f: { name: "triggerDigReaction", role: "classify the tile under a digging actor and stage its carve reaction", cert: "seen" },
   0x19d0: { name: "advanceActorWalk", role: "carry an actor's walk one frame and, at the far edge, fire the Pit-crossing ship-boarding one-shot", cert: "seen" },
   0x19e3: { name: "drawActorWalkFrame", role: "commit the actor's walk frame, then fire the goal crossing's far-edge (ship-board) one-shot", cert: "seen" },
   0x1a02: { name: "stepObjectAndResolveTile", role: "step the player one frame along the climb/dig axis and resolve the tile — collect loot, carve, block, or (at the top rung with a diamond) latch board-complete", cert: "seen" },
-  0x1b5b: { name: "stageObjectSpriteRecord", role: "build the object's 4-byte sprite record in the staging buffer, biasing its ends", cert: "code" },
+  0x1b5b: { name: "stageObjectSpriteRecord", role: "build the object's 4-byte sprite record in the staging buffer, biasing its ends", cert: "seen" },
   0x23e8: { name: "seedMountainErosion", role: "seed the mountain-erosion write pointer + its level-scaled countdown (erosion runs faster every level), then cue a sound and stamp the tilemap cap", cert: "seen" },
   0x241c: { name: "erodeMountain", role: "one frame-gated step of mountain erosion — walk a write pointer down the mountain column (writing tile 0x31) as it visibly eats away, and on the escape case drop the rescue ship", cert: "seen" },
-  0x24cf: { name: "resetReactionState", role: "reset the per-object reaction state machine to idle and seed its companion bytes at round start", cert: "code" },
+  0x24cf: { name: "resetReactionState", role: "reset the per-object reaction state machine to idle and seed its companion bytes at round start", cert: "seen" },
   0x24f3: { name: "advancePlayerLaser", role: "fire/advance the player's horizontal laser (and the dig/push carve reaction it shares a slot with); kicks off the per-frame actor chain", cert: "seen" },
-  0x287a: { name: "seedDigObjectBlock", role: "seed the dig/target object control block at round start (resting hazard type = arrow)", cert: "code" },
+  0x287a: { name: "seedDigObjectBlock", role: "seed the dig/target object control block at round start (resting hazard type = arrow)", cert: "seen" },
   0x28ab: { name: "spawnDigEntity", role: "stage a dig entity at the actor's aligned tilemap cell and commit it the first pass the spawn slot is free", cert: "code" },
   0x2934: { name: "commitDigEntity", role: "commit one dig entity into its tilemap cell and patch the neighbouring cells", cert: "code" },
   0x29ad: { name: "advanceDigCarveObject", role: "per-frame driver for the dig/carve object that tunnels the maze — spawn gate, capture hand-off, carve countdown, and tile carving", cert: "code" },
@@ -999,8 +999,8 @@ export const ROUTINES = {
   0x2f71: { name: "advanceChamberCreature", role: "per-frame driver for the left-chamber creature — bounce it sideways, accelerate its fall-Y to the floor + RNG-reset, cycle its frame, publish its sprite, and (once the goal latch is set) dissolve one more Pit floor-reveal column", cert: "seen" },
   0x2f88: { name: "revealTerrainColumn", role: "reveal the next column of the Pit sliding-floor backdrop on its frame gate, then continue the background phase clock", cert: "code" },
   0x2fb7: { name: "drawTerrainColumn", role: "write one vertical strip of backdrop tiles up a column, then tick the animation clock", cert: "code" },
-  0x2fc0: { name: "advanceChamberCreatureAnimation", role: "the chamber creature's sprite-flip phase clock — tick the phase countdown and route to the flip / position-step / publish continuation", cert: "code" },
-  0x2fd9: { name: "setChamberCreatureFrame", role: "commit the chosen chamber-creature flip tile, then continue the shared animation tail", cert: "code" },
+  0x2fc0: { name: "advanceChamberCreatureAnimation", role: "the chamber creature's sprite-flip phase clock — tick the phase countdown and route to the flip / position-step / publish continuation", cert: "seen" },
+  0x2fd9: { name: "setChamberCreatureFrame", role: "commit the chosen chamber-creature flip tile, then continue the shared animation tail", cert: "seen" },
   0x30de: { name: "seedEnemyRecords", role: "seed the enemy records (second block of round setup) and derive the difficulty-scaled enemy-speed pair (0x07 − (level&6) → 7,5,3,1)", cert: "seen" },
   0x312d: { name: "updateEnemy1", role: "per-frame enemy pass — drive enemy 1 through the shared move/collision driver, stage its sprite, then hand off enemy 2", cert: "seen" },
   0x316f: { name: "updateEnemy2", role: "advance enemy 2 one frame through the shared driver and stage its sprite", cert: "seen" },
@@ -1020,62 +1020,62 @@ export const ROUTINES = {
   0x3748: { name: "advanceTwoSpriteActor", role: "per-frame update for the two-sprite actor (enemy-3 / rescue-ship / intro set-piece) — dispatch by spawn state and animation phase, marching + walk-animating it inline", cert: "seen" },
   0x37cf: { name: "spawnAltPhaseActor", role: "bring the alt-phase two-sprite actor to life on its first frame, then animate it every frame after", cert: "code" },
   0x384a: { name: "advanceAltPhaseActor", role: "per-frame animate + march for the alt-phase actor — the rescue ship flying in to land on the escape path (→ level advance)", cert: "seen" },
-  0x38c8: { name: "advanceOrRebuildTwinActor", role: "per-frame gate for the two-body actor — keep it moving while high in the field, else rebuild it at the start edge and redraw (which specific figure is unpinned)", cert: "guess" },
-  0x3945: { name: "paceActorCadence", role: "cadence front end for the actor phase body — tick the period-8 timer down, reload it on expiry, then run the phase body", cert: "code" },
-  0x3968: { name: "easeActorToRest", role: "per-frame coordinate stepper — ease an actor's coordinate down to a resting floor and keep its shadow twin a fixed 16 ahead", cert: "code" },
-  0x3984: { name: "spawnTwinActor", role: "spawn the two-body actor once its spawn is due — paint its tile+colour figure, seed both records, stage its sprite records", cert: "code" },
+  0x38c8: { name: "advanceOrRebuildTwinActor", role: "per-frame gate for the two-body actor — keep it moving while high in the field, else rebuild it at the start edge and redraw (which specific figure is unpinned)", cert: "seen" },
+  0x3945: { name: "paceActorCadence", role: "cadence front end for the actor phase body — tick the period-8 timer down, reload it on expiry, then run the phase body", cert: "seen" },
+  0x3968: { name: "easeActorToRest", role: "per-frame coordinate stepper — ease an actor's coordinate down to a resting floor and keep its shadow twin a fixed 16 ahead", cert: "seen" },
+  0x3984: { name: "spawnTwinActor", role: "spawn the two-body actor once its spawn is due — paint its tile+colour figure, seed both records, stage its sprite records", cert: "seen" },
   0x3a13: { name: "advanceActorMovers", role: "advance the two-sprite actor (live enemy-3) through the shared move/collision driver, then stage its sprite records", cert: "seen" },
-  0x3a4c: { name: "stageActorSpriteRecords", role: "stage the current actor's two hardware sprite records (main body + shadow twin) into the sprite buffer", cert: "code" },
-  0x3a6f: { name: "showSetupScreen", role: "paint the round-setup screen (playfield furniture + two HUD count records) and hold it briefly while a colour band cycles", cert: "code" },
+  0x3a4c: { name: "stageActorSpriteRecords", role: "stage the current actor's two hardware sprite records (main body + shadow twin) into the sprite buffer", cert: "seen" },
+  0x3a6f: { name: "showSetupScreen", role: "paint the round-setup screen (playfield furniture + two HUD count records) and hold it briefly while a colour band cycles", cert: "seen" },
   0x3b81: { name: "showFixedScreen", role: "paint a canned full-screen ROM image and hold it briefly", cert: "code" },
-  0x3ba8: { name: "holdFixedScreen", role: "paint a canned full-screen ROM image, then hold it on display forever", cert: "code" },
+  0x3ba8: { name: "holdFixedScreen", role: "paint a canned full-screen ROM image, then hold it on display forever", cert: "seen" },
   0x3bec: { name: "showBonusScreen", role: "paint the tier-selected board-complete bonus screen (5000 / 10000 / 15000) and hold it while it tallies with sound + colour cycling", cert: "seen" },
   0x3cc1: { name: "drawSharedPanel", role: "lay out a fixed panel — the left edge column, both players' score HUD, three labelled tile/colour runs, then the right edge and playfield columns", cert: "code" },
   0x3d49: { name: "drawSetupCreditsPanel", role: "paint one fixed 9-cell HUD/text panel at column 1, row 12", cert: "code" },
-  0x3d7e: { name: "cycleStagedColumnColour", role: "advance the board-mode byte (keeping bit 3 clear), then paint it down a column of cells", cert: "code" },
+  0x3d7e: { name: "cycleStagedColumnColour", role: "advance the board-mode byte (keeping bit 3 clear), then paint it down a column of cells", cert: "seen" },
   0x3d8a: { name: "drawGameOverText", role: "paint one fixed 9-cell vertical text strip at column 6, row 12", cert: "code" },
-  0x3dae: { name: "rowColToTileOffset", role: "turn a (row, column) tile-cell into a linear tilemap offset", cert: "code" },
-  0x3dc9: { name: "deriveTileWriteCursors", role: "turn a tile's tilemap offset into its colour-RAM and video-RAM write cursors", cert: "code" },
-  0x3ddb: { name: "copyCappedTileColumn", role: "copy a tile-code run down a video-RAM column, capping the top cell", cert: "code" },
-  0x3dea: { name: "copyTileColumn", role: "copy a stored run of tile codes straight down a video-RAM column", cert: "code" },
-  0x3e01: { name: "fillColourColumn", role: "paint a vertical run of colour-RAM cells with one colour byte", cert: "code" },
-  0x3e13: { name: "cycleColumnColour", role: "advance the shared colour index and repaint one screen column with it", cert: "code" },
-  0x3e1d: { name: "fillColourColumnAt", role: "paint a full-height colour-RAM column with one colour", cert: "code" },
+  0x3dae: { name: "rowColToTileOffset", role: "turn a (row, column) tile-cell into a linear tilemap offset", cert: "seen" },
+  0x3dc9: { name: "deriveTileWriteCursors", role: "turn a tile's tilemap offset into its colour-RAM and video-RAM write cursors", cert: "seen" },
+  0x3ddb: { name: "copyCappedTileColumn", role: "copy a tile-code run down a video-RAM column, capping the top cell", cert: "seen" },
+  0x3dea: { name: "copyTileColumn", role: "copy a stored run of tile codes straight down a video-RAM column", cert: "seen" },
+  0x3e01: { name: "fillColourColumn", role: "paint a vertical run of colour-RAM cells with one colour byte", cert: "seen" },
+  0x3e13: { name: "cycleColumnColour", role: "advance the shared colour index and repaint one screen column with it", cert: "seen" },
+  0x3e1d: { name: "fillColourColumnAt", role: "paint a full-height colour-RAM column with one colour", cert: "seen" },
   0x4632: { name: "saveActivePlayerRecord", role: "copy the live working game record into the backup slot of the player whose turn it is, so progress survives the turn switch", cert: "seen" },
-  0x4644: { name: "loadPlayerState", role: "make the selected player's saved level/score the current live state", cert: "code" },
+  0x4644: { name: "loadPlayerState", role: "make the selected player's saved level/score the current live state", cert: "seen" },
   0x4673: { name: "awardOnePoint", role: "add one point to the active player's score (with its pickup sound) and repaint the digits", cert: "seen" },
   0x467b: { name: "awardTenPoints", role: "add 10 to the active player's score (with its sound) and repaint the digits", cert: "seen" },
   0x4683: { name: "awardTwentyPoints", role: "add 20 to the active player's score (with its sound) and repaint the digits", cert: "seen" },
   0x4689: { name: "addScore", role: "the shared scorer — fold a packed-BCD increment into the active player's two-byte score (with carry) and repaint the on-screen digits", cert: "seen" },
-  0x46af: { name: "drawScoreDigits", role: "repaint the active player's on-screen score digits", cert: "code" },
-  0x46f4: { name: "drawLeftEdgeColumn", role: "stamp the fixed playfield left-edge column (a 32-tile picture strip) and tint it", cert: "code" },
-  0x472c: { name: "redrawScoreHud", role: "repaint both players' score displays, draw the status label, and tint the two HUD colour columns", cert: "code" },
-  0x4785: { name: "drawBestScoresTodayLabel", role: "stamp a fixed edge column, then hand to the colour fill to tint it", cert: "code" },
-  0x47a1: { name: "drawRightEdgeColumn", role: "draw the rightmost playfield column (a 28-tile strip) with its base colour and three accents", cert: "code" },
-  0x47e1: { name: "drawPlayerLabel", role: "paint the fixed PLAYER panel (tile column + matching colour column) at screen column 1, row 12", cert: "code" },
-  0x4816: { name: "paintPlayfieldStripCol1Row11", role: "paint one fixed vertical tile strip of the round's static playfield and its matching colour column", cert: "code" },
-  0x483a: { name: "drawMenLeftPanel", role: "paint the lives-remaining HUD panel at column 5, in one of two variants", cert: "code" },
+  0x46af: { name: "drawScoreDigits", role: "repaint the active player's on-screen score digits", cert: "seen" },
+  0x46f4: { name: "drawLeftEdgeColumn", role: "stamp the fixed playfield left-edge column (a 32-tile picture strip) and tint it", cert: "seen" },
+  0x472c: { name: "redrawScoreHud", role: "repaint both players' score displays, draw the status label, and tint the two HUD colour columns", cert: "seen" },
+  0x4785: { name: "drawBestScoresTodayLabel", role: "stamp a fixed edge column, then hand to the colour fill to tint it", cert: "seen" },
+  0x47a1: { name: "drawRightEdgeColumn", role: "draw the rightmost playfield column (a 28-tile strip) with its base colour and three accents", cert: "seen" },
+  0x47e1: { name: "drawPlayerLabel", role: "paint the fixed PLAYER panel (tile column + matching colour column) at screen column 1, row 12", cert: "seen" },
+  0x4816: { name: "paintPlayfieldStripCol1Row11", role: "paint one fixed vertical tile strip of the round's static playfield and its matching colour column", cert: "seen" },
+  0x483a: { name: "drawMenLeftPanel", role: "paint the lives-remaining HUD panel at column 5, in one of two variants", cert: "seen" },
   0x4894: { name: "drawCreditsDisplay", role: "paint the fixed 9-cell credits HUD panel at column 6, row 10", cert: "code" },
   0x48c4: { name: "cyclePanelColumnColour", role: "recolour a fixed nine-cell colour-RAM column, cycling its colour one step each call", cert: "code" },
-  0x48e5: { name: "drawGameOverLabel", role: "stamp the nine-character GAME OVER label down its HUD text column", cert: "code" },
-  0x492a: { name: "drawCopyrightLine", role: "paint one 32-tile screen column (the copyright line), then colour it", cert: "code" },
-  0x4b10: { name: "disableFrameInterrupt", role: "switch the per-frame (vblank) interrupt off", cert: "code" },
-  0x4b14: { name: "enableNmi", role: "switch on the per-frame vblank interrupt (the NMI mask)", cert: "code" },
-  0x4b1a: { name: "advanceRandom", role: "step the 16-bit LFSR pseudo-random generator and return a fresh byte", cert: "code" },
+  0x48e5: { name: "drawGameOverLabel", role: "stamp the nine-character GAME OVER label down its HUD text column", cert: "seen" },
+  0x492a: { name: "drawCopyrightLine", role: "paint one 32-tile screen column (the copyright line), then colour it", cert: "seen" },
+  0x4b10: { name: "disableFrameInterrupt", role: "switch the per-frame (vblank) interrupt off", cert: "seen" },
+  0x4b14: { name: "enableNmi", role: "switch on the per-frame vblank interrupt (the NMI mask)", cert: "seen" },
+  0x4b1a: { name: "advanceRandom", role: "step the 16-bit LFSR pseudo-random generator and return a fresh byte", cert: "seen" },
   0x4b3c: { name: "setupBoardModeC0", role: "the mode-0xC0 door into the shared display-setup body — stow the mode byte and rebuild the screen", cert: "code" },
-  0x4b40: { name: "setupBoardMode90", role: "the mode-0x90 door into the shared display-setup body — stow the mode byte and rebuild the screen", cert: "code" },
-  0x4b44: { name: "blankScreen", role: "the mode-0 door into the shared display-setup body — stow mode 0 and blank the whole screen", cert: "code" },
-  0x4b46: { name: "setupBoardDisplay", role: "record the board-mode byte and rebuild the whole screen for it (clear sprites, wipe tilemap, flood colour RAM)", cert: "code" },
-  0x4b55: { name: "applyDipSwitches", role: "read the cabinet DIP switches and commit them to runtime config — coin costs, difficulty/lives, and the flip-screen/cocktail lines", cert: "code" },
-  0x4bc7: { name: "initScoreDisplay", role: "blank the numeric-readout strip, seed three zeroed readout records, then render them", cert: "code" },
-  0x4bea: { name: "resetScoreAndSoundQueue", role: "blank the score bytes and the sound-command queue back to zero", cert: "code" },
-  0x4bff: { name: "waitFrames", role: "pause for a fixed number of video frames, then return", cert: "code" },
-  0x4c11: { name: "clearSpriteAndAttributeRam", role: "wipe sprite RAM and the per-column scroll for a clean screen at setup", cert: "code" },
-  0x4c1c: { name: "clearSpriteStagingBuffer", role: "zero the sprite-staging block during setup", cert: "code" },
-  0x4c27: { name: "fillVideoRam", role: "paint every cell of the tilemap with one tile code", cert: "code" },
-  0x4c37: { name: "fillColorRam", role: "repaint every colour-RAM cell with one board-mode colour byte", cert: "code" },
+  0x4b40: { name: "setupBoardMode90", role: "the mode-0x90 door into the shared display-setup body — stow the mode byte and rebuild the screen", cert: "seen" },
+  0x4b44: { name: "blankScreen", role: "the mode-0 door into the shared display-setup body — stow mode 0 and blank the whole screen", cert: "seen" },
+  0x4b46: { name: "setupBoardDisplay", role: "record the board-mode byte and rebuild the whole screen for it (clear sprites, wipe tilemap, flood colour RAM)", cert: "seen" },
+  0x4b55: { name: "applyDipSwitches", role: "read the cabinet DIP switches and commit them to runtime config — coin costs, difficulty/lives, and the flip-screen/cocktail lines", cert: "seen" },
+  0x4bc7: { name: "initScoreDisplay", role: "blank the numeric-readout strip, seed three zeroed readout records, then render them", cert: "seen" },
+  0x4bea: { name: "resetScoreAndSoundQueue", role: "blank the score bytes and the sound-command queue back to zero", cert: "seen" },
+  0x4bff: { name: "waitFrames", role: "pause for a fixed number of video frames, then return", cert: "seen" },
+  0x4c11: { name: "clearSpriteAndAttributeRam", role: "wipe sprite RAM and the per-column scroll for a clean screen at setup", cert: "seen" },
+  0x4c1c: { name: "clearSpriteStagingBuffer", role: "zero the sprite-staging block during setup", cert: "seen" },
+  0x4c27: { name: "fillVideoRam", role: "paint every cell of the tilemap with one tile code", cert: "seen" },
+  0x4c37: { name: "fillColorRam", role: "repaint every colour-RAM cell with one board-mode colour byte", cert: "seen" },
   0x4c47: { name: "disableSound", role: "pull the sound-enable line low, silencing the audio", cert: "code" },
-  0x4c4d: { name: "enableSound", role: "switch the master sound-enable line on (unmute the audio)", cert: "code" },
+  0x4c4d: { name: "enableSound", role: "switch the master sound-enable line on (unmute the audio)", cert: "seen" },
   0x4c57: { name: "requestSound2", role: "enqueue sound-command 2", cert: "code" },
   0x4c5b: { name: "requestSound3", role: "enqueue the coin sound (command 3)", cert: "seen" },
   0x4c5f: { name: "requestSound4", role: "enqueue the game-start sound (command 4)", cert: "seen" },
@@ -1095,10 +1095,10 @@ export const ROUTINES = {
   0x4c9b: { name: "requestSound19", role: "enqueue the dig-descend sound (command 19)", cert: "seen" },
   0x4c9f: { name: "requestSound20", role: "enqueue the dig-carve sound (command 20)", cert: "seen" },
   0x4ca3: { name: "requestSound21", role: "enqueue sound-command 21", cert: "code" },
-  0x4ca5: { name: "enqueueSoundCommand", role: "append one sound request (OR'd with bit 7) to the 8-slot sound ring buffer", cert: "code" },
+  0x4ca5: { name: "enqueueSoundCommand", role: "append one sound request (OR'd with bit 7) to the 8-slot sound ring buffer", cert: "seen" },
   0x4cbf: { name: "submitPlayerHighScore", role: "offer the finishing player's final score to the BEST SCORES TODAY table and repaint the readouts", cert: "seen" },
-  0x4cca: { name: "renderScoreReadouts", role: "lay the three high-score readout numbers into their on-screen display cells", cert: "code" },
-  0x4d0c: { name: "unpackScoreDigits", role: "expand a staged packed score value into display digit cells", cert: "code" },
+  0x4cca: { name: "renderScoreReadouts", role: "lay the three high-score readout numbers into their on-screen display cells", cert: "seen" },
+  0x4d0c: { name: "unpackScoreDigits", role: "expand a staged packed score value into display digit cells", cert: "seen" },
   0x4d3a: { name: "insertHighScore", role: "place a candidate score into the descending three-entry BEST SCORES TODAY table, bumping the entries it beats down a rank", cert: "seen" },
   0x4df8: { name: "runHighScoreInitialsEntry", role: "the high-score initials-entry screen — build the display, let the player dial in three initials, then show the final readouts", cert: "seen" },
   0x4eea: { name: "stepHighScoreInitialsEntry", role: "per-frame initials-entry handler — step the current letter up/down and commit on Fire, keyed on the debounced input", cert: "seen" },
