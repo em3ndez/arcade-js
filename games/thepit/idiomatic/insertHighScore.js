@@ -1,38 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * insertHighScore — place a candidate score into the descending three-entry
- * "BEST SCORES TODAY" table, bumping the entries it beats down a rank.  ROM 0x4d3a.
+ * insertHighScore — place a candidate score into the descending three-entry "BEST SCORES TODAY"
+ * table, bumping the entries it beats down a rank.
  *
- * The candidate score is a 16-bit value held as two bytes in work RAM (a high byte
- * and a low byte). The table holds three ranked slots, highest first; each slot is a
- * 5-byte record: three initials bytes followed by the 16-bit score. The routine walks
- * the table from the lowest rank up:
- *
- *   - A score that does not strictly beat the lowest entry never makes the table, and
- *     the routine returns having changed nothing.
- *   - Otherwise, for every entry the candidate beats, that entry (score AND initials)
- *     slides down one rank so the loser is preserved one place lower.
- *   - Where the candidate settles, its score is written and that slot's initials are
- *     stamped with the placeholder byte (the player will type real initials in later).
- *
- * Ties place the candidate just BELOW the equal entry — an equal score does not
- * displace one already on the board. The rank it landed at (1, 2 or 3) is published to
- * a result byte; the caller pre-clears that byte to 0, so "no placement" reads as 0.
- *
- * Memory-equivalent to the frozen oracle — equivalence-4d3a.test.js.
- * GATE:     crafted-entry — attract never inserts a score, so a real booted machine is
- *           nudged across the score table's full input domain (no-placement / tie /
- *           land-at-each-rank / high-byte-tie low-byte compares + a randomized sweep),
- *           poked identically on both sides; teeth = a strict-`<` tie bug.
- * LIVE-OUT: memory-only — the three score slots, their initials, and the landed-rank
- *           byte. It takes no register inputs and the caller reads its result from RAM;
- *           the residual registers/flags are dead ABI (the RAM gate backstops that). It
- *           models no stack, so SP and the return address are left untouched.
- * NAMES:    the candidate score bytes 0x8031/0x8034 are SCORE_LO/SCORE_HI from names.js;
- *           the ranked table slots keep local names — no names.js name exists for them. The
- *           landed-rank byte 0x8048 is what names.js tentatively (weak) calls VARIANT for
- *           a different, round-setup role, so it is NOT imported here — using a wrong
- *           role name would mislead worse than a plain address.
+ * The candidate is a 16-bit value held as SCORE_HI / SCORE_LO. The table holds three ranked slots,
+ * highest first; each slot is a 5-byte record — three initials bytes then the 16-bit score. The
+ * routine walks the table from the lowest rank up: a score that does not strictly beat the lowest
+ * entry never makes the table (nothing changes); otherwise, for every entry the candidate beats,
+ * that entry (score and initials) slides down one rank so the loser is preserved one place lower;
+ * where the candidate settles, its score is written and that slot's initials are stamped with a
+ * placeholder for the player to type over later. Ties place the candidate just BELOW the equal
+ * entry — an equal score does not displace one already on the board. The rank it landed at (1, 2
+ * or 3) is published to a result byte the caller pre-clears to 0, so "no placement" reads as 0.
  */
 
 import { SCORE_HI, SCORE_LO } from "./names.js";

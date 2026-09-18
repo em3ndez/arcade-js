@@ -1,44 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * clearSpriteAndAttributeRam — wipe the sprites and per-column scroll for a clean
- * screen at setup.  ROM 0x4c11.
+ * clearSpriteAndAttributeRam — wipe the sprites and per-column scroll for a clean screen.
  *
- * Part of the screen/board setup that the multi-door entry family runs (it is the
- * first of that sequence's three fill/clear steps, followed by the video-RAM fill
- * and the colour fill). It zeroes the low half of the display's 0x9800 block:
- *   - the attribute / column-scroll RAM (0x9800-0x983F) — one byte per column,
- *     read as that column's vertical scroll, so zeroing it un-scrolls every column;
- *   - the eight sprite slots (0x9840-0x985F, four bytes each) — zeroing them clears
- *     every sprite off the screen; and
- *   - the spare bytes just above (0x9860-0x987F).
- * The upper half of the block (0x9880-0x98FF) is deliberately left untouched.
- *
- * It takes no inputs and reads no memory — the base and the 128-byte length are
- * fixed — so it always leaves the same 128 bytes zeroed no matter what state it is
- * entered from.
- *
- * Memory-equivalent to the frozen oracle — equivalence-4c11.test.js.
- * GATE:     crafted-entry — the real dispatch (where the block is already all-zero,
- *           so it proves ONLY these 128 bytes are touched, no stray write), plus a
- *           DIRTIED entry (all 128 bytes pre-filled with distinct garbage on both
- *           sides, proving it actually clears rather than re-reading zeros). Teeth: a
- *           short-count twin that leaves the block's last byte — invisible on the
- *           already-zero real entry, caught on the dirtied one. Reached from the
- *           multi-door entry family (blankScreen / setupBoardDisplay) during the attract demo.
- * LIVE-OUT: memory-only — the 128 cleared bytes, plus the return to the caller. The
- *           loop counter and walk pointer the oracle leaves behind are dead: every
- *           caller's next act is another setup call that reloads them before use. No
- *           flags are read end to end.
- * NAMES:    none from names.js — that file names the work RAM (0x8000-0x87FF); this
- *           clears display-side RAM. The region roles come from the board memory map
- *           and are corroborated by the pixel-exact renderer: attribute/column-scroll
- *           (0x9800-0x983F), sprite RAM (0x9840-0x985F), spare (0x9860-0x98FF).
+ * The first of the screen/board setup sequence's three fill/clear steps. It zeroes the low
+ * 128 bytes of the display block: the attribute / column-scroll RAM (one byte per column,
+ * so zeroing un-scrolls every column), the eight four-byte sprite slots (clearing every
+ * sprite off the screen), and the spare bytes above. The upper half is left untouched, and
+ * base and length are fixed, so it always zeroes the same 128 bytes.
  */
 export function clearSpriteAndAttributeRam(m) {
   const { mem8 } = m;
 
-  // Zero the attribute/column-scroll RAM, the eight sprite slots, and the spare
-  // bytes above them — the low half of the 0x9800 block (0x9800-0x987F).
+  // Zero the low half of the display block: column-scroll RAM, sprite slots, and spare.
   for (let i = 0; i < 128; i++) mem8[0x9800 + i] = 0;
 
   return m.ret();

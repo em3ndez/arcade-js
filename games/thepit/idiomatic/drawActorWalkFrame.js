@@ -1,32 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * drawActorWalkFrame — commit the actor's animation frame, then fire the crossing's far-edge one-shot.  ROM 0x19e3.
+ * drawActorWalkFrame — commit the actor's animation frame, then fire the crossing far-edge one-shot.
  *
- * The tail of the actor-movement "keep moving" continuation (advanceActorWalk): the predecessor has
- * just advanced the actor and picked its walk-animation frame, and hands that frame in. This
- * routine commits the frame into the actor's sprite-code cell.
- *
- * Then a single far-edge one-shot, fired only during the post-goal crossing sequence: when the
- * goal-crossing latch is set AND the actor has walked out to the crossing's far edge (its row
- * accumulator has reached the far-edge limit), it arms the object's state-lockout timer and
- * clears the object's leading coordinate — resetting it once the crossing walk completes. An
- * actor that is not crossing, or one still short of the edge, does neither and leaves those two
- * cells untouched.
- *
- * Every path ends by rebuilding the object's display/deferral record (stageObjectSpriteRecord); that rebuild's
- * own return unwinds to this routine's caller, so the routine produces no live register.
- *
- * Memory-equivalent to the frozen oracle — equivalence-19e3.test.js.
- * GATE:     crafted-entry — 0x19e3 is only ever reached inline as the tail of advanceActorWalk (never
- *           dispatched on its own), so entries are cloned from real captured advanceActorWalk attract
- *           dispatches. The far-edge latch is never taken in attract (the goal-crossing latch is
- *           always clear there), so all three branches are forced identically on both arms. Its
- *           inputs are the incoming frame plus a handful of work-RAM bytes, so any real state is
- *           a valid entry.
- * LIVE-OUT: memory-only — the committed sprite frame, the armed state timer and cleared leading
- *           coordinate on the far-edge path, and the record stageObjectSpriteRecord rebuilds. The registers/flags
- *           the oracle leaves behind (from its tail into stageObjectSpriteRecord) are dead ABI no caller reads.
- * NAMES:    PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y from names.js.
+ * The tail of the actor-movement "keep moving" continuation: the predecessor advanced the
+ * actor and picked its walk frame; this commits that frame into the sprite-code cell. Then
+ * a far-edge one-shot fires only during the post-goal crossing — when the crossing latch is
+ * set and the actor has reached the far edge, it arms the state-lockout timer and clears the
+ * object's leading coordinate. Every path rebuilds the object's record, whose return unwinds here.
  */
 
 import { PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y } from "./names.js";
@@ -43,8 +23,7 @@ export function drawActorWalkFrame(m, spriteCode = m.regs.a) {
   // Commit the actor's chosen animation frame.
   mem8[PLAYER_FACING] = spriteCode;
 
-  // Far-edge one-shot: only while a goal crossing is active and the actor has walked out
-  // to the far edge. Arm the state-lockout timer and reset the object's leading coordinate.
+  // Far-edge one-shot: only while a crossing is active and the actor is at the far edge.
   if (mem8[PIT_CROSS_ACTIVE] !== 0 && mem8[PLAYER_X] >= CROSSING_FAR_EDGE) {
     mem8[TRANSITION_TIMER] = CROSSING_LOCKOUT;
     mem8[PLAYER_Y] = 0;

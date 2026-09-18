@@ -1,56 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * runHighScoreInitialsEntry — the high-score initials-entry screen: build the display, let the
- *            player dial in their three initials, then show the final score readouts.  ROM 0x4df8.
+ * player dial in their three initials, then show the final score readouts.
  *
- * When the player earns a top-three score the game runs this screen so they can enter
- * their initials against that rank's record. It does three things in order:
- *
- *   1. Build the fixed screen. Decode the cabinet dip switches, blank the display, and
- *      paint the shared panel (edge columns + both score HUDs). Then lay this screen's
- *      own content: a few flat colour columns, a variant-selected label strip naming the
- *      rank, and a fixed prompt strip. The three initials to enter are counted into a
- *      small down-counter (seeded to three).
- *
- *   2. Run the entry loop. One initial cell blinks — its current letter is shown, then a
- *      cursor glyph, on a fixed cadence — while each pass hands the frame's input to the
- *      per-frame handler that steps the letter up/down or commits it. Committing an
- *      initial moves the cell to the next position, counts one off the down-counter, and
- *      restarts the idle timeout. The loop ends when either all three initials are
- *      committed (the down-counter reaches zero) or the player sits idle past the timeout.
- *
- *   3. On completion (all three entered) rebuild the screen, play a confirmation sound,
- *      hold briefly, clear the rank selector, and draw the final score readouts. On an
- *      idle timeout it just returns to the caller with the entry abandoned.
- *
- * Which of the three top ranks is being entered is read from the rank selector: it picks
- * the label strip, the on-screen position (video + colour cells) the initials blink at,
- * their colour, and which of the three high-score records they fill.
- *
- * The per-frame handler still reads its working cursors out of the machine registers (its
- * calling convention is not yet promoted to parameters), so this loop keeps them there and
- * threads them through it: the video cell the letter blinks in, the colour cell, the record
- * being filled, the letter's colour, and the current letter code. That is a genuine
- * register boundary; everything else is ordinary memory work and direct calls.
- *
- * Memory-equivalent to the frozen oracle — equivalence-4df8.test.js.
- * GATE:     crafted-entry — 0x4df8 is never dispatched in a boot/attract run (a probe over
- *           4000 frames sees 0; its per-frame handler's display loop is not reached), so the
- *           gate runs it from a real captured sound-request state (a sibling stub's genuine
- *           attract dispatch) with the rank selector swept over its three arms and the input
- *           poked to drive the two exits: an all-committed run (input holds the commit bit)
- *           and an idle timeout (no input). The frame waits and the timeout both advance on
- *           counters the per-frame interrupt drives; run in isolation those are modelled by
- *           one identical per-frame-tick hook on both clones. RAM-only diff outside the dead
- *           top-of-stack scratch. Teeth catch a wrong label strip and a dropped colour column.
- * LIVE-OUT: memory-only — the whole built screen (video + colour RAM), the score readouts,
- *           the counters, and the queued sounds; plus the return to the caller. No register
- *           or flag is read back by the caller (the two exits are a return and a tail hand-off
- *           to the readout painter). The idiomatic layer does not preserve the Z80 pc/SP.
- * NAMES:    PLAY_PHASE_COUNTER, VARIANT (the rank selector), TILE_COL / TILE_ROW, PLOT_RUN_LENGTH,
- *           HIGH_SCORE_TABLE, INITIALS_REMAINING (0x804b, the initials-remaining counter, the
- *           same cell the per-frame handler counts down) from names.js. The ROM label strips, the
- *           on-screen cell addresses, and the finish colour byte are hex.
+ * When the player earns a top-three score the game runs this screen so they can enter their
+ * initials against that rank's record. In order it: (1) builds the fixed screen — decode the
+ * cabinet dip switches, blank the display, paint the shared panel (edge columns + both score
+ * HUDs), then this screen's own flat colour columns, a variant-selected label strip naming the
+ * rank, and a fixed prompt strip, with the three initials counted into a small down-counter; (2)
+ * runs the entry loop — one initial cell blinks (its letter, then a cursor glyph, on a fixed
+ * cadence) while each pass hands the frame's input to the per-frame handler that steps the letter
+ * up/down or commits it, a commit moving the cell on, counting one off, and restarting the idle
+ * timeout; the loop ends when all three are committed or the player sits idle past the timeout;
+ * (3) on completion rebuilds the screen, plays a confirmation sound, holds briefly, clears the
+ * rank selector, and draws the final score readouts — an idle timeout instead just returns with
+ * the entry abandoned. The rank selector picks the label strip, the blink position, its colour,
+ * and which of the three high-score records the initials fill. The per-frame handler reads its
+ * working cursors out of the machine registers, so the loop seats them there and threads them
+ * through it: the video cell, the colour cell, the record being filled, the colour, and the
+ * current letter code — a genuine register boundary; the rest is ordinary memory work.
  */
 
 import {
@@ -86,13 +54,13 @@ const FINISH_BOARD_MODE = 0xd0; // board-mode / screen-wide colour byte for the 
 const FINISH_HOLD_FRAMES = 60; // frames the completed screen is held before the readouts
 
 // The frame waits and the per-frame handler still take the machine's Z80 return path, so
-// their non-tail calls are bracketed with the return address the oracle would push.
+// their non-tail calls are bracketed with the return address the caller would push.
 const RESUME_AFTER_LETTER = 0x4ebd;
 const RESUME_AFTER_CURSOR = 0x4ec4;
 const RESUME_AFTER_STEP = 0x4ec7;
 const RESUME_AFTER_FINISH_HOLD = 0x4eda;
 
-/** ROM label strip naming the rank, by selector: rank 2, rank 1, or (otherwise) rank 0. */
+/** Label strip naming the rank, by selector: rank 2, rank 1, or (otherwise) rank 0. */
 function rankLabelStrip(selector) {
   if (selector === 3) return 0x4a8e;
   if (selector === 2) return 0x4a7b;

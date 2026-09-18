@@ -1,42 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * commitDigEntity — commit one dig entity into its tilemap cell and patch the neighbours.  ROM 0x2934.
+ * commitDigEntity — commit one staged dig entity into its tilemap cell and patch the neighbours.
  *
- * The tail reached once the dig-object spawn counter has rolled down to a fresh
- * commit (from the placement classifier's `jr z` and from the per-frame carve
- * handler's tail-jump while more entities are pending). Everything it needs was
- * staged earlier into a scratch block; this routine promotes that staging into the
- * live dig-object record and stamps the entity into the tilemap:
- *
- *   - Arms the record: the carving-phase state code, its attribute byte, and reloads
- *     the entity's saved tilemap cell pointer as the live carve cursor.
- *   - Commits the staged placement values — the target column (also mirrored), the
- *     target row, and the initial dig timer — into the record the carve handler reads.
- *   - Stamps the entity into the tilemap: its sprite id in the cell just before the
- *     cursor, and the fill tile in the cursor's own cell.
- *   - Patches the tile that used to sit before the cursor so the dug channel joins up:
- *     three "seam" neighbour codes defer to the entity's sub-type (which may instead
- *     patch two cells back), tiles in the dig-channel band are remapped through a ROM
- *     translation table, and anything else is left as the just-written sprite id.
- *
- * Named by effect: commits one staged dig entity into the live dig-object record and
- * stamps it into the tilemap.
- *
- * Memory-equivalent to the frozen oracle — equivalence-2934.test.js.
- * GATE:     crafted-entry — never dispatched in a boot/attract run (the demo never
- *           digs deep enough to commit an entity), so it is validated on real captured
- *           attract states with the staging block, cell pointer and neighbour tiles
- *           crafted identically on both sides, plus a sweep of every neighbour class
- *           and every sub-type arm.
- * LIVE-OUT: memory-only — the seeded dig-object record and the stamped/patched tilemap
- *           cells. It reads all its inputs from RAM and returns nothing; the oracle's
- *           residual registers/flags are dead ABI.
- * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_OBJ_SUBTYPE, HAZARD_X,
- *           HAZARD_Y from names.js. The staging scratch is STAGED_TARGET_X (0x80b6),
- *           STAGED_TARGET_Y (0x80b9), STAGED_DIG_TIMER (0x80bc) and STAGED_DIG_SPRITE_ID
- *           (0x80bf), and the saved carve cell pointer is STAGED_CELL_PTR (0x80ba); the
- *           target-column mirror (0x80be) has no confirmed name yet and stays hex; the
- *           live carve cell pointer is CARVE_CELL_PTR (0x80af).
+ * The tail reached once the dig-object spawn counter rolls down to a fresh commit (from the
+ * placement classifier and from the per-frame carve handler while more entities are pending).
+ * Everything it needs was staged earlier into a scratch block; this promotes that staging into
+ * the live dig-object record and stamps the entity into the tilemap:
+ *   - Arms the record: HAZARD_STATE takes the carving-phase code and HAZARD_TYPE its attribute,
+ *     and the saved cell pointer STAGED_CELL_PTR reloads as the live carve cursor CARVE_CELL_PTR.
+ *   - Commits the staged placement values — the target column (also mirrored), the target row,
+ *     and the initial dig timer — into the record the carve handler reads.
+ *   - Stamps the entity: its sprite id in the cell just before the cursor, the fill tile in the
+ *     cursor's own cell.
+ *   - Patches the tile that used to sit before the cursor so the dug channel joins up: three
+ *     seam neighbour codes defer to the entity's sub-type (which may patch two cells back),
+ *     dig-channel tiles remap through a translation table, anything else keeps the sprite id.
+ * Named by effect: it commits one staged dig entity and stamps it into the tilemap.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -57,7 +36,7 @@ import {
 
 const CARVING_STATE = 48; // dig-object state code for the carving phase
 const FILL_TILE = 112; // marker tile stamped into a committed cell
-const TILE_REMAP_TABLE = 0x2dc3; // ROM: dig-channel tile code -> patched seam tile
+const TILE_REMAP_TABLE = 0x2dc3; // dig-channel tile code -> patched seam tile
 
 export function commitDigEntity(m) {
   const { mem8, mem16 } = m;

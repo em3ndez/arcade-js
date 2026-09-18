@@ -1,38 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceDormantMover — mover housekeeping: advance two cadence counters each call.  ROM 0x34da.
+ * advanceDormantMover — mover housekeeping: advance two cadence counters each call.
  *
- * Called once per mover update to keep two counters ticking:
- *   - A free-running tick counter is bumped every call. Once every 256 calls it
- *     wraps back to zero, and on that single beat the routine hands off to the
- *     periodic refresh (reseed the random/animation byte, re-arm the actor state
- *     byte) and is done for this call.
- *   - On every other call the routine acts only on every 4th tick: it advances a
- *     second, slower counter — holding that counter's bit 3 clear so it can never
- *     set — and otherwise does nothing.
- *
- * The name stays neutral. Of the two counters it drives, the free-running tick counter
- * is now ENEMY_WORK_STATE (0x8090); the slower second counter (0x8085) still has no confirmed
- * game role — the timer/cadence question it sits under is still open — so an English name
- * for the routine would claim more than the evidence supports; the sibling refresh it
- * delegates to stays neutral for the same reason.
- *
- * Memory-equivalent to the frozen oracle — equivalence-34da.test.js.
- * GATE:     exhaustive — over all 65,536 (tick, second-counter) pairs the touched
- *           work RAM matches the oracle, exercising all three paths (the every-4th
- *           advance, the do-nothing tick, and the wrap→refresh), plus a spread of
- *           generator states on the wrap beat and real captured attract states,
- *           plus teeth. Never dispatched in attract (its caller's tick housekeeping
- *           is a gameplay path), so it is gated as a near-leaf sweep rather than a
- *           natural dispatch — like the refresh it calls.
- * LIVE-OUT: memory-only. The accumulator the oracle leaves behind is path-dependent
- *           (the refresh's value on a wrap, the low tick bits on a skipped tick, the
- *           new second-counter value on the 4th) and dead: the caller reaches here
- *           only by tail-jump, threading this return on out, and reads it as no
- *           pixel state — the whole-machine/pixel gate backstops any live register.
- * NAMES:    ENEMY_WORK_STATE (0x8090) from names.js is the free-running tick counter; the
- *           slower second counter is ENEMY_WORK_ATTR (0x8085);
- *           the periodic refresh owns the bytes it writes.
+ * Called once per mover update to keep two counters ticking. The free-running tick counter
+ * ENEMY_WORK_STATE is bumped every call; once every 256 calls it wraps to zero, and on that beat
+ * the routine hands off to the periodic refresh (reseed the random/animation byte, re-arm the
+ * actor state byte) and is done. On every other call it acts only on every 4th tick, advancing
+ * the slower counter ENEMY_WORK_ATTR while holding that counter's bit 3 clear. The name stays
+ * neutral: the slower counter has no confirmed game role a routine name could claim.
  */
 
 import { reseedMoverCadenceAndRearmState } from "./reseedMoverCadenceAndRearmState.js";

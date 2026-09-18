@@ -1,40 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * resolveObjectTile — locate the tracked object's tile cell, read the tile under it, and hand the
- * object to the matching per-frame handler.  ROM 0x186f.
+ * object to the matching per-frame handler.
  *
- * From the object's two position counters (plus a caller-supplied horizontal bias) it works
- * out which tile cell of the on-screen map the object currently occupies: it derives the row
- * and column cell coordinates, builds the video-RAM address of that cell, and reads the tile
- * sitting there. It publishes the cell address and the tile (two copies) so the draw code and
- * the downstream handlers can use them, and clears the "next tile" slot.
- *
- * Then it routes the object:
- *   - On any ordinary tile it hands off to the loot/dig collector, passing the tile code and
- *     the biased horizontal position — the collector only acts right as the object crosses a
- *     tile boundary, which that position tells it.
- *   - The moment the object is standing on the goal tile it latches that the goal was reached;
- *     and once it is also past the crossing position it records where it crossed and hands off
- *     to the walk-forward continuation instead. (Standing on the goal tile before the crossing
- *     position still routes to the collector, with the goal already latched.)
- *
- * The handler it hands off to is the object's whole remaining work this frame; that handler's
+ * From the object's two position counters (plus a caller-supplied horizontal bias) it works out
+ * which map cell the object occupies: it derives the row and column coordinates, builds the video
+ * address of that cell, and reads the tile there. It publishes the cell address and the tile (two
+ * copies) for the draw code and downstream handlers, and clears the "next tile" slot. Then it routes:
+ * on any ordinary tile it hands off to the loot/dig collector, passing the tile code and the biased
+ * horizontal position (which tells the collector when the object crosses a tile boundary); the moment
+ * the object stands on the goal tile it latches that the goal was reached, and once it is also past
+ * the crossing position it records where it crossed and hands off to the walk-forward continuation
+ * instead. The handler it hands off to is the object's whole remaining work this frame, and its
  * return unwinds to this routine's caller, so handing off is this routine's own return.
- *
- * Memory-equivalent to the frozen oracle — equivalence-186f.test.js.
- * GATE:     RAM-only over real captured attract dispatches (resolveObjectTile runs ~500x in a plain
- *           boot/attract run, reached from the movement/state dispatcher) + crafted goal-tile
- *           entries for the goal / crossing arms attract never reaches. Excludes the dead stack
- *           scratch the still-oracle comparison run parks below the entry stack pointer (the
- *           idiomatic handlers are stack-free). Teeth: wrong row cell, wrong published tile,
- *           skipped goal latch.
- * LIVE-OUT: memory-only — the row/column cell coordinates, the cell address, the published
- *           under-tile (both copies) and cleared next-tile slot, the goal latches, plus
- *           whatever the handoff handler writes. No live registers of its own; the horizontal
- *           bias is a genuine register live-in surfaced as the columnBias parameter.
- * NAMES:    PLAYER_Y, PLAYER_X, PLAYER_TILE_ROW, PLAYER_TILE_COL, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE,
- *           GOAL_TILE_LATCH, PIT_CROSS_ACTIVE from names.js; 0x80a7 is EXPECTED_TILE (used
- *           here as the second under-tile copy); 0x9000 (video-RAM base) stays hex.
  */
 
 import {

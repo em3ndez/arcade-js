@@ -1,45 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * drawPlayerLabel — paint one fixed vertical panel (a tile column plus its matching colour
- * column) into the playfield at screen column 1, row 12. ROM 0x47e1.
+ * drawPlayerLabel — paint one fixed vertical panel (a tile column plus its matching colour column)
+ * into the playfield at screen column 1, row 12.
  *
- * The panel is three stacked vertical runs down that one column, every run using the
- * same fill byte 7:
- *   1. its top cell is stamped with the current secondary game-state byte,
- *   2. the next seven cells come from a fixed tile table in ROM, and
- *   3. a nine-cell colour column is painted underneath so the whole strip shares a
- *      colour attribute.
- * It is invoked only while a game is actually running — the round-setup path calls it
- * only for the 1-and-2-player modes, and the in-play HUD refresh loops call it — so the
- * strip is very likely the started-game status/HUD readout. That semantic role is not
- * yet confirmed to the naming bar, so the routine keeps its address name.
- *
- * The work is done by five shared plot helpers, all now decompiled and called directly:
- * rowColToTileOffset and deriveTileWriteCursors turn the target cell into a tilemap offset
- * and the colour-/video-RAM write cursors, copyTileColumn stamps the top cell,
- * copyCappedTileColumn fills the seven-cell tile run (handed its source pointer as an
- * ordinary JS argument — no ix load, no staged return address), and fillColourColumn paints
- * the closing colour column. This routine seeds their shared scratch parameter block (target
- * cell, fill byte, run length, source pointer) and drives all five in order; the last one is
- * a tail hand-off that returns straight to this routine's own caller.
- *
- * Memory-equivalent to the frozen oracle on the observable RAM — equivalence-47e1.test.js.
- * GATE:     crafted-entry — never reached in plain attract (the started-game HUD path),
- *           so a real captured attract state is given a clean call stack and run
- *           oracle-vs-idiomatic across a few secondary-state values. The five direct
- *           calls drop the Z80 return-address pushes and the tail ret, so pc, SP and the
- *           dead stack-scratch window below the entry SP legitimately differ and are
- *           excluded; the painted work/colour/video RAM is compared byte-for-byte. Teeth:
- *           a wrong fill byte and a corrupted output cell.
- * LIVE-OUT: memory-only — the painted tilemap / colour / video cells; no caller reads a
- *           returned register (the residual registers are dead ABI). No helper here is a
- *           frozen oracle any more; the decompiled helpers take no leftover-register input
- *           (copyTileColumn and copyCappedTileColumn are each handed their source pointer as
- *           an argument; the rest read the scratch block below).
- * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059), ACTIVE_PLAYER (0x8002) from names.js.
- *           Hex-kept: the plotter scratch params below (names.js names 0x8057 BOARD_MODE
- *           for a different entry-select role, so it is not imported here); and the ROM
- *           tile table.
+ * The panel is three stacked runs down that column, all using fill byte 7: the top cell takes the
+ * current secondary game-state byte, the next seven come from a fixed tile table, and a nine-cell
+ * colour column is painted underneath so the strip shares one colour. It runs only while a game is
+ * in progress (very likely the started-game HUD readout), a role not confirmed enough to name, so
+ * the routine keeps its neutral name. Five shared plot helpers do the work — this routine seeds
+ * their shared scratch block (target cell, fill byte, run length, source) and drives all five in
+ * order, the last a tail hand-off back to our caller.
  */
 
 import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH } from "./names.js";
@@ -49,40 +19,31 @@ import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 
-// The shared tile-plotter's scratch parameter block (0x8055-0x8060). These are the
-// plotter ABI the helpers below read, not game state, so they stay hex here.
+// The shared tile-plotter's scratch parameter block: the plotter ABI, so its cells stay hex here.
 const PLOT_FILL_BYTE = 0x8057; // the colour byte the colour-column paint writes
 
-// A fixed run of tile codes in ROM used for the panel's seven middle cells.
 const PANEL_TILE_TABLE = 0x49b1;
 
 export function drawPlayerLabel(m) {
   const { mem8 } = m;
 
-  // Aim the panel at tile column 1, row 12, then turn that cell into the tilemap offset
-  // (0x805a, TILEMAP_OFFSET in names.js) and the colour-/video-RAM write cursors the paint
-  // helpers write through.
+  // Aim the panel at tile column 1, row 12, then derive the tilemap offset and write cursors.
   mem8[TILE_COL] = 1;
   mem8[TILE_ROW] = 12;
-  rowColToTileOffset(m); // (row, col) -> tilemap offset
-  deriveTileWriteCursors(m); // tilemap offset -> colour-RAM + video-RAM write cursors
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
 
-  // Every run of the panel is painted with fill byte 7.
   mem8[PLOT_FILL_BYTE] = 7;
 
-  // Top cell: stamp the current secondary game-state byte as the panel's first tile.
-  // copyTileColumn copies one byte down the column from the source pointer it is handed.
+  // Top cell: stamp the current secondary game-state byte (copyTileColumn copies one byte down).
   mem8[PLOT_RUN_LENGTH] = 1;
-  copyTileColumn(m, ACTIVE_PLAYER); // source: the byte at ACTIVE_PLAYER
+  copyTileColumn(m, ACTIVE_PLAYER);
 
-  // Next seven cells: a fixed tile run out of the ROM table (its first cell takes the fill
-  // helper's own cap byte, the remaining cells walk the table backwards). copyCappedTileColumn
-  // is now decompiled, called directly with its source pointer — no IX load, no return push.
+  // Next seven cells: a fixed tile run from the table, called directly with its source pointer.
   mem8[PLOT_RUN_LENGTH] = 7;
   copyCappedTileColumn(m, PANEL_TILE_TABLE);
 
-  // Finally paint a nine-cell colour column with the fill byte, so the strip shares one
-  // colour. This is a tail hand-off: the colour-paint helper returns to our own caller.
+  // Finally a nine-cell colour column with the fill byte; a tail hand-off back to our caller.
   mem8[PLOT_RUN_LENGTH] = 9;
   return fillColourColumn(m);
 }

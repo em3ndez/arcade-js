@@ -1,53 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceDigCarveObject — per-frame driver for the dig/carve object.  ROM 0x29ad.
+ * advanceDigCarveObject — per-frame driver for the dig/carve object that tunnels the maze.
  *
- * Runs once each frame for the object that tunnels the maze. It clears the three
- * overlap-seam flags, then decides what the object does this frame:
- *
- *   - If the tracked object is aligned on a feature cell (both under-tile latches set):
- *     with no spawn active it starts the next queued spawn; otherwise, unless the dig
- *     object is mid-carve, it hands the frame to the capture handler.
- *   - Otherwise it dispatches on the spawn counter: none pending -> the background
- *     update; a fresh target (counter 2) -> first publish the object's vertical overlap
- *     with the staged target box; then in every carve case it runs the carve countdown.
- *
- * The carve countdown (DIG_OBJ_TIMER) paces the tunnelling. While it runs it steps the
- * dig position and the digging animation. When it expires it either completes the column
- * (re-seeding the object and re-arming for the next dig) if the object is armed, or — idle
- * or unarmed — probes whether the tracked object has walked into the carve box (snapping
- * it in and arming) and then carves one tile: it folds the dig row/column into a tilemap
- * cell, classifies the tile already there, and stamps the carved sprite / rewrites the
- * tile / joins the dug channel, decrementing the spawn counter until the whole run is
- * committed.
- *
- * Every exit hands off to another routine (background update, spawn, capture, the entity
- * commit, or the dig-object sprite-record builder), each of which returns to this
- * routine's own caller.
- *
- * Name kept as advanceDigCarveObject: it is one of the dig-object family whose higher-level game role
- * stays best-effort (its siblings commitDigEntity / seedDigObjectBlock carry best-effort names for the same reason), and
- * it spans several distinct jobs (spawn gate, capture hand-off, carve timer, tile carving,
- * entity commit) that no single verb captures without over- or under-claiming.
- *
- * Memory-equivalent to the frozen oracle — equivalence-29ad.test.js.
- * GATE:     crafted-entry — dispatched every frame in attract (its natural inputs sit on
- *           the background arm), so the entry is captured live and the carve / commit /
- *           spawn / capture arms are driven by poking the decision bytes identically on
- *           both sides. RAM-only diff minus the dead stack scratch at the top of work RAM;
- *           pc/SP/value-registers are the dead Z80 trace (every hand-off is an idiomatic
- *           call that returns via plain JS, so a pc/SP contract would false-fail).
- * LIVE-OUT: memory-only — the overlap-seam flags, the dig-object record and dig position,
- *           the carved tilemap cells, plus whatever each delegated tail leaves. It reads
- *           every input from RAM and returns nothing a caller consumes.
- * NAMES:    MOVE_BLOCK_FLAG, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE, DIG_OBJ_TIMER,
- *           DIG_COLLISION_STATE, DIG_OBJ_SUBTYPE, PLAYER_Y, PLAYER_X, HAZARD_X, HAZARD_Y,
- *           STAGED_TARGET_X, STAGED_TARGET_Y, PLAYER_FACING, TRANSITION_TIMER, PLAYER_CELL_PTR,
- *           CARVE_SEAM_LEFT (0x807e) / CARVE_SEAM_RIGHT (0x807f), TREASURE_COLLECTED (0x8078,
- *           read here as a dig-spawn condition — the shared treasure-collected byte, coupling
- *           vs reuse unproven) from names.js. The live carve cursor is CARVE_CELL_PTR (0x80af).
- *
- * PURPOSE [guess]: dig-object's game role; TREASURE_COLLECTED (0x8078) read as spawn cond — coupling vs byte-reuse unproven.
+ * It clears the three overlap-seam flags, then decides what the object does this frame:
+ *   - If the tracked object is aligned on a feature cell (both under-tile latches set): with no
+ *     spawn active it starts the next queued spawn; otherwise, unless mid-carve, it hands the frame
+ *     to the capture handler.
+ *   - Otherwise it dispatches on the spawn counter: none pending -> the background update; a fresh
+ *     target (counter 2) -> publish the object's vertical overlap with the staged target box; then
+ *     in every carve case it runs the carve countdown.
+ * The carve countdown (DIG_OBJ_TIMER) paces the tunnelling: while it runs it steps the dig position
+ * and animation; when it expires it completes the column (re-seeding and re-arming) if armed, or —
+ * idle/unarmed — probes whether the tracked object walked into the carve box (snapping it in) and
+ * carves one tile: fold the dig row/column into a tilemap cell, classify the tile there, and stamp
+ * the carved sprite / rewrite the tile / join the dug channel, decrementing the spawn counter until
+ * the run is committed. Every exit hands off to another routine that returns to this routine's caller.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -91,11 +58,9 @@ const FILL_TILE = 112; // the blanked interior tile
 const RETREAT_SPRITE = 55; // digging-up animation frame
 const ADVANCE_SPRITE = 183; // same frame flipped for digging down (bit-7 flip set)
 const COLUMN_HOLD_TIME = 180; // state-timer duration latched when a column completes
-const DIG_TILE_TABLE = 0x2dc7; // ROM: dig-channel tile + sub-column -> patched seam tile
-// 0x8078 = TREASURE_COLLECTED (the treasure-collected byte). This routine reads it here as a
-// dig-spawn condition; whether that is a true coupling to the loot flag or byte-reuse is
-// UNPROVEN (see names.js caveat). The earlier "feature-align latch" label was wrong — that role
-// belongs to PRIZE_GATE (0x8076).
+const DIG_TILE_TABLE = 0x2dc7; // dig-channel tile + sub-column -> patched seam tile
+// TREASURE_COLLECTED is read here as a dig-spawn condition; whether that is a true coupling to the
+// loot flag or a reuse of the byte is unproven. The feature-align latch role belongs to PRIZE_GATE.
 
 export function advanceDigCarveObject(m) {
   const { mem8 } = m;

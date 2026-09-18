@@ -1,68 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceChamberCreature — per-frame driver for the left-chamber creature's sprite (§2.8): bounce
- * it sideways within a fixed band, accelerate its own fall-Y until it hits the floor and RNG-resets,
+ * advanceChamberCreature — per-frame driver for the left-chamber creature's sprite: bounce it
+ * sideways within a fixed band, accelerate its own fall-Y until it hits the floor and RNG-resets,
  * cycle its sprite frame, publish its screen-relative sprite record, and — once the goal-zone latch
- * is set — dissolve one more column of the Pit sliding-floor reveal into view.  ROM 0x2f71.
- *
- * This drives the live slot-3 creature in the left chamber (§2.8). It is NOT the "Zonker tank +
- * shell": that tank is baked top-right scenery (§2.9), and 0x80de is the creature's OWN
- * accelerating fall-Y, not a lobbed shell. The creature's canonical identity (caged specimen /
- * decorative monster) is [guess]; its mechanism is grounded.
- *
- * Every frame this element does four things, in order:
- *
- *   1. Pit sliding-floor reveal (only once the goal-zone latch is set). While that gate
- *      is set, a per-frame countdown lets one column through at a time: when it reaches
- *      zero it reloads and steps a cursor back one 6-tile column through the tile-pattern
- *      table, then stamps those 6 tiles up a fixed video-RAM column (bottom cell first,
- *      one tile-row higher each tile), so a 6-tile bar dissolves (0x36 -> ... -> 0x27).
- *      When the cursor runs off the start of the table the reveal is finished and nothing
- *      is drawn. As the player rests on the goal row this stage also cues the reveal sound
- *      once. Before the latch is set the whole stage is skipped.
- *   2. Frame clock. A phase countdown ticks once per frame. On the frame it expires
- *      it reloads and flips the creature's tile between its two codes; otherwise the
- *      creature only moves every fourth frame (off-beat frames just republish).
- *   3. Position. Horizontal bounce: X steps by a velocity that reverses to leftward at
- *      the right wall and to rightward at the left wall, so the creature paces within a
- *      fixed band. Vertical drop: its fall-Y adds an ever-accelerating step until it
- *      reaches the floor, where it clamps, draws a fresh random step to start dropping
- *      again, and advances its colour (holding the priority bit clear).
- *   4. Publish. Writes the creature's four sprite bytes — X and Y made screen-relative
- *      by the cabinet coordinate bias, plus its tile and colour — into its sprite
- *      staging slot, then hands off to the object-record pass (updateEnemy1) that
- *      moves and publishes the two foreground objects; that pass's return unwinds
- *      straight to our caller, so the hand-off IS this routine's exit.
- *
- * This is the real per-frame monolith. Its position-step and publish step exist
- * only here (they have no standalone form), so they are carried inline; the reveal and
- * frame-clock bodies also have standalone callable twins (revealTerrainColumn /
- * advanceChamberCreatureAnimation), but those twins hand off through the still-oracle
- * position-step/publish, so the monolith cannot reuse them and reproduces the body itself.
- * The three already-decompiled routines it calls — the reveal-sound trigger, the random
- * generator, and the object-record pass — are all called directly.
- *
- * Memory-equivalent to the frozen oracle — equivalence-2f71.test.js.
- * GATE:     crafted-entry — dispatched every frame in attract (~460x / 1000 frames), so
- *           real entry states are captured at this address and idiomatic-vs-oracle run
- *           on clones. Attract never reaches the goal, so its terrain-reveal + reveal-
- *           sound arms are exercised by poked entries (goal latch on, gate/cursor set),
- *           as is the floor clamp that draws a random step; the always-run shimmer +
- *           bounce + publish are covered by the real captures. The oracle's transient
- *           register-save scratch just below the entry stack pointer is dead and
- *           excluded from the diff. Teeth twins (wrong published byte, dropped reveal
- *           tile) are caught.
- * LIVE-OUT: memory-only — the element's position/animation work bytes, the six revealed
- *           video-RAM tiles, and its published sprite record; the routine tail-jumps, so
- *           its caller consumes no register and the object-record pass owns everything
- *           after the hand-off, identically both sides. Leftover registers/flags are dead.
- * NAMES:    GOAL_TILE_LATCH, PIT_CROSS_ACTIVE, PLAYER_X, PIT_FLOOR_REVEAL_GATE/PERIOD/CURSOR,
- *           CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from names.js.
- *           Also from names.js: PATTERN_SOURCE_PTR (0x80e1, the pattern-table scratch pointer),
- *           CHAMBER_CREATURE_X_VELOCITY (0x80df, the bounce velocity), CHAMBER_CREATURE_FALL_STEP
- *           (0x80e0, the fall step), and CHAMBER_CREATURE_SPRITE (0x822c, the sprite-staging slot).
- *           Delegates to the decompiled requestSound11,
- *           advanceRandom, and updateEnemy1 (the tail-jump object-record pass).
+ * is set — dissolve one more column of the sliding-floor reveal into view. This drives the live
+ * chamber creature; its canonical identity is a guess, but its mechanism is grounded. Every frame,
+ * in order:
+ *   1. Sliding-floor reveal (only once the goal-zone latch is set): a per-frame countdown lets one
+ *      6-tile column through at a time, stepping a cursor back through a pattern table and stamping
+ *      the tiles up a fixed video column; once the cursor runs off the start the reveal is done. As
+ *      the player rests on the goal row this stage also cues the reveal sound once.
+ *   2. Frame clock: a phase countdown flips the creature's tile between its two codes when it
+ *      expires; otherwise the creature only moves every fourth frame (off-beat frames just republish).
+ *   3. Position: horizontal bounce reverses velocity at each wall; the fall-Y accelerates until the
+ *      floor, where it clamps, draws a fresh random step, and advances colour (priority bit clear).
+ *   4. Publish: write the four sprite bytes (X/Y made screen-relative by the cabinet bias, plus tile
+ *      and colour) into the staging slot, then hand off to the object-record pass, whose return is ours.
  */
 
 import { requestSound11 } from "./requestSound11.js";
@@ -189,8 +142,8 @@ export function advanceChamberCreature(m) {
 function publishBackgroundSprite(m) {
   const { mem8 } = m;
   const bias = mem8[SPRITE_COORD_BIAS]; // cabinet coordinate bias (0 in normal play)
-  mem8[CHAMBER_CREATURE_SPRITE] = mem8[CHAMBER_CREATURE_X] - bias; // X, screen-relative
-  mem8[CHAMBER_CREATURE_SPRITE + 1] = mem8[CHAMBER_CREATURE_FRAME]; // tile / frame code
-  mem8[CHAMBER_CREATURE_SPRITE + 2] = mem8[CHAMBER_CREATURE_ATTR]; // colour + priority
-  mem8[CHAMBER_CREATURE_SPRITE + 3] = mem8[CHAMBER_CREATURE_FALL_Y] + bias; // Y, screen-relative
+  mem8[CHAMBER_CREATURE_SPRITE] = mem8[CHAMBER_CREATURE_X] - bias;
+  mem8[CHAMBER_CREATURE_SPRITE + 1] = mem8[CHAMBER_CREATURE_FRAME];
+  mem8[CHAMBER_CREATURE_SPRITE + 2] = mem8[CHAMBER_CREATURE_ATTR];
+  mem8[CHAMBER_CREATURE_SPRITE + 3] = mem8[CHAMBER_CREATURE_FALL_Y] + bias;
 }

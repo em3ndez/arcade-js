@@ -1,53 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * revealTerrainColumn — reveal the next column of the scrolling terrain backdrop on its frame
- * gate, then hand off to the background phase clock.  ROM 0x2f88.
+ * revealTerrainColumn — reveal the next column of the scrolling terrain backdrop on its
+ * frame gate, then hand off to the background phase clock.
  *
- * The dirt/terrain backdrop is scrolled into view one vertical column at a time.
- * This routine advances that reveal by a single column, but only on the frames its
- * gate lets through, and then always continues into the phase clock:
- *
- *   - A reveal gate counts down once per call. On any frame it has not yet reached
- *     zero, nothing is revealed this frame — the routine hands straight off to the
- *     phase clock.
- *   - When the gate reaches zero it reloads from its period and steps a table cursor
- *     back one 6-tile column through the terrain pattern table. If the cursor runs
- *     off the start of the table the reveal is finished, so again nothing is drawn.
- *   - Otherwise the cursor's 6 tiles are stamped up one video-RAM column — bottom
- *     cell first, one tile-row higher each byte — bringing the next column of
- *     terrain into the backdrop.
- *
- * Whichever arm it takes it ends by handing off to advanceChamberCreatureAnimation, the background phase
- * clock; that routine tail-jumps onward and its return unwinds straight back to
- * revealTerrainColumn's caller, so the hand-off IS this routine's exit. advanceChamberCreatureAnimation is already
- * decompiled, so it is called directly rather than through the oracle registry.
- *
- * This is the standalone, callable form of the same reveal that the per-frame
- * backdrop monolith advanceChamberCreature also carries inline; the standalone form is never
- * dispatched in attract, which shapes the gate below.
- *
- * Name kept as revealTerrainColumn: this backdrop-reveal subsystem is a best-effort reading. Three
- * of the counters it touches now carry names.js names, but the subsystem as a whole is
- * still below the bar to promote to an English name (its siblings advanceChamberCreatureAnimation/setChamberCreatureFrame stay
- * loc_ for the same reason).
- *
- * Memory-equivalent to the frozen oracle — equivalence-2f88.test.js.
- * GATE:     crafted-entry — revealTerrainColumn is never dispatched in attract (the monolith
- *           advanceChamberCreature inlines the same body instead of calling it), so real machine
- *           states are captured at advanceChamberCreature's entry and revealTerrainColumn is run on clones of
- *           them; the two still-untranslated continuations reached through advanceChamberCreatureAnimation
- *           (0x2fe3 oscillator body, 0x3029 publish tail) are delegated to one
- *           identical stub each, installed on both sides at once. EQUAL over every
- *           captured state plus an exhaustive sweep of the gate byte crossed with
- *           representative cursor and phase values, reaching all three arms; the
- *           teeth twins are caught.
- * LIVE-OUT: memory-only — the gate byte, the reloaded cursor, the stashed pattern
- *           pointer, and the 6 stamped video-RAM tiles; the routine tail-jumps, so
- *           its caller consumes no register and the phase clock owns everything after
- *           the hand-off, identically both sides. Leftover registers/flags are dead.
- * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
- *           (0x80e6) are PIT_FLOOR_REVEAL_GATE/PIT_FLOOR_REVEAL_PERIOD/PIT_FLOOR_REVEAL_CURSOR from names.js; the stashed
- *           pattern pointer is PATTERN_SOURCE_PTR (0x80e1). Delegates to the decompiled advanceChamberCreatureAnimation.
+ * The dirt/terrain backdrop is scrolled into view one vertical column at a time, but only on
+ * the frames a reveal gate lets through, and this routine always continues into the phase clock
+ * afterward. The gate counts down once per call; on any frame it has not reached zero nothing
+ * is revealed. When it reaches zero it reloads from its period and steps a table cursor back one
+ * 6-tile column through the terrain pattern table; if the cursor runs off the start of the table
+ * the reveal is finished. Otherwise the cursor's 6 tiles are stamped up one video-RAM column —
+ * bottom cell first, one tile-row higher each byte — bringing the next column in. Whichever arm
+ * it takes it hands off to advanceChamberCreatureAnimation, the phase clock, whose return unwinds
+ * to this routine's caller, so the hand-off IS this routine's exit. The name is best-effort.
  */
 
 import { advanceChamberCreatureAnimation } from "./advanceChamberCreatureAnimation.js";
@@ -58,8 +22,7 @@ import { PIT_FLOOR_REVEAL_CURSOR, PIT_FLOOR_REVEAL_GATE, PIT_FLOOR_REVEAL_PERIOD
 const PATTERN_TABLE = 0x3048;
 const TILES_PER_COLUMN = 6;
 
-// The video-RAM cell of the column's bottom tile; each tile above it sits one
-// tile-row (32 cells) higher in memory.
+// The video-RAM cell of the column's bottom tile; each tile above sits one row (32 cells) higher.
 const COLUMN_BOTTOM_CELL = 0x938c;
 const ONE_ROW_UP = 32;
 
@@ -83,8 +46,7 @@ export function revealTerrainColumn(m) {
   }
   mem8[PIT_FLOOR_REVEAL_CURSOR] = cursor;
 
-  // Remember where this column came from in the pattern table (a scratch pointer
-  // the backdrop machinery leaves behind), then stamp its 6 tiles up the column.
+  // Stash the source pointer (scratch the backdrop machinery leaves), then stamp 6 tiles up.
   const source = PATTERN_TABLE + cursor;
   mem16[PATTERN_SOURCE_PTR] = source;
   let cell = COLUMN_BOTTOM_CELL;

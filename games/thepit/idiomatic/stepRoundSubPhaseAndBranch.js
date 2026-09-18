@@ -1,43 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stepRoundSubPhaseAndBranch — sequence the round sub-phase byte and hand off to setup or teardown.  ROM 0x02a1.
+ * stepRoundSubPhaseAndBranch — sequence the round sub-phase byte and hand off to setup or teardown.
  *
- * The round/mode dispatcher jumps here when the mode-count byte is not 1 (see dockManAndDispatchRoundBoundary).
- * This routine toggles the round sub-phase (ACTIVE_PLAYER, held at 1 or 2) and, on two
- * continuation-select flags, routes control to one of two continuations: the round-setup
- * path (setUpRoundAndHoldIntro — reload the player, decode the switches, rebuild the setup screen) or
- * the end-of-round teardown-and-reset path (submitHighScoresAndReset).
- *
- *   - If the sub-phase is currently 1, advance it to 2; when the second flag is set,
- *     go straight to setup.
- *   - Otherwise reset the sub-phase to 1; the first flag alone routes to setup.
- *   - Failing both, advance the sub-phase to 2 and take the teardown path when the
- *     second flag is clear, else fall through to setup.
- *
- * Every arm ends in a hand-off: the chosen continuation runs and its own return carries
- * back to THIS routine's caller (a tail hand-off, so this routine has no return of its
- * own). Neither continuation reads a value from here — each overwrites the accumulator
- * before it reads anything — so nothing needs to be marshalled across the hand-off.
- *
- * NAME kept stepRoundSubPhaseAndBranch: the mechanism (toggle the sub-phase, pick setup vs teardown) is
- * clear, but what the two continuation-select flags mean in game terms is not pinned, so
- * an English name would over-claim the routine's role.
- *
- * Memory-equivalent to the frozen oracle — equivalence-02a1.test.js.
- * GATE:     crafted-entry — stepRoundSubPhaseAndBranch is on the round-transition path, never dispatched in
- *           attract, so it is validated on real machine states captured at a shared attract
- *           dispatch (rowColToTileOffset) with the sub-phase and both flags swept across every branch.
- *           The two continuations are now idiomatic (setUpRoundAndHoldIntro setup / submitHighScoresAndReset
- *           teardown), called directly, so both sides run the real continuation chain and
- *           converge at the true oracle leaves (0x031a setup / 0x01f9 reset), which are
- *           stubbed identically on both sides; the chain's RAM is diffed. Teeth = a wrong
- *           sub-phase value and a wrong continuation.
- * LIVE-OUT: memory-only — the sub-phase byte ACTIVE_PLAYER and everything the chosen
- *           continuation leaves in RAM. No registers/flags.
- * NAMES:    ACTIVE_PLAYER (0x8002) from names.js. PLAYER1_MEN_BACKUP (0x802c) / PLAYER2_MEN_BACKUP (0x802d) are the
- *           two continuation-select flags here (roles not pinned).
- *
- * PURPOSE [guess]: the two continuation-select flags' game meaning.
+ * The round/mode dispatcher jumps here when the mode-count byte is not 1. This toggles the round
+ * sub-phase (ACTIVE_PLAYER, held at 1 or 2) and, on two continuation-select flags, routes control
+ * to one of two continuations: a round-setup path (reload the player, decode the switches, rebuild
+ * the setup screen) or an end-of-round teardown-and-reset path. Each arm tail-hands to its chosen
+ * continuation, whose return carries back to this routine's caller. What the two flags mean in
+ * game terms is not pinned, so the name stays plain.
  */
 
 import { ACTIVE_PLAYER, PLAYER1_MEN_BACKUP, PLAYER2_MEN_BACKUP } from "./names.js";

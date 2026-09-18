@@ -1,46 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stepObjectRowFlipped — step the tracked object the opposite way along its move axis: derive its tile
- * row and route on it, firing the dig one-shot at the boundary row.  ROM 0x1493.
+ * stepObjectRowFlipped — step the tracked object the opposite way along its move axis: derive its
+ * tile row and route on it, firing the dig one-shot at the boundary row.
  *
- * One arm of the at-rest object dispatcher (reached from routeIdleObjectByMoveCommand when the object's move
- * command selects this direction). It is the mirror of the axis sibling stepObjectRowUnflipped — the same
- * derive-a-row-then-route shape, but stepping the object the other way (its position offset
- * is subtracted here, added there) and with the boundary at the far end of the run:
- *
- *   - DEFERRED. If the object's frame is held off (its busy flag is set), the whole move is
- *     skipped and only the object's sprite-deferral record is rebuilt.
- *   - THE COMMON STEP. Otherwise it forces the object's sprite code for this step, turns its
- *     position minus the caller's offset into a tile row (counting rows down from the top of
- *     the map, one row per eight pixels), stores that row, and hands the step to the
- *     positioning front locateObjectCellCheckGoal, which locates the cell and resolves the tile under it.
- *   - THE DIG ONE-SHOT. If that tile row is the boundary row AND the feature latch is pending,
- *     it consumes the latch, clears the pending dig spawn, arms the dig object's target phase,
- *     and builds the dig object's sprite record instead.
- *
- * Every exit tail-calls a builder/router whose whole result is in RAM, so this routine leaves
- * no register for its caller to read. The derived row is handed to locateObjectCellCheckGoal directly (it is
- * the object's screen row); nothing is marshalled through registers. It stays stepObjectRowFlipped: its
- * callee locateObjectCellCheckGoal and its sibling stepObjectRowUnflipped are themselves still neutrally named (the row/goal
- * mechanics and the X-vs-Y axis labelling under the rotated display are only partly pinned),
- * so a single effect-verb here would over-claim.
- *
- * Memory-equivalent to the frozen oracle — equivalence-1493.test.js.
- * GATE:     RAM-only over real captured attract dispatches (0x1493 runs 62x / 4000 frames via
- *           this move arm: the common step, plus one natural dig one-shot) + a crafted entry
- *           for the deferred arm the demo never produces and a crafted boundary-row dig
- *           one-shot. Excludes the dead stack scratch the still-oracle tails park below the
- *           entry stack pointer (the idiomatic handoffs are stack-free). Teeth: a wrong forced
- *           sprite code, and a dropped dig-object arming on the one-shot.
- * LIVE-OUT: memory-only — the forced sprite code, the derived tile row, and on the dig
- *           one-shot the consumed feature latch / cleared spawn state / armed dig state, plus
- *           everything the positioning front or the record builders write downstream. No
- *           register live-out (every exit tail-calls a memory-only routine).
- * NAMES:    PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE,
- *           CARVE_SEAM_LEFT (0x807e, the busy/defer flag this arm reads) from names.js;
- *           the sprite code and map geometry are literals.
- *
- * PURPOSE [guess]: "Flipped"=sprite 0x80 bit, NOT a screen axis (X-vs-Y contested under rotation).
+ * One arm of the at-rest object dispatcher, and the mirror of the axis sibling stepObjectRowUnflipped:
+ * same derive-a-row-then-route shape, but stepping the other way with the boundary at the far end. If
+ * the object's frame is held off, the move is skipped and only its sprite-deferral record rebuilt.
+ * Otherwise it forces the object's sprite code, turns its position minus the offset into a tile row,
+ * and routes on it — usually through locateObjectCellCheckGoal, but the boundary row with the feature
+ * latch pending fires a one-shot that consumes the latch and builds the dig object instead.
  */
 
 import { PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE, CARVE_SEAM_LEFT } from "./names.js";
@@ -58,27 +26,21 @@ const DIG_TARGET_STATE = 9; // the dig object's "done/target" phase the one-shot
 export function stepObjectRowFlipped(m, offset = m.regs.e) {
   const { mem8 } = m;
 
-  // Deferred: the object's frame is held off, so skip the move and just rebuild its
-  // sprite-deferral record.
+  // Deferred: frame held off, so skip the move and just rebuild the sprite-deferral record.
   if (mem8[CARVE_SEAM_LEFT] !== 0) return stageObjectSpriteRecord(m);
 
-  // Force the object's sprite code for this step.
   mem8[PLAYER_FACING] = STEP_SPRITE;
 
-  // Derive the tile row under the object: bias its position by minus the caller's offset plus
-  // a rounding constant (the sum wraps within a byte), then count rows down from the top of
-  // the map, one row per eight pixels.
+  // Tile row under the object: bias its position by minus the offset plus a rounding constant
+  // (wrapping within a byte), then count rows down from the top, one row per eight pixels.
   const row = TOP_ROW - (u8(mem8[PLAYER_Y] - offset + POSITION_BIAS) >> 3);
   mem8[PLAYER_TILE_ROW] = row;
 
-  // Any row but the boundary row, or the boundary row without the feature latch pending,
-  // continues positioning the object through locateObjectCellCheckGoal (which reads the row).
+  // Off the boundary row, or on it without the latch pending, keep positioning through the front.
   if (row !== BOUNDARY_ROW || mem8[PRIZE_GATE] === 0) {
     return locateObjectCellCheckGoal(m, row);
   }
 
-  // The boundary row reached with the feature latch pending: a one-shot. Consume the latch,
-  // clear the pending dig spawn, arm the dig object's target phase, and build the dig record.
   mem8[PRIZE_GATE] = 0;
   mem8[HAZARD_ACTIVE_COUNT] = 0;
   mem8[HAZARD_STATE] = DIG_TARGET_STATE;

@@ -1,53 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stepEnemyMover — per-frame step for one enemy/object mover: arrival, capture, retarget,
- * and steer into a travel-direction preset.  ROM 0x319d.
+ * stepEnemyMover — per-frame step for one enemy/object mover: arrival, capture, retarget, and
+ * steer into a travel-direction preset. Runs once per frame for the mover the working block (its
+ * target column, current column, position, state) describes. In order:
+ *   - ARRIVED: if the mover already occupies its target column, tick its dwell timer and stop.
+ *   - STATE FAN-OUT on the signed state byte ENEMY_WORK_STATE: a negative state runs the dormant
+ *     housekeeping; a positive state runs the active step; a zero state counts down a (re)spawn
+ *     delay and, at zero, drops the mover back at its start position and runs the active step.
+ *   - PLAYER BOX: while the player-capture box is live and the mover overlaps it, award a point,
+ *     park the mover dormant, and run the dormant tick.
+ *   - OBJECT BOX: otherwise, if the mover is free and overlaps the tracked object's box, lock it
+ *     onto the object, arm the capture pose + sound, and tick its dwell.
+ *   - STEER: otherwise decode the tilemap cell under the mover and its sub-tile phase from the
+ *     pixel position, then — keyed by target column and travel direction — probe the neighbouring
+ *     tiles and hand the mover to one of four movement presets (up / mirrored / down / unmirrored),
+ *     which commit the step and republish the direction. Top-row and far-edge cells take fixed
+ *     presets without probing.
  *
- * Runs once per frame for the mover the working block (its target column, current
- * column, position, state) describes. In order:
- *
- *   - ARRIVED. If the mover already occupies its target column, tick its dwell timer
- *     (tickObjectDwellThenTransition) and stop — nothing else moves this frame.
- *   - STATE FAN-OUT on the signed state byte ENEMY_WORK_STATE: a negative state runs the
- *     dormant housekeeping (advanceDormantMover); a positive state runs the active
- *     step below; a zero state counts down a (re)spawn delay and, when it reaches
- *     zero, drops the mover back at its start position and runs the active step.
- *   - PLAYER BOX. While the player-capture box is live and the mover overlaps it,
- *     award a point, park the mover dormant, and run the dormant tick.
- *   - OBJECT BOX. Otherwise, if the mover is free and overlaps the tracked object's
- *     box, lock it onto the object, arm the capture pose + sound, and tick its dwell.
- *   - STEER. Otherwise decode the tilemap cell under the mover and its sub-tile phase
- *     from the pixel position, then — keyed by the target column and travel direction
- *     — probe the neighbouring tiles and hand the mover to one of four movement
- *     presets (stepMoverUp / stepMoverMirrored / stepMoverDown / stepMoverUnmirrored), which commit the step
- *     and republish the direction. Top-row and far-edge cells take fixed presets without probing.
- *
- * The mover's VERTICAL axis (0x8086) is now pinned, so its two vertical presets are named
- * (stepMoverUp / stepMoverDown). The two horizontal presets (stepMoverMirrored / stepMoverUnmirrored)
- * are named for their mirror relationship, though their left-vs-right sign stays rotation-ambiguous;
- * the four tile probes, the dormant tick and the dwell timer are likewise named now. This routine
- * itself earned a name (stepEnemyMover) as the per-frame step for one enemy mover.
- *
- * Memory-equivalent to the frozen oracle — equivalence-319d.test.js.
- * GATE:     real captured attract dispatches (the entry state machine + edge cells —
- *           the demo runs the mover thousands of times but never takes a probe arm) +
- *           crafted entries that force the player-box capture, the object-box retarget,
- *           and every column/direction steer arm, each compared to the oracle over
- *           work RAM (dumpState) outside the dead stack scratch. The arrival/capture
- *           tails that reach the round-boundary transition are stubbed identically on
- *           both sides so they terminate. Teeth catch a wrong capture pose and a wrong
- *           park state.
- * LIVE-OUT: memory-only — the mover's state/timer/position bytes, the probe cell
- *           pointer + sub-tile phase, the retarget/capture writes, and whatever the
- *           tail preset/transition leaves. The mover is reached by tail-jump; no
- *           caller reads a value register back (dead ABI).
- * NAMES:    ENEMY_WORK_STATE (0x8090), ENEMY_ACTION_TIMER (0x808b, the dwell/respawn countdown),
- *           ENEMY_WORK_DIR (0x8092), PROBE_CELL_PTR (0x8089), SUBTILE_PHASE (0x808d),
- *           ENEMY_WORK_SPRITE (0x8084), PLAYER_FACING (0x8069), PLAYER_Y/PLAYER_X (0x8068/0x806b),
- *           REACTION_OBJ_X/Y (0x8094/0x8097), DIG_COLLISION_STATE (0x80c1), ENEMY1_X
- *           (0x80e8), ENEMY_WORK_TARGET_COL (0x8093), LASER_STATE (0x80a1, the player-box
- *           owner flag here) from names.js. The mover's own current column is LOCKED_COLUMN (0x807a),
- *           and its position bytes are ENEMY_WORK_X/ENEMY_WORK_Y (0x8083/0x8086).
+ * The two vertical presets (stepMoverUp / stepMoverDown) are named for the axis; the two horizontal
+ * presets (stepMoverMirrored / stepMoverUnmirrored) are named for their mirror relationship, though
+ * their left-vs-right sign stays ambiguous.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -122,7 +94,7 @@ function withinBox(pos, boxCoord, ahead, span) {
   return trailingEdge < pos; // inside only while pos is past the trailing edge
 }
 
-/** loc_31d0 — while the player-capture box is live and the mover overlaps it, award a
+/** While the player-capture box is live and the mover overlaps it, award a
  *  point and park the mover; otherwise fall through to the object-box test. */
 function handlePlayerBoxOverlap(m) {
   const { mem8 } = m;
@@ -143,7 +115,7 @@ function handlePlayerBoxOverlap(m) {
   return advanceDormantMover(m);
 }
 
-/** loc_3203 — if the mover is free (no column lock, no dig reaction) and overlaps the
+/** If the mover is free (no column lock, no dig reaction) and overlaps the
  *  tracked object's box, lock it onto the object and arm the capture pose + sound;
  *  otherwise fall through to the edge/steer classification. */
 function handleObjectBoxOverlap(m) {
@@ -172,7 +144,7 @@ function handleObjectBoxOverlap(m) {
   return tickObjectDwellThenTransition(m);
 }
 
-/** loc_3258 — the top-row and far-edge cells take fixed presets without probing;
+/** The top-row and far-edge cells take fixed presets without probing;
  *  everything else goes to the position decoder. */
 function classifyEdgeCell(m) {
   const { mem8 } = m;
@@ -195,7 +167,7 @@ function classifyEdgeCell(m) {
 }
 
 /**
- * loc_3289 — derive the tilemap cell pointer + sub-tile phase from the mover's pixel
+ * Derive the tilemap cell pointer + sub-tile phase from the mover's pixel
  * position, then steer by the target column and travel direction.
  */
 function decodePositionAndSteer(m) {
@@ -208,7 +180,7 @@ function decodePositionAndSteer(m) {
   const cellY = u8(moverY + 5);
   mem8[SUBTILE_PHASE] = (cellY & 7) << 5;
 
-  // Tilemap cell pointer (base 0x9000, 32 cells per row): the row is 31 minus the
+  // Tilemap cell pointer (32 cells per row): the row is 31 minus the
   // 8-pixel cell of (moverX + 4); the column is the 8-pixel cell of (moverY + 5).
   const row = 31 - (u8(moverX + 4) >> 3);
   const column = cellY >> 3;
@@ -240,7 +212,7 @@ function steerChain(m, chain, fallback) {
   return fallback(m);
 }
 
-/** loc_32f2/3311/3326 + the default arm — steer for a mover whose target column is not 5. */
+/** Steer for a mover whose target column is not 5 (one arm per travel direction, plus the default). */
 function steerColumnOther(m, direction) {
   if (direction === 1) {
     if (!onCellBoundary(m)) return stepMoverMirrored(m);
@@ -273,7 +245,7 @@ function steerColumnOther(m, direction) {
   );
 }
 
-/** loc_3369/3388/339d + the default arm — steer for a mover whose target column is 5. */
+/** Steer for a mover whose target column is 5 (one arm per travel direction, plus the default). */
 function steerColumnFive(m, direction) {
   if (direction === 1) {
     if (!onCellBoundary(m)) return stepMoverMirrored(m);

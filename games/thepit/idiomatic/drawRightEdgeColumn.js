@@ -1,38 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * drawRightEdgeColumn — draw the rightmost playfield column: a 28-tile strip from work RAM up
- *            video column 31, a base colour, then three 3-cell colour accents.  ROM 0x47a1.
+ * video column 31, a base colour, then three 3-cell colour accents.
  *
- * The tilemap is 32 cells wide, so one screen row is 32 cells and "up one cell in a
- * column" steps back 32. This paints the rightmost column (column 31) three ways:
- *   - A 28-byte tile strip staged in work RAM (0x8282..) is copied up video column 31
- *     (rows 2..29), giving the column its current tile image. Unlike the fixed
- *     left-edge column, this strip is built in RAM, so the picture is dynamic.
- *   - The whole column then gets a base colour of 2, via the shared colour-column
- *     fill; that fill also caches the colour byte in its own paint scratch.
- *   - Finally three 3-cell colour bands accent the column: colour 6 near the bottom
- *     (rows 26..28), colour 4 in the middle (rows 17..19), and colour 7 higher up
- *     (rows 8..10) — the bands sit 7 rows apart, over the base colour just laid down.
- * Writes only hardware video + colour RAM (plus the colour scratch the callee caches);
- * reads only the work-RAM strip. It loads its own source, destinations, counts and
- * colours — no live-in register — and nothing downstream consumes the registers it
- * leaves behind.
- *
- * The role kept a neutral loc_ name: this stamps a single column and its trim, the
- * mirror of the left-edge column stamper drawLeftEdgeColumn, but which playfield feature the
- * right column represents in the game is not yet confidently pinned.
- *
- * Memory-equivalent to the frozen oracle — equivalence-47a1.test.js.
- * GATE:     real dispatch — a screen-draw/board-setup routine that DOES fire in
- *           attract (twice in 1200 frames). Validated at its true captured entry
- *           (oracle vs idiomatic, identical RAM + pc + SP), on extra sampled attract
- *           states for breadth, and on a sentinel background that forces all 56
- *           display writes visible. Teeth: a wrong-accent-colour twin and a
- *           shifted-tile-strip twin, each caught.
- * LIVE-OUT: memory-only — the 28 tile cells, the 28 colour cells, and the colour
- *           byte the shared column fill caches; no live registers/flags.
- * NAMES:    none from names.js — writes raw video/colour RAM and the callee's own
- *           colour-paint scratch, no named work-RAM address.
+ * The tilemap is 32 cells wide, so "up one cell in a column" steps back 32. A 28-byte tile strip
+ * staged in work RAM is copied up column 31 (rows 2..29) — built in RAM, so unlike the fixed
+ * left-edge column its picture is dynamic — then the whole column gets a base colour of 2, and
+ * three 3-cell bands accent it (colour 6 low, 4 in the middle, 7 higher, 7 rows apart). It loads
+ * its own inputs and writes only video + colour RAM (plus the colour scratch the fill caches). The
+ * name stays neutral — the mirror of the left-edge stamper, but which feature the right column
+ * represents is not confidently pinned.
  */
 
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
@@ -52,14 +29,13 @@ export function drawRightEdgeColumn(m) {
     cell -= ROW;
   }
 
-  // Base-colour the whole column: stamp colour 2 down colour column 31 (offset 31).
-  fillColourColumnAt(m, 31, 2); // columnOffset 31, colour 2
+  // Base-colour the whole column: stamp colour 2 down colour column 31.
+  fillColourColumnAt(m, 31, 2);
 
-  // Accent the base colour with three 3-cell bands, each painted upward from its own
-  // bottom cell; the bands sit 7 rows apart.
-  paintColourBand(mem8, 0x8b9f, 6); // rows 26..28
-  paintColourBand(mem8, 0x8a7f, 4); // rows 17..19
-  paintColourBand(mem8, 0x895f, 7); // rows 8..10
+  // Three 3-cell accent bands (rows 26..28, 17..19, 8..10), each painted upward from its bottom cell.
+  paintColourBand(mem8, 0x8b9f, 6);
+  paintColourBand(mem8, 0x8a7f, 4);
+  paintColourBand(mem8, 0x895f, 7);
 }
 
 /** Write `colour` into three colour cells starting at `bottom` and stepping upward one row at a time. */

@@ -1,42 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * spawnTwinActor — spawn the two-body (primary + twin) actor once when its spawn is
- * due: paint its tile+colour figure, seed both object records, and stage its sprite
- * records for the move/animate driver.  ROM 0x3984.
+ * spawnTwinActor — spawn the two-body (primary + twin) actor once when its spawn is due: paint its
+ * tile-and-colour figure, seed both object records, and stage its sprite records for the driver.
  *
- * A sibling of spawnAltPhaseActor/advanceOrRebuildTwinActor: the same conditional one-shot spawn shape. It
- * only fires when this actor's slot is flagged as pending — a nonzero request byte
- * at ENEMY3_Y. When nothing is pending it returns immediately, touching nothing.
- * When a spawn IS pending it:
- *
- *   - Clears the request (ENEMY3_Y and its twin mirror back to 0) so the spawn runs
- *     exactly once.
- *   - Stamps the actor's on-screen figure: a fixed 4-row x 2-col block of eight
- *     consecutive tiles (0xa8..0xaf, filled top-to-bottom then left-to-right) into
- *     the tilemap, all sharing one colour attribute, anchored at a fixed cell. Rows
- *     are one tilemap row (32 cells) apart.
- *   - Seeds the primary actor record at 0x810a and its mirrored twin at 0x811b to
- *     identical starting values: tile field 9, coordinates/state bytes 0, a fresh
- *     countdown timer of 180 frames, and a small per-record constant (6 primary,
- *     7 twin). The two records' start-phase bytes are set to 7 - (a low-bit slice
- *     of the shared state byte 0x8028), which staggers the actor's first action.
- *   - Hands off to stageActorSpriteRecords, which stages both freshly-seeded
- *     records into the sprite buffer; that hand-off is this routine's last act
- *     (a tail call, its result is our result).
- *
- * Memory-equivalent to the frozen oracle — equivalence-3984.test.js.
- * GATE:     captured-dispatch — every real 0x3984 entry in a 4000-frame attract run
- *           (172 total: 170 not-pending early-returns + 2 that run the full spawn
- *           body with a pending request), oracle vs this diffed on RAM. Reached in
- *           attract; body exercised on the pending-spawn dispatches.
- * LIVE-OUT: memory-only — the stamped tile+colour block and the two seeded actor
- *           records (which stageActorSpriteRecords then materialises). No live register/flag out:
- *           stageActorSpriteRecords overwrites the working registers and the whole-machine attract
- *           gate backstops the rest.
- * NAMES:    ENEMY3_Y / ENEMY3_TWIN_Y (the request byte + its mirror), ENEMY3_X /
- *           ENEMY3_TILE / ENEMY3_TIMER and ENEMY3_TWIN_X / ENEMY3_TWIN_TILE from names.js. The twin
- *           timer and the twin-mirror state/phase fields have no confirmed name yet and stay
- *           hex; the phase source is LEVEL (0x8028), whose low bits derive the twin start-phase.
+ * A sibling of the conditional one-shot spawns: it fires only when this actor's slot is flagged
+ * pending — a nonzero request byte at ENEMY3_Y — and otherwise returns at once, touching nothing.
+ * When a spawn is pending it clears the request (ENEMY3_Y and its twin mirror back to 0) so it runs
+ * exactly once; stamps the actor's figure — a fixed 4-row by 2-col block of eight consecutive tiles
+ * sharing one colour attribute, anchored at a fixed cell with rows one tilemap row apart; seeds the
+ * primary actor record and its mirrored twin to identical start values (tile field 9, coordinates
+ * and state 0, a fresh 180-frame countdown, and a small per-record constant); and sets both
+ * start-phase bytes to 7 minus a low-bit slice of LEVEL, staggering the actor's first action. It
+ * ends by handing off to stageActorSpriteRecords, which stages both freshly-seeded records into the
+ * sprite buffer — a tail call whose result is this routine's result.
  */
 
 import {
@@ -60,8 +36,8 @@ import {
 } from "./names.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
-// The eight-cell figure: a 4-row x 2-col tile block. The anchor is its bottom-left
-// cell; rows sit one tilemap row (32 cells) above each other, tiles run 0xa8..0xaf.
+// The eight-cell figure: a 4-row x 2-col tile block anchored at its bottom-left cell; rows sit one
+// tilemap row (32 cells) apart, tiles run consecutively from FIRST_TILE.
 const VIDEO_ANCHOR = 0x90e4; // tilemap RAM
 const COLOR_ANCHOR = 0x88e4; // colour-attribute RAM
 const ROW_STRIDE = 32; // one tilemap row
@@ -110,8 +86,6 @@ export function spawnTwinActor(m) {
   mem8[ENEMY3_MOVE_PERIOD] = startPhase; // primary
   mem8[ENEMY3_TWIN_MOVE_PERIOD] = startPhase; // twin
 
-  // Hand off to the record-to-sprite copier: it stages both freshly-seeded records
-  // into the sprite buffer. Its effect is memory-only, and this is a tail hand-off,
-  // so the copier's return is our return.
+  // Tail hand-off to the record-to-sprite copier; its memory-only return is our return.
   return stageActorSpriteRecords(m);
 }

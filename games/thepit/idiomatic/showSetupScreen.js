@@ -1,50 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * showSetupScreen — paint the round-setup screen (playfield furniture + two HUD count
- * records) and hold it briefly while a colour band cycles.  ROM 0x3a6f.
+ * showSetupScreen — paint the round-setup screen (playfield furniture + two HUD count records)
+ * and hold it briefly while a colour band cycles.
  *
- * Run once when a round is (re)started — from the reset epilogue and from the
- * per-player teardown. It builds the static screen the player sees at the start of a
- * round in three passes:
- *
- *   1. Lay down the fixed furniture: blank the screen and run the variant-0 board
- *      setup, draw the left furniture column, redraw the score HUD, colour a column,
- *      paint two fixed text panels, then paint one full playfield column and two
- *      edge columns.
- *   2. Stamp four HUD records into the tilemap, each a small on-screen field with its
- *      own tile run and colour:
- *        - a fixed marker cell, then
- *        - a COUNT field showing DSW-derived value 0x804c: its digit tile is that
- *          value, its glyph run is the plural label when the count is nonzero and a
- *          shorter singular label when it is zero, and when the count is exactly one
- *          a cell just above it is patched to a special glyph (the singular form),
- *        - a second fixed marker cell, then
- *        - a second COUNT field showing DSW value 0x804d with the same plural/singular
- *          label rule (this field has no singular patch).
- *   3. Hold the finished screen for thirty passes; each pass advances the shared
- *      colour index one step (cycling the accent band that tints the setup screen)
- *      and waits fifteen video frames, so the intro lingers about 450 frames.
- *
- * The blank/setup 0x4b44 is now the idiomatic blankScreen, a direct JS call. The idiomatic
- * leaves are called directly: the colour fills (fillColourColumnAt), the glyph-run copy
- * (copyTileColumn), and the colour-cycle step (cycleColumnColour) return in plain JS, so
- * they take honest arguments and no stack return. The idiomatic callees that still model
- * their own return through the stack (the HUD redraw, the two column paints, the frame
- * wait) are handed the return address they consume.
- *
- * Memory-equivalent to the frozen oracle — equivalence-3a6f.test.js.
- * GATE:     crafted-entry — the real boot dispatch (0x804c=1, 0x804d=2) plus a sweep
- *           poking 0x804c in {0,1,2} and 0x804d in {0,2} identically on both sides to
- *           reach both count-label arms and the singular-glyph patch; RAM diff outside
- *           the stack-scratch window (pc/SP/registers excluded per the contract). The
- *           thirty frame-waits are driven by one identical per-frame tick hook on both
- *           sides. Reached at round setup (resetStateAndShowSetup, submitHighScoresAndReset), not per-frame attract.
- * LIVE-OUT: memory-only — the painted playfield + HUD tiles (video RAM), their colour
- *           columns (colour RAM), the two count records and the singular patch, and the
- *           hold counter 0x800a drained to 0. Nothing reads a register back afterward.
- * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH, COINS_PER_CREDIT_A / COINS_PER_CREDIT_B
- *           (the two DSW-derived HUD counts, 0x804c / 0x804d) from names.js. The video/record
- *           cells (0x928c, 0x928e, 0x9292, 0x9294, 0x918e) are kept hex.
+ * Run once when a round is (re)started — from the reset epilogue and the per-player teardown. It
+ * builds the static start-of-round screen in three passes: first it lays the fixed furniture
+ * (blank the screen, board setup, furniture and edge columns, score HUD, colour columns and text
+ * panels); second it stamps two marker cells and two COUNT fields, each count's digit tile being
+ * its value and its glyph run the plural label when nonzero or a shorter singular label when zero
+ * (a count of exactly one also patches a cell above to a singular-form glyph, first field only);
+ * third it holds the screen for thirty passes, each advancing the shared accent-colour index and
+ * waiting fifteen video frames, so the intro lingers about 450 frames.
  */
 
 import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
@@ -124,7 +90,7 @@ export function* showSetupScreen(m) {
   copyTileColumn(m, 0x49b0); // copy the marker's glyph-run from its source table
   fillColourColumnAt(m, 12, 7); // colour column 12 in colour 7
 
-  // First count field (DSW value 0x804c), at column 14.
+  // First count field (COINS_PER_CREDIT_A), at column 14.
   const countA = mem8[COINS_PER_CREDIT_A];
   stampCountField(m, 0x928e, countA, 14);
   // When the count is exactly one, patch the cell above to the singular-form glyph.
@@ -141,7 +107,7 @@ export function* showSetupScreen(m) {
   copyTileColumn(m, 0x49b1); // copy the marker's glyph-run from its source table
   fillColourColumnAt(m, 18, 3); // colour column 18 in colour 3
 
-  // Second count field (DSW value 0x804d), at column 20. No singular patch here.
+  // Second count field (COINS_PER_CREDIT_B), at column 20. No singular patch here.
   const countB = mem8[COINS_PER_CREDIT_B];
   stampCountField(m, 0x9294, countB, 20);
   fillColourColumnAt(m, 20, 3); // colour this field's column 20 in colour 3

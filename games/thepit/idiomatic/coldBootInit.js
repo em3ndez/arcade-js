@@ -1,48 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * coldBootInit — power-on cold-boot init: bring the machine up from reset, seed its
- * work RAM, run the one-time screen/table/sound setup, then hand off to the attract
- * flow.  ROM 0x01a4.
+ * coldBootInit — power-on cold-boot init: bring the machine up from reset, seed its work RAM,
+ * run the one-time screen/table/sound setup, then hand off to the attract flow.
  *
- * Reached only from the reset vector (the very first code after power-on). In order it:
- *
- *   1. Switches the per-frame interrupt off and re-seats the stack at the top of work
- *      RAM, so everything below runs uninterrupted with a clean stack.
- *   2. Clears the triple-redundant credit counter and the game-mode byte, seeds the
- *      coin/start input debounce state, and readies the score, sound and high-score
- *      tables and the blank board screen.
- *   3. Requests the power-on sound, arms the secondary game-state byte, and decodes the
- *      cabinet DIP switches into the gameplay-parameter block.
- *   4. Holds for a short spell (the frame-wait re-enables the interrupt that paces it),
- *      then hands off to the reset/round-restart epilogue, which begins the first
- *      attract cycle and never returns here.
- *
- * The credit counter is kept in three copies (0x8000 and its mirrors 0x801c / 0x812c)
- * so a single corrupted byte can be caught; boot clears all three. The coin/start
- * switches are debounced through shift-register accumulator bytes (0x8003 / 0x8004 /
- * 0x8005) whose idle state is an alternating-bit pattern, seeded here. The original
- * also burns a long power-on settle delay in this spot; it touches no memory, so
- * nothing models it.
- *
- * Memory-equivalent to the frozen oracle — equivalence-01a4.test.js.
- * GATE:     crafted-entry — the real reset dispatch is captured from a boot run (the
- *           hook clones the pristine power-on state at 0x01a4), and the still-oracle
- *           reset/entry handler 0x01f9 the tail eventually reaches is stubbed to a
- *           no-op identically on both arms so the otherwise-endless boot cascade
- *           terminates. The frame-waits (this routine's own hold + the epilogue's
- *           setup-screen hold) are driven by one identical per-frame countdown tick
- *           on both sides. RAM diff outside the dead stack-scratch window below the
- *           re-seated stack top; pc/SP/registers excluded per the memory-equivalence
- *           contract. Reached once, at cold boot.
- * LIVE-OUT: memory-only — everything the seed stores, the setup helpers, the DIP
- *           decode and the delegated epilogue leave in work / colour / video / sprite
- *           RAM. Nothing reads a register back: the tail hands off and just propagates
- *           onward into the attract flow.
- * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002), IN1_DEBOUNCED (0x8015),
- *           IN1_PREV (0x8016), the credit counter CREDIT_COUNT (0x8000) + mirrors
- *           CREDIT_MIRROR_A (0x801c) / CREDIT_MIRROR_B (0x812c), and the coin/start
- *           debounce accumulators COIN_SW_ACCUM (0x8003) / START1_SW_ACCUM (0x8004) /
- *           START2_SW_ACCUM (0x8005), all from names.js.
+ * Reached only from the reset vector (the very first code after power-on). It switches the
+ * per-frame interrupt off and re-seats the stack at the top of work RAM, clears the
+ * triple-redundant credit counter and the game-mode byte, seeds the coin/start input debounce
+ * state, readies the score, sound and high-score tables and the blank board screen, requests the
+ * power-on sound, arms the secondary game-state byte, decodes the cabinet DIP switches into the
+ * gameplay-parameter block, holds for a short spell (the frame-wait re-enables the interrupt that
+ * paces it), then hands off to the reset/round-restart epilogue, which begins the first attract
+ * cycle and never returns here. The credit counter is kept in three copies so a single corrupted
+ * byte can be caught; the coin/start switches idle in an alternating-bit pattern seeded here.
  */
 
 import { disableFrameInterrupt } from "./disableFrameInterrupt.js";

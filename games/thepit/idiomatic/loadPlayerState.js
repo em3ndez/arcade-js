@@ -1,29 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loadPlayerState — make the selected player's saved level/score the current live state.  ROM 0x4644.
+ * loadPlayerState — make the selected player's saved level/score the current live state.
  *
- * Each player keeps their own saved state (level first, then the score fields the
- * HUD draws). The game plays and displays from a single SHARED slot, so switching
- * to a player means copying that player's saved copy into the shared slot; the
- * sibling routine copies it back the other way when switching away.
- *
- * The layout interleaves the copies: each saved field is a triple of adjacent bytes
- * [shared cell, player-1 copy, player-2 copy], and the five triples sit a stride of
- * three apart starting at LEVEL. Player 1's copy is one byte past the shared cell,
- * every other player's two bytes past. Which player is selected comes from
- * ACTIVE_PLAYER (1 for player 1, 2 for player 2); callers set it before calling, so
- * the HUD redraw can load each player's score in turn.
- *
- * Touches only work RAM; hands nothing back to its caller.
- *
- * Memory-equivalent to the frozen oracle — equivalence-4644.test.js.
- * GATE:     crafted-entry; attract never starts a game, so this is never dispatched —
- *           the gate runs it from a real captured attract state with ACTIVE_PLAYER and
- *           both players' source blocks poked identically on both sides (player 1/2/0).
- * LIVE-OUT: memory-only — the five refreshed shared cells. The oracle's residual
- *           registers/flags are dead: callers overwrite them before reading.
- * NAMES:    LEVEL (0x8028, base of the interleaved player-state block), ACTIVE_PLAYER
- *           (0x8002, the selected-player index).
+ * Each player keeps a saved copy of five fields (level, then the score fields the HUD draws), but
+ * the game plays from one shared slot; this copies the selected player's copy into that slot (a
+ * sibling copies it back when switching away). The fields interleave as triples [shared, player-1,
+ * player-2] a stride of three apart from LEVEL, so player 1's copy sits one byte past each shared
+ * cell and any other player's two. ACTIVE_PLAYER (1 or 2) selects; callers set it beforehand.
  */
 
 import { LEVEL, ACTIVE_PLAYER } from "./names.js";

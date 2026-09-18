@@ -1,61 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stepObjectAndResolveTile — step the tracked object one frame along its climb axis and resolve the tile it
- * lands on: collect loot, carve into terrain, block, or keep moving.  ROM 0x1a02.
+ * stepObjectAndResolveTile — step the tracked object one frame along its climb axis and resolve the
+ * tile it lands on: collect loot, carve into terrain, block, or keep moving.
  *
- * The vertical-move counterpart of the tracked object's horizontal walk-and-classify handler:
- * it runs only while the climb gate is clear (otherwise it just defers the frame), and it folds
- * three jobs the horizontal side splits across helpers into one routine — locate the object's
- * tile cell, collect any loot there, and classify solid/diggable terrain.
- *
- * It first works out which tile cell of the on-screen map the object occupies (the same
- * row/column cell geometry the horizontal handler uses, with the caller's column bias), builds
- * the video-RAM address of that cell, and reads and publishes the tile under it. Two special
- * columns short-circuit: at the top-rung column there is nothing to resolve (if the second-loot
- * latch is already set it records the top-rung spawn flag), and once the object retreats below
- * the crossing column the goal-reached latch is cleared.
- *
- * Then it resolves the tile:
- *   - Right as the object crosses a cell boundary, loot sitting in the cell is collected — the
- *     10-point tile awards 10 and bumps its tally; the 20-point tiles record their code, award
- *     20, and bump theirs — and the cell is blanked before the object keeps moving.
- *   - Solid tiles block: the frame is deferred with no move.
- *   - A diggable tile is compared against the terrain the current-cell table says should be
- *     here for this sub-cell phase. A match means the object passes through and keeps moving; a
- *     mismatch means it has run into fresh terrain, so it arms the carve reaction (reload its
- *     timer, select the carve step, show the carve sprite) and — unless the next sub-cell rolls
- *     onto a boundary — records the neighbouring cell's expected terrain for the reaction.
- *   - Anything else is passable: the object advances one step and cycles its walk-frame sprite.
- *
- * Every outcome ends by building the object's deferral record (stageObjectSpriteRecord), whose
- * own return unwinds to this routine's caller — so building the record is this routine's return.
- *
- * The role (step-and-resolve-tile) is clear. The "climb / vertical" axis — earlier only an
- * inference — is now GROUNDED: the digger surfaces to WIN at the top rung (PLAYER_X == 0x23, offset 3
- * decreasing = up), which fixes offset 3 as the screen-vertical axis. The name stays generic only
- * because the routine does more than climb (it also resolves and collects the cell's tile).
- *
- * Memory-equivalent to the frozen oracle — equivalence-1a02.test.js.
- * GATE:     RAM-only over real captured attract dispatches (stepObjectAndResolveTile runs ~16x in a plain
- *           boot/attract run, the object stepping down its column) + crafted cell-tile entries
- *           for the loot / solid / diggable / top-rung arms attract's natural path never hits.
- *           Excludes the dead stack scratch the still-oracle comparison run parks below the entry
- *           stack pointer (the idiomatic callees are stack-free). Teeth: wrong published tile,
- *           wrong stepped position, wrong sprite frame.
- * LIVE-OUT: memory-only — the row/column cells, the cell address, the published under-tile and
- *           cleared next-tile slot, the sprite frame, the collected-loot tallies + blanked cell,
- *           the carve-reaction bytes, the stepped position, and the deferral record. No live
- *           registers of its own; the column bias is a genuine register live-in surfaced as the
- *           columnBias parameter (defaulting to the register, so a no-arg call matches the oracle).
- * NAMES:    MOVE_BLOCK_FLAG, PLAYER_FACING, PLAYER_Y, PLAYER_TILE_ROW, PLAYER_X, PLAYER_TILE_COL, BOARD_END_PHASE,
- *           GOAL_TILE_LATCH, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER
- *           from names.js. The two loot tallies 0x8081/0x8082, the second-loot latch 0x8078
- *           (names.js TREASURE_COLLECTED), and
- *           the blank tile match the horizontal collector; the carve-reaction scratch is
- *           REACTION_PERIOD (0x80a3) and AHEAD_TILE_RAW (0x80a6); its companion 0x80a7 is
- *           EXPECTED_TILE and the step delta 0x806d is PLAYER_STEP_X; the video-RAM base and
- *           the two ROM expected-terrain tables at 0x2118 / 0x2280 stay hex — grounded here
- *           but not across the game.
+ * The vertical-move counterpart of the object's horizontal walk-and-classify handler. It runs only
+ * while the climb gate (MOVE_BLOCK_FLAG) is clear, else defers the frame, and folds three jobs into
+ * one: locate the object's tile cell, collect any loot there, and classify solid/diggable terrain.
+ * It works out which map cell the object occupies (row/column geometry with the caller's column
+ * bias), publishes the tile, then resolves it — collecting loot on a boundary crossing, blocking on
+ * solid tiles, arming the carve reaction when a diggable tile no longer matches the terrain its
+ * table expects, and otherwise advancing one step. Every outcome ends by building the deferral
+ * record (stageObjectSpriteRecord), whose return unwinds to the caller. The climb axis is grounded:
+ * the digger surfaces to WIN at the top rung (PLAYER_X == 0x23), fixing offset 3 as screen-vertical;
+ * the name stays generic because the routine does more than climb.
  */
 
 import {
@@ -83,7 +40,7 @@ import { awardTwentyPoints } from "./awardTwentyPoints.js";
 // Base of the on-screen tile map in video RAM; a cell is an offset from here.
 const VRAM_BASE = 0x9000;
 
-// ROM tables of the terrain a cell is expected to hold, one row per diggable tile code
+// Tables of the terrain a cell is expected to hold, one row per diggable tile code
 // (113..157) and sub-cell phase (0..7): the current cell's table, then the neighbouring cell's.
 const EXPECTED_TILE_TABLE = 0x2118;
 const NEIGHBOUR_TILE_TABLE = 0x2280;
@@ -117,7 +74,6 @@ const DIGGABLE_HIGH = 158; // one past the last reactive tile code (>= this is p
 export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const { mem8, mem16 } = m;
 
-  // Vertical move runs only while the climb gate is clear; otherwise just defer the frame.
   if (mem8[MOVE_BLOCK_FLAG] !== 0) return stageObjectSpriteRecord(m);
 
   // Default walk-frame sprite; the tile resolution below overrides it where needed.
@@ -131,8 +87,8 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const objY = mem8[PLAYER_X];
 
   // Top-rung column (PLAYER_X == 0x23, the object surfacing UP): nothing to resolve. If a +20 diamond
-  // was already collected (SECOND_LOOT_LATCH 0x8078 = names.js TREASURE_COLLECTED), set the top-rung
-  // spawn flag BOARD_END_PHASE = 1 — the observed LEVEL-COMPLETE trigger. Either way defer this frame.
+  // was already collected (SECOND_LOOT_LATCH = TREASURE_COLLECTED), set the top-rung spawn flag
+  // BOARD_END_PHASE = 1 — the observed LEVEL-COMPLETE trigger. Either way defer this frame.
   if (objY === TOP_RUNG_COLUMN) {
     if (mem8[SECOND_LOOT_LATCH] !== 0) mem8[BOARD_END_PHASE] = 1;
     return stageObjectSpriteRecord(m);
@@ -174,10 +130,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
       mem8[cellPtr] = BLANK_TILE;
       return advanceStepAndStage(m);
     }
-    // Not loot: fall through to the solid/diggable classification.
   }
-
-  // ---- Classify the tile: solid (block), passable (keep moving), or diggable (carve) ----
 
   // Tiles that always block: defer the frame, no move.
   if (tile === 42 || tile === 65 || tile === 193) return stageObjectSpriteRecord(m);
@@ -186,13 +139,12 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   // the 154..157 band read as blocking unless that bit is set.
   const phaseGateOpen = (positionAccumulator & 4) !== 0;
   if (tile === 197) {
-    if (!phaseGateOpen) return stageObjectSpriteRecord(m); // blocked
+    if (!phaseGateOpen) return stageObjectSpriteRecord(m);
     // gate open: 197 sits above the diggable band, handled as passable below
   } else if (tile >= 149 && tile <= 153) {
     return stageObjectSpriteRecord(m); // this mid band always blocks
   } else if (tile >= 154 && tile <= 157) {
-    if (!phaseGateOpen) return stageObjectSpriteRecord(m); // blocked
-    // gate open: falls into the diggable band below
+    if (!phaseGateOpen) return stageObjectSpriteRecord(m);
   } else if (tile >= DIGGABLE_HIGH) {
     return advanceStepAndStage(m); // above every reactive band -> passable
   }
@@ -200,7 +152,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   // What remains is below the diggable band, or the gate-open 197 above it: passable.
   if (tile < DIGGABLE_LOW || tile >= DIGGABLE_HIGH) return advanceStepAndStage(m);
 
-  // ---- Diggable band: compare against the terrain this cell is expected to hold ----
+  // Diggable band: compare against the terrain this cell is expected to hold.
   const subCell = positionAccumulator & 7;
   const expected = mem8[EXPECTED_TILE_TABLE + (tile - DIGGABLE_LOW) * 8 + (7 - subCell)];
   mem8[EXPECTED_TILE] = expected;

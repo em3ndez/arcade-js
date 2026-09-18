@@ -1,45 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceOrRebuildTwinActor — per-frame gate for the two-body actor: keep it moving while it is in the
- * high half of the field, otherwise rebuild it at the start edge and redraw.  ROM 0x38c8.
- *
- * A sibling of spawnAltPhaseActor (0x37cf) and spawnTwinActor — the same actor family, the
- * same 2-wide x 4-tall tile figure anchored at the same display cell. Each frame this
- * routine looks at the actor's coordinate and forks:
- *
- *   - Coordinate in the high half (128 or above): the actor is still on-screen, so hand
- *     the frame straight to the cadence/move path (paceActorCadence), whose result carries back
- *     through to our caller.
- *   - Coordinate below the high half: the actor has run off the low edge, so REBUILD it
- *     from scratch. Park the coordinate back at the start edge (240) with the shadow twin
- *     trailing 16 ahead (wrapping to 0), reset both bodies' row to 31 and their tiles
- *     (primary 43, twin 42), stamp the shared paired-display byte (147) and the two
- *     primary-only record fields, arm the cadence timer, then re-stamp the actor's eight-
- *     cell figure (tiles 184..191, one shared colour) into the tilemap and colour map.
- *     Then return.
- *
- * The name stays neutral even though this actor's move-path siblings are now English-named
- * (paceActorCadence / easeActorToRest) and the actor record's offset-0 coordinate is resolved as
- * ENEMY3_X = screen-horizontal. advanceOrRebuildTwinActor keeps its address name because which actor it drives is
- * still not pinned in the mechanism map; the mechanics below are exact.
- *
- * Memory-equivalent to the frozen oracle — equivalence-38c8.test.js.
- * GATE:     captured dispatches + crafted coordinate sweep. Both arms occur naturally in
- *           attract (the very first dispatch rebuilds from the boot state; the rest ride
- *           the move path); the whole coordinate domain 0..255 is then swept identically
- *           on both sides to cover the 127/128 branch boundary; plus teeth.
- * LIVE-OUT: memory-only — the rebuilt actor/twin records, the re-stamped tile+colour
- *           figure, and (on the move arm) everything paceActorCadence leaves. The value registers
- *           the oracle threads are dead ABI (this gate sits on a tail-jump ladder whose
- *           callers reload the register file next frame); the whole-machine gate backstops
- *           that.
- * NAMES:    ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y,
- *           ENEMY3_STEP_X/ENEMY3_STEP_Y (the two primary-only record fields 0x810e/0x810f) and
- *           ENEMY3_ATTR/ENEMY3_TWIN_ATTR (the paired-display byte on each record, 0x810c/0x811d)
- *           from names.js. Kept hex: the video/colour anchors 0x93a3/0x8ba3 (hardware
- *           display addresses).
- *
- * PURPOSE [guess]: which specific game actor the twin figure is (twin RECORD structure IS grounded).
+ * advanceOrRebuildTwinActor — per-frame gate for the two-body actor: keep it moving while it is in
+ * the high half of the field, otherwise rebuild it at the start edge and redraw.
+ * A sibling of the same actor family — the same 2-wide by 4-tall tile figure anchored at the same
+ * display cell. Each frame it forks on the actor's coordinate (ENEMY3_X):
+ *   - High half (128 or above): still on-screen, so hand the frame to the cadence/move path,
+ *     whose result carries back through to the caller.
+ *   - Below it: the actor ran off the low edge, so rebuild it — park ENEMY3_X at the start edge
+ *     (240) with the shadow twin trailing 16 ahead, reset both bodies' row and tiles, stamp the
+ *     shared paired-display byte and the two primary-only record fields, arm the cadence timer,
+ *     then re-stamp the actor's eight-cell figure (consecutive tile codes, one shared colour).
  */
 
 import {
@@ -78,8 +48,8 @@ export function advanceOrRebuildTwinActor(m) {
   // The actor ran off the low edge: rebuild the primary body and its shadow twin.
   mem8[ENEMY3_X] = 240; // coordinate parked back at the start edge
   mem8[ENEMY3_TWIN_X] = (240 + 16) % 256; // twin trails 16 ahead, wrapping to 0
-  mem8[ENEMY3_Y] = 31; // primary starting row
-  mem8[ENEMY3_TWIN_Y] = 31; // twin's matching row
+  mem8[ENEMY3_Y] = 31;
+  mem8[ENEMY3_TWIN_Y] = 31;
   mem8[ENEMY3_TWIN_TILE] = 42;
   mem8[ENEMY3_TILE] = 43;
   mem8[ENEMY3_STEP_X] = 0; // the two primary-only record fields

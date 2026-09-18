@@ -1,29 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stageObjectSpriteRecord — build the object's 4-byte deferral record at 0x8220, biasing its ends.  ROM 0x1b5b.
- *
- * Where the tile-under-object classifier lands when the object is sitting on a SOLID
- * (non-diggable) tile: rather than dig or collect, it defers the frame by writing a
- * fixed record for the object at 0x8220. The record is the object's own 4-byte probe
- * block — column, sprite code, a middle byte, row — copied across, with the two ends
- * pulled apart by the bias value in the dip-switch parameter block: the leading
- * (column) byte has the bias subtracted, the trailing (row) byte has it added, and the
- * middle two carry straight through. Both biased ends wrap within a byte.
- *
- * Reads five work-RAM bytes, writes four, touches nothing else, calls nothing. What the
- * downstream code does with this record is not yet pinned, so the name stays neutral.
- *
- * Memory-equivalent to the frozen oracle — equivalence-1b5b.test.js.
- * GATE:     crafted-entry — reached via the classifier's solid-tile deferral; validated
- *           on real captured attract states plus crafted arithmetic-edge entries (the
- *           bias wraps on both the subtracted and the added end). It reads only its five
- *           inputs, so any realistic machine state is a valid entry.
- * LIVE-OUT: memory-only — the four record bytes at 0x8220-0x8223. The residual register
- *           values it leaves behind are dead ABI; the classifier's caller consumes no
- *           register from here (the record is the whole output, and it lives in RAM).
- * NAMES:    PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR (the probe-block middle byte, 0x806a)
- *           from names.js. The bias is SPRITE_COORD_BIAS (0x8051), used raw here as a
- *           dip-switch-derived end value, and the record base is SPRITE_STAGING_BASE (0x8220).
+ * stageObjectSpriteRecord — build the object's 4-byte deferral record, biasing its ends.
+ * Where the tile-under-object classifier lands when the object sits on a solid, non-diggable
+ * tile: it defers the frame, copying the object's probe block (column, sprite, middle, row)
+ * into the record with the leading column byte biased down and the trailing row byte biased
+ * up by the dip-switch bias; both biased ends wrap within a byte. Reads five bytes, writes
+ * four, calls nothing. What downstream code does with the record is not pinned here.
  */
 
 import { PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR } from "./names.js";
@@ -36,10 +18,9 @@ export function stageObjectSpriteRecord(m) {
 
   const bias = mem8[BIAS];
 
-  // Copy the object's probe block into the record, pushing the ends apart by the bias.
-  // Each store truncates to a byte, so the two biased ends wrap.
+  // Copy the object's probe block into the record; each store truncates so the ends wrap.
   mem8[RECORD] = mem8[PLAYER_Y] - bias; // leading: column, bias removed
-  mem8[RECORD + 1] = mem8[PLAYER_FACING]; // sprite/animation code, copied through
-  mem8[RECORD + 2] = mem8[PLAYER_SPRITE_ATTR]; // probe-block middle byte, copied through
+  mem8[RECORD + 1] = mem8[PLAYER_FACING];
+  mem8[RECORD + 2] = mem8[PLAYER_SPRITE_ATTR];
   mem8[RECORD + 3] = mem8[PLAYER_X] + bias; // trailing: row, bias added
 }

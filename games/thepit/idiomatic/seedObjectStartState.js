@@ -1,33 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * seedObjectStartState — drop the tracked-object / level state block back to its
- * fixed start-of-play defaults.  ROM 0x1362.
+ * seedObjectStartState — drop the tracked-object / level state block back to its fixed
+ * start-of-play defaults.
  *
- * One of the pre-play setup calls the round/play (re)init chain fires before a round
- * begins (initRoundAndEnterMainLoop). It stamps a whole run of work-RAM bytes with constants — nothing
- * is read — so the object always starts a round in the same pose:
+ * One of the pre-play setup calls the round/play (re)init chain fires before a round begins. It
+ * stamps a whole run of work-RAM bytes with constants — nothing is read — so the object always
+ * starts a round in the same pose:
  *
- *   - The tracked-object probe coordinate is parked at its origin (left column, a
- *     fixed start row) and the object's sprite code set to its default.
- *   - A handful of block counters get fixed non-zero start values (step / pacing
- *     seeds); only their start values are pinned here, not their individual roles.
- *   - Everything else in the block — the spawn-phase flag, the vertical-move gate,
- *     the unnamed status bytes, and the tile-classifier scratch — starts cleared.
+ *   - The tracked-object probe coordinate is parked at its origin (left column, a fixed start
+ *     row) and the object's sprite code set to its default.
+ *   - A handful of block counters get fixed non-zero start values (step / pacing seeds); only
+ *     their start values are pinned here, not their individual roles.
+ *   - Everything else in the block — the spawn-phase flag, the vertical-move gate, the status
+ *     bytes, and the tile-classifier scratch — starts cleared.
  *
- * Every write is a fixed constant landing on a distinct byte, so the resulting state
- * is independent of the entry state and write order does not matter.
- *
- * Memory-equivalent to the frozen oracle — equivalence-1362.test.js.
- * GATE:     crafted-entry — never dispatched during attract (it runs only from the
- *           gameplay round-init chain, which attract never reaches), so it is
- *           validated on real captured attract states. It reads nothing, so any
- *           realistic state proves it; a sentinel-preset entry makes every write
- *           observable, and the teeth twin is caught.
- * LIVE-OUT: memory-only — the seeded work-RAM bytes. The round-init caller consumes
- *           no register.
- * NAMES:    PLAYER_Y, PLAYER_X, PLAYER_FACING, BOARD_END_PHASE, MOVE_BLOCK_FLAG, NEXT_TILE, CARVE_SEAM_LEFT,
- *           CARVE_SEAM_RIGHT from names.js. The remaining counters and status/scratch bytes
- *           in the same block are not yet named, so their addresses stay hex.
+ * Every write is a fixed constant landing on a distinct byte, so the resulting state is
+ * independent of the entry state and write order does not matter.
  */
 
 import {

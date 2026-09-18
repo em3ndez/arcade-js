@@ -1,63 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * steerDemoPlayer — generate the attract demo's per-frame steering: from the demo
- * player's position, emit the one-of-four move direction (written where the joystick
- * would go) that walks the auto-played digger along the maze walls.  ROM 0x03e8.
- *
- * The direction code (DEMO_STEER_DIR) is read by the movement dispatcher IN PLACE OF THE
- * JOYSTICK in the mode this routine runs in — the attract demo (stepObjectFromControl selects
- * mem[DEMO_STEER_DIR] over the debounced joystick when the game-mode byte is >= 3). So this
- * classifier is what steers the demo object along the maze walls: each call it picks
- * the single direction the wall it is against implies, and hands that to movement.
+ * steerDemoPlayer — generate the attract demo's per-frame steering: from the demo player's
+ * position, emit the one-of-four move direction (written where the joystick would go) that walks
+ * the auto-played digger along the maze walls. The direction code (DEMO_STEER_DIR) is read by the
+ * movement dispatcher IN PLACE OF THE JOYSTICK in the attract demo, so this classifier steers the
+ * demo object: each call it picks the single direction the wall it is against implies.
  *
  * Every frame it does three things:
+ *   1. Periodic HUD panel redraw when the free-running frame counter wraps to zero (column 6, row 10).
+ *   2. A 30-frame service tick: a private countdown reloads to 30 at zero and runs the once-every-30
+ *      chores. If the object's state-lockout timer is still running the whole frame is given up;
+ *      otherwise, unless the object is in its spawn sub-phase, one playfield column is recoloured by
+ *      one palette step (a slow background colour cycle).
+ *   3. The classification proper: if the tracked object is live, take its probe point (a few pixels
+ *      inside its box), find which maze-wall segment it is against, and store the matching direction
+ *      code. With no live object the previous frame's code stands.
  *
- *   1. Periodic HUD panel redraw. When the free-running frame counter wraps to zero,
- *      repaint the fixed on-screen panel (column 6, row 10).
- *   2. A 30-frame service tick. A private countdown ticks down each frame; only when
- *      it reaches zero does it reload to 30 and run the once-every-30-frames chores.
- *      If the object's state-lockout timer is still running the object is mid-sequence,
- *      so the whole frame is given up here and nothing below runs. Otherwise, unless the
- *      object is in its spawn sub-phase, one playfield column is recoloured by one
- *      palette step (a slow background colour cycle).
- *   3. The classification proper. If the tracked object is live this frame, take its
- *      probe point (a few pixels inside its box), find which maze-wall segment it is
- *      against, and store the matching direction code. With no live object the previous
- *      frame's code is left untouched.
- *
- * The maze is partitioned into six horizontal bands. A cached band hint lets a
- * roughly-stationary probe re-scan only the band it was last in; if the probe has
- * moved out of that band, the scan falls through band by band (re-stamping the hint
- * as it crosses each new band) until a wall segment matches. Each band is a short
- * list of wall lines: a wall runs along one exact coordinate value, and once the
- * probe sits on that line a half-plane test on the other coordinate picks which of
- * the four direction bits to raise.
- *
- * Its only caller is the main loop (mainLoop), which runs it while the game-mode byte
- * is 4, passes nothing and reads nothing back — the whole product is the direction
- * code left in work RAM (DEMO_STEER_DIR).
- *
- * The periodic panel redraw (drawCreditsDisplay) is reached through a return-address bracket:
- * drawCreditsDisplay is itself idiomatic, but it still calls the two frozen-oracle copy/fill
- * helpers (0x3dea, 0x3ddb), and the bracket keeps the Z80 stack pointer where those
- * oracle helpers expect it, so their stack scratch matches the oracle run exactly. When
- * those two helpers are decompiled the bracket dissolves too. The column recolour
- * (cyclePanelColumnColour) needs no bracket — its whole chain (the cell-address helpers and the colour
- * filler) is already idiomatic — so it is a plain direct call.
- *
- * Memory-equivalent to the frozen oracle — equivalence-03e8.test.js.
- * GATE:     crafted-entry + real dispatch — captured at real attract dispatches (the
- *           main loop runs it every frame) for the timer/service arms, plus a dense
- *           crafted sweep of probe X/Y and band hint that forces the classifier down
- *           every band and wall line. Compares observable RAM (the exit pc + SP and the
- *           dead stack-scratch window are excluded); teeth caught.
- * LIVE-OUT: memory-only — the direction code (DEMO_STEER_DIR), the band hint, the countdown
- *           timer, and the panel/colour cells the two painters write. The residual
- *           register file is dead here (the caller overwrites it at once), so it is
- *           deliberately not part of the contract.
- * NAMES:    PLAYER_ACTIVE, PLAYER_Y, PLAYER_X, PLAY_PHASE_COUNTER, BOARD_END_PHASE, TRANSITION_TIMER,
- *           DEMO_STEER_DIR from names.js. DEMO_STEER_SERVICE_TIMER (0x800b) and DEMO_STEER_BAND_HINT
- *           (0x800c) are private to this per-frame service (enterPlayMode only inits them).
+ * The maze is partitioned into six horizontal bands. A cached band hint lets a roughly-stationary
+ * probe re-scan only the band it was last in; if it has moved out, the scan falls through band by
+ * band (re-stamping the hint) until a wall segment matches. Each band is a short list of wall lines:
+ * a wall runs along one exact coordinate, and a half-plane test on the other picks the direction bit.
+ * Its only caller is the main loop, which runs it while the game-mode byte is 4 and reads nothing back.
  */
 
 import {
@@ -186,8 +149,8 @@ export function steerDemoPlayer(m) {
 
   // 1. Periodic HUD panel redraw when the frame counter has wrapped to zero.
   if (mem8[PLAY_PHASE_COUNTER] === 0) {
-    // drawCreditsDisplay is idiomatic but still calls two oracle copy/fill helpers; the bracket
-    // holds the stack pointer where they expect it (see header). Dissolves when they do.
+    // drawCreditsDisplay is idiomatic but still calls two shared copy/fill helpers; the bracket
+    // holds the stack pointer where they expect it, and dissolves once those helpers are idiomatic too.
     m.push16(0x03ef);
     drawCreditsDisplay(m);
   }

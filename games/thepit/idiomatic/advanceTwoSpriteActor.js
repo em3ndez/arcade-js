@@ -1,49 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceTwoSpriteActor — per-frame update for the two-sprite actor (a primary body plus its
- * shadow twin): dispatch by spawn state and animation phase, and on the running
- * phases march + walk-animate it inline.  ROM 0x3748.
- *
- * The two-sprite actor is one ~32px-tall figure drawn from two hardware sprites — a
- * primary body and a twin locked one tile alongside it. Each frame it lands here and
- * is routed from two control bytes:
- *
- *   - Still mid-spawn (BOARD_END_PHASE set): hand the frame to the spawn handler.
- *   - Otherwise route on the animation phase, a counter that cycles ~0..25 each round:
- *       * phase 10+ : the steady per-frame mover (decompiled, called directly).
- *       * phases 6..8 : the rebuild-at-edge sibling.
- *       * phase 9 : spawn the twin figure.
- *       * phases 0..5 : run the walk / march below (phases 3..5 first seed the actor
- *         once, on the first frame it becomes live).
- *
- * The one-shot seed (phases 3..5, only while the actor is not yet present): set the
- * step vector to march one cell left with no vertical drift, mark the actor present so
- * later frames animate instead of re-seeding, and park its start cell.
- *
- * The inline walk / march (phases 0..5):
- *   - Tick the cadence timer. On underflow, reload it and flip the walk tile between
- *     its two frames (46 / 175), mirroring the paired frame (tile with its low bit
- *     flipped) into the twin.
- *   - Only every fourth tick: march the actor's X by its step once it is past the left
- *     margin (17), placing the twin 16 cells ahead; then descend its Y by its step
- *     until it reaches the floor (23), mirroring that into the twin.
- *   - Always finish by staging the two hardware sprite records.
- *
- * Memory-equivalent to the frozen oracle — equivalence-3748.test.js.
- * GATE:     captured attract dispatches (5 of the 6 arms occur naturally) + crafted
- *           entries for the alt-phase-spawn arm and the one-shot seed body; teeth.
- *           RAM-only — pc/SP diverge by construction on the tail-jump ladder, and the
- *           dead stack scratch the spawn arm's sound call pushes is excluded.
- * LIVE-OUT: memory-only — the actor/twin records, the flipped walk tiles, the seeded
- *           step vector / presence flag / start cell, the staged sprite records, and
- *           everything the dispatched handler writes. The value registers/flags and the
- *           Z80 stack the oracle threads are dead ABI (this sits on a tail-jump ladder
- *           whose callers reload the register file next frame); the full-RAM gate
- *           backstops that.
- * NAMES:    BOARD_END_PHASE, PLAY_PHASE_COUNTER, PLAYER_ACTIVE, PLAYER_Y, ENEMY3_STEP_X/ENEMY3_STEP_Y,
- *           ENEMY3_TIMER, ENEMY3_TILE/ENEMY3_TWIN_TILE, ENEMY3_X/ENEMY3_TWIN_X, ENEMY3_Y/ENEMY3_TWIN_Y from
- *           names.js. The steady per-frame mover at 0x3a13 is the decompiled
- *           advanceActorMovers, called directly.
+ * advanceTwoSpriteActor — per-frame update for the two-sprite actor (a primary body plus its shadow
+ * twin): dispatch by spawn state and animation phase, and on the running phases march it inline.
+ * The actor is one ~32px-tall figure drawn from two hardware sprites, the twin locked one tile
+ * alongside. Mid-spawn (BOARD_END_PHASE set) hands the frame to the spawn handler; otherwise it
+ * routes on PLAY_PHASE_COUNTER (cycling ~0..25): phase 10+ the steady mover, 9 spawn the twin, 6..8
+ * the rebuild-at-edge sibling, 0..5 the inline walk/march (3..5 first seed the actor once). The
+ * inline walk ticks the cadence timer, flipping the two walk tiles and mirroring the paired frame
+ * into the twin on underflow; every fourth tick it marches X past the left margin and descends Y.
  */
 
 import {
@@ -60,8 +24,8 @@ const LEFT_MARGIN = 17; // the actor only marches X once it is at or past this c
 const FLOOR = 23; // the actor only descends Y while it is above this row
 const TWIN_LEAD = 16; // the twin sits this many cells ahead of the body along X
 const CADENCE_RELOAD = 8; // frames between walk-tile flips
-const WALK_TILE_A = 46; // one of the two alternating walk-cycle tiles
-const WALK_TILE_B = 175; // the other
+const WALK_TILE_A = 46; // the two alternating walk-cycle tiles
+const WALK_TILE_B = 175;
 
 export function advanceTwoSpriteActor(m) {
   const { mem8 } = m;
@@ -78,8 +42,8 @@ export function advanceTwoSpriteActor(m) {
 
   // Phases 3..5 seed the actor once, on the first frame it becomes live.
   if (phase >= 3 && mem8[PLAYER_ACTIVE] === 0) {
-    mem8[ENEMY3_STEP_X] = -1; // step -1: march one cell left each tick
-    mem8[ENEMY3_STEP_Y] = 0; // no vertical drift
+    mem8[ENEMY3_STEP_X] = -1; // step -1: march one cell left each tick, no vertical drift
+    mem8[ENEMY3_STEP_Y] = 0;
     mem8[PLAYER_ACTIVE] = 255; // mark present so later frames animate, not re-seed
     mem8[PLAYER_Y] = 45; // park the actor's start cell
   }

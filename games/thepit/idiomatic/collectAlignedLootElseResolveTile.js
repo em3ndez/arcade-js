@@ -1,48 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * collectAlignedLootElseResolveTile — resolve the tile the object is sitting on: collect a loot tile it has landed
- * squarely on (score + remove it), otherwise resolve how it meets the terrain.  ROM 0x1515.
+ * collectAlignedLootElseResolveTile — resolve the tile the object sits on: collect a loot tile it has
+ * landed squarely on (score and remove it), otherwise resolve how it meets the terrain.
  *
- * The grid-aligned-loot-aware front of the tile-under-object resolver resolveObjectTerrainStep — the entry
- * the collision dispatcher (locateObjectCellCheckGoal) reaches for an object standing on a cell. It is handed
- * the object's biased tile column (whose low 3 bits are the sub-tile offset within the cell)
- * and the object's tile-cell pointer, and it first records the tile under the object as both
- * the saved-current tile and the starting expected-tile.
- *
- * Only when the object is grid-aligned (squarely inside a cell) can it collect the loot it is
- * sitting on. There are two loot kinds, mirroring the horizontal walk path's collectLootTile:
- *
- *   - Tile 58: award 10 points, bump its pickup count, blank the cell, and walk on.
- *   - Tiles 59..61: award 20 points, gated by a one-shot latch. Once the latch is armed those
- *     tiles always score; arming it the very first time is blocked while a dig spawn is active,
- *     and that blocked frame falls through to a plain terrain step instead. (Unlike the
- *     horizontal collectLootTile, this path has no separate feature-enable gate.)
- *
- * The award itself only moves the score while a player is active (the shared scorer skips an
- * idle slot, as in the attract demo), but the pickup count, the queued sound, and the blanked
- * cell land every time. Every non-collect case — off the grid, or on any tile that is not loot
- * — hands the whole step to the terrain resolver resolveObjectTerrainStep (hold against a solid, push a
- * pushable block, or walk on), whose result is this routine's result.
- *
- * Memory-equivalent to the frozen oracle — equivalence-1515.test.js.
- * GATE:     crafted-entry — attract never digs an object into this case (measured 0 dispatches
- *           in 4000 frames), so the gate runs it from real captured attract clones with its two
- *           inputs poked: the loot paths (tile 58 and 59..61 over the latch/guard branches) and
- *           the delegated terrain paths, sweeping the under tile over all 256 ids across every
- *           sub-offset. The two loot awards reach the score adder through the oracle's ordinary
- *           calls, which park a few dead bytes just below the entry stack pointer that the
- *           stack-free idiomatic never writes, so the diff excludes that stack-top window.
- *           Teeth: a dropped pickup count, an un-blanked cell.
- * LIVE-OUT: memory-only — the saved-current / expected-tile records, the two pickup counts, the
- *           second-loot latch, the queued sound and score, the blanked cell, and whatever the
- *           walk step or the terrain resolver leaves. No register live-out (the walk path's phase
- *           is set inside advanceObjectWalkFrame, already covered by its own gate).
- * NAMES:    CUR_TILE, EXPECTED_TILE, CRYSTAL_COUNT, DIAMOND_COUNT, HAZARD_ACTIVE_COUNT,
- *           PLAYER_CELL_PTR from names.js. The one-shot second-loot latch is TREASURE_COLLECTED (0x8078);
- *           its role is clear here but not yet grounded across the game. The terrain classification,
- *           its ROM tables, and the push-reaction state live inside resolveObjectTerrainStep.
- *
- * PURPOSE [guess]: +20 latch (0x8078) role not grounded.
+ * The grid-aligned-loot-aware front of the tile-under-object resolver, the entry the collision
+ * dispatcher reaches for an object standing on a cell. Handed the object's biased tile column (low 3
+ * bits are the sub-tile offset) and its tile-cell pointer, it first records the tile under the object
+ * as both CUR_TILE and the starting EXPECTED_TILE. Only a grid-aligned object (squarely inside a
+ * cell) collects the loot beneath it, of two kinds: tile 58 awards 10 points and bumps its pickup
+ * count; tiles 59..61 award 20 points, gated by a one-shot latch that, once armed, always scores —
+ * but arming it the first time is blocked while a dig spawn is active, and that frame falls through
+ * to a plain terrain step. The award moves the score only while a player is active, but the pickup
+ * count, sound, and blanked cell land every time. Every non-collect case hands the whole step to the
+ * terrain resolver, whose result is this routine's result.
  */
 
 import {
@@ -59,7 +29,6 @@ import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { resolveObjectTerrainStep } from "./resolveObjectTerrainStep.js";
 
 // One-shot latch that opens the 20-point loot: once armed, tiles 59..61 always score.
-// (0x8078 is TREASURE_COLLECTED in names.js; kept as a local alias here.)
 const SECOND_LOOT_LATCH = 0x8078;
 
 const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup

@@ -1,52 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * serviceVblankNmi — the per-frame vblank interrupt service: acknowledge, guard the
- * credit count, fire a queued sound, blit sprites, tick timers, debounce inputs, and
- * bank coins.  ROM 0x0066.
+ * serviceVblankNmi — the per-frame vblank interrupt service: acknowledge, guard the credit
+ * count, fire a queued sound, blit sprites, tick timers, debounce inputs, and bank coins.
  *
- * Runs once per vertical blank (every frame). Its first act drops the interrupt-enable
- * line to acknowledge the interrupt, so a following vblank cannot re-enter mid-service;
- * the normal path re-raises that line just before returning.
- *
- * A watchdog guards the credit count, which is held in three redundant copies so a
- * single corrupted byte is detectable: if any copy disagrees, or the count has run past
- * its cap, the machine is cold-reset.
- *
- * With the credit count trusted it services the frame in order: dequeue at most one
- * pending command from the sound ring and fire it to the audio latch; blit the 32-byte
- * sprite staging buffer into hardware sprite RAM; tick the frame timers (a per-frame
- * busy-wait countdown the pacer polls, plus two roughly-one-second dividers); and
- * debounce the two input ports into their stable latches, so the rest of the game reads
- * a settled value rather than the raw port.
- *
- * Finally it banks coins. Each coin slot's switch is edge-detected through a
- * shift-register accumulator that toggles between two alternating-bit sentinels; a
- * completed switch pulse banks a credit and, depending on the current mode, either shows
- * the credit screen or starts a game. With no completed pulse the routine simply
- * re-arms the interrupt and returns to the interrupted code.
- *
- * Memory-equivalent to the frozen oracle — equivalence-0066.test.js.
- * GATE:     real-dispatch — the vblank NMI fires every frame, so it is captured directly
- *           from an attract run; RAM-only diff (dumpState) over the captured entry plus
- *           crafted entries that exercise the sound-ring dequeue and the timer reloads.
- *           pc/SP and the dead shadow value-registers are excluded per the
- *           memory-equivalence contract (the handler swaps to the shadow register set
- *           and swaps back, restoring every caller register). The coin-edge tail paths
- *           (cold reset, credit screen, start game) are never reached in attract and
- *           hand off to routines with their own gates. Teeth: a corrupted sprite blit.
- * LIVE-OUT: memory-only — the sound ring, hardware sprite RAM, the frame timers, the
- *           debounced input latches, and the coin/credit bytes. Nothing is live out to
- *           the interrupted code: the shadow-register swap restores every caller register.
- * NAMES:    FRAME_WAIT_COUNTDOWN, PLAY_PHASE_COUNTER, IN0_DEBOUNCED/IN0_PREV,
- *           IN1_DEBOUNCED/IN1_PREV, GAME_STATE, VARIANT, SOUND_HEAD, SOUND_RING,
- *           SPRITE_STAGING_BASE, plus the credit count CREDIT_COUNT and its mirrors
- *           CREDIT_MIRROR_A/CREDIT_MIRROR_B, the coin accumulators COIN_SW_ACCUM/
- *           START1_SW_ACCUM/START2_SW_ACCUM, and the coins-per-credit rates
- *           COINS_PER_CREDIT_A/COINS_PER_CREDIT_B, all from names.js. Kept hex: the mode
- *           mirrors 0x801d/0x812d; the divider timers 0x800f/0x8007 (0x8006 is SECONDS_PRESCALER); the
- *           sound-ring read index 0x801f; the hardware sprite RAM 0x9840; and the I/O
- *           latches 0xb000 (interrupt enable), 0xb800 (sound), 0xa000 (joystick port)
- *           and 0xa800 (coin/start port).
+ * Runs once per vertical blank. Its first act drops the interrupt-enable line to acknowledge
+ * the interrupt so a following vblank cannot re-enter mid-service; the normal path re-raises it
+ * before returning. A watchdog guards the credit count (three redundant copies) and cold-resets
+ * the machine if any copy disagrees or the count runs past its cap. It then services the frame
+ * in order — one queued sound to the audio latch, the sprite blit, the frame timers, input
+ * debounce — and finally banks coins: each slot's switch is edge-detected through a two-sentinel
+ * accumulator, and a completed pulse banks a credit and shows the credit screen or starts a game.
  */
 
 import {
@@ -90,7 +53,7 @@ export function serviceVblankNmi(m) {
   // overflow means the counter was corrupted, so cold-reset the machine. This handler runs at
   // the engine's top level (outside gen.next()), so hand off via nextMain like the coin/start
   // restarts below — NOT restartMain (its RESTART throw would escape the inner catch). coldBootInit
-  // re-seats everything, so abandoning the rest of the handler here is faithful to the oracle's jp.
+  // re-seats everything, so abandoning the rest of the handler here is faithful to the original jump.
   const credit = mem8[CREDIT_COUNT];
   if (credit >= CREDIT_CAP || mem8[CREDIT_MIRROR_A] !== credit || mem8[CREDIT_MIRROR_B] !== credit) {
     m.nextMain = () => coldBootInit(m); // warm restart: the engine swaps in the cold-boot loop

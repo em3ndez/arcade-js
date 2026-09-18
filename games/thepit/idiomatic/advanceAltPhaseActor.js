@@ -1,49 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceAltPhaseActor — per-frame animate + march step for an active object.  ROM 0x384a.
+ * advanceAltPhaseActor — per-frame animate + march step for an active object.
  *
- * Runs once a frame for an object that is already alive (its caller spawnAltPhaseActor tail-jumps
- * here when the object's spawn flag is set). It does three things, in order:
- *
- *   1. Cadence tick. Count the object's frame timer down. Each time it underflows,
- *      reload it to 8 frames and flip the walk-cycle tile between its two frames,
- *      storing the paired code to the shadow sprite.
- *   2. Move gate. Only every 4th tick actually moves the object; on the other three the
- *      routine just rebuilds the object's sprite records (stageActorSpriteRecords) and exits.
- *   3. March, then descend. On a move tick, while the object is on its travel row it
- *      steps right one column (mirroring to the shadow shifted 16 across). Once it has
- *      marched to the far column it latches its arrival — clearing the arrival flag and
- *      the probe X, building the object's probe record (stageObjectSpriteRecord) — and then, on this and
- *      every later move tick, descends one row toward the floor. At the floor (Y 0) it
- *      idles: if the hold timer is still running it just waits, otherwise it re-arms the
- *      120-frame hold and resets the tile to its idle frame.
- *
- * A sibling of advanceTwoSpriteActor / easeActorToRest in the object-movement family; the exact object this
- * drives is not yet pinned, so the name stays neutral rather than
- * assert a role above the evidence.
- *
- * Every non-idle exit rebuilds the two sprite records via stageActorSpriteRecords (a tail
- * call). The one idle exit — floor reached while the hold timer is still running — returns
- * directly. On the arrival arm it also builds the object's deferral/probe record via
- * stageObjectSpriteRecord before descending. Both are called directly (they read their inputs from, and
- * write their outputs to, fixed work RAM; neither takes an argument or returns a value).
- *
- * Memory-equivalent to the frozen oracle — equivalence-384a.test.js.
- * GATE:     crafted-entry + realism — dispatched in attract's gameplay demo (~584 times
- *           after frame 4000). Every real dispatch is replayed oracle-vs-idiomatic on a
- *           fresh clone and compared on the observable work/sprite RAM, excluding the two
- *           dead stack-scratch bytes below the entry stack pointer (the oracle's callee
- *           return-address push, which the direct JS calls no longer make); crafted entries
- *           force the arms the demo underexercises (the floor re-arm, both tile-toggle
- *           directions, the latch+probe build). Teeth: a wrong shadow-X offset twin.
- * LIVE-OUT: memory-only — the object/shadow coordinates and tiles, the arrival flag/latch,
- *           the floor hold-timer, and the sprite + deferral records the two callees write.
- *           The routine returns nothing its callers read (the caller chain is all
- *           tail-jumps that consume no returned register), backstopped by the whole-machine
- *           gate.
- * NAMES:    ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y, ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
- *           PLAYER_Y, and PLAYER_ACTIVE (arrival flag), TRANSITION_TIMER (floor hold-timer),
- *           POST_TRANSITION_MODE (arrival latch) — all from names.js.
+ * Runs once a frame for an object that is already alive (its caller tail-jumps here when the
+ * object's spawn flag is set). It ticks a cadence timer, flipping the walk-cycle tile between two
+ * frames on underflow; gates movement so only every 4th tick moves the object (the others just
+ * rebuild its sprite records and exit); and on a move tick marches the object right along its
+ * travel row (the shadow trailing 16 columns), latches its arrival and builds a probe record at
+ * the far column, then descends one row per move tick to the floor, where it idles — waiting
+ * while the hold timer runs, else re-arming the 120-frame hold and resetting to the idle tile. A
+ * sibling of the object-movement family; the exact object it drives is not pinned.
  */
 
 import {

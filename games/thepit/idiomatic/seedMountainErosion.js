@@ -1,39 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * seedMountainErosion — seed the mountain-erosion tilemap write pointer (0x9104) and its
- * level-scaled countdown, then conditionally cue a sound and stamp a two-tile "cap" into the
- * tilemap.  ROM 0x23e8. (§2.6)
- *
- * Runs during the boot/attract setup. In order it:
- *   1. Stores a fixed tilemap address (0x9104) into the pointer slot MOUNTAIN_ERODE_PTR
- *      (0x8065), so later code that walks the tilemap starts from that cell.
- *   2. Writes a countdown into MOUNTAIN_ERODE_TIMER (0x8067): the STEP_TIMER_BASE parameter
- *      (0x804f) minus four counts for every unit of the LEVEL counter (0x8028). The
- *      subtraction wraps within one byte.
- *   3. If the marker cell at tilemap 0x9264 holds the trigger tile (0x32), cues a sound.
- *   4. If the head cell at tilemap 0x90e4 still holds its 0xfe marker, stamps tile 0xae
- *      into it and tile 0xac into the cell one row above it (0x90c4, 32 columns up);
- *      otherwise it leaves the tilemap untouched.
- *
- * This seeds the mountain erosion (§2.6, grounded): the write pointer (0x9104), the level-scaled
- * step countdown (erosion runs faster every level), and the initial cap patch. The tile-code and
- * marker bytes (0x32 / 0xae / 0xac / 0xfe) are opaque graphics-ROM indices, kept hex like the
- * other marker bytes in this layer.
- *
- * Memory-equivalent to the frozen oracle — equivalence-23e8.test.js.
- * GATE:     real captured dispatches (8 in a 1500-frame attract run — they cover the
- *           pointer + countdown writes and BOTH head-cell arms) + crafted entries that
- *           force the sound arm (attract never presents the trigger tile) and sweep the
- *           countdown inputs. RAM compared outside the dead stack scratch the oracle's
- *           sound path parks just below the entry stack pointer. Teeth catch a wrong
- *           countdown, a wrong pointer, a dropped tile patch and a dropped sound cue.
- * LIVE-OUT: memory-only — 0x8065 / 0x8067 and the two tilemap cells, plus the sound
- *           ring on the cued arm. The oracle's exit registers, flags and Z80 return
- *           path are dead scratch a plain JS call replaces.
- * NAMES:    LEVEL (0x8028), STEP_TIMER_BASE (0x804f), MOUNTAIN_ERODE_PTR (0x8065) and
- *           MOUNTAIN_ERODE_TIMER (0x8067) from names.js; the tilemap cells (0x9104 / 0x9264 /
- *           0x90e4 / 0x90c4) stay hex. Delegates the sound cue to requestSound21, which
- *           owns the sound-ring addresses.
+ * seedMountainErosion — seed the mountain-erosion write pointer (MOUNTAIN_ERODE_PTR) and its
+ * level-scaled countdown (MOUNTAIN_ERODE_TIMER = STEP_TIMER_BASE minus four per unit of LEVEL,
+ * wrapping in a byte, so erosion runs faster every level), then conditionally cue a sound and —
+ * only while the head cell still holds its 0xfe marker — stamp a two-tile cap into the tilemap.
+ * Runs during boot / attract setup; the tile-code bytes are opaque graphics indices, kept as hex.
  */
 import { requestSound21 } from "./requestSound21.js";
 

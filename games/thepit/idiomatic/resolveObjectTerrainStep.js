@@ -1,55 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * resolveObjectTerrainStep — resolve a moving object's step against the terrain directly under it (and, off the
- * grid, the tile one step ahead): hold against a solid, push a pushable block, or walk on.  ROM 0x1568.
- *
- * The standalone entry of the tile-under-object resolver, reached when the collision dispatcher
- * finds the object is NOT sitting on a collectible or gate tile — the vertical/other-axis
- * counterpart of the horizontal handler resolveActorTerrainStep. It is handed the tile the object sits ON, the
- * object's biased tile column (whose low 3 bits are the sub-tile offset within the cell), and the
- * object's tile-cell pointer (the cell one step ahead is the next byte), and it writes the whole
- * outcome of the step to work RAM:
- *
- *   - It first LATCHES the two special tiles the object can sit exactly on (the feature tile 38 and
- *     the goal tile 39), for later feature/goal logic.
- *   - It then classifies the tile UNDER the object. A set of solid ids holds the object in place;
- *     two diagonal-block tiles are passable only when a sub-tile-offset gate bit is set. Tiles in
- *     the pushable band are checked against a ROM table of what the terrain "should" be for this
- *     sub-offset; a mismatch on an aligned step means the object has met a pushable block, so it
- *     ARMS the push reaction (reaction state 1, the push sprite/handler, and its timer). Off the
- *     grid the same test then runs for the tile one step ahead (its own table), and a final
- *     cross-check re-arms the push if the under tile changed out from beneath the object.
+ * resolveObjectTerrainStep — resolve a moving object's step against the terrain directly under it
+ * (and, off the grid, the tile one step ahead): hold against a solid, push a pushable block, or walk
+ * on. The standalone entry of the tile-under-object resolver, reached when the collision dispatcher
+ * finds the object is NOT sitting on a collectible or gate tile — the counterpart of the horizontal
+ * handler resolveActorTerrainStep. It is handed the tile the object sits ON, the object's biased tile
+ * column (whose low 3 bits are the sub-tile offset), and the object's tile-cell pointer (the cell one
+ * step ahead is the next byte), and writes the whole outcome of the step to work RAM:
+ *   - It first LATCHES the two special tiles the object can sit exactly on (the feature tile and the
+ *     goal tile), for later feature/goal logic.
+ *   - It then classifies the tile UNDER the object. Solid ids hold it in place; two diagonal-block
+ *     tiles are passable only when a sub-tile-offset gate bit is set. Tiles in the pushable band are
+ *     checked against an expected-terrain table for this sub-offset; a mismatch on an aligned step
+ *     means a pushable block was met, so it ARMS the push reaction. Off the grid the same test runs
+ *     for the tile one step ahead (its own table), and a final cross-check re-arms the push if the
+ *     under tile changed out from beneath the object.
  *
  * Walking hands off to advanceObjectWalkFrame (step the walk animation + build the display record);
- * holding, arming, and every settled case hand off to the record builder stageObjectSpriteRecord
- * (rebuild the record in place). Both handoffs are already idiomatic, so this routine calls them
- * directly — no register hand-off survives — and their result is this routine's result.
- *
- * Kept as resolveObjectTerrainStep: the role (the object's terrain-response resolver for the non-loot case) is
- * clear, but its sibling resolveActorTerrainStep and the wider tile-resolve family are still un-named, and which
- * object it serves plus the ROM tables' exact semantics are not yet pinned — a single effect-verb
- * would over- or under-claim, so the neutral name stays, matching resolveActorTerrainStep.
- *
- * Memory-equivalent to the frozen oracle — equivalence-1568.test.js.
- * GATE:     crafted-entry — attract never digs an object into this case (0 dispatches in 4000
- *           frames), so the gate runs it from real captured attract clones (valid stack + video
- *           RAM) with its three inputs poked, sweeping the under tile over all 256 ids, the ahead
- *           tile over all 256 ids, and the sub-offset over 0..7 — every ladder branch, both push
- *           tables, and the cross-check. Excludes the dead stack scratch the still-oracle
- *           comparison run parks below the entry stack pointer (the idiomatic handoffs are
- *           stack-free). Teeth: a dropped feature latch, a skipped push arm, a corrupted ahead
- *           lookup.
- * LIVE-OUT: memory-only — the two special-tile latches, the under/ahead expected-tile records
- *           (EXPECTED_TILE, NEXT_TILE, the raw-ahead scratch), the push-reaction state/timer/sprite,
- *           and whatever the record builder or walk step leaves. No register live-out: the tail
- *           targets' output is the whole result and lives in RAM (the walk path's E is set inside
- *           advanceObjectWalkFrame, already gated by its own test).
- * NAMES:    PRIZE_GATE, GOAL_TILE_LATCH, EXPECTED_TILE, NEXT_TILE, CUR_TILE, REACTION_STATE,
- *           REACTION_TIMER, PLAYER_FACING from names.js. The reaction-timer reload source is REACTION_PERIOD (0x80a3) and the
- *           raw-ahead scratch is AHEAD_TILE_RAW (0x80a6) (cleared here, roles not yet grounded
- *           across the game); the two expected-terrain tables live in ROM at 0x1b78 / 0x1ce0.
- *
- * PURPOSE [guess]: "Object"=vocab; ROM tables 0x1b78/0x1ce0 semantics + entity unpinned.
+ * holding, arming, and every settled case hand off to the record builder stageObjectSpriteRecord.
  */
 
 import {
@@ -68,16 +36,16 @@ import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 
 // The two special tiles the object can sit exactly on, latched for later feature/goal logic.
-const FEATURE_TILE = 38; // 0x26 -> PRIZE_GATE
-const GOAL_TILE = 39; // 0x27 -> GOAL_TILE_LATCH
+const FEATURE_TILE = 38;
+const GOAL_TILE = 39;
 
 // Solid tiles: the object cannot settle onto them, so it holds and the frame is deferred.
-const SOLID_UNDER = new Set([42, 65, 193, 149, 196]); // 0x2a 0x41 0xc1 0x95 0xc4
-const DIAGONAL_BLOCK = 197; // 0xc5 — passable only when the sub-tile-offset gate bit is set
+const SOLID_UNDER = new Set([42, 65, 193, 149, 196]);
+const DIAGONAL_BLOCK = 197; // passable only when the sub-tile-offset gate bit is set
 
-// The pushable band and its two ROM lookup tables (expected terrain per tile + sub-offset).
-const PUSHABLE_LO = 113; // 0x71 — first tile in the band
-const PUSHABLE_HI = 158; // 0x9e — one past the band
+// The pushable band and its two lookup tables (expected terrain per tile + sub-offset).
+const PUSHABLE_LO = 113; // first tile in the band (exclusive upper end at PUSHABLE_HI)
+const PUSHABLE_HI = 158;
 const UNDER_TILE_TABLE = 0x1b78; // expected tile UNDER the object
 const AHEAD_TILE_TABLE = 0x1ce0; // expected tile one step AHEAD
 
