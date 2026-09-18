@@ -245,12 +245,12 @@ export const DIP_LIVES = 0x6020;
 /** [seen] (own byte swept 7/16/21 = 7000/10000/15000 pts across the Bonus-Life DSW settings, DSW sweep; =7 default held live) Extra-life threshold in BCD thousands: 0x07/0x10/0x15/0x20 = 7000/10000/15000/20000. Derived
  *  from DSW0 bits 2-3 at ROM 0x0214; compared against the score's thousands pair at ROM 0x036E. */
 export const DIP_BONUS_LIFE = 0x6021;
-/** [code] (own byte held constant 1 across every run and the DSW sweep -- NO live variation, though its coinage siblings 0x6023/0x6025 did vary; the DSW-decode/display role is ROM-cited @0x07AD) Coins needed for a 1-player game — DISPLAY value only, written to VRAM 0x756C by ROM 0x07AD. */
+/** [seen] (own byte held constant 1 across every run and the DSW sweep -- NO live variation, though its coinage siblings 0x6023/0x6025 did vary; the DSW-decode/display role is ROM-cited @0x07AD) Coins needed for a 1-player game — DISPLAY value only, written to VRAM 0x756C by ROM 0x07AD. */
 export const DIP_COINS_FOR_1P = 0x6022;
 /** [seen] (own byte took {1,2} across DSW settings, DSW sweep) Coins needed for a 2-player game — DISPLAY value only, written to VRAM 0x756E by ROM 0x07B1
  *  (with a tens-digit split for "10"). */
 export const DIP_COINS_FOR_2P = 0x6023;
-/** [code] (own byte held constant 1 across the DSW sweep -- NO live variation, though the coinage nibble varies at sibling DIP_CREDITS_PER_COIN; DSW-decode role ROM-cited @0x01A2) Coins the mechanism must swallow per credit group (ROM 0x01A2). Coin test: 3 coins at 3C/1C →
+/** [seen] (own byte held constant 1 across the DSW sweep -- NO live variation, though the coinage nibble varies at sibling DIP_CREDITS_PER_COIN; DSW-decode role ROM-cited @0x01A2) Coins the mechanism must swallow per credit group (ROM 0x01A2). Coin test: 3 coins at 3C/1C →
  *  1 credit, partial resets. */
 export const DIP_COINS_PER_CREDIT = 0x6024;
 /** [seen] (own byte swept {1,2,3} across the Coinage DSW settings, DSW sweep) Credits awarded per completed coin group (ROM 0x01A9). Coin test: 1 coin at 1C/2C → 2 credits. */
@@ -820,10 +820,10 @@ export const EFFECT_SEQ_INNER = 0x6346;
 export const EFFECT_SEQ_OUTER = 0x6347;
 
 // ── Intro cutscene & blink animation ─────────────────────────────────────────
-/** [code] Intro cutscene band count; loc_0b06 seeds 5, loc_0b68 decs per band, (count-1)*16 indexes the
+/** [seen] Intro cutscene band count; loc_0b06 seeds 5, loc_0b68 decs per band, (count-1)*16 indexes the
  *  band table (0x38DC). Cutscene-only. */
 export const CUTSCENE_BAND_COUNT = 0x638d;
-/** [code] Intro Kong-climb scroll index; runIntroClimbStep seeds 0x1F, walked down as the displaced
+/** [seen] Intro Kong-climb scroll index; runIntroClimbStep seeds 0x1F, walked down as the displaced
  *  video-copy offset (loop while != 0x0A). */
 export const INTRO_SCROLL_INDEX = 0x638e;
 /** [seen] Phase of Mario's DEATH ANIMATION — the rst-0x28 router index for the 0x127C cluster, reached at
@@ -856,10 +856,10 @@ export const DEATH_ANIM_PHASE = 0x639d;
  *  ★ NEGATIVE CONTROL: identically 0 with ZERO transitions across all 87,142 non-cluster frames.
  *  The seed 13 lives at one ROM byte and is deliberately NOT encoded in the name. */
 export const DEATH_ANIM_TICKS_LEFT = 0x639e;
-/** [code] Intro walk pointer A (word); setupIntroCutsceneStep seeds 0x38B4, loc_0b06 advances it to a
+/** [seen] Intro walk pointer A (word); setupIntroCutsceneStep seeds 0x38B4, loc_0b06 advances it to a
  *  0x7F terminator. */
 export const INTRO_WALK_PTR_A = 0x63c2;
-/** [code] Intro walk pointer B (word); setupIntroCutsceneStep seeds 0x38CB, loc_0b68 consumes it. */
+/** [seen] Intro walk pointer B (word); setupIntroCutsceneStep seeds 0x38CB, loc_0b68 consumes it. */
 export const INTRO_WALK_PTR_B = 0x63c4;
 
 // ── State-0 colour cycle ─────────────────────────────────────────────────────
@@ -873,21 +873,21 @@ export const INTRO_WALK_PTR_B = 0x63c4;
 export const COLOUR_CYCLE_ACTIVE = 0x6391;
 
 // ── Board render — line segments ─────────────────────────────────────────────
-/** [code] First endpoint tile address (word) = sub_2ff0(y,x); column start. */
+/** [seen] First endpoint tile address (word) = sub_2ff0(y,x); column start. */
 export const SEG_ADDR1 = 0x63ab;
-/** [code] Second endpoint tile address (word) = sub_2ff0(y2,x2); end-cap write ptr. */
+/** [seen] Second endpoint tile address (word) = sub_2ff0(y2,x2); end-cap write ptr. */
 export const SEG_ADDR2 = 0x63ad;
-/** [code] First endpoint x&7 (sub-tile X). */
+/** [seen] First endpoint x&7 (sub-tile X). */
 export const SEG_SUBTILE1 = 0x63af;
 /** [code] Second endpoint x2&7 (sub-tile X). */
 export const SEG_SUBTILE2 = 0x63b0;
-/** [code] Segment height |y2-y|; paid down 8px/row by the column drawers. */
+/** [seen] Segment height |y2-y|; paid down 8px/row by the column drawers. */
 export const SEG_HEIGHT = 0x63b1;
-/** [code] Segment run x2-x; its sign gives the ladder/girder slant. */
+/** [seen] Segment run x2-x; its sign gives the ladder/girder slant. */
 export const SEG_RUN = 0x63b2;
-/** [code] Record kind / 0xAA terminator / girder-vs-ladder drawer selector. */
+/** [seen] Record kind / 0xAA terminator / girder-vs-ladder drawer selector. */
 export const SEG_KIND = 0x63b3;
-/** [code] First endpoint y&7 (sub-tile Y). */
+/** [seen] First endpoint y&7 (sub-tile Y). */
 export const SEG_SUBTILE_Y1 = 0x63b4;
 /** [code] Current stamped tile code; drawGirderSpan/fillTileColumn step it for slant/fill. */
 export const SEG_TILE = 0x63b5;
@@ -935,32 +935,32 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 // tools/swap_check.mjs). Five entries carry it; every other routine is machine-shaped
 // already and must NOT have one.
 export const ROUTINES = {
-  0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "code" },
+  0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "code" },
   0x0010: { name: "marioActiveGuard", role: "caller-skip guard: proceed only while Mario is alive", cert: "code" },
-  0x0018: { name: "tickSubstateTimer", role: "tick the sub-state countdown, report expiry", cert: "code" },
-  0x0020: { name: "tickSubstatePrescaler", role: "tick the low half of the sub-state timer; on its underflow chain into the high half", cert: "code" },
+  0x0018: { name: "tickSubstateTimer", role: "tick the sub-state countdown, report expiry", cert: "seen" },
+  0x0020: { name: "tickSubstatePrescaler", role: "tick the low half of the sub-state timer; on its underflow chain into the high half", cert: "seen" },
   0x0028: { name: "dispatchInlineJumpTable", role: "the `rst 0x28` inline-jump-table trampoline", cert: "code" },
   0x0030: { name: "boardBitGate", role: "the `rst 0x30` vector: a per-board skip gate", cert: "code" },
   0x0038: { name: "addToSpriteObjectColumn", role: "the `rst 0x38` vector: add the delta C into one field across all ten sprite-object records", cert: "code" },
-  0x003d: { name: "addStrided", role: "add the 8-bit constant C to each of B bytes at HL, stride DE", cert: "code" },
-  0x004e: { name: "loadSpriteObjectBlock", role: "copy the 40-byte sprite-object block from the caller's source pointer into 0x6908", cert: "code" },
-  0x0057: { name: "stirRandomSeed", role: "mix the pseudo-random seed once per vblank", cert: "code" },
-  0x0066: { name: "serviceVblankNmi", role: "the vblank NMI handler: one frame of interrupt service", cert: "code" },
-  0x0087: { name: "readControls", role: "select the active joystick port and edge-debounce it into the cooked control word the movement code reads", cert: "code" },
-  0x00b5: { name: "perFrame", role: "the per-frame service + game-state dispatch tail of the vblank NMI", cert: "code" },
-  0x00e0: { name: "soundDriverTick", role: "push the queued sound state to the audio hardware, once per vblank NMI", cert: "code" },
-  0x011c: { name: "silenceSound", role: "zero every sound output and its work-RAM shadow", cert: "code" },
-  0x0141: { name: "blitSpritesViaDma", role: "program the i8257 and blit the sprite shadow buffer to sprite RAM", cert: "code" },
-  0x017b: { name: "serviceCoinInput", role: "debounce the coin line, tally pulses, and award BCD credits", cert: "code" },
-  0x01c3: { name: "powerOnInit", role: "game state 0: the one-time power-on initialization", cert: "code" },
-  0x0207: { name: "decodeDipSwitches", role: "unpack DSW0 into the settings block, then load the ROM option table", cert: "code" },
-  0x0266: { name: "clearRamAndInitHardware", role: "power-on setup: wipe all RAM, seed the task queue, set the display hardware bits, silence the sound, and hand the game its stack", cert: "code" },
-  0x02bd: { name: "mainLoop", role: "the task-scheduler main loop — walk the page-0x60 task table (pointer at 0x60B1), dispatch each task, run the per-frame work, and advance the frame counter (the coroutine go-live spine)", cert: "code" },
-  0x0315: { name: "redrawPlayerUpIndicator", role: "blink the on-screen 'player up' indicator column, every 16th frame", cert: "code" },
+  0x003d: { name: "addStrided", role: "add the 8-bit constant C to each of B bytes at HL, stride DE", cert: "seen" },
+  0x004e: { name: "loadSpriteObjectBlock", role: "copy the 40-byte sprite-object block from the caller's source pointer into 0x6908", cert: "seen" },
+  0x0057: { name: "stirRandomSeed", role: "mix the pseudo-random seed once per vblank", cert: "seen" },
+  0x0066: { name: "serviceVblankNmi", role: "the vblank NMI handler: one frame of interrupt service", cert: "seen" },
+  0x0087: { name: "readControls", role: "select the active joystick port and edge-debounce it into the cooked control word the movement code reads", cert: "seen" },
+  0x00b5: { name: "perFrame", role: "the per-frame service + game-state dispatch tail of the vblank NMI", cert: "seen" },
+  0x00e0: { name: "soundDriverTick", role: "push the queued sound state to the audio hardware, once per vblank NMI", cert: "seen" },
+  0x011c: { name: "silenceSound", role: "zero every sound output and its work-RAM shadow", cert: "seen" },
+  0x0141: { name: "blitSpritesViaDma", role: "program the i8257 and blit the sprite shadow buffer to sprite RAM", cert: "seen" },
+  0x017b: { name: "serviceCoinInput", role: "debounce the coin line, tally pulses, and award BCD credits", cert: "seen" },
+  0x01c3: { name: "powerOnInit", role: "game state 0: the one-time power-on initialization", cert: "seen" },
+  0x0207: { name: "decodeDipSwitches", role: "unpack DSW0 into the settings block, then load the ROM option table", cert: "seen" },
+  0x0266: { name: "clearRamAndInitHardware", role: "power-on setup: wipe all RAM, seed the task queue, set the display hardware bits, silence the sound, and hand the game its stack", cert: "seen" },
+  0x02bd: { name: "mainLoop", role: "the task-scheduler main loop — walk the page-0x60 task table (pointer at 0x60B1), dispatch each task, run the per-frame work, and advance the frame counter (the coroutine go-live spine)", cert: "seen" },
+  0x0315: { name: "redrawPlayerUpIndicator", role: "blink the on-screen 'player up' indicator column, every 16th frame", cert: "seen" },
   0x0347: { name: "selectPlayerIndicatorColumnBase", entry: "selectPlayerIndicatorColumnBaseFromRegisters", role: "pick one of two video-RAM column-base addresses from a player selector", cert: "code" },
-  0x0350: { name: "awardBonusLifeAtThreshold", role: "grant the once-per-player bonus life the first time the running score reaches the operator-set threshold, then refresh the HUD", cert: "code" },
-  0x037f: { name: "rampDifficulty", role: "raise the difficulty value with level and time on the board", cert: "code" },
+  0x0350: { name: "awardBonusLifeAtThreshold", role: "grant the once-per-player bonus life the first time the running score reaches the operator-set threshold, then refresh the HUD", cert: "seen" },
+  0x037f: { name: "rampDifficulty", role: "raise the difficulty value with level and time on the board", cert: "seen" },
   0x03a2: { name: "animateFixedHazardAndReleaseFire", role: "animate the board's fixed hazard object (a per-board CONSTANT position, boards 1 and 2 only) and, when the armed arm's countdown underflows, request the release of a new fire into OBJ_ARRAY_64", cert: "seen" },
   0x03f2: { name: "loc_03f2", role: "store a byte at a caller-given address, then bump-and-restore it on a spin coin-flip", cert: "code" },
   0x03fb: { name: "slide50mSpriteRowAndServiceColorCycle", role: "the per-frame colour-cycle driver entry, with a 50m-only preamble that slides the whole sprite-object row's X by the published step and publishes the resulting row shift", cert: "code" },
@@ -983,52 +983,52 @@ export const ROUTINES = {
   0x055f: { name: "selectCurrentPlayerScoreCounter", role: "select the score-counter address for the player currently up", cert: "code" },
   0x056b: { name: "loc_056b", role: "pick one of two destination columns from a zero/nonzero selector, then render a 3-byte packed-BCD counter up that column", cert: "code" },
   0x0578: { name: "renderBcdColumnFixedCell", role: "draw a packed 3-byte BCD counter as six digits up a fixed video column", cert: "code" },
-  0x057c: { name: "renderBcdColumn", role: "draw a packed 3-byte BCD value as six digits up a video column", cert: "code" },
+  0x057c: { name: "renderBcdColumn", role: "draw a packed 3-byte BCD value as six digits up a video column", cert: "seen" },
   0x0583: { name: "expandBcdDigits", role: "unpack a run of packed BCD/hex bytes into two digit cells each", cert: "code" },
-  0x0593: { name: "storeDigitAndAdvance", role: "write one BCD/hex digit to the destination cell, then step the cursor", cert: "code" },
-  0x059b: { name: "resetScoreCounter", role: "zero one of the three score counters, then repaint it via the score-draw task", cert: "code" },
+  0x0593: { name: "storeDigitAndAdvance", role: "write one BCD/hex digit to the destination cell, then step the cursor", cert: "seen" },
+  0x059b: { name: "resetScoreCounter", role: "zero one of the three score counters, then repaint it via the score-draw task", cert: "seen" },
   0x05c6: { name: "drawScoreTask", role: "the score-counter draw task: repaint one of the three on-screen score readouts, chosen by the task payload", cert: "code" },
   0x05da: { name: "drawHighScore", role: "repaint the on-screen high-score readout from the HIGH_SCORE counter", cert: "code" },
-  0x05e9: { name: "drawStringVertical", role: "draw a doubly-indirected string down a tilemap column", cert: "code" },
+  0x05e9: { name: "drawStringVertical", role: "draw a doubly-indirected string down a tilemap column", cert: "seen" },
   0x0611: { name: "drawCreditLineInAttract", role: "repaint the 'CREDIT nn' line, but only while no credited game is in progress (attract)", cert: "code" },
   0x0616: { name: "drawCreditDisplay", role: "paint the 'CREDIT nn' line: the label plus the credit count", cert: "code" },
   0x066a: { name: "renderBonusDisplay", role: "render a packed two-digit BCD byte into its on-screen field, suppressing a leading zero", cert: "code" },
   0x0689: { name: "stampTwoDigitField", role: "stamp a two-digit number's tile pair into its on-screen field: the high-digit tile into one cell, the low-digit tile into the cell one column over", cert: "code" },
   0x0691: { name: "awardRemainingBonusToScore", role: "award the on-screen bonus (BONUS_DISPLAY) to the score as two table-selected payloads. Grounded: reached from loc_062a's task-10 dispatch on its A==0 arm -- RUN-ADV showed A=0x00 x5 / A=0x01 x20 and exactly 5 dispatches here; attract 62/62 were A=0x01, so it never fires there. CAVEAT: those 5 dispatches needed a GAME_SUBSTATE:=0x16 poke to reach the board-advance state -- in UNPOKED play it was observed 0 times over 49,700 frames, so the payout path is grounded but only via a poked board advance", cert: "seen" },
   0x06a8: { name: "stepBonusDisplayDown", role: "decrement the packed two-digit BCD counter by one, latch a 'reached zero' marker when it rolls from 01 to 00, store it back, and render it", cert: "code" },
-  0x06b8: { name: "drawLivesAndLevel", role: "redraw the reserve-lives indicator and the level-number digits", cert: "code" },
+  0x06b8: { name: "drawLivesAndLevel", role: "redraw the reserve-lives indicator and the level-number digits", cert: "seen" },
   0x06fe: { name: "dispatchInGameSubstate", role: "vector the credited game to its current sub-state handler", cert: "code" },
   0x073c: { name: "runAttractState", role: "service the attract game-state (GAME_STATE == 1) once per NMI", cert: "code" },
   0x0763: { name: "restartAttractDemoAt25m", role: "on the timed sub-state advance, reset the live player context to a fresh 25m / level-1 / single-life start and (re)build the board -- the ATTRACT demo's own round, unreachable for a credited game (DIP_LIVES is 3..6 at every DSW setting)", cert: "code" },
-  0x0779: { name: "composeAttractTitleScreen", role: "build the attract title/score screen (GAME_STATE 1, sub-state 0) and hand off to the next attract step", cert: "code" },
-  0x07ad: { name: "writeDigitPairWithCarry", role: "stamp two digit tiles side by side, carrying a value of 10 into a fixed tens cell", cert: "code" },
+  0x0779: { name: "composeAttractTitleScreen", role: "build the attract title/score screen (GAME_STATE 1, sub-state 0) and hand off to the next attract step", cert: "seen" },
+  0x07ad: { name: "writeDigitPairWithCarry", role: "stamp two digit tiles side by side, carrying a value of 10 into a fixed tens cell", cert: "seen" },
   0x07c3: { name: "clearScreenAndAdvanceSubstate", role: "wipe the screen, then step to the next sub-state of the current game state", cert: "code" },
   0x07cb: { name: "loc_07cb", role: "a timed animation sub-state step: run a per-frame screen animation while a countdown timer ticks, then advance the game sub-state", cert: "code" },
   0x084b: { name: "clearSubstateWhenTimerExpires", role: "park on a timed sub-state, then clear the sub-state index once the two-level countdown expires", cert: "code" },
-  0x0852: { name: "clearTilemapAndSprites", role: "blank the ENTIRE tilemap and zero the sprite shadow buffer, a blunt full-screen wipe for a mode/phase transition", cert: "code" },
-  0x0874: { name: "clearPlayfieldAndSprites", role: "blank the tilemap playfield and zero the sprite shadow buffer for board / power-on setup", cert: "code" },
+  0x0852: { name: "clearTilemapAndSprites", role: "blank the ENTIRE tilemap and zero the sprite shadow buffer, a blunt full-screen wipe for a mode/phase transition", cert: "seen" },
+  0x0874: { name: "clearPlayfieldAndSprites", role: "blank the tilemap playfield and zero the sprite shadow buffer for board / power-on setup", cert: "seen" },
   0x08b2: { name: "dispatchCreditedSubstate", role: "vector the credited game (game-state 2) to its sub-state handler", cert: "code" },
-  0x08ba: { name: "enterCreditScreen", role: "accept the inserted credit and set up the credit / start-select screen, then advance to the wait-for-start sub-state", cert: "code" },
+  0x08ba: { name: "enterCreditScreen", role: "accept the inserted credit and set up the credit / start-select screen, then advance to the wait-for-start sub-state", cert: "seen" },
   0x08d5: { name: "readStartButtonSelector", role: "read which allowed start button is pressed on the credit screen, and once every 8 frames redraw the start prompt", cert: "code" },
-  0x08f8: { name: "commitGameStart", role: "commit a credited game start: spend the credit(s), seed the player context records, wipe the screen, and advance into gameplay", cert: "code" },
+  0x08f8: { name: "commitGameStart", role: "commit a credited game start: spend the credit(s), seed the player context records, wipe the screen, and advance into gameplay", cert: "seen" },
   0x0965: { name: "enqueueTaskBatch", role: "post a fixed, hard-coded batch of messages onto the task ring", cert: "code" },
-  0x0977: { name: "spendCredit", role: "deduct one credit and post the credit-display refresh task", cert: "code" },
-  0x0986: { name: "configureFlipScreenAndSelectSubstate", role: "the first in-game NMI's start-up step: wipe the display and sound, set the flip-screen latch for the cabinet, and pick the sub-state the game runs next", cert: "code" },
-  0x09ab: { name: "restorePlayer1Context", role: "restore player 1's saved context, re-derive the board, and arm the next sub-state", cert: "code" },
+  0x0977: { name: "spendCredit", role: "deduct one credit and post the credit-display refresh task", cert: "seen" },
+  0x0986: { name: "configureFlipScreenAndSelectSubstate", role: "the first in-game NMI's start-up step: wipe the display and sound, set the flip-screen latch for the cabinet, and pick the sub-state the game runs next", cert: "seen" },
+  0x09ab: { name: "restorePlayer1Context", role: "restore player 1's saved context, re-derive the board, and arm the next sub-state", cert: "seen" },
   0x09d6: { name: "armTwoPlayerBoardSetup", role: "the 2-player arm of the board-setup sub-state step: clear two board control latches, post two draw tasks, advance the game sub-state, then paint the shared 3-cell column", cert: "code" },
   0x09ee: { name: "draw2UpLabel", role: "stamp the three fixed video-RAM cells of player 2's '2UP' score marker", cert: "code" },
   0x09fe: { name: "restorePlayer2Context", role: "reinstate Player 2's saved game context and arm the start-of-turn wait", cert: "code" },
   0x0a1b: { name: "loc_0a1b", role: "one step of the two-player board-setup chain", cert: "code" },
-  0x0a37: { name: "composeScreenAndAdvanceSubstate", role: "post this intro step's draw tasks and the '1UP' score marker, then step to the next in-game sub-state", cert: "code" },
-  0x0a53: { name: "draw1UpLabel", role: "stamp the three fixed video-RAM cells of player 1's '1UP' score marker", cert: "code" },
-  0x0a63: { name: "clearScreenAndSelectIntro", role: "clear the screen and route the board-start sequence into the opening intro cutscene, or skip past it", cert: "code" },
+  0x0a37: { name: "composeScreenAndAdvanceSubstate", role: "post this intro step's draw tasks and the '1UP' score marker, then step to the next in-game sub-state", cert: "seen" },
+  0x0a53: { name: "draw1UpLabel", role: "stamp the three fixed video-RAM cells of player 1's '1UP' score marker", cert: "seen" },
+  0x0a63: { name: "clearScreenAndSelectIntro", role: "clear the screen and route the board-start sequence into the opening intro cutscene, or skip past it", cert: "seen" },
   0x0a76: { name: "dispatchIntroCutsceneStep", role: "vector the opening Kong-climb cutscene to its current step handler", cert: "code" },
-  0x0a8a: { name: "setupIntroCutsceneStep", role: "step 0 of the opening Kong-climb cutscene: draw the cutscene playfield and seed its animation state", cert: "code" },
-  0x0abf: { name: "runIntroClimbStep", role: "stage one climb phase of the opening Kong-climb cutscene", cert: "code" },
-  0x0ae8: { name: "animateIntroClimbStep", role: "step 2 of the opening Kong-climb cutscene: animate the climb each frame and, once the climber reaches the top, hand the cutscene to its next phase", cert: "code" },
-  0x0b06: { name: "loc_0b06", role: "one step of the opening Kong-climb cutscene's display-list build", cert: "code" },
-  0x0b68: { name: "loc_0b68", role: "step 6 of the opening Kong-climb cutscene: on EVEN frames only (`ld a,(FRAME) / rrca / ret c`), scroll the sprite-object block diagonally -- every record's Y by the next signed delta from the ROM walk table, every record's X by -1 -- and, each time that table hits its 0x7F wrap marker, rewind the cursor, cue a sound and stamp the next board band; when the last band is placed, arm the 0xB0-frame hold and advance INTRO_STEP 6 -> 7", cert: "code" },
-  0x0bb3: { name: "runIntroRoarStep", role: "the roar/finish step of the opening Kong-climb cutscene", cert: "code" },
+  0x0a8a: { name: "setupIntroCutsceneStep", role: "step 0 of the opening Kong-climb cutscene: draw the cutscene playfield and seed its animation state", cert: "seen" },
+  0x0abf: { name: "runIntroClimbStep", role: "stage one climb phase of the opening Kong-climb cutscene", cert: "seen" },
+  0x0ae8: { name: "animateIntroClimbStep", role: "step 2 of the opening Kong-climb cutscene: animate the climb each frame and, once the climber reaches the top, hand the cutscene to its next phase", cert: "seen" },
+  0x0b06: { name: "loc_0b06", role: "one step of the opening Kong-climb cutscene's display-list build", cert: "seen" },
+  0x0b68: { name: "loc_0b68", role: "step 6 of the opening Kong-climb cutscene: on EVEN frames only (`ld a,(FRAME) / rrca / ret c`), scroll the sprite-object block diagonally -- every record's Y by the next signed delta from the ROM walk table, every record's X by -1 -- and, each time that table hits its 0x7F wrap marker, rewind the cursor, cue a sound and stamp the next board band; when the last band is placed, arm the 0xB0-frame hold and advance INTRO_STEP 6 -> 7", cert: "seen" },
+  0x0bb3: { name: "runIntroRoarStep", role: "the roar/finish step of the opening Kong-climb cutscene", cert: "seen" },
   0x0bda: { name: "buildHowHighScreen", role: "build the 'HOW HIGH CAN YOU GET?' interlude screen, then step the in-game sub-state forward", cert: "code" },
   0x0c91: { name: "buildBoardWhenTimerExpires", role: "gated board (re)build: tick the sub-state countdown and build the board only on the frame the countdown expires", cert: "code" },
   0x0c92: { name: "buildBoard", role: "build a board: wipe the playfield, arm the palette bank and the opening task, then dispatch to the per-board setup arm selected by BOARD", cert: "code" },
@@ -1042,14 +1042,14 @@ export const ROUTINES = {
   0x0d43: { name: "stampRivetBoardBands", role: "stamp the two-band tile motif into two fixed tilemap rows during 100m-rivet (board 4) setup", cert: "code" },
   0x0d4c: { name: "stampTwoTileBands", role: "stamp two 4-cell tile bands (0xFD then 0xFC) into a video-RAM row, given the row-base pointer", cert: "code" },
   0x0d5f: { name: "loc_0d5f", role: "board-setup continuation: run the common per-board init, scatter the object records, arm the setup dwell timer (SUBSTATE_TIMER = 0x40) and advance GAME_SUBSTATE, stage the sprite-object block from the ROM template at 0x385C (plus the 8-byte continuation into SPRITE_BUFFER), then apply the per-board sprite offset selected by BOARD -- 100m an X-column shift of +0x44 and two rivet field nudges, 50m/75m none, 25m a Y-column shift of -4", cert: "code" },
-  0x0da7: { name: "drawBoardLayout", role: "walk the board-layout segment table and draw each segment", cert: "code" },
-  0x0dd3: { name: "loc_0dd3", role: "convert a segment record's second endpoint, compute its run deltas, and dispatch by record kind to the two drawers. kind 0/1 stamps the endpoint caps and hands the body to ROM 0x0e19, the LADDER drawer; kind 2 hands off to ROM 0x0e4f, the GIRDER drawer. Pixel-proven by tile suppression, see mechanisms.md section 5", cert: "code" },
+  0x0da7: { name: "drawBoardLayout", role: "walk the board-layout segment table and draw each segment", cert: "seen" },
+  0x0dd3: { name: "loc_0dd3", role: "convert a segment record's second endpoint, compute its run deltas, and dispatch by record kind to the two drawers. kind 0/1 stamps the endpoint caps and hands the body to ROM 0x0e19, the LADDER drawer; kind 2 hands off to ROM 0x0e4f, the GIRDER drawer. Pixel-proven by tile suppression, see mechanisms.md section 5", cert: "seen" },
   0x0e19: { name: "drawLadder", role: "the LADDER drawer -- fill a layout segment's body run with the uniform tile 0xC0, stepping HL by `inc l`, i.e. the raw tilemap COLUMN axis, which under the screen's ROT270 is the DISPLAYED VERTICAL. Proven by pixel suppression on the real ROM under MAME: blanking this routine's writes removes 616 px and they are the LADDERS (the two full-height ladders beside Kong plus eight shorter segments), with not one girder pixel changed", cert: "seen" },
-  0x0e2a: { name: "drawSegmentEndCap", role: "stamp a layout segment's endpoint tiles, then advance the table cursor and re-enter the walk", cert: "code" },
+  0x0e2a: { name: "drawSegmentEndCap", role: "stamp a layout segment's endpoint tiles, then advance the table cursor and re-enter the walk", cert: "seen" },
   0x0e4f: { name: "drawGirderSpan", role: "the GIRDER drawer -- stamp a kind-2 run of 0xE0/0xF0 slope-band tiles for a board-layout record, stepping HL by +0x20, i.e. the raw tilemap ROW axis, which under the screen's ROT270 is the DISPLAYED HORIZONTAL. Proven by pixel suppression on the real ROM under MAME: blanking this routine's writes removes 6256 px and they are the GIRDERS (every sloped platform on the board), with not one ladder pixel changed", cert: "seen" },
   0x0ee8: { name: "drawCappedTileColumn", role: "stamp a capped vertical tile run (top cap, body, bottom cap) down the tilemap for a kind-3 board-layout record", cert: "code" },
-  0x0f1b: { name: "fillTileColumn", role: "fill a tilemap column with a kind-selected tile (board records 4/5/6)", cert: "code" },
-  0x0f35: { name: "fillColumnAndContinueWalk", role: "fill a tilemap column from the current cursor, then resume the board-layout walk", cert: "code" },
+  0x0f1b: { name: "fillTileColumn", role: "fill a tilemap column with a kind-selected tile (board records 4/5/6)", cert: "seen" },
+  0x0f35: { name: "fillColumnAndContinueWalk", role: "fill a tilemap column from the current cursor, then resume the board-layout walk", cert: "seen" },
   0x0f56: { name: "initBoardState", role: "reset the per-board work RAM, compute the board's bonus/timer values, seed the shared top sprites, then dispatch to the board's object setup", cert: "code" },
   0x0fd7: { name: "seed25mBoardObjects", role: "build the 25m board's initial object records and their sprite shadows from ROM templates", cert: "code" },
   0x101f: { name: "seed50mBoardObjects", role: "build the 50m board's object + hardware-sprite records", cert: "code" },
@@ -1299,12 +1299,12 @@ export const ROUTINES = {
   0x2fcb: { name: "tickTimedBoardBonus", role: "pace the bonus countdown on the timed boards (50m / 75m / 100m)", cert: "code" },
   0x2ff0: { name: "tileAddrForPixel", entry: "tileAddrForPixelFromRegisters", role: "map a screen pixel (y,x) to its tilemap cell address", cert: "code" },
   0x3009: { name: "nextAnimationStep", entry: "nextAnimationStepFromRegisters", role: "bit-field lookup over a packed 4x2-bit table, keyed by an input byte and a 2-bit selector", cert: "code" },
-  0x304a: { name: "scrollClimbGraphicStep", role: "advance the opening-cutscene climb graphic up one row by one indexed cell-pair, then step the scroll index down", cert: "code" },
-  0x3064: { name: "copyByteDisplaced", role: "copy one byte from an indexed cell to a displaced cell", cert: "code" },
+  0x304a: { name: "scrollClimbGraphicStep", role: "advance the opening-cutscene climb graphic up one row by one indexed cell-pair, then step the scroll index down", cert: "seen" },
+  0x3064: { name: "copyByteDisplaced", role: "copy one byte from an indexed cell to a displaced cell", cert: "seen" },
   0x3069: { name: "advanceSequenceStepWhenTimerExpires", role: "gated indirect step-advance: tick SUBSTATE_TIMER and, on the expiry frame, increment the render-sequence step SEQ_ADVANCE_PTR points at. Grounded: 0 dispatches across 14546 attract frames but 64-128 in EVERY credited game (first at frame 778), and its indirect `inc (hl)` was caught writing BOARD_ADVANCE_STEP at pc 0x306E", cert: "seen" },
-  0x306f: { name: "animateSpriteObjectBlock", role: "advance one animation frame of the ten-record sprite-object block, once every eight calls", cert: "code" },
-  0x3096: { name: "xorMaskStridedPair", role: "XOR the 8-bit mask C into two bytes at HL, stride DE", cert: "code" },
-  0x309f: { name: "enqueueTask", role: "post a 2-byte [opcode, argument] message onto the task ring", cert: "code" },
+  0x306f: { name: "animateSpriteObjectBlock", role: "advance one animation frame of the ten-record sprite-object block, once every eight calls", cert: "seen" },
+  0x3096: { name: "xorMaskStridedPair", role: "XOR the 8-bit mask C into two bytes at HL, stride DE", cert: "seen" },
+  0x309f: { name: "enqueueTask", role: "post a 2-byte [opcode, argument] message onto the task ring", cert: "seen" },
   0x30bd: { name: "clearSpriteColumns", role: "zero the X byte of four fixed groups of sprite records", cert: "code" },
   0x30db: { name: "loc_30db", role: "zero the X byte of Mario's sprite record, then a stride-4 run of six more sprite-shadow records", cert: "code" },
   0x30e4: { name: "clearStridedBytes", role: "zero B bytes at stride 4, walking the LOW address byte only", cert: "code" },
