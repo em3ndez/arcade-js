@@ -160,7 +160,7 @@ export const SOUND_RING = 0x8020;
 // ── Tile-classifier scratch (0x80a5/0x80a8 — the tile-under-object block; note that
 //    0x80a2/0x80a3/0x80a4 in this range are the reaction state-machine, see REACTION_STATE) ─
 export const CUR_TILE = 0x80a5; // saved current tile under the object (loc_1840 "saved current tile") [seen]
-export const NEXT_TILE = 0x80a8; // next-tile slot, pre-cleared before classify (loc_1706) [code]
+export const NEXT_TILE = 0x80a8; // next-tile slot, pre-cleared before classify (loc_1706) [seen]
 
 // ═══ NAMING PASS 2026-07-26 ═══════════════════════════════════════════════════
 // Below: names added by the proposer≠confirmer pass (two agents independently derived
@@ -236,7 +236,7 @@ export const GOAL_TILE_LATCH = 0x80e7;
  *  The 0x26 feature cell is the PREREQUISITE that unlocks the +20 diamond pickup
  *  (TREASURE_COLLECTED 0x8078); verified vs collectLootTile, resolveActorTerrainStep.
  *  ★ Proposer≠confirmer BOTH converged on the wrong tile (0x27); the adversarial review
- *  corrected it to 0x26 — why the third review is load-bearing even after convergence. [code] */
+ *  corrected it to 0x26 — why the third review is load-bearing even after convergence. [seen] */
 export const PRIZE_GATE = 0x8076;
 
 // ── Naming batch 2 (proposer≠confirmer, all 6 converged) ──────────────────────
@@ -664,7 +664,7 @@ export const STAGED_TARGET_X = 0x80b6;
 /**
  *  STAGED_TARGET_Y (0x80b9) — Staged Y coord (PLAYER_X grid-snapped and lifted) written by
  *  spawnDigEntity, promoted into HAZARD_Y 0x80ac by commitDigEntity and Y-axis bbox-tested vs PLAYER_X 0x806b
- *  by advanceDigCarveObject; both namers converged, grounded across all three. [code]
+ *  by advanceDigCarveObject; both namers converged, grounded across all three. [seen]
  */
 export const STAGED_TARGET_Y = 0x80b9;
 /**
@@ -787,7 +787,7 @@ export const ENEMY_WORK_TARGET_COL = 0x8093;
  *  one side; stepObjectRowFlipped reads it to defer that step. Axis confirmed screen-HORIZONTAL; the specific
  *  left-vs-right assignment is rotation-ambiguous (which arm is "left" is not pinned). [seen] */
 export const CARVE_SEAM_LEFT = 0x807e;
-/** CARVE_SEAM_RIGHT (0x807f) — mirror seam flag for the opposite move arm (stepObjectRowUnflipped reads it). [code] */
+/** CARVE_SEAM_RIGHT (0x807f) — mirror seam flag for the opposite move arm (stepObjectRowUnflipped reads it). [seen] */
 export const CARVE_SEAM_RIGHT = 0x807f;
 /** LASER_SCAN_PTR (0x809a, 16-bit) — tilemap cell the horizontal terrain-scroll walker samples. [seen] */
 export const LASER_SCAN_PTR = 0x809a;
@@ -852,7 +852,7 @@ export const LOCKED_COLUMN = 0x807a;
 export const ENEMY_WORK_X = 0x8083;
 /** Sprite attribute/color byte (offset 2) of the enemy work-slot record; color-cycled by
  *  advanceDormantMover (v+1 & 0xf7, holding priority bit3 clear), then copied back to the live
- *  enemy's ATTR. [code] */
+ *  enemy's ATTR. [seen] */
 export const ENEMY_WORK_ATTR = 0x8085;
 /** Vertical / sub-row position byte (offset 3) of the enemy work-slot record; stepped one pixel by
  *  the up/down movers and used as the tile-probe row alignment. [seen] */
@@ -989,11 +989,11 @@ export const ROUTINES = {
   0x29ad: { name: "advanceDigCarveObject", role: "per-frame driver for the dig/carve object that tunnels the maze — spawn gate, capture hand-off, carve countdown, and tile carving", cert: "seen" },
   0x2bd3: { name: "stageDigObjectSpriteRecord", role: "compose the falling-hazard / dig object's sprite record so it draws at its cell (shape from state, colour from type)", cert: "seen" },
   0x2bf2: { name: "startNextDigSpawn", role: "start the next queued dig-object spawn, or clear the spawn-active flag when nothing is queued", cert: "code" },
-  0x2c04: { name: "spawnPendingDigObject", role: "pop a random queued column and spawn a falling dig/hazard object there (a rock/arrow that then falls)", cert: "code" },
-  0x2c91: { name: "flagObjectTargetOverlap", role: "flag whether the freshly-placed target cell coincides with the tracked object, then build the cell's record", cert: "code" },
-  0x2cb7: { name: "captureTargetOnOverlap", role: "tick the dig target's countdown and, on expiry, snap the tracked object onto the target when it overlaps, marking it captured", cert: "code" },
-  0x2d06: { name: "advanceDigTarget", role: "advance the dig target a step and route on the tile it now covers — embed it into terrain on solid ground, else re-stage its sprite", cert: "code" },
-  0x2d4e: { name: "landDigTarget", role: "land the descending dig/capture target when it reaches terrain — stamp the wall tile, request the dig sound, reset its state block", cert: "code" },
+  0x2c04: { name: "spawnPendingDigObject", role: "pop a random queued column and spawn a falling dig/hazard object there (a rock/arrow that then falls)", cert: "seen" },
+  0x2c91: { name: "flagObjectTargetOverlap", role: "flag whether the freshly-placed target cell coincides with the tracked object, then build the cell's record", cert: "seen" },
+  0x2cb7: { name: "captureTargetOnOverlap", role: "tick the dig target's countdown and, on expiry, snap the tracked object onto the target when it overlaps, marking it captured", cert: "seen" },
+  0x2d06: { name: "advanceDigTarget", role: "advance the dig target a step and route on the tile it now covers — embed it into terrain on solid ground, else re-stage its sprite", cert: "seen" },
+  0x2d4e: { name: "landDigTarget", role: "land the descending dig/capture target when it reaches terrain — stamp the wall tile, request the dig sound, reset its state block", cert: "seen" },
   0x2d6b: { name: "stampGlyphColumn", role: "stamp the fixed five-tile ZONK!! popup glyph down the object's column, colour it, re-arm the state timer, then continue the background update", cert: "seen" },
   0x2f2f: { name: "seedChamberCreature", role: "seed the left-chamber creature + Pit floor-reveal parameters (first block of round setup), derive the reveal period, then seed the enemy records", cert: "seen" },
   0x2f71: { name: "advanceChamberCreature", role: "per-frame driver for the left-chamber creature — bounce it sideways, accelerate its fall-Y to the floor + RNG-reset, cycle its frame, publish its sprite, and (once the goal latch is set) dissolve one more Pit floor-reveal column", cert: "seen" },
@@ -1014,7 +1014,7 @@ export const ROUTINES = {
   0x347d: { name: "stepMoverMirrored", role: "advance one mover step for movement direction 1 — step position on the cadence beat and refresh facing + walk-frame", cert: "seen" },
   0x3484: { name: "stepMoverDown", role: "one fixed-direction preset of the patrol mover — step its position and re-publish this preset's facing on the cadence beat", cert: "seen" },
   0x348b: { name: "stepMoverUnmirrored", role: "advance one mover step for movement direction 3 — step position on the cadence beat and refresh facing + walk-frame", cert: "seen" },
-  0x34da: { name: "advanceDormantMover", role: "mover housekeeping — advance two cadence counters, and on the slow wrap free-run a shot enemy toward respawn", cert: "code" },
+  0x34da: { name: "advanceDormantMover", role: "mover housekeeping — advance two cadence counters, and on the slow wrap free-run a shot enemy toward respawn", cert: "seen" },
   0x34f0: { name: "reseedMoverCadenceAndRearmState", role: "periodic mover refresh — reseed the random/animation byte and re-arm the actor state byte", cert: "code" },
   0x36fe: { name: "seedActorSpawnState", role: "put the two-sprite actor (primary + twin) into its fixed starting state and drop it back to the un-spawned phase", cert: "seen" },
   0x3748: { name: "advanceTwoSpriteActor", role: "per-frame update for the two-sprite actor (enemy-3 / rescue-ship / intro set-piece) — dispatch by spawn state and animation phase, marching + walk-animating it inline", cert: "seen" },
