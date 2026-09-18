@@ -78,7 +78,7 @@ export const ACTOR_SPRITES = 0x6980;
  *  mirror OBJ_ARRAY_65A0 X/code/attr/Y exactly (obj X swept 244 distinct values, genuinely moving),
  *  and each sprite +0 blanks to 0 the instant its record is culled. */
 export const OBJ_65A0_SPRITES = 0x69b8;
-/** [code] 3 sprite records (stride 4) inside SPRITE_BUFFER; initBoardState seeds them on every board
+/** [seen] 3 sprite records (stride 4) inside SPRITE_BUFFER; initBoardState seeds them on every board
  *  except 100m. */
 export const TOP_SPRITES = 0x6a00;
 /** [seen] 3 collision sprite records (stride 4) inside SPRITE_BUFFER; scanObjectsAtMarioX/confirmObjectHit
@@ -808,7 +808,7 @@ export const RENDER_DST_PTR = 0x62ac;
 export const EFFECT_STATE = 0x6340;
 /** [seen] Effect display-hold countdown; armed 0x40, decremented in place, blanks POPUP_SPRITE on expiry. */
 export const EFFECT_TIMER = 0x6341;
-/** [code] Effect select/mode byte; armScorePopupAndSelectAward rra-walks its low bits to pick the setter (bit0/1/2). */
+/** [seen] Effect select/mode byte; armScorePopupAndSelectAward rra-walks its low bits to pick the setter (bit0/1/2). */
 export const EFFECT_SELECT = 0x6342;
 /** [code] Effect param pointer (word); indirect base of the hit record, deref'd by stageAwardPopupAtHitObject. */
 export const EFFECT_PARAM_PTR = 0x6343;
@@ -879,7 +879,7 @@ export const SEG_ADDR1 = 0x63ab;
 export const SEG_ADDR2 = 0x63ad;
 /** [seen] First endpoint x&7 (sub-tile X). */
 export const SEG_SUBTILE1 = 0x63af;
-/** [code] Second endpoint x2&7 (sub-tile X). */
+/** [seen] Second endpoint x2&7 (sub-tile X). */
 export const SEG_SUBTILE2 = 0x63b0;
 /** [seen] Segment height |y2-y|; paid down 8px/row by the column drawers. */
 export const SEG_HEIGHT = 0x63b1;
@@ -889,7 +889,7 @@ export const SEG_RUN = 0x63b2;
 export const SEG_KIND = 0x63b3;
 /** [seen] First endpoint y&7 (sub-tile Y). */
 export const SEG_SUBTILE_Y1 = 0x63b4;
-/** [code] Current stamped tile code; drawGirderSpan/fillTileColumn step it for slant/fill. */
+/** [seen] Current stamped tile code; drawGirderSpan/fillTileColumn step it for slant/fill. */
 export const SEG_TILE = 0x63b5;
 
 // ── Engine / object scratch (mined from the optimization sweep) ───────────────
@@ -970,8 +970,8 @@ export const ROUTINES = {
   0x0464: { name: "resetColorCycleSweep", role: "reset (end) the colour-cycle sweep when its counter tops out, then continue the frame's colour work", cert: "seen" },
   0x0478: { name: "shiftEvenBoardSpriteColumn", role: "shift the sprite-object block's X column by a board-specific delta, then run the per-frame colour-cycle repaint", cert: "seen" },
   0x0486: { name: "dispatchColorCyclePaint", role: "the per-frame colour-cycle repaint router: read the sweep counter, then route the colour-column repaint by board and sweep phase", cert: "seen" },
-  0x04a1: { name: "paintColorColumnWithLowCode", role: "the colour-cycle blink driver's LOW-CODE arm: preset the fill code to 0x10, then paint the 3-cell colour column and hold the sprite blink", cert: "code" },
-  0x04a3: { name: "paintColorColumnAndHoldBlink", role: "the colour-cycle blink driver's 'leave-as-is' arm: repaint sprite record #1's colour-RAM column, then commit its sprite code unchanged", cert: "code" },
+  0x04a1: { name: "paintColorColumnWithLowCode", role: "the colour-cycle blink driver's LOW-CODE arm: preset the fill code to 0x10, then paint the 3-cell colour column and hold the sprite blink", cert: "seen" },
+  0x04a3: { name: "paintColorColumnAndHoldBlink", role: "the colour-cycle blink driver's 'leave-as-is' arm: repaint sprite record #1's colour-RAM column, then commit its sprite code unchanged", cert: "seen" },
   0x04ac: { name: "storeBlinkSpriteCode", role: "commit sprite record #1's tile-code byte, the shared tail of the attract/how-high blink driver", cert: "seen" },
   0x04be: { name: "runRivetColorCycleBlink", role: "the 100m rivet-board branch of the per-frame colour-cycle blink driver: repaint two decorative colour columns, then blink a pair of sprites by the sweep phase and Mario's", cert: "seen" },
   0x04e1: { name: "blinkSpritePairOn", role: "the colour-cycle blink driver's 'blink ON' arm: raise the blink bit (bit 7) on BOTH decorative blink sprites, then commit via the shared store tail", cert: "seen" },
@@ -1055,7 +1055,7 @@ export const ROUTINES = {
   0x101f: { name: "seed50mBoardObjects", role: "build the 50m board's object + hardware-sprite records", cert: "seen" },
   0x1087: { name: "seed75mBoardObjects", role: "build the 75m board's object records and their hardware sprite mirror from ROM templates", cert: "seen" },
   0x1131: { name: "seed100mBoardObjects", role: "build the 100m (rivet) board's sprite-object records and their hardware sprite mirror from ROM templates", cert: "seen" },
-  0x1186: { name: "seedObjectBlockSprites", role: "seed a 10-record object block's shared sprite field from a ROM template, then build the block's 10 hardware sprite records", cert: "code" },
+  0x1186: { name: "seedObjectBlockSprites", role: "seed a 10-record object block's shared sprite field from a ROM template, then build the block's 10 hardware sprite records", cert: "seen" },
   0x11a6: { name: "seedSpriteObjectPair", role: "place a pair of sprite objects at two caller-given positions and emit their hardware sprite records", cert: "seen" },
   0x11d3: { name: "gatherSpriteRecords", role: "build a run of hardware sprite records by gathering four permuted fields out of each object record", cert: "seen" },
   0x11ec: { name: "copyBytePairsStrided", role: "scatter B consecutive source byte-pairs into strided records", cert: "seen" },
@@ -1109,7 +1109,7 @@ export const ROUTINES = {
   0x1977: { name: "runAttractDemoFrame", role: "the attract-demo per-frame entry: calls the demo's input script at ROM 0x21EE, then falls into the same cascade runGameplayFrame runs", cert: "seen", why: "predicted to be attract-only and measured so on the real ROM -- a read tap fires it throughout pure attract and EXACTLY ZERO times across a credited game driven by the full-progression tape, while runGameplayFrame fires in both. The zero is the load-bearing half: a total is run-length dependent, an absence is not. Over that same tape run e_1977/e_197a diverge as 0 vs 24214" },
   0x197a: { name: "runGameplayFrame", role: "the shared per-frame update cascade, entered every frame in attract and in play alike; the same body runAttractDemoFrame reaches after its input-script call", cert: "seen", why: "the attract/credited A/B that separates it from runAttractDemoFrame: it fires throughout attract AND under the full-progression tape, and its tape hits spread across b01-b04 and l01-l04, so it is neither board- nor mode-specific -- the presence in both modes is the claim, not a total, which is run-length dependent; and e_197a minus the 0x1E94 caller-skip equals e_1f72 exactly in three environments" },
   0x19d2: { name: "advanceSubstateAndArmTimer", role: "step to the next in-state sub-state and hold it for 0x40 frames", cert: "seen" },
-  0x19da: { name: "scanObjectsAtMarioX", role: "broad-phase X test of the per-frame object-collision scan", cert: "code" },
+  0x19da: { name: "scanObjectsAtMarioX", role: "broad-phase X test of the per-frame object-collision scan", cert: "seen" },
   0x19ed: { name: "confirmObjectHit", role: "confirm an X-matched object slot is also Y-aligned and still eligible, and if so register the hit for the object-interaction state machine", cert: "code" },
   0x1a07: { name: "dispatchBonusExpiredStep", role: "run the bonus-expired state machine's current step", cert: "seen" },
   0x1a15: { name: "startBonusExpiredDelay", role: "arm the DELAY phase of the bonus-expired death sequence", cert: "code" },
@@ -1132,7 +1132,7 @@ export const ROUTINES = {
   0x1bd8: { name: "reverseMarioVerticalArc", role: "airborne PLAYFIELD-LIMIT reflection (NOT merely a screen edge -- limitMarioHorizontalTravel's left verdict also fires for an INTERIOR wall: odd BOARD, Y<0x58, X<0x6C, the left end of the top platform on 25m/75m), VERTICAL half: re-base the ballistic arc in place (velocity := 16*frames - velocity, frame count restarted) so the same parabola continues with its vertical step negated; a fall already latched lethal skips the re-base and keeps falling", cert: "code" },
   0x1bec: { name: "loc_1bec", role: "airborne join point: advance the actor one ballistic frame, then hand the stepped frame to the airborne handler; reached only from the PLAYFIELD-LIMIT clamp block, not from ordinary airborne frames", cert: "code" },
   0x1bf2: { name: "loc_1bf2", role: "airborne PLAYFIELD-LIMIT reflection, HORIZONTAL half: on the right-limit verdict stamp a leftward half-pixel-per-frame drift and clear the sprite facing bit, then continue into the vertical re-base", cert: "code" },
-  0x1c33: { name: "loc_1c33", role: "the airborne handler's exit tail: bump the arriving counter and, on the single value whose bump wraps to zero (MARIO_AIR_FRAMES == 19), run the hammer-touch latch -- which is why a hammer is grabbed once per jump, not once per frame -- then unconditionally refresh Mario's sprite record", cert: "code" },
+  0x1c33: { name: "loc_1c33", role: "the airborne handler's exit tail: bump the arriving counter and, on the single value whose bump wraps to zero (MARIO_AIR_FRAMES == 19), run the hammer-touch latch -- which is why a hammer is grabbed once per jump, not once per frame -- then unconditionally refresh Mario's sprite record", cert: "seen" },
   0x1c3a: { name: "loc_1c3a", role: "tick the airborne object-counter; on the tick that reaches zero settle the landing, otherwise arm the land-check phase and reset the ballistic state", cert: "seen" },
   0x1c4f: { name: "settleMarioOnLanding", role: "settle Mario's state the instant he lands from a jump or fall, commit any pending item pickup, then refresh his hardware sprite record", cert: "seen" },
   0x1c76: { name: "markFatalFallByHeight", role: "condemn the current fall as lethal once Mario has dropped far enough below where he took off, then refresh his sprite record", cert: "seen" },
@@ -1188,10 +1188,10 @@ export const ROUTINES = {
   0x216d: { name: "startBarrelDescentAtLadder", role: "grade a barrel against difficulty, Mario's column and the ladder table and, on a pass, stamp its descent target and start it down the ladder", cert: "seen" },
   0x21ba: { name: "publishBarrelSprite", role: "the shared object-sprite tail: copies the record's four sprite fields into the sprite buffer, then re-enters the loop's advance", cert: "seen", why: "pinning the barrel records' X on the real ROM moves the drawn sprites to the commanded column, so this routine's output is observably what reaches the screen; 13 sites reach it by jp and none can leave a serviced record unpublished" },
   0x21ee: { name: "advanceAttractDemoInput", role: "advance the canned-input script that drives the attract-mode demo", cert: "seen" },
-  0x2207: { name: "dispatch50mObjectState", role: "the 50m board-object state-machine dispatcher: gate on the 50m board, pick one of two object records by frame parity, and run the arm for its state", cert: "code" },
+  0x2207: { name: "dispatch50mObjectState", role: "the 50m board-object state-machine dispatcher: gate on the 50m board, pick one of two object records by frame parity, and run the arm for its state", cert: "seen" },
   0x2227: { name: "hold50mObjectParked", role: "the parked (state 0) arm of the dispatch50mObjectState board-object state machine: hold the object still while its dwell timer counts down, advance its state when the timer elapses, and -- only when Mario is standing on the object's column -- stamp the shared flag 0x621a (1 if the dwell just expired, 0 while it is still running)", cert: "seen" },
   0x2243: { name: "marioReachedTargetColumn", role: "has Mario reached the target position? a three-condition hit test", cert: "seen" },
-  0x2257: { name: "reportNoHitAndSkipCaller", role: "the 'no hit' tail of the sub_2243 hit test: abort the caller as well and unwind two levels, back to the grandparent", cert: "code" },
+  0x2257: { name: "reportNoHitAndSkipCaller", role: "the 'no hit' tail of the sub_2243 hit test: abort the caller as well and unwind two levels, back to the grandparent", cert: "seen" },
   0x2259: { name: "slide50mObjectDown", role: "one arm of the dispatch50mObjectState board-object state machine: tick this object's timer, step its position counter UP and mirror it on-screen, advance its state at the bottom of travel (the counter's maximum; larger Y is lower on screen)", cert: "seen" },
   0x2281: { name: "stepMarioDownInClimbPose", role: "step Mario down one pixel, held in the climb-down pose", cert: "code" },
   0x2299: { name: "advance50mObjectStateOnRandomGate", role: "advance a board object to its next state, on a randomised pacing gate", cert: "seen" },
@@ -1203,7 +1203,7 @@ export const ROUTINES = {
   0x22f9: { name: "loc_22f9", role: "commit a value and its low-bit-derived sign into two object-record fields", cert: "seen" },
   0x2303: { name: "loc_2303", role: "seed one object's step magnitude and its toward-player step direction (the difficulty-3/4 arm of object-velocity init)", cert: "code" },
   0x231a: { name: "loc_231a", role: "seed one object's toward-player step code and step delta from the horizontal offset to the player (the difficulty-5 arm of object-velocity init)", cert: "code" },
-  0x2333: { name: "snapYToGirder", entry: "snapYToGirderFromRegisters", role: "nudge a coordinate one pixel along the 25m girder slope", cert: "code" },
+  0x2333: { name: "snapYToGirder", entry: "snapYToGirderFromRegisters", role: "nudge a coordinate one pixel along the 25m girder slope", cert: "seen" },
   0x236e: { name: "findOppositeLadderEnd", role: "find a key in the ladder (object-parameter) table and return the paired slot at the other end of that ladder, tagged with which end the caller started from", cert: "seen" },
   0x239c: { name: "stepBallisticMotion", role: "advance an airborne actor one frame along its ballistic arc", cert: "seen" },
   0x23de: { name: "advanceBarrelSpriteOrientation", role: "refresh a barrel's two sprite MIRROR bits (bit 7 of OBJ_SPRITE_CODE and OBJ_SPRITE_ATTR) from a packed direction lookup, on a per-object countdown -- one call in four", cert: "seen" },
@@ -1257,12 +1257,12 @@ export const ROUTINES = {
   0x2b02: { name: "moveMarioX", role: "advance Mario's X by the current velocity, then hold it inside the horizontal limits", cert: "code" },
   0x2b29: { name: "probeMarioDescentLanding", role: "board split at the head of the descent probe: off 25m delegate to the two-point form; on 25m probe a single point and, within three pixels of a surface, snap Mario onto it", cert: "seen" },
   0x2b51: { name: "loc_2b51", role: "a reject exit of the player-vs-tilemap probe cascade; forces the two-level caller-skip so control unwinds past entry_2b1c", cert: "code" },
-  0x2b53: { name: "loc_2b53", role: "the non-25m arm of the player-vs-tilemap descent probe", cert: "code" },
+  0x2b53: { name: "loc_2b53", role: "the non-25m arm of the player-vs-tilemap descent probe", cert: "seen" },
   0x2b74: { name: "loc_2b74", role: "the reject arm of the tile-probe cascade: hand back a zeroed result and unwind out of the probe and its caller", cert: "code" },
-  0x2b7a: { name: "loc_2b7a", role: "pick the tile-probe's horizontal X-snap arm on the airborne X-velocity, then snap Mario's X to its 8-pixel column and commit it", cert: "code" },
-  0x2b8b: { name: "loc_2b8b", role: "snap the probe's candidate X to its 8-pixel column, then commit it as Mario's position", cert: "code" },
+  0x2b7a: { name: "loc_2b7a", role: "pick the tile-probe's horizontal X-snap arm on the airborne X-velocity, then snap Mario's X to its 8-pixel column and commit it", cert: "seen" },
+  0x2b8b: { name: "loc_2b8b", role: "snap the probe's candidate X to its 8-pixel column, then commit it as Mario's position", cert: "seen" },
   0x2b91: { name: "loc_2b91", role: "commit Mario's adjusted X to both the game position and his sprite record", cert: "seen" },
-  0x2b9b: { name: "probeTileForLanding", role: "the tile gate at the head of the airborne-descent collision probe", cert: "code" },
+  0x2b9b: { name: "probeTileForLanding", role: "the tile gate at the head of the airborne-descent collision probe", cert: "seen" },
   0x2be1: { name: "resolveAirborneTileLanding", role: "resolve whether Mario's airborne descent has reached a tile surface; on a hit, snap him onto it and abort the collision probe", cert: "seen" },
   0x2c03: { name: "scheduleBarrelRelease", role: "board-1 (25m) periodic bonus-event scheduler: decide, this pass, whether to dispatch into the bonus-event slot-claim cluster and by which route", cert: "seen" },
   0x2c41: { name: "loc_2c41", role: "head of the bonus-event slot-claim cluster: stir the random seed, then route to one of two slot-claim mode entries on the seed's low nibble", cert: "seen" },
@@ -1270,14 +1270,14 @@ export const ROUTINES = {
   0x2c4b: { name: "loc_2c4b", role: "one entry of the bonus-event slot-claim cluster (0x2C41): record the caller's mode byte, then hand off to the shared slot-claim body with that byte bumped by one", cert: "seen" },
   0x2c4f: { name: "armBarrelRelease", role: "one entry of the bonus-event slot-claim cluster (0x2C41): stash the caller's mode byte into engine scratch and raise the entry flag, then gate on BONUS_EVENT_MARK equalling the bonus value passed in -- on a match step the mark down by 8 and scan OBJ_ARRAY_64's five records for the first with a zero active byte, raising bit 7 of BARREL_CLAIM_MODE (the barrel KIND select) if one is free. It does NOT write the slot it finds, and the kind bit is independent of bit 0, the waypoint-table select", cert: "seen" },
   0x2c72: { name: "markNextBarrelAsAltKind", role: "set the top bit of BARREL_CLAIM_MODE, preserving the low bits -- bit 7 is the barrel KIND select (sprite family plus the behaviour arms keyed off record +0x15); it does NOT select the drop path, which is bit 0", cert: "seen" },
-  0x2c7b: { name: "loc_2c7b", role: "pick a bonus-event slot-claim cluster entry by testing the caller's stepped value against the bonus", cert: "code" },
+  0x2c7b: { name: "loc_2c7b", role: "pick a bonus-event slot-claim cluster entry by testing the caller's stepped value against the bonus", cert: "seen" },
   0x2c86: { name: "loc_2c86", role: "one entry of the bonus-event slot-claim cluster (0x2C41): clear the slot-claim request flag, then hand off to the shared slot-claim entry with mode byte 3", cert: "seen" },
   0x2c8f: { name: "driveBarrelRelease", role: "decides when Kong lets go of the next barrel and hands the claim to the release path", cert: "seen", why: "A/B on the real ROM over the tape's actual 25m window: pinning the two claim cells to 0 takes 2 claims / 2 activations / 3 records to 0 / 0 / 1, both barrels vanish from the screen, everything else is identical, and the end-of-board bonus differs by exactly 2 x 100 -- the two suppressed releases" },
   0x2cb8: { name: "releaseBarrelIntoFreeSlot", role: "the 25m barrel-release slot claim: mark the scanned-free OBJ_ARRAY_67 record occupied, publish it and its sprite destination, latch the cluster event gate, and charge the release against BONUS -- on 25m this routine IS the bonus clock", cert: "seen" },
   0x2ce6: { name: "loc_2ce6", role: "25m barrel-release entry: while four or more bonus steps remain do nothing; below four, blank the X field of the sprite-group record whose index equals the remaining count, then preset the freshly claimed barrel record", cert: "seen" },
   0x2cf6: { name: "stampReleasedBarrelKind", role: "preset a renderer object record's sprite-code/attr/mode (default or alt triple, selected by bit 7 of 0x6382), then fall through into the frame-gated renderer advanceBarrelRelease", cert: "seen" },
   0x2d15: { name: "advanceBarrelRelease", role: "the frame-gated step of the intro string/sprite renderer", cert: "seen" },
-  0x2d51: { name: "loc_2d51", role: "reload the render string cursor from RAM, then render the next character", cert: "code" },
+  0x2d51: { name: "loc_2d51", role: "reload the render string cursor from RAM, then render the next character", cert: "seen" },
   0x2d54: { name: "stepBarrelAlongReleasePath", role: "the string renderer's per-character body: emit one 4-byte sprite record for the next character of the string, or hand off to the terminator", cert: "seen" },
   0x2d83: { name: "loc_2d83", role: "aim the string renderer at the fixed source string at 0x39CC and emit its first character", cert: "seen" },
   0x2d8c: { name: "activateReleasedBarrel", role: "the string renderer's 0x7F terminator: reinitialise the object record it was building and reload the ten-record sprite-object block", cert: "seen" },
@@ -1286,7 +1286,7 @@ export const ROUTINES = {
   0x2e12: { name: "advanceSpring", role: "advances one 75m spring: crosses it at 2 px/frame while adding a fixed delta string to its height for the bounce, sounds each bounce, and drops it off the right edge to retire", cert: "seen", why: "pinning the object's displayed-horizontal field on 75m parks it at the commanded column and the zoomed sprite is visibly the spring, which also settles which field is the horizontal axis; the bounce period derived from the ROM delta table matches the spring sound's measured ~25-frame spacing in the audio write traces" },
   0x2e4b: { name: "advanceSpringArcAndDropAtTravelEnd", role: "the spring's per-object body: continues its bounce arc and drops it off the end of its travel", cert: "seen", why: "it is a mid-body label inside the spring routine's own loop, so any name calling it a generic actor handler is refuted by the enclosing routine's own grounded identity -- the spring was confirmed on the real ROM by pinning its displayed-horizontal field and reading the parked sprite" },
   0x2e6c: { name: "mirrorObjectPositionToSprite", role: "mirror the current object's position into its paired sprite record, then advance the per-object scan", cert: "seen" },
-  0x2e78: { name: "advanceToNextObject", role: "step the per-object scan on to the next object's records", cert: "code" },
+  0x2e78: { name: "advanceToNextObject", role: "step the per-object scan on to the next object's records", cert: "seen" },
   0x2e84: { name: "loc_2e84", role: "object update state 4: advance the object's Y by 3, deactivating it once it passes the travel limit, then mirror its position to its sprite", cert: "seen" },
   0x2e9c: { name: "loc_2e9c", role: "animation-string terminator handler: rewind the walk pointer to the string base and fire the wrap sound, then hand off to the object-update convergence point", cert: "seen" },
   0x2ea7: { name: "spawnObjectIntoInactiveSlot", role: "inactive object slot: consume a pending spawn request and bring the slot to life, otherwise just step the scan on", cert: "seen" },
@@ -1296,7 +1296,7 @@ export const ROUTINES = {
   0x2f97: { name: "buildPendingHammerSprite", role: "one build arm of the hammer/object sprite updater: when a hammer is pending, stamp the object's state and appearance, then commit its sprite record", cert: "code" },
   0x2fb7: { name: "selectHammerSpriteBlinkByTimer", role: "pick which object-sprite build path lays down this frame's record, based on how far the hammer's duration counter has run", cert: "code" },
   0x2fbe: { name: "blinkHammerSpriteOnFramePhase", role: "choose the object sprite's attribute for this frame's blink phase, then commit the record", cert: "code" },
-  0x2fcb: { name: "tickTimedBoardBonus", role: "pace the bonus countdown on the timed boards (50m / 75m / 100m)", cert: "code" },
+  0x2fcb: { name: "tickTimedBoardBonus", role: "pace the bonus countdown on the timed boards (50m / 75m / 100m)", cert: "seen" },
   0x2ff0: { name: "tileAddrForPixel", entry: "tileAddrForPixelFromRegisters", role: "map a screen pixel (y,x) to its tilemap cell address", cert: "seen" },
   0x3009: { name: "nextAnimationStep", entry: "nextAnimationStepFromRegisters", role: "bit-field lookup over a packed 4x2-bit table, keyed by an input byte and a 2-bit selector", cert: "seen" },
   0x304a: { name: "scrollClimbGraphicStep", role: "advance the opening-cutscene climb graphic up one row by one indexed cell-pair, then step the scroll index down", cert: "seen" },
@@ -1333,7 +1333,7 @@ export const ROUTINES = {
   0x3478: { name: "loc_3478", role: "start-or-continue one object's table-driven position walk, marching the object's X in a chosen direction and deferring the per-frame Y to the shared tail", cert: "seen" },
   0x34b9: { name: "loc_34b9", role: "seed an object record's paired position fields from one of two ROM template tables (skipped on board 3)", cert: "seen" },
   0x34f3: { name: "publishFireSprites", role: "publish the five fire records (OBJ_ARRAY_64) into five 4-byte sprite records in the DMA shadow buffer at 0x69D0", cert: "seen" },
-  0x3e70: { name: "pickAwardTierByObjectCount", role: "pick one of three effect-sprite parameter pairs from the low bits of A, then hand off to the Mario-anchored record-stamp tail loc_1e28", cert: "code" },
+  0x3e70: { name: "pickAwardTierByObjectCount", role: "pick one of three effect-sprite parameter pairs from the low bits of A, then hand off to the Mario-anchored record-stamp tail loc_1e28", cert: "seen" },
   0x3e88: { name: "dispatchBoardOverlapSearch", role: "vector to the current board's collision-search arm, handing it the caller's bounds word across the dispatch", cert: "seen" },
   0x3e99: { name: "loc_3e99", role: "the board-1 arm of the overlap-search dispatch: pop the caller's bounds word, then count Mario overlaps across OBJ_ARRAY_67 x10 and OBJ_ARRAY_64 x5 into one counter, and grade the total into the thermometer mask 0/1/3/7 that EFFECT_SELECT walks bit by bit", cert: "seen" },
   0x3ec3: { name: "countObjectOverlaps", role: "count how many objects in an array overlap a probe point, within a per-object rectangular window", cert: "seen" },
