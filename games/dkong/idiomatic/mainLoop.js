@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { FRAME, FRAME_SEEN, SPIN_COUNT, TASK_HEAD } from "./names.js";
 //
 // mainLoop — Donkey Kong's task-scheduler main loop, written as a GENERATOR so a host can drive
 // it one vblank at a time. Each pass reads the current task byte and tests bit 7: clear dispatches
@@ -20,7 +21,7 @@ export function* mainLoop(m) {
 
   for (;;) {
     regs.h = 0x60;
-    regs.a = mem8[0x60b1];
+    regs.a = mem8[TASK_HEAD];
     regs.l = regs.a;
     regs.a = mem8[regs.hl];
     regs.add(regs.a);
@@ -34,11 +35,11 @@ export function* mainLoop(m) {
     redrawPlayerUpIndicator(m);
     awardBonusLifeAtThreshold(m);
 
-    regs.hl = 0x6019;
+    regs.hl = SPIN_COUNT;
     mem8[regs.hl] = regs.inc8(mem8[regs.hl]);
 
-    regs.hl = 0x6383;
-    regs.a = mem8[0x601a];
+    regs.hl = FRAME_SEEN;
+    regs.a = mem8[FRAME];
     regs.cp(mem8[regs.hl]);
     if (regs.fZ) {
       // Frame counter unchanged — this spin IS the vblank wait; the interrupt moves it on.

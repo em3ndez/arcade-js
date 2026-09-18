@@ -9,18 +9,7 @@
  * LIVE-OUT: memory only.
  */
 
-import {
-  MARIO_X,
-  LEVEL,
-  SND_PRIORITY,
-  SND_PRIORITY_FRAMES,
-  BOARD,
-  BOARD_SEQ_PTR,
-  HOW_HIGH_INDEX,
-  SUBSTATE_TIMER,
-  GAME_SUBSTATE,
-  BOARD_ADVANCE_STEP,
-} from "./names.js";
+import { MARIO_X, LEVEL, SND_PRIORITY, SND_PRIORITY_FRAMES, BOARD, BOARD_SEQ_PTR, HOW_HIGH_INDEX, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD_ADVANCE_STEP, MARIO_SPRITE_RECORD } from "./names.js";
 import { nextAnimationStep } from "./nextAnimationStep.js";
 import { enqueueTask } from "./enqueueTask.js";
 
@@ -31,7 +20,7 @@ const FINALE_ANIM_FLAG = 0x6919;
 const FINALE_BLINK_BIT = 0x80;
 const FINALE_ANIM_BIT = 0x20;
 
-const CUTSCENE_SPRITE_X = 0x694c;
+const CUTSCENE_SPRITE_X = MARIO_SPRITE_RECORD;
 const CUTSCENE_SPRITE_CODE = 0x694d;
 const CUTSCENE_SPRITE_Y = 0x694f;
 

@@ -6,12 +6,12 @@
  * LIVE-OUT: memory-only — P1_INPUT and P1_INPUT_RAW.
  */
 
-import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW } from "./names.js";
+import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW, ACTIVE_PLAYER_INDEX } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 
 const IN0 = 0x7c00; // player-1 joystick port (hardware input)
 const IN1 = 0x7c80; // player-2 joystick port (cocktail, hardware input)
-const COCKTAIL_PLAYER_SELECT = 0x600e; // non-zero => read IN1 on a cocktail cabinet
+const COCKTAIL_PLAYER_SELECT = ACTIVE_PLAYER_INDEX; // non-zero => read IN1 on a cocktail cabinet
 
 export function readControls(m) {
   const { mem, mem8 } = m;
