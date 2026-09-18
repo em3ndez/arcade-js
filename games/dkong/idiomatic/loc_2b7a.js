@@ -20,8 +20,7 @@ export function loc_2b7a(m) {
   const marioX = mem8[MARIO_X];
 
   if (velocityHiZero) {
-    regs.a = marioX; // sibling arm snaps and commits
-    return loc_2b8b(m);
+    return loc_2b8b(m, marioX); // sibling arm snaps and commits
   }
 
   regs.a = (marioX | 0x07) - 4; // snap to the 8-pixel column, then commit directly
