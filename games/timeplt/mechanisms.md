@@ -704,6 +704,32 @@ The scenery band is seated once per round — not per frame — by `seatEraScene
 eight-byte row the era indexes out of the `0x3176` table into the stride-two run at `0xAA31`, then
 tails into the scenery clear+run — filling `0x28` at the final era and `0xCC` at every other. `[code]`
 
+### The scenery clear-and-run finishes the seat, and reuses the copyright witnesses as an era-four guard
+
+The tail `seatEraSceneryRowThenClearAndRunScenery` reaches is `clearSceneryEntriesThenRunEraScenery`
+(`0x30D1`), and it does two jobs before the frame's scenery runs. First it **clears the eight-slot
+scenery attribute band**: eight cells at stride two from `SCENERY_SPRITE_ATTRIBUTE_SLOT0` (`0xAA60`,
+the colour+flip band base) are each written to the fill byte the caller hands in — value 0x28 at the
+final era, 0xCC at every other — so every scenery slot's colour/flip descriptor is reset before it is
+re-seated. `[seen]` Then it **branches on the era it carries in `C`**: below the era floor of four it
+tail-calls `seedSceneryEntriesThenRunScenery`, the eras-0-3 seat-and-run chain, and this is the only
+arm any real dispatch takes — every dispatch over two tapes carried an era below four. `[seen]`
+
+At era four and up a second, packed table is seated first, but only past **two anti-tamper guards that
+are the same copyright witnesses §5's player-strip routine reads**. The byte at `TAMPER_GLYPH_KONAMI`
+(`0xACC7`, the glyph sampled from the copyright caption) must still read its expected value 0x3b, and
+the sub-guard at `TAMPER_GLYPH_KONAMI`+1 (the paired colour sample) must be one of the two accepted
+values 0x05 or 0x10; a guard that reads wrong transfers into `loc_315b`, which falls straight into the
+`ERA4_SCENERY_SEED_TABLE` bytes decoded as instructions and **faults**. With both guards good, eight
+packed pairs from `ERA4_SCENERY_SEED_TABLE` (`0x315e`) seat `SCENERY_ENTRY_SLOT0` (`0xAA30`) — each
+pair's first byte into the entry's +0x31 shadow and its second into the entry itself, stride two — and
+control tails into `runSceneryForEra`. `[seen]` The equivalence gate, held to the frogger memory
+standard, pins RAM alone: every register the body touches is dead-after-return scratch, each arm
+reseating its callee's cursors. It drives the real below-four dispatch, the two crafted era-four seed
+arms, and the two guard-fail arms — where equivalence is a matching fault over identical RAM — and its
+twins catch a wrong fill stride, a wrong era floor, either mis-set guard, and a dropped seat or
+transfer. `[seen]`
+
 ### Depth tracks sprite size — strictly, in the eras we have watched
 
 Each handler places its object's tiles before stepping the slot, so the handler body records how
@@ -1593,6 +1619,42 @@ those registers survives the return: the sole caller tail-returns and reads memo
 pins RAM only. `[seen]` Its teeth are the gate value, the busy ceiling and the owed-kills mode — a twin
 with the wrong ceiling, one that opens on the wrong phase, or one that skips the owed/cleared split is
 each caught on an exact count of the crafted occupancy-by-gate-by-owed sweep. `[seen]`
+
+### The aimed spawn seats a found object's coordinates with a doubled, side-alternated velocity
+
+The trickle above meters how OFTEN a craft is born; a separate arm decides WHERE one is aimed.
+`spawnAimedEnemyIntoEraBankWhenInWindow` (`0x3D25`) is the spawn attempt
+`advanceTwoTileObjectThenTryAimedSpawn` runs after it has flown a two-tile object one step and dressed
+it — reached down the era-1 bomber service chain — and it fires only past **four guards**: the target
+slot the caller seats in `ix` must be free (`0xFF`), `ATTACKER_SPAWN_COOLDOWN` must be clear,
+`ATTACKER_SPAWN_SLOT_COUNT` (the era's bank size, zero disabling the arm) must be non-zero, and unless
+the second bank is selected the bank-A record `ACTOR_RECORD_SLOT3` must be idle. The bank choice
+itself — `ERA_OBJECT_RECORD_SLOT2`/`ERA_OBJECT_ENTRY_SLOT2` versus
+`ACTOR_RECORD_SLOT3`/`ACTOR_ENTRY_SLOT3` — turns on the slot count not being one together with the
+second-bank record reading zero, and both the guard above and the seat below ask it. `[seen]`
+
+Past the guards it **scans the caller's two-slot bank for an object in the window**: for each of the
+two slots it forms a byte-wrapped reach from the player's pinned origin cells `X_ORIGIN`/`Y_ORIGIN` to
+the object's coordinate, biased by the half-width `ATTACKER_SPAWN_WINDOW_HALF`, and counts the object
+as in-window once either axis reaches the doubled bound `2*half`. The record pointer walks in lockstep
+with the entry pointer but its landing slot is discarded — the seat below is fixed — and if neither
+slot hits, the spawn bails. `[seen]` On a hit it requests the launch sound, takes the heading from the
+found object toward `ENEMY_STANDOFF_AIM_MAIN`, then **alternates the aim side**:
+`ATTACKER_SPAWN_AIM_SIDE_TOGGLE` is incremented and its low bit picks a turn of +0x18 or -0x18, added
+to the heading so successive spawns splay to one side then the other. `[seen]`
+
+The seat then writes the record. The found object's Y and X are copied into the chosen entry bank, and
+the aimed heading is left in `a` as the input to the velocity shim `loc_59c5`, which hands back a
+**doubled velocity pair** — `doubledVelocityForHeading` reads the perpendicular pair one fixed sample
+table gives for that heading and returns it at twice its length, wrapping at sixteen bits — whose four
+bytes land as two 16-bit components in the record's velocity field at offsets +0x0a through +0x0d. A
+new script byte 0x4d and shape byte 0x62 dress the entry, the bank's head byte is decremented, and
+`ATTACKER_SPAWN_COOLDOWN` is re-armed from `ATTACKER_SPAWN_COOLDOWN_PERIOD`. `[seen]` The routine is a
+pure writer with no register live-out — its sole caller tail-returns and reads memory alone — so the
+equivalence gate pins RAM only. Coin-start never reaches it in budget, but the attract demo does and
+its spawns are the positive control, with crafted variants exercising both banks, either search-hit
+slot, both toggle parities and the guard trio, and twins that never spawn, ignore the cooldown guard,
+or corrupt the reloaded cooldown each caught in memory. `[seen]`
 
 ### Clearing a whole wave arms a one-shot claim
 
