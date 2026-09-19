@@ -13,13 +13,14 @@
 import { seedChamberCreature } from "./seedChamberCreature.js";
 import {
   DIG_COLLISION_STATE,
-  HAZARD_TYPE,
-  HAZARD_STATE,
+  DIG_OBJECT_DROP_QUEUE_SEED_TABLE,
   DIG_OBJ_SUBTYPE,
   DIG_OBJ_TIMER,
   DIG_OBJ_TIMER_RELOAD,
   DROP_QUEUE,
   HAZARD_ACTIVE_COUNT,
+  HAZARD_STATE,
+  HAZARD_TYPE,
   HAZARD_X,
   HAZARD_Y,
 } from "./names.js";
@@ -39,7 +40,7 @@ export function seedDigObjectBlock(m) {
 
   // Copy the fixed 24-byte column-position table (a 12-entry ramp, duplicated) into the block.
   for (let i = 0; i < 24; i++) {
-    mem8[DROP_QUEUE + i] = mem8[0x2dab + i];
+    mem8[DROP_QUEUE + i] = mem8[DIG_OBJECT_DROP_QUEUE_SEED_TABLE + i];
   }
   mem8[DIG_OBJ_TIMER_RELOAD] = 32; // table-header / count byte
 

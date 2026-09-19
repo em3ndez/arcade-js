@@ -298,7 +298,7 @@ code-path-grounded plus the exhaustive enumeration, not a single rock-on-player 
 overlap case WAS held for ~1476 frames with `0x8080=1` and **zero** life loss).
 
 - **Drop queue & spawns** `loc_29ad`/`loc_2bf2`/`loc_2c04`: a 24-entry pending table `DROP_QUEUE
-  0x80c3` (ROM seed `0x2dab`). When a dig disturbs it, `loc_2c04` picks a **random** non-empty slot
+  0x80c3` (ROM seed `DIG_OBJECT_DROP_QUEUE_SEED_TABLE 0x2dab`). When a dig disturbs it, `loc_2c04` picks a **random** non-empty slot
   (RNG `0x4b1a`, mask `0x1f`, reject ≥24), pairs left/right halves, clears the slot, and **paints tile
   `0x25`** into the mapped cell — a hazard appears and falls (`HAZARD_Y 0x80ac += 1`/frame). Record
   bytes: `HAZARD_STATE 0x80aa`, `HAZARD_TYPE 0x80ab`, lifetime `0x80b1`. `[code]`
@@ -451,8 +451,8 @@ and terrain (`loc_1568`) paths, and **all scoring is displayed ×100** (groundin
   ```
   count 0x800a = 5 + 5·(CRYSTAL_COUNT 0x8081 == 0x04) + 5·(DIAMOND_COUNT 0x8082 == 0x03)  → {5, 10, 15}
   ```
-  The count selects one of **three text messages** (ROM rows `0x4a14/0x4a21/0x4a2e` and
-  `0x4a3b/0x4a48/0x4a55`, keyed by 5/10/15) and then loops `count` times adding `BC=0x0010` (+1000
+  The count selects one of **three text messages** (ROM rows `BONUS_SCREEN_ROW1_TIER{5,10,15}_STRIP` = `0x4a14/0x4a21/0x4a2e` and
+  `BONUS_SCREEN_ROW2_TIER{5,10,15}_STRIP` = `0x4a3b/0x4a48/0x4a55`, keyed by 5/10/15) and then loops `count` times adding `BC=0x0010` (+1000
   displayed) to the score. So the bonus = **count × 1000 = 5000 / 10000 / 15000** — the classic
   no-treasure / all-crystals / full-treasure tiers, NOT a x2/x3 multiplier. **Observed** (Z-4:
   crys=4, diam=3 → `0x800a=0x0f`, score ramped +15000).

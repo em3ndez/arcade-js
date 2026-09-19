@@ -912,6 +912,44 @@ export const SCORE_READOUT_DEST = 0x8283;
  *  seats SP here, discarding the caller's frame. [code] */
 export const STACK_TOP = 0x83ff;
 
+// --- ROM tile/glyph source tables + coinage value words (thepit inline Class-B; [code]) ---
+/** COINAGE_WORD_A1_B2 (0x0201) — Packed little-endian coins-per-credit VALUE word (not an address) written by applyDipSwitches to mem16[COINS_PER_CREDIT_A] (0x804c/0x804d): low byte 0x01 = coin… [code] */
+export const COINAGE_WORD_A1_B2 = 0x0201;
+/** COINAGE_WORD_A2_B3 (0x0302) — Packed little-endian coins-per-credit VALUE word written by applyDipSwitches to mem16[COINS_PER_CREDIT_A]: low byte 0x02 = coin line A cost, high byte 0x03 = co… [code] */
+export const COINAGE_WORD_A2_B3 = 0x0302;
+/** COINAGE_WORD_A2_B4 (0x0402) — Packed little-endian coins-per-credit VALUE word written by applyDipSwitches to mem16[COINS_PER_CREDIT_A]: low byte 0x02 = coin line A cost, high byte 0x04 = co… [code] */
+export const COINAGE_WORD_A2_B4 = 0x0402;
+/** DIG_OBJECT_DROP_QUEUE_SEED_TABLE (0x2dab) — 24-byte ROM parameter table (a 12-entry column/X-position ramp, duplicated) block-copied FORWARD into the dig-object control block's DROP_QUEUE (0x80c3) at roun… [code] */
+export const DIG_OBJECT_DROP_QUEUE_SEED_TABLE = 0x2dab;
+/** SETUP_COINAGE_PLURAL_LABEL_GLYPHS (0x496c) — ROM 7-glyph label-run source (run=7) for the PLURAL (coinage count != 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x49… [code] */
+export const SETUP_COINAGE_PLURAL_LABEL_GLYPHS = 0x496c;
+/** SHARED_PANEL_COL7_LABEL_GLYPHS (0x497b) — Fixed 15-glyph ROM tile-code label strip (span 0x496d..0x497b), walked BACKWARD by copyTileColumn (handed the top byte, src steps -1 while dest steps +32 down t… [code] */
+export const SHARED_PANEL_COL7_LABEL_GLYPHS = 0x497b;
+/** SETUP_COINAGE_SINGULAR_LABEL_GLYPHS (0x49ae) — ROM 9-glyph label-run source (run=9) for the SINGULAR (coinage count == 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x… [code] */
+export const SETUP_COINAGE_SINGULAR_LABEL_GLYPHS = 0x49ae;
+/** SHARED_PANEL_COL13_LABEL_GLYPHS (0x49f7) — Fixed 15-glyph ROM tile-code label strip (span 0x49e9..0x49f7), walked BACKWARD by copyTileColumn. drawSharedPanel's THIRD labelled run, plotted down tile colum… [code] */
+export const SHARED_PANEL_COL13_LABEL_GLYPHS = 0x49f7;
+/** BONUS_SCREEN_ROW1_TIER5_STRIP (0x4a14) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest, fall-through of the 15/10 tests) variant of the FIRST upper text row (col15/row11) of the … [code] */
+export const BONUS_SCREEN_ROW1_TIER5_STRIP = 0x4a14;
+/** BONUS_SCREEN_ROW1_TIER10_STRIP (0x4a21) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [code] */
+export const BONUS_SCREEN_ROW1_TIER10_STRIP = 0x4a21;
+/** BONUS_SCREEN_ROW1_TIER15_STRIP (0x4a2e) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [code] */
+export const BONUS_SCREEN_ROW1_TIER15_STRIP = 0x4a2e;
+/** BONUS_SCREEN_ROW2_TIER5_STRIP (0x4a3b) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest) variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBo… [code] */
+export const BONUS_SCREEN_ROW2_TIER5_STRIP = 0x4a3b;
+/** BONUS_SCREEN_ROW2_TIER10_STRIP (0x4a48) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [code] */
+export const BONUS_SCREEN_ROW2_TIER10_STRIP = 0x4a48;
+/** BONUS_SCREEN_ROW2_TIER15_STRIP (0x4a55) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [code] */
+export const BONUS_SCREEN_ROW2_TIER15_STRIP = 0x4a55;
+/** HISCORE_RANK0_LABEL_STRIP (0x4a68) — ROM 18-tile label-column strip naming the DEFAULT/lowest rank (else-branch, record HIGH_SCORE_TABLE+0) on the high-score initials-entry screen. loc_4df8 loads i… [code] */
+export const HISCORE_RANK0_LABEL_STRIP = 0x4a68;
+/** HISCORE_RANK2_LABEL_STRIP (0x4a7b) — ROM 18-tile label-column strip naming the selector==2 rank (record HIGH_SCORE_TABLE+5) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x4… [code] */
+export const HISCORE_RANK2_LABEL_STRIP = 0x4a7b;
+/** HISCORE_RANK3_LABEL_STRIP (0x4a8e) — ROM 18-tile label-column strip naming the selector==3 rank (record HIGH_SCORE_TABLE+10) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x… [code] */
+export const HISCORE_RANK3_LABEL_STRIP = 0x4a8e;
+/** HIGH_SCORE_INITIALS_PROMPT_GLYPHS (0x4aa9) — Fixed 26-glyph ROM tile-code prompt strip (span 0x4a90..0x4aa9), walked BACKWARD by copyTileColumn. runHighScoreInitialsEntry's fixed prompt line, plotted down … [code] */
+export const HIGH_SCORE_INITIALS_PROMPT_GLYPHS = 0x4aa9;
+
 // --- ROM data-table addresses (thepit Class-B hoist; routine-local consts promoted; [code], stage-B grounding pending) ---
 /** PLAYFIELD_TILE_IMAGE_LEVEL_ODD (0x0762) — ROM 0x400-byte (32x32 = 1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 to lay the round board; paintScreen selects … [code] */
 export const PLAYFIELD_TILE_IMAGE_LEVEL_ODD = 0x0762;

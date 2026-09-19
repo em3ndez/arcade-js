@@ -13,6 +13,9 @@
 
 import {
   ACTIVE_PLAYER,
+  COINAGE_WORD_A1_B2,
+  COINAGE_WORD_A2_B3,
+  COINAGE_WORD_A2_B4,
   COINS_PER_CREDIT_A,
   DSW_PORT,
   LOOP_DELAY_BASE,
@@ -29,9 +32,9 @@ export function applyDipSwitches(m) {
   // Low two bits select coins-per-credit costs, packed low/high; both set = free play (0).
   let coinsPerCreditWord;
   if ((dsw & 0x03) === 0x03) coinsPerCreditWord = 0x0000;
-  else if (dsw & 0x01) coinsPerCreditWord = 0x0302;
-  else if (dsw & 0x02) coinsPerCreditWord = 0x0402;
-  else coinsPerCreditWord = 0x0201;
+  else if (dsw & 0x01) coinsPerCreditWord = COINAGE_WORD_A2_B3;
+  else if (dsw & 0x02) coinsPerCreditWord = COINAGE_WORD_A2_B4;
+  else coinsPerCreditWord = COINAGE_WORD_A1_B2;
   mem16[COINS_PER_CREDIT_A] = coinsPerCreditWord;
 
   mem8[LOOP_DELAY_BASE] = (dsw & 0x04) ? 12 : 10;

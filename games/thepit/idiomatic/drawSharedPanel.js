@@ -18,7 +18,15 @@
  *   3. Stamps the fixed right edge column and the playfield column with its trim.
  * Which specific game screen this skeleton belongs to is not pinned, so the name stays neutral.
  */
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER, BOARD_MODE } from "./names.js";
+import {
+  ACTIVE_PLAYER,
+  BOARD_MODE,
+  PLOT_RUN_LENGTH,
+  SHARED_PANEL_COL13_LABEL_GLYPHS,
+  SHARED_PANEL_COL7_LABEL_GLYPHS,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
@@ -44,7 +52,7 @@ export function drawSharedPanel(m) {
   seatCell(m, 7, 9);
   mem8[FILL_ATTR] = 0xa5;
   mem8[PLOT_RUN_LENGTH] = 15;
-  copyTileColumn(m, 0x497b);
+  copyTileColumn(m, SHARED_PANEL_COL7_LABEL_GLYPHS);
   fillColourColumn(m);
 
   // 2b. Second run at column 9, row 13: one live glyph, then seven cells beneath it, tinted.
@@ -60,7 +68,7 @@ export function drawSharedPanel(m) {
   // 2c. Third labelled run: 15 glyphs at column 13, row 9, then a colour-column accent.
   seatCell(m, 13, 9);
   mem8[PLOT_RUN_LENGTH] = 15;
-  copyTileColumn(m, 0x49f7);
+  copyTileColumn(m, SHARED_PANEL_COL13_LABEL_GLYPHS);
   fillColourColumnAt(m, 13, 0xa3);
 
   // 3. The right side: the fixed right edge column, then the playfield column and its trim.

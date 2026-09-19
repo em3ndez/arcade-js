@@ -23,9 +23,13 @@
 
 import {
   HIGH_SCORE_INITIALS_CELL_RANK3,
+  HIGH_SCORE_INITIALS_PROMPT_GLYPHS,
   HIGH_SCORE_TABLE,
   HISCORE_INITIALS_RANK0_CELL,
+  HISCORE_RANK0_LABEL_STRIP,
   HISCORE_RANK2_INITIALS_TILE,
+  HISCORE_RANK2_LABEL_STRIP,
+  HISCORE_RANK3_LABEL_STRIP,
   INITIALS_REMAINING,
   PLAY_PHASE_COUNTER,
   PLOT_RUN_LENGTH,
@@ -68,9 +72,9 @@ const RESUME_AFTER_FINISH_HOLD = 0x4eda;
 
 /** Label strip naming the rank, by selector: rank 2, rank 1, or (otherwise) rank 0. */
 function rankLabelStrip(selector) {
-  if (selector === 3) return 0x4a8e;
-  if (selector === 2) return 0x4a7b;
-  return 0x4a68;
+  if (selector === 3) return HISCORE_RANK3_LABEL_STRIP;
+  if (selector === 2) return HISCORE_RANK2_LABEL_STRIP;
+  return HISCORE_RANK0_LABEL_STRIP;
 }
 
 /**
@@ -117,7 +121,7 @@ export function* runHighScoreInitialsEntry(m) {
   // The fixed prompt strip (26 tiles) with its colour column.
   seatCell(m, 22, 3);
   mem8[PLOT_RUN_LENGTH] = 26;
-  copyTileColumn(m, 0x4aa9);
+  copyTileColumn(m, HIGH_SCORE_INITIALS_PROMPT_GLYPHS);
   fillColourColumnAt(m, 22, 7);
 
   // Three initials still to enter.

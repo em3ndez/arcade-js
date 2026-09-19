@@ -37,6 +37,8 @@ import {
   SETUP_COINAGE_A_PLURAL_CELL,
   SETUP_COINAGE_B_COUNT_TILE,
   SETUP_COINAGE_B_MARKER_TILE,
+  SETUP_COINAGE_PLURAL_LABEL_GLYPHS,
+  SETUP_COINAGE_SINGULAR_LABEL_GLYPHS,
   TILE_COL,
   TILE_ROW,
 } from "./names.js";
@@ -47,8 +49,8 @@ const HOLD_COUNTER = LOOP_COUNTER; // where the hold count is stored + drained t
 
 // Glyph-run source pointers and lengths for a count field's label. A nonzero count
 // gets the longer "plural" run; a zero count gets the shorter "singular" run.
-const PLURAL_LABEL = { source: 0x496c, run: 7 };
-const SINGULAR_LABEL = { source: 0x49ae, run: 9 };
+const PLURAL_LABEL = { source: SETUP_COINAGE_PLURAL_LABEL_GLYPHS, run: 7 };
+const SINGULAR_LABEL = { source: SETUP_COINAGE_SINGULAR_LABEL_GLYPHS, run: 9 };
 
 /** Stamp one count field: its digit tile, its (col,row) cell, and its label run. */
 function stampCountField(m, cell, count, col) {

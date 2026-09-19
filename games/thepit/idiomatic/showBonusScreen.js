@@ -28,6 +28,12 @@ import { addScore } from "./addScore.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { waitFrames } from "./waitFrames.js";
 import {
+  BONUS_SCREEN_ROW1_TIER10_STRIP,
+  BONUS_SCREEN_ROW1_TIER15_STRIP,
+  BONUS_SCREEN_ROW1_TIER5_STRIP,
+  BONUS_SCREEN_ROW2_TIER10_STRIP,
+  BONUS_SCREEN_ROW2_TIER15_STRIP,
+  BONUS_SCREEN_ROW2_TIER5_STRIP,
   BONUS_SCREEN_ROW3_STRIP,
   CRYSTAL_COUNT,
   DIAMOND_COUNT,
@@ -42,8 +48,8 @@ const CONFIG_B = DIAMOND_COUNT; // second gameplay config byte; == 3 adds a tier
 const TIER_COUNTER = LOOP_COUNTER; // holds the tier count, then drained to 0 by the hold loop
 
 // The two upper text rows each pick a label strip by tier; the third row is fixed.
-const ROW1_STRIP = { hi: 0x4a2e, mid: 0x4a21, lo: 0x4a14 }; // tier 15 / 10 / 5
-const ROW2_STRIP = { hi: 0x4a55, mid: 0x4a48, lo: 0x4a3b };
+const ROW1_STRIP = { hi: BONUS_SCREEN_ROW1_TIER15_STRIP, mid: BONUS_SCREEN_ROW1_TIER10_STRIP, lo: BONUS_SCREEN_ROW1_TIER5_STRIP }; // tier 15 / 10 / 5
+const ROW2_STRIP = { hi: BONUS_SCREEN_ROW2_TIER15_STRIP, mid: BONUS_SCREEN_ROW2_TIER10_STRIP, lo: BONUS_SCREEN_ROW2_TIER5_STRIP };
 
 const HOLD_FRAMES = 15; // video frames each hold pass waits
 const HOLD_SCORE = 16; // packed-BCD amount added each pass (+10 on screen)
