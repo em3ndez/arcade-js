@@ -81,13 +81,14 @@ test("EQUAL: advanceRandom leaves the same work RAM + returned byte as the oracl
     const a = cap.clone(); // oracle
     const b = cap.clone(); // idiomatic
     oracle(a);
-    advanceRandom(b);
+    const bRet = advanceRandom(b);
     const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
+    // The oracle leaves the draw in A (dead ABI); the idiomatic layer RETURNS it — compare the return.
     assert.equal(
-      b.regs.a,
+      bRet,
       a.regs.a,
-      `returned byte differs: oracle=${a.regs.a} idiomatic=${b.regs.a}`,
+      `returned byte differs: oracle=${a.regs.a} idiomatic=${bRet}`,
     );
   }
   console.log(`  EQUAL: ${caps.length} real captured attract states — work RAM + returned byte identical`);
@@ -114,7 +115,7 @@ test("EXHAUSTIVE: over all 65,536 (low,high) states the new state bytes + return
       oracleM.regs.sp = 0x8780;
 
       oracle(oracleM);
-      advanceRandom(idioM);
+      const idioRet = advanceRandom(idioM);
 
       const oLow = oracleM.mem.read8(RNG_LOW);
       const oHigh = oracleM.mem.read8(RNG_HIGH);
@@ -124,10 +125,10 @@ test("EXHAUSTIVE: over all 65,536 (low,high) states the new state bytes + return
             `idiomatic=(${idioM.mem.read8(RNG_LOW)},${idioM.mem.read8(RNG_HIGH)})`,
         );
       }
-      if (idioM.regs.a !== oracleM.regs.a) {
+      if (idioRet !== oracleM.regs.a) {
         assert.fail(
           `state ${hx((high << 8) | low)}: returned byte differs — ` +
-            `oracle=${oracleM.regs.a} idiomatic=${idioM.regs.a}`,
+            `oracle=${oracleM.regs.a} idiomatic=${idioRet}`,
         );
       }
       if (low === 0 && high === 0) sawReseed = true;

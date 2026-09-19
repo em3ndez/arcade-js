@@ -11,7 +11,7 @@
 
 import { PRNG_LOW, PRNG_HIGH } from "./names.js";
 export function advanceRandom(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   const high = mem8[PRNG_HIGH];
   let low = mem8[PRNG_LOW];
@@ -22,16 +22,14 @@ export function advanceRandom(m) {
   // Feedback bit fed into the top of the value: bit 1 XOR bit 2 of the low byte.
   const feedback = ((low >> 1) & 1) ^ ((low >> 2) & 1);
 
-  // Shift the 16-bit value right one place: the feedback bit enters the very top,
-  // the old high byte's lowest bit carries down into the top of the new low byte,
-  // and the value's bottom bit falls off and is dropped.
+  // Shift the 16-bit value right one place: the feedback bit enters the top, the old
+  // high byte's low bit carries into the new low byte's top, the bottom bit drops.
   const newHigh = (feedback << 7) | (high >> 1);
   const newLow = ((high & 1) << 7) | (low >> 1);
 
   mem8[PRNG_HIGH] = newHigh;
   mem8[PRNG_LOW] = newLow;
 
-  // The new low byte is the random draw the caller consumes from the accumulator.
-  regs.a = newLow;
+  // The new low byte is the random draw the caller consumes (the return value).
   return newLow;
 }
