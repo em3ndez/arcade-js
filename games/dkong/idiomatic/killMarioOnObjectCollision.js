@@ -20,11 +20,13 @@ import { dispatchBoardCollision } from "./dispatchBoardCollision.js";
 export function killMarioOnObjectCollision(m) {
   const { regs, mem8 } = m;
 
-  regs.iy = MARIO_ACTIVE; // base of Mario's context block (handler reads MARIO_X from it)
+  // iy/c are register arguments the frozen collision handler reads directly.
+  regs.iy = MARIO_ACTIVE;
   regs.c = mem8[MARIO_Y];
   dispatchBoardCollision(m, MARIO_HITBOX);
 
-  if (regs.a === 0) return;
+  const collided = regs.a; // the handler's collision result
+  if (collided === 0) return;
 
-  mem8[MARIO_ACTIVE] = regs.a - 1;
+  mem8[MARIO_ACTIVE] = collided - 1;
 }

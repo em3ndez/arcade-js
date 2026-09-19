@@ -9,7 +9,7 @@
  * to signal the two-frame unwind that aborts the collision walk.
  *
  * LIVE-OUT: memory (Mario's Y snapped on a landing; Mario's X and the sprite-record X on an
- * X-snap), the result code, and the caller-skip boolean.
+ * X-snap), the probe's result code (left on the register file by the probe), and the skip boolean.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -18,18 +18,19 @@ import { loc_2b7a } from "./loc_2b7a.js";
 import { MARIO_X, MARIO_Y } from "./names.js";
 
 export function loc_2b53(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // First probe: high = X-3, low = Y+7.
-  regs.hl = (u8(mem8[MARIO_X] - 3) << 8) | u8(mem8[MARIO_Y] + 7);
-  if (probeTileForLanding(m) === false) return false;
+  const first = (u8(mem8[MARIO_X] - 3) << 8) | u8(mem8[MARIO_Y] + 7);
+  if (probeTileForLanding(m, first) === false) return false;
 
-  if (regs.a === 2) return loc_2b7a(m);
+  if (m.regs.a === 2) return loc_2b7a(m);
 
-  // Second probe: the classifier left the first point in DE (high X-3, low Y+7); this high byte is +7.
-  regs.hl = (u8(regs.d + 7) << 8) | u8(regs.e);
-  if (probeTileForLanding(m) === false) return false;
+  // Second probe: a reject leaves the first point intact — high X-3, low Y+7 — so its bytes are
+  // exactly `first`'s; the new high byte is +7 (X+4).
+  const second = (u8(((first >> 8) & 0xff) + 7) << 8) | u8(first & 0xff);
+  if (probeTileForLanding(m, second) === false) return false;
 
-  if (regs.a === 0) return true;
+  if (m.regs.a === 0) return true;
   return loc_2b7a(m);
 }

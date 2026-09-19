@@ -35,7 +35,5 @@ export function loc_2602(m) {
 
   // Every 32nd frame: advance the mirrored sprite-animation counter pair.
   if ((mem8[FRAME] & 0x1f) !== 0x01) return;
-  regs.de = M50_OBJ1_STEP_DIR;
-  regs.hl = 0x69e4;
-  loc_26a6(m);
+  loc_26a6(m, 0x69e4, 0xe4, M50_OBJ1_STEP_DIR);
 }

@@ -22,7 +22,7 @@ import {
 
 // Multiplexed engine-scratch gate: clear = start immediately; set = run the grading below.
 
-export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix) {
+export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix, key = m.regs.a) {
   const { regs, mem8 } = m;
   const rec = (off) => (ix + off) & 0xffff; // a field of the object record the caller pointed at
 
@@ -32,7 +32,7 @@ export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix) {
   if (regs.a !== 1) return;
 
   const slotByte = regs.b; // the paired slot byte the lookup handed back
-  const key = regs.e;      // the search key, echoed back
+  // key: the search key (entry accumulator), which the lookup echoes back unchanged.
 
   // Stamp the descent target on every tag-1 hit, before the grading gates.
   mem8[rec(0x17)] = u8(slotByte - 5);

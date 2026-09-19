@@ -10,15 +10,15 @@ import { enqueueTask } from "./enqueueTask.js";
 import { stampScorePopupSprite } from "./stampScorePopupSprite.js";
 import { EFFECT_PARAM_PTR } from "./names.js";
 
-export function stageAwardPopupAtHitObject(m) {
-  const { regs, mem8, mem16 } = m;
+export function stageAwardPopupAtHitObject(m, b = m.regs.b) {
+  const { mem8, mem16 } = m;
 
   enqueueTask(m);
 
   const block = mem16[EFFECT_PARAM_PTR];
 
-  regs.a = mem8[block];
+  const a = mem8[block];
   mem8[block] = 0x00;
 
-  stampScorePopupSprite(m, m.regs.a, m.regs.b, mem8[(block & 0xff00) | ((block + 3) & 0xff)]);
+  stampScorePopupSprite(m, a, b, mem8[(block & 0xff00) | ((block + 3) & 0xff)]);
 }

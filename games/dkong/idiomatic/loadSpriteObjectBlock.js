@@ -13,7 +13,7 @@ import { SPRITE_OBJ_BLOCK } from "./names.js";
 const OBJ_BLOCK_BYTES = 0x28; // 10 sprite records x 4 bytes
 
 export function loadSpriteObjectBlock(m, hl = m.regs.hl) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   let src = hl;
   let dst = SPRITE_OBJ_BLOCK;
@@ -23,7 +23,6 @@ export function loadSpriteObjectBlock(m, hl = m.regs.hl) {
     dst = (dst + 1) & 0xffff;
   }
 
-  regs.hl = src;
-  regs.de = dst;
-  regs.bc = 0;
+  // Block-move terminal live-outs, read back by register-dispatched frozen callers.
+  return (m.regs.hl = src, m.regs.de = dst, m.regs.bc = 0);
 }

@@ -31,16 +31,13 @@ const TITLE_STRING_B = 0x1c;
 const COINAGE_DIGIT_CELL = 0x756c;
 
 export function composeAttractTitleScreen(m) {
-  const { regs, mem, mem8, mem16 } = m;
+  const { mem, mem8, mem16 } = m;
 
   mem.write8(PALETTE_BANK_BIT0, 0x00);
   mem.write8(PALETTE_BANK_BIT1, 0x00);
 
-  regs.d = DRAW_STRING;
-  regs.e = TITLE_STRING_A;
-  enqueueTask(m);
-  regs.e = TITLE_STRING_B;
-  enqueueTask(m);
+  enqueueTask(m, DRAW_STRING, TITLE_STRING_A);
+  enqueueTask(m, DRAW_STRING, TITLE_STRING_B);
   enqueueTaskBatch(m);
 
   mem8[SUBSTATE_TIMER] = 0x02;
@@ -51,8 +48,8 @@ export function composeAttractTitleScreen(m) {
   if (mem8[TWO_PLAYER_GAME] === 0x01) draw2UpLabel(m);
 
   // Pass 1 stamps the coinage digits; its tail leaves the inputs pass 2 consumes for the "1 2".
-  regs.de = mem16[DIP_COINS_FOR_1P];
-  regs.hl = COINAGE_DIGIT_CELL;
-  writeDigitPairWithCarry(m);
+  // The pair is little-endian: low byte is the left/ones value, high byte the right value.
+  const coinage = mem16[DIP_COINS_FOR_1P];
+  writeDigitPairWithCarry(m, coinage & 0xff, (coinage >> 8) & 0xff, COINAGE_DIGIT_CELL);
   writeDigitPairWithCarry(m);
 }

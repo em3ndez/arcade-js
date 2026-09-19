@@ -16,10 +16,7 @@ import { OBJ_X } from "./names.js";
 const GIRDER_SNAP_STEP = 1; // girder-snap step selector: snap on the offset-0 edge
 const TAIL_SELECT_BITS = 0;
 
-export function stepBarrelRight(
-  m,
-  record = m.regs.ix /* default: the motion dispatch leaves the record base here */,
-) {
+export function stepBarrelRight(m, record = m.regs.ix) {
   const { regs, mem8 } = m;
 
   regs.exx(); // into the shadow set — see the contract above; the tail does not swap back

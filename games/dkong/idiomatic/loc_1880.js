@@ -46,9 +46,7 @@ const SND_ASSERT_FRAMES = 0x03; // held asserted for three frames, then counted 
 export function loc_1880(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = Y_COLUMN;
-  regs.c = DESCEND_STEP;
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, Y_COLUMN, DESCEND_STEP);
 
   if (mem8[GATE_Y] !== LANDED_Y) return;
 
@@ -62,8 +60,7 @@ export function loc_1880(m) {
   regs.hl = INTERLUDE_TILE_BLOCK_TOPLEFT; // the fill start, read live-in by the fill
   loc_1826(m);
 
-  regs.de = INTERLUDE_LAYOUT_SEGMENT_TABLE; // the table base, read live-in by the draw
-  drawBoardLayout(m);
+  drawBoardLayout(m, undefined, INTERLUDE_LAYOUT_SEGMENT_TABLE); // the table base, read live-in by the draw
 
   addStrided(m, SPRITE_BUF_Y_SHIFT, SPRITE_BUF_STRIDE, SPRITE_BUF_COUNT, SPRITE_BUF_Y);
 

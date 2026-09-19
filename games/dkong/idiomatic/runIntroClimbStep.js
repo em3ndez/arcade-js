@@ -10,7 +10,7 @@
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
-import { loc_0038 } from "../translated/loc_0038.js";
+import { addStrided } from "./addStrided.js";
 import {
   INTRO_SCROLL_INDEX,
   INTRO_STEP,
@@ -22,19 +22,15 @@ import {
 
 
 export function runIntroClimbStep(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (!tickSubstateTimer(m)) return;
 
   loadSpriteObjectBlock(m, SPRITE_OBJECT_BLOCK_TEMPLATE);
 
   // Two strided add-passes (stride 4, ten records): field 0 takes one constant, field 3 another.
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = 0x30;
-  loc_0038(m);
-  regs.hl = SPRITE_OBJ_BLOCK + 3;
-  regs.c = 0x99;
-  loc_0038(m);
+  addStrided(m, 0x30, 0x04, 0x0a, SPRITE_OBJ_BLOCK);
+  addStrided(m, 0x99, 0x04, 0x0a, SPRITE_OBJ_BLOCK + 3);
 
   // These seeds run AFTER the add-passes: record 1's first field overwrites what pass 1 wrote.
   mem8[INTRO_SCROLL_INDEX] = 0x1f;
