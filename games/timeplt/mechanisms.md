@@ -1732,6 +1732,45 @@ similar the memory it leaves behind — and the same goes for prose that describ
 running five. What was watched is entry, not product: the callees test the same flag themselves, so
 the net effect on memory may well be identical, and nothing here claims otherwise.
 
+### The warp/flash frame, and the garbage path that reads its own stack
+
+The Mother-Ship's departure is an animation the state byte drives, and one frame of it is
+`stepMotherShipWarpFlashFrame` (`0x459B`). It is not entered from the top of a clean instruction — the
+disassembler landed inside a preceding one, so the routine opens on a **misaligned prologue**: two
+`POP AF` and a `DEC SP` that in real play are the tail bytes of the instructions before it. Those
+pops eat two stack words to no memory effect and leave `sp` odd; the decompile carries them because
+the second `POP AF` reloads both `A` and `F`, and the `ADC A,B` that follows folds the result into a
+rare conditional life-loss — `loseLifeAndHandOver` fires when `(word>>8) + b + (word&1)` overflows a
+byte. That is the **GARBAGE PATH**: the equivalence gate forces the carry synthetically and proves
+the branch reproduces the frozen oracle byte-for-byte, but flags it a HOLE, because no captured
+drift-site state ever puts the stack in the configuration that trips it. In real play the ship never
+loses a life here. `[seen]` for the equivalence; the branch's real-play unreachability is a stated hole,
+not a claim it never runs.
+
+Past the prologue the frame does real work. It drifts the object with the world by
+`driftWithWorldScroll`, seeds the sprite's heading and animation from tables gated on the entry's
+angle and Y (out of range, it flattens the sprite to `0xFF`), and then reads the record's state byte
+and branches on it. **The state byte doubles as the animation clock**, counting down from the trigger
+value `0xB4`. On the trigger frame itself (`0xB4`) it arms the flash — writing the warp sprite codes
+into the entry, seeding the second slot — requests the warp sound through `requestMotherShipWarpSound`
+when `PLAYER_STATE` reads `0xFF`, posts the warp-sound ring command (`0x040D`) and returns. On frames
+*above* the trigger it picks this frame's shape: it takes the offset above `0xB4`, rotates it right
+three times (`RRCA`×3), decrements and masks to three bits, and indexes the eight-entry
+`MOTHER_SHIP_WARP_SHAPE_TABLE` (`0x461B`) — an eight-shape flash cycle stepped as the counter
+descends — writing the shape and shape+1 into the entry's two tile-code bytes. `[seen]`
+
+Then it decrements the state byte once more. When that reaches zero the sequence is **spent**: it
+writes `0xFF` into `ROUND_TRANSITION_HOLD`, resets the state byte to idle, and consults the
+anti-tamper witness `TAMPER_GLYPH_COPY` (`0xAB43`) — if it holds `0x7C` and the next byte is `0x10`
+or `0x05` the frame returns, otherwise it loops back and runs another frame (in the ROM this loop is
+the mutual recursion between this routine and its caller `loc_43f0_4646`, which tail-calls straight
+back in; the rewrite collapses it to a `for(;;)` with a `continue`, and `b` is the one value that has
+to survive the loop). A non-spent counter that has reached `0x5A` flattens the sprite to `0xFF` and
+returns; any other value simply returns with the counter one lower. Its whole product is memory —
+every register it touches is dead-after-return scratch, and the caller reads none of it. `[seen]`, the
+states walked both from real drift-site captures at `0x2B60` and from crafts driving the counter
+through every branch. `[code]` for the exact field semantics of the second-slot writes.
+
 ---
 
 ## §7 Score, and the ladder that ends
@@ -2068,6 +2107,44 @@ ROM's own ring protocol. A value of 37 produced 904 entries and 1808 writes, one
 two cells. A value of 7 produced the SAME 904 entries but only 904 writes, and the surviving digit
 landed at the cell the TENS digit had occupied, not the units cell. The control, with the poke off,
 produced no entries and no writes. A blanking drawer would have written twice in both runs.
+
+### Five labelled numeric readouts, each a column of label, digits and suffix
+
+The three drawers above lay a field; one routine composes a whole readout out of them.
+`paintLabelledNumericReadoutColumn` paints a single labelled numeric field as one column climbing the
+tile plane: a **three-tile pictogram** label, a **six-digit** number under it, and a **three-tile
+suffix**, each cell paired with a pen in the colour plane. The label is chosen indirectly — the
+source record's lead byte, multiplied by the stride of three, indexes `READOUT_PICTOGRAM_TABLE`
+(`0x4CB4`), a ROM run of three-tile pictogram records, and the three consecutive bytes of the
+selected record become the three label tiles. Between the label and the field the painter drops the
+cursor back a pictogram's height (`0x80`), hands `paintSixDigitFieldSuppressingLeadingZeros` the
+cursor, the pen and a source pointer stepped three bytes past the lead byte, and lets that drawer lay
+the number with the leading-zero suppression §8 describes. It then steps the cursor back again
+(`0x60`) and stamps three more tiles for the suffix, reading forward from where the field left the
+source pointer. The source is walked strictly forward — lead byte, then digit bytes, then suffix
+bytes — and the cursor is stepped a cell at a time by `advanceCharCursor`, the same character-plane
+step the drawers use. `[seen]`
+
+The colour plane is reached by arithmetic, not a second cursor: every tile store is immediately
+followed by a store of the pen to the *same* address with bit 2 of its high byte cleared (`0x0400`),
+so the tile cell at `0xA7xx` and its colour cell `0x0400` below it are written as a pair, and the pen
+the caller passed colours the whole column. The register state the body leaves behind — the cursor,
+the source pointer, the scratch bytes — is dead after return: the sole caller re-seats everything
+before the next column, so the routine's product is memory alone, and the equivalence gate pins no
+register beside RAM. `[seen]`
+
+The caller is `paintFiveLabelledNumericReadouts`, which seats a source record, a destination cell and
+a pen colour for each of five readouts and hands them to the column painter in turn — the high-score
+block, whose five source records are `HIGH_SCORE_TABLE_BASE` and `HIGH_SCORE_REC1_BASE`..`REC4_BASE`,
+laid into five adjacent tile-plane columns (`0xA711`, `0xA713`, … stepping by two) each in its own
+pen. `[code]` The equivalence corpus for the column painter is CRAFTED rather than captured — the
+coin-start tape never dispatches this address (the readout block is painted on the high-score screen,
+not during a credited game, and a live positive control at `0x0D73` proves the zero is a real
+absence, not a dead instrument) — so the gate crosses destinations, pens and source records against
+the frozen oracle on independent clones, masked over the oracle's own stack scratch. Its teeth bite
+the pictogram stride, the colour-plane pairing, the suffix and the cursor step; the stride tooth is
+blind only on the zero record, where index-zero times either stride is zero and the wrong stride
+reads the same pictogram. `[seen]`
 
 ### ★ A range boundary is not a routine, and a filename cannot tell you which it is
 
