@@ -29,7 +29,6 @@ const GAMEOVER_HOLD_FRAMES = 20; // video frames the game-over display is held b
 // These callees model their return through the work stack; each non-tail call is handed its resume address.
 const RESUME_AFTER_ENTRY_1 = 0x0398;
 const RESUME_AFTER_ENTRY_2 = 0x03ac;
-const RESUME_AFTER_SETUP = 0x03bb;
 
 /** Offer the currently-selected player's score to the high-score table; if it placed, run the
  *  initials-entry screen (a generator, since it holds over many vblanks) for the rank it landed at. */
@@ -69,12 +68,10 @@ export function* submitHighScoresAndReset(m) {
     }
   }
 
-  // Reset for what comes next: clear the player-count byte, re-arm the secondary state,
-  // re-read the DIP switches, and paint the round-setup screen.
+  // Reset for what comes next: clear player-count, re-arm secondary state, re-read DIPs, paint setup.
   mem8[GAME_STATE] = 0;
   mem8[ACTIVE_PLAYER] = 1;
   applyDipSwitches(m);
-  m.push16(RESUME_AFTER_SETUP);
   yield* showSetupScreen(m);
 
   // Tail hand-off to the reset/entry handler (re-seats the stack, runs the never-returning loop to attract).

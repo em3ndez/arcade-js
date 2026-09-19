@@ -75,8 +75,6 @@ export function* showSetupScreen(m) {
   blankScreen(m);
 
   drawLeftEdgeColumn(m); // draw the left furniture column
-
-  m.push16(0x3a78);
   redrawScoreHud(m); // repaint the score HUD (returns through the stack)
 
   // Colour a column: column 1 in colour 2.
@@ -138,5 +136,5 @@ export function* showSetupScreen(m) {
     mem8[HOLD_COUNTER] = remaining;
   } while (remaining !== 0);
 
-  return m.ret();
+  return;
 }

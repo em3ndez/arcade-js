@@ -22,9 +22,6 @@ export function* resetStateAndShowSetup(m) {
   mem8[ACTIVE_PLAYER] = 1;
 
   applyDipSwitches(m);
-
-  // showSetupScreen returns through the stack, so hand it the return slot before delegating in.
-  m.push16(0x03bb);
   yield* showSetupScreen(m);
 
   // Hand off to the reset/entry handler and never return; it branches on credits into the demo or

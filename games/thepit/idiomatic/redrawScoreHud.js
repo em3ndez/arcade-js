@@ -69,7 +69,4 @@ export function redrawScoreHud(m) {
     mem8[cell] = HUD_COLOUR;
     cell -= ROW;
   }
-
-  // Return to the caller through the balanced stack.
-  m.ret();
 }
