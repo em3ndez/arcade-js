@@ -27,20 +27,15 @@ function copyBlock(mem8, src, dst, n) {
 export function seed50mBoardObjects(m) {
   const { regs, mem8 } = m;
 
-  regs.de = OBJ_ARRAY_64 + 0x07; // field +7 of the first of 5 stride-0x20 records
-  regs.bc = 0x051c; // 5 records; stride byte 0x1c (record stride = this + 4)
-  replicateGroupStrided(m, 0x3dec);
+  // dest OBJ_ARRAY_64+7; 5 records, stride 0x1c
+  replicateGroupStrided(m, 0x3dec, 0x1c, OBJ_ARRAY_64, 0x05, 0x07);
 
   seedObjectBlockSprites(m);
 
-  regs.de = OBJ_ARRAY_65A0 + 0x07; // field +7 of the first of 6 stride-0x10 records
-  regs.bc = 0x060c; // 6 records; stride byte 0x0c (record stride = this + 4)
-  replicateGroupStrided(m, 0x3e18);
+  // dest OBJ_ARRAY_65A0+7 — the +7 splits across a page boundary; 6 records, stride 0x0c
+  replicateGroupStrided(m, 0x3e18, 0x0c, OBJ_ARRAY_65A0 & 0xff00, 0x06, (OBJ_ARRAY_65A0 + 0x07) & 0xff);
 
-  regs.ix = OBJ_ARRAY_65A0;
-  regs.hl = OBJ_65A0_SPRITES;
-  regs.b = 0x06;
-  gatherSpriteRecords(m, 0x0010);
+  gatherSpriteRecords(m, 0x0010, 0x06, OBJ_65A0_SPRITES & 0xff00, OBJ_65A0_SPRITES & 0xff, OBJ_ARRAY_65A0);
 
   loc_11fa(m, 0x3dfa);
 
@@ -48,7 +43,7 @@ export function seed50mBoardObjects(m) {
   copyBlock(mem8, 0x3e1c, 0x6944, 0x0008);
   copyBlock(mem8, 0x3e24, 0x69e4, 0x0018);
 
-  regs.hl = 0x3e10;
+  regs.hl = 0x3e10; // seedSpriteObjectPair reads its position-table pointer from hl
   seedSpriteObjectPair(m);
 
   copyBlock(mem8, 0x3e3c, OBJECT_COLLISION_SPRITES, 0x000c); // 3 collision records (stride 4)

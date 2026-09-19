@@ -22,23 +22,19 @@ export function seed25mBoardObjects(m) {
 
   blockCopy(mem8, 0x3ddc, 0x69a8, 0x10);
 
-  regs.de = 0x6407; // destination base
-  regs.bc = 0x051c; // B = 5 records, C = the stride gap (record size 0x20)
-  replicateGroupStrided(m, 0x3dec); // source group
+  // first group: 5 records, stride 0x1c
+  replicateGroupStrided(m, 0x3dec, 0x1c, 0x6400, 0x05, 0x07);
 
   loc_11fa(m, 0x3df4);
 
   blockCopy(mem8, 0x3e00, 0x69fc, 0x04);
 
-  regs.hl = 0x3e0c;
+  regs.hl = 0x3e0c; // seedSpriteObjectPair reads its position-table pointer from hl
   seedSpriteObjectPair(m);
 
-  regs.hl = 0x101b; // source group
-  regs.de = 0x6707; // destination base
-  regs.bc = 0x081c; // B = 8 records, C = the stride gap
-  replicateGroupStrided(m);
+  // second group: 8 records, stride 0x1c
+  replicateGroupStrided(m, 0x101b, 0x1c, 0x6700, 0x08, 0x07);
 
-  regs.de = 0x6807; // destination base
-  regs.b = 0x02; // 2 records; source and stride unchanged from step 6
-  replicateGroupStrided(m);
+  // same src/stride, next dest page; 2 records
+  replicateGroupStrided(m, 0x101b, 0x1c, 0x6800, 0x02, 0x07);
 }

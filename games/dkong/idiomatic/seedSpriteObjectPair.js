@@ -12,27 +12,22 @@ import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
 import { OBJ_PAIR_6680, OBJ_ACTIVE, OBJ_X, OBJ_SPRITE_CODE } from "./names.js";
 
-export function seedSpriteObjectPair(m) {
-  const { regs, mem8 } = m;
+export function seedSpriteObjectPair(m, src = m.regs.hl) {
+  const { mem8 } = m;
 
-  // Step 1 — scatter the caller's position table (its pointer is the live-in) into both records' X/Y.
-  regs.de = OBJ_PAIR_6680 + OBJ_X;
-  regs.bc = 0x020e;
-  copyBytePairsStrided(m);
+  // Step 1 — scatter the caller's position table (its pointer, src, is the live-in) into both records' X/Y.
+  copyBytePairsStrided(m, src, OBJ_PAIR_6680 + OBJ_X, 0x0e, 0x02);
 
   // Step 2 — stamp the shared appearance template into both records' code/attribute fields.
-  regs.hl = 0x3e08;
-  regs.de = OBJ_PAIR_6680 + OBJ_SPRITE_CODE;
-  regs.bc = 0x020c;
-  replicateGroupStrided(m);
+  const codeDest = OBJ_PAIR_6680 + OBJ_SPRITE_CODE;
+  replicateGroupStrided(m, 0x3e08, 0x0c, codeDest & 0xff00, 0x02, codeDest & 0xff);
 
   // Step 3 — mark both records active.
-  regs.ix = OBJ_PAIR_6680;
-  mem8[(regs.ix + OBJ_ACTIVE) & 0xffff] = 0x01;
-  mem8[(regs.ix + 0x10 + OBJ_ACTIVE) & 0xffff] = 0x01;
+  const objBase = OBJ_PAIR_6680;
+  mem8[(objBase + OBJ_ACTIVE) & 0xffff] = 0x01;
+  mem8[(objBase + 0x10 + OBJ_ACTIVE) & 0xffff] = 0x01;
 
   // Step 4 — gather each record into a consecutive 4-byte hardware sprite record.
-  regs.hl = 0x6a18;
-  regs.b = 0x02;
-  gatherSpriteRecords(m, 0x0010);
+  const spriteRecords = 0x6a18;
+  gatherSpriteRecords(m, 0x0010, 0x02, spriteRecords & 0xff00, spriteRecords & 0xff, objBase);
 }

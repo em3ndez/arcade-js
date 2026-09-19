@@ -13,36 +13,33 @@ import { loc_2ff0 } from "../translated/loc_2ff0.js";
 import { loc_0dd3 } from "./loc_0dd3.js";
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js";
 
-export function drawBoardLayout(m, sp = m.regs.sp) {
+export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
   const { regs, mem8, mem16 } = m;
 
-  // The conversion leaf and the per-segment step each pop the guest stack with no matching push
-  // on this path; the hardware balances to no net movement per record, so sp is pinned back to
-  // this base each iteration. A stack seam, not logic, and not a live-out.
+  // The conversion leaf and the per-segment step each pop the guest stack
+  // with no matching push on this path; the hardware balances to no net movement per record, so
+  // sp is pinned back to this base each iteration. A stack seam, not logic, and not a live-out.
   const spBase = sp;
 
   for (;;) {
     regs.sp = spBase;
 
-    const kind = mem8[regs.de];
+    const kind = mem8[de];
     mem8[SEG_KIND] = kind;
     if (kind === 0xaa) return;
 
-    // First point: y then x, each held in two registers — one pair for the conversion, one the
-    // per-segment step reads afterwards.
-    regs.de = (regs.de + 1) & 0xffff;
-    const y = mem8[regs.de];
+    // First point: y then x. The address-conversion leaf reads them from H and L, so hand them
+    // over there; the local pointer keeps walking the table independently.
+    de = (de + 1) & 0xffff;
+    const y = mem8[de];
     regs.h = y;
-    regs.b = y;
-    regs.de = (regs.de + 1) & 0xffff;
-    const x = mem8[regs.de];
+    de = (de + 1) & 0xffff;
+    const x = mem8[de];
     regs.l = x;
-    regs.c = x;
 
-    // Convert the first point to a tile address; the conversion clobbers the table pointer.
-    const savedDe = regs.de;
+    // Convert the first point to a tile address. The callee clobbers the register file (including
+    // DE) but not our local pointer, so no save/restore is needed around it.
     loc_2ff0(m);
-    regs.de = savedDe;
     mem16[SEG_ADDR1] = regs.hl;
 
     // Sub-tile remainders: the conversion dropped the low three bits of each coordinate.
@@ -50,10 +47,16 @@ export function drawBoardLayout(m, sp = m.regs.sp) {
     mem8[SEG_SUBTILE1] = x & 0x07;
 
     // Second point's y, and the segment height — the ABSOLUTE difference of the two y values.
-    regs.de = (regs.de + 1) & 0xffff;
-    const y2 = mem8[regs.de];
+    // The step callee converts the second point itself, reading its y from H (kept here) and the first
+    // x from C (its c-param default); it also walks DE on to the next record, so bridge the
+    // pointer through the register and read it back afterwards.
+    de = (de + 1) & 0xffff;
+    const y2 = mem8[de];
     regs.h = y2;
+    regs.c = x;
 
+    regs.de = de;
     loc_0dd3(m, Math.abs(y2 - y) & 0xff);
+    de = regs.de;
   }
 }

@@ -24,11 +24,10 @@ function blockCopy(mem8, dst, src, count) {
 }
 
 export function seed75mBoardObjects(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.de = OBJ_ARRAY_64 + 0x07; // dest: +7 of the first fire record
-  regs.bc = 0x051c; // 5 records, record stride 0x20
-  replicateGroupStrided(m, 0x3dec);
+  const de1 = OBJ_ARRAY_64 + 0x07; // dest: +7 of the first fire record
+  replicateGroupStrided(m, 0x3dec, 0x1c, de1 & 0xff00, 0x05, de1 & 0xff); // 5 records, record stride 0x20
 
   seedObjectBlockSprites(m);
 
@@ -36,18 +35,14 @@ export function seed75mBoardObjects(m) {
 
   for (let i = 0; i < 3; i++) mem8[(OBJ_ARRAY_66 + OBJ_STATE + i * 0x10) & 0xffff] = 0x08;
 
-  regs.de = OBJ_ARRAY_66 + 0x03; // dest base — each pair lands at +0 and +2 from here
-  regs.bc = 0x060e; // 6 pairs, record stride 0x10
-  copyBytePairsStrided(m, 0x3e64);
+  const de2 = OBJ_ARRAY_66 + 0x03; // dest base — each pair lands at +0 and +2 from here
+  copyBytePairsStrided(m, 0x3e64, de2, 0x0e, 0x06); // 6 pairs, record stride 0x10
 
-  regs.de = OBJ_ARRAY_66 + 0x07;
-  regs.bc = 0x060c; // 6 records, record stride 0x10
-  replicateGroupStrided(m, 0x3e60);
+  const de3 = OBJ_ARRAY_66 + 0x07;
+  replicateGroupStrided(m, 0x3e60, 0x0c, de3 & 0xff00, 0x06, de3 & 0xff); // 6 records, record stride 0x10
 
-  regs.ix = OBJ_ARRAY_66; // object-record base
-  regs.hl = 0x6958; // dest — an unnamed slot in the sprite buffer
-  regs.b = 0x06; // record count
-  gatherSpriteRecords(m, 0x0010);
+  const hl4 = 0x6958; // dest — an unnamed slot in the sprite buffer
+  gatherSpriteRecords(m, 0x0010, 0x06, hl4 & 0xff00, hl4 & 0xff, OBJ_ARRAY_66); // 6 records off the object-record base
 
   blockCopy(mem8, OBJECT_COLLISION_SPRITES, 0x3e48, 0x0c);
 
