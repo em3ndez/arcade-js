@@ -1862,6 +1862,54 @@ nor forces a busy first slot, so those arms fall to crafted twins, which catch a
 pointer store, a wrong entry const, a flipped era-table select, and a skipped head decrement each on an
 exact count. `[seen]`
 
+### The staged attacker is commissioned four ways, one per era
+
+The two spawns above each seat a craft in one fixed shape; a third launcher hands the claimed slot a
+**different fit-out per era**. `commissionStagedAttackerByEra` (`0x42B7`) is the routine the free-slot
+finder `launchAttackerIntoFreeSlot` (`0x4243`) tails into once that finder has walked the era bank at
+`ERA_OBJECT_RECORD_SLOT0` for a vacant head byte and parked the claimed slot's record and paired-entry
+pointers in `SCRATCH_PTR_A` (`0xA991`) and `SCRATCH_PTR_B` (`0xA993`). Eras one through four are reached
+**directly**, carrying the spawner's own current heading `ix+0x02` as the facing in `c`; era zero arrives
+one hop later through the aim-window gate `setTheLaunchFacingInsideOneAimWindow`, which admits the launch
+only when the launcher's entry lies inside a window of half-width `ATTACKER_SPAWN_AIM_WINDOW_HALF`
+(`0xA8E6`) centred on line `0x84`, and hands over an **alignment-and-side** facing — the launcher's side
+of line `0x78`, a bare `0`/`1` — in place of a heading. Either way the commissioner reads the two staged
+pointers straight back and seats the new slot's identity: the spawner's Y and X fractions into the new
+record's `+0x03`/`+0x05`, the spawner's two entry coordinate bytes into the new entry's `+0x00`/`+0x31`,
+and the caller's facing into the record's turn-toward cell `+0x01`. `[seen]`
+
+`ERA_INDEX` (`0xAD04`) then picks one of four bodies, and each finishes through a shared tail that
+**winds the new slot's occupancy count at `+0x00` down, re-arms `ATTACKER_SPAWN_COOLDOWN` (`0xA8F4`) from
+`ATTACKER_SPAWN_COOLDOWN_PERIOD` (`0xA8F6`), and jumps into one era-specific sound request**. Era zero is
+an **unaimed drift**: it writes the mirror flag `0x4f` into the entry's `+0x01`, folds the facing's low
+bit through an `rrca`/`sra` into the entry attribute at `+0x30` — palette `0x0b` for a zero facing,
+`0xcb` for a one, differing only in a flip bit — stamps the slow-fall marker `0x00`/`0xff` into the
+record's `+0x07`/`+0x08`, and tails into `requestAttackerSpawnSoundEra0`. Eras one and two **aim**:
+`headingToward` points the object at the standoff aim `ENEMY_STANDOFF_AIM_MAIN` (`0xAC7F`), the result
+lands as the turn-toward heading at `+0x01`, and the current heading at `+0x02` is that value skewed a
+**half-turn** either way, selected by bit zero of the record's stored byte at `+0x0f`; the sprite is
+dressed through `dressSpriteShapeAndAttributeForHeadingSector`, `+0x0e` is cleared, and the tail is
+`requestTwoSoundsWhilePlaying`. Era three is a **velocity vector**: it offsets `+0x02` a fixed `0x1a`
+toward whichever half of the circle the facing lies in, hands that heading to the doubled-component shim
+`loc_598e`, stores its four returned bytes across `+0x0a`..`+0x0d`, restores `+0x02` to the plain facing,
+dresses the sprite, sets `+0x0e` to `0x20`, and also tails into `requestTwoSoundsWhilePlaying`. Era four
+is a **straight aim** at the same standoff point — `+0x01` and `+0x02` both take the aimed heading — with
+one extra byte seeded, `ATTACKER_SPAWN_AIM_WINDOW_HALF` copied into the record's `+0x04`, tailing into
+`requestAttackerSpawnSoundLateEra`. `[seen]`
+
+Throughout, the spawner's own pointers are the routine's **live-out**: the staged record and entry ride
+in JS locals and are passed to each callee by argument, so `ix` and `iy` are never moved and stand at the
+spawner on return — the finder that steps the object bank reads them back as its own carry. The
+equivalence gate `equivalence-42b7.test.js` holds the rewrite to the frozen oracle on the frogger memory
+standard: all six of its ROM calls are dissolved to direct imports so the rewrite pushes no return
+address, the oracle's stack scratch is masked above all game data and its unbalanced tail `ret` shows as
+a two-byte `spDiff`, RAM below the mask is the whole contract cell for cell, and `ix`/`iy` are the only
+registers pinned — a scratch-register scribble is deliberately let through while a scribbled RAM cell and
+a moved index register are both caught. The coin-start tape dispatches the launcher through the finder
+with **era zero only**, the positive control; crafted-era machines drive the other three bodies, and
+twins that no-op, skip the occupancy decrement, skip the cooldown re-arm, corrupt the seated facing, or
+miss the era-zero marker are each caught on an exact count. `[seen]`
+
 ### Clearing a whole wave arms a one-shot claim
 
 Beyond the round-long 56 quota, each spawned wave carries its own short-lived tally. When a wave is
