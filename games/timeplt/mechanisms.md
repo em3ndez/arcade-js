@@ -2051,6 +2051,61 @@ not a small alphabet of free / alive / destroyed. A second system writes a *rang
 it, and a routine that assumes the destroyed code is the only way into the countdown is wrong.
 `[seen]` — one of those seeds was caught in a write tap on undriven attract.
 
+### The deep-state stepper is one routine wearing eleven arms
+
+The overview above names `stepMotherShip` (`0x43F0`) as the deep state machine `armMotherShipOrStep`
+hands the ship to once it is live; this is that routine read in full. It is not a step in a table —
+`armMotherShipOrStep` reaches it by a direct transfer while `MOTHER_SHIP_ARMED` (`0xAD0D`) is set, and
+it is **not registered as a routine of its own**, so its eleven mutually-recursive arms
+(`loc_43f0_4403` through `loc_43f0_474c`) are lifted from the code, the frozen oracle's equivalence, and
+its two grounded neighbours. It opens by seating `ix` at the ship's record `MOTHER_SHIP_STATE`
+(`0xA8A0`) and `iy` at its sprite entry `MOTHER_SHIP_ENTRY` (`0xAA24`), then reads the record's lead
+**state byte and branches three ways**. Zero is **idle**: it runs an idle-delay counter at record+0x0e
+down and, once that is spent, seeds a fresh launch — locked out while `ROUND_TRANSITION_HOLD`
+(`0xACC6`) is non-zero, else it builds a table index from `PLAYER_HEADING` (`0xA802`) nudged by the
+frame tick's bit three and folded through two `RRCA` and a mask, reads the heading and shape out of
+`HEADING_SHAPE_TABLE` (`0x3C84`), sets the facing bit from the player-heading sign, calls
+`setMotherShipVelocityFromHeading`, **floors the hold counter at five**, writes the live marker `0xFF`
+into the state byte and asks for the era sound. A state whose successor is non-zero is a **mid-phase
+hold**: it counts a hold at record+0x04 down and, while it holds, drops the state back to live and
+asks for two sounds; the live value `0xFF` itself falls straight through to the live arm. `[code]`
+
+The live arm (`loc_43f0_4403`) **drifts the pair with the world** — it adds the record's velocity word
+and `WORLD_SCROLL_Y`/`WORLD_SCROLL_X` into the sprite's split Y and X coordinates, writes each 16-bit
+sum back across the record and entry tables, mirrors the coordinate into the second entry's fields, and
+dresses the sprite through `dressSpriteForHeadingOrRetireAtEdge` before falling into the bank walk. The
+mid-phase arm forks on one value: any phase other than the rebuild trigger `0xF0` drops into the
+**warp/flash sub-sequence** (`loc_43f0_45b3`), which re-drifts, re-seeds heading and shape from the
+angle/Y-gated tables (flattening the sprite to `0xFF` out of range), and treats the state byte as an
+animation clock — at `0xB4` it arms the flash and asks for the warp sound, above `0xB4` it steps the
+eight-shape cycle out of `MOTHER_SHIP_WARP_SHAPE_TABLE` (`0x461B`), and when the byte counts to zero it
+runs the **warp-finish arm** (`loc_43f0_4646`), which drops the warp-finish sentinel `0xFF` into
+`ROUND_TRANSITION_HOLD`, resets the state to idle, and — past a `TAMPER_GLYPH_COPY` (`0xAB43`) guard —
+**tail-chains into `stepMotherShipWarpFlashFrame`** (`0x459B`), the neighbour whose misaligned prologue
+can fold in a life-loss. The rebuild trigger instead tears the field down: it zeroes `HITS_REMAINING`
+(`0xA8DC`), then walks the fifteen actor records from `ACTOR_RECORD_SLOT0` (`0xA810`) at a stride of
+sixteen, re-seeding each slot holding `0xFF` with a code stepped by ten and clearing each slot holding
+`0xFE`, and finishes by writing the **full-rebuild sentinel `0xFE`** into `ROUND_TRANSITION_HOLD` and an
+init marker into the state byte. `[code]`
+
+Both the live arm and the mid-phase live fall-through end in the **two-slot bank walk**
+(`loc_43f0_46f0`), which — only while the ship is live and `BANK_LAUNCH_COOLDOWN` (`0xA817`) is spent —
+steps two slots (advancing `ix` by a record and `iy` by an entry each turn) and, for a slot that is on
+screen and inside the near band on both axes as gated by `BANK_LAUNCH_NEAR_HALF_Y` (`0xA827`), hands a
+free slot a homing spawn. The spawn (`loc_43f0_474c`) aims the heading through `headingToward` off
+`ENEMY_STANDOFF_AIM_MAIN` (`0xAC7F`), nudges it by an alternating side toggle at
+`MOTHER_SHIP_AIM_SIDE_TOGGLE` (`0xA8B4`), then **dispatches the era's stage arm through a ROM word
+table**: it indexes `MOTHER_SHIP_STAGE_ARM_TABLE` (`0x478B`) by `ERA_INDEX` (`0xAD04`) and calls the
+resulting arm, which hands the stage vector back in the register pair the routine writes into the new
+record before re-arming the cooldown. Throughout, `ix` and `iy` are the routine's **live-out**: each
+advance of the bank walk writes them back, and a spawn re-points them at the seized slot, so the record
+and entry pointers survive as the caller's own carry. This module reproduces the mechanism the frozen
+oracle `loc_43f0` runs, and `equivalence-43f0.test.js` holds it to it — pinning `ix`/`iy` as the sole
+register live-outs, masking the vanished-callee stack scratch off both sides, and forcing every
+state-byte arm on crafted entries poked onto captured machines, since **nothing dispatches it on either
+tape** (a live control counts the anchor to prove the zero). It is **gated but not yet wired live**:
+the equivalence is `[seen]`, but the mechanism above is `[code]`, MAME-grounding pending.
+
 ### ★ The slot stepper enters all seven workers, armed or not
 
 "Five of the seven slots exist while it is out" is a fact about the SLOTS and not about their
