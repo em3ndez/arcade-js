@@ -971,7 +971,7 @@ export const VERT_STEP_EXPECTED_TILE_TABLE = 0x2118;
 export const VERT_STEP_NEIGHBOUR_TILE_TABLE = 0x2280;
 /** STOP_TILE_TABLE (0x277a) — ROM data table (cert=code): eight 32-byte per-sub-column lists of scroll-stop tile codes. The horizontal dig/push scroll (advancePlayerLaser.advanceScroll) sele… [seen] */
 export const STOP_TILE_TABLE = 0x277a;
-/** DIG_CHANNEL_SEAM_REMAP_TABLE (0x2dc3) — ROM data table (cert=code): 4-entry tile-translation table keyed by dig-channel tile code, index = tile-0x96 (tiles 0x96..0x99 = 150..153), occupying 0x2dc3-0x2… [code] */
+/** DIG_CHANNEL_SEAM_REMAP_TABLE (0x2dc3) — ROM data table (cert=code): 4-entry tile-translation table keyed by dig-channel tile code, index = tile-0x96 (tiles 0x96..0x99 = 150..153), occupying 0x2dc3-0x2… [seen] */
 export const DIG_CHANNEL_SEAM_REMAP_TABLE = 0x2dc3;
 /** DIG_CARVE_REMAP_TABLE (0x2dc7) — ROM data table (cert=code): 2-D tile-translation table indexed (tile-0x71)*8 + sub-column(E&7) for diggable tiles 0x71..0x99 (113..153), beginning immediately a… [code] */
 export const DIG_CARVE_REMAP_TABLE = 0x2dc7;
