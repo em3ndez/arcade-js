@@ -28,8 +28,7 @@ export function loc_0d5f(m) {
 
   // The block loader leaves its source pointer advanced past the 0x28 bytes it copied; the head
   // copy below continues the same template stream from that advanced pointer.
-  regs.hl = OBJECT_TEMPLATE_SRC;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, OBJECT_TEMPLATE_SRC);
 
   let src = regs.hl;
   let dst = SPRITE_BUFFER;

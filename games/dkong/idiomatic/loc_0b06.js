@@ -63,8 +63,7 @@ export function loc_0b06(m) {
 
   // Load the next template. The load leaves the source pointer at the template's end, and the
   // copy below chains off it rather than reloading.
-  regs.hl = PROP_TEMPLATE;
-  loadSpriteObjectBlock(m);
+  loadSpriteObjectBlock(m, PROP_TEMPLATE);
 
   // Copy 8 more bytes from the template's end into the sprite-buffer header.
   let src = regs.hl;

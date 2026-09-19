@@ -18,8 +18,7 @@ export function paintColorColumnAndBlinkOff(m) {
 
   // Preset the descending colour-column fill: the value, and the cell to start at.
   regs.a = 0xef;
-  regs.hl = COLOR_COLUMN_TOP;
 
-  fillDescendingColumn(m);
+  fillDescendingColumn(m, COLOR_COLUMN_TOP);
   blinkSpritePairOff(m);
 }

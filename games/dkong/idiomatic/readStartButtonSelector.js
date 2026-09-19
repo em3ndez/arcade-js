@@ -28,8 +28,7 @@ export function readStartButtonSelector(m) {
   }
 
   if ((mem8[FRAME] & 0x07) === 0) {
-    regs.a = regs.e; // the draw takes the string index in the accumulator
-    drawStringVertical(m);
+    drawStringVertical(m, regs.e);
     drawCreditDisplay(m); // also clobbers the mask register
   }
 
