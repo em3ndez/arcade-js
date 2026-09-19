@@ -730,6 +730,30 @@ arms, and the two guard-fail arms — where equivalence is a matching fault over
 twins catch a wrong fill stride, a wrong era floor, either mis-set guard, and a dropped seat or
 transfer. `[seen]`
 
+### The eras-0-3 scenery seed walks its own tamper witness, then paints four slots with a stepped tint
+
+Below the era floor the clear-and-run tail-calls `seedSceneryEntriesThenRunScenery` (`0x3117`), the
+seeder that dresses the scenery band for eras zero through three. It opens on **its own two-cell
+anti-tamper sentinel — a different witness pair from the era-four guard above**: the byte at
+`TAMPER_WITNESS` (`0xAD39`) must read value 0x68, and the cell above it at `TAMPER_WITNESS`+1 must read
+0x10 or 0x05. A sentinel that reads wrong **diverts to `trampolineToLoc_307f`**, carrying the failing
+cell in `hl` and its value in `a`; the lifted destination stores through that pointer and folds the
+byte — the anti-tamper response — so the walked pair is genuinely live across the transfer rather than
+dead scratch. `[seen]`
+
+With both sentinels good it **seats four scenery objects** from the packed (tint, shape) table
+`SCENERY_SEED_TABLE` (`0x316E`) into the entry band at `SCENERY_ENTRY_SLOT0` (`0xAA30`): each row writes
+its tint byte into the entry's +0x31 sprite-tint cell and a **stepped tint** — that byte plus 0x10 —
+into the shadow cell at +0x33, and its shape byte into both the entry cell and the cell at +2; the
+source steps two a row and the entry cursor four, so exactly four slots fill. Control then tail-calls
+`runSceneryForEra`, the frame's era-keyed scenery runner, so the seed and the run are one chain.
+`[seen]` The equivalence gate pins RAM alone — the seat arm hands to `runSceneryForEra`, which reseats
+both cursors before reading either, and the divert arm's pointer and byte are proven through the store
+they drive rather than pinned. Three coin-start dispatches and one attract dispatch all take the seat
+path — the natural sentinel always passes, so the divert arm is crafted-only — and the twins catch a
+dropped shadow write, a wrong tint step, one object short, a wrong seat stride, a dropped run tail-call,
+and a stale divert pointer. `[seen]`
+
 ### Depth tracks sprite size — strictly, in the eras we have watched
 
 Each handler places its object's tiles before stepping the slot, so the handler body records how
@@ -1655,6 +1679,44 @@ equivalence gate pins RAM only. Coin-start never reaches it in budget, but the a
 its spawns are the positive control, with crafted variants exercising both banks, either search-hit
 slot, both toggle parities and the guard trio, and twins that never spawn, ignore the cooldown guard,
 or corrupt the reloaded cooldown each caught in memory. `[seen]`
+
+### A second aimed launch fires on a frame-phase key and doubles an era-keyed velocity
+
+The aimed spawn above rides the bomber chain; a second, differently gated launcher serves the ordinary
+craft. `launchBankEnemyWhenAimedNearPlayer` (`0x3ED6`) is the one launch attempt each per-era craft
+handler — `serviceEra0`/`2`/`3`/`4EnemyCraftSlot` — runs on a live craft, and it fires only past **four
+gates**: a per-frame **phase key**, where the object's phase byte at record+0x0f must equal
+`FRAME_TICK`'s low three bits plus five, so only one bank phase passes on any frame; `BANK_LAUNCH_COOLDOWN`
+clear, so a launch is not already armed; `BANK_LAUNCH_SLOT_COUNT` (the bank size) non-zero; and a **free
+record**, found by a strided scan from `ACTOR_RECORD_SLOT0`/`ACTOR_ENTRY_SLOT0` that steps the record by
+0x10 and the entry by two for up to slot-count slots and stops at the first record whose state byte reads
+zero — a full bank bails. The found record and entry are parked in `SCRATCH_PTR_A`/`SCRATCH_PTR_B`. `[seen]`
+
+Then **three margin windows must place the object near the player**. A vertical window forms a
+byte-wrapped reach from line 0x78 to the inbound entry's +0x31 cell biased by `BANK_LAUNCH_NEAR_HALF_Y`
+and accepts it within the doubled bound, falling back to line 0x84 against the entry's base cell — the
+player's own pinned antipode lines (§4). A second window tests the object's byte at record+0x02 against
+`PLAYER_HEADING`, biased by `BANK_LAUNCH_NEAR_HALF_X`. A third, on `ATTACKER_SPAWN_AIM_WINDOW_HALF`, is a
+faithful mirror of a detached block that can never fire — its guard reads the entry cursor's high byte,
+the bank page, which nothing rewrites to the tested value. Finally the heading toward
+`ENEMY_STANDOFF_AIM_MAIN` must sit within ±0x10 of the object's own heading byte at record+0x02, or the
+launch bails. `[seen]`
+
+On every gate passing it requests the era-keyed launch sound, copies the inbound entry's two
+coordinates — its base cell and its +0x31 cell — into the found free slot's entry, and seats the
+launched craft's velocity: the heading feeds the **era-selected velocity shim** — `loc_59cb` at
+`ERA_INDEX` zero, `loc_59d1` otherwise — which hands back a **doubled velocity pair** on `de`/`bc`,
+stored low, high, low, high into the found record's velocity field at +0x0a through +0x0d. A script byte
+0x4d and shape byte 0x62 dress the entry, `BANK_LAUNCH_COOLDOWN` is re-armed from
+`BANK_LAUNCH_COOLDOWN_PERIOD`, and the found record's head byte is decremented. Unlike the `0x3D25`
+spawn there is **no side-toggle** — the doubling comes from the era-keyed table pair, not a
+perpendicular sample. `[seen]` The inbound record and entry pointers ride in on `ix`/`iy` and are never
+disturbed — the downstream sprite and steer callees read them off the register file — so `ix` and `iy`
+are the only register live-outs pinned and RAM carries the rest. Only two turns across the two tapes
+reach the full spawn tail, the positive control the gate asserts; neither tape arms the phase-key skip
+nor forces a busy first slot, so those arms fall to crafted twins, which catch a no-op, a skipped
+pointer store, a wrong entry const, a flipped era-table select, and a skipped head decrement each on an
+exact count. `[seen]`
 
 ### Clearing a whole wave arms a one-shot claim
 
