@@ -6,8 +6,10 @@
  * fixed screen point skewed by a stored half-turn; era three a velocity vector for a heading
  * offset a fixed step either side of the facing; era four a straight aim at that same point, with
  * one extra byte seeded. Every way winds the new slot's active count down, re-arms the spawn
- * cooldown, restores the spawner's own index registers and hands off to one era-specific sound
- * request. LIVE-OUT: memory, and whatever the sound request leaves. */
+ * cooldown, and hands off to one era-specific sound request. The staged record/entry pointers ride
+ * in JS locals and are handed to each callee as arguments, so the spawner's own index registers are
+ * never moved and stand at the spawner throughout. LIVE-OUT: memory; the two index registers, left
+ * at the spawner; and whatever the sound request leaves. */
 
 import { loc_598e } from "./loc_598e.js";
 import { dressSpriteShapeAndAttributeForHeadingSector } from "./dressSpriteShapeAndAttributeForHeadingSector.js";
@@ -30,8 +32,6 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
 
   const record = m.mem16[SCRATCH_PTR_A];
   const entry = m.mem16[SCRATCH_PTR_B];
-  regs.ix = record;
-  regs.iy = entry;
 
   mem8[record + 0x03] = e;
   mem8[entry + 0x31] = d;
@@ -44,8 +44,6 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
   const tailOff = (tail) => {
     mem8[record + 0x00] = u8(mem8[record + 0x00] - 1);
     mem8[ATTACKER_SPAWN_COOLDOWN] = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD];
-    regs.ix = spawnerRecord;
-    regs.iy = spawnerEntry;
     return tail(m);
   };
 
@@ -64,18 +62,18 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
   if (era === 3) {
     const backHalf = (facing + 0x40) & 0x80; // which half of the circle the facing lies in
     mem8[record + 0x02] = backHalf ? u8(facing - OFFSET_STEP) : u8(facing + OFFSET_STEP);
-    loc_598e(m);
+    loc_598e(m, mem8[record + 0x02]);
     mem8[record + 0x0a] = regs.e;
     mem8[record + 0x0b] = regs.d;
     mem8[record + 0x0c] = regs.c;
     mem8[record + 0x0d] = regs.b;
     mem8[record + 0x02] = facing;
-    dressSpriteShapeAndAttributeForHeadingSector(m);
+    dressSpriteShapeAndAttributeForHeadingSector(m, record, entry);
     mem8[record + 0x0e] = 0x20;
     return tailOff(requestTwoSoundsWhilePlaying);
   }
 
-  headingToward(m, ENEMY_STANDOFF_AIM_MAIN);
+  headingToward(m, ENEMY_STANDOFF_AIM_MAIN, entry);
   mem8[record + 0x01] = regs.a;
   if (era >= 3) {
     mem8[record + 0x02] = regs.a;
@@ -84,7 +82,7 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
     a = (a & 0x80) + 0x40; // +/- half a turn from bit 0 of the stored byte
     mem8[record + 0x02] = (a + mem8[record + 0x01]);
   }
-  dressSpriteShapeAndAttributeForHeadingSector(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m, record, entry);
   mem8[record + 0x0e] = 0x00;
   return tailOff(era >= 3 ? requestAttackerSpawnSoundLateEra : requestTwoSoundsWhilePlaying);
 }

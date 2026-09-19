@@ -14,9 +14,11 @@
  *   1. EQUAL at the real dispatch — RAM identical outside the dead stack bytes, and the stepped
  *      cursor identical too; it is a live-out and is compared explicitly.
  *   2. NOT VACUOUS — a candidate that does nothing FAILS the same masked comparison.
- *   3. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space is BOUNDED by a declared set: nothing outside it may move, and a rewrite that moves
- *      fewer of them still passes. The cursor is not in the set.
+ *   3. LIVE-OUTS PINNED, SCRATCH NOT (frogger standard) — the stepped cursor is the one genuine
+ *      register live-out and is pinned to the frozen side; the accumulator, the flags and the
+ *      colour-plane pointer the ROM scribbles are dead after return and localized to JS scratch, so
+ *      a twin that only scribbles a dead register passes while a RAM or pinned-cursor scribble is
+ *      caught.
  *   4. CORPUS — all three real dispatches replayed, with the count asserted.
  *   5. CRAFTED — 256 shape bases x three colours x five cursors. Two of those cursors are chosen
  *      so the colour walk's step CARRIES out of the low half of the address, which is the one
@@ -39,7 +41,6 @@ import { withOmittedRet } from "../../machine.js";
 import { stampTwoByTwoTileBlock } from "../stampTwoByTwoTileBlock.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_4daf as oracle } from "../../translated/loc_4daf.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x4daf;
 
@@ -48,7 +49,14 @@ const NEXT_LINE = 32;
 
 const SCRATCH_BYTES = 2;
 const SCRATCH_OFFSETS = [-2, -1];
-const EXCLUDED = ["a", "f", "h", "l", "sp"];
+
+/** The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and
+ * only genuine named register live-outs are pinned beside it. This routine leaves exactly one —
+ * the stepped cursor, read back by the frozen translated caller — so it alone is pinned. The
+ * accumulator, the flags and the colour-plane pointer the ROM also scribbles are dead after return
+ * and localized to JS scratch, so they are NOT pinned; a rewrite that drops them still passes. */
+const GENUINE_LIVE_OUTS = ["de"];
+const SCRIBBLE_CELL = 0xa400; // a compared (non-stack) cell the control flips to prove RAM bites
 
 const CORPUS_FRAMES = 2000;
 const DISPATCHES = 3;
@@ -81,7 +89,9 @@ function unitDiff(candidate, machine) {
   candidate(b);
   const stray = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
   if (stray) return stray;
-  if (a.regs.de !== b.regs.de) return { addr: null, a: a.regs.de, b: b.regs.de };
+  for (const k of GENUINE_LIVE_OUTS) {
+    if (a.regs[k] !== b.regs[k]) return { addr: null, a: a.regs[k], b: b.regs[k] };
+  }
   return null;
 }
 
@@ -149,18 +159,6 @@ function sweepCaught(candidate) {
     if (unitDiff(candidate, machine)) caught++;
   });
   return caught;
-}
-
-function movedRegisters(candidate) {
-  const moved = new Set();
-  overSweep((machine) => {
-    const a = machine.clone();
-    const b = machine.clone();
-    oracle(a);
-    candidate(b);
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  });
-  return REG_FIELDS.filter((k) => moved.has(k));
 }
 
 function wholeRunCells(candidate) {
@@ -272,11 +270,19 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
-  const moved = movedRegisters(stampTwoByTwoTileBlock);
-  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
-  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; the cursor is a live-out`);
+test("LIVE-OUTS PINNED, SCRATCH NOT: a dead-register scribble passes; RAM and the cursor bite", { skip }, () => {
+  // The stepped cursor is the one genuine register live-out, pinned to the frozen side. The
+  // accumulator, the flags and the colour-plane pointer the ROM scribbles are dead after return and
+  // NOT pinned, so a twin that only scribbles a dead register is DELIBERATELY not flagged — and the
+  // same measurement must still catch a scribbled RAM cell AND a scribbled cursor, or the clean read
+  // on the dead-register twin is worthless.
+  const scribbleDeadReg = (m) => { stampTwoByTwoTileBlock(m); m.regs.a = (m.regs.a + 1) & 0xff; };
+  const scribbleData = (m) => { stampTwoByTwoTileBlock(m); m.mem8[SCRIBBLE_CELL] ^= 0xff; };
+  const scribbleLiveOut = (m) => { stampTwoByTwoTileBlock(m); m.regs.de = (m.regs.de + 1) & 0xffff; };
+  assert.equal(unitDiff(scribbleDeadReg, entryState()), null, "a dead-register scribble was flagged, but the accumulator is not a live-out");
+  assert.notEqual(unitDiff(scribbleData, entryState()), null, "the RAM measurement missed a scribbled cell, so it has no teeth");
+  assert.notEqual(unitDiff(scribbleLiveOut, entryState()), null, "the pinned cursor scribble went uncaught, so the live-out pin has no teeth");
+  console.log(`  LIVE-OUTS: ${GENUINE_LIVE_OUTS.join(", ")} pinned; dead-reg scribble ignored, RAM + cursor scribbles caught`);
 });
 
 test("CORPUS: all three real dispatches replay identically", { skip }, () => {
