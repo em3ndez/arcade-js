@@ -13,17 +13,16 @@ import { advanceObjectFrame } from "./advanceObjectFrame.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 export function stepObjectFromControl(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   // A reaction animation owns the object -> defer its move and stage the deferral record.
   if (mem8[REACTION_STATE] !== 0) return stageObjectSpriteRecord(m);
 
   // Pick the move command: the demo's steering while it runs, else the debounced joystick.
   const runningDemo = mem8[GAME_STATE] >= 3;
-  regs.a = runningDemo ? mem8[DEMO_STEER_DIR] : mem8[IN0_DEBOUNCED];
+  const moveCommand = runningDemo ? mem8[DEMO_STEER_DIR] : mem8[IN0_DEBOUNCED];
 
   // Hand the command to the per-frame update dispatcher, which positions, animates, or
-  // stands the object still. It reads the command from the slot the caller fills, so
-  // setting it here is the sanctioned boundary into that still-register-ABI routine.
-  return advanceObjectFrame(m);
+  // stands the object still.
+  return advanceObjectFrame(m, moveCommand);
 }
