@@ -919,13 +919,13 @@ export const COINAGE_WORD_A1_B2 = 0x0201;
 export const COINAGE_WORD_A2_B3 = 0x0302;
 /** COINAGE_WORD_A2_B4 (0x0402) — Packed little-endian coins-per-credit VALUE word written by applyDipSwitches to mem16[COINS_PER_CREDIT_A]: low byte 0x02 = coin line A cost, high byte 0x04 = co… [code] */
 export const COINAGE_WORD_A2_B4 = 0x0402;
-/** DIG_OBJECT_DROP_QUEUE_SEED_TABLE (0x2dab) — 24-byte ROM parameter table (a 12-entry column/X-position ramp, duplicated) block-copied FORWARD into the dig-object control block's DROP_QUEUE (0x80c3) at roun… [code] */
+/** DIG_OBJECT_DROP_QUEUE_SEED_TABLE (0x2dab) — 24-byte ROM parameter table (a 12-entry column/X-position ramp, duplicated) block-copied FORWARD into the dig-object control block's DROP_QUEUE (0x80c3) at roun… [seen] */
 export const DIG_OBJECT_DROP_QUEUE_SEED_TABLE = 0x2dab;
-/** SETUP_COINAGE_PLURAL_LABEL_GLYPHS (0x496c) — ROM 7-glyph label-run source (run=7) for the PLURAL (coinage count != 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x49… [code] */
+/** SETUP_COINAGE_PLURAL_LABEL_GLYPHS (0x496c) — ROM 7-glyph label-run source (run=7) for the PLURAL (coinage count != 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x49… [seen] */
 export const SETUP_COINAGE_PLURAL_LABEL_GLYPHS = 0x496c;
 /** SHARED_PANEL_COL7_LABEL_GLYPHS (0x497b) — Fixed 15-glyph ROM tile-code label strip (span 0x496d..0x497b), walked BACKWARD by copyTileColumn (handed the top byte, src steps -1 while dest steps +32 down t… [seen] */
 export const SHARED_PANEL_COL7_LABEL_GLYPHS = 0x497b;
-/** SETUP_COINAGE_SINGULAR_LABEL_GLYPHS (0x49ae) — ROM 9-glyph label-run source (run=9) for the SINGULAR (coinage count == 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x… [code] */
+/** SETUP_COINAGE_SINGULAR_LABEL_GLYPHS (0x49ae) — ROM 9-glyph label-run source (run=9) for the SINGULAR (coinage count == 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x… [seen] */
 export const SETUP_COINAGE_SINGULAR_LABEL_GLYPHS = 0x49ae;
 /** SHARED_PANEL_COL13_LABEL_GLYPHS (0x49f7) — Fixed 15-glyph ROM tile-code label strip (span 0x49e9..0x49f7), walked BACKWARD by copyTileColumn. drawSharedPanel's THIRD labelled run, plotted down tile colum… [seen] */
 export const SHARED_PANEL_COL13_LABEL_GLYPHS = 0x49f7;
@@ -939,7 +939,7 @@ export const BONUS_SCREEN_ROW1_TIER15_STRIP = 0x4a2e;
 export const BONUS_SCREEN_ROW2_TIER5_STRIP = 0x4a3b;
 /** BONUS_SCREEN_ROW2_TIER10_STRIP (0x4a48) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [code] */
 export const BONUS_SCREEN_ROW2_TIER10_STRIP = 0x4a48;
-/** BONUS_SCREEN_ROW2_TIER15_STRIP (0x4a55) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [code] */
+/** BONUS_SCREEN_ROW2_TIER15_STRIP (0x4a55) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [seen] */
 export const BONUS_SCREEN_ROW2_TIER15_STRIP = 0x4a55;
 /** HISCORE_RANK0_LABEL_STRIP (0x4a68) — ROM 18-tile label-column strip naming the DEFAULT/lowest rank (else-branch, record HIGH_SCORE_TABLE+0) on the high-score initials-entry screen. loc_4df8 loads i… [seen] */
 export const HISCORE_RANK0_LABEL_STRIP = 0x4a68;
@@ -957,15 +957,15 @@ export const PLAYFIELD_TILE_IMAGE_LEVEL_ODD = 0x0762;
 export const PLAYFIELD_TILE_IMAGE_LEVEL_EVEN = 0x0b62;
 /** PLAYFIELD_COLOUR_IMAGE (0x0f62) — ROM 0x400-byte (1024-cell) full-screen colour-attribute image copied into colour RAM (0x8800) by paintScreen/loc_0673 to tint the round board; single, NOT level… [code] */
 export const PLAYFIELD_COLOUR_IMAGE = 0x0f62;
-/** HORIZ_STEP_EXPECTED_TILE_TABLE (0x1b78) — 360-byte ROM expected-terrain lookup for the CURRENT/UNDER cell during a HORIZONTAL terrain step. Indexed [base + (tile-113)*8 + subOffset], 45 diggable/pushabl… [code] */
+/** HORIZ_STEP_EXPECTED_TILE_TABLE (0x1b78) — 360-byte ROM expected-terrain lookup for the CURRENT/UNDER cell during a HORIZONTAL terrain step. Indexed [base + (tile-113)*8 + subOffset], 45 diggable/pushabl… [seen] */
 export const HORIZ_STEP_EXPECTED_TILE_TABLE = 0x1b78;
 /** HORIZ_STEP_AHEAD_TILE_TABLE (0x1ce0) — 360-byte ROM expected-terrain lookup for the tile ONE STEP AHEAD during a HORIZONTAL terrain step; the off-grid companion of HORIZ_STEP_EXPECTED_TILE_TABLE (0x1… [code] */
 export const HORIZ_STEP_AHEAD_TILE_TABLE = 0x1ce0;
-/** DIG_REACT_EXPECTED_TILE_TABLE (0x1e48) — 360-byte ROM expected-terrain lookup for the CURRENT cell in the ACTOR dig-reaction arm (triggerDigReaction). Indexed [base + (tileCode-113)*8 + subCell] over d… [code] */
+/** DIG_REACT_EXPECTED_TILE_TABLE (0x1e48) — 360-byte ROM expected-terrain lookup for the CURRENT cell in the ACTOR dig-reaction arm (triggerDigReaction). Indexed [base + (tileCode-113)*8 + subCell] over d… [seen] */
 export const DIG_REACT_EXPECTED_TILE_TABLE = 0x1e48;
 /** DIG_REACT_NEIGHBOUR_TILE_TABLE (0x1fb0) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell (actorCellPtr+1) in the ACTOR dig-reaction arm (triggerDigReaction), sampled off a cell boundary … [code] */
 export const DIG_REACT_NEIGHBOUR_TILE_TABLE = 0x1fb0;
-/** VERT_STEP_EXPECTED_TILE_TABLE (0x2118) — 360-byte ROM expected-terrain lookup for the CURRENT cell during the tracked object's VERTICAL climb/dig-carve step (stepObjectAndResolveTile). Indexed [base + … [code] */
+/** VERT_STEP_EXPECTED_TILE_TABLE (0x2118) — 360-byte ROM expected-terrain lookup for the CURRENT cell during the tracked object's VERTICAL climb/dig-carve step (stepObjectAndResolveTile). Indexed [base + … [seen] */
 export const VERT_STEP_EXPECTED_TILE_TABLE = 0x2118;
 /** VERT_STEP_NEIGHBOUR_TILE_TABLE (0x2280) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell one step back (cellPtr-1) sampled during the object's VERTICAL climb/dig-carve step, reached off … [code] */
 export const VERT_STEP_NEIGHBOUR_TILE_TABLE = 0x2280;
@@ -989,7 +989,7 @@ export const CREDIT_STANDBY_SCREEN_IMAGE = 0x4232;
 export const PLAYFIELD_STRIP_COL1_ROW11_TILES = 0x494f;
 /** CREDIT_LABEL_GLYPHS (0x496d) — ROM glyph-run source for the fixed CREDIT label drawn beneath the live CREDIT_COUNT value in the two credit HUD panels: drawCreditsDisplay (col6/row10) and draw… [code] */
 export const CREDIT_LABEL_GLYPHS = 0x496d;
-/** GAME_OVER_LABEL_GLYPHS (0x49a5) — ROM 9-glyph 'GAME OVER' label strip, walked BACKWARD by copyTileColumn (handed the run's last byte) and stamped down a HUD text column: drawGameOverLabel (col1/… [code] */
+/** GAME_OVER_LABEL_GLYPHS (0x49a5) — ROM 9-glyph 'GAME OVER' label strip, walked BACKWARD by copyTileColumn (handed the run's last byte) and stamped down a HUD text column: drawGameOverLabel (col1/… [seen] */
 export const GAME_OVER_LABEL_GLYPHS = 0x49a5;
 /** MEN_LEFT_DEFAULT_LABEL_GLYPHS (0x49ba) — ROM 9-glyph label strip for the DEFAULT (non-singular) variant of drawMenLeftPanel, selected when the live MEN_LEFT byte != 1; drawn at col5/row11 with the live… [seen] */
 export const MEN_LEFT_DEFAULT_LABEL_GLYPHS = 0x49ba;
