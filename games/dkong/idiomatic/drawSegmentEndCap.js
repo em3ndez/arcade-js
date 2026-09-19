@@ -17,7 +17,7 @@ export function drawSegmentEndCap(m) {
   const remainder = mem8[SEG_SUBTILE2];
   const ptr = mem16[SEG_ADDR2];
   const page = ptr & 0xff00; // neighbour steps wrap within this page
-  const col = ptr & 0x00ff;
+  const col = ptr & 0xff;
 
   mem8[ptr] = (remainder + 0xd0);
 

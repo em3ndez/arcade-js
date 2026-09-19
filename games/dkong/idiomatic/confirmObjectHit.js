@@ -16,7 +16,7 @@ export function confirmObjectHit(m, record = m.regs.hl) {
   const { mem8, mem16 } = m;
 
   const page = record & 0xff00;
-  const base = record & 0x00ff;
+  const base = record & 0xff;
   const recByte = (off) => mem8[page | ((base + off) & 0xff)];
 
   if (mem8[MARIO_Y] !== recByte(3)) return;

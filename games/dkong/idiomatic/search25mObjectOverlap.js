@@ -16,7 +16,7 @@ import { findCollidingObject } from "./findCollidingObject.js";
 const SWEEP1_COUNT = 0x0a;
 const SWEEP2_COUNT = 0x05;
 const SWEEP3_COUNT = 0x01;
-const RECORD_STRIDE = 0x0020;
+const RECORD_STRIDE = 32;
 
 export function search25mObjectOverlap(m) {
   const { regs, mem8 } = m;

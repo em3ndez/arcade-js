@@ -16,7 +16,7 @@ import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER }
 const OBJECT_TEMPLATE_SRC = 0x385c;
 const HEAD_COPY_BYTES = 8;
 const OBJ_BLOCK_BYTES = 0x28; // loadSpriteObjectBlock copies this many, advancing its source
-const OBJ_COLUMN_STRIDE = 0x0004; // one sprite-object record
+const OBJ_COLUMN_STRIDE = 4; // one sprite-object record
 const OBJ_COLUMN_COUNT = 0x0a; // ten records — the fixed sprite-object column shape
 
 export function loc_0d5f(m) {

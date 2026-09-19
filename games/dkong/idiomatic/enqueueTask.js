@@ -12,7 +12,7 @@
 import { TASK_TAIL, TASK_RING } from "./names.js";
 
 const PAGE = TASK_RING & 0xff00;
-const RING_BASE = TASK_RING & 0x00ff; // low byte of the first slot, and the wrap floor
+const RING_BASE = TASK_RING & 0xff; // low byte of the first slot, and the wrap floor
 
 export function enqueueTask(m, d = m.regs.d, e = m.regs.e) {
   const { regs, mem8 } = m;
