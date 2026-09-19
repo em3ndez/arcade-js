@@ -17,7 +17,6 @@ import { loc_4c1f as oracle } from "../../translated/loc_4c1f.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { fetchTableByte } from "../fetchTableByte.js";
 import { paintSixDigitFieldSuppressingLeadingZeros } from "../paintSixDigitFieldSuppressingLeadingZeros.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
 
 const TARGET = 0x4c1f;
@@ -27,8 +26,11 @@ const SRC = 0xac00;
 const STACK_SEAT = 0xb000;
 const DATA_TOP = 0xa7ff; // every painted cell lands in the tile/colour planes at or below here
 
-// The oracle drops its return and leaves the flag byte; both are a CEILING, never demanded.
-const EXCLUDED = ["f", "sp"];
+// The frogger standard: RAM is the contract (masked over the oracle's own stack scratch), and only
+// the routine's GENUINE named register live-outs are pinned beside it. This painter has none — the
+// sole caller (paintFiveLabelledNumericReadouts) re-seats hl/de/c before its next column and reads no
+// register the routine leaves, so every register the body touches is dead-after-return scratch.
+const GENUINE_LIVE_OUTS = [];
 
 const DSTS = [0xa620, 0xa680, 0xa6c0, 0xa700, 0xa740, 0xa7ff];
 const COLOURS = [0x00, 0x03, 0x07, 0x0f, 0x55, 0xff];
@@ -93,8 +95,7 @@ function unitDiff(candidate, machine) {
     if (addr >= low && addr < seat) continue;
     return { addr, a: da[i], b: db[i], low, seat };
   }
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
+  for (const k of GENUINE_LIVE_OUTS) {
     if (a.regs[k] !== b.regs[k]) return { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
   }
   return null;
@@ -191,28 +192,26 @@ test("NOT VACUOUS: a no-op candidate is caught on a real cell", { skip }, () => 
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-/** Registers a candidate parts company with the oracle on, over the whole cross. */
-function movedOver(candidate) {
-  const moved = new Set();
-  for (const [dst, colour, bytes] of cross()) {
-    const a = craft(dst, colour, bytes);
-    const b = a.clone();
-    oracle(a);
-    try { candidate(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
-}
-
-test("EXCLUDED, deliberately: nothing moves outside the ceiling, with a control that does", { skip }, () => {
-  const moved = movedOver(paintLabelledNumericReadoutColumn);
-  const control = movedOver((m) => { paintLabelledNumericReadoutColumn(m); m.regs.h = u8(m.regs.h + 1); });
-  assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
-    "the measurement reports nothing even for a twin that scribbles a register, so a clean read is worthless");
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k)), [],
-    "a register diverged outside the excluded set");
-  console.log(`  EXCLUDED: moved ${[...moved].join(",")}; the control also moves ` +
-    `${REG_FIELDS.filter((k) => control.has(k) && !EXCLUDED.includes(k)).join(",")}`);
+test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  // No genuine register live-outs, so a twin that only scribbles registers after the routine is
+  // DELIBERATELY not flagged — and the same measurement must still catch a scribbled RAM cell, or the
+  // clean read on the register twin would be worthless.
+  const entry = craft(0xa700, 0x07, BYTESETS[1]);
+  const regTwin = (m) => {
+    paintLabelledNumericReadoutColumn(m);
+    m.regs.h = u8(m.regs.h + 1);
+    m.regs.l = u8(m.regs.l + 1);
+  };
+  const memTwin = (m) => {
+    paintLabelledNumericReadoutColumn(m);
+    m.mem8[0xa700] = u8(m.mem8[0xa700] + 1);
+  };
+  assert.equal(unitDiff(regTwin, entry), null,
+    "a scratch-register scribble was flagged, but this painter has no genuine register live-outs to pin");
+  const d = unitDiff(memTwin, entry);
+  assert.notEqual(d, null, "the RAM measurement missed a scribbled cell, so it has no teeth");
+  assert.notEqual(d.addr, null, "the RAM scribble must be caught on a cell, not a register");
+  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught — ${show(d)}`);
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────

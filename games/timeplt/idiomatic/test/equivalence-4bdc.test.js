@@ -15,7 +15,6 @@ import { paintFiveLabelledNumericReadouts } from "../paintFiveLabelledNumericRea
 import { loc_4bdc as oracle } from "../../translated/loc_4bdc.js";
 import { paintLabelledNumericReadoutColumn } from "../paintLabelledNumericReadoutColumn.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x4bdc;
 const CAPTURE_FRAMES = 1700;
@@ -23,7 +22,10 @@ const DATA_TOP = 0xa7ff;
 const SP_DRIFT = 2;
 const RECORDS = 0xab08;
 const RECORDS_END = 0xab30;
-const EXCLUDED = ["f", "sp"];
+// The frogger standard: RAM (masked over the frozen side's stack scratch) plus only the genuine named
+// register live-outs. paintFive is memory-only (see the LIVE-OUT test below and its docstring), and the
+// column painter it calls leaves nothing but scratch, so there are no register live-outs to pin.
+const GENUINE_LIVE_OUTS = [];
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const READOUTS = [
@@ -74,8 +76,7 @@ function unitDiff(candidate, machine) {
     if (addr >= low && addr < seat) continue;
     return { addr, a: da[i], b: db[i] };
   }
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
+  for (const k of GENUINE_LIVE_OUTS) {
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
   return null;
@@ -117,7 +118,8 @@ function brokenNoOp() {}
 function brokenSkipLast(m) { paint(m, READOUTS.slice(0, 4)); }
 function brokenWrongPen(m) { paint(m, READOUTS.map(([s, c, p], i) => [s, c, i === 0 ? p ^ 1 : p])); }
 function brokenWrongCursor(m) { paint(m, READOUTS.map(([s, c, p], i) => [s, i === 0 ? c + 2 : c, p])); }
-function brokenMovesSpareRegister(m) { paintFiveLabelledNumericReadouts(m); m.regs.b = (m.regs.b + 1) & 0xff; }
+function regScribble(m) { paintFiveLabelledNumericReadouts(m); m.regs.b = (m.regs.b + 1) & 0xff; }
+function memScribble(m) { paintFiveLabelledNumericReadouts(m); m.mem8[0xa711] = (m.mem8[0xa711] + 1) & 0xff; }
 
 const TWINS = [
   ["no-op", brokenNoOp],
@@ -125,18 +127,6 @@ const TWINS = [
   ["wrong-pen", brokenWrongPen],
   ["wrong-cursor", brokenWrongCursor],
 ];
-
-function movedOver(candidate) {
-  const moved = new Set();
-  for (const p of PATTERNS) {
-    const a = craft(p);
-    const b = a.clone();
-    oracle(a);
-    try { candidate(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
-}
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 test("REAL DISPATCH: the one attract dispatch, identical outside the scratch window", { skip }, () => {
@@ -169,16 +159,16 @@ test("LIVE-OUT: memory-only, the routine returns nothing", { skip }, () => {
   console.log("  LIVE-OUT: returns undefined");
 });
 
-test("EXCLUDED, deliberately: nothing moves outside the ceiling, with a control that does", { skip }, () => {
-  const moved = movedOver(paintFiveLabelledNumericReadouts);
-  const control = movedOver(brokenMovesSpareRegister);
-  // A clean reading proves nothing unless the same measurement flags a scribbled register.
-  assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
-    "the measurement reports nothing even for a scribbled register");
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k)), [],
-    "a register diverged outside the excluded set");
-  console.log(`  EXCLUDED: moved ${[...moved].join(",")}; control also moves ` +
-    `${REG_FIELDS.filter((k) => control.has(k) && !EXCLUDED.includes(k)).join(",")}`);
+test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  // paintFive has no genuine register live-outs, so a twin that only scribbles a register is
+  // DELIBERATELY not flagged — and the same measurement must still catch a scribbled RAM cell.
+  const e = capture()[0];
+  assert.equal(unitDiff(regScribble, e), null,
+    "a scratch-register scribble was flagged, but paintFive has no genuine register live-outs to pin");
+  const d = unitDiff(memScribble, e);
+  assert.notEqual(d, null, "the RAM measurement missed a scribbled cell, so it has no teeth");
+  assert.notEqual(d.addr, null, "the RAM scribble must be caught on a cell, not a register");
+  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught — ${show(d)}`);
 });
 
 for (const [label, twin] of TWINS) {
