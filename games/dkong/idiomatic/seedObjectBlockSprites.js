@@ -9,14 +9,14 @@
 
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
-import { OBJ_ARRAY_65, ACTOR_SPRITES, OBJ_SPRITE_CODE } from "./names.js";
+import { OBJ_ARRAY_65, ACTOR_SPRITES, OBJ_SPRITE_CODE, OBJ_ARRAY_65_TEMPLATE } from "./names.js";
 
 export function seedObjectBlockSprites(m) {
   const { regs } = m;
 
   regs.de = OBJ_ARRAY_65 + OBJ_SPRITE_CODE; // dest: the +7 field of the first record
   regs.bc = 0x0a0c; // 0x0A records; stride byte 0x0C (record stride = this + 4 = 0x10)
-  replicateGroupStrided(m, 0x11a2);
+  replicateGroupStrided(m, OBJ_ARRAY_65_TEMPLATE);
 
   regs.ix = OBJ_ARRAY_65; // object-record base
   regs.hl = ACTOR_SPRITES; // dest: 10 consecutive 4-byte sprite records in the shadow buffer

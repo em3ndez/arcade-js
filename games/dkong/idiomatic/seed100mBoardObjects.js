@@ -18,6 +18,11 @@ import {
   OBJ_ARRAY_64,
   OBJ_SPRITE_CODE,
   OBJECT_COLLISION_SPRITES,
+  OBJ_ARRAY_64_TEMPLATE_100M,
+  OBJ_PAIR_6680_POSITION_TABLE_100M,
+  COLLISION_SPRITES_TEMPLATE_100M,
+  OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA,
+  OBJ_ARRAY_64_TEMPLATE_100M_EXTRA,
 } from "./names.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
@@ -29,15 +34,15 @@ const LDIR_BYTES = 0x0c; // step 3: twelve bytes into the collision-sprite recor
 export function seed100mBoardObjects(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = 0x3df0; // source group, re-read every pass
+  regs.hl = OBJ_ARRAY_64_TEMPLATE_100M; // source group, re-read every pass
   regs.de = (OBJ_ARRAY_64 + OBJ_SPRITE_CODE); // destination record base
   regs.bc = 0x051c; // five records; the stride argument is four short of the record stride
   replicateGroupStrided(m);
 
-  regs.hl = 0x3e14;
+  regs.hl = OBJ_PAIR_6680_POSITION_TABLE_100M;
   seedSpriteObjectPair(m);
 
-  let src = 0x3e54;
+  let src = COLLISION_SPRITES_TEMPLATE_100M;
   let dst = OBJECT_COLLISION_SPRITES;
   for (let i = 0; i < LDIR_BYTES; i++) {
     mem8[dst] = mem8[src];
@@ -45,12 +50,12 @@ export function seed100mBoardObjects(m) {
     dst = (dst + 1) & 0xffff;
   }
 
-  regs.hl = 0x1182; // the position table, laid down just after the routine body
+  regs.hl = OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA; // the position table, laid down just after the routine body
   regs.de = FIRE_RECORDS_100M_X; // destination: the first record's +3
   regs.bc = 0x021e; // two records
   copyBytePairsStrided(m);
 
-  regs.hl = 0x117e; // the appearance group
+  regs.hl = OBJ_ARRAY_64_TEMPLATE_100M_EXTRA; // the appearance group
   regs.de = FIRE_RECORDS_100M_CODE; // destination: the first record's +7
   regs.bc = 0x021c; // two records
   replicateGroupStrided(m);

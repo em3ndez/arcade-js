@@ -8,7 +8,19 @@
  */
 
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
-import { OBJ_ARRAY_64, OBJ_ARRAY_67, OBJ_ARRAY_67_PAGE68, BONUS_COUNTDOWN_SPRITES, loc_69fc } from "./names.js";
+import {
+  OBJ_ARRAY_64,
+  OBJ_ARRAY_67,
+  OBJ_ARRAY_67_PAGE68,
+  BONUS_COUNTDOWN_SPRITES,
+  loc_69fc,
+  BONUS_COUNTDOWN_SPRITES_TEMPLATE,
+  OBJ_ARRAY_64_TEMPLATE,
+  OBJ_RECORD_66A0_TEMPLATE_25M,
+  SPRITE_69FC_TEMPLATE_25M,
+  OBJ_PAIR_6680_POSITION_TABLE_25M,
+  OBJ_ARRAY_67_TEMPLATE,
+} from "./names.js";
 import { loc_11fa } from "./loc_11fa.js";
 import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
 
@@ -21,21 +33,17 @@ function blockCopy(mem8, src, dst, len) {
 export function seed25mBoardObjects(m) {
   const { regs, mem8 } = m;
 
-  blockCopy(mem8, 0x3ddc, BONUS_COUNTDOWN_SPRITES, 0x10);
+  blockCopy(mem8, BONUS_COUNTDOWN_SPRITES_TEMPLATE, BONUS_COUNTDOWN_SPRITES, 0x10);
 
-  // first group: 5 records, stride 0x1c
-  replicateGroupStrided(m, 0x3dec, 0x1c, OBJ_ARRAY_64, 0x05, 0x07);
+  replicateGroupStrided(m, OBJ_ARRAY_64_TEMPLATE, 0x1c, OBJ_ARRAY_64, 0x05, 0x07);
 
-  loc_11fa(m, 0x3df4);
+  loc_11fa(m, OBJ_RECORD_66A0_TEMPLATE_25M);
 
-  blockCopy(mem8, 0x3e00, loc_69fc, 0x04);
+  blockCopy(mem8, SPRITE_69FC_TEMPLATE_25M, loc_69fc, 0x04);
 
-  regs.hl = 0x3e0c; // seedSpriteObjectPair reads its position-table pointer from hl
+  regs.hl = OBJ_PAIR_6680_POSITION_TABLE_25M; // seedSpriteObjectPair reads its position-table pointer from hl
   seedSpriteObjectPair(m);
 
-  // second group: 8 records, stride 0x1c
-  replicateGroupStrided(m, 0x101b, 0x1c, OBJ_ARRAY_67, 0x08, 0x07);
-
-  // same src/stride, next dest page; 2 records
-  replicateGroupStrided(m, 0x101b, 0x1c, OBJ_ARRAY_67_PAGE68, 0x02, 0x07);
+  replicateGroupStrided(m, OBJ_ARRAY_67_TEMPLATE, 0x1c, OBJ_ARRAY_67, 0x08, 0x07);
+  replicateGroupStrided(m, OBJ_ARRAY_67_TEMPLATE, 0x1c, OBJ_ARRAY_67_PAGE68, 0x02, 0x07);
 }

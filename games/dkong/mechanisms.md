@@ -304,6 +304,18 @@ values (§11), stamp two constant hit-box bytes, seed three decorative top sprit
 except 100m, and dispatch to the per-board object seeding (`seed25mBoardObjects` …
 `seed100mBoardObjects`). `[code]`
 
+Each seed arm lays its board's objects down from **fixed ROM templates** in the 0x3DDC–0x3E64 block
+(plus a few earlier, e.g. `OBJ_ARRAY_67_TEMPLATE`, `OBJ_ARRAY_65_TEMPLATE`): a `_TEMPLATE` is an
+appearance group broadcast into the sprite-code (+7) field of a destination object array
+(`OBJ_ARRAY_64_TEMPLATE` for the fires, shared 25m/50m/75m; `OBJ_ARRAY_66_TEMPLATE` for the 75m
+elevators; `OBJ_ARRAY_65A0_TEMPLATE` for the 50m array), while a `_POSITION_TABLE` is a run of X/Y
+byte-pairs scattered into each record's +3/+5 (`OBJ_PAIR_6680_POSITION_TABLE_*` for the hammer pair,
+`OBJ_ARRAY_66_POSITION_TABLE` for the elevators). The fixed hazard, the collision-sprite records and
+the `loc_69fc`/`loc_6944`/`loc_6970` sprite shadows each have their own per-board source template
+(`OBJ_RECORD_66A0_TEMPLATE_*`, `COLLISION_SPRITES_TEMPLATE_*`, `SPRITE_69FC_TEMPLATE_*`,
+`SPRITE_6944_TEMPLATE_50M`, `SPRITE_6970_TEMPLATE_75M`, `M50_OBJ1_SPRITE_PAIR_TEMPLATE`); each name
+is the copy destination, so the source's own on-screen role rides on the destination's. `[code]`
+
 **The layout renderer** walks a ROM segment table: `drawBoardLayout` → `loc_0dd3` converts each
 record's endpoints to tilemap addresses through `tileAddrForPixel`, computes the run deltas into
 the `SEG_*` scratch cells, and dispatches by record kind — kind 0/1, kind 2, kind 3, kinds 4/5/6.

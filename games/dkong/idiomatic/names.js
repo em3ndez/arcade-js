@@ -1270,6 +1270,56 @@ export const ANIM_STRING_RESTART = 0x39c3;
 /** SCORE_ADDEND_TABLE (0x3529) — ROM table of per-event score addends read by addToScoreTask. [code] */
 export const SCORE_ADDEND_TABLE = 0x3529;
 
+// Board-setup ROM templates: fixed source data the seed<board>BoardObjects routines block-copy or
+// strided-replicate into RAM object/sprite records. Named after their copy destination; _TEMPLATE
+// = appearance group broadcast into the sprite-code (+7) field, _POSITION_TABLE = X/Y pairs. [code].
+/** BONUS_COUNTDOWN_SPRITES_TEMPLATE (0x3ddc) — 25m source block-copied into BONUS_COUNTDOWN_SPRITES. [code] */
+export const BONUS_COUNTDOWN_SPRITES_TEMPLATE = 0x3ddc;
+/** OBJ_ARRAY_64_TEMPLATE (0x3dec) — shared 25m/50m/75m appearance template broadcast into OBJ_ARRAY_64. [code] */
+export const OBJ_ARRAY_64_TEMPLATE = 0x3dec;
+/** OBJ_ARRAY_64_TEMPLATE_100M (0x3df0) — 100m appearance template broadcast into OBJ_ARRAY_64. [code] */
+export const OBJ_ARRAY_64_TEMPLATE_100M = 0x3df0;
+/** OBJ_RECORD_66A0_TEMPLATE_25M (0x3df4) — 25m source record scattered into OBJ_RECORD_66A0. [code] */
+export const OBJ_RECORD_66A0_TEMPLATE_25M = 0x3df4;
+/** OBJ_RECORD_66A0_TEMPLATE_50M (0x3dfa) — 50m source record scattered into OBJ_RECORD_66A0. [code] */
+export const OBJ_RECORD_66A0_TEMPLATE_50M = 0x3dfa;
+/** SPRITE_69FC_TEMPLATE_25M (0x3e00) — 25m template block-copied into loc_69fc. [code] */
+export const SPRITE_69FC_TEMPLATE_25M = 0x3e00;
+/** SPRITE_69FC_TEMPLATE_50M (0x3e04) — 50m template block-copied into loc_69fc. [code] */
+export const SPRITE_69FC_TEMPLATE_50M = 0x3e04;
+/** OBJ_PAIR_6680_POSITION_TABLE_25M (0x3e0c) — 25m X/Y table scattered into OBJ_PAIR_6680. [code] */
+export const OBJ_PAIR_6680_POSITION_TABLE_25M = 0x3e0c;
+/** OBJ_PAIR_6680_POSITION_TABLE_50M (0x3e10) — 50m X/Y table scattered into OBJ_PAIR_6680. [code] */
+export const OBJ_PAIR_6680_POSITION_TABLE_50M = 0x3e10;
+/** OBJ_PAIR_6680_POSITION_TABLE_100M (0x3e14) — 100m X/Y table scattered into OBJ_PAIR_6680. [code] */
+export const OBJ_PAIR_6680_POSITION_TABLE_100M = 0x3e14;
+/** OBJ_ARRAY_65A0_TEMPLATE (0x3e18) — 50m appearance template broadcast into OBJ_ARRAY_65A0. [code] */
+export const OBJ_ARRAY_65A0_TEMPLATE = 0x3e18;
+/** SPRITE_6944_TEMPLATE_50M (0x3e1c) — 50m template block-copied into loc_6944. [code] */
+export const SPRITE_6944_TEMPLATE_50M = 0x3e1c;
+/** M50_OBJ1_SPRITE_PAIR_TEMPLATE (0x3e24) — 50m template block-copied into M50_OBJ1_SPRITE_PAIR_BASE. [code] */
+export const M50_OBJ1_SPRITE_PAIR_TEMPLATE = 0x3e24;
+/** COLLISION_SPRITES_TEMPLATE_50M (0x3e3c) — 50m template block-copied into OBJECT_COLLISION_SPRITES. [code] */
+export const COLLISION_SPRITES_TEMPLATE_50M = 0x3e3c;
+/** COLLISION_SPRITES_TEMPLATE_75M (0x3e48) — 75m template block-copied into OBJECT_COLLISION_SPRITES. [code] */
+export const COLLISION_SPRITES_TEMPLATE_75M = 0x3e48;
+/** COLLISION_SPRITES_TEMPLATE_100M (0x3e54) — 100m template block-copied into OBJECT_COLLISION_SPRITES. [code] */
+export const COLLISION_SPRITES_TEMPLATE_100M = 0x3e54;
+/** OBJ_ARRAY_66_TEMPLATE (0x3e60) — 75m appearance template broadcast into OBJ_ARRAY_66. [code] */
+export const OBJ_ARRAY_66_TEMPLATE = 0x3e60;
+/** OBJ_ARRAY_66_POSITION_TABLE (0x3e64) — 75m X/Y table scattered into OBJ_ARRAY_66. [code] */
+export const OBJ_ARRAY_66_POSITION_TABLE = 0x3e64;
+/** OBJ_ARRAY_67_TEMPLATE (0x101b) — 25m appearance template broadcast into OBJ_ARRAY_67 (and its page-68 tail). [code] */
+export const OBJ_ARRAY_67_TEMPLATE = 0x101b;
+/** SPRITE_6970_TEMPLATE_75M (0x1121) — 75m template block-copied into loc_6970. [code] */
+export const SPRITE_6970_TEMPLATE_75M = 0x1121;
+/** OBJ_ARRAY_64_TEMPLATE_100M_EXTRA (0x117e) — 100m appearance template for the extra fire records in OBJ_ARRAY_64. [code] */
+export const OBJ_ARRAY_64_TEMPLATE_100M_EXTRA = 0x117e;
+/** OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA (0x1182) — 100m X/Y table for the extra fire records in OBJ_ARRAY_64. [code] */
+export const OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA = 0x1182;
+/** OBJ_ARRAY_65_TEMPLATE (0x11a2) — 50m/75m appearance template broadcast into OBJ_ARRAY_65. [code] */
+export const OBJ_ARRAY_65_TEMPLATE = 0x11a2;
+
 export const ROUTINES = {
   0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "seen" },

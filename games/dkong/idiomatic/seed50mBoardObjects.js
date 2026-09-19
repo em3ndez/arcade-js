@@ -11,7 +11,24 @@
  * the board-object bookkeeping marker.
  */
 
-import { OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJ_65A0_SPRITES, OBJECT_COLLISION_SPRITES, loc_69fc, loc_6944, M50_OBJ1_SPRITE_PAIR_BASE, FIXED_HAZARD_PHASE } from "./names.js";
+import {
+  OBJ_ARRAY_64,
+  OBJ_ARRAY_65A0,
+  OBJ_65A0_SPRITES,
+  OBJECT_COLLISION_SPRITES,
+  loc_69fc,
+  loc_6944,
+  M50_OBJ1_SPRITE_PAIR_BASE,
+  FIXED_HAZARD_PHASE,
+  OBJ_ARRAY_64_TEMPLATE,
+  OBJ_ARRAY_65A0_TEMPLATE,
+  OBJ_RECORD_66A0_TEMPLATE_50M,
+  SPRITE_69FC_TEMPLATE_50M,
+  SPRITE_6944_TEMPLATE_50M,
+  M50_OBJ1_SPRITE_PAIR_TEMPLATE,
+  OBJ_PAIR_6680_POSITION_TABLE_50M,
+  COLLISION_SPRITES_TEMPLATE_50M,
+} from "./names.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
@@ -28,24 +45,24 @@ export function seed50mBoardObjects(m) {
   const { regs, mem8 } = m;
 
   // dest OBJ_ARRAY_64+7; 5 records, stride 0x1c
-  replicateGroupStrided(m, 0x3dec, 0x1c, OBJ_ARRAY_64, 0x05, 0x07);
+  replicateGroupStrided(m, OBJ_ARRAY_64_TEMPLATE, 0x1c, OBJ_ARRAY_64, 0x05, 0x07);
 
   seedObjectBlockSprites(m);
 
   // dest OBJ_ARRAY_65A0+7 — the +7 splits across a page boundary; 6 records, stride 0x0c
-  replicateGroupStrided(m, 0x3e18, 0x0c, OBJ_ARRAY_65A0 & 0xff00, 0x06, (OBJ_ARRAY_65A0 + 0x07) & 0xff);
+  replicateGroupStrided(m, OBJ_ARRAY_65A0_TEMPLATE, 0x0c, OBJ_ARRAY_65A0 & 0xff00, 0x06, (OBJ_ARRAY_65A0 + 0x07) & 0xff);
 
   gatherSpriteRecords(m, 0x0010, 0x06, OBJ_65A0_SPRITES & 0xff00, OBJ_65A0_SPRITES & 0xff, OBJ_ARRAY_65A0);
 
-  loc_11fa(m, 0x3dfa);
+  loc_11fa(m, OBJ_RECORD_66A0_TEMPLATE_50M);
 
-  copyBlock(mem8, 0x3e04, loc_69fc, 4);
-  copyBlock(mem8, 0x3e1c, loc_6944, 8);
-  copyBlock(mem8, 0x3e24, M50_OBJ1_SPRITE_PAIR_BASE, 24);
+  copyBlock(mem8, SPRITE_69FC_TEMPLATE_50M, loc_69fc, 4);
+  copyBlock(mem8, SPRITE_6944_TEMPLATE_50M, loc_6944, 8);
+  copyBlock(mem8, M50_OBJ1_SPRITE_PAIR_TEMPLATE, M50_OBJ1_SPRITE_PAIR_BASE, 24);
 
-  regs.hl = 0x3e10; // seedSpriteObjectPair reads its position-table pointer from hl
+  regs.hl = OBJ_PAIR_6680_POSITION_TABLE_50M; // seedSpriteObjectPair reads its position-table pointer from hl
   seedSpriteObjectPair(m);
 
-  copyBlock(mem8, 0x3e3c, OBJECT_COLLISION_SPRITES, 12); // 3 collision records (stride 4)
+  copyBlock(mem8, COLLISION_SPRITES_TEMPLATE_50M, OBJECT_COLLISION_SPRITES, 12); // 3 collision records (stride 4)
   mem8[FIXED_HAZARD_PHASE] = 0x01; // board-object bookkeeping: this board is set up
 }
