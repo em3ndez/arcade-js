@@ -39,11 +39,11 @@ export function armMarioClimbAtLadderEnd(m) {
   const yLimit = (mem8[MARIO_Y] + 8) & 0xff;
   const searchKey = (mem8[MARIO_X] | 0x03) & 0xfb;
 
-  regs.a = searchKey;
-  regs.d = yLimit;
-  regs.bc = TABLE_SCAN_COUNT;
-  if (!findOppositeLadderEnd(m)) return; // miss: the callee unwound to the caller's caller
+  // miss: the callee unwound to the caller's caller
+  if (!findOppositeLadderEnd(m, searchKey, yLimit, TABLE_SCAN_COUNT)) return;
 
+  // findOppositeLadderEnd stays register-shaped (dispatched via m.call from the frozen translated
+  // layer); read back its four register results here.
   const tag = regs.a;
   const slotByte = regs.b;
   const residualCount = regs.c;

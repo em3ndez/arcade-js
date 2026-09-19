@@ -37,7 +37,7 @@ const OPENING_TASKS = [
 ];
 
 export function powerOnInit(m) {
-  const { regs, mem, mem8 } = m;
+  const { mem, mem8 } = m;
 
   clearPlayfieldAndSprites(m);
 
@@ -45,12 +45,12 @@ export function powerOnInit(m) {
     mem8[P1_SCORE + i] = mem8[SCORE_TEMPLATE_ROM + i];
   }
 
-  // The 1 in the accumulator is the lives count the repaint reads, so set it before the writes.
-  regs.a = 1;
-  mem8[ATTRACT] = regs.a;
-  mem8[LEVEL] = regs.a;
-  mem8[LIVES] = regs.a;
-  drawLivesAndLevel(m);
+  // The 1 is the lives count the repaint reads, so pass it through explicitly.
+  const lives = 1;
+  mem8[ATTRACT] = lives;
+  mem8[LEVEL] = lives;
+  mem8[LIVES] = lives;
+  drawLivesAndLevel(m, lives);
 
   decodeDipSwitches(m);
 

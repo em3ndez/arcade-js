@@ -21,12 +21,12 @@ export function advanceBoardStepWhenSpritesCleared(m) {
   const { regs, mem, mem8 } = m;
 
   animateSpriteObjectBlock(m);
-  cullSpriteObjectsAtTop(m);
+  cullSpriteObjectsAtTop(m); // leaves the scan pointer/stride in HL/DE, each one short
 
-  regs.hl = (regs.hl + 1) & 0xffff;
-  regs.de = (regs.de + 1) & 0xffff;
+  const base = (regs.hl + 1) & 0xffff;
+  const stride = (regs.de + 1) & 0xffff;
 
-  if (!allSlotsClear(mem, regs.hl, regs.de)) return;
+  if (!allSlotsClear(mem, base, stride)) return;
 
   mem8[SUBSTATE_TIMER] = SUBSTATE_DWELL;
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);

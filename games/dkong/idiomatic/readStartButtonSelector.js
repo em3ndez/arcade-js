@@ -19,18 +19,20 @@ const IN2 = 0x7d00;
 export function readStartButtonSelector(m) {
   const { regs, mem, mem8 } = m;
 
+  let prompt; // string index — scratch, consumed by the redraw; not a live-out
   if (mem8[CREDITS] === 0x01) {
     regs.b = 0x04; // START1 only
-    regs.e = 0x09; // 1-player prompt string
+    prompt = 0x09; // 1-player prompt string
   } else {
     regs.b = 0x0c; // START1 | START2
-    regs.e = 0x0a; // 2-player prompt string
+    prompt = 0x0a; // 2-player prompt string
   }
 
   if ((mem8[FRAME] & 0x07) === 0) {
-    drawStringVertical(m, regs.e);
-    drawCreditDisplay(m); // also clobbers the mask register
+    drawStringVertical(m, prompt);
+    drawCreditDisplay(m); // clobbers the mask register (regs.b) to 0 via m.regs — faithful
   }
 
-  regs.a = mem.read8(IN2) & regs.b; // port read kicks the watchdog
+  // regs.b stays m.regs: drawCreditDisplay zeroes it on draw frames, so the AND gives 0 there.
+  return (regs.a = mem.read8(IN2) & regs.b); // port read kicks the watchdog
 }
