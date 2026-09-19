@@ -10,6 +10,7 @@
  * It reads no register input; its whole effect is the seeded work RAM plus the audio/flip lines.
  */
 
+import { initRoundAndEnterMainLoop } from "./initRoundAndEnterMainLoop.js";
 import { disableSound } from "./disableSound.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import {
@@ -47,5 +48,5 @@ export function* enterPlayMode(m) {
   mem8[DEMO_STEER_BAND_HINT] = 0;
 
   // Hand off to the round (re)init, which falls into the main game loop and never returns here.
-  return yield* m.call(0x031a);
+  return yield* initRoundAndEnterMainLoop(m);
 }

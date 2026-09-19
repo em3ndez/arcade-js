@@ -10,6 +10,7 @@
  * of a family of near-identical reset/entry epilogues.
  */
 
+import { rearmMachineAndBranchOnCredits } from "./rearmMachineAndBranchOnCredits.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { showSetupScreen } from "./showSetupScreen.js";
 import { GAME_STATE, ACTIVE_PLAYER } from "./names.js";
@@ -26,5 +27,5 @@ export function* resetStateAndShowSetup(m) {
 
   // Hand off to the reset/entry handler and never return; it branches on credits into the demo or
   // the credit hold. m.call of a spine generator returns the generator object, so delegate with yield*.
-  return yield* m.call(0x01f9);
+  return yield* rearmMachineAndBranchOnCredits(m);
 }

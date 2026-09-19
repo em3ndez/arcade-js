@@ -11,6 +11,7 @@
  * belongs to is not pinned, so the name stays neutral.
  */
 
+import { initRoundAndEnterMainLoop } from "./initRoundAndEnterMainLoop.js";
 import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { waitFrames } from "./waitFrames.js";
 import { paintPlayfieldStripCol1Row11 } from "./paintPlayfieldStripCol1Row11.js";
@@ -29,5 +30,5 @@ export function* holdRoundIntroLoop(m) {
   } while (mem8[LOOP_COUNTER] !== 0);
 
   // Hand off to the round-loop setup; its return carries this routine's caller.
-  return yield* m.call(0x031a);
+  return yield* initRoundAndEnterMainLoop(m);
 }

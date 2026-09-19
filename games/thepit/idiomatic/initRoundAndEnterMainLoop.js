@@ -12,6 +12,7 @@
  * The exact boundary straddles setup and the on-ramp, so the name stays neutral.
  */
 
+import { mainLoop } from "./mainLoop.js";
 import { requestSound6 } from "./requestSound6.js";
 import { loadPlayerState } from "./loadPlayerState.js";
 import { paintScreen } from "./paintScreen.js";
@@ -46,5 +47,5 @@ export function* initRoundAndEnterMainLoop(m) {
   mem8[PLAY_PHASE_COUNTER] = 0;
 
   // Hand off into the never-returning main loop; it re-seats the stack and runs forever.
-  return yield* m.call(0x0348);
+  return yield* mainLoop(m);
 }

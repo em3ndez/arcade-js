@@ -13,6 +13,7 @@
  * paint the round-setup screen) and hands off to the reset/entry handler, which returns to attract.
  */
 
+import { rearmMachineAndBranchOnCredits } from "./rearmMachineAndBranchOnCredits.js";
 import { GAME_STATE, ACTIVE_PLAYER, STACK_TOP, VARIANT } from "./names.js";
 import { requestSound5 } from "./requestSound5.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
@@ -75,5 +76,5 @@ export function* submitHighScoresAndReset(m) {
   yield* showSetupScreen(m);
 
   // Tail hand-off to the reset/entry handler (re-seats the stack, runs the never-returning loop to attract).
-  return yield* m.call(0x01f9);
+  return yield* rearmMachineAndBranchOnCredits(m);
 }

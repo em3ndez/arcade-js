@@ -13,6 +13,7 @@
  * the held-screen mode's role in the attract cycle is not pinned, so the name stays neutral.
  */
 
+import { showCreditScreen } from "./showCreditScreen.js";
 import { enableNmi } from "./enableNmi.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { disableSound } from "./disableSound.js";
@@ -33,7 +34,7 @@ export function* rearmMachineAndBranchOnCredits(m) {
 
   if (mem8[CREDIT_COUNT] !== 0) {
     // Credits present: hand off to the held credit screen, which spins on it forever.
-    return yield* m.call(0x021c);
+    return yield* showCreditScreen(m);
   }
 
   // Normal path: mute the audio, clear the game-mode byte (play overwrites it straight after),

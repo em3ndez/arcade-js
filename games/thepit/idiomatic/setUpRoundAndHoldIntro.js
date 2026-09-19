@@ -16,6 +16,7 @@
  * changeover) is not pinned, so the name stays neutral.
  */
 
+import { initRoundAndEnterMainLoop } from "./initRoundAndEnterMainLoop.js";
 import { loadPlayerState } from "./loadPlayerState.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { enableSound } from "./enableSound.js";
@@ -53,5 +54,5 @@ export function* setUpRoundAndHoldIntro(m) {
 
   // Hand off to the round-loop setup; its return carries this routine's caller, so control
   // never comes back here. Kept as a call boundary since the target falls into the main loop.
-  return yield* m.call(0x031a);
+  return yield* initRoundAndEnterMainLoop(m);
 }

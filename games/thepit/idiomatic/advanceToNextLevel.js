@@ -11,6 +11,7 @@
  * to the reset epilogue instead.
  */
 
+import { initRoundAndEnterMainLoop } from "./initRoundAndEnterMainLoop.js";
 import { GAME_STATE, LEVEL } from "./names.js";
 import { saveActivePlayerRecord } from "./saveActivePlayerRecord.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
@@ -38,5 +39,5 @@ export function* advanceToNextLevel(m) {
   saveActivePlayerRecord(m);
 
   // Fall into the round (re)init that seats the next level; m.call returns its generator, so yield*.
-  return yield* m.call(0x031a);
+  return yield* initRoundAndEnterMainLoop(m);
 }
