@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * launchBankEnemyWhenAimedNearPlayer vs its frozen oracle. A leaf whose every ROM call is dissolved into a direct import, so
- * the rewrite pushes no return address and omits its own ret. Entries are captured at the real
- * dispatch over both tapes; each is replayed on both sides and the whole RAM compared with the dead
- * stack scratch masked out, the +2 SP re-seat asserted, and the scratch registers the translated
- * callees leave differently held to a measured ceiling. HOLES: neither tape arms the guard cell
- * (skip-guard is invisible here) nor forces a busy first slot (the strided scan's later steps go
- * unexercised). Run: node --test games/timeplt/idiomatic/test/equivalence-3ed6.test.js
+ * launchBankEnemyWhenAimedNearPlayer vs its frozen oracle, at the frogger memory-eq standard. A leaf whose every ROM call
+ * is dissolved into a direct import, so the rewrite pushes no return address and omits its own ret.
+ * Entries are captured at the real dispatch over both tapes; each is replayed on both sides and the
+ * whole RAM compared with the dead stack scratch masked out and the +2 SP re-seat asserted. The two
+ * entry pointers ride in on ix/iy and the routine never disturbs them, and the sprite/steer callees
+ * downstream read only those two off the register file — so ix and iy are the only genuine register
+ * live-outs pinned, and every other register is dead-after-return scratch left unpinned. A
+ * scratch-not-pinned control proves the RAM measurement still bites while a register-only scribble
+ * is deliberately ignored. HOLES: neither tape arms the guard cell (skip-guard is invisible here)
+ * nor forces a busy first slot (the strided scan's later steps go unexercised).
+ * Run: node --test games/timeplt/idiomatic/test/equivalence-3ed6.test.js
  */
 
 import test from "node:test";
@@ -20,14 +24,16 @@ import { requestEraKeyedLaunchSound } from "../requestEraKeyedLaunchSound.js";
 import { loc_59cb } from "../loc_59cb.js";
 import { loc_59d1 } from "../loc_59d1.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x3ed6;
 const DATA_TOP = 0xadff;
-// Measured ceiling: the callers read no register, and the translated callees leave the accumulator,
-// the b/c/d/e scratch, the heading pointer, the flags, the shadow accumulator and the SP where the
-// idiomatic ones do not. Checked as a subset, so a rewrite that diverges on fewer still passes.
-const EXCLUDED = ["a", "b", "c", "d", "e", "f", "h", "l", "sp", "a_"];
+const SCRIBBLE_CELL = 0xa814; // a compared (non-stack) cell the teeth flip to prove the RAM measurement bites
+
+/** The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and only
+ *  genuine named register live-outs are pinned beside it. This routine leaves both entry pointers
+ *  untouched on ix/iy and the downstream sprite/steer callees read them off the register file, so
+ *  the two are pinned; every other register is dead-after-return scratch and unpinned. */
+const GENUINE_LIVE_OUTS = ["ix", "iy"];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -52,9 +58,9 @@ function corpus() {
   return corpusCache;
 }
 
-/** Oracle vs candidate on independent clones: whole dump outside [low, seat), then registers
- * outside the ceiling. The frozen side pushes below its seat and rets; the window is masked, low
- * watched off its own pushes. Returns a descriptor, or a clean report when identical. */
+/** Oracle vs candidate on independent clones: the whole dump outside [low, seat), then only the
+ * genuine register live-outs. The frozen side pushes below its seat and rets; the window is masked,
+ * low watched off its own pushes. Returns a descriptor, or a clean report when identical. */
 function compare(cand, machine) {
   const a = machine.clone();
   const b = machine.clone();
@@ -75,15 +81,14 @@ function compare(cand, machine) {
     if (addr >= low && addr < seat) continue;
     escaped = { addr, a: da[i], b: db[i] };
   }
-  let reg = null;
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
-    if (a.regs[k] !== b.regs[k]) { reg = { k, a: a.regs[k], b: b.regs[k] }; break; }
+  let liveOut = null;
+  for (const k of GENUINE_LIVE_OUTS) {
+    if (a.regs[k] !== b.regs[k]) { liveOut = { k, a: a.regs[k], b: b.regs[k] }; break; }
   }
-  return { escaped, reg, low, seat, spDiff: a.regs.sp - b.regs.sp, retA, retB };
+  return { escaped, liveOut, low, seat, spDiff: a.regs.sp - b.regs.sp, retA, retB };
 }
 
-const caught = (r) => Boolean(r.threw || r.escaped || r.reg);
+const caught = (r) => Boolean(r.threw || r.escaped || r.liveOut);
 
 /** Cells the oracle moves from a state, ignoring the stack scratch — a turn's footprint. */
 function footprint(machine) {
@@ -163,17 +168,9 @@ function sweep(cand) {
   return n;
 }
 
-function movedOver(cand) {
-  const moved = new Set();
-  for (const e of corpus()) {
-    const a = e.clone();
-    const b = e.clone();
-    oracle(a);
-    try { cand(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
-}
+// ── scratch-not-pinned controls: a register-only twin passes by design; RAM still bites ──────────
+const scribbleScratchReg = (m) => { candidate(m); m.regs.b = (m.regs.b + 1) & 0xff; };
+const scribbleData = (m) => { candidate(m); m.mem8[SCRIBBLE_CELL] ^= 0xff; };
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
 
@@ -183,7 +180,7 @@ test("CORPUS: every real dispatch of both tapes replays identically, and it is n
       const r = compare(candidate, e);
       assert.ok(!r.threw, `${hex4(e.regs.ix)}: candidate threw — ${r.threw}`);
       assert.equal(r.escaped, null, r.escaped && `${hex4(e.regs.ix)}: escaped at ${hex4(r.escaped.addr)}`);
-      assert.equal(r.reg, null, r.reg && `${hex4(e.regs.ix)}: register ${r.reg && r.reg.k} diverged`);
+      assert.equal(r.liveOut, null, r.liveOut && `${hex4(e.regs.ix)}: live-out ${r.liveOut && r.liveOut.k} diverged`);
       assert.equal(r.retA, r.retB, "the return value diverged");
     }
     const writing = corpus().filter((e) => footprint(e) > 0).length;
@@ -203,17 +200,22 @@ test("SP AND MASK: the drift is exactly two bytes and the mask floor sits above 
     console.log(`  SP AND MASK: spDiff ${r.spDiff}; window floor ${hex4(r.low)} over a spawn turn`);
   });
 
-test("EXCLUDED, measured: nothing moves outside the ceiling, with a control that does",
-  { skip }, () => {
-    const moved = movedOver(candidate);
-    const control = movedOver((m) => { candidate(m); m.regs.iy = (m.regs.iy + 1) & 0xffff; });
-    // ★ a clean reading proves nothing unless the same measurement catches a scribbled register.
-    assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
-      "the measurement reports nothing even for a twin that scribbles iy");
-    const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
-    assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-    console.log(`  EXCLUDED: observed moving ${EXCLUDED.filter((k) => moved.has(k)).join(", ")}`);
-  });
+test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  // Only ix and iy are genuine register live-outs, so a twin that only scribbles a scratch register
+  // after the routine is DELIBERATELY not flagged — and the same measurement must still catch a
+  // scribbled RAM cell, or the clean read on the register twin would be worthless.
+  let checked = 0;
+  for (const e of corpus()) {
+    assert.ok(!caught(compare(scribbleScratchReg, e)),
+      "a scratch-register scribble was flagged, but only ix and iy are genuine register live-outs");
+    const r = compare(scribbleData, e);
+    assert.ok(caught(r), "the RAM measurement missed a scribbled cell, so it has no teeth");
+    assert.notEqual(r.escaped, null, "the RAM scribble must be caught on a cell, not a register");
+    checked++;
+  }
+  assert.ok(checked > 0, "vacuous: no corpus turns");
+  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on all ${checked}`);
+});
 
 for (const [label, brokenTwin, expected] of TWINS) {
   test(`TEETH: the ${label} twin is caught on an exact count of turns`, { skip }, () => {
