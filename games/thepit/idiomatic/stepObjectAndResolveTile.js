@@ -15,7 +15,30 @@
  * the name stays generic because the routine does more than climb.
  */
 
-import { MOVE_BLOCK_FLAG, PLAYER_FACING, PLAYER_Y, PLAYER_TILE_ROW, PLAYER_X, PLAYER_TILE_COL, BOARD_END_PHASE, GOAL_TILE_LATCH, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW, EXPECTED_TILE, TREASURE_COLLECTED, CRYSTAL_COUNT, DIAMOND_COUNT, PLAYER_STEP_X } from "./names.js";
+import {
+  AHEAD_TILE_RAW,
+  BOARD_END_PHASE,
+  CRYSTAL_COUNT,
+  CUR_TILE,
+  DIAMOND_COUNT,
+  EXPECTED_TILE,
+  GOAL_TILE_LATCH,
+  MOVE_BLOCK_FLAG,
+  NEXT_TILE,
+  PLAYER_CELL_PTR,
+  PLAYER_FACING,
+  PLAYER_STEP_X,
+  PLAYER_TILE_COL,
+  PLAYER_TILE_ROW,
+  PLAYER_X,
+  PLAYER_Y,
+  REACTION_PERIOD,
+  REACTION_STATE,
+  REACTION_TIMER,
+  TREASURE_COLLECTED,
+  VERT_STEP_EXPECTED_TILE_TABLE,
+  VERT_STEP_NEIGHBOUR_TILE_TABLE,
+} from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { awardTenPoints } from "./awardTenPoints.js";
@@ -26,8 +49,6 @@ const VRAM_BASE = 0x9000;
 
 // Tables of the terrain a cell is expected to hold, one row per diggable tile code
 // (113..157) and sub-cell phase (0..7): the current cell's table, then the neighbouring cell's.
-const EXPECTED_TILE_TABLE = 0x2118;
-const NEIGHBOUR_TILE_TABLE = 0x2280;
 
 const FIRST_LOOT_TALLY = CRYSTAL_COUNT; // times a 10-point pickup was collected
 const SECOND_LOOT_TALLY = DIAMOND_COUNT; // times a 20-point pickup was collected
@@ -129,7 +150,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
 
   // Diggable band: compare against the terrain this cell is expected to hold.
   const subCell = positionAccumulator & 7;
-  const expected = mem8[EXPECTED_TILE_TABLE + (tile - DIGGABLE_LOW) * 8 + (7 - subCell)];
+  const expected = mem8[VERT_STEP_EXPECTED_TILE_TABLE + (tile - DIGGABLE_LOW) * 8 + (7 - subCell)];
   mem8[EXPECTED_TILE] = expected;
 
   if (expected === tile) return advanceStepAndStage(m);
@@ -148,7 +169,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const neighbourTile = mem8[cellPtr - 1];
   mem8[AHEAD_TILE_RAW] = neighbourTile;
   if (neighbourTile >= DIGGABLE_LOW && neighbourTile < DIGGABLE_HIGH) {
-    mem8[NEXT_TILE] = mem8[NEIGHBOUR_TILE_TABLE + (neighbourTile - DIGGABLE_LOW) * 8 + nextSubCell];
+    mem8[NEXT_TILE] = mem8[VERT_STEP_NEIGHBOUR_TILE_TABLE + (neighbourTile - DIGGABLE_LOW) * 8 + nextSubCell];
   }
   return stageObjectSpriteRecord(m);
 }

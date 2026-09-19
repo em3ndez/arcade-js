@@ -37,13 +37,13 @@ import {
   PIT_FLOOR_REVEAL_COLUMN_BOTTOM,
   PIT_FLOOR_REVEAL_CURSOR,
   PIT_FLOOR_REVEAL_GATE,
+  PIT_FLOOR_REVEAL_PATTERN_TABLE,
   PIT_FLOOR_REVEAL_PERIOD,
   PLAYER_X,
   SPRITE_COORD_BIAS,
 } from "./names.js";
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
-const PATTERN_TABLE = 0x3048;
 const TILES_PER_COLUMN = 6;
 
 // The video-RAM cell of the revealed column's bottom tile; each tile above it sits one
@@ -85,7 +85,7 @@ export function advanceChamberCreature(m) {
       if (cursor >= 0) {
         // Still inside the table — stamp this column's 6 tiles up the video column.
         mem8[PIT_FLOOR_REVEAL_CURSOR] = cursor;
-        const source = PATTERN_TABLE + cursor;
+        const source = PIT_FLOOR_REVEAL_PATTERN_TABLE + cursor;
         mem16[PATTERN_SOURCE_PTR] = source;
         let cell = COLUMN_BOTTOM_CELL;
         for (let i = 0; i < TILES_PER_COLUMN; i++) {

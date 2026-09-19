@@ -10,7 +10,13 @@
  * glyphs spell is not pinned, so the name stays neutral.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, BOARD_MODE } from "./names.js";
+import {
+  BOARD_MODE,
+  GAME_OVER_LABEL_GLYPHS,
+  PLOT_RUN_LENGTH,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -20,7 +26,6 @@ import { copyTileColumn } from "./copyTileColumn.js";
 const FILL_COLOUR = BOARD_MODE;
 
 // Top of the descending glyph table the strip's nine codes are copied from.
-const GLYPH_SOURCE = 0x49a5;
 
 export function drawGameOverText(m) {
   const { mem8 } = m;
@@ -38,7 +43,7 @@ export function drawGameOverText(m) {
   mem8[PLOT_RUN_LENGTH] = 9;
 
   // Copy the nine glyphs down the video column; copyTileColumn walks the table backwards.
-  copyTileColumn(m, GLYPH_SOURCE);
+  copyTileColumn(m, GAME_OVER_LABEL_GLYPHS);
 
   // Tail into the colour-column filler to paint all nine cells; its return unwinds to our caller.
   return fillColourColumn(m);

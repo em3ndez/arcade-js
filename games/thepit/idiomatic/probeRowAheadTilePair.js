@@ -16,12 +16,16 @@
  */
 
 import { F_Z } from "../../../core/cpu/z80.js";
-import { PROBE_CELL_PTR, SAVED_CELL_PTR, SUBTILE_PHASE } from "./names.js";
+import {
+  PROBE_CELL_PTR,
+  PROBE_NEXT_TILE_TABLE,
+  PROBE_TILE_TABLE,
+  SAVED_CELL_PTR,
+  SUBTILE_PHASE,
+} from "./names.js";
 import { u16 } from "../../../core/int.js";
 
 
-const FIRST_TABLE = 0x34fe; // base of the first valid-tile table (rows of 32)
-const SECOND_TABLE = 0x35fe;
 const ROW_LEN = 32; // entries per table row / the pointer's one-row stride
 
 function rowContains(mem8, base, key) {
@@ -40,13 +44,13 @@ export function probeRowAheadTilePair(m) {
   mem16[SAVED_CELL_PTR] = cell;
 
   // First row (selected by the phase, byte-wrapped): must hold the tile under the pointer.
-  let matched = rowContains(mem8, FIRST_TABLE + (phase + ROW_LEN) % 256, mem8[cell]);
+  let matched = rowContains(mem8, PROBE_TILE_TABLE + (phase + ROW_LEN) % 256, mem8[cell]);
 
   // Nonzero phase also requires the following tile in the second row; zero reports as-is.
   if (matched && phase !== 0) {
     matched = rowContains(
       mem8,
-      SECOND_TABLE + (phase - ROW_LEN + 256) % 256,
+      PROBE_NEXT_TILE_TABLE + (phase - ROW_LEN + 256) % 256,
       mem8[u16(cell + 1)],
     );
   }

@@ -9,7 +9,14 @@
  * them), and hands off to the colour-column filler to paint the whole run.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, CREDIT_COUNT, BOARD_MODE } from "./names.js";
+import {
+  BOARD_MODE,
+  CREDIT_COUNT,
+  CREDIT_LABEL_GLYPHS,
+  PLOT_RUN_LENGTH,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -20,7 +27,6 @@ import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 const FILL_ATTR = BOARD_MODE;
 
 // Source of the fixed label glyphs. (The top cell's live value comes from CREDIT_COUNT.)
-const LABEL_SOURCE = 0x496d;
 
 export function drawSetupCreditsPanel(m) {
   const { mem8 } = m;
@@ -42,7 +48,7 @@ export function drawSetupCreditsPanel(m) {
 
   // Label field: fill the next eight cells (cap glyph + seven label glyphs), continuing down the same column.
   mem8[PLOT_RUN_LENGTH] = 8;
-  copyCappedTileColumn(m, LABEL_SOURCE);
+  copyCappedTileColumn(m, CREDIT_LABEL_GLYPHS);
 
   // Colour the full nine-cell run: hand off to the colour-column filler. This is our exit.
   mem8[PLOT_RUN_LENGTH] = 9;

@@ -16,12 +16,15 @@ import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
-import { GLITTER_COUNTDOWN, LEVEL } from "./names.js";
+import {
+  GLITTER_COUNTDOWN,
+  LEVEL,
+  PLAYFIELD_COLOUR_IMAGE,
+  PLAYFIELD_TILE_IMAGE_LEVEL_EVEN,
+  PLAYFIELD_TILE_IMAGE_LEVEL_ODD,
+} from "./names.js";
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
 const COLOR_RAM_BASE = 0x8800; // start of the matching per-cell colour map
-const TILE_IMAGE_A = 0x0762; // tile image chosen when the display-mode bit is set
-const TILE_IMAGE_B = 0x0b62; // tile image chosen when the display-mode bit is clear
-const COLOR_IMAGE = 0x0f62; // colour image (single, not selectable)
 const SCREEN_CELLS = 1024;
 
 export function* paintScreen(m) {
@@ -32,7 +35,7 @@ export function* paintScreen(m) {
   m.push16(0x0678);
   yield* waitFrames(m, 1);
 
-  const tileImage = (mem8[LEVEL] & 1) === 1 ? TILE_IMAGE_A : TILE_IMAGE_B;
+  const tileImage = (mem8[LEVEL] & 1) === 1 ? PLAYFIELD_TILE_IMAGE_LEVEL_ODD : PLAYFIELD_TILE_IMAGE_LEVEL_EVEN;
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
     mem8[VIDEO_RAM_BASE + cell] = mem8[tileImage + cell];
   }
@@ -42,7 +45,7 @@ export function* paintScreen(m) {
   yield* waitFrames(m, 1);
 
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem8[COLOR_RAM_BASE + cell] = mem8[COLOR_IMAGE + cell];
+    mem8[COLOR_RAM_BASE + cell] = mem8[PLAYFIELD_COLOUR_IMAGE + cell];
   }
 
   // Stamp the two fixed edge columns and repaint the score HUD over the new screen.

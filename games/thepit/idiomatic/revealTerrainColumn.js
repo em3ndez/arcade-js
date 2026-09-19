@@ -20,12 +20,12 @@ import {
   PIT_FLOOR_REVEAL_COLUMN_BOTTOM,
   PIT_FLOOR_REVEAL_CURSOR,
   PIT_FLOOR_REVEAL_GATE,
+  PIT_FLOOR_REVEAL_PATTERN_TABLE,
   PIT_FLOOR_REVEAL_PERIOD,
 } from "./names.js";
 
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
-const PATTERN_TABLE = 0x3048;
 const TILES_PER_COLUMN = 6;
 
 // The video-RAM cell of the column's bottom tile; each tile above sits one row (32 cells) higher.
@@ -53,7 +53,7 @@ export function revealTerrainColumn(m) {
   mem8[PIT_FLOOR_REVEAL_CURSOR] = cursor;
 
   // Stash the source pointer (scratch the backdrop machinery leaves), then stamp 6 tiles up.
-  const source = PATTERN_TABLE + cursor;
+  const source = PIT_FLOOR_REVEAL_PATTERN_TABLE + cursor;
   mem16[PATTERN_SOURCE_PTR] = source;
   let cell = COLUMN_BOTTOM_CELL;
   for (let i = 0; i < TILES_PER_COLUMN; i++) {

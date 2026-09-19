@@ -10,18 +10,17 @@
  */
 
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
-import { BOOT_TEXT_COLUMN25_BOTTOM } from "./names.js";
+import { BOOT_TEXT_COLUMN25_BOTTOM, BOOT_TEXT_COLUMN25_TILE_STRIP } from "./names.js";
 
 export function drawCopyrightLine(m) {
   const { mem8 } = m;
 
   // A fixed 32-tile strip laid into video RAM from the BOTTOM cell upward — one text
   // row (32 cells) higher per tile, so the strip reads bottom-to-top.
-  const TILE_STRIP = 0x49c7; // the column's 32 tile codes
   const COLUMN_BOTTOM = BOOT_TEXT_COLUMN25_BOTTOM;
   const ROW = 32;
   for (let i = 0; i < 32; i++) {
-    mem8[COLUMN_BOTTOM - i * ROW] = mem8[TILE_STRIP + i];
+    mem8[COLUMN_BOTTOM - i * ROW] = mem8[BOOT_TEXT_COLUMN25_TILE_STRIP + i];
   }
 
   // Colour the same column via the shared fill; its return lands in our caller (a tail hand-off).

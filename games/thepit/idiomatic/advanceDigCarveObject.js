@@ -19,26 +19,27 @@
 
 import { u8 } from "../../../core/int.js";
 import {
-  MOVE_BLOCK_FLAG,
-  TREASURE_COLLECTED,
-  PRIZE_GATE,
-  HAZARD_ACTIVE_COUNT,
-  HAZARD_STATE,
-  DIG_OBJ_TIMER,
-  DIG_COLLISION_STATE,
-  DIG_OBJ_SUBTYPE,
-  PLAYER_Y,
-  PLAYER_X,
-  HAZARD_X,
-  HAZARD_Y,
-  STAGED_TARGET_X,
-  STAGED_TARGET_Y,
-  PLAYER_FACING,
-  TRANSITION_TIMER,
-  PLAYER_CELL_PTR,
+  CARVE_CELL_PTR,
   CARVE_SEAM_LEFT,
   CARVE_SEAM_RIGHT,
-  CARVE_CELL_PTR,
+  DIG_CARVE_REMAP_TABLE,
+  DIG_COLLISION_STATE,
+  DIG_OBJ_SUBTYPE,
+  DIG_OBJ_TIMER,
+  HAZARD_ACTIVE_COUNT,
+  HAZARD_STATE,
+  HAZARD_X,
+  HAZARD_Y,
+  MOVE_BLOCK_FLAG,
+  PLAYER_CELL_PTR,
+  PLAYER_FACING,
+  PLAYER_X,
+  PLAYER_Y,
+  PRIZE_GATE,
+  STAGED_TARGET_X,
+  STAGED_TARGET_Y,
+  TRANSITION_TIMER,
+  TREASURE_COLLECTED,
 } from "./names.js";
 import { startNextDigSpawn } from "./startNextDigSpawn.js";
 import { advanceChamberCreature } from "./advanceChamberCreature.js";
@@ -58,7 +59,6 @@ const FILL_TILE = 112; // the blanked interior tile
 const RETREAT_SPRITE = 55; // digging-up animation frame
 const ADVANCE_SPRITE = 183; // same frame flipped for digging down (bit-7 flip set)
 const COLUMN_HOLD_TIME = 180; // state-timer duration latched when a column completes
-const DIG_TILE_TABLE = 0x2dc7; // dig-channel tile + sub-column -> patched seam tile
 // TREASURE_COLLECTED is read here as a dig-spawn condition; whether that is a true coupling to the
 // loot flag or a reuse of the byte is unproven. The feature-align latch role belongs to PRIZE_GATE.
 
@@ -263,7 +263,7 @@ function carveTile(m) {
   if (existing < 113 || existing >= 154) return stageDigObjectSpriteRecord(m);
 
   // Diggable band: look the tile up by (tile, sub-column) in the remap table.
-  const remapped = mem8[DIG_TILE_TABLE + (existing - 113) * 8 + subCol];
+  const remapped = mem8[DIG_CARVE_REMAP_TABLE + (existing - 113) * 8 + subCol];
   if (remapped !== 0) {
     if (subCol === 0) return commitCarveCell(m, cellPtr, WALL_TILE, null);
     return commitCarveCell(m, cellPtr, CHANNEL_TILE, remapped);

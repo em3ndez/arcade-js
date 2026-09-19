@@ -912,6 +912,58 @@ export const SCORE_READOUT_DEST = 0x8283;
  *  seats SP here, discarding the caller's frame. [code] */
 export const STACK_TOP = 0x83ff;
 
+// --- ROM data-table addresses (thepit Class-B hoist; routine-local consts promoted; [code], stage-B grounding pending) ---
+/** PLAYFIELD_TILE_IMAGE_LEVEL_ODD (0x0762) — ROM 0x400-byte (32x32 = 1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 to lay the round board; paintScreen selects … [code] */
+export const PLAYFIELD_TILE_IMAGE_LEVEL_ODD = 0x0762;
+/** PLAYFIELD_TILE_IMAGE_LEVEL_EVEN (0x0b62) — ROM 0x400-byte (1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 for the round board; selected when LEVEL (0x8028) bi… [code] */
+export const PLAYFIELD_TILE_IMAGE_LEVEL_EVEN = 0x0b62;
+/** PLAYFIELD_COLOUR_IMAGE (0x0f62) — ROM 0x400-byte (1024-cell) full-screen colour-attribute image copied into colour RAM (0x8800) by paintScreen/loc_0673 to tint the round board; single, NOT level… [code] */
+export const PLAYFIELD_COLOUR_IMAGE = 0x0f62;
+/** HORIZ_STEP_EXPECTED_TILE_TABLE (0x1b78) — 360-byte ROM expected-terrain lookup for the CURRENT/UNDER cell during a HORIZONTAL terrain step. Indexed [base + (tile-113)*8 + subOffset], 45 diggable/pushabl… [code] */
+export const HORIZ_STEP_EXPECTED_TILE_TABLE = 0x1b78;
+/** HORIZ_STEP_AHEAD_TILE_TABLE (0x1ce0) — 360-byte ROM expected-terrain lookup for the tile ONE STEP AHEAD during a HORIZONTAL terrain step; the off-grid companion of HORIZ_STEP_EXPECTED_TILE_TABLE (0x1… [code] */
+export const HORIZ_STEP_AHEAD_TILE_TABLE = 0x1ce0;
+/** DIG_REACT_EXPECTED_TILE_TABLE (0x1e48) — 360-byte ROM expected-terrain lookup for the CURRENT cell in the ACTOR dig-reaction arm (triggerDigReaction). Indexed [base + (tileCode-113)*8 + subCell] over d… [code] */
+export const DIG_REACT_EXPECTED_TILE_TABLE = 0x1e48;
+/** DIG_REACT_NEIGHBOUR_TILE_TABLE (0x1fb0) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell (actorCellPtr+1) in the ACTOR dig-reaction arm (triggerDigReaction), sampled off a cell boundary … [code] */
+export const DIG_REACT_NEIGHBOUR_TILE_TABLE = 0x1fb0;
+/** VERT_STEP_EXPECTED_TILE_TABLE (0x2118) — 360-byte ROM expected-terrain lookup for the CURRENT cell during the tracked object's VERTICAL climb/dig-carve step (stepObjectAndResolveTile). Indexed [base + … [code] */
+export const VERT_STEP_EXPECTED_TILE_TABLE = 0x2118;
+/** VERT_STEP_NEIGHBOUR_TILE_TABLE (0x2280) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell one step back (cellPtr-1) sampled during the object's VERTICAL climb/dig-carve step, reached off … [code] */
+export const VERT_STEP_NEIGHBOUR_TILE_TABLE = 0x2280;
+/** STOP_TILE_TABLE (0x277a) — ROM data table (cert=code): eight 32-byte per-sub-column lists of scroll-stop tile codes. The horizontal dig/push scroll (advancePlayerLaser.advanceScroll) sele… [code] */
+export const STOP_TILE_TABLE = 0x277a;
+/** DIG_CHANNEL_SEAM_REMAP_TABLE (0x2dc3) — ROM data table (cert=code): 4-entry tile-translation table keyed by dig-channel tile code, index = tile-0x96 (tiles 0x96..0x99 = 150..153), occupying 0x2dc3-0x2… [code] */
+export const DIG_CHANNEL_SEAM_REMAP_TABLE = 0x2dc3;
+/** DIG_CARVE_REMAP_TABLE (0x2dc7) — ROM data table (cert=code): 2-D tile-translation table indexed (tile-0x71)*8 + sub-column(E&7) for diggable tiles 0x71..0x99 (113..153), beginning immediately a… [code] */
+export const DIG_CARVE_REMAP_TABLE = 0x2dc7;
+/** PIT_FLOOR_REVEAL_PATTERN_TABLE (0x3048) — ROM data table (cert=code): tile-pattern source for the Pit sliding-floor / terrain reveal, stored as consecutive 6-tile columns (TILES_PER_COLUMN). PIT_FLOOR_R… [code] */
+export const PIT_FLOOR_REVEAL_PATTERN_TABLE = 0x3048;
+/** PROBE_TILE_TABLE (0x34fe) — code: base of the phase-keyed valid-tile ROM lookup table (32-byte rows, one per sub-tile phase; region 0x34fe-0x35fd, ends where the sibling table 0x35fe begin… [code] */
+export const PROBE_TILE_TABLE = 0x34fe;
+/** PROBE_NEXT_TILE_TABLE (0x35fe) — code: sibling phase-keyed valid-tile ROM lookup table (32-byte rows; region 0x35fe-0x36fd, code resumes at loc_36fe) searched for the FOLLOWING/next tile — the … [code] */
+export const PROBE_NEXT_TILE_TABLE = 0x35fe;
+/** PREPLAY_FIXED_SCREEN_IMAGE (0x3e32) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by showFixedScreen/loc_3b81, which floods the colour map flat with attribute 0… [code] */
+export const PREPLAY_FIXED_SCREEN_IMAGE = 0x3e32;
+/** CREDIT_STANDBY_SCREEN_IMAGE (0x4232) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by holdFixedScreen/loc_3ba8, flooded flat with background attribute 0x02, over… [code] */
+export const CREDIT_STANDBY_SCREEN_IMAGE = 0x4232;
+/** PLAYFIELD_STRIP_COL1_ROW11_TILES (0x494f) — ROM tile-code source table walked BACKWARD (from one byte below the pointer) by copyCappedTileColumn/loc_3ddb to fill the 10-cell (0x0a) vertical tilemap strip … [code] */
+export const PLAYFIELD_STRIP_COL1_ROW11_TILES = 0x494f;
+/** CREDIT_LABEL_GLYPHS (0x496d) — ROM glyph-run source for the fixed CREDIT label drawn beneath the live CREDIT_COUNT value in the two credit HUD panels: drawCreditsDisplay (col6/row10) and draw… [code] */
+export const CREDIT_LABEL_GLYPHS = 0x496d;
+/** GAME_OVER_LABEL_GLYPHS (0x49a5) — ROM 9-glyph 'GAME OVER' label strip, walked BACKWARD by copyTileColumn (handed the run's last byte) and stamped down a HUD text column: drawGameOverLabel (col1/… [code] */
+export const GAME_OVER_LABEL_GLYPHS = 0x49a5;
+/** MEN_LEFT_DEFAULT_LABEL_GLYPHS (0x49ba) — ROM 9-glyph label strip for the DEFAULT (non-singular) variant of drawMenLeftPanel, selected when the live MEN_LEFT byte != 1; drawn at col5/row11 with the live… [code] */
+export const MEN_LEFT_DEFAULT_LABEL_GLYPHS = 0x49ba;
+/** MEN_LEFT_ALT_LABEL_GLYPHS (0x49c2) — ROM 8-glyph label strip for the ALTERNATE (singular) variant of drawMenLeftPanel, selected when the live MEN_LEFT byte == 1; drawn at col5/row12 with NO live-va… [code] */
+export const MEN_LEFT_ALT_LABEL_GLYPHS = 0x49c2;
+/** BOOT_TEXT_COLUMN25_TILE_STRIP (0x49c7) — ROM 32-tile source strip for tilemap column 25 (video-RAM col 0x19). drawCopyrightLine reads it FORWARD (0x49c7..0x49e6) and lays it bottom-cell-upward from BOO… [code] */
+export const BOOT_TEXT_COLUMN25_TILE_STRIP = 0x49c7;
+/** BONUS_SCREEN_ROW3_STRIP (0x4a07) — code: base of the fixed 15-glyph tile-code strip for the THIRD text row of the tier/bonus status screen, plotted at column 21, row 9 via copyTileColumn (source … [code] */
+export const BONUS_SCREEN_ROW3_STRIP = 0x4a07;
+/** FILL_TILE_CODE (0x4b0f) — code: a single fixed ROM byte holding a background tile code, read two ways for the same value — as the whole-tilemap wipe/fill stamped into all 1024 video-RAM … [code] */
+export const FILL_TILE_CODE = 0x4b0f;
+
 // --- RAM/MMIO/VRAM cell names (thepit RAM naming pass, understanding stage A; [code] = grounded stage-B later) ---
 /** SPRITE_STAGING_WIPE_BASE (0x8200) — Base of the fixed 64-byte work-RAM block (0x8200..0x823f) zeroed one-shot by clearSpriteStagingBuffer at setup; its top half is the sprite-record stag… [code] */
 export const SPRITE_STAGING_WIPE_BASE = 0x8200;

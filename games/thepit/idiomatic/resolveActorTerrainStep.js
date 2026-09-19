@@ -12,7 +12,24 @@
  * a bump reaction. Walking hands off to walkActor, holding/bump-reacting to stageObjectSpriteRecord.
  */
 
-import { CUR_TILE, NEXT_TILE, PRIZE_GATE, HAZARD_ACTIVE_COUNT, PLAYER_CELL_PTR, REACTION_STATE, REACTION_TIMER, PLAYER_FACING, REACTION_PERIOD, AHEAD_TILE_RAW, EXPECTED_TILE, TREASURE_COLLECTED, CRYSTAL_COUNT, DIAMOND_COUNT } from "./names.js";
+import {
+  AHEAD_TILE_RAW,
+  CRYSTAL_COUNT,
+  CUR_TILE,
+  DIAMOND_COUNT,
+  EXPECTED_TILE,
+  HAZARD_ACTIVE_COUNT,
+  HORIZ_STEP_AHEAD_TILE_TABLE,
+  HORIZ_STEP_EXPECTED_TILE_TABLE,
+  NEXT_TILE,
+  PLAYER_CELL_PTR,
+  PLAYER_FACING,
+  PRIZE_GATE,
+  REACTION_PERIOD,
+  REACTION_STATE,
+  REACTION_TIMER,
+  TREASURE_COLLECTED,
+} from "./names.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
 import { walkActor } from "./walkActor.js";
@@ -28,8 +45,6 @@ const SECOND_LOOT_LATCH = TREASURE_COLLECTED; // one-shot latch that opens the +
 
 // Direction-keyed expected-terrain tables: one for the current tile, one for the tile ahead
 // (row = tile - WALK_BAND_LO, column = the direction's low bits).
-const EXPECTED_TILE_TABLE = 0x1b78; // current tile
-const EXPECTED_NEXT_TILE_TABLE = 0x1ce0; // tile ahead
 
 const BLANK_TILE = 112; // empty-cell tile stamped over a collected pickup
 const FEATURE_TILE = 38; // tile 0x26 — latched so the +20 loot gate can see it next frame
@@ -125,7 +140,7 @@ export function resolveActorTerrainStep(m, tilePtr = m.regs.ix, moveDir = m.regs
 
   if (checkCurrentTable && tile >= WALK_BAND_LO && tile < WALK_BAND_HI) {
     // What the terrain SHOULD be under the actor for this heading; publish it for the final check.
-    const expected = mem8[EXPECTED_TILE_TABLE + (tile - WALK_BAND_LO) * 8 + dirLow];
+    const expected = mem8[HORIZ_STEP_EXPECTED_TILE_TABLE + (tile - WALK_BAND_LO) * 8 + dirLow];
     mem8[CUR_TILE_COPY] = expected;
     // A mismatch on a grid step is a wall — arm the reaction; off the grid it is carried forward.
     if (expected !== tile && onGrid) return armBumpReaction(m);
@@ -161,7 +176,7 @@ export function resolveActorTerrainStep(m, tilePtr = m.regs.ix, moveDir = m.regs
   }
 
   if (checkNextTable && nextTile >= WALK_BAND_LO && nextTile < WALK_BAND_HI) {
-    const expected = mem8[EXPECTED_NEXT_TILE_TABLE + (nextTile - WALK_BAND_LO) * 8 + (nextDir & 7)];
+    const expected = mem8[HORIZ_STEP_AHEAD_TILE_TABLE + (nextTile - WALK_BAND_LO) * 8 + (nextDir & 7)];
     mem8[NEXT_TILE] = expected;
     if (expected !== nextTile) return armBumpReaction(m); // wall ahead — bump-react
   }

@@ -21,16 +21,18 @@
  */
 
 import {
-  PRIZE_GATE,
-  GOAL_TILE_LATCH,
-  EXPECTED_TILE,
-  NEXT_TILE,
+  AHEAD_TILE_RAW,
   CUR_TILE,
+  EXPECTED_TILE,
+  GOAL_TILE_LATCH,
+  HORIZ_STEP_AHEAD_TILE_TABLE,
+  HORIZ_STEP_EXPECTED_TILE_TABLE,
+  NEXT_TILE,
+  PLAYER_FACING,
+  PRIZE_GATE,
+  REACTION_PERIOD,
   REACTION_STATE,
   REACTION_TIMER,
-  PLAYER_FACING,
-  REACTION_PERIOD,
-  AHEAD_TILE_RAW,
 } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
@@ -47,8 +49,6 @@ const DIAGONAL_BLOCK = 197; // passable only when the sub-tile-offset gate bit i
 // The pushable band and its two lookup tables (expected terrain per tile + sub-offset).
 const PUSHABLE_LO = 113; // first tile in the band (exclusive upper end at PUSHABLE_HI)
 const PUSHABLE_HI = 158;
-const UNDER_TILE_TABLE = 0x1b78; // expected tile UNDER the object
-const AHEAD_TILE_TABLE = 0x1ce0; // expected tile one step AHEAD
 
 // The sprite/handler code that plays the object's push reaction.
 const PUSH_HANDLER_SPRITE = 0xb5;
@@ -98,7 +98,7 @@ function resolveTileAhead(m, column, cellPtr) {
 
   // Push-table test for the tile ahead: a mismatch means a pushable block ahead -> arm the push.
   if (aheadTile >= PUSHABLE_LO && aheadTile < PUSHABLE_HI) {
-    const expected = mem8[AHEAD_TILE_TABLE + (aheadTile - PUSHABLE_LO) * 8 + (aheadColumn & 7)];
+    const expected = mem8[HORIZ_STEP_AHEAD_TILE_TABLE + (aheadTile - PUSHABLE_LO) * 8 + (aheadColumn & 7)];
     mem8[NEXT_TILE] = expected;
     if (expected !== aheadTile) return armPushReaction(m);
   }
@@ -136,7 +136,7 @@ export function resolveObjectTerrainStep(m, underTile = m.regs.b, column = m.reg
 
   // Push-table test for the tile under the object: a mismatch is a pushable block met head-on.
   if (runUnderPushTest && underTile >= PUSHABLE_LO && underTile < PUSHABLE_HI) {
-    const expected = mem8[UNDER_TILE_TABLE + (underTile - PUSHABLE_LO) * 8 + subOffset];
+    const expected = mem8[HORIZ_STEP_EXPECTED_TILE_TABLE + (underTile - PUSHABLE_LO) * 8 + subOffset];
     mem8[EXPECTED_TILE] = expected;
     if (expected !== underTile) {
       // Mismatch: an aligned step arms the push; off the grid, look at the tile ahead.

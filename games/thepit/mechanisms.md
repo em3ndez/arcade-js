@@ -166,8 +166,8 @@ and vectors to a movement handler, else falls into `loc_1420 → loc_1434`. `[co
 - **Tile classification** (per frame, on the cell under & ahead): `[code]`
   - **Solid / impassable ids** (block, defer the frame): `0x2a`, `0x41`, `0xc1`, `0x95`, the
     `0x96–0x99` band, `0xc4`, and `0xc5` (gated on a sub-tile bit). `[code]`
-  - **Diggable "dirt" band `0x71–0x9d`:** looked up in expected-tile tables (`0x2118`/`0x2280` in the
-    vertical `loc_1a02`; `0x1b78`/`0x1ce0` horizontal; `0x1e48`/`0x1fb0` in `loc_191f`). On a mismatch
+  - **Diggable "dirt" band `0x71–0x9d`:** looked up in expected-tile tables (`VERT_STEP_EXPECTED_TILE_TABLE 0x2118`/`VERT_STEP_NEIGHBOUR_TILE_TABLE 0x2280` in the
+    vertical `loc_1a02`; `HORIZ_STEP_EXPECTED_TILE_TABLE 0x1b78`/`HORIZ_STEP_AHEAD_TILE_TABLE 0x1ce0` horizontal; `DIG_REACT_EXPECTED_TILE_TABLE 0x1e48`/`DIG_REACT_NEIGHBOUR_TILE_TABLE 0x1fb0` in `loc_191f`). On a mismatch
     it **arms a carve reaction** (sprite/state code `0xf6` vertical / `0xb5` horizontal / `0x36` in
     `loc_191f`, phase `0x80a2`, reload `0x80a4`) and sets the dig-collision state. `[code]`
   - **Digging is AUTOMATIC** — the carve is armed by *moving into* dirt, no button. `[seen]`/`[code]`
@@ -175,7 +175,7 @@ and vectors to a movement handler, else falls into `loc_1420 → loc_1434`. `[co
     dug; the fire bit belongs to the laser, §2.3).
   - **Dig-carve engine** `loc_29ad`/`loc_191f`: on arming, `DIG_COLLISION_STATE 0x80c1` → 2, arm-timer
     `0x80b1` → `0x40`, **sound `0x14`** requested (`0x4c9f`). The carve rewrites tilemap cells through
-    the `0x2dc7` translation table (carved dirt → `0xc1`/`0xc4`/blank `0x70`). `[code]`
+    the `DIG_CARVE_REMAP_TABLE 0x2dc7` translation table (carved dirt → `0xc1`/`0xc4`/blank `0x70`). `[code]`
 - **★ Red pellets are DIRT, not loot.** The ubiquitous red field is diggable/solid dirt tiles
   (`0x41`/`0x95`/`0x96`/`0x9a`/`0xc1` and the `0x71–0x9d` band); digging through it **never touches
   `crystalCount 0x8081`, `diamondCount 0x8082`, or the score.** The ONLY collectibles are the sparse
@@ -204,7 +204,7 @@ and vectors to a movement handler, else falls into `loc_1420 → loc_1434`. `[co
   `0x80a1` 0→1; clean launch to `0x8095=0x3a` captured grounding-2 Z-7 @f1253).
 - **Flight:** `loc_272d` advances the bolt as a **straight beam**: the scan pointer `0x809a` steps
   **−0x20/frame** (one tilemap column), the pixel coord `0x8094` advances **+8..+0x10 px/frame**, the
-  perpendicular coord `0x8097` stays constant. It `cpir`-scans the wall table at `0x277a`; on a
+  perpendicular coord `0x8097` stays constant. It `cpir`-scans the wall table at `STOP_TILE_TABLE 0x277a`; on a
   wall/edge match it **stops and marks the bolt spent** (`0x8094`:=0 / `0x80a1`:=0, sprite blank
   `0x8095=0x09`). `[seen]`/`[code]` (clean flight over ~24 frames then spent; Z-7).
 - **Re-arm / rate:** **one bolt in flight at a time.** While fire is HELD after a bolt goes spent it
@@ -387,7 +387,7 @@ doc names `0x80db`–`0x80de` **`CHAMBER_CREATURE_*`** and `loc_2f71` **`advance
 - **(b) Stage-1 (gated on goal-zone latch `0x80e7`): the Pit sliding-floor REVEAL.** `[code]`/`[seen]`
   Once the goal-zone latch `0x80e7 != 0` is set, a 6-tile bar in column 12 dissolves top-to-bottom,
   paced by the reveal gate `0x80e5` (period `0x80e4`, level-scaled): each expiry of `0x80e5` copies 6
-  bytes from ROM table `0x3048 + cursor 0x80e6` up a VRAM column at `PIT_FLOOR_REVEAL_COLUMN_BOTTOM 0x938c` (tiles progress
+  bytes from ROM table `PIT_FLOOR_REVEAL_PATTERN_TABLE 0x3048 + cursor 0x80e6` up a VRAM column at `PIT_FLOOR_REVEAL_COLUMN_BOTTOM 0x938c` (tiles progress
   `0x36→0x37→0x38→0x39→0x27`), stepping the cursor back 6 per reveal until it underflows (~130 frames).
   The extra condition `PIT_CROSS_ACTIVE 0x8077 != 0` **and** player column `0x806b == 0x6b` gates only
   the one-shot **reveal sound**, not the dissolve. The dispatcher `loc_13de` reads `0x80e6 == 0` as the

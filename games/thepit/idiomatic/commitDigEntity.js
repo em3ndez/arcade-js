@@ -20,23 +20,23 @@
 
 import { u8 } from "../../../core/int.js";
 import {
-  HAZARD_TYPE,
-  HAZARD_STATE,
+  CARVE_CELL_PTR,
+  DIG_CHANNEL_SEAM_REMAP_TABLE,
   DIG_OBJ_SUBTYPE,
   DIG_OBJ_TIMER,
+  HAZARD_STATE,
+  HAZARD_TYPE,
+  HAZARD_X,
+  HAZARD_Y,
   STAGED_CELL_PTR,
   STAGED_DIG_SPRITE_ID,
   STAGED_DIG_TIMER,
   STAGED_TARGET_X,
   STAGED_TARGET_Y,
-  HAZARD_X,
-  HAZARD_Y,
-  CARVE_CELL_PTR,
 } from "./names.js";
 
 const CARVING_STATE = 48; // dig-object state code for the carving phase
 const FILL_TILE = 112; // marker tile stamped into a committed cell
-const TILE_REMAP_TABLE = 0x2dc3; // dig-channel tile code -> patched seam tile
 
 export function commitDigEntity(m) {
   const { mem8, mem16 } = m;
@@ -68,7 +68,7 @@ export function commitDigEntity(m) {
   }
   if (oldNeighbour >= 150 && oldNeighbour <= 153) {
     // A dig-channel tile: remap it through the translation table.
-    mem8[cellPtr - 1] = mem8[TILE_REMAP_TABLE + (oldNeighbour - 150)];
+    mem8[cellPtr - 1] = mem8[DIG_CHANNEL_SEAM_REMAP_TABLE + (oldNeighbour - 150)];
   }
   // Anything else keeps the just-written sprite id.
 }
@@ -85,5 +85,5 @@ function patchSeamBySubtype(m, cellPtr) {
     mem8[cellPtr - 2] = FILL_TILE;
     return;
   }
-  mem8[cellPtr - 2] = mem8[TILE_REMAP_TABLE + u8(mem8[cellPtr - 2] - 150)];
+  mem8[cellPtr - 2] = mem8[DIG_CHANNEL_SEAM_REMAP_TABLE + u8(mem8[cellPtr - 2] - 150)];
 }

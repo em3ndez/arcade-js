@@ -13,7 +13,7 @@
  */
 
 import { F_Z } from "../../../core/cpu/z80.js";
-import { PROBE_CELL_PTR, SUBTILE_PHASE } from "./names.js";
+import { PROBE_CELL_PTR, PROBE_NEXT_TILE_TABLE, SUBTILE_PHASE } from "./names.js";
 
 
 export function nextTileInProbeRow(m) {
@@ -21,7 +21,7 @@ export function nextTileInProbeRow(m) {
 
   // Which 32-byte row to scan, and where in the table it starts.
   const rowIndex = mem8[SUBTILE_PHASE];
-  const rowBase = 0x35fe + rowIndex;
+  const rowBase = PROBE_NEXT_TILE_TABLE + rowIndex;
 
   // The key: the tile code one cell past the object's current display cell.
   const cellPtr = mem16[PROBE_CELL_PTR];

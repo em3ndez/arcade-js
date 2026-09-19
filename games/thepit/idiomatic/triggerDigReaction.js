@@ -14,14 +14,24 @@
  * off to the record builder or the movement continuation, whose return unwinds to our caller.
  */
 
-import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW, REACTION_TIMER, EXPECTED_TILE } from "./names.js";
+import {
+  AHEAD_TILE_RAW,
+  DIG_COLLISION_STATE,
+  DIG_OBJ_TIMER,
+  DIG_REACT_EXPECTED_TILE_TABLE,
+  DIG_REACT_NEIGHBOUR_TILE_TABLE,
+  EXPECTED_TILE,
+  NEXT_TILE,
+  PLAYER_FACING,
+  REACTION_PERIOD,
+  REACTION_STATE,
+  REACTION_TIMER,
+} from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
 
 // Tables of the tile each cell is expected to hold (current cell, and neighbour cell).
-const EXPECTED_TILE_TABLE = 0x1e48;
-const NEIGHBOUR_TILE_TABLE = 0x1fb0;
 
 // Classifier scratch (roles not pinned).
 const REACTION_PARAM = REACTION_TIMER;
@@ -53,7 +63,7 @@ export function triggerDigReaction(m, tileCode = m.regs.b, positionAccumulator =
   if (tileCode < 113 || tileCode >= 154) return movementContinuation(m);
 
   // Look up the tile this cell is expected to hold and record it.
-  const expected = mem8[EXPECTED_TILE_TABLE + (tileCode - 113) * 8 + subCell];
+  const expected = mem8[DIG_REACT_EXPECTED_TILE_TABLE + (tileCode - 113) * 8 + subCell];
   mem8[EXPECTED_TILE] = expected;
 
   // Expected tile still matches what's there — nothing changed, keep moving.
@@ -71,7 +81,7 @@ export function triggerDigReaction(m, tileCode = m.regs.b, positionAccumulator =
   const neighbourTile = mem8[actorCellPtr + 1];
   mem8[AHEAD_TILE_RAW] = neighbourTile;
   if (neighbourTile >= 113 && neighbourTile < 154) {
-    mem8[NEXT_TILE] = mem8[NEIGHBOUR_TILE_TABLE + (neighbourTile - 113) * 8 + subCell];
+    mem8[NEXT_TILE] = mem8[DIG_REACT_NEIGHBOUR_TILE_TABLE + (neighbourTile - 113) * 8 + subCell];
   }
   return armReactionLatch(m);
 }

@@ -12,14 +12,19 @@
  * element this strip is has not been earned, so the name stays coordinate-descriptive.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, BOARD_MODE } from "./names.js";
+import {
+  BOARD_MODE,
+  PLAYFIELD_STRIP_COL1_ROW11_TILES,
+  PLOT_RUN_LENGTH,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 
 // Tile table the tilemap fill walks (backwards) for every cell below the cap.
-const STRIP_SOURCE_TABLE = 0x494f;
 // Paint scratch shared with the fill helpers: the colour value painted down the column.
 const COLOUR_FILL = BOARD_MODE;
 
@@ -35,7 +40,7 @@ export function paintPlayfieldStripCol1Row11(m) {
   // Colour value 0, a 10-cell run, then paint the tilemap strip (cap on top, table-walked below).
   mem8[COLOUR_FILL] = 0;
   mem8[PLOT_RUN_LENGTH] = 10;
-  copyCappedTileColumn(m, STRIP_SOURCE_TABLE);
+  copyCappedTileColumn(m, PLAYFIELD_STRIP_COL1_ROW11_TILES);
 
   // Paint the matching 10-cell colour column; the call returns here, so we return to our caller.
   return fillColourColumn(m);

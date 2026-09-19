@@ -27,7 +27,15 @@ import { requestSound8 } from "./requestSound8.js";
 import { addScore } from "./addScore.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { waitFrames } from "./waitFrames.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, LOOP_COUNTER, CRYSTAL_COUNT, DIAMOND_COUNT } from "./names.js";
+import {
+  BONUS_SCREEN_ROW3_STRIP,
+  CRYSTAL_COUNT,
+  DIAMOND_COUNT,
+  LOOP_COUNTER,
+  PLOT_RUN_LENGTH,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 
 const CONFIG_A = CRYSTAL_COUNT; // first gameplay config byte; == 4 adds a tier
 const CONFIG_B = DIAMOND_COUNT; // second gameplay config byte; == 3 adds a tier
@@ -36,7 +44,6 @@ const TIER_COUNTER = LOOP_COUNTER; // holds the tier count, then drained to 0 by
 // The two upper text rows each pick a label strip by tier; the third row is fixed.
 const ROW1_STRIP = { hi: 0x4a2e, mid: 0x4a21, lo: 0x4a14 }; // tier 15 / 10 / 5
 const ROW2_STRIP = { hi: 0x4a55, mid: 0x4a48, lo: 0x4a3b };
-const ROW3_STRIP = 0x4a07; // fixed third row
 
 const HOLD_FRAMES = 15; // video frames each hold pass waits
 const HOLD_SCORE = 16; // packed-BCD amount added each pass (+10 on screen)
@@ -84,7 +91,7 @@ export function* showBonusScreen(m) {
   // Row three: 15 glyphs at column 21, row 9 — a fixed strip — then a colour column.
   seatCell(m, 21, 9);
   mem8[PLOT_RUN_LENGTH] = 15;
-  copyTileColumn(m, ROW3_STRIP);
+  copyTileColumn(m, BONUS_SCREEN_ROW3_STRIP);
   fillColourColumnAt(m, 21, 0xa6);
 
   // 2. Hold the screen for `count` passes, shimmering the colour band as it tallies.

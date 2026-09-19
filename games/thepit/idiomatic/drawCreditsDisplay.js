@@ -10,7 +10,14 @@
  * the live top cell keeps its prior colour. Which field it draws is not pinned.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, CREDIT_COUNT, BOARD_MODE } from "./names.js";
+import {
+  BOARD_MODE,
+  CREDIT_COUNT,
+  CREDIT_LABEL_GLYPHS,
+  PLOT_RUN_LENGTH,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -21,7 +28,6 @@ import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 const FILL_ATTR = BOARD_MODE;
 
 // Source of the fixed label glyphs. (The top cell's live value comes from CREDIT_COUNT.)
-const LABEL_SOURCE = 0x496d;
 
 export function drawCreditsDisplay(m) {
   const { mem8 } = m;
@@ -42,7 +48,7 @@ export function drawCreditsDisplay(m) {
 
   // Label field: fill the next eight cells (cap glyph + seven glyphs), continuing the column.
   mem8[PLOT_RUN_LENGTH] = 8;
-  copyCappedTileColumn(m, LABEL_SOURCE);
+  copyCappedTileColumn(m, CREDIT_LABEL_GLYPHS);
 
   // Hand off to the colour filler with the count of eight still in place, so it tints those
   // eight cells; its result is this routine's.

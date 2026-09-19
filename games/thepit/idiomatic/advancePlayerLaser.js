@@ -14,7 +14,33 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { PIT_CROSS_ACTIVE, DIG_COLLISION_STATE, HAZARD_ACTIVE_COUNT, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_X, REACTION_OBJ_Y, PLAYER_Y, PLAYER_X, PLAYER_CELL_PTR, EXPECTED_TILE, NEXT_TILE, PLAYER_FACING, SPRITE_COORD_BIAS, PLAYER_ACTIVE, BOARD_END_PHASE, GOAL_TILE_LATCH, IN0_DEBOUNCED, SPRITE_STAGING_BASE, REACTION_OBJ_CODE, REACTION_OBJ_ATTR, LASER_SCAN_PTR, SCROLL_SUBPHASE, LASER_STATE } from "./names.js";
+import {
+  BOARD_END_PHASE,
+  DIG_COLLISION_STATE,
+  EXPECTED_TILE,
+  GOAL_TILE_LATCH,
+  HAZARD_ACTIVE_COUNT,
+  IN0_DEBOUNCED,
+  LASER_SCAN_PTR,
+  LASER_STATE,
+  NEXT_TILE,
+  PIT_CROSS_ACTIVE,
+  PLAYER_ACTIVE,
+  PLAYER_CELL_PTR,
+  PLAYER_FACING,
+  PLAYER_X,
+  PLAYER_Y,
+  REACTION_OBJ_ATTR,
+  REACTION_OBJ_CODE,
+  REACTION_OBJ_X,
+  REACTION_OBJ_Y,
+  REACTION_STATE,
+  REACTION_TIMER,
+  SCROLL_SUBPHASE,
+  SPRITE_COORD_BIAS,
+  SPRITE_STAGING_BASE,
+  STOP_TILE_TABLE,
+} from "./names.js";
 import { spawnDigEntity } from "./spawnDigEntity.js";
 import { requestSound9 } from "./requestSound9.js";
 import { requestSound12 } from "./requestSound12.js";
@@ -23,7 +49,6 @@ import { advanceDigCarveObject } from "./advanceDigCarveObject.js";
 // The horizontal-scroll state (a persistent 3-byte block driving the terrain walk).
 const SCROLL_STEP = LASER_STATE; // signed per-frame X step; bit 3 set marks a scroll in progress,
 //                             bit 7 its direction (set -> window +32/row, clear -> -32/row)
-const STOP_TILE_TABLE = 0x277a; // eight 32-byte per-sub-column lists of stop tiles
 
 // The reaction object owns sprite slot 1 (four bytes per slot) of the staging buffer.
 const REACTION_SPRITE_SLOT = SPRITE_STAGING_BASE + 4;

@@ -1,4 +1,4 @@
-import { VIDEO_RAM_LAST_CELL } from "./names.js";
+import { FILL_TILE_CODE, VIDEO_RAM_LAST_CELL } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * fillVideoRam — paint every cell of the tilemap with one tile code.
@@ -12,7 +12,7 @@ import { VIDEO_RAM_LAST_CELL } from "./names.js";
 export function fillVideoRam(m) {
   const { mem8 } = m;
 
-  const fill = mem8[0x4b0f]; // the tile code to stamp into every cell
+  const fill = mem8[FILL_TILE_CODE]; // the tile code to stamp into every cell
 
   // Paint all 1024 tilemap cells with the fill code.
   for (let cell = 0x9000; cell <= VIDEO_RAM_LAST_CELL; cell++) {

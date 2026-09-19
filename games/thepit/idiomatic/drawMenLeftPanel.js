@@ -13,7 +13,15 @@
  * field it draws and what the live byte counts are not pinned, and it is one of a near family.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, MEN_LEFT, BOARD_MODE } from "./names.js";
+import {
+  BOARD_MODE,
+  MEN_LEFT,
+  MEN_LEFT_ALT_LABEL_GLYPHS,
+  MEN_LEFT_DEFAULT_LABEL_GLYPHS,
+  PLOT_RUN_LENGTH,
+  TILE_COL,
+  TILE_ROW,
+} from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -23,8 +31,6 @@ import { copyTileColumn } from "./copyTileColumn.js";
 const FILL_ATTR = BOARD_MODE;
 
 // Glyph sources for the two labels (walked backwards by the copy helper).
-const DEFAULT_LABEL = 0x49ba;
-const ALT_LABEL = 0x49c2;
 
 export function drawMenLeftPanel(m) {
   const { mem8 } = m;
@@ -42,7 +48,7 @@ export function drawMenLeftPanel(m) {
 
     // The eight-glyph label, stamped down the video column by the copy helper.
     mem8[PLOT_RUN_LENGTH] = 8;
-    copyTileColumn(m, ALT_LABEL);
+    copyTileColumn(m, MEN_LEFT_ALT_LABEL_GLYPHS);
 
     // Colour the full eight-cell run; this is drawMenLeftPanel's exit.
     return fillColourColumn(m);
@@ -58,7 +64,7 @@ export function drawMenLeftPanel(m) {
 
   // The nine-glyph label field, stamped by the copy helper.
   mem8[PLOT_RUN_LENGTH] = 9;
-  copyTileColumn(m, DEFAULT_LABEL);
+  copyTileColumn(m, MEN_LEFT_DEFAULT_LABEL_GLYPHS);
 
   // One more cell: the live value itself, continuing down the same video column.
   mem8[PLOT_RUN_LENGTH] = 1;

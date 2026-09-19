@@ -10,7 +10,7 @@
  * and whether it is passable or blocked, stay unpinned — the name is mechanism-level.
  */
 
-import { PROBE_CELL_PTR, SUBTILE_PHASE, ENEMY_WORK_Y } from "./names.js";
+import { ENEMY_WORK_Y, PROBE_CELL_PTR, PROBE_TILE_TABLE, SUBTILE_PHASE } from "./names.js";
 export function tileInProbeRow(m) {
   const { mem8, mem16 } = m;
 
@@ -26,7 +26,7 @@ export function tileInProbeRow(m) {
   const tile = mem8[probeCell];
 
   // Scan this phase's 32-tile row for that tile.
-  const rowBase = 0x34fe + rowSelector; // probe table, 32 bytes per phase row
+  const rowBase = PROBE_TILE_TABLE + rowSelector; // probe table, 32 bytes per phase row
   for (let i = 0; i < 32; i++) {
     if (mem8[rowBase + i] === tile) return true;
   }
