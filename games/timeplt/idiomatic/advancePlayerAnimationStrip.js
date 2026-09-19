@@ -5,8 +5,13 @@
  * game-state cells divert the frame into the heading snap instead. Otherwise the phase is stepped
  * down and, when it lands on one of seven keyframe values, a shape strip is blitted tile-by-tile
  * into video and colour memory a row at a time; a phase between keyframes draws nothing.
- * LIVE-OUT: the phase and paired-entry cells, the drawn strip, or whatever the divert leaves. */
+ * LIVE-OUT: memory. The routine is a pure painter — its sole caller (dispatchPlayerFrameByState)
+ * tail-returns and reads no register it leaves, so every register it touches is dead-after-return
+ * scratch and lives here as a JS local. The two heading-snap diverts hand the compared byte to
+ * the divert target in `a` (which folds it with the sound routines' leftover `b`), so that one boundary
+ * write rides the return. */
 
+import { u8, u16 } from "../../../core/int.js";
 import { loc_1f2e } from "./loc_1f2e.js";
 import { requestLateEraProgressSound } from "./requestLateEraProgressSound.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
@@ -35,7 +40,8 @@ const STATE_DRAW_A = 0x05;
 const STATE_DRAW_B = 0x10;
 const COLOUR_BIAS = 0xc1; // added to the level to pick the strip's colour attribute
 const ROW_ADVANCE = 0x1b; // step from the last tile of a row to the first of the next
-const COLOUR_RAM_BIT = 2; // clearing this bit of H maps video into colour memory
+const COLOUR_RAM_BIT = 2; // clearing this bit of the high address byte maps video into colour memory
+const VRAM_TO_COLOUR = 1 << (8 + COLOUR_RAM_BIT); // clear from a video address to reach colour RAM
 
 // phase after the decrement -> base of the strip's shape data, in keyframe order
 const FRAME_ARMS = [
@@ -49,65 +55,52 @@ const FRAME_ARMS = [
 ];
 
 export function advancePlayerAnimationStrip(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem, mem8 } = m;
+  const { mem8 } = m;
+  const X = (d) => u16(ix + d);
+  const Y = (d) => u16(iy + d);
 
-  regs.a = mem8[(ix + PHASE) & 0xffff];
-  regs.cp(FIRST_FRAME);
-  if (!regs.fC) {
-    mem8[(ix + PHASE) & 0xffff] = FIRST_FRAME;
-    mem8[(iy + PAIR_FLAG) & 0xffff] = PAIR_MARK;
-    regs.a = mem8[ERA_INDEX];
-    regs.cp(EXTRA_CUE_LEVEL);
-    if (!regs.fC) requestLateEraProgressSound(m);
+  if (mem8[X(PHASE)] >= FIRST_FRAME) {
+    // opening frame: clamp the phase, flag the paired entry, request the round-intro cues
+    mem8[X(PHASE)] = FIRST_FRAME;
+    mem8[Y(PAIR_FLAG)] = PAIR_MARK;
+    if (mem8[ERA_INDEX] >= EXTRA_CUE_LEVEL) requestLateEraProgressSound(m);
     requestRoundIntroSoundBurst(m);
 
-    regs.a = mem8[TAMPER_GLYPH_STRIP];
-    regs.cp(RUNNING);
-    if (regs.fNZ) return loc_1f2e(m);
-
-    regs.de = TAMPER_COLOUR_STRIP;
-    regs.a = mem8[regs.de];
-    regs.cp(STATE_DRAW_A);
-    if (regs.fNZ) {
-      regs.cp(STATE_DRAW_B);
-      if (regs.fNZ) return loc_1f2e(m);
-    }
+    // two game-state cells can divert the frame into the heading snap; each hands the divert target the
+    // compared byte in `a` (its `b` is the sound routines' leftover, untouched here)
+    const glyph = mem8[TAMPER_GLYPH_STRIP];
+    if (glyph !== RUNNING) return (m.regs.a = glyph, loc_1f2e(m));
+    const drawState = mem8[TAMPER_COLOUR_STRIP];
+    if (drawState !== STATE_DRAW_A && drawState !== STATE_DRAW_B) return (m.regs.a = drawState, loc_1f2e(m));
   }
 
-  regs.decMem8(mem, (ix + PHASE) & 0xffff);
-  regs.a = mem8[(ix + PHASE) & 0xffff];
-
+  // step the phase down; a strip draws only when it lands on one of seven keyframes
+  const phaseAddr = X(PHASE);
+  mem8[phaseAddr] = u8(mem8[phaseAddr] - 1);
+  const phase = mem8[phaseAddr];
   let base = null;
   for (const [frame, table] of FRAME_ARMS) {
-    regs.cp(frame);
-    if (regs.fZ) { base = table; break; }
+    if (phase === frame) { base = table; break; }
   }
-  if (base === null) return; // phase between keyframes
+  if (base === null) return; // phase between keyframes draws nothing
 
-  regs.de = base;
-  regs.hl = PLAYER_ANIM_VRAM_BASE;
-  regs.b = COLOUR_BIAS;
-  regs.a = mem8[ERA_INDEX];
-  regs.add(regs.b);
-  regs.c = regs.a;
-  regs.exx();
-  regs.a = mem8[PLAYER_ANIM_ROW_COUNT];
-  regs.b = regs.a;
+  // blit the shape strip tile-by-tile into video memory, mirroring each tile's colour attribute
+  // into the colour plane VRAM_TO_COLOUR below; ROW_COUNT rows of COL_COUNT tiles, ROW_ADVANCE
+  // between rows. The colour byte is the same for every tile: the level biased by COLOUR_BIAS.
+  let src = base;
+  let dst = PLAYER_ANIM_VRAM_BASE;
+  const colour = u8(mem8[ERA_INDEX] + COLOUR_BIAS);
+  let rows = mem8[PLAYER_ANIM_ROW_COUNT];
   do {
-    regs.exx();
-    regs.a = mem8[PLAYER_ANIM_COL_COUNT];
-    regs.b = regs.a;
+    let cols = mem8[PLAYER_ANIM_COL_COUNT];
     do {
-      regs.a = mem8[regs.de];
-      mem8[regs.hl] = regs.a;
-      regs.h = regs.res(COLOUR_RAM_BIT, regs.h);
-      mem8[regs.hl] = regs.c;
-      regs.h = regs.set(COLOUR_RAM_BIT, regs.h);
-      regs.hl = (regs.hl + 1) & 0xffff;
-      regs.de = (regs.de + 1) & 0xffff;
-    } while (regs.djnz() !== 0);
-    regs.a = ROW_ADVANCE;
-    offsetAddress(m);
-    regs.exx();
-  } while (regs.djnz() !== 0);
+      mem8[dst] = mem8[src];
+      mem8[dst & ~VRAM_TO_COLOUR] = colour;
+      dst = u16(dst + 1);
+      src = u16(src + 1);
+      cols = u8(cols - 1);
+    } while (cols !== 0);
+    dst = offsetAddress(m, dst, ROW_ADVANCE);
+    rows = u8(rows - 1);
+  } while (rows !== 0);
 }

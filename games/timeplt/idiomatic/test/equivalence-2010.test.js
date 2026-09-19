@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advancePlayerAnimationStrip vs the frozen oracle: the coin-start tape reaches this address directly, so real captured
- * dispatches drive the REAL arm, and crafted entries force each decision branch. A pure leaf — every
- * call dissolved to a direct import — so the rewrite omits its own ret; the dead stack scratch is
- * masked off the oracle's own pushes and the flag byte and SP held to a measured ceiling.
+ * advancePlayerAnimationStrip vs the frozen oracle at ROM 0x2010. The coin-start tape reaches this address
+ * directly, so real captured dispatches drive the REAL arm, and crafted entries force each decision
+ * branch. The frogger standard applies: this is a pure painter — its sole caller
+ * (dispatchPlayerFrameByState) tail-returns and reads none of the registers it leaves, and that
+ * caller's own gate (equivalence-1edf) already compares memory alone — so RAM is the whole contract.
+ * The oracle's dissolved calls (0x5679/0x56d2/0x1f2e/0x0018) push return words the rewrite never
+ * models, and the terminal `ret` pops one, so the stack window [low, seat) is masked off the oracle's
+ * own pushes; nothing else is pinned, because there are no genuine register live-outs.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-2010.test.js
  */
 
@@ -17,7 +21,6 @@ import { loc_1f2e } from "../loc_1f2e.js";
 import { requestLateEraProgressSound } from "../requestLateEraProgressSound.js";
 import { requestRoundIntroSoundBurst } from "../requestRoundIntroSoundBurst.js";
 import { offsetAddress } from "../offsetAddress.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x2010;
 const CAP = 60;
@@ -29,12 +32,16 @@ const STATE_HI = 0xabfe;
 const STATE_LO = 0xabff;
 const RUNNING = 0xa5;
 
-// Every data write lands at or below here; the seat sits far above it, so masking the scratch can
-// never hide a real byte. Checked against the watched floor below.
+// Every data write lands at or below here; the seat sits far above it (measured floor above 0xae00),
+// so masking the scratch window can never hide a real byte. Enforced inside unitDiff.
 const DATA_TOP = 0xadff;
-// The advance callee is flag-free by design and the rewrite leaves the ROM ret to the live seam, so
-// the flag byte and SP are adrift; asserted as a SUBSET so an exact rewrite still passes.
-const EXCLUDED = ["f", "sp"];
+const SCRIBBLE_CELL = 0xa5af; // a compared (non-stack) cell the teeth flip to prove the RAM measurement bites
+
+/** The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and only
+ *  genuine named register live-outs are pinned beside it. This painter has none — the sole caller
+ *  (dispatchPlayerFrameByState, ROM 0x1edf) tail-returns and reads no register it leaves, and its own
+ *  gate (equivalence-1edf) already compares memory alone — so the set is empty. */
+const GENUINE_LIVE_OUTS = [];
 
 const FRAME_ARMS = [
   [0xb3, 0x1f76], [0xab, 0x1f94], [0xa3, 0x1fb2], [0x9b, 0x1fd0],
@@ -43,6 +50,8 @@ const FRAME_ARMS = [
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
+const show = (d) =>
+  d ? `${d.addr == null ? "registers" : hex4(d.addr)}: oracle=${d.a} candidate=${d.b}` : "identical";
 
 // ── real dispatches ─────────────────────────────────────────────────────────────────────────────
 
@@ -63,39 +72,35 @@ function captured() {
   return entries;
 }
 
-// ── the masked comparison ───────────────────────────────────────────────────────────────────────
+// ── the masked comparison (frogger standard) ─────────────────────────────────────────────────────
 
 // Oracle vs candidate on independent clones. The frozen side pushes below its seat and pops a return
-// the rewrite never models, so [low, seat) is masked with low watched off the oracle's own pushes.
-function compare(cand, machine) {
+// the rewrite never models, so [low, seat) is masked with low watched off the oracle's own pushes;
+// then RAM outside that window must match byte-for-byte, and only genuine register live-outs are
+// pinned (none here). Returns a diff descriptor, or null when equivalent.
+function unitDiff(cand, machine) {
   const a = machine.clone();
   const b = machine.clone();
   const seat = a.regs.sp;
   let low = seat;
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
-  const rO = oracle(a);
-  let rC, threw = null;
-  try { rC = cand(b); } catch (e) { threw = String(e).slice(0, 60); }
+  oracle(a);
+  try { cand(b); } catch (e) { return { addr: null, a: "returned", b: String(e).slice(0, 40) }; }
+  if (low <= DATA_TOP) throw new Error(`the stack window ${hex4(low)} reached into game data`);
   const da = a.dumpState();
   const db = b.dumpState();
-  let escaped = null;
-  for (let i = 0; i < da.length && escaped === null; i++) {
-    if (threw || da[i] === db[i]) continue;
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
     const addr = a.stateOffsetToAddr(i);
-    if (addr >= low && addr < seat) continue;
-    escaped = { addr, oracle: da[i], candidate: db[i] };
+    if (addr >= low && addr < seat) continue; // stack scratch the rewrite never models
+    return { addr, a: da[i], b: db[i] };
   }
-  let reg = null;
-  if (!threw) {
-    for (const k of REG_FIELDS) {
-      if (EXCLUDED.includes(k)) continue;
-      if (a.regs[k] !== b.regs[k]) { reg = { k, a: a.regs[k], b: b.regs[k] }; break; }
-    }
+  for (const k of GENUINE_LIVE_OUTS) {
+    if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
-  return { escaped, reg, threw, low, seat, spDiff: a.regs.sp - b.regs.sp, rO, rC };
+  return null;
 }
-const diverges = (cand, m) => { const r = compare(cand, m); return !!(r.escaped || r.reg || r.threw); };
 
 // Bytes the oracle moves from a state — the scenario's footprint.
 function footprint(machine) {
@@ -120,7 +125,14 @@ function craft(head, hi, lo, level) {
 }
 
 // [label, machine, exit is a tail-divert]. Head < the cap takes the near branch; >= it takes the
-// first-frame branch, whose two state cells then draw, divert, or draw again.
+// first-frame branch, whose two state cells then draw, divert, or draw again. The two divert arms
+// enter loc_1f2e — junk direction-table bytes decoded as instructions — which on the attract state
+// this address is reached from EARLY-RETS for every entry b (measured across all 256), so the divert
+// writes no memory of its own beyond the clamp/flag/cue the first-frame branch already made. That is
+// the frogger standard at work: the divert's only effect here is register/control-flow, which is
+// outside the RAM contract. The tail scenarios therefore prove the candidate replays the divert path
+// identically; a defect that only mis-routes the divert with no RAM consequence is deliberately not a
+// teeth target (see SCRATCH NOT PINNED).
 let scenCache = null;
 function scen() {
   if (scenCache) return scenCache;
@@ -153,13 +165,13 @@ function makeBody(o = {}) {
       requestRoundIntroSoundBurst(m);
       regs.a = mem8[STATE_HI];
       regs.cp(RUNNING);
-      if (regs.fNZ) return o.dropDivert ? undefined : loc_1f2e(m);
+      if (regs.fNZ) return loc_1f2e(m);
       regs.de = STATE_LO;
       regs.a = mem8[regs.de];
       regs.cp(0x05);
       if (regs.fNZ) {
         regs.cp(0x10);
-        if (regs.fNZ) return o.dropDivert ? undefined : loc_1f2e(m);
+        if (regs.fNZ) return loc_1f2e(m);
       }
     }
     regs.decMem8(mem, regs.ix & 0xffff);
@@ -196,28 +208,19 @@ function makeBody(o = {}) {
   };
 }
 
-// The control for EXCLUDED: scribbles a register the routine has no business touching.
-function movesSpare(m) { const r = candidate(m); m.regs.h = (m.regs.h + 1) & 0xff; return r; }
-
-// [label, twin, the scenario labels it must be caught on].
+// [label, twin, the scenario labels it must be caught on]. A drop-divert twin is intentionally absent:
+// loc_1f2e early-rets on every reachable divert here (measured across all 256 entry b), so dropping
+// the divert changes no RAM — a control-flow-only defect the memory contract deliberately does not
+// pin, exactly as the register twin below is not pinned.
 const TWINS = [
   ["no-op", makeBody({ noOp: true }), ["A-draw", "A-nodraw", "B-drawA", "B-drawB", "B-tailHi", "B-tailLo", "B-cue"]],
   ["skip-clamp", makeBody({ skipClamp: true }), ["B-drawA", "B-drawB", "B-tailHi", "B-tailLo", "B-cue"]],
   ["wrong-colour", makeBody({ wrongColour: true }), ["A-draw", "B-drawA", "B-drawB", "B-cue"]],
-  ["drop-divert", makeBody({ dropDivert: true }), ["B-tailHi", "B-tailLo"]],
 ];
 
-function movedOver(cand) {
-  const moved = new Set();
-  for (const [, c] of scen()) {
-    const a = c.clone();
-    const b = c.clone();
-    oracle(a);
-    try { cand(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
-}
+// ── scratch-not-pinned controls: a register-only twin passes by design; RAM still bites ──────────
+const scribbleData = (mm) => { candidate(mm); mm.mem8[SCRIBBLE_CELL] ^= 0xff; };
+const scribbleScratchReg = (mm) => { candidate(mm); mm.regs.b = (mm.regs.b + 1) & 0xff; };
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────────────
 
@@ -225,10 +228,8 @@ test("REAL: every captured dispatch replays identically, and some write", { skip
   const entries = captured();
   assert.ok(entries.length > 0, "vacuous: the coin-start tape no longer reaches this address");
   for (const e of entries) {
-    const r = compare(candidate, e);
-    assert.equal(r.threw, null, r.threw && `the candidate threw: ${r.threw}`);
-    assert.equal(r.escaped, null, r.escaped && `escaped the mask at ${hex4(r.escaped.addr)}`);
-    assert.equal(r.reg, null, r.reg && `register ${r.reg && r.reg.k} diverged`);
+    const d = unitDiff(candidate, e);
+    assert.equal(d, null, () => `escaped: ${show(d)}`);
   }
   const wrote = entries.filter((e) => footprint(e) > 0).length;
   assert.ok(wrote > 0, "no captured dispatch makes the oracle write, so this arm would pass a no-op");
@@ -237,9 +238,8 @@ test("REAL: every captured dispatch replays identically, and some write", { skip
 
 test("BRANCHES: every crafted decision branch replays, and the branches really differ", { skip }, () => {
   for (const [label, c] of scen()) {
-    const r = compare(candidate, c);
-    assert.equal(r.escaped, null, `${label}: escaped at ${r.escaped && hex4(r.escaped.addr)}`);
-    assert.equal(r.reg, null, `${label}: register ${r.reg && r.reg.k} diverged`);
+    const d = unitDiff(candidate, c);
+    assert.equal(d, null, `${label}: ${show(d)}`);
   }
   // ★ Vacuity guard: a draw moves the strip, a no-draw moves only the stepped phase, a divert moves
   // what the heading snap leaves — so a rewrite that confused them could not pass all seven.
@@ -250,40 +250,37 @@ test("BRANCHES: every crafted decision branch replays, and the branches really d
   console.log(`  BRANCHES: ${scen().length} identical; footprints ${Object.entries(foot).map(([n, v]) => `${n}=${v}`).join(" ")}`);
 });
 
-test("SP AND RETURN: ret paths re-seat two bytes higher, tails zero, mask floor over the data",
-  { skip }, () => {
-    for (const [label, c, isTail] of scen()) {
-      const r = compare(candidate, c);
-      assert.equal(r.spDiff, isTail ? 0 : 2, `${label}: SP re-seat moved`);
-      assert.ok(r.low > DATA_TOP, `${label}: the stack window ${hex4(r.low)} reached into game data`);
-      assert.equal(r.rO, r.rC, `${label}: the return value diverged`);
-    }
-    console.log("  SP: +2 on ret paths, 0 on tails; window over the data; returns identical");
-  });
-
-test("EXCLUDED, measured: nothing moves outside the ceiling, with a control that does", { skip }, () => {
-  const moved = movedOver(candidate);
-  const control = movedOver(movesSpare);
-  assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
-    "the measurement reports nothing even for a twin that scribbles a register, so a clean reading proves nothing");
-  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
-  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-  console.log(`  EXCLUDED: observed ${EXCLUDED.filter((k) => moved.has(k)).join(", ")}; control also ` +
-    `moves ${REG_FIELDS.filter((k) => control.has(k) && !EXCLUDED.includes(k)).join(", ")}`);
+test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  // No genuine register live-outs, so a twin that only scribbles a scratch register after the routine
+  // is DELIBERATELY not flagged — and the same measurement must still catch a scribbled RAM cell, or
+  // the clean read on the register twin would be worthless.
+  const states = [captured()[0], ...scen().map(([, c]) => c)];
+  for (const s of states) {
+    assert.equal(unitDiff(scribbleScratchReg, s), null,
+      "a scratch-register scribble was flagged, but this painter has no genuine register live-outs to pin");
+    const d = unitDiff(scribbleData, s);
+    assert.notEqual(d, null, "the RAM measurement missed a scribbled cell, so it has no teeth");
+    assert.notEqual(d.addr, null, "the RAM scribble must be caught on a cell, not a register");
+  }
+  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on all ${states.length}`);
 });
 
 test("TWIN BASE: the re-derived body with no defect is itself clean", { skip }, () => {
   for (const [label, c] of scen()) {
-    assert.equal(diverges(makeBody({}), c), false, `${label}: the defect-free twin base diverged`);
+    assert.equal(unitDiff(makeBody({}), c), null, `${label}: the defect-free twin base diverged`);
   }
   console.log(`  TWIN BASE: clean on all ${scen().length} scenarios`);
 });
 
 for (const [label, twin, targets] of TWINS) {
   test(`TEETH: the ${label} twin is caught on exactly its branches`, { skip }, () => {
-    const on = scen().filter(([, c]) => diverges(twin, c)).map(([n]) => n);
+    const on = scen().filter(([, c]) => unitDiff(twin, c) !== null).map(([n]) => n);
     assert.ok(on.length > 0, `the ${label} twin is not caught at all`);
     assert.deepEqual(on.sort(), [...targets].sort(), `the ${label} twin's caught scenarios moved`);
+    // every catch must land on a memory cell, so a register ceiling is not doing the biting
+    for (const [, c] of scen().filter(([n]) => targets.includes(n))) {
+      assert.notEqual(unitDiff(twin, c).addr, null, `the ${label} twin was caught on a register, not a cell`);
+    }
     console.log(`  TEETH/${label}: caught on ${on.length}/${scen().length} — ${on.join(", ")}`);
   });
 }

@@ -2,8 +2,10 @@
 /** spawnEnemyCraftWhenBandUnderTwo — gate a spawning tick on the packed-decimal phase byte the caller points at, count the
  * busy heads across the enemy-craft band, and only when fewer than two are busy run the free-slot
  * search: the cleared run when the owed-kills cell is zero, else the owed run seated for as many
- * turns as the round asks. LIVE-OUT: whatever the chosen search leaves, or nothing when the gate is
- * shut or two heads are already busy. */
+ * turns as the round asks. LIVE-OUT: memory. The sole caller (driveEnemyWaveForLifePhase) tail-returns
+ * this result and reads no register back; b and the two cursors are seated only so the owed run's
+ * downward search (spawnEnemyIntoFreeSlotElseStepSearch -> closeOneTurnOfTheFreeSlotSearch, which reads
+ * b/ix/iy off the register file) threads correctly — none survive the return. */
 
 import { loc_3793 } from "./loc_3793.js";
 import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotElseStepSearch.js";
@@ -15,37 +17,25 @@ const BUSY_CEILING = 0x02;
 const OPEN_PHASE = 0x30;
 
 export function spawnEnemyCraftWhenBandUnderTwo(m, hl = m.regs.hl) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = mem8[hl];
-  regs.and(regs.a);
-  if (regs.a !== 0x00) {
-    regs.cp(OPEN_PHASE);
-    if (regs.a !== OPEN_PHASE) return; // neither the idle nor the open phase
+  // run only when the phase byte the caller points at is idle or at OPEN_PHASE
+  const phase = mem8[hl];
+  if (phase !== 0x00 && phase !== OPEN_PHASE) return;
+
+  // count busy heads across the seven-record craft band (max 7, so the count never wraps)
+  let busy = 0;
+  let ptr = CRAFT_RECORD_SLOT0;
+  for (let n = BAND_SLOTS; n > 0; n--) {
+    if (mem8[ptr] !== 0x00) busy += 1;
+    ptr = (ptr + RECORD_STRIDE) & 0xffff;
   }
+  if (busy >= BUSY_CEILING) return; // two or more slots already busy
 
-  regs.hl = CRAFT_RECORD_SLOT0;
-  regs.de = RECORD_STRIDE;
-  regs.b = BAND_SLOTS;
-  regs.c = 0x00;
-  do {
-    regs.a = mem8[regs.hl];
-    regs.and(regs.a);
-    if (regs.a !== 0x00) regs.c = regs.inc8(regs.c);
-    regs.hl = (regs.hl + regs.de) & 0xffff;
-  } while (regs.djnz() !== 0);
+  // nothing owed -> the cleared five-slot run; else the owed run over the round's craft count
+  if (mem8[KILLS_REMAINING] === 0x00) return loc_3793(m);
 
-  regs.a = regs.c;
-  regs.cp(BUSY_CEILING);
-  if (regs.a >= BUSY_CEILING) return; // two or more slots already busy
-
-  regs.a = mem8[KILLS_REMAINING];
-  regs.and(regs.a);
-  if (regs.a === 0x00) return loc_3793(m);
-
-  regs.a = mem8[ROUND_CRAFT_COUNT];
-  regs.b = regs.a;
-  regs.ix = CRAFT_RECORD_SLOT6;
-  regs.iy = CRAFT_ENTRY_SLOT6;
-  return spawnEnemyIntoFreeSlotElseStepSearch(m);
+  // seat the owed run's search counter and its two cursors on the register file: the recursion in
+  // spawnEnemyIntoFreeSlotElseStepSearch -> closeOneTurnOfTheFreeSlotSearch reads b/ix/iy back off it.
+  return (m.regs.b = mem8[ROUND_CRAFT_COUNT], m.regs.ix = CRAFT_RECORD_SLOT6, m.regs.iy = CRAFT_ENTRY_SLOT6, spawnEnemyIntoFreeSlotElseStepSearch(m));
 }
