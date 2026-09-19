@@ -35,7 +35,7 @@ const FILL_TILE = 0xb0;
 const SPRITE_TEMPLATE = 0x39cf;
 
 export function loc_07cb(m) {
-  const { regs, mem, mem8 } = m;
+  const { mem, mem8 } = m;
 
   let timer = mem8[PALETTE_ANIM_TIMER];
   let pattern;
@@ -78,18 +78,12 @@ export function loc_07cb(m) {
     if (mem8[hl] === 0) break;
   }
 
-  regs.de = 0x031e;
-  enqueueTask(m);
-  regs.de = (regs.de + 1) & 0xffff;
-  enqueueTask(m);
+  enqueueTask(m, 0x03, 0x1e);
+  enqueueTask(m, 0x03, 0x1f);
 
   loadSpriteObjectBlock(m, SPRITE_TEMPLATE);
   loc_3f24(m);
 
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = 0x44;
-  addToSpriteObjectColumn(m);
-  regs.hl = (SPRITE_OBJ_BLOCK + 3) & 0xffff;
-  regs.c = 0x78;
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, 0x44);
+  addToSpriteObjectColumn(m, (SPRITE_OBJ_BLOCK + 3) & 0xffff, 0x78);
 }

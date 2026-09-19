@@ -11,10 +11,10 @@
  */
 import { addStrided } from "./addStrided.js";
 
-export function addToSpriteObjectColumn(m) {
+export function addToSpriteObjectColumn(m, hl = m.regs.hl, c = m.regs.c) {
   const { regs } = m;
-  regs.de = 0x0004; // stride: one sprite-object record; count: ten records
+  regs.de = 0x0004; // stride: one sprite-object record; count: ten records (regs.de is a live-out)
   regs.b = 0x0a;
 
-  addStrided(m);
+  addStrided(m, c, undefined, undefined, hl);
 }

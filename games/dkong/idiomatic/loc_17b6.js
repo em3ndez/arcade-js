@@ -37,29 +37,25 @@ const RENDER_ITEMS = [
 ];
 
 export function loc_17b6(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   silenceSound(m);
 
   mem8[SND_PRIORITY] = 0x0e;
   mem8[SND_PRIORITY_FRAMES] = 0x03;
 
-  // Colour and step chain across the two column fills — the second reuses what the first left.
-  regs.a = 0x10;
-  regs.de = 0x0020;
-  fillDescendingColumn(m, 0x7623);
-  fillDescendingColumn(m, 0x7583);
+  // Colour and step chain across the two column fills — the second continues the descend
+  // (value 0x10 -> 0x0d) at the same stride the first used.
+  fillDescendingColumn(m, 0x7623, 0x10, 0x0020);
+  fillDescendingColumn(m, 0x7583, 0x0d, 0x0020);
 
   for (const [tileDest, segTable] of RENDER_ITEMS) {
     fillTileBlock(m, tileDest);
-    regs.de = segTable;
-    drawBoardLayout(m);
+    drawBoardLayout(m, undefined, segTable);
   }
 
   loadSpriteObjectBlock(m, SPRITE_TEMPLATE);
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = SPRITE_X_SHIFT;
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, SPRITE_X_SHIFT);
 
   mem8[BLINK_SPRITE_CODE] = 0x13;
 

@@ -9,7 +9,6 @@
  *   - clearly above -> he LANDS: Y set a standing height above the line, just-repositioned flag raised.
  *   - clearly below -> he DIES: the flag that keeps him active is cleared.
  *   - between      -> SIDE-ON: X snapped to the middle of his 8px cell, written to position and sprite.
- * The two acting outcomes take control from the caller so the airborne handler two levels up resumes.
  *
  * ONE BRANCH IS COLLAPSED: the side-on case originally picked between two ways of computing the
  * snapped X on the horizontal-velocity high byte, but both equal 8*floor(X/8)+3 for all 256 inputs
@@ -64,8 +63,7 @@ export function loc_29af(m) {
   const { regs, mem8 } = m;
 
   // Board gate: this contact check belongs to one board only.
-  regs.a = BOARD_MASK;
-  if (!boardBitGate(m)) return true;
+  if (!boardBitGate(m, BOARD_MASK)) return true;
 
   // Stage the search's reference point and spans in registers (iy is Mario's record base).
   regs.iy = MARIO_ACTIVE;

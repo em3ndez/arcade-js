@@ -30,7 +30,7 @@ import {
   SUBSTATE_TIMER,
 } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
-import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
+import { addStrided } from "./addStrided.js";
 import { scrollClimbGraphicStep } from "./scrollClimbGraphicStep.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 
@@ -38,11 +38,14 @@ const DISPLAY_Y_CELL = SPRITE_OBJ_BLOCK + 3; // the Y column of the sprite-objec
 const WALK_TERMINATOR = 0x7f;
 const SOUND_LATCH = SND_TRIGGER + 2; // three-frame audio-assert latch
 const PROP_TEMPLATE = 0x385c;
+const OBJ_BLOCK_BYTES = 0x28; // loadSpriteObjectBlock copies this many, advancing its source
+const OBJ_COLUMN_STRIDE = 0x0004; // one sprite-object record
+const OBJ_COLUMN_COUNT = 0x0a; // ten records — the fixed sprite-object column shape
 const VIDEO_CELL_A = 0x74aa;
 const VIDEO_CELL_B = 0x748a;
 
 export function loc_0b06(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   // Parity idle: odd frames return immediately, halving the walk rate.
   if (mem8[FRAME] & 0x01) return;
@@ -53,9 +56,7 @@ export function loc_0b06(m) {
   if (byte !== WALK_TERMINATOR) {
     // Advance the pointer and add the byte, taken as signed, into the sprite-object Y column.
     mem16[INTRO_WALK_PTR_A] = (ptr + 1);
-    regs.hl = DISPLAY_Y_CELL;
-    regs.c = byte;
-    addToSpriteObjectColumn(m);
+    addStrided(m, byte, OBJ_COLUMN_STRIDE, OBJ_COLUMN_COUNT, DISPLAY_Y_CELL);
     return;
   }
 
@@ -65,8 +66,9 @@ export function loc_0b06(m) {
   // copy below chains off it rather than reloading.
   loadSpriteObjectBlock(m, PROP_TEMPLATE);
 
-  // Copy 8 more bytes from the template's end into the sprite-buffer header.
-  let src = regs.hl;
+  // Copy 8 more bytes from the template's end into the sprite-buffer header. The loader left its
+  // source pointer advanced past the 0x28 bytes it copied; the copy chains off that.
+  let src = (PROP_TEMPLATE + OBJ_BLOCK_BYTES) & 0xffff;
   let dst = SPRITE_BUFFER;
   for (let i = 0; i < 8; i++) {
     mem8[dst] = mem8[src];
@@ -75,12 +77,8 @@ export function loc_0b06(m) {
   }
 
   // Reposition the fresh row: +0x50 on the X column and −4 on the Y column.
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = 0x50;
-  addToSpriteObjectColumn(m);
-  regs.hl = DISPLAY_Y_CELL;
-  regs.c = 0xfc; // -4
-  addToSpriteObjectColumn(m);
+  addStrided(m, 0x50, OBJ_COLUMN_STRIDE, OBJ_COLUMN_COUNT, SPRITE_OBJ_BLOCK);
+  addStrided(m, 0xfc, OBJ_COLUMN_STRIDE, OBJ_COLUMN_COUNT, DISPLAY_Y_CELL); // -4
 
   // Scroll the climb graphic up until its loop counter reaches 10 (synchronous run to target).
   do {
@@ -89,8 +87,7 @@ export function loc_0b06(m) {
 
   // Assert the beat's sound for three frames, then draw the board-layout segment table.
   mem8[SOUND_LATCH] = 0x03;
-  regs.de = INTRO_BEAT_LAYOUT_TABLE;
-  drawBoardLayout(m);
+  drawBoardLayout(m, undefined, INTRO_BEAT_LAYOUT_TABLE); // sp keeps its default; de = the table
 
   // Terminal-beat epilogue.
   mem8[VIDEO_CELL_A] = 0x10;
