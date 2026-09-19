@@ -8,15 +8,12 @@
  * record the emitter lays down for the first entry.
  */
 
-import { RENDER_STR_PTR } from "./names.js";
+import { RENDER_STR_PTR, ANIM_STRING_START } from "./names.js";
 import { stepBarrelAlongReleasePath } from "./stepBarrelAlongReleasePath.js";
-
-const STRING_START = 0x39cc;
-
 export function loc_2d83(m) {
   const { mem16 } = m;
 
-  mem16[RENDER_STR_PTR] = STRING_START;
+  mem16[RENDER_STR_PTR] = ANIM_STRING_START;
 
-  return stepBarrelAlongReleasePath(m, STRING_START);
+  return stepBarrelAlongReleasePath(m, ANIM_STRING_START);
 }

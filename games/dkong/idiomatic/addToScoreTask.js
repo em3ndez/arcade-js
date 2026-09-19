@@ -7,15 +7,12 @@
  * leads), and the six-digit score and high-score readouts.
  */
 
-import { CURRENT_PLAYER, HIGH_SCORE } from "./names.js";
+import { CURRENT_PLAYER, HIGH_SCORE, SCORE_ADDEND_TABLE } from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 import { selectCurrentPlayerScoreCounter } from "./selectCurrentPlayerScoreCounter.js";
 import { loc_056b } from "./loc_056b.js";
 import { drawHighScore } from "./drawHighScore.js";
 import { bcdAddByte } from "../../../core/bcd.js";
-
-const SCORE_ADDEND_TABLE = 0x3529;
-
 export function addToScoreTask(m, a = m.regs.a) {
   const { regs, mem8 } = m;
 

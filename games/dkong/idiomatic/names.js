@@ -1247,6 +1247,29 @@ export const loc_6970 = 0x6970;
 /** loc_69fc (0x69fc) — 4-byte sprite-shadow record in SPRITE_BUFFER seeded from a fixed ROM template on both 25m (0x3e00) and 50m (0x3e04) board setup; on-screen role not es [guess] (placeholder; names-debt) */
 export const loc_69fc = 0x69fc;
 
+
+// --- ROM local-const hoist batch (2026-09-19) ---
+/** RESUME_AFTER_STATE_WALK (0x30f6) — return PC after the effect-state-walk dispatch (updateFires coroutine resume). */
+export const RESUME_AFTER_STATE_WALK = 0x30f6;
+/** DEATH_RESUME_AFTER_EFFECT (0x127f) — return PC after the effect dispatch in the death-animation substate. */
+export const DEATH_RESUME_AFTER_EFFECT = 0x127f;
+/** RESUME_AFTER_OBJECT_DISPATCH (0x1986) — return PC after the object dispatch in runGameplayFrame. */
+export const RESUME_AFTER_OBJECT_DISPATCH = 0x1986;
+/** GAMEPLAY_RESUME_AFTER_EFFECT (0x197d) — return PC after the effect dispatch in runGameplayFrame. */
+export const GAMEPLAY_RESUME_AFTER_EFFECT = 0x197d;
+/** BAND_TABLE (0x38dc) — ROM table of per-band values read by loc_0b68. [code] */
+export const BAND_TABLE = 0x38dc;
+/** RIVET_RESUME_AFTER_EFFECT (0x1644) — return PC after the effect dispatch in the rivet-board interlude. */
+export const RIVET_RESUME_AFTER_EFFECT = 0x1644;
+/** ATTRACT_SCRIPT_TABLE (0x21d1) — ROM attract-demo input script table. [code] */
+export const ATTRACT_SCRIPT_TABLE = 0x21d1;
+/** ANIM_STRING_START (0x39cc) — ROM base of the animation string emitted by loc_2d83. [code] */
+export const ANIM_STRING_START = 0x39cc;
+/** ANIM_STRING_RESTART (0x39c3) — ROM anim-string restart pointer. [code] */
+export const ANIM_STRING_RESTART = 0x39c3;
+/** SCORE_ADDEND_TABLE (0x3529) — ROM table of per-event score addends read by addToScoreTask. [code] */
+export const SCORE_ADDEND_TABLE = 0x3529;
+
 export const ROUTINES = {
   0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "seen" },

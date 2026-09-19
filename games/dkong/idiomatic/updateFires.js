@@ -11,12 +11,11 @@
  */
 
 import { gateFireUpdateByDifficulty } from "./gateFireUpdateByDifficulty.js";
+import { RESUME_AFTER_STATE_WALK } from "./names.js";
 import { spawnRequestedFireAndRecolorLiveFires } from "./spawnRequestedFireAndRecolorLiveFires.js";
 import { publishFireSprites } from "./publishFireSprites.js";
 
 /** The return bracket the per-fire state walk's own return consumes. */
-const RESUME_AFTER_STATE_WALK = 0x30f6;
-
 export function updateFires(m) {
   if (!gateFireUpdateByDifficulty(m)) return;
 

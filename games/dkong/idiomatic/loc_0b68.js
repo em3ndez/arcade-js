@@ -9,18 +9,9 @@
 
 import { addStrided } from "./addStrided.js"; // add a value into N bytes at a fixed stride
 import { drawBoardLayout } from "./drawBoardLayout.js"; // walk a board-layout segment table and draw it
-import {
-  FRAME,
-  SUBSTATE_TIMER,
-  INTRO_STEP,
-  SND_TRIGGER,
-  SPRITE_OBJ_BLOCK,
-  INTRO_WALK_PTR_B,
-  CUTSCENE_BAND_COUNT,
-} from "./names.js";
+import { FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK, INTRO_WALK_PTR_B, CUTSCENE_BAND_COUNT, BAND_TABLE } from "./names.js";
 
 const SCROLL_TABLE = 0x38cb; // base of the per-step signed-Y-delta table
-const BAND_TABLE = 0x38dc; // base of the 16-byte-strided band-record table
 const SENTINEL = 0x7f; // table byte meaning "path wrapped"
 
 const OBJ_X = SPRITE_OBJ_BLOCK; // record 0's X byte — the start of the stride-4 X column

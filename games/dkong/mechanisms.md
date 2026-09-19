@@ -534,8 +534,8 @@ for that record; raise the in-progress latch; enqueue task `[5,1]`; and **decrem
 **Two barrel kinds.** `stampReleasedBarrelKind` (ROM 0x2CF6) presets the claimed record with one of
 two triples selected by bit 7 of `BARREL_CLAIM_MODE` — code/attr/kind `0x15/0x0B/0x00` at ROM
 0x2CF6–0x2D01, or `0x19/0x0C/0x01` at 0x2D0D–0x2D14. **Bit 0 of the same cell is a different,
-independent selector**: the waypoint-table choice (the one-waypoint table at ROM 0x39CC versus the
-four-waypoint table at 0x39C3), not the kind. Which named Donkey Kong object each kind is was
+independent selector**: the waypoint-table choice (the one-waypoint table `ANIM_STRING_START` at ROM
+0x39CC versus the four-waypoint table `ANIM_STRING_RESTART` at 0x39C3), not the kind. Which named Donkey Kong object each kind is was
 deliberately not established. `[seen]` for the bit-7 → triple mapping; `[code]` for the bit-0
 split.
 
@@ -977,7 +977,7 @@ beat — **an effect literally suspends play**, and it is the only thing that ca
 before the barrel walk (§8.7). `[code]`
 
 **The points come out of a ROM table, and it reconciles with `gameplay.md` exactly.** Task opcode 0
-selects a 3-byte packed-BCD addend from ROM 0x3529 by payload index. Dumped from the image: payload
+selects a 3-byte packed-BCD addend from `SCORE_ADDEND_TABLE` (ROM 0x3529) by payload index. Dumped from the image: payload
 *n* for 1–9 is *n*×100 (`00 0n 00`, little-endian, so the middle byte is hundreds), payloads 0 and
 10 are zero, and payloads 11–15 are `00 10 00` … `00 50 00` = 1000/2000/3000/4000/5000. `[code]`
 With that table in hand the award setters decode:
@@ -1357,6 +1357,8 @@ only a map of where to look.
 | `0x6400–0x67FF` | the object-record arrays (§6): incl. `FIRE_RECORDS_100M` (0x64A0, 100m's two extra fires) and `OBJ_ARRAY_67_PAGE68` (0x6800, barrels 8–9) |
 | `0x6900–0x6A7F` | the sprite shadow buffer and its named sub-bases: `FIRE_SPRITES` (0x69D0), `M100_FIRE_SPRITE_PAIR` (0x6950), `OBJ_66_SPRITES` (0x6958), `HAMMER_OBJ1_SPRITE_RECORD` (0x6A18), `M50_OBJ1_SPRITE_PAIR_BASE` (0x69E4), `BLINK_SPRITE_CODE` (0x6905), `MARIO_SPRITE_RECORD_CODE` (0x694D), `SPRITE_OBJ_REC2_X` (0x6910) |
 | `0x6BE0–0x6C00` | dead stack scratch, excluded from the memory-equivalence compare |
+
+Named ROM data tables (in `names.js`): `SCORE_ADDEND_TABLE` (0x3529), `ATTRACT_SCRIPT_TABLE` (0x21D1), `ANIM_STRING_START`/`ANIM_STRING_RESTART` (0x39CC/0x39C3), `BAND_TABLE` (0x38DC).
 
 ---
 

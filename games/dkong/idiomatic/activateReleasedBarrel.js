@@ -12,28 +12,16 @@
  * bytes, and the reloaded, Y-shifted sprite-object block.
  */
 
-import {
-  BARREL_CLAIM_MODE,
-  BARREL_RELEASE_ARMED,
-  loc_6393,
-  OBJ_ACTIVE,
-  OBJ_X,
-  OBJ_Y,
-  RENDER_STR_PTR,
-  SPRITE_OBJ_BLOCK,
-  SPRITE_Y,
-} from "./names.js";
+import { BARREL_CLAIM_MODE, BARREL_RELEASE_ARMED, loc_6393, OBJ_ACTIVE, OBJ_X, OBJ_Y, RENDER_STR_PTR, SPRITE_OBJ_BLOCK, SPRITE_Y, ANIM_STRING_RESTART } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
-
-const STRING_RESTART = 0x39c3; // string source rewound to the first byte
 const SPRITE_TEMPLATE = 0x385c; // stored template reloaded into the sprite-object block
 const Y_COLUMN_DELTA = 0xfc; // -4, added to every record's Y field
 
 export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de) {
   const { regs, mem8, mem16 } = m;
 
-  mem16[RENDER_STR_PTR] = STRING_RESTART;
+  mem16[RENDER_STR_PTR] = ANIM_STRING_RESTART;
 
   if ((mem8[BARREL_CLAIM_MODE] & 0x01) !== 0) {
     mem8[obj + 0x01] = 0x01;
