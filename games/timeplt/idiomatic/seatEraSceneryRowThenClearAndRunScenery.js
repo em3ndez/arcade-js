@@ -27,8 +27,7 @@ export function seatEraSceneryRowThenClearAndRunScenery(m) {
 
   regs.a = u8(mem8[ERA_INDEX] * ROW_STRIDE);
   regs.c = regs.a;
-  regs.hl = loc_3176;
-  offsetAddress(m); // hl = row table + 8*era
+  offsetAddress(m, loc_3176); // hl = row table + 8*era
 
   regs.de = SCENERY_SPRITE_CODE_SLOT0;
   regs.b = SEAT_COUNT;

@@ -206,8 +206,7 @@ export function loc_43f0_45b3(m) {
     regs.rrca();
     regs.a = regs.dec8(regs.a);
     regs.and(0x07);
-    regs.hl = MOTHER_SHIP_WARP_SHAPE_TABLE;
-    fetchTableByte(m);
+    fetchTableByte(m, MOTHER_SHIP_WARP_SHAPE_TABLE);
     mem8[Y(0x03)] = regs.a;
     regs.a = regs.inc8(regs.a);
     mem8[Y(0x01)] = regs.a;
@@ -281,8 +280,7 @@ export function loc_43f0_4663(m) {
   regs.rrca();
   regs.rrca();
   regs.and(0x3e);
-  regs.hl = HEADING_SHAPE_TABLE;
-  fetchTableByte(m);
+  fetchTableByte(m, HEADING_SHAPE_TABLE);
   mem8[Y(0x31)] = regs.a;
   regs.hl = u16(regs.hl + 1);
   regs.a = mem8[regs.hl];

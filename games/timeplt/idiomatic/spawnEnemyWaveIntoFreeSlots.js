@@ -38,8 +38,7 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
       mem8[slot + 0x0a] = fetchTableByte(m, WAVE_RUN_SELECTOR_TABLE, u8(configuredCount - remaining));
       mem8[slot + 0x09] = 0x20;
 
-      regs.ix = slot;
-      stepShapeAnimation(m);
+      stepShapeAnimation(m, slot);
       mem8[slot + 0x04] = 0x01;
       mem8[slot + 0x0e] = 0x00;
       mem8[slot] = mem8[slot] - 1;
