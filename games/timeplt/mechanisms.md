@@ -451,6 +451,48 @@ records top-first, comparing the new score's HI byte against each record's score
 slides every record beneath down one place with an `lddr` from `HIGH_SCORE_SLIDE_SRC` (the last cell of
 the record above the tail) toward `HIGH_SCORE_TABLE_END`, then writes the new record into the gap. `[code]`
 
+### Filing a finished score is an insertion sort with a rank key
+
+`fileScoreIntoHighScoreTable` (`0x4CC3`) is that filing read out in full — an insertion sort whose sort
+key is the score and whose stored key is the rank column. It opens by **selecting the active player's
+score**: the candidate pointer is `PLAYER1_SCORE_HI` (`0xAD35`) when `ACTIVE_PLAYER` (`0xAD32`) reads
+zero and `PLAYER2_SCORE_HI` (`0xAD38`) otherwise, and the standing pointer starts at the top record's
+score MSB `HIGH_SCORE_REC0_SCORE_HI` (`0xAB0B`). It then **walks the five records top-first**, at each
+one calling `isScoreBelow` — the three-byte compare that reads both scores most-significant-byte-first
+and downward, all three equal counting as *not below* — and stopping at the **first record the new
+score is not below**, which is the slot it belongs in. A record it is below is stepped over by advancing
+the standing pointer one whole record (stride eight, through `fetchTableByte`) and counting down the
+five-record loop; a score that beats none exhausts the loop and the routine **returns with carry set —
+the dropped signal — having written nothing**. `[seen]`
+
+On a qualifying score it **opens the gap**. The records below the chosen slot slide down one place with
+an `lddr` from `HIGH_SCORE_SLIDE_SRC` (`0xAB27`, the last cell of the record above the tail) toward
+`HIGH_SCORE_TABLE_END` (`0xAB2F`), the copy count being the records-beneath tally times eight cells
+each; when the slot is the bottom record there is nothing beneath and the slide is skipped. Into the
+freed slot the routine writes the new record: **three name cells set to the blank sentinel 0xf1** (an
+un-entered set of initials), their address parked in `SCRATCH_PTR_A` (`0xA991`), and the three score
+cells copied down from the active player's score triple with a second `lddr`. The byte the score copy
+uncovers is the record's rank, and it is used to **look up the record's initials-glyph row pointer**
+from `HIGH_SCORE_INITIALS_CELL_BASE` (`0xA531`, stride two per rank) through `fetchTableByte`, the
+result parked in `SCRATCH_PTR_B` (`0xA993`) for the initials-entry screen that follows. Finally the
+**rank column is renumbered top to bottom**, writing 0 through 4 one per record from
+`HIGH_SCORE_TABLE_BASE` (`0xAB08`) at stride eight, and the routine **returns with carry clear — the
+filed signal**. `[seen]`
+
+Grounded under MAME through a credited game to game over: the routine was dispatched, its inner compare
+firing five times in one frame with the candidate pinned at the active player's score triple (selected
+on `ACTIVE_PLAYER`, which read zero) and the standing pointer walking `HIGH_SCORE_REC0_SCORE_HI` at a
+stride of eight; the five standing values decoded most-significant-byte-first as a monotone-decreasing
+list byte-identical to the ROM defaults, and the candidate inserted at the last record — the behaviour a
+mis-keyed sort could not produce. `[seen]` Because the fill is reached only at game over, the
+equivalence gate is driven on **crafted** RAM — a seated descending board and a candidate score across
+insert-at-each-rank, equal-at-top, equal-at-last, player-two and dropped scenarios — held to the
+frogger memory standard: the board and the two saved pointers are RAM, and the **sole register-file
+live-out is carry**, checked on its own (clear filed, set dropped) while every other register is
+dead-after-return scratch pinned to nothing. A scratch-not-pinned control proves the read has teeth,
+and twins that file nothing, corrupt a blanked name cell, or renumber the ranks 1 through 5 instead of 0
+through 4 are each caught in memory. `[seen]`
+
 ### Two start buttons, two routines, and each is the other's control
 
 The credited start is not one routine with a player count in it either. Two separate routines exist,
@@ -699,10 +741,34 @@ at three quarters and two at half. The fastest rung there carries the smallest m
 in the game. `[seen]` for the composition, from the dispatch counts of the era-4 run; `[code]`
 for reading the tile counts off the wrappers.
 
+### The round seats the era's scenery row before the clear-and-run, over a discarded tamper sum
+
 The scenery band is seated once per round — not per frame — by `seatEraSceneryRowThenClearAndRunScenery`
-(`0x30A5`), whose only caller is the round-reset `resetPlayfieldAndArmNewRound`: it copies the
-eight-byte row the era indexes out of the `0x3176` table into the stride-two run at `0xAA31`, then
-tails into the scenery clear+run — filling `0x28` at the final era and `0xCC` at every other. `[code]`
+(`0x30A5`), the entry that precedes the clear-and-run and whose only caller is the round-reset
+`resetPlayfieldAndArmNewRound`. It runs three things in order. First it **sums a fixed sixteen-byte run
+and compares it to a constant**: `sumByteRunAndCompareToExpected` adds the sixteen bytes at
+`BOOT_CONFIG_CHECKSUM_BASE` (`0x086B`, the boot-config ROM block holding the RNG seed-guard words and
+the default kill quota) and checks the total against expected value 0x22 — a tamper tripwire whose
+answer is **discarded here**, the compare run for its own sake and its result never branched on at this
+entry. `[seen]`
+
+Then it **seats one era-keyed scenery row**. The current era from `ERA_INDEX` (`0xAD04`) indexes the row
+table `loc_3176` (`0x3176`) at a stride of eight bytes per era — the source address formed through
+`offsetAddress` — and eight bytes of that row are copied into the entry band starting at
+`SCENERY_SPRITE_CODE_SLOT0` (`0xAA31`) at a **stride of two**, so the eight row bytes land in eight
+alternating cells rather than a solid block. `[seen]` Finally it **tail-transfers into the clear-and-run
+chain carrying the era in `C`**: at era four it enters `seatSceneryFillByte0x28ThenClearEraScenery` with
+the fill byte 0x28, and below era four it enters `clearSceneryEntriesThenRunEraScenery` with the fill
+byte 0xCC. The transfer does not return — control leaves through the tail, and memory (the seated band
+plus whatever the scenery chain leaves) is the whole product. `[seen]`
+
+The equivalence gate is held to the frogger memory standard — RAM alone is the contract, no register is
+pinned, since the tail hands into the scenery chain (which reseats its own cursors) and the era rides in
+as a callee input in `C`, not a live-out. It drives the real below-four coin dispatch and a crafted
+era-four entry (the two guards the deeper arm reads poked good so it seats and runs rather than
+faulting), reads the seated stride-two run back against the era's table row, and its twins catch a
+wrong seat base, a stride-one seat, an off-by-one row table, a wrong fill byte, a dropped transfer, and
+a dropped era-four branch. `[seen]`
 
 ### The scenery clear-and-run finishes the seat, and reuses the copyright witnesses as an era-four guard
 
