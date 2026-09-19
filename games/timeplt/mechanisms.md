@@ -1594,6 +1594,44 @@ and hands `destroyTargetsHitByShots` six shots against seven targets; while it i
 Any statement of the form "kills happen in *the* collision routine" is wrong about this machine, and
 a reader who instruments one path will under-count.
 
+### The even-frame collision chain opens by spending every shot that reached one fixed target
+
+The odd-frame shot dispatch above has an even-frame counterpart, and its head is a shot sweep of its
+own. `splitCollisionWorkByFrameParity` (`0x4EBC`) divides the per-frame collision work by the low bit
+of `FRAME_TICK`: odd frames run the shot-versus-craft dispatch `dispatchShotSweepByMotherShipArmed`,
+and even frames open the player-collision chain with `destroyFixedTargetHitByShots` (`0x4F7E`) ahead of
+the four player sweeps. That head routine runs **one fixed target against the six-slot player-shot
+array** and destroys the shots that reached it. The target is the era-object record at
+`ERA_OBJECT_RECORD_SLOT0` (`0xA8C0`); its state byte is read **once, ahead of the sweep** — if it is not
+the live value 0xff the routine takes no shot and returns at once, and because the liveness is never
+re-tested inside the loop, a single live target can absorb **several shots in one call**. `[seen]`
+
+Past that guard it walks the six shot slots from `PLAYER_SHOT_ARRAY` (`0xAA80`) at a stride of sixteen,
+skipping any whose occupancy byte is not live. A live slot is tested as a **wrapped window on both
+axes**: the target's first coordinate `ERA_OBJECT_ENTRY_SLOT0` (`0xAA28`) less the shot's matching byte
+plus a slack of six must fall inside a window of 0x0d, and the target's second coordinate
+`ERA_OBJECT_SPRITE_Y_SLOT0` (`0xAA59`) less the shot's plus a slack of 0x17 inside a wider window of
+0x1f — the two axes carrying **different widths**. A shot inside both marks the target destroyed,
+writing the destroyed marker 0xf0 into the target's state byte and into the shot's occupancy byte, and
+posts the score through `postChainedHitScore` (`0x51DE`). The sweep runs on through the remaining slots,
+so **every overlapping shot is spent and scores in the one call** rather than stopping at the first
+hit. The slot cursor steps only the **low half** of its address, so a wide enough array would wrap
+inside its page — this six-slot array is short enough that it never does. `[seen]`
+
+The routine feeds the next sweep in the even-frame chain through three registers, and the gate pins
+exactly those. **E** carries the second-axis slack 0x17, **IY** carries the slot cursor — the array
+base on the early exit, one page-step past the last slot after a full sweep — and **F** carries the
+carry the sibling reads: on the early exit it rides in from entry unchanged (the liveness test is an
+`inc a`, which leaves carry alone), and after the sweep the cursor's final page-step clears it. These
+three — `f`, `e` and `iy` — are the frogger standard's genuine register live-outs, pinned beside RAM,
+while the box widths, the slot count and the stepped accumulator are dead scratch a twin may scribble
+freely. Because almost no real dispatch reaches a live target, the gate measures that vacuity exactly
+and drives a **crafted cross** over the shared state byte, two slots' occupancy and both coordinates
+swept across each window edge, asserting that two shots inside the window are **both** marked though the
+state byte was spent by the first, and that the sixth slot's address is the low-half step. Its nine
+twins are each caught on a declared count — the one that steps the cursor whole is caught nowhere, since
+this short array never wraps, which is exactly what fixes the array's reach at a page. `[seen]`
+
 ### One byte means "destroyed", and each family decides what it means
 
 Every one of the ten tests writes the same marker into the victim's state byte. Most of them also
@@ -1709,6 +1747,46 @@ those registers survives the return: the sole caller tail-returns and reads memo
 pins RAM only. `[seen]` Its teeth are the gate value, the busy ceiling and the owed-kills mode — a twin
 with the wrong ceiling, one that opens on the wrong phase, or one that skips the owed/cleared split is
 each caught on an exact count of the crafted occupancy-by-gate-by-owed sweep. `[seen]`
+
+### One turn of the free-slot search either seats a craft or steps on
+
+Both spawn arms above hand their search to the same body, and it is worth reading on its own.
+`spawnEnemyIntoFreeSlotElseStepSearch` (`0x37D6`) works **one slot** of a downward free-slot search:
+the search is seated by `gateTheFreeSlotSearchAndPickItsRun` (`0x507E`) or the trickle
+`spawnEnemyCraftWhenBandUnderTwo` (`0x379F`) with a record cursor in `ix`, its paired sprite entry in
+`iy`, and a turn count in `b`, and this body is re-entered once per slot. It opens on the head byte at
+record+0x00. **A slot already taken (non-zero) is left untouched and the turn is handed to the tail** —
+`closeOneTurnOfTheFreeSlotSearch` (`0x3847`) steps the record cursor back one whole sixteen-byte record
+and the entry cursor back one two-byte entry, so the walk runs the bank **downward**, strikes one off
+`b`, and while any turns remain re-enters this body on the next slot down, else returns having filled
+nothing. That is the **else-step-search branch**, and it is why the search halts at the first vacancy:
+**a free slot (head byte zero) is claimed at once** by writing the taken marker 0xff into record+0x00,
+stocked, and returned from, so **at most one slot is filled per turn**. `[seen]`
+
+Stocking a claimed slot draws the new craft's **heading from the scroll angle jittered by a random
+amount**. The base direction is `PLAYER_HEADING` (`0xA802`) shifted right two into the sixty-four-step
+direction space; a signed jitter — a fresh `drawRandomByte` masked to its low nibble, less 0x08 — is
+added, and the sum is folded back with a mask of 0x3f. That heading indexes the byte table
+`ENEMY_SPAWN_DIRECTION_INDEX_TABLE` (`0x39FB`), whose byte is multiplied by four to form a
+**stride-four record index** into `ENEMY_SPAWN_RECORD_TABLE` (`0x3A3B`); the routine reads the **two
+consecutive bytes of the velocity pair** at that index out of the record table — the first into the
+sprite entry's velocity cell at entry+0x31, the second into entry+0x00. **Facing** is the scroll angle
+biased by 0x80, written into both facing cells record+0x01 and record+0x02. The slot is then dressed
+for life: a **script** byte from `pickScriptAtRandomOrInTurn` at record+0x0a, the shared cell
+`loc_acc5` (`0xACC5`) and record+0x03 and record+0x05 cleared, record+0x09 seeded to 0x20, a **fresh
+animation** stepped once through `stepShapeAnimation`, and record+0x0e cleared. `[seen]`
+
+Grounded under MAME as the routine that **fills the green enemy-craft band at `CRAFT_RECORD_SLOT0`
+(`0xA850`) one slot at a time**. The equivalence gate is held to the frogger memory standard — RAM is
+the whole contract and **no register is pinned** — because the table walk keeps its cursor and index in
+JS locals, each arm hands on to a callee that reseats what it needs, and the callers each tail-return
+and read no register back, so memory is the sole live-out. It replays the whole recursive pass on both
+sides (the loop re-enters this address, so the comparison dispatches whichever side is under way), then
+drives every turn of the coin-start and attract tapes, asserts the **free-slot path writes and an
+all-busy bank writes nothing**, and checks the frozen side re-seats its stack two bytes higher with an
+identical return. Its twins — a no-op, a wrong claim marker, a wrong facing bias, a skipped animation,
+and a wrong jitter bias — are each caught on an exact count, while a scratch-register scribble is
+deliberately ignored and a scribbled RAM cell still bites, proving the read has teeth. `[seen]`
 
 ### The aimed spawn seats a found object's coordinates with a doubled, side-alternated velocity
 
