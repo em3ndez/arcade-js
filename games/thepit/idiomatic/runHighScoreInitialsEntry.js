@@ -15,10 +15,9 @@
  * (3) on completion rebuilds the screen, plays a confirmation sound, holds briefly, clears the
  * rank selector, and draws the final score readouts — an idle timeout instead just returns with
  * the entry abandoned. The rank selector picks the label strip, the blink position, its colour,
- * and which of the three high-score records the initials fill. The per-frame handler reads its
- * working cursors out of the machine registers, so the loop seats them there and threads them
- * through it: the video cell, the colour cell, the record being filled, the colour, and the
- * current letter code — a genuine register boundary; the rest is ordinary memory work.
+ * and which of the three high-score records the initials fill. The loop threads the per-frame
+ * handler's working cursors through it as explicit values — the video cell, the colour cell, the
+ * record being filled, the colour, and the current letter code.
  */
 
 import {
@@ -63,10 +62,6 @@ const IDLE_TIMEOUT_FRAMES = 60; // frames of no committed input before the entry
 const FINISH_BOARD_MODE = 0xd0; // board-mode / screen-wide colour byte for the completion rebuild
 const FINISH_HOLD_FRAMES = 60; // frames the completed screen is held before the readouts
 
-// The frame waits and the per-frame handler still take the machine's Z80 return path, so
-// their non-tail calls are bracketed with the return address the caller would push.
-const RESUME_AFTER_STEP = 0x4ec7;
-
 /** Label strip naming the rank, by selector: rank 2, rank 1, or (otherwise) rank 0. */
 function rankLabelStrip(selector) {
   if (selector === 3) return HISCORE_RANK3_LABEL_STRIP;
@@ -94,7 +89,7 @@ function seatCell(m, column, row) {
 }
 
 export function* runHighScoreInitialsEntry(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   const rank = mem8[VARIANT]; // which top-three rank is being entered
 
@@ -124,28 +119,27 @@ export function* runHighScoreInitialsEntry(m) {
   // Three initials still to enter.
   mem8[INITIALS_REMAINING] = INITIALS_COUNT;
 
-  // 2. Seat this rank's cursors in the register file (the per-frame handler's ABI) and
-  //    paint its colour into its colour cell.
+  // 2. Seat this rank's cursors (the per-frame handler's params) and paint its colour into its cell.
   const display = rankDisplay(rank);
-  regs.b = display.colour;
-  regs.ix = display.record;
-  regs.hl = display.videoCell;
-  regs.de = display.colourCell;
+  const b = display.colour;
+  let ix = display.record;
+  let hl = display.videoCell;
+  let de = display.colourCell;
 
   mem8[PLAY_PHASE_COUNTER] = 0; // restart the idle timeout
-  regs.c = HOME_LETTER; // the letter shown starts at its home code
-  mem8[regs.de] = regs.b; // paint the initial's colour into its colour cell
+  let c = HOME_LETTER; // the letter shown starts at its home code
+  mem8[de] = b; // paint the initial's colour into its colour cell
 
   // The entry loop: blink the cell and hand each frame's input to the per-frame handler.
   for (;;) {
-    mem8[regs.hl] = regs.c; // draw the current letter
+    mem8[hl] = c; // draw the current letter
     yield* waitFrames(m, BLINK_LETTER_FRAMES);
 
-    mem8[regs.hl] = CURSOR_TILE; // swap to the cursor glyph (the blink)
+    mem8[hl] = CURSOR_TILE; // swap to the cursor glyph (the blink)
     yield* waitFrames(m, BLINK_CURSOR_FRAMES);
 
-    m.push16(RESUME_AFTER_STEP);
-    yield* stepHighScoreInitialsEntry(m); // step the letter up/down, or commit this initial
+    // step the letter up/down, or commit this initial; threads the cursors through
+    ({ c, hl, ix, de } = yield* stepHighScoreInitialsEntry(m, { c, b, hl, ix, de }));
 
     if (mem8[INITIALS_REMAINING] !== 0) {
       // Still entering: abandon the entry only once the player has sat idle past the timeout.
