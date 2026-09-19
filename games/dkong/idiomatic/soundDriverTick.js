@@ -16,12 +16,10 @@ import {
   SND_BGM,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
+  SOUND_TRIGGER_LATCH,
+  SOUND_TUNE_LATCH,
+  SOUND_IRQ,
 } from "./names.js";
-
-// Hardware output latches (board devices, NOT work RAM).
-const SOUND_TRIGGER_LATCH = 0x7d00; // eight-bit addressable latch, data on bit 0
-const SOUND_TUNE_LATCH = 0x7c00;
-const SOUND_IRQ = 0x7d80;
 
 export function soundDriverTick(m) {
   const { mem, mem8 } = m;

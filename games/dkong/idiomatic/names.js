@@ -1180,6 +1180,16 @@ export const DMA_CH1_COUNT = 0x7803;
 export const DMA_MODE = 0x7808;
 /** IN1_PORT (0x7c80) — Hardware input port IN1 (read): player-2 joystick/button port, read only in cocktail mode when ACTIVE_PLAYER_INDEX is nonzero. Sibling of IN0=0x7c00 (… [code] */
 export const IN1_PORT = 0x7c80;
+/** SOUND_TUNE_LATCH (0x7c00) — single sound-command latch (board output, routed to the sound CPU); written once to select/silence a tune. [seen] */
+export const SOUND_TUNE_LATCH = 0x7c00;
+/** SOUND_TRIGGER_LATCH (0x7d00) — 8-bit addressable sound-trigger latch (0x7d00-0x7d07, one address per bit, data on bit 0); silenceSound clears all eight. [seen] */
+export const SOUND_TRIGGER_LATCH = 0x7d00;
+/** SOUND_IRQ (0x7d80) — audio-CPU IRQ line latch (board output). [seen] */
+export const SOUND_IRQ = 0x7d80;
+/** FLIPSCREEN (0x7d82) — LS259 flip-screen output latch bit; set to 1 at power-on. [seen] */
+export const FLIPSCREEN = 0x7d82;
+/** SPRITE_BANK (0x7d83) — LS259 sprite/gfx-bank select output latch bit. [seen] */
+export const SPRITE_BANK = 0x7d83;
 /** NMI_ENABLE (0x7d84) — LS259 interrupt/NMI-enable latch (board output): written 0 to acknowledge the vblank NMI (serviceVblankNmi), written 1 to re-arm at the frame tail (pe… [seen] */
 export const NMI_ENABLE = 0x7d84;
 /** DMA_DRQ (0x7d85) — i8257 DRQ request latch (board output): pulsed 0->1->0 in blitSpritesViaDma; the rising edge synchronously blits the 385-byte sprite shadow buffer to … [code] */

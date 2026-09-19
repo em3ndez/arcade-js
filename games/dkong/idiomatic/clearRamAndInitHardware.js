@@ -8,7 +8,17 @@
  */
 
 import { silenceSound } from "./silenceSound.js";
-import { TASK_TAIL, TASK_HEAD, TASK_RING, WORK_RAM_BASE } from "./names.js";
+import {
+  TASK_TAIL,
+  TASK_HEAD,
+  TASK_RING,
+  WORK_RAM_BASE,
+  FLIPSCREEN,
+  SPRITE_BANK,
+  NMI_ENABLE,
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
+} from "./names.js";
 
 const WORK_PAGE_HI = 0x7000; // full 4 KB page; top ~1 KB over-runs into unmapped discard
 
@@ -23,12 +33,6 @@ const TASK_RING_SLOTS = 0x40;
 const SLOT_FREE = 0xff;
 const QUEUE_EMPTY = 0xc0;
 
-const HW_FLIPSCREEN = 0x7d82;
-const HW_SPRITE_BANK = 0x7d83;
-const HW_NMI_MASK = 0x7d84;
-const HW_PALETTE_BANK0 = 0x7d86;
-const HW_PALETTE_BANK1 = 0x7d87;
-
 export function clearRamAndInitHardware(m) {
   const { regs, mem, mem8 } = m;
 
@@ -42,14 +46,14 @@ export function clearRamAndInitHardware(m) {
   mem8[TASK_TAIL] = QUEUE_EMPTY;
   mem8[TASK_HEAD] = QUEUE_EMPTY;
 
-  mem.write8(HW_SPRITE_BANK, 0);
-  mem.write8(HW_PALETTE_BANK0, 0);
-  mem.write8(HW_PALETTE_BANK1, 0);
-  mem.write8(HW_FLIPSCREEN, 1);
+  mem.write8(SPRITE_BANK, 0);
+  mem.write8(PALETTE_BANK_BIT0, 0);
+  mem.write8(PALETTE_BANK_BIT1, 0);
+  mem.write8(FLIPSCREEN, 1);
 
   regs.sp = 0x6c00;
 
   silenceSound(m);
 
-  mem.write8(HW_NMI_MASK, 1);
+  mem.write8(NMI_ENABLE, 1);
 }

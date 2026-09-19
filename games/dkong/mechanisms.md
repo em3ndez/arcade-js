@@ -173,7 +173,9 @@ from observation): ROM `0x0000–0x3FFF`; work RAM `0x6000–0x6BFF` (note the b
 modelling rules that layer exists to enforce: a read and a write at one address are *different
 devices* (`0x7C00` reads IN0 and writes the sound-tune latch); a read is not necessarily pure
 (reading `0x7D00` kicks the watchdog, which is how the dog is fed — once per vblank, as an
-interrupt side effect); and unmapped access throws loudly. `[code]`
+interrupt side effect); and unmapped access throws loudly. The I/O strip also carries the LS259
+output-latch bits `FLIPSCREEN` (`0x7D82`) and `SPRITE_BANK` (`0x7D83`), cleared/set alongside
+`NMI_ENABLE` and the palette-bank bits at power-on. `[code]`
 
 **The frame beat.** Everything time-critical hangs off the **vblank NMI**, not IM1 — the bytes at
 0x0038 are an ordinary subroutine (`addToSpriteObjectColumn`, the `rst 0x38` vector, falling into
@@ -1221,8 +1223,9 @@ disturbed by the cabinet controls. `[code]`
 Audio here is a layer *above* emulation: the I8035 sound CPU and the discrete analog circuits are
 not simulated. The engine watches the Z80's writes and plays a named sample. `[code]`
 
-Three write surfaces: `0x7C00` (ls175.3d) selects one of 16 **tunes**; `0x7D00–0x7D07` (ls259.6h)
-sets eight individual latch bits; `0x7D80` asserts the sound CPU's interrupt. The structural fact
+Three write surfaces: `SOUND_TUNE_LATCH` (`0x7C00`, ls175.3d) selects one of 16 **tunes**;
+`SOUND_TRIGGER_LATCH` (`0x7D00–0x7D07`, ls259.6h) sets eight individual latch bits; `SOUND_IRQ`
+(`0x7D80`) asserts the sound CPU's interrupt. The structural fact
 not visible from the address map is that **the eight ls259 bits do not all go to the same place** —
 bits 0–2 drive discrete analog circuits ("walk", "jump", "boom"/stomp), bits 3–5 are input pins the
 sound CPU polls, and bits 6–7 are wired to nodes that do not exist in this driver's sound

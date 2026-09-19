@@ -13,18 +13,16 @@ import {
   SND_BGM,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
+  SOUND_TRIGGER_LATCH,
+  SOUND_IRQ,
+  SOUND_TUNE_LATCH,
 } from "./names.js";
-
-// Hardware sound latches (write-only board outputs, NOT work RAM).
-const SOUND_LATCH_6H = 0x7d00; // addressable latch, one address per bit (data on bit 0)
-const AUDIO_IRQ = 0x7d80;
-const SOUND_LATCH_3D = 0x7c00;
 
 export function silenceSound(m) {
   const { mem, mem8 } = m;
 
   for (let i = 0; i < 8; i++) {
-    mem.write8(SOUND_LATCH_6H + i, 0);
+    mem.write8(SOUND_TRIGGER_LATCH + i, 0);
     mem8[SND_TRIGGER + i] = 0;
   }
 
@@ -33,6 +31,6 @@ export function silenceSound(m) {
   mem8[SND_PRIORITY] = 0;
   mem8[SND_PRIORITY_FRAMES] = 0;
 
-  mem.write8(AUDIO_IRQ, 0);
-  mem.write8(SOUND_LATCH_3D, 0);
+  mem.write8(SOUND_IRQ, 0);
+  mem.write8(SOUND_TUNE_LATCH, 0);
 }
