@@ -1198,37 +1198,37 @@ export const WORK_RAM_BASE = 0x6000;
 export const MARIO_STATE_CLEAR_END = 0x6226;
 /** BOARD_STATE_CLEAR_END (0x6b00) — Exclusive upper bound (page 0x6b00) of the per-board work-RAM clear loop in initBoardState, begun at BOARD_OBJ_SCRATCH (0x6280); structural range boun (structural constant, not a data cell). */
 export const BOARD_STATE_CLEAR_END = 0x6b00;
-/** ANIM_PACE_COUNTER (0x62af) — Shared per-frame scratch counter used by the active animation/cutscene step to pace/gate stepping (inc-and-mask 1-in-8/16, or reload-and-downcount gat [code] */
+/** ANIM_PACE_COUNTER (0x62af) — Shared per-frame scratch counter used by the active animation/cutscene step to pace/gate stepping (inc-and-mask 1-in-8/16, or reload-and-downcount gat [seen] */
 export const ANIM_PACE_COUNTER = 0x62af;
-/** FIXED_HAZARD_PHASE (0x62b9) — Fixed-hazard fire-release phase bitfield: bit0 runs body, bit1 selects 2nd arm whose underflow requests a new fire; armed by board setup and spawn tri [code] */
+/** FIXED_HAZARD_PHASE (0x62b9) — Fixed-hazard fire-release phase bitfield: bit0 runs body, bit1 selects 2nd arm whose underflow requests a new fire; armed by board setup and spawn tri [seen] */
 export const FIXED_HAZARD_PHASE = 0x62b9;
-/** HIT_EFFECT_LATCH (0x6350) — Hit-effect latch: set to the collision overlap on a hammer hit; while nonzero per-frame routines run one effect beat/skip; cleared at effect teardown. [code] */
+/** HIT_EFFECT_LATCH (0x6350) — Hit-effect latch: set to the collision overlap on a hammer hit; while nonzero per-frame routines run one effect beat/skip; cleared at effect teardown. [seen] */
 export const HIT_EFFECT_LATCH = 0x6350;
-/** ANIM_STEP_COUNTER (0x6390) — Increment-driven animation step/sweep counter, SHARED (subsystem-neutral): drives the attract colour-cycle sweep (up to 0x80) and the how-high/interlu [code] */
+/** ANIM_STEP_COUNTER (0x6390) — Increment-driven animation step/sweep counter, SHARED (subsystem-neutral): drives the attract colour-cycle sweep (up to 0x80) and the how-high/interlu [seen] */
 export const ANIM_STEP_COUNTER = 0x6390;
-/** FIRE_RECORDS_100M (0x64a0) — Base of the two 100m-only fire records (records 5-6) in OBJ_ARRAY_64; seed100mBoardObjects (IX) sets +0/+0x20 OBJ_ACTIVE=1 on both. [code] */
+/** FIRE_RECORDS_100M (0x64a0) — Base of the two 100m-only fire records (records 5-6) in OBJ_ARRAY_64; seed100mBoardObjects (IX) sets +0/+0x20 OBJ_ACTIVE=1 on both. [seen] */
 export const FIRE_RECORDS_100M = 0x64a0;
-/** FIRE_RECORDS_100M_X (0x64a3) — OBJ_X (+3) of the first 100m extra fire record (FIRE_RECORDS_100M+3); copyBytePairsStrided seeds the X byte into records 5-6. [code] */
+/** FIRE_RECORDS_100M_X (0x64a3) — OBJ_X (+3) of the first 100m extra fire record (FIRE_RECORDS_100M+3); copyBytePairsStrided seeds the X byte into records 5-6. [seen] */
 export const FIRE_RECORDS_100M_X = 0x64a3;
 /** FIRE_RECORDS_100M_CODE (0x64a7) — OBJ_SPRITE_CODE (+7) of the first 100m extra fire record (FIRE_RECORDS_100M+7); replicateGroupStrided seeds the appearance group into records 5-6. [code] */
 export const FIRE_RECORDS_100M_CODE = 0x64a7;
 /** OBJ_ARRAY_67_PAGE68 (0x6800) — Base of barrel records 8-9 (OBJ_ARRAY_67+0x100) on page 0x68; seed25mBoardObjects lays the final 2 of the 10 barrel records here after the first 8 at [code] */
 export const OBJ_ARRAY_67_PAGE68 = 0x6800;
-/** BLINK_SPRITE_CODE (0x6905) — Code byte of SPRITE_BUFFER sprite record 1 (0x6900+5); colour-cycle counter toggles it (seeded 0x13) to blink the sprite. [code] */
+/** BLINK_SPRITE_CODE (0x6905) — Code byte of SPRITE_BUFFER sprite record 1 (0x6900+5); colour-cycle counter toggles it (seeded 0x13) to blink the sprite. [seen] */
 export const BLINK_SPRITE_CODE = 0x6905;
 /** SPRITE_OBJ_REC2_X (0x6910) — X byte of sprite-object block record 2 (SPRITE_OBJ_BLOCK 0x6908 + 0x08); dispatchKongWalkFrame routes the Kong-walk sprite by this X vs the rail regio [code] */
 export const SPRITE_OBJ_REC2_X = 0x6910;
-/** MARIO_SPRITE_RECORD_CODE (0x694d) — Code byte of Mario's sprite record (MARIO_SPRITE_RECORD 0x694c +1); entry_1da6 copies MARIO_SPRITE_CODE(0x6207) here; rivet finale reuses it for the t [code] */
+/** MARIO_SPRITE_RECORD_CODE (0x694d) — Code byte of Mario's sprite record (MARIO_SPRITE_RECORD 0x694c +1); entry_1da6 copies MARIO_SPRITE_CODE(0x6207) here; rivet finale reuses it for the t [seen] */
 export const MARIO_SPRITE_RECORD_CODE = 0x694d;
 /** M100_FIRE_SPRITE_PAIR (0x6950) — SPRITE_BUFFER 2-record HW sprite mirror for 100m's extra fire records 5-6 (OBJ_ARRAY_64+0xA0, stride 0x20); seed100mBoardObjects fills, loc_30db clear [code] */
 export const M100_FIRE_SPRITE_PAIR = 0x6950;
-/** OBJ_66_SPRITES (0x6958) — SPRITE_BUFFER 6-record HW sprite mirror of OBJ_ARRAY_66 (75m moving objects); seed75mBoardObjects gathers 6 records here, loc_30db clears B=6 [code] */
+/** OBJ_66_SPRITES (0x6958) — SPRITE_BUFFER 6-record HW sprite mirror of OBJ_ARRAY_66 (75m moving objects); seed75mBoardObjects gathers 6 records here, loc_30db clears B=6 [seen] */
 export const OBJ_66_SPRITES = 0x6958;
-/** FIRE_SPRITES (0x69d0) — SPRITE_BUFFER mirror of OBJ_ARRAY_64 (THE FIRES): publishFireSprites gathers its 5 records here; buildEffectSprite/entry_1ea0 read it as the page-<0x6 [code] */
+/** FIRE_SPRITES (0x69d0) — SPRITE_BUFFER mirror of OBJ_ARRAY_64 (THE FIRES): publishFireSprites gathers its 5 records here; buildEffectSprite/entry_1ea0 read it as the page-<0x6 [seen] */
 export const FIRE_SPRITES = 0x69d0;
 /** M50_OBJ1_SPRITE_PAIR_BASE (0x69e4) — 50m board: base of object-1's mirrored sprite tile-code counter PAIR in SPRITE_BUFFER; loc_2602 loads HL=0x69e4 and calls loc_26a6 (steps +1/+5). Sibl [code] */
 export const M50_OBJ1_SPRITE_PAIR_BASE = 0x69e4;
-/** HAMMER_OBJ1_SPRITE_RECORD (0x6a18) — 4-byte sprite-shadow record in SPRITE_BUFFER for the FIRST hammer object (OBJ_PAIR_6680's first record); seedSpriteObjectPair gathers the pair here, d [code] */
+/** HAMMER_OBJ1_SPRITE_RECORD (0x6a18) — 4-byte sprite-shadow record in SPRITE_BUFFER for the FIRST hammer object (OBJ_PAIR_6680's first record); seedSpriteObjectPair gathers the pair here, d [seen] */
 export const HAMMER_OBJ1_SPRITE_RECORD = 0x6a18;
 /** loc_6209 (0x6209) — Mario's object-record (base 0x6200) collision half-extent on X (+0x09=OBJ_HIT_EXTENT_X); initBoardState seeds 4, findCollidingObject reads it paired w [guess] (placeholder; names-debt) */
 export const loc_6209 = 0x6209;
