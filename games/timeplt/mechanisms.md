@@ -1394,6 +1394,49 @@ grounding, but no run here followed the block to a reader, and none tested the p
 player doing anything in particular. What is settled is that six of them exist, at two distances,
 and that they move.
 
+### The round-start ship draws as a char-plane strip, and a tamper witness can divert it
+
+The ship is a sprite in flight (above), but at the top of a life it first **materialises as a run of
+character-plane tiles**, and `advancePlayerAnimationStrip` (`0x2010`) is one frame of that
+materialisation. `dispatchPlayerFrameByState` routes to it while `PLAYER_STATE` is mid-count — a clear
+state means gone, `0xFF` means flying — and hands it the player record in `ix` and the paired sprite
+entry `PLAYER_ENTRY` in `iy`. A single phase byte in the record is the animation clock. On the
+**opening frame** — the phase at or past the cap `0xB4` — the routine clamps the phase to that cap,
+writes the mark `0xFF` into the paired entry's second byte (`PLAYER_ENTRY`+1, the player sprite code),
+and requests the round-intro cues: `requestRoundIntroSoundBurst` always, and
+`requestLateEraProgressSound` as well once `ERA_INDEX` is at or past the third era. `[seen]`
+
+Then, still on the opening frame, two anti-tamper witnesses can **divert the whole animation**. The
+routine reads `TAMPER_GLYPH_STRIP` — the glyph sampled from the copyright caption — and, unless it
+still reads the expected `0xA5`, hands that byte to the heading-snap tail `loc_1f2e` and returns;
+otherwise it reads `TAMPER_COLOUR_STRIP` and diverts the same way unless that byte is one of the two
+accepted values 0x05 or 0x10. A tampered copyright line therefore steers the materialisation into
+`loc_1f2e`, which on this state is junk direction-table bytes decoded as instructions that
+early-return for every entry — so the trap writes no memory of its own beyond the clamp, the flag and
+the cues the opening frame already laid. That register-and-control-flow-only effect is why the
+equivalence gate, held to the frogger memory standard, does not pin the divert: it proves the rewrite
+replays the diverted path but treats a mis-route with no RAM consequence as outside the contract.
+`[seen]`
+
+Off the opening frame — and on the opening frame once it clears the trap — the routine **steps the
+phase down by one and draws only on a keyframe**. Seven keyframe phase values — 0xB3, 0xAB, 0xA3,
+0x9B, 0x93, 0x8B and 0x83, the first one step below the cap and the rest eight counts apart — select
+five strip bases in an out-and-back order: `PLAYER_ANIM_STRIP_0` through `_3`, then `_3` held a second
+keyframe and `_2` reused on the way back, closing on the distinct `PLAYER_ANIM_STRIP_4`. A phase that
+lands between keyframes draws nothing, so the figure advances one shape every eighth frame. `[seen]`
+
+On a keyframe the shape is **blitted tile by tile into the character plane**, a row at a time, from
+`PLAYER_ANIM_VRAM_BASE` (`0xA5AF`, row 13 column 15). The two loop counts are read from fixed ROM
+bytes — `PLAYER_ANIM_ROW_COUNT` for the outer row count, `PLAYER_ANIM_COL_COUNT` for the tiles per
+row — and between rows the cursor is stepped by `ROW_ADVANCE` through `offsetAddress` to reach the next
+row's first tile. Each tile write is paired with a colour write: the same address with bit 2 of its
+high byte cleared drops `0x400` below into the colour plane, so the tile cell and its colour cell are
+written together — the identical char/colour-plane pairing §8's readout painter uses. The colour is
+one value for the whole strip, `ERA_INDEX` biased by `COLOUR_BIAS`, so the materialising ship is
+tinted by era. `[seen]` The blit is a pure painter: `dispatchPlayerFrameByState` tail-returns and
+reads no register it leaves, so every register is dead-after-return scratch and the gate compares RAM
+alone. `[seen]`
+
 ★ **The readers are now identified from the code — though still not watched under MAME.** The enemy
 steerers load these points into `headingToward`: `flyTowardShipStandoffThenEndApproach` picks between
 `ENEMY_STANDOFF_AIM_SET` (`0xAC75`) and `ENEMY_STANDOFF_AIM_CLEAR` (`0xAC79`) by a craft record's
@@ -1522,6 +1565,34 @@ with a partial tile from the low bits. `gameplay.md` records one source calling 
 flags it as ambiguous. **Nothing in this game times the player.** The bar is the kill meter, and 56 and the bar are the
 same fact. (The interrupt does tick short countdown cells — see §2 — but none of them races the
 player or ends a round.) `[code]`
+
+### Fewer than two heads busy is the trickle-spawn window
+
+The 56-kill quota (above) meters the kills; a companion routine meters the SPAWNS, and it keeps the
+craft band from crowding. `spawnEnemyCraftWhenBandUnderTwo` (`0x379F`) is the phase-8 arm of the
+enemy-wave engine `driveEnemyWaveForLifePhase`, which seats `hl` on `LIFE_TICKS_LOW` and dispatches
+here when `LIFE_TICKS_MID`'s low nibble is 8. The routine then runs only when the byte `hl` points at
+— `LIFE_TICKS_LOW` — is **idle (`0x00`) or at the open phase `OPEN_PHASE`**; any other value returns
+at once, so the trickle fires on two of the counter's low values, not every frame. `[seen]`
+
+Past the gate it **counts busy heads across the seven-record craft band**: it walks
+`CRAFT_RECORD_SLOT0` in strides of the record size for seven slots and counts each whose state byte is
+non-zero. The band holds at most seven, so the count never wraps. If two or more are busy it returns —
+the **under-two ceiling** `BUSY_CEILING` is the whole point of the routine's name: a fresh craft is
+seated only while fewer than two of the seven slots are occupied, keeping a steady thin stream rather
+than a swarm. `[seen]`
+
+Which spawn run it then dispatches turns on the owed-kills cell `KILLS_REMAINING` — the same round
+quota the section opened on. With nothing owed the routine tail-calls the cleared free-slot run
+`loc_3793`; with kills still owed it seats the owed run instead — `b` loaded from `ROUND_CRAFT_COUNT`
+as the search counter, and the two cursors seated on the LAST band slot (`ix`=`CRAFT_RECORD_SLOT6`,
+`iy`=`CRAFT_ENTRY_SLOT6`, the pair §4 records as the "owed" free-slot search seat) — then hands to
+`spawnEnemyIntoFreeSlotElseStepSearch`, whose recursion through `closeOneTurnOfTheFreeSlotSearch` reads
+`b`/`ix`/`iy` back off the register file and searches downward from slot 6 for a free seat. None of
+those registers survives the return: the sole caller tail-returns and reads memory alone, so the gate
+pins RAM only. `[seen]` Its teeth are the gate value, the busy ceiling and the owed-kills mode — a twin
+with the wrong ceiling, one that opens on the wrong phase, or one that skips the owed/cleared split is
+each caught on an exact count of the crafted occupancy-by-gate-by-owed sweep. `[seen]`
 
 ### Clearing a whole wave arms a one-shot claim
 
