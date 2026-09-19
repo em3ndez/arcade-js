@@ -1,0 +1,6 @@
+# grounding-debt: cells/routines genuinely un-groundable on a good ROM (reviewer-verified, R39).
+# One "0xADDR  reason" per line. done_gate.check_grounding subtracts these from the ungrounded count.
+
+0x0201  [packed-value] COINAGE_WORD_A1_B2 is a packed credits-per-coin VALUE word, not a memory-addressed cell: applyDipSwitches assigns it as an immediate to mem16[COINS_PER_CREDIT_A]; it is never read from ROM 0x0201 (a read-tap at pc==0x0201 is an opcode/operand fetch of executable code). Role proven structurally by applyDipSwitches; un-witnessable by any read/write tap.
+0x0302  [packed-value] COINAGE_WORD_A2_B3 is a packed credits-per-coin VALUE word (applyDipSwitches immediate -> mem16[COINS_PER_CREDIT_A]), never read from ROM 0x0302; un-witnessable by tap, role structural.
+0x0402  [packed-value] COINAGE_WORD_A2_B4 is a packed credits-per-coin VALUE word (applyDipSwitches immediate -> mem16[COINS_PER_CREDIT_A]), never read from ROM 0x0402; un-witnessable by tap, role structural.
