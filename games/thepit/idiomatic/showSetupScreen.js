@@ -85,10 +85,8 @@ export function* showSetupScreen(m) {
   drawSetupCreditsPanel(m); // fixed text panel at column 1
   drawGameOverText(m); // fixed vertical strip at column 6
 
-  m.push16(0x3a88);
   drawCopyrightLine(m); // one full playfield column (tail-returns through the stack)
 
-  m.push16(0x3a8b);
   drawBestScoresTodayLabel(m); // left edge column (tail-returns through the stack)
 
   drawRightEdgeColumn(m); // right edge column

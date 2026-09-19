@@ -53,10 +53,8 @@ export function redrawScoreHud(m) {
   // balanced stack, so it is handed the return slot its caller would push for it.
   const players = mem8[GAME_STATE];
   if (players === 1 || players === 2) {
-    m.push16(0x4768);
     drawPlayerLabel(m); // in-game status panel
   } else {
-    m.push16(0x476d);
     drawGameOverLabel(m); // "GAME OVER" label
   }
 

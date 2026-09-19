@@ -151,7 +151,6 @@ export function steerDemoPlayer(m) {
   if (mem8[PLAY_PHASE_COUNTER] === 0) {
     // drawCreditsDisplay is idiomatic but still calls two shared copy/fill helpers; the bracket
     // holds the stack pointer where they expect it, and dissolves once those helpers are idiomatic too.
-    m.push16(0x03ef);
     drawCreditsDisplay(m);
   }
 
