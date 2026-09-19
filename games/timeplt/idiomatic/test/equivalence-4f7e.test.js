@@ -6,13 +6,16 @@
  *   replayed, a crafted cross over the shared flag, the slots' occupancy and both coordinates, a
  *   masked whole-machine replay, and teeth.
  *   1. EQUAL at the real dispatch — identical outside an eight-byte stack-scratch window, which is
- *      what the scoring call inside the sweep brackets its work with. Every arm PINS that window by
- *      walking the whole dump.
+ *      what the scoring call inside the sweep brackets its work with, and the three genuine
+ *      register live-outs match the frozen side exactly. Every arm PINS the window by walking
+ *      the whole dump.
  *   2. VACUITY, MEASURED — a no-op is invisible at almost every real dispatch, because almost none
  *      of them reaches anything. The exact count is asserted; the crafted cross is where the
  *      destroying path is gated.
- *   3. EXCLUDED, deliberately, BOUNDED by a measured set: a register diverging outside it fails
- *      the arm, and a rewrite that diverges on fewer of them still passes.
+ *   3. LIVE-OUTS PINNED, SCRATCH NOT (frogger standard) — E, IY and F are the only registers a
+ *      later sibling sweep reads off the file, so they are pinned; the box widths, the slot count
+ *      and the stepped accumulator are dead scratch, so a twin that only scribbles a dead register
+ *      passes while a RAM (or pinned-live-out) scribble is caught.
  *   4. CORPUS — every dispatch the attract run produces, with the flag and occupancy shapes it saw.
  *   5. CRAFTED CROSS — the shared flag live or not, TWO slots (the first and the last) live or
  *      not, and their two coordinates swept across the window edge on each axis. The two axes have
@@ -41,7 +44,7 @@ import { makeMachine, romsPresent } from "./_harness.js";
 import { destroyFixedTargetHitByShots } from "../destroyFixedTargetHitByShots.js";
 import { loc_4f7e as oracle } from "../../translated/loc_4f7e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { u8 } from "../../../../core/int.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
 
 const TARGET = 0x4f7e;
@@ -64,14 +67,14 @@ const DESTROYED = 0xf0;
 
 const SCRATCH_BYTES = 8;
 /**
- * The registers allowed to diverge, read off the ROM body: the two box dimensions land in H/L and
- * D/E, the slot count lands in B and is counted down, A and F carry each comparison, the slot
- * cursor lives in IY, and the closing `ret` lifts SP. A BOUND, not an exact list: a register
- * diverging outside this set fails the arm below, and a rewrite that diverges on fewer of them
- * still passes. C, IX and the whole shadow bank are deliberately absent — the oracle never writes
- * them, so nothing can be excused here.
+ * The frogger standard: RAM (masked over the frozen side's stack scratch) is the whole contract,
+ * and only the registers a later sibling sweep actually reads off the file are pinned beside it —
+ * the second-axis slack in E, the slot cursor in IY, and the carry in F. The box widths, the slot
+ * count and the stepped accumulator the ROM also leaves are dead after return and are NOT pinned,
+ * so a rewrite that drops them still passes and a twin that scribbles one is deliberately ignored.
  */
-const MOVED = ["a", "f", "b", "d", "e", "h", "l", "iy", "sp"];
+const GENUINE_LIVE_OUTS = ["f", "e", "iy"];
+const SCRIBBLE_CELL = 0xa100; // a compared (non-stack) cell the control flips to prove RAM bites
 const FRAMES = 1600;
 const RET_TSTATES = 10;
 
@@ -134,6 +137,29 @@ function unitDiff(candidate, machine) {
 const caught = (candidate, machine) => {
   try {
     return unitDiff(candidate, machine) !== null;
+  } catch {
+    return true;
+  }
+};
+
+/** The genuine register live-outs, pinned to the frozen side exactly. Kept OUT of unitDiff above so
+ * the memory teeth stay a pure RAM measurement (the twins never seat these registers); this rides
+ * only on the real candidate, in the live-out pin and its scratch-not-pinned control. */
+function liveOutDiff(candidate, machine) {
+  const a = machine.clone();
+  const b = machine.clone();
+  oracle(a);
+  candidate(b);
+  for (const k of GENUINE_LIVE_OUTS) {
+    if (a.regs[k] !== b.regs[k]) return { reg: k, a: a.regs[k], b: b.regs[k] };
+  }
+  return null;
+}
+
+/** RAM masked over the stack scratch OR a pinned live-out — the full frogger-standard contract. */
+const caughtFull = (candidate, machine) => {
+  try {
+    return unitDiff(candidate, machine) !== null || liveOutDiff(candidate, machine) !== null;
   } catch {
     return true;
   }
@@ -336,7 +362,8 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   destroyFixedTargetHitByShots(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
-  console.log(`  EQUAL: sp ${hex4(sp)}; nothing outside the ${SCRATCH_BYTES}-byte window moves`);
+  assert.equal(liveOutDiff(destroyFixedTargetHitByShots, entryState()), null, "a pinned live-out diverged");
+  console.log(`  EQUAL: sp ${hex4(sp)}; nothing outside the ${SCRATCH_BYTES}-byte window moves; E/IY/F pinned`);
 });
 
 test("VACUITY, MEASURED: a no-op is invisible at almost every real dispatch", { skip }, () => {
@@ -355,16 +382,20 @@ test("VACUITY, MEASURED: a no-op is invisible at almost every real dispatch", { 
   console.log(`  VACUITY: a no-op shows at ${noOpSeen} of ${entries.length} real dispatches`);
 });
 
-test("EXCLUDED, deliberately: scratch registers, the slot cursor and pc", { skip }, () => {
-  const a = entryState().clone();
-  const b = entryState().clone();
-  oracle(a);
-  destroyFixedTargetHitByShots(b);
-  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  const unexpected = moved.filter((k) => !MOVED.includes(k));
-  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-  assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc, plus ${SCRATCH_BYTES} scratch bytes`);
+test("LIVE-OUTS PINNED, SCRATCH NOT: a dead-register scribble passes; RAM and a live-out bite", { skip }, () => {
+  // The frogger standard: E, IY and F are the only registers a later sibling sweep reads off the
+  // file, so they are pinned to the frozen side; the box widths, the slot count and the stepped
+  // accumulator are dead after return and are NOT pinned. A twin that only scribbles a dead
+  // register is DELIBERATELY not flagged, and the same measurement must still catch a scribbled RAM
+  // cell — and a scribbled pinned live-out — or the clean read on the dead-register twin is worthless.
+  assert.equal(liveOutDiff(destroyFixedTargetHitByShots, entryState()), null, "a pinned live-out diverged at the real dispatch");
+  const scribbleDeadReg = (m) => { destroyFixedTargetHitByShots(m); m.regs.b = u8(m.regs.b + 1); };
+  const scribbleLiveOut = (m) => { destroyFixedTargetHitByShots(m); m.regs.e = u8(m.regs.e + 1); };
+  const scribbleData = (m) => { destroyFixedTargetHitByShots(m); m.mem8[SCRIBBLE_CELL] ^= 0xff; };
+  assert.equal(caughtFull(scribbleDeadReg, entryState()), false, "a dead-register scribble was flagged, but B is not a live-out");
+  assert.equal(caughtFull(scribbleLiveOut, entryState()), true, "a scribbled pinned live-out went uncaught, so the pin has no teeth");
+  assert.equal(caughtFull(scribbleData, entryState()), true, "a scribbled RAM cell went uncaught, so the RAM measurement has no teeth");
+  console.log(`  LIVE-OUTS: ${GENUINE_LIVE_OUTS.join(", ")} pinned; dead-reg scribble ignored, RAM + live-out scribbles caught`);
 });
 
 test("CORPUS: every captured dispatch replays identically", { skip }, () => {
