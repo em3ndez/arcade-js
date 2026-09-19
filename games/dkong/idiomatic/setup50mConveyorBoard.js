@@ -12,6 +12,7 @@ import {
   PALETTE_BANK_BIT0,
   PALETTE_BANK_BIT1,
   SND_BGM,
+  BOARD_LAYOUT_TABLE_50M,
 } from "./names.js";
 
 // Hardware palette-bank output latches (NOT work RAM).
@@ -26,6 +27,6 @@ export function setup50mConveyorBoard(m) {
   mem8[SND_BGM] = 0x09; // 50m background tune (25m=0x08, 50m=0x09, 75m=0x0A)
 
   // The table address reaches the tail in a register, so set it last.
-  regs.de = 0x3b5d;
+  regs.de = BOARD_LAYOUT_TABLE_50M;
   loc_0cc6(m);
 }

@@ -6,7 +6,7 @@
  *
  * LIVE-OUT: memory-only.
  */
-import { BOARD, LIVES, LEVEL, EVENT_REQ_313C } from "./names.js";
+import { BOARD, LIVES, LEVEL, EVENT_REQ_313C, BARREL_RELEASE_ARMED } from "./names.js";
 import { tickSubstatePrescaler } from "./tickSubstatePrescaler.js";
 import { buildBoard } from "./buildBoard.js";
 
@@ -15,7 +15,7 @@ export function restartAttractDemoAt25m(m) {
 
   if (!tickSubstatePrescaler(m)) return;
 
-  mem8[0x6392] = 0; // engine scratch
+  mem8[BARREL_RELEASE_ARMED] = 0;
   mem8[EVENT_REQ_313C] = 0;
 
   // Reseed the live context: 25m girders, level 1, one life.

@@ -5,8 +5,10 @@
  *
  * LIVE-OUT: the returned column-base address, a video-RAM pointer. Writes no work RAM.
  */
+import { P1_INDICATOR_COLUMN_BASE, P2_INDICATOR_COLUMN_BASE } from "./names.js";
+
 export function selectPlayerIndicatorColumnBase(playerSelector) {
-  return playerSelector === 0 ? 0x7740 : 0x74e0;
+  return playerSelector === 0 ? P1_INDICATOR_COLUMN_BASE : P2_INDICATOR_COLUMN_BASE;
 }
 
 /**

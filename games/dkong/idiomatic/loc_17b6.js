@@ -7,14 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
-import {
-  SND_PRIORITY,
-  SND_PRIORITY_FRAMES,
-  SUBSTATE_TIMER,
-  SPRITE_OBJ_BLOCK,
-  SEQ_ADVANCE_PTR,
-  BOARD_ADVANCE_STEP,
-} from "./names.js";
+import { SND_PRIORITY, SND_PRIORITY_FRAMES, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, SEQ_ADVANCE_PTR, BOARD_ADVANCE_STEP, COLOR_COLUMN_A_TOP } from "./names.js";
 import { silenceSound } from "./silenceSound.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
 import { fillTileBlock } from "./fillTileBlock.js";
@@ -46,7 +39,7 @@ export function loc_17b6(m) {
 
   // Colour and step chain across the two column fills — the second continues the descend
   // (value 0x10 -> 0x0d) at the same stride the first used.
-  fillDescendingColumn(m, 0x7623, 0x10, 0x0020);
+  fillDescendingColumn(m, COLOR_COLUMN_A_TOP, 0x10, 0x0020);
   fillDescendingColumn(m, 0x7583, 0x0d, 0x0020);
 
   for (const [tileDest, segTable] of RENDER_ITEMS) {
