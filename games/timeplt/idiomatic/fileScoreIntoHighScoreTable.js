@@ -22,9 +22,8 @@ export function fileScoreIntoHighScoreTable(m) {
 
   regs.hl = HIGH_SCORE_REC0_SCORE_HI;
   regs.b = RECORD_COUNT;
-  regs.a = mem8[ACTIVE_PLAYER];
-  regs.and(regs.a);
-  regs.de = regs.fZ ? PLAYER1_SCORE_HI : PLAYER2_SCORE_HI;
+  // player one selected when the active-player flag reads zero
+  regs.de = mem8[ACTIVE_PLAYER] === 0 ? PLAYER1_SCORE_HI : PLAYER2_SCORE_HI;
 
   let savedDe = regs.de;
   let filed = false;
@@ -49,11 +48,7 @@ export function fileScoreIntoHighScoreTable(m) {
   } else {
     regs.hl = HIGH_SCORE_SLIDE_SRC;
     regs.de = HIGH_SCORE_TABLE_END;
-    regs.a = regs.b;
-    regs.add(regs.a);
-    regs.add(regs.a);
-    regs.add(regs.a); // b records * 8 cells
-    regs.c = regs.a;
+    regs.c = (regs.b << 3) & 0xff; // remaining records, eight cells each, into the copy count
     regs.b = 0x00;
     m.lddrAt(0x4cf4, 0x4cf6);
     regs.exDeHl();
@@ -76,16 +71,11 @@ export function fileScoreIntoHighScoreTable(m) {
   fetchTableByte(m);
   mem16[SCRATCH_PTR_B] = regs.hl;
 
-  regs.hl = HIGH_SCORE_TABLE_BASE;
-  regs.de = RECORD_STRIDE;
-  regs.b = RECORD_COUNT;
-  regs.xor(regs.a);
-  for (;;) {
-    mem8[regs.hl] = regs.a;
-    regs.addHl(regs.de);
-    regs.a = regs.inc8(regs.a);
-    if (regs.djnz() !== 0) continue;
-    break;
+  // renumber the rank column top to bottom, 0 upward, one write per record
+  let rankAddr = HIGH_SCORE_TABLE_BASE;
+  for (let rank = 0; rank < RECORD_COUNT; rank++) {
+    mem8[rankAddr] = rank;
+    rankAddr = (rankAddr + RECORD_STRIDE) & 0xffff;
   }
 
   regs.scf();

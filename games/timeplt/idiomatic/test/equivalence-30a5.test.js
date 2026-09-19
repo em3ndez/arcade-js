@@ -2,8 +2,10 @@
 /**
  * seatEraSceneryRowThenClearAndRunScenery — memory-equivalent to the frozen oracle at ROM 0x30A5. The real coin dispatch is
  * compared with the dead stack scratch masked and the two-byte tail drift asserted; a crafted era-
- * four entry drives the other branch; the seated stride-two run is read back; and teeth. The dropped
- * tail chain scrambles the scratch registers, so only RAM, the cursors and sp are compared.
+ * four entry drives the other branch; the seated stride-two run is read back; and teeth, with a
+ * scratch-not-pinned control beside the RAM measurement. The frogger standard: the dropped tail chain
+ * scrambles the scratch registers and reseats its own cursors, so RAM (masked over the stack) is the
+ * whole contract and no register is pinned (GENUINE_LIVE_OUTS empty).
  * Run: node --test games/timeplt/idiomatic/test/equivalence-30a5.test.js
  */
 
@@ -35,6 +37,13 @@ const SUBGUARD_OK = 0x10;
 /** Every game cell any path writes lands at or below here; the stack seats far above it. */
 const DATA_TOP = 0xadff;
 const TAIL_DRIFT = 2;
+const SCRIBBLE_CELL = 0xa5af; // a compared (non-stack) cell the teeth flip to prove the RAM measurement bites
+
+/** The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and only
+ *  genuine named register live-outs are pinned beside it. This routine has none — it tail-transfers
+ *  into the scenery chain and never returns to its own caller, which reseats A and HL fresh right
+ *  after the call; the era rides into the chain seated in C as a callee input, not a live-out. */
+const GENUINE_LIVE_OUTS = [];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -44,8 +53,9 @@ const show = (d) => (d ? `${d.addr == null ? "reg" : hex4(d.addr)}: frozen=${d.a
 
 /**
  * Oracle vs candidate on independent clones. Both drop the ROM's tail return and its two internal
- * call frames, so RAM is diffed outside [low, seat) — low watched off the oracle's own pushes — the
- * two cursors are checked, throw-agreement required, and the two-byte pointer drift returned.
+ * call frames, so RAM is diffed outside [low, seat) — low watched off the oracle's own pushes —
+ * throw-agreement is required, only genuine register live-outs are pinned (none here), and the
+ * two-byte pointer drift is returned.
  */
 function compare(cand, machine) {
   const a = machine.clone();
@@ -68,14 +78,15 @@ function compare(cand, machine) {
     escaped = { addr, a: da[i], b: db[i] };
   }
   const throwMismatch = threwA !== threwB ? { addr: null, a: threwA ? "threw" : "ret", b: threwB ? "threw" : "ret" } : null;
-  let cursor = null;
+  let liveOut = null;
   if (!threwA && !threwB) {
-    if (a.regs.ix !== b.regs.ix) cursor = { addr: null, a: `ix=${hex4(a.regs.ix)}`, b: `ix=${hex4(b.regs.ix)}` };
-    else if (a.regs.iy !== b.regs.iy) cursor = { addr: null, a: `iy=${hex4(a.regs.iy)}`, b: `iy=${hex4(b.regs.iy)}` };
+    for (const k of GENUINE_LIVE_OUTS) {
+      if (a.regs[k] !== b.regs[k]) { liveOut = { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` }; break; }
+    }
   }
-  return { escaped, throwMismatch, cursor, spDiff: a.regs.sp - b.regs.sp, low, seat };
+  return { escaped, throwMismatch, liveOut, spDiff: a.regs.sp - b.regs.sp, low, seat };
 }
-const caught = (r) => r.escaped !== null || r.throwMismatch !== null || r.cursor !== null;
+const caught = (r) => r.escaped !== null || r.throwMismatch !== null || r.liveOut !== null;
 
 /** Addr=value pairs of every game cell the oracle moves from this entry. */
 function footprint(machine) {
@@ -167,7 +178,7 @@ test("EQUAL at the real dispatch: identical outside the stack scratch, drift ass
   const r = compare(candidate, seatEntry());
   assert.equal(r.escaped, null, `a divergence escaped the scratch window — ${show(r.escaped)}`);
   assert.equal(r.throwMismatch, null, `one side faulted and the other did not — ${show(r.throwMismatch)}`);
-  assert.equal(r.cursor, null, `a cursor diverged — ${show(r.cursor)}`);
+  assert.equal(r.liveOut, null, `a pinned live-out diverged — ${show(r.liveOut)}`);
   assert.equal(r.spDiff, TAIL_DRIFT, "the dropped tail return no longer moves the pointer by two");
   // ★ The mask is safe only because its floor sits above every game cell any path writes.
   assert.ok(r.low > DATA_TOP, `the scratch floor ${hex4(r.low)} reached into game data`);
@@ -177,7 +188,7 @@ test("EQUAL at the real dispatch: identical outside the stack scratch, drift ass
 test("PATHS: the natural branch and the era-four branch are each equivalent and really differ", { skip }, () => {
   for (const [tag, m] of [["natural", seatEntry()], ["era-four", craftEraFour()]]) {
     const r = compare(candidate, m);
-    assert.ok(!caught(r), `${tag} diverged — ${show(r.escaped ?? r.throwMismatch ?? r.cursor)}`);
+    assert.ok(!caught(r), `${tag} diverged — ${show(r.escaped ?? r.throwMismatch ?? r.liveOut)}`);
     assert.equal(r.spDiff, TAIL_DRIFT, `${tag}: the dropped tail return no longer drifts by two`);
   }
   assert.notEqual(footprint(seatEntry()).join(","), footprint(craftEraFour()).join(","),
@@ -202,7 +213,7 @@ for (const [label, twin] of NATURAL_TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT at the natural dispatch`, { skip }, () => {
     const r = compare(twin, seatEntry());
     assert.ok(caught(r), `the gate PASSED the ${label} twin — it has no teeth outside the mask`);
-    console.log(`  TEETH/${label}: caught — ${show(r.escaped ?? r.throwMismatch ?? r.cursor)}`);
+    console.log(`  TEETH/${label}: caught — ${show(r.escaped ?? r.throwMismatch ?? r.liveOut)}`);
   });
 }
 
@@ -210,6 +221,24 @@ for (const [label, twin] of ERAFOUR_TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT at the era-four branch`, { skip }, () => {
     const r = compare(twin, craftEraFour());
     assert.ok(caught(r), `the gate PASSED the ${label} twin — the era-four branch has no teeth`);
-    console.log(`  TEETH/${label}: caught — ${show(r.escaped ?? r.throwMismatch ?? r.cursor)}`);
+    console.log(`  TEETH/${label}: caught — ${show(r.escaped ?? r.throwMismatch ?? r.liveOut)}`);
   });
 }
+
+// ── scratch-not-pinned control: a register-only twin passes by design; RAM still bites ──────
+const scribbleScratchReg = (m) => { candidate(m); m.regs.b = (m.regs.b + 1) & 0xff; };
+const scribbleData = (m) => { candidate(m); m.mem8[SCRIBBLE_CELL] ^= 0xff; };
+
+test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  // No genuine register live-outs, so a twin that only scribbles a scratch register after the routine
+  // is DELIBERATELY not flagged — and the same measurement must still catch a scribbled RAM cell, or
+  // the clean read on the register twin would be worthless. Runs on both returning arms.
+  for (const m of [seatEntry(), craftEraFour()]) {
+    assert.ok(!caught(compare(scribbleScratchReg, m)),
+      "a scratch-register scribble was flagged, but this routine has no genuine register live-outs to pin");
+    const r = compare(scribbleData, m);
+    assert.ok(caught(r), "the RAM measurement missed a scribbled cell, so it has no teeth");
+    assert.notEqual(r.escaped, null, "the RAM scribble must be caught on a cell, not a register");
+  }
+  console.log("  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on both arms");
+});
