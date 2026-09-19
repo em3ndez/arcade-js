@@ -134,7 +134,6 @@ export function* showSetupScreen(m) {
     cycleColumnColour(m, 6);
 
     // Hold the screen for a spell.
-    m.push16(0x3b77);
     yield* waitFrames(m, HOLD_FRAMES);
 
     remaining = (mem8[HOLD_COUNTER] - 1) & 0xff;

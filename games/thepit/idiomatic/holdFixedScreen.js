@@ -36,7 +36,6 @@ export function* holdFixedScreen(m) {
   const { mem8 } = m;
 
   // 1. Let the previous display setup settle for one frame (hand the wait its resume address).
-  m.push16(0x3bad);
   yield* waitFrames(m, 1);
 
   // 2. Stamp the prebuilt full-screen tile image over the tilemap.
@@ -59,7 +58,6 @@ export function* holdFixedScreen(m) {
   for (;;) {
     cycleStagedColumnColour(m);
 
-    m.push16(0x3be7); // the frame-wait returns here, back into this loop
     yield* waitFrames(m, 15);
 
     applyDipSwitches(m);

@@ -25,5 +25,5 @@ export function* waitFrames(m, count) {
     remaining = mem8[FRAME_WAIT_COUNTDOWN]; // reload the countdown the interrupt is decrementing
   } while (remaining !== 0);
 
-  return m.ret();
+  return;
 }

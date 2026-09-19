@@ -65,10 +65,7 @@ const FINISH_HOLD_FRAMES = 60; // frames the completed screen is held before the
 
 // The frame waits and the per-frame handler still take the machine's Z80 return path, so
 // their non-tail calls are bracketed with the return address the caller would push.
-const RESUME_AFTER_LETTER = 0x4ebd;
-const RESUME_AFTER_CURSOR = 0x4ec4;
 const RESUME_AFTER_STEP = 0x4ec7;
-const RESUME_AFTER_FINISH_HOLD = 0x4eda;
 
 /** Label strip naming the rank, by selector: rank 2, rank 1, or (otherwise) rank 0. */
 function rankLabelStrip(selector) {
@@ -142,11 +139,9 @@ export function* runHighScoreInitialsEntry(m) {
   // The entry loop: blink the cell and hand each frame's input to the per-frame handler.
   for (;;) {
     mem8[regs.hl] = regs.c; // draw the current letter
-    m.push16(RESUME_AFTER_LETTER);
     yield* waitFrames(m, BLINK_LETTER_FRAMES);
 
     mem8[regs.hl] = CURSOR_TILE; // swap to the cursor glyph (the blink)
-    m.push16(RESUME_AFTER_CURSOR);
     yield* waitFrames(m, BLINK_CURSOR_FRAMES);
 
     m.push16(RESUME_AFTER_STEP);
@@ -163,7 +158,6 @@ export function* runHighScoreInitialsEntry(m) {
   // 3. Completed: rebuild the screen, confirm, hold, clear the rank selector, show the readouts.
   setupBoardDisplay(m, FINISH_BOARD_MODE);
   requestSound5(m);
-  m.push16(RESUME_AFTER_FINISH_HOLD);
   yield* waitFrames(m, FINISH_HOLD_FRAMES);
   mem8[VARIANT] = 0;
   return renderScoreReadouts(m); // draw the final score readouts — this hand-off is the exit

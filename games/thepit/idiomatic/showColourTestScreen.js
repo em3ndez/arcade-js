@@ -36,7 +36,6 @@ export function* showColourTestScreen(m) {
   if (!bothTriggersHeld) return applyDipSwitches(m);
 
   // Settle one frame before the first pass (push the slot the frame-wait pops).
-  m.push16(0x4f61);
   yield* waitFrames(m, 1);
 
   // Cycle the colour byte across the top half of its range (128..255), one value per pass; each
@@ -47,7 +46,6 @@ export function* showColourTestScreen(m) {
       mem8[VIDEO_RAM_BASE + cell] = cell;
       mem8[COLOUR_RAM_BASE + cell] = fill;
     }
-    m.push16(0x4f7e);
     yield* waitFrames(m, 120);
   }
 

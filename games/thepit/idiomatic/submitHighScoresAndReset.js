@@ -27,7 +27,6 @@ const GAMEOVER_BOARD_MODE = 0xe0; // board-mode / screen-wide colour byte for th
 const GAMEOVER_HOLD_FRAMES = 20; // video frames the game-over display is held before scoring
 
 // These callees model their return through the work stack; each non-tail call is handed its resume address.
-const RESUME_AFTER_WAIT = 0x0389;
 const RESUME_AFTER_ENTRY_1 = 0x0398;
 const RESUME_AFTER_ENTRY_2 = 0x03ac;
 const RESUME_AFTER_SETUP = 0x03bb;
@@ -57,7 +56,6 @@ export function* submitHighScoresAndReset(m) {
   if (playerCount === 1 || playerCount === 2) {
     // Rebuild the board display for the game-over screen and hold it a moment.
     setupBoardDisplay(m, GAMEOVER_BOARD_MODE);
-    m.push16(RESUME_AFTER_WAIT);
     yield* waitFrames(m, GAMEOVER_HOLD_FRAMES);
 
     // Player 1 always finishes.
@@ -79,7 +77,6 @@ export function* submitHighScoresAndReset(m) {
   m.push16(RESUME_AFTER_SETUP);
   yield* showSetupScreen(m);
 
-  // Tail hand-off to the reset/entry handler, which re-seats the stack and runs the never-returning
-  // game loop back to attract; delegate into it.
+  // Tail hand-off to the reset/entry handler (re-seats the stack, runs the never-returning loop to attract).
   return yield* m.call(0x01f9);
 }

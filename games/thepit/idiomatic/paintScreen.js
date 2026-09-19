@@ -32,7 +32,6 @@ export function* paintScreen(m) {
 
   // Let a frame pass so prior display setup takes, then copy the selected tile image over the
   // whole tilemap. Push the slot the frame-wait pops before handing it the one-frame count.
-  m.push16(0x0678);
   yield* waitFrames(m, 1);
 
   const tileImage = (mem8[LEVEL] & 1) === 1 ? PLAYFIELD_TILE_IMAGE_LEVEL_ODD : PLAYFIELD_TILE_IMAGE_LEVEL_EVEN;
@@ -41,7 +40,6 @@ export function* paintScreen(m) {
   }
 
   // Let another frame pass, then tint the tile image with the fixed colour map.
-  m.push16(0x0692);
   yield* waitFrames(m, 1);
 
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {

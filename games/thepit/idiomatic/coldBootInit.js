@@ -83,7 +83,6 @@ export function* coldBootInit(m) {
 
   // Hold briefly. waitFrames re-enables the per-frame interrupt that ticks its countdown
   // and returns through the work stack, so push the resume slot it pops.
-  m.push16(0x01f6);
   yield* waitFrames(m, 60);
 
   // Hand off to the reset/round-restart epilogue and never return here.

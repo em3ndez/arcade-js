@@ -21,7 +21,6 @@ export function* showFixedScreen(m) {
 
   // 1. Blank the screen to the neutral background, then let a frame pass.
   blankScreen(m);
-  m.push16(0x3b89);
   yield* waitFrames(m, 1);
 
   // 2. Stamp the prebuilt full-screen tile image over the blanked tilemap.

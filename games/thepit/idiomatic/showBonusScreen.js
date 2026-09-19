@@ -54,7 +54,6 @@ const ROW2_STRIP = { hi: BONUS_SCREEN_ROW2_TIER15_STRIP, mid: BONUS_SCREEN_ROW2_
 const HOLD_FRAMES = 15; // video frames each hold pass waits
 const HOLD_SCORE = 16; // packed-BCD amount added each pass (+10 on screen)
 const CYCLE_COLUMN = 15; // the top row's column, cycled through the palette while holding
-const RESUME_AFTER_WAIT = 0x3cb7;
 
 /** Pick a strip by tier: the 15-strip, the 10-strip, or (otherwise) the 5-strip. */
 function stripForTier(count, strip) {
@@ -107,7 +106,6 @@ export function* showBonusScreen(m) {
     addScore(m, HOLD_SCORE); // +10 to the active player's score (dropped in attract/demo)
     cycleColumnColour(m, CYCLE_COLUMN);
 
-    m.push16(RESUME_AFTER_WAIT);
     yield* waitFrames(m, HOLD_FRAMES); // hold fifteen frames (returns through the stack)
 
     remaining = mem8[TIER_COUNTER] - 1;

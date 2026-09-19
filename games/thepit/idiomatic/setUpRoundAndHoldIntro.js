@@ -45,10 +45,8 @@ export function* setUpRoundAndHoldIntro(m) {
   drawMenLeftPanel(m);
   do {
     drawPlayerLabel(m);
-    m.push16(0x02e9); // the frame-wait returns through the work stack; push the slot it pops
     yield* waitFrames(m, 10);
     paintPlayfieldStripCol1Row11(m);
-    m.push16(0x02f1);
     yield* waitFrames(m, 5);
     mem8[LOOP_COUNTER] = mem8[LOOP_COUNTER] - 1;
   } while (mem8[LOOP_COUNTER] !== 0);
