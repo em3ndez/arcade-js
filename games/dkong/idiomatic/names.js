@@ -84,7 +84,7 @@ export const TOP_SPRITES = 0x6a00;
 /** [seen] 3 collision sprite records (stride 4) inside SPRITE_BUFFER; scanObjectsAtMarioX/confirmObjectHit
  *  read +0 X / +3 Y / +1 flag vs Mario (cleared as a 5-record group by clearSpriteColumns). */
 export const OBJECT_COLLISION_SPRITES = 0x6a0c;
-/** [code] Effect sprite record (4 bytes at 0x6A2C inside SPRITE_BUFFER, immediately before
+/** [seen] Effect sprite record (4 bytes at 0x6A2C inside SPRITE_BUFFER, immediately before
  *  POPUP_SPRITE): +0 Y, +1 SPRITE_CODE, +2 SPRITE_ATTR, +3 X. entry_1ea0 builds it and stores its
  *  base into EFFECT_PARAM_PTR (0x6343); flashEffectSpriteThenAdvanceSequence flips bit0 of its code byte (0x60↔0x61) each effect
  *  beat, animateEffectSpriteThenRearmEffect steps it. Its +1 code field (0x6A2D) IS grounded [seen] live (flips 0x60↔0x61, 41
@@ -812,11 +812,11 @@ export const EFFECT_TIMER = 0x6341;
 export const EFFECT_SELECT = 0x6342;
 /** [code] Effect param pointer (word); indirect base of the hit record, deref'd by stageAwardPopupAtHitObject. */
 export const EFFECT_PARAM_PTR = 0x6343;
-/** [code] Effect-sequence state / 3-way rst-0x28 router (sub_1e96); re-arms EFFECT_STATE on completion. */
+/** [seen] Effect-sequence state / 3-way rst-0x28 router (sub_1e96); re-arms EFFECT_STATE on completion. */
 export const EFFECT_SEQ_STATE = 0x6345;
-/** [code] Effect-sequence INNER countdown; decremented first each tick, steps the outer when it drains. */
+/** [seen] Effect-sequence INNER countdown; decremented first each tick, steps the outer when it drains. */
 export const EFFECT_SEQ_INNER = 0x6346;
-/** [code] Effect-sequence OUTER countdown; decremented when the inner hits 0, advances EFFECT_SEQ_STATE on 0. */
+/** [seen] Effect-sequence OUTER countdown; decremented when the inner hits 0, advances EFFECT_SEQ_STATE on 0. */
 export const EFFECT_SEQ_OUTER = 0x6347;
 
 // ── Intro cutscene & blink animation ─────────────────────────────────────────
@@ -1054,7 +1054,7 @@ export const BONUS_ITEM_VIDEO_PTR = 0x6036;
 export const BONUS_ITEM_SLOT_PTR = 0x6038;
 /** BONUS_ITEM_SLOT_COL_PTR (0x603a) — [code] 16-bit destination pointer (SLOT_PTR-0x0d) in runBonusItemValueDisplay: on teardown the 0x0c-byte video value column (walked from VIDEO_BASE by… [code] */
 export const BONUS_ITEM_SLOT_COL_PTR = 0x603a;
-/** SND_TRIGGER_EFFECT (0x6085) — [code] Slot 5 of the 8-entry SND_TRIGGER latch array (base 0x6080, ls259.6h): the score-popup/item effect sound. stampScorePopupSprite stores 3 to ass… [code] */
+/** SND_TRIGGER_EFFECT (0x6085) — [seen] Slot 5 of the 8-entry SND_TRIGGER latch array (base 0x6080, ls259.6h): the score-popup/item effect sound. stampScorePopupSprite stores 3 to ass… [code] */
 export const SND_TRIGGER_EFFECT = 0x6085;
 /** OPTION_TABLE_BASE (0x6100) — [code] Work-RAM base of the 0xaa-byte option/attract config table copied verbatim from ROM 0x3565 at power-on by decodeDipSwitches (ldir, spans 0x6100… [code] */
 export const OPTION_TABLE_BASE = 0x6100;
@@ -1062,37 +1062,37 @@ export const OPTION_TABLE_BASE = 0x6100;
 export const SCORE_SORT_TABLE_KEY = 0x61a5;
 /** SCORE_SORT_DIGITS (0x61b1) — [code] Base of the 21-byte display field of loc_13ca's staging high-score record: 6 unpacked BCD digits (MS first) + 14 blank tiles (0x10) + a 0x3f te… [code] */
 export const SCORE_SORT_DIGITS = 0x61b1;
-/** SCORE_SORT_TAG (0x61c6) — [code] Player-tag byte of loc_13ca's staging record: the A-register tag stored here first (before the game-active guard); sits between the display dig… [code] */
+/** SCORE_SORT_TAG (0x61c6) — [seen] Player-tag byte of loc_13ca's staging record: the A-register tag stored here first (before the game-active guard); sits between the display dig… [code] */
 export const SCORE_SORT_TAG = 0x61c6;
 /** SCORE_SORT_STAGING_KEY (0x61c7) — [code] 3-byte packed-BCD score key of the NEW staging record in loc_13ca: ldir-copied from the live score pointer (HL), then used as the DE compare/sw… [code] */
 export const SCORE_SORT_STAGING_KEY = 0x61c7;
 /** MARIO_CLIMB_TOGGLE (0x6219) — [code] Mario climb-state byte in the climb region (adjacent to CLIMB_FLAG 0x621a, MARIO_CLIMB_LIMIT_A/B 0x621b/c): cleared to 0 by endClimbAtLadderLim… [code] */
 export const MARIO_CLIMB_TOGGLE = 0x6219;
-/** CLIMB_CENTERING_PHASE (0x6222) — [code] Shared two-phase ladder-centering toggle: advanceClimbStep XORs it 0<->1 each climb step to gate the centering arm vs the frame-select/limit ar… [code] */
+/** CLIMB_CENTERING_PHASE (0x6222) — [seen] Shared two-phase ladder-centering toggle: advanceClimbStep XORs it 0<->1 each climb step to gate the centering arm vs the frame-select/limit ar… [code] */
 export const CLIMB_CENTERING_PHASE = 0x6222;
-/** FIXED_HAZARD_PRESCALER (0x62b8) — 4-frame prescaler of the fixed-hazard/fire machine (animateFixedHazardAndReleaseFire): decremented each qualifying pass, returns until underflow, then… [code] */
+/** FIXED_HAZARD_PRESCALER (0x62b8) — 4-frame prescaler of the fixed-hazard/fire machine (animateFixedHazardAndReleaseFire): decremented each qualifying pass, returns until underflow, then… [seen] */
 export const FIXED_HAZARD_PRESCALER = 0x62b8;
-/** FIXED_HAZARD_ARM_COUNTER (0x62ba) — Bit1-arm down-counter of the fixed-hazard/fire machine (animateFixedHazardAndReleaseFire): decremented on the bit1-set arm; on underflow it resets PHA… [code] */
+/** FIXED_HAZARD_ARM_COUNTER (0x62ba) — Bit1-arm down-counter of the fixed-hazard/fire machine (animateFixedHazardAndReleaseFire): decremented on the bit1-set arm; on underflow it resets PHA… [seen] */
 export const FIXED_HAZARD_ARM_COUNTER = 0x62ba;
-/** BARREL_DIFFICULTY_LATCH (0x6348) — One-way barrel behavior/difficulty-mode latch (0=simple/default, nonzero=difficulty-graded). retireBarrelIntoOilDrum sets it to 1 one-way on the first… [code] */
+/** BARREL_DIFFICULTY_LATCH (0x6348) — One-way barrel behavior/difficulty-mode latch (0=simple/default, nonzero=difficulty-graded). retireBarrelIntoOilDrum sets it to 1 one-way on the first… [seen] */
 export const BARREL_DIFFICULTY_LATCH = 0x6348;
-/** PALETTE_ANIM_TIMER (0x638a) — Countdown timer of loc_07cb's timed palette-pattern animation sub-state, paired with 0x638b. 0 arms a fresh 0x60-frame run; otherwise ticks down; on r… [code] */
+/** PALETTE_ANIM_TIMER (0x638a) — Countdown timer of loc_07cb's timed palette-pattern animation sub-state, paired with 0x638b. 0 arms a fresh 0x60-frame run; otherwise ticks down; on r… [seen] */
 export const PALETTE_ANIM_TIMER = 0x638a;
-/** PALETTE_ANIM_PATTERN (0x638b) — Rotating pattern byte paired with PALETTE_ANIM_TIMER (loc_07cb): each active frame its top two bits are streamed into the write-only palette latches 0… [code] */
+/** PALETTE_ANIM_PATTERN (0x638b) — Rotating pattern byte paired with PALETTE_ANIM_TIMER (loc_07cb): each active frame its top two bits are streamed into the write-only palette latches 0… [seen] */
 export const PALETTE_ANIM_PATTERN = 0x638b;
-/** BARREL_RELEASE_ARMED (0x6392) — 25m barrel-release 'a release is armed this pass' flag (bit0). armBarrelRelease raises it to 1 on entry; driveBarrelRelease reads bit0 to decide wheth… [code] */
+/** BARREL_RELEASE_ARMED (0x6392) — 25m barrel-release 'a release is armed this pass' flag (bit0). armBarrelRelease raises it to 1 on entry; driveBarrelRelease reads bit0 to decide wheth… [seen] */
 export const BARREL_RELEASE_ARMED = 0x6392;
-/** FIRE_SWEEP_INDEX (0x63a2) — Loop-counter cell for advanceLiveFires' per-frame fire-array sweep: zeroed at sweep start, re-read from memory and incremented once per iteration (OBJ… [code] */
+/** FIRE_SWEEP_INDEX (0x63a2) — Loop-counter cell for advanceLiveFires' per-frame fire-array sweep: zeroed at sweep start, re-read from memory and incremented once per iteration (OBJ… [seen] */
 export const FIRE_SWEEP_INDEX = 0x63a2;
-/** CLIMB_FIGURE_INDEX (0x63a7) — Index into the ROM climb-figure record table (0x3cf0, 4-byte records, <<2) for the 'HOW HIGH' screen (buildHowHighScreen): reset to 0, incremented onc… [code] */
+/** CLIMB_FIGURE_INDEX (0x63a7) — Index into the ROM climb-figure record table (0x3cf0, 4-byte records, <<2) for the 'HOW HIGH' screen (buildHowHighScreen): reset to 0, incremented onc… [seen] */
 export const CLIMB_FIGURE_INDEX = 0x63a7;
-/** CLIMB_FIGURE_WALK_PTR (0x63a8) — 16-bit VRAM write pointer (word cell 0x63a8/0x63a9) for the climbing figures on the 'HOW HIGH' screen (buildHowHighScreen): seeded to 0x76dc, each row… [code] */
+/** CLIMB_FIGURE_WALK_PTR (0x63a8) — 16-bit VRAM write pointer (word cell 0x63a8/0x63a9) for the climbing figures on the 'HOW HIGH' screen (buildHowHighScreen): seeded to 0x76dc, each row… [seen] */
 export const CLIMB_FIGURE_WALK_PTR = 0x63a8;
 /** SPRITE_OBJ_REC4_CODE (0x6919) — Byte at SPRITE_OBJ_BLOCK(0x6908)+0x11 = sprite-object block record 4's code byte (test equivalence-1880 pins REC4_CODE=SPRITE_OBJ_BLOCK+0x11==0x6919).… [code] */
 export const SPRITE_OBJ_REC4_CODE = 0x6919;
-/** MARIO_SPRITE_Y (0x694f) — Y byte of Mario's sprite record = MARIO_SPRITE_RECORD(0x694c) + SPRITE_Y(0x03) (already an export at 0x694c; test equivalence-2259 treats 0x694f as MA… [code] */
+/** MARIO_SPRITE_Y (0x694f) — Y byte of Mario's sprite record = MARIO_SPRITE_RECORD(0x694c) + SPRITE_Y(0x03) (already an export at 0x694c; test equivalence-2259 treats 0x694f as MA… [seen] */
 export const MARIO_SPRITE_Y = 0x694f;
-/** BONUS_COUNTDOWN_SPRITES (0x69a8) — Base of the 25m bonus-countdown sprite group: four 4-byte sprite records (0x10 bytes), block-copied from ROM 0x3ddc at board build (seed25mBoardObject… [code] */
+/** BONUS_COUNTDOWN_SPRITES (0x69a8) — Base of the 25m bonus-countdown sprite group: four 4-byte sprite records (0x10 bytes), block-copied from ROM 0x3ddc at board build (seed25mBoardObject… [seen] */
 export const BONUS_COUNTDOWN_SPRITES = 0x69a8;
 /** M50_OBJ2_SPRITE_PAIR (0x69ec) — Base of 50m object-2's mirrored sprite-code record (loc_264c): HL=this base is passed to loc_26a6 every 32nd frame to advance the pair; low cell base+… [code] */
 export const M50_OBJ2_SPRITE_PAIR = 0x69ec;
@@ -1108,7 +1108,7 @@ export const CUTSCENE_SPRITE_RECORD = 0x6a20;
 export const CUTSCENE_SPRITE_RECORD_2 = 0x6a24;
 /** CUTSCENE_SPRITE_2_CODE (0x6a25) — [code] The +1 (sprite-code) field of CUTSCENE_SPRITE_RECORD_2 (0x6a24). loc_1880 writes it (=0x39) when staging the 7F/39/01/D8 record; runRivetBoardF… [code] */
 export const CUTSCENE_SPRITE_2_CODE = 0x6a25;
-/** OBJ_66A0_SPRITE_RECORD (0x6a28) — [code] 4-byte sprite-shadow record in SPRITE_BUFFER mirroring OBJ_RECORD_66A0's first 4 bytes (X/code/attr/Y). loc_11fa scatters a 6-byte source into … [code] */
+/** OBJ_66A0_SPRITE_RECORD (0x6a28) — [seen] 4-byte sprite-shadow record in SPRITE_BUFFER mirroring OBJ_RECORD_66A0's first 4 bytes (X/code/attr/Y). loc_11fa scatters a 6-byte source into … [code] */
 export const OBJ_66A0_SPRITE_RECORD = 0x6a28;
 /** OBJ_66A0_SPRITE_CODE (0x6a29) — [code] The +1 (sprite-code) field of OBJ_66A0_SPRITE_RECORD (0x6a28). animateFixedHazardAndReleaseFire stamps the fixed-hazard sprite byte here (0x40 … [code] */
 export const OBJ_66A0_SPRITE_CODE = 0x6a29;
@@ -1116,19 +1116,19 @@ export const OBJ_66A0_SPRITE_CODE = 0x6a29;
 export const TILEMAP_BASE = 0x7400;
 /** PLAYFIELD_TOP (0x7404) — [code] Top-left cell of the central 28-column tilemap playfield interior (TILEMAP_BASE + 4). clearPlayfieldAndSprites blanks 32 rows x 28 cols startin… [code] */
 export const PLAYFIELD_TOP = 0x7404;
-/** BONUS_READOUT_TILE_BASE (0x7465) — [code] First video-RAM cell of the on-screen bonus readout's tile frame. loc_062a stamps 18 bytes from ROM table 0x384a here (6 columns x 3 cells, str… [code] */
+/** BONUS_READOUT_TILE_BASE (0x7465) — [seen] First video-RAM cell of the on-screen bonus readout's tile frame. loc_062a stamps 18 bytes from ROM table 0x384a here (6 columns x 3 cells, str… [code] */
 export const BONUS_READOUT_TILE_BASE = 0x7465;
-/** LEVEL_UNITS_CELL (0x74a3) — [code] Tilemap cell holding the units digit of the on-screen level number. drawLivesAndLevel decimal-splits LEVEL and writes the units tile here (tens… [code] */
+/** LEVEL_UNITS_CELL (0x74a3) — [seen] Tilemap cell holding the units digit of the on-screen level number. drawLivesAndLevel decimal-splits LEVEL and writes the units tile here (tens… [code] */
 export const LEVEL_UNITS_CELL = 0x74a3;
 /** CREDIT_DIGITS_CELL (0x74bf) — [code] Tilemap cursor for the 'CREDIT nn' count: high digit lands here, low digit one tilemap row UP (0x74bf-0x20, DE step 0xffe0). drawCreditDisplay … [code] */
 export const CREDIT_DIGITS_CELL = 0x74bf;
-/** LEVEL_TENS_CELL (0x74c3) — [code] Tilemap cell holding the tens digit of the on-screen level number (paired with LEVEL_UNITS_CELL 0x74a3). drawLivesAndLevel writes the tens tile… [code] */
+/** LEVEL_TENS_CELL (0x74c3) — [seen] Tilemap cell holding the tens digit of the on-screen level number (paired with LEVEL_UNITS_CELL 0x74a3). drawLivesAndLevel writes the tens tile… [code] */
 export const LEVEL_TENS_CELL = 0x74c3;
-/** BONUS_READOUT_LOW_DIGIT_CELL (0x74c6) — [code] Low (units) digit cell of the two-digit bonus readout field (inside the BONUS_READOUT_TILE_BASE frame; high digit one screen column later at 0x… [code] */
+/** BONUS_READOUT_LOW_DIGIT_CELL (0x74c6) — [seen] Low (units) digit cell of the two-digit bonus readout field (inside the BONUS_READOUT_TILE_BASE frame; high digit one screen column later at 0x… [code] */
 export const BONUS_READOUT_LOW_DIGIT_CELL = 0x74c6;
 /** P2_INDICATOR_COLUMN_BASE (0x74e0) — [code] Video-RAM column base of player 2's on-screen '2UP' indicator column. draw2UpLabel stamps '2'/'U'/'P' at 0x74e0, -0x20, -0x40 (ascending); sele… [code] */
 export const P2_INDICATOR_COLUMN_BASE = 0x74e0;
-/** TWO_DIGIT_FIELD_HIGH_CELL (0x74e6) — VRAM tilemap cell that stampTwoDigitField writes with the HIGH (tens) digit tile of its two-digit on-screen field; the low-digit partner is one screen… [code] */
+/** TWO_DIGIT_FIELD_HIGH_CELL (0x74e6) — VRAM tilemap cell that stampTwoDigitField writes with the HIGH (tens) digit tile of its two-digit on-screen field; the low-digit partner is one screen… [seen] */
 export const TWO_DIGIT_FIELD_HIGH_CELL = 0x74e6;
 /** SCORE_VRAM_COLUMN_P2 (0x7521) — Destination VRAM column loc_056b selects (via IX) when its zero/nonzero selector is nonzero — player 2's score/counter column; the zero selector picks… [code] */
 export const SCORE_VRAM_COLUMN_P2 = 0x7521;
@@ -1138,11 +1138,11 @@ export const BONUS_ITEM_VALUE_ONES_CELL = 0x7552;
 export const BONUS_ITEM_VALUE_TENS_CELL = 0x7572;
 /** BONUS_ITEM_VALUE_COL_FLOOR_SENTINEL (0x7588) — Floor sentinel of the bonus-item value's descending video-column walk (0x60 below the column top 0x75e8): when VIDEO_PTR already equals this address t… [code] */
 export const BONUS_ITEM_VALUE_COL_FLOOR_SENTINEL = 0x7588;
-/** INTRO_CUTSCENE_TILE_C (0x75aa) — Third of three fixed VRAM tiles stamped by setupIntroCutsceneStep in the opening Kong-climb intro cutscene setup; stamped with tile 0xD4 (A and B get … [code] */
+/** INTRO_CUTSCENE_TILE_C (0x75aa) — Third of three fixed VRAM tiles stamped by setupIntroCutsceneStep in the opening Kong-climb intro cutscene setup; stamped with tile 0xD4 (A and B get … [seen] */
 export const INTRO_CUTSCENE_TILE_C = 0x75aa;
-/** HOW_HIGH_GIRDER_VRAM_BASE (0x75bc) — Base VRAM cell where buildHowHighScreen begins the descending girder-stack tile fill for the 'HOW HIGH CAN YOU GET?' screen. [code] */
+/** HOW_HIGH_GIRDER_VRAM_BASE (0x75bc) — Base VRAM cell where buildHowHighScreen begins the descending girder-stack tile fill for the 'HOW HIGH CAN YOU GET?' screen. [seen] */
 export const HOW_HIGH_GIRDER_VRAM_BASE = 0x75bc;
-/** BLINK_COLOR_COLUMN_TOP (0x75c4) — Top cell of the shared 3-cell descending colour-cycle VRAM column (stride 0x20 -> 0x75c4/0x75e4/0x7604): paintColorColumnAndHoldBlink (the blink drive… [code] */
+/** BLINK_COLOR_COLUMN_TOP (0x75c4) — Top cell of the shared 3-cell descending colour-cycle VRAM column (stride 0x20 -> 0x75c4/0x75e4/0x7604): paintColorColumnAndHoldBlink (the blink drive… [seen] */
 export const BLINK_COLOR_COLUMN_TOP = 0x75c4;
 /** BONUS_ITEM_VALUE_COLUMN_TOP (0x75e8) — Top of the bonus-item value's descending video column in runBonusItemValueDisplay; VIDEO_PTR is seeded here on init and on wrap, and the exit copy rea… [code] */
 export const BONUS_ITEM_VALUE_COLUMN_TOP = 0x75e8;
@@ -1150,9 +1150,9 @@ export const BONUS_ITEM_VALUE_COLUMN_TOP = 0x75e8;
 export const BONUS_ITEM_VALUE_COL_CEILING_SENTINEL = 0x7608;
 /** COLOR_COLUMN_A_TOP (0x7623) — Top cell of decorative colour column A (paired with column B at 0x7583) in the descending colour-cycle fill; painted by runRivetColorCycleBlink (base … [code] */
 export const COLOR_COLUMN_A_TOP = 0x7623;
-/** INTRO_CUTSCENE_TILE_B (0x7663) — Second of three fixed VRAM tiles stamped by setupIntroCutsceneStep (value 0x10) in the intro cutscene setup. [code] */
+/** INTRO_CUTSCENE_TILE_B (0x7663) — Second of three fixed VRAM tiles stamped by setupIntroCutsceneStep (value 0x10) in the intro cutscene setup. [seen] */
 export const INTRO_CUTSCENE_TILE_B = 0x7663;
-/** INTRO_CUTSCENE_TILE_A (0x76a3) — First of three fixed VRAM tiles stamped by setupIntroCutsceneStep (value 0x10) in the intro cutscene setup. [code] */
+/** INTRO_CUTSCENE_TILE_A (0x76a3) — First of three fixed VRAM tiles stamped by setupIntroCutsceneStep (value 0x10) in the intro cutscene setup. [seen] */
 export const INTRO_CUTSCENE_TILE_A = 0x76a3;
 /** INTERLUDE_TILE_BLOCK_TOPLEFT (0x76c6) — Top-left VRAM start cell of the 70-tile (5x14) descending tile fill loc_1880 hands to loc_1826 when building the next between-boards interlude arrival… [code] */
 export const INTERLUDE_TILE_BLOCK_TOPLEFT = 0x76c6;
@@ -1162,31 +1162,31 @@ export const GAMEOVER_BANNER_TOPLEFT_2P = 0x76d3;
 export const GAMEOVER_BANNER_TOPLEFT_1P = 0x76d4;
 /** HOW_HIGH_CLIMB_FIGURE_VRAM_START (0x76dc) — Initial VRAM walk-pointer value seeded into CLIMB_FIGURE_WALK_PTR (0x63a8) for the small climbing figure drawn on each girder of the 'HOW HIGH' screen… [code] */
 export const HOW_HIGH_CLIMB_FIGURE_VRAM_START = 0x76dc;
-/** P1_INDICATOR_COLUMN_BASE (0x7740) — Video-RAM tilemap (0x7400-0x77ff) column-base cell of player-1's top-of-screen indicator/score column. selectPlayerIndicatorColumnBase returns it for … [code] */
+/** P1_INDICATOR_COLUMN_BASE (0x7740) — Video-RAM tilemap (0x7400-0x77ff) column-base cell of player-1's top-of-screen indicator/score column. selectPlayerIndicatorColumnBase returns it for … [seen] */
 export const P1_INDICATOR_COLUMN_BASE = 0x7740;
 /** P1_SCORE_COLUMN_BASE (0x7781) — Video-RAM tilemap column base for player-1's packed-BCD counter/score render, chosen by loc_056b when the selector is zero (nonzero/P2 twin 0x7521). D… [code] */
 export const P1_SCORE_COLUMN_BASE = 0x7781;
-/** RESERVE_LIVES_MARKER_BASE (0x7783) — Bottom video-RAM tilemap cell of the reserve-lives marker column. drawLivesAndLevel blanks six slots upward from here (TILE_BLANK 0x10) then stamps on… [code] */
+/** RESERVE_LIVES_MARKER_BASE (0x7783) — Bottom video-RAM tilemap cell of the reserve-lives marker column. drawLivesAndLevel blanks six slots upward from here (TILE_BLANK 0x10) then stamps on… [seen] */
 export const RESERVE_LIVES_MARKER_BASE = 0x7783;
-/** DMA_CH0_ADDR (0x7800) — i8257 DMA channel-0 memory-address register (board output, not work RAM); channel 0 = sprite-shadow-buffer source. Written twice (lo then hi) per the … [code] */
+/** DMA_CH0_ADDR (0x7800) — i8257 DMA channel-0 memory-address register (board output, not work RAM); channel 0 = sprite-shadow-buffer source. Written twice (lo then hi) per the … [seen] */
 export const DMA_CH0_ADDR = 0x7800;
-/** DMA_CH0_COUNT (0x7801) — i8257 DMA channel-0 terminal-count register (board output); written lo-then-hi. Paired with the channel-0 address for the sprite-buffer source. [code] */
+/** DMA_CH0_COUNT (0x7801) — i8257 DMA channel-0 terminal-count register (board output); written lo-then-hi. Paired with the channel-0 address for the sprite-buffer source. [seen] */
 export const DMA_CH0_COUNT = 0x7801;
-/** DMA_CH1_ADDR (0x7802) — i8257 DMA channel-1 memory-address register (board output); channel 1 = sprite-RAM destination. Written lo-then-hi. [code] */
+/** DMA_CH1_ADDR (0x7802) — i8257 DMA channel-1 memory-address register (board output); channel 1 = sprite-RAM destination. Written lo-then-hi. [seen] */
 export const DMA_CH1_ADDR = 0x7802;
-/** DMA_CH1_COUNT (0x7803) — i8257 DMA channel-1 terminal-count register (board output); written lo-then-hi. Paired with the channel-1 address for the sprite-RAM destination. [code] */
+/** DMA_CH1_COUNT (0x7803) — i8257 DMA channel-1 terminal-count register (board output); written lo-then-hi. Paired with the channel-1 address for the sprite-RAM destination. [seen] */
 export const DMA_CH1_COUNT = 0x7803;
 /** DMA_MODE (0x7808) — i8257 mode-set register (board output); written first in the 9-byte setup block (DMA_PROGRAM_PORTS), which also resets the controller's address byte f… [code] */
 export const DMA_MODE = 0x7808;
 /** IN1_PORT (0x7c80) — Hardware input port IN1 (read): player-2 joystick/button port, read only in cocktail mode when ACTIVE_PLAYER_INDEX is nonzero. Sibling of IN0=0x7c00 (… [code] */
 export const IN1_PORT = 0x7c80;
-/** NMI_ENABLE (0x7d84) — LS259 interrupt/NMI-enable latch (board output): written 0 to acknowledge the vblank NMI (serviceVblankNmi), written 1 to re-arm at the frame tail (pe… [code] */
+/** NMI_ENABLE (0x7d84) — LS259 interrupt/NMI-enable latch (board output): written 0 to acknowledge the vblank NMI (serviceVblankNmi), written 1 to re-arm at the frame tail (pe… [seen] */
 export const NMI_ENABLE = 0x7d84;
 /** DMA_DRQ (0x7d85) — i8257 DRQ request latch (board output): pulsed 0->1->0 in blitSpritesViaDma; the rising edge synchronously blits the 385-byte sprite shadow buffer to … [code] */
 export const DMA_DRQ = 0x7d85;
-/** PALETTE_BANK_BIT0 (0x7d86) — LS259 palette/gfx-bank output latch, low bit (bit 0) of the 2-bit palette-bank select (write-only, unreadable). Cleared to 0 at power-on. Widely refer… [code] */
+/** PALETTE_BANK_BIT0 (0x7d86) — LS259 palette/gfx-bank output latch, low bit (bit 0) of the 2-bit palette-bank select (write-only, unreadable). Cleared to 0 at power-on. Widely refer… [seen] */
 export const PALETTE_BANK_BIT0 = 0x7d86;
-/** PALETTE_BANK_BIT1 (0x7d87) — LS259 palette/gfx-bank output latch, high bit (bit 1) of the 2-bit palette-bank select (write-only, unreadable). Cleared to 0 at power-on. loc_07cb st… [code] */
+/** PALETTE_BANK_BIT1 (0x7d87) — LS259 palette/gfx-bank output latch, high bit (bit 1) of the 2-bit palette-bank select (write-only, unreadable). Cleared to 0 at power-on. loc_07cb st… [seen] */
 export const PALETTE_BANK_BIT1 = 0x7d87;
 /** VRAM_ROW_STEP_UP (0xffe0) — Not an address: the signed 16-bit displacement -0x20 (-32) added to a video-RAM/tilemap pointer to step back one 32-column row, i.e. draw a column upw… [code] */
 export const VRAM_ROW_STEP_UP = 0xffe0;
