@@ -181,6 +181,20 @@ test("REGISTERS: index registers are held, with a control that moves one", { ski
 
 const noOp = () => {};
 const scribbleData = (m) => { candidate(m); m.mem8[RECORD + 0x20] ^= 0xff; };
+// The body re-expresses its Z80 main-register scratch as JS locals, so only ix/iy are pinned. A twin
+// that scribbles a main register after the routine is DELIBERATELY not flagged -- the same memory
+// measurement must still catch a scribbled RAM cell, or the clean read on the register twin is worthless.
+const scribbleScratchReg = (m) => { candidate(m); m.regs.a = (m.regs.a + 1) & 0xff; m.regs.b = (m.regs.b + 1) & 0xff; };
+
+test("SCRATCH NOT PINNED: a main-register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  for (const [label, c] of corpus()) {
+    const r = compare(scribbleScratchReg, c);
+    assert.equal(r.escaped, null, `${label}: a scratch-register scribble moved memory`);
+    assert.equal(r.reg, null, `${label}: a scratch register was pinned, but only ix/iy are live-out`);
+    assert.ok(biteInMemory(scribbleData, c), `${label}: the RAM measurement missed a scribbled cell, so it has no teeth`);
+  }
+  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on all ${corpus().length}`);
+});
 
 /** memory-only catch, so the held-register check cannot be what is biting. */
 function biteInMemory(twin, machine) {
