@@ -14,33 +14,7 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import {
-  BOARD_END_PHASE,
-  DIG_COLLISION_STATE,
-  EXPECTED_TILE,
-  GOAL_TILE_LATCH,
-  HAZARD_ACTIVE_COUNT,
-  IN0_DEBOUNCED,
-  LASER_SCAN_PTR,
-  LASER_STATE,
-  NEXT_TILE,
-  PIT_CROSS_ACTIVE,
-  PLAYER_ACTIVE,
-  PLAYER_CELL_PTR,
-  PLAYER_FACING,
-  PLAYER_X,
-  PLAYER_Y,
-  REACTION_OBJ_ATTR,
-  REACTION_OBJ_CODE,
-  REACTION_OBJ_X,
-  REACTION_OBJ_Y,
-  REACTION_STATE,
-  REACTION_TIMER,
-  SCROLL_SUBPHASE,
-  SPRITE_COORD_BIAS,
-  SPRITE_STAGING_BASE,
-  STOP_TILE_TABLE,
-} from "./names.js";
+import { BOARD_END_PHASE, DIG_COLLISION_STATE, EXPECTED_TILE, GOAL_TILE_LATCH, HAZARD_ACTIVE_COUNT, IN0_DEBOUNCED, LASER_SCAN_PTR, LASER_STATE, NEXT_TILE, PIT_CROSS_ACTIVE, PLAYER_ACTIVE, PLAYER_CELL_PTR, PLAYER_FACING, PLAYER_X, PLAYER_Y, REACTION_OBJ_ATTR, REACTION_OBJ_CODE, REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER, SCROLL_SUBPHASE, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE, STOP_TILE_TABLE, VIDEO_RAM_BASE } from "./names.js";
 import { spawnDigEntity } from "./spawnDigEntity.js";
 import { requestSound9 } from "./requestSound9.js";
 import { requestSound12 } from "./requestSound12.js";
@@ -178,7 +152,7 @@ function seedScroll(m, scrollStep) {
   const stepY = u8(objY + 5);
   const windowCol = stepY >> 3;
   mem8[SCROLL_SUBPHASE] = (stepY & 7) << 5;
-  mem16[LASER_SCAN_PTR] = 0x9000 + windowRow * 32 + windowCol;
+  mem16[LASER_SCAN_PTR] = VIDEO_RAM_BASE + windowRow * 32 + windowCol;
 
   return advanceScroll(m);
 }

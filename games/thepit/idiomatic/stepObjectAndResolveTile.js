@@ -11,41 +11,16 @@
  * solid tiles, arming the carve reaction when a diggable tile no longer matches the terrain its
  * table expects, and otherwise advancing one step. Every outcome ends by building the deferral
  * record (stageObjectSpriteRecord), whose return unwinds to the caller. The climb axis is grounded:
- * the digger surfaces to WIN at the top rung (PLAYER_X == 0x23), fixing offset 3 as screen-vertical;
- * the name stays generic because the routine does more than climb.
+ * the digger surfaces to WIN at the top rung (PLAYER_X == 0x23), fixing offset 3 as screen-vertical.
  */
 
-import {
-  AHEAD_TILE_RAW,
-  BOARD_END_PHASE,
-  CRYSTAL_COUNT,
-  CUR_TILE,
-  DIAMOND_COUNT,
-  EXPECTED_TILE,
-  GOAL_TILE_LATCH,
-  MOVE_BLOCK_FLAG,
-  NEXT_TILE,
-  PLAYER_CELL_PTR,
-  PLAYER_FACING,
-  PLAYER_STEP_X,
-  PLAYER_TILE_COL,
-  PLAYER_TILE_ROW,
-  PLAYER_X,
-  PLAYER_Y,
-  REACTION_PERIOD,
-  REACTION_STATE,
-  REACTION_TIMER,
-  TREASURE_COLLECTED,
-  VERT_STEP_EXPECTED_TILE_TABLE,
-  VERT_STEP_NEIGHBOUR_TILE_TABLE,
-} from "./names.js";
+import { AHEAD_TILE_RAW, BOARD_END_PHASE, CRYSTAL_COUNT, CUR_TILE, DIAMOND_COUNT, EXPECTED_TILE, GOAL_TILE_LATCH, MOVE_BLOCK_FLAG, NEXT_TILE, PLAYER_CELL_PTR, PLAYER_FACING, PLAYER_STEP_X, PLAYER_TILE_COL, PLAYER_TILE_ROW, PLAYER_X, PLAYER_Y, REACTION_PERIOD, REACTION_STATE, REACTION_TIMER, TREASURE_COLLECTED, VERT_STEP_EXPECTED_TILE_TABLE, VERT_STEP_NEIGHBOUR_TILE_TABLE, VIDEO_RAM_BASE } from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
 
 // Base of the on-screen tile map in video RAM; a cell is an offset from here.
-const VRAM_BASE = 0x9000;
 
 // Tables of the terrain a cell is expected to hold, one row per diggable tile code
 // (113..157) and sub-cell phase (0..7): the current cell's table, then the neighbouring cell's.
@@ -101,7 +76,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   mem8[PLAYER_TILE_COL] = col;
 
   // Video-RAM address of the cell the object occupies (32 cells per row).
-  const cellPtr = VRAM_BASE + row * 32 + col;
+  const cellPtr = VIDEO_RAM_BASE + row * 32 + col;
   mem16[PLAYER_CELL_PTR] = cellPtr;
 
   // Read and publish the tile under the object (two copies), and clear the next-tile slot.

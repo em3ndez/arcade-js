@@ -8,7 +8,7 @@
  * while the destination steps a screen row down (32 cells), so a back-to-front table lands upright.
  */
 
-import { PLOT_RUN_LENGTH } from "./names.js";
+import { PLOT_RUN_LENGTH, VIDEO_RAM_CURSOR } from "./names.js";
 
 export function copyTileColumn(m, sourcePtr = m.regs.ix) {
   const { mem8, mem16 } = m;
@@ -17,7 +17,7 @@ export function copyTileColumn(m, sourcePtr = m.regs.ix) {
   // Zero means a full 256-cell run (the length is tested only after the first cell).
   const rows = count === 0 ? 256 : count;
 
-  let cell = mem16[0x8060];
+  let cell = mem16[VIDEO_RAM_CURSOR];
   let src = sourcePtr;
 
   for (let i = 0; i < rows; i++) {
@@ -27,5 +27,5 @@ export function copyTileColumn(m, sourcePtr = m.regs.ix) {
   }
 
   // Save the advanced cursor so a follow-up run continues straight down the column.
-  mem16[0x8060] = cell;
+  mem16[VIDEO_RAM_CURSOR] = cell;
 }

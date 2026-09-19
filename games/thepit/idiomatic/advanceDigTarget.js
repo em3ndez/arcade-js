@@ -10,13 +10,12 @@
  * The terrain codes and the on-screen axis stay open, so the name claims only the advance.
  */
 
-import { HAZARD_X, HAZARD_Y, CARVE_CELL_PTR } from "./names.js";
+import { HAZARD_X, HAZARD_Y, CARVE_CELL_PTR, VIDEO_RAM_BASE } from "./names.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { u8 } from "../../../core/int.js";
 import { landDigTarget } from "./landDigTarget.js";
 
 // Base of the on-screen tile map in video RAM; a cell is an offset from here.
-const VRAM_BASE = 0x9000;
 
 export function advanceDigTarget(m) {
   const { mem8, mem16 } = m;
@@ -29,7 +28,7 @@ export function advanceDigTarget(m) {
 
   // The cell the target now covers; the probe reads one step further along the axis.
   const col = u8(advancedY + 1) >> 3;
-  const cell = VRAM_BASE + row * 32 + col;
+  const cell = VIDEO_RAM_BASE + row * 32 + col;
   mem16[CARVE_CELL_PTR] = cell; // leave it as the live carve cursor
 
   const aheadTile = mem8[cell - 30]; // the tile a fixed step ahead of the target's cell

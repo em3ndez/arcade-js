@@ -527,7 +527,9 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
 
 ### 2.13 Rendering
 
-- **Tilemap** in VRAM at **`0x9000`** (0x20-wide rows). The display is rotated: **ROT270 is the correct
+- **Tilemap** in VRAM at **`0x9000`** (`VIDEO_RAM_BASE`, 0x20-wide rows), with the per-tile colour map
+  at **`0x8800`** (`COLOUR_RAM_BASE`); painters stage a `VIDEO_RAM_CURSOR` (`0x8060`) / `COLOUR_RAM_CURSOR`
+  pair and walk both down-column. The display is rotated: **ROT270 is the correct
   upright player view** (ROT90 comes out upside-down). Digging, carving, jewel-blanking, hazard-
   painting, erosion (`0x31`), the ZONK glyph, and the set-piece bake all write here. `[seen]`/`[code]`
 - **Sprite records (8 slots, 4 bytes each; `0x8220`–`0x823f`, LDIR'd to sprite RAM `0x9840` by the

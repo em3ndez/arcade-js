@@ -9,10 +9,8 @@
  */
 import { waitFrames } from "./waitFrames.js";
 import { blankScreen } from "./blankScreen.js";
-import { PREPLAY_FIXED_SCREEN_IMAGE } from "./names.js";
+import { PREPLAY_FIXED_SCREEN_IMAGE, COLOUR_RAM_BASE, VIDEO_RAM_BASE } from "./names.js";
 
-const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
-const COLOR_RAM_BASE = 0x8800; // start of the per-tile colour RAM
 const SCREEN_CELLS = 1024; // the whole 32x32 tilemap / colour RAM
 const SCREEN_ATTRIBUTE = 147; // the one flat colour attribute painted across the whole screen
 
@@ -30,7 +28,7 @@ export function* showFixedScreen(m) {
 
   // 3. Tint the entire display one flat colour.
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem8[COLOR_RAM_BASE + cell] = SCREEN_ATTRIBUTE;
+    mem8[COLOUR_RAM_BASE + cell] = SCREEN_ATTRIBUTE;
   }
 
   // 4. Hold the finished screen for 160 frames. A tail call: its return goes to our caller.

@@ -3,36 +3,20 @@
  * resolveObjectTile — locate the tracked object's tile cell, read the tile under it, and hand the
  * object to the matching per-frame handler.
  *
- * From the object's two position counters (plus a caller-supplied horizontal bias) it works out
- * which map cell the object occupies: it derives the row and column coordinates, builds the video
- * address of that cell, and reads the tile there. It publishes the cell address and the tile (two
- * copies) for the draw code and downstream handlers, and clears the "next tile" slot. Then it routes:
- * on any ordinary tile it hands off to the loot/dig collector, passing the tile code and the biased
- * horizontal position (which tells the collector when the object crosses a tile boundary); the moment
- * the object stands on the goal tile it latches that the goal was reached, and once it is also past
- * the crossing position it records where it crossed and hands off to the walk-forward continuation
- * instead. The handler it hands off to is the object's whole remaining work this frame, and its
- * return unwinds to this routine's caller, so handing off is this routine's own return.
+ * From the object's two position counters (plus a caller horizontal bias) it works out the map cell
+ * the object occupies, builds that cell's video address, reads the tile, and publishes the cell
+ * address and tile (two copies), clearing the "next tile" slot. Then it routes: ordinary tile ->
+ * loot/dig collector (given the tile code and the biased position that marks tile-boundary crossings);
+ * goal tile -> latch goal-reached, and once past the crossing position record it and hand to the
+ * walk-forward continuation. The handoff is this routine's whole remaining work and its return.
  */
 
-import {
-  PLAYER_CELL_PTR,
-  CUR_TILE,
-  EXPECTED_TILE,
-  PIT_CROSS_ACTIVE,
-  GOAL_TILE_LATCH,
-  NEXT_TILE,
-  PLAYER_TILE_COL,
-  PLAYER_TILE_ROW,
-  PLAYER_Y,
-  PLAYER_X,
-} from "./names.js";
+import { PLAYER_CELL_PTR, CUR_TILE, EXPECTED_TILE, PIT_CROSS_ACTIVE, GOAL_TILE_LATCH, NEXT_TILE, PLAYER_TILE_COL, PLAYER_TILE_ROW, PLAYER_Y, PLAYER_X, VIDEO_RAM_BASE } from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { collectLootTile } from "./collectLootTile.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
 
 // Base address of the on-screen tile map in video RAM; an object's cell is an offset from here.
-const VRAM_BASE = 0x9000;
 
 // The special tile marking the goal the object crosses toward.
 const GOAL_TILE = 39;
@@ -42,8 +26,7 @@ const CROSSING_POSITION = 83;
 export function resolveObjectTile(m, columnBias = m.regs.d) {
   const { mem8, mem16 } = m;
 
-  // Which map row is the object on? Bias the vertical counter, drop it to an 8-pixel cell, and
-  // flip it so screen-top is the highest index (the map is 32 rows tall, indices 0..31).
+  // Map row: bias the vertical counter, drop to an 8-pixel cell, flip so screen-top is the highest index (0..31).
   const objX = mem8[PLAYER_Y];
   const row = 31 - (u8(objX + 3) >> 3);
   mem8[PLAYER_TILE_ROW] = row;
@@ -57,7 +40,7 @@ export function resolveObjectTile(m, columnBias = m.regs.d) {
   mem8[PLAYER_TILE_COL] = col;
 
   // The cell's video-RAM address: 32 cells per row, offset from the tile-map base.
-  const cellPtr = VRAM_BASE + row * 32 + col;
+  const cellPtr = VIDEO_RAM_BASE + row * 32 + col;
   mem16[PLAYER_CELL_PTR] = cellPtr;
 
   // Read and publish the tile currently under the object (two copies), and clear the next slot.

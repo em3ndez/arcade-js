@@ -14,14 +14,13 @@
  * mechanic is only partly pinned, so the name stays neutral.
  */
 
-import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE } from "./names.js";
+import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE, VIDEO_RAM_BASE } from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { resolveActorTerrainStep } from "./resolveActorTerrainStep.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
 
 const GOAL_TILE = 39; // the terminator/goal cell the actor is watching for
 const AT_TERMINATOR_SPRITE = 0x17; // sprite/state code meaning "already on the terminator"
-const TILEMAP_BASE = 0x9000; // base address of the tilemap the cell pointer indexes into
 const ROW_STRIDE = 32; // tilemap cells per row
 const COLUMN_BIAS = 5; // rounding bias folded into the column before reducing it to a tile column
 
@@ -45,7 +44,7 @@ export function locateActorCellCheckGoal(m, row = m.regs.h, spriteCode = m.regs.
   const biasedColumn = u8(mem8[PLAYER_X] + COLUMN_BIAS);
   const tileColumn = biasedColumn >> 3;
   mem8[PLAYER_TILE_COL] = tileColumn;
-  const cellPtr = TILEMAP_BASE + row * ROW_STRIDE + tileColumn;
+  const cellPtr = VIDEO_RAM_BASE + row * ROW_STRIDE + tileColumn;
   mem16[PLAYER_CELL_PTR] = cellPtr;
 
   // Goal terminator one cell ahead or one row down: latch the crossing and walk on.

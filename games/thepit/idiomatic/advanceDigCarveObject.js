@@ -1,46 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * advanceDigCarveObject — per-frame driver for the dig/carve object that tunnels the maze.
- *
- * It clears the three overlap-seam flags, then decides what the object does this frame:
- *   - If the tracked object is aligned on a feature cell (both under-tile latches set): with no
- *     spawn active it starts the next queued spawn; otherwise, unless mid-carve, it hands the frame
- *     to the capture handler.
- *   - Otherwise it dispatches on the spawn counter: none pending -> the background update; a fresh
- *     target (counter 2) -> publish the object's vertical overlap with the staged target box; then
- *     in every carve case it runs the carve countdown.
- * The carve countdown (DIG_OBJ_TIMER) paces the tunnelling: while it runs it steps the dig position
- * and animation; when it expires it completes the column (re-seeding and re-arming) if armed, or —
- * idle/unarmed — probes whether the tracked object walked into the carve box (snapping it in) and
- * carves one tile: fold the dig row/column into a tilemap cell, classify the tile there, and stamp
- * the carved sprite / rewrite the tile / join the dug channel, decrementing the spawn counter until
- * the run is committed. Every exit hands off to another routine that returns to this routine's caller.
+ * Clears the overlap-seam flags, then branches on feature-cell alignment and the spawn counter,
+ * and runs the carve countdown (DIG_OBJ_TIMER): while it ticks it steps the dig position/animation;
+ * on expiry it completes an armed column (re-seed + re-arm) or, idle, snaps in a walked-in target
+ * and carves one tile (fold row/col into a tilemap cell, classify, stamp sprite/tile/channel).
+ * Every exit tail-hands to another routine.
  */
 
 import { u8 } from "../../../core/int.js";
-import {
-  CARVE_CELL_PTR,
-  CARVE_SEAM_LEFT,
-  CARVE_SEAM_RIGHT,
-  DIG_CARVE_REMAP_TABLE,
-  DIG_COLLISION_STATE,
-  DIG_OBJ_SUBTYPE,
-  DIG_OBJ_TIMER,
-  HAZARD_ACTIVE_COUNT,
-  HAZARD_STATE,
-  HAZARD_X,
-  HAZARD_Y,
-  MOVE_BLOCK_FLAG,
-  PLAYER_CELL_PTR,
-  PLAYER_FACING,
-  PLAYER_X,
-  PLAYER_Y,
-  PRIZE_GATE,
-  STAGED_TARGET_X,
-  STAGED_TARGET_Y,
-  TRANSITION_TIMER,
-  TREASURE_COLLECTED,
-} from "./names.js";
+import { CARVE_CELL_PTR, CARVE_SEAM_LEFT, CARVE_SEAM_RIGHT, DIG_CARVE_REMAP_TABLE, DIG_COLLISION_STATE, DIG_OBJ_SUBTYPE, DIG_OBJ_TIMER, HAZARD_ACTIVE_COUNT, HAZARD_STATE, HAZARD_X, HAZARD_Y, MOVE_BLOCK_FLAG, PLAYER_CELL_PTR, PLAYER_FACING, PLAYER_X, PLAYER_Y, PRIZE_GATE, STAGED_TARGET_X, STAGED_TARGET_Y, TRANSITION_TIMER, TREASURE_COLLECTED, VIDEO_RAM_BASE } from "./names.js";
 import { startNextDigSpawn } from "./startNextDigSpawn.js";
 import { advanceChamberCreature } from "./advanceChamberCreature.js";
 import { captureTargetOnOverlap } from "./captureTargetOnOverlap.js";
@@ -245,7 +214,7 @@ function carveTile(m) {
   mem8[HAZARD_Y] = column; // advance the dig column
   const colByte = u8(column + 9);
   const colTile = colByte >> 3;
-  const cellPtr = 0x9000 + rowTile * 32 + colTile; // VRAM base + row*32 + column
+  const cellPtr = VIDEO_RAM_BASE + rowTile * 32 + colTile; // VRAM base + row*32 + column
   mem16[CARVE_CELL_PTR] = cellPtr;
 
   const existing = mem8[cellPtr + 1];

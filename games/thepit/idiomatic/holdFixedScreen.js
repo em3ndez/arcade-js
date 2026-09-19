@@ -18,10 +18,8 @@ import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { drawSetupCreditsPanel } from "./drawSetupCreditsPanel.js";
 import { cycleStagedColumnColour } from "./cycleStagedColumnColour.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
-import { CREDIT_STANDBY_SCREEN_IMAGE } from "./names.js";
+import { CREDIT_STANDBY_SCREEN_IMAGE, COLOUR_RAM_BASE, VIDEO_RAM_BASE } from "./names.js";
 
-const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
-const COLOR_RAM_BASE = 0x8800; // start of the per-tile colour RAM
 const SCREEN_CELLS = 1024; // the whole 32x32 tilemap / colour RAM
 const BACKGROUND_ATTRIBUTE = 2; // the flat colour flooded across the whole screen before the strips
 
@@ -46,7 +44,7 @@ export function* holdFixedScreen(m) {
   // 3. Flood the whole display one flat background colour, then paint the three accent
   //    colour strips over it and draw the fixed setup/credits panel.
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem8[COLOR_RAM_BASE + cell] = BACKGROUND_ATTRIBUTE;
+    mem8[COLOUR_RAM_BASE + cell] = BACKGROUND_ATTRIBUTE;
   }
   for (const [columnOffset, colour] of ACCENT_STRIPS) {
     fillColourColumnAt(m, columnOffset, colour);

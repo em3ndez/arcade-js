@@ -9,10 +9,8 @@
  * for colour, a sibling cell for video) that the follow-on column fill re-reads.
  */
 
-import { COLOUR_RAM_CURSOR, TILEMAP_OFFSET } from "./names.js";
+import { COLOUR_RAM_CURSOR, TILEMAP_OFFSET, COLOUR_RAM_BASE, VIDEO_RAM_BASE, VIDEO_RAM_CURSOR } from "./names.js";
 
-const COLOUR_RAM_BASE = 0x8800; // per-tile colour map base
-const VIDEO_RAM_BASE = 0x9000; // tilemap (character) map base
 
 export function deriveTileWriteCursors(m) {
   const { mem16 } = m;
@@ -21,5 +19,5 @@ export function deriveTileWriteCursors(m) {
 
   // Same cell in both maps at the same offset: colour cursor, then video cursor.
   mem16[COLOUR_RAM_CURSOR] = COLOUR_RAM_BASE + offset;
-  mem16[0x8060] = VIDEO_RAM_BASE + offset;
+  mem16[VIDEO_RAM_CURSOR] = VIDEO_RAM_BASE + offset;
 }

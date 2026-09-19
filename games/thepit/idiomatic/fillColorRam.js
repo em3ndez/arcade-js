@@ -8,15 +8,14 @@
  * screen switches to one palette index in one pass. Used at board setup to recolour the field for
  * the current board. The fill byte is read once, so every cell gets the same value.
  */
-import { BOARD_MODE } from "./names.js";
+import { BOARD_MODE, COLOUR_RAM_BASE } from "./names.js";
 
-const COLOR_RAM_BASE = 0x8800;
 const COLOR_RAM_CELLS = 1024; // the whole per-tile colour RAM
 
 export function fillColorRam(m) {
   const { mem8 } = m;
   const fill = mem8[BOARD_MODE];
   for (let cell = 0; cell < COLOR_RAM_CELLS; cell++) {
-    mem8[COLOR_RAM_BASE + cell] = fill;
+    mem8[COLOUR_RAM_BASE + cell] = fill;
   }
 }

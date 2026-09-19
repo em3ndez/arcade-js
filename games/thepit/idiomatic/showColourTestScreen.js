@@ -17,10 +17,8 @@ import { blankScreen } from "./blankScreen.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { waitFrames } from "./waitFrames.js";
 import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
-import { GAME_STATE, IN0_DEBOUNCED, COLOUR_TEST_FILL } from "./names.js";
+import { GAME_STATE, IN0_DEBOUNCED, COLOUR_TEST_FILL, COLOUR_RAM_BASE, VIDEO_RAM_BASE } from "./names.js";
 
-const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
-const COLOUR_RAM_BASE = 0x8800; // start of the matching per-cell colour map
 const SCREEN_CELLS = 1024;
 
 export function* showColourTestScreen(m) {

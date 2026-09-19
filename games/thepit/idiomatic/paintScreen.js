@@ -16,15 +16,7 @@ import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
-import {
-  GLITTER_COUNTDOWN,
-  LEVEL,
-  PLAYFIELD_COLOUR_IMAGE,
-  PLAYFIELD_TILE_IMAGE_LEVEL_EVEN,
-  PLAYFIELD_TILE_IMAGE_LEVEL_ODD,
-} from "./names.js";
-const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
-const COLOR_RAM_BASE = 0x8800; // start of the matching per-cell colour map
+import { GLITTER_COUNTDOWN, LEVEL, PLAYFIELD_COLOUR_IMAGE, PLAYFIELD_TILE_IMAGE_LEVEL_EVEN, PLAYFIELD_TILE_IMAGE_LEVEL_ODD, COLOUR_RAM_BASE, VIDEO_RAM_BASE } from "./names.js";
 const SCREEN_CELLS = 1024;
 
 export function* paintScreen(m) {
@@ -43,7 +35,7 @@ export function* paintScreen(m) {
   yield* waitFrames(m, 1);
 
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem8[COLOR_RAM_BASE + cell] = mem8[PLAYFIELD_COLOUR_IMAGE + cell];
+    mem8[COLOUR_RAM_BASE + cell] = mem8[PLAYFIELD_COLOUR_IMAGE + cell];
   }
 
   // Stamp the two fixed edge columns and repaint the score HUD over the new screen.

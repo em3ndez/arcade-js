@@ -358,6 +358,12 @@ export const GLITTER_COUNTDOWN = 0x805c;
  *  column by the fillers fillColourColumn/cyclePanelColumnColour/etc across ~10 routines. [seen]
  */
 export const COLOUR_RAM_CURSOR = 0x805e;
+/** VIDEO_RAM_CURSOR (0x8060) — 16-bit video-RAM write cursor = VIDEO_RAM_BASE + tilemap offset, the pair of COLOUR_RAM_CURSOR; staged by deriveTileWriteCursors and walked down-column by copyTileColumn/copyCappedTileColumn. [seen] */
+export const VIDEO_RAM_CURSOR = 0x8060;
+/** VIDEO_RAM_BASE (0x9000) — base of the 32x32 tilemap (character map) the display reads; tilemap cells hang off it as VIDEO_RAM_BASE + row*32 + col. [seen] */
+export const VIDEO_RAM_BASE = 0x9000;
+/** COLOUR_RAM_BASE (0x8800) — base of the per-tile colour map paired with the tilemap. [seen] */
+export const COLOUR_RAM_BASE = 0x8800;
 /**
  *  MOUNTAIN_ERODE_PTR (0x8065) — 16-bit VRAM write cursor for the mountain erosion (§2.6): seeded
  *  0x9104 by seedMountainErosion, deref'd via IX and walked +0x20/step down the mountain column (writing

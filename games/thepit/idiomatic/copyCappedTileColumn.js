@@ -10,7 +10,7 @@
  * back-to-front table lands right-way-up; `sourcePtr` is a genuine per-call JS parameter.
  */
 
-import { FILL_TILE_CODE, PLOT_RUN_LENGTH } from "./names.js";
+import { FILL_TILE_CODE, PLOT_RUN_LENGTH, VIDEO_RAM_CURSOR } from "./names.js";
 
 
 export function copyCappedTileColumn(m, sourcePtr = m.regs.ix) {
@@ -20,7 +20,7 @@ export function copyCappedTileColumn(m, sourcePtr = m.regs.ix) {
   // Zero means a full 256-cell run (the length is tested only after the first cell).
   const rows = count === 0 ? 256 : count;
 
-  let cell = mem16[0x8060]; // top of the video-RAM column, staged upstream
+  let cell = mem16[VIDEO_RAM_CURSOR]; // top of the video-RAM column, staged upstream
 
   // The top cell takes the fixed cap tile; then step one screen row (32 cells) down.
   mem8[cell] = mem8[FILL_TILE_CODE];
@@ -36,5 +36,5 @@ export function copyCappedTileColumn(m, sourcePtr = m.regs.ix) {
   }
 
   // Save the advanced cursor so a follow-up run continues straight down the column.
-  mem16[0x8060] = cell;
+  mem16[VIDEO_RAM_CURSOR] = cell;
 }

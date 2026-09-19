@@ -10,8 +10,7 @@
  *     lifetime timer (copied from the reload byte);
  *   - draw random queue slots until one holds a column, remove it from the queue, and —
  *     for a left-half column — switch to its paired right-half column when that is queued;
- *   - turn the chosen column into a tilemap cell, paint the spawn tile into it, and record
- *     whether the new cell lands on top of the tracked player object;
+ *   - turn the chosen column into a tilemap cell, paint the spawn tile, record player overlap;
  *   - hand off to the dig-object sprite-record builder to finish the spawn.
  * The overlap flag it publishes lets the follow-on reaction know the spawn appeared on the
  * player. The queue's exact contents and the spawn tile's meaning are not fully pinned.
@@ -20,25 +19,12 @@
 import { advanceRandom } from "./advanceRandom.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { requestSound18 } from "./requestSound18.js";
-import {
-  HAZARD_ACTIVE_COUNT,
-  HAZARD_STATE,
-  HAZARD_TYPE,
-  DIG_OBJ_TIMER,
-  DIG_OBJ_TIMER_RELOAD,
-  HAZARD_X,
-  HAZARD_Y,
-  PLAYER_Y,
-  PLAYER_X,
-  MOVE_BLOCK_FLAG,
-  DROP_QUEUE,
-} from "./names.js";
+import { HAZARD_ACTIVE_COUNT, HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_OBJ_TIMER_RELOAD, HAZARD_X, HAZARD_Y, PLAYER_Y, PLAYER_X, MOVE_BLOCK_FLAG, DROP_QUEUE, VIDEO_RAM_BASE } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
 // The tile code painted into the spawned cell.
 const SPAWN_TILE = 37;
 // Tilemap RAM base; the row is inverted (top of the map is the highest row index).
-const TILEMAP_BASE = 0x9000;
 
 export function spawnPendingDigObject(m) {
   const { mem8 } = m;
@@ -77,7 +63,7 @@ export function spawnPendingDigObject(m) {
   const targetY = mem8[HAZARD_Y];
   const invertedRow = 31 - (targetX >> 3);
   const cellColumn = (targetY + 1) >> 3;
-  mem8[TILEMAP_BASE + invertedRow * 32 + cellColumn - 31] = SPAWN_TILE;
+  mem8[VIDEO_RAM_BASE + invertedRow * 32 + cellColumn - 31] = SPAWN_TILE;
 
   // Flag whether the new cell lands on the tracked player: same band, player in an 8px window ahead.
   let landsOnPlayer = 0;

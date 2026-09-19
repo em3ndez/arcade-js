@@ -24,26 +24,7 @@
 
 import { u8 } from "../../../core/int.js";
 import { F_Z } from "../../../core/cpu/z80.js";
-import {
-  ENEMY_WORK_STATE,
-  ENEMY_WORK_X,
-  ENEMY_WORK_Y,
-  ENEMY_ACTION_TIMER,
-  LOCKED_COLUMN,
-  ENEMY_WORK_DIR,
-  PROBE_CELL_PTR,
-  SUBTILE_PHASE,
-  ENEMY_WORK_SPRITE,
-  PLAYER_FACING,
-  PLAYER_Y,
-  PLAYER_X,
-  REACTION_OBJ_X,
-  REACTION_OBJ_Y,
-  DIG_COLLISION_STATE,
-  ENEMY1_X,
-  ENEMY_WORK_TARGET_COL,
-  LASER_STATE,
-} from "./names.js";
+import { ENEMY_WORK_STATE, ENEMY_WORK_X, ENEMY_WORK_Y, ENEMY_ACTION_TIMER, LOCKED_COLUMN, ENEMY_WORK_DIR, PROBE_CELL_PTR, SUBTILE_PHASE, ENEMY_WORK_SPRITE, PLAYER_FACING, PLAYER_Y, PLAYER_X, REACTION_OBJ_X, REACTION_OBJ_Y, DIG_COLLISION_STATE, ENEMY1_X, ENEMY_WORK_TARGET_COL, LASER_STATE, VIDEO_RAM_BASE } from "./names.js";
 import { tickObjectDwellThenTransition } from "./tickObjectDwellThenTransition.js";
 import { advanceDormantMover } from "./advanceDormantMover.js";
 import { awardOnePoint } from "./awardOnePoint.js";
@@ -184,7 +165,7 @@ function decodePositionAndSteer(m) {
   // 8-pixel cell of (moverX + 4); the column is the 8-pixel cell of (moverY + 5).
   const row = 31 - (u8(moverX + 4) >> 3);
   const column = cellY >> 3;
-  mem16[PROBE_CELL_PTR] = 0x9000 + row * 32 + column;
+  mem16[PROBE_CELL_PTR] = VIDEO_RAM_BASE + row * 32 + column;
 
   const direction = mem8[ENEMY_WORK_DIR];
   if (mem8[ENEMY_WORK_TARGET_COL] === 5) return steerColumnFive(m, direction);
