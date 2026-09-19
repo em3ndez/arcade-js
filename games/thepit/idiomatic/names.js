@@ -923,31 +923,31 @@ export const COINAGE_WORD_A2_B4 = 0x0402;
 export const DIG_OBJECT_DROP_QUEUE_SEED_TABLE = 0x2dab;
 /** SETUP_COINAGE_PLURAL_LABEL_GLYPHS (0x496c) — ROM 7-glyph label-run source (run=7) for the PLURAL (coinage count != 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x49… [code] */
 export const SETUP_COINAGE_PLURAL_LABEL_GLYPHS = 0x496c;
-/** SHARED_PANEL_COL7_LABEL_GLYPHS (0x497b) — Fixed 15-glyph ROM tile-code label strip (span 0x496d..0x497b), walked BACKWARD by copyTileColumn (handed the top byte, src steps -1 while dest steps +32 down t… [code] */
+/** SHARED_PANEL_COL7_LABEL_GLYPHS (0x497b) — Fixed 15-glyph ROM tile-code label strip (span 0x496d..0x497b), walked BACKWARD by copyTileColumn (handed the top byte, src steps -1 while dest steps +32 down t… [seen] */
 export const SHARED_PANEL_COL7_LABEL_GLYPHS = 0x497b;
 /** SETUP_COINAGE_SINGULAR_LABEL_GLYPHS (0x49ae) — ROM 9-glyph label-run source (run=9) for the SINGULAR (coinage count == 0) form of a round-setup coinage COUNT field; loaded into IX (oracle loc_3a6f: `ld ix,0x… [code] */
 export const SETUP_COINAGE_SINGULAR_LABEL_GLYPHS = 0x49ae;
-/** SHARED_PANEL_COL13_LABEL_GLYPHS (0x49f7) — Fixed 15-glyph ROM tile-code label strip (span 0x49e9..0x49f7), walked BACKWARD by copyTileColumn. drawSharedPanel's THIRD labelled run, plotted down tile colum… [code] */
+/** SHARED_PANEL_COL13_LABEL_GLYPHS (0x49f7) — Fixed 15-glyph ROM tile-code label strip (span 0x49e9..0x49f7), walked BACKWARD by copyTileColumn. drawSharedPanel's THIRD labelled run, plotted down tile colum… [seen] */
 export const SHARED_PANEL_COL13_LABEL_GLYPHS = 0x49f7;
-/** BONUS_SCREEN_ROW1_TIER5_STRIP (0x4a14) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest, fall-through of the 15/10 tests) variant of the FIRST upper text row (col15/row11) of the … [code] */
+/** BONUS_SCREEN_ROW1_TIER5_STRIP (0x4a14) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest, fall-through of the 15/10 tests) variant of the FIRST upper text row (col15/row11) of the … [seen] */
 export const BONUS_SCREEN_ROW1_TIER5_STRIP = 0x4a14;
 /** BONUS_SCREEN_ROW1_TIER10_STRIP (0x4a21) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [code] */
 export const BONUS_SCREEN_ROW1_TIER10_STRIP = 0x4a21;
 /** BONUS_SCREEN_ROW1_TIER15_STRIP (0x4a2e) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [code] */
 export const BONUS_SCREEN_ROW1_TIER15_STRIP = 0x4a2e;
-/** BONUS_SCREEN_ROW2_TIER5_STRIP (0x4a3b) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest) variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBo… [code] */
+/** BONUS_SCREEN_ROW2_TIER5_STRIP (0x4a3b) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest) variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBo… [seen] */
 export const BONUS_SCREEN_ROW2_TIER5_STRIP = 0x4a3b;
 /** BONUS_SCREEN_ROW2_TIER10_STRIP (0x4a48) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [code] */
 export const BONUS_SCREEN_ROW2_TIER10_STRIP = 0x4a48;
 /** BONUS_SCREEN_ROW2_TIER15_STRIP (0x4a55) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [code] */
 export const BONUS_SCREEN_ROW2_TIER15_STRIP = 0x4a55;
-/** HISCORE_RANK0_LABEL_STRIP (0x4a68) — ROM 18-tile label-column strip naming the DEFAULT/lowest rank (else-branch, record HIGH_SCORE_TABLE+0) on the high-score initials-entry screen. loc_4df8 loads i… [code] */
+/** HISCORE_RANK0_LABEL_STRIP (0x4a68) — ROM 18-tile label-column strip naming the DEFAULT/lowest rank (else-branch, record HIGH_SCORE_TABLE+0) on the high-score initials-entry screen. loc_4df8 loads i… [seen] */
 export const HISCORE_RANK0_LABEL_STRIP = 0x4a68;
-/** HISCORE_RANK2_LABEL_STRIP (0x4a7b) — ROM 18-tile label-column strip naming the selector==2 rank (record HIGH_SCORE_TABLE+5) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x4… [code] */
+/** HISCORE_RANK2_LABEL_STRIP (0x4a7b) — ROM 18-tile label-column strip naming the selector==2 rank (record HIGH_SCORE_TABLE+5) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x4… [seen] */
 export const HISCORE_RANK2_LABEL_STRIP = 0x4a7b;
 /** HISCORE_RANK3_LABEL_STRIP (0x4a8e) — ROM 18-tile label-column strip naming the selector==3 rank (record HIGH_SCORE_TABLE+10) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x… [code] */
 export const HISCORE_RANK3_LABEL_STRIP = 0x4a8e;
-/** HIGH_SCORE_INITIALS_PROMPT_GLYPHS (0x4aa9) — Fixed 26-glyph ROM tile-code prompt strip (span 0x4a90..0x4aa9), walked BACKWARD by copyTileColumn. runHighScoreInitialsEntry's fixed prompt line, plotted down … [code] */
+/** HIGH_SCORE_INITIALS_PROMPT_GLYPHS (0x4aa9) — Fixed 26-glyph ROM tile-code prompt strip (span 0x4a90..0x4aa9), walked BACKWARD by copyTileColumn. runHighScoreInitialsEntry's fixed prompt line, plotted down … [seen] */
 export const HIGH_SCORE_INITIALS_PROMPT_GLYPHS = 0x4aa9;
 
 // --- ROM data-table addresses (thepit Class-B hoist; routine-local consts promoted; [code], stage-B grounding pending) ---
@@ -969,7 +969,7 @@ export const DIG_REACT_NEIGHBOUR_TILE_TABLE = 0x1fb0;
 export const VERT_STEP_EXPECTED_TILE_TABLE = 0x2118;
 /** VERT_STEP_NEIGHBOUR_TILE_TABLE (0x2280) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell one step back (cellPtr-1) sampled during the object's VERTICAL climb/dig-carve step, reached off … [code] */
 export const VERT_STEP_NEIGHBOUR_TILE_TABLE = 0x2280;
-/** STOP_TILE_TABLE (0x277a) — ROM data table (cert=code): eight 32-byte per-sub-column lists of scroll-stop tile codes. The horizontal dig/push scroll (advancePlayerLaser.advanceScroll) sele… [code] */
+/** STOP_TILE_TABLE (0x277a) — ROM data table (cert=code): eight 32-byte per-sub-column lists of scroll-stop tile codes. The horizontal dig/push scroll (advancePlayerLaser.advanceScroll) sele… [seen] */
 export const STOP_TILE_TABLE = 0x277a;
 /** DIG_CHANNEL_SEAM_REMAP_TABLE (0x2dc3) — ROM data table (cert=code): 4-entry tile-translation table keyed by dig-channel tile code, index = tile-0x96 (tiles 0x96..0x99 = 150..153), occupying 0x2dc3-0x2… [code] */
 export const DIG_CHANNEL_SEAM_REMAP_TABLE = 0x2dc3;
@@ -977,9 +977,9 @@ export const DIG_CHANNEL_SEAM_REMAP_TABLE = 0x2dc3;
 export const DIG_CARVE_REMAP_TABLE = 0x2dc7;
 /** PIT_FLOOR_REVEAL_PATTERN_TABLE (0x3048) — ROM data table (cert=code): tile-pattern source for the Pit sliding-floor / terrain reveal, stored as consecutive 6-tile columns (TILES_PER_COLUMN). PIT_FLOOR_R… [code] */
 export const PIT_FLOOR_REVEAL_PATTERN_TABLE = 0x3048;
-/** PROBE_TILE_TABLE (0x34fe) — code: base of the phase-keyed valid-tile ROM lookup table (32-byte rows, one per sub-tile phase; region 0x34fe-0x35fd, ends where the sibling table 0x35fe begin… [code] */
+/** PROBE_TILE_TABLE (0x34fe) — code: base of the phase-keyed valid-tile ROM lookup table (32-byte rows, one per sub-tile phase; region 0x34fe-0x35fd, ends where the sibling table 0x35fe begin… [seen] */
 export const PROBE_TILE_TABLE = 0x34fe;
-/** PROBE_NEXT_TILE_TABLE (0x35fe) — code: sibling phase-keyed valid-tile ROM lookup table (32-byte rows; region 0x35fe-0x36fd, code resumes at loc_36fe) searched for the FOLLOWING/next tile — the … [code] */
+/** PROBE_NEXT_TILE_TABLE (0x35fe) — code: sibling phase-keyed valid-tile ROM lookup table (32-byte rows; region 0x35fe-0x36fd, code resumes at loc_36fe) searched for the FOLLOWING/next tile — the … [seen] */
 export const PROBE_NEXT_TILE_TABLE = 0x35fe;
 /** PREPLAY_FIXED_SCREEN_IMAGE (0x3e32) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by showFixedScreen/loc_3b81, which floods the colour map flat with attribute 0… [code] */
 export const PREPLAY_FIXED_SCREEN_IMAGE = 0x3e32;
@@ -991,15 +991,15 @@ export const PLAYFIELD_STRIP_COL1_ROW11_TILES = 0x494f;
 export const CREDIT_LABEL_GLYPHS = 0x496d;
 /** GAME_OVER_LABEL_GLYPHS (0x49a5) — ROM 9-glyph 'GAME OVER' label strip, walked BACKWARD by copyTileColumn (handed the run's last byte) and stamped down a HUD text column: drawGameOverLabel (col1/… [code] */
 export const GAME_OVER_LABEL_GLYPHS = 0x49a5;
-/** MEN_LEFT_DEFAULT_LABEL_GLYPHS (0x49ba) — ROM 9-glyph label strip for the DEFAULT (non-singular) variant of drawMenLeftPanel, selected when the live MEN_LEFT byte != 1; drawn at col5/row11 with the live… [code] */
+/** MEN_LEFT_DEFAULT_LABEL_GLYPHS (0x49ba) — ROM 9-glyph label strip for the DEFAULT (non-singular) variant of drawMenLeftPanel, selected when the live MEN_LEFT byte != 1; drawn at col5/row11 with the live… [seen] */
 export const MEN_LEFT_DEFAULT_LABEL_GLYPHS = 0x49ba;
-/** MEN_LEFT_ALT_LABEL_GLYPHS (0x49c2) — ROM 8-glyph label strip for the ALTERNATE (singular) variant of drawMenLeftPanel, selected when the live MEN_LEFT byte == 1; drawn at col5/row12 with NO live-va… [code] */
+/** MEN_LEFT_ALT_LABEL_GLYPHS (0x49c2) — ROM 8-glyph label strip for the ALTERNATE (singular) variant of drawMenLeftPanel, selected when the live MEN_LEFT byte == 1; drawn at col5/row12 with NO live-va… [seen] */
 export const MEN_LEFT_ALT_LABEL_GLYPHS = 0x49c2;
-/** BOOT_TEXT_COLUMN25_TILE_STRIP (0x49c7) — ROM 32-tile source strip for tilemap column 25 (video-RAM col 0x19). drawCopyrightLine reads it FORWARD (0x49c7..0x49e6) and lays it bottom-cell-upward from BOO… [code] */
+/** BOOT_TEXT_COLUMN25_TILE_STRIP (0x49c7) — ROM 32-tile source strip for tilemap column 25 (video-RAM col 0x19). drawCopyrightLine reads it FORWARD (0x49c7..0x49e6) and lays it bottom-cell-upward from BOO… [seen] */
 export const BOOT_TEXT_COLUMN25_TILE_STRIP = 0x49c7;
-/** BONUS_SCREEN_ROW3_STRIP (0x4a07) — code: base of the fixed 15-glyph tile-code strip for the THIRD text row of the tier/bonus status screen, plotted at column 21, row 9 via copyTileColumn (source … [code] */
+/** BONUS_SCREEN_ROW3_STRIP (0x4a07) — code: base of the fixed 15-glyph tile-code strip for the THIRD text row of the tier/bonus status screen, plotted at column 21, row 9 via copyTileColumn (source … [seen] */
 export const BONUS_SCREEN_ROW3_STRIP = 0x4a07;
-/** FILL_TILE_CODE (0x4b0f) — code: a single fixed ROM byte holding a background tile code, read two ways for the same value — as the whole-tilemap wipe/fill stamped into all 1024 video-RAM … [code] */
+/** FILL_TILE_CODE (0x4b0f) — code: a single fixed ROM byte holding a background tile code, read two ways for the same value — as the whole-tilemap wipe/fill stamped into all 1024 video-RAM … [seen] */
 export const FILL_TILE_CODE = 0x4b0f;
 
 // --- RAM/MMIO/VRAM cell names (thepit RAM naming pass, understanding stage A; [code] = grounded stage-B later) ---
