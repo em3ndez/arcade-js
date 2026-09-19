@@ -5,8 +5,9 @@
  * come from the drift site 0x2B60, which the body calls with the same object ix / sprite iy, plus
  * crafts that walk the state byte through every
  * branch. The dissolved calls drop their ROM pushes and the exit `ret` is gone, so [push, push+2) is
- * masked and the scratch registers are a ceiling; memory is exact. Teeth bite in memory. HOLE: the
- * misaligned prologue's conditional life-loss is unreachable in real play, forced synthetically.
+ * masked; the frogger standard applies — RAM is the contract and only genuine register live-outs are
+ * pinned beside it, and this step has none, so memory is the whole of it. Teeth bite in memory. HOLE:
+ * the misaligned prologue's conditional life-loss is unreachable in real play, forced synthetically.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-459b.test.js
  */
 import test from "node:test";
@@ -16,7 +17,6 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { stepMotherShipWarpFlashFrame } from "../stepMotherShipWarpFlashFrame.js";
 import { loc_459b as oracle } from "../../translated/loc_459b.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x459b;
 const DRIFT_SITE = 0x2b60;
@@ -25,8 +25,11 @@ const LOSE_LIFE = 0x11ed;
 const STACK_FLOOR = 0xae00;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
-/** Scratch left by dropped pushes and the vanished exit ret; memory is the live-out. */
-const EXCLUDED = ["a", "f", "c", "d", "e", "h", "l", "sp"];
+/** The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and only
+ *  the routine's genuine named register live-outs are pinned beside it. Every register this step
+ *  writes is dead-after-return scratch — the sole caller (loc_43f0_4646, a tail call) reads none, and
+ *  its own gate (equivalence-43f0) excludes the whole main register file — so there are none to pin. */
+const GENUINE_LIVE_OUTS = [];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) =>
@@ -71,8 +74,7 @@ function unitDiff(candidate, machine) {
     if (scratch.has(addr)) continue;
     return { addr, a: da[i], b: db[i] };
   }
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
+  for (const k of GENUINE_LIVE_OUTS) {
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
   return null;
@@ -176,7 +178,8 @@ const skipDrift = (mm) => {
   try { return oracle(mm); } finally { mm.routines.set(DRIFT_SITE, real); }
 };
 const scribbleData = (mm) => { stepMotherShipWarpFlashFrame(mm); mm.mem8[0xa878] ^= 0xff; };
-const scribbleKeptReg = (mm) => { stepMotherShipWarpFlashFrame(mm); mm.regs.b = (mm.regs.b + 1) & 0xff; };
+// A register-only twin: with no genuine register live-outs it is DELIBERATELY not flagged.
+const scribbleScratchReg = (mm) => { stepMotherShipWarpFlashFrame(mm); mm.regs.b = (mm.regs.b + 1) & 0xff; };
 
 /** memory-only catch, so a broad register ceiling cannot be what is doing the biting. */
 function caughtInMemory(twin, machine) {
@@ -195,14 +198,28 @@ function caughtInMemory(twin, machine) {
   return false;
 }
 
+test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  // No genuine register live-outs, so a twin that only scribbles a scratch register after the routine
+  // is DELIBERATELY not flagged — and the same measurement must still catch a scribbled RAM cell, or
+  // the clean read on the register twin would be worthless.
+  const states = [captureDrifts()[0], ...CRAFTS.map(([, make]) => make())];
+  for (const s of states) {
+    assert.equal(unitDiff(scribbleScratchReg, s), null,
+      "a scratch-register scribble was flagged, but this step has no genuine register live-outs to pin");
+    const d = unitDiff(scribbleData, s);
+    assert.notEqual(d, null, "the RAM measurement missed a scribbled cell, so it has no teeth");
+    assert.notEqual(d.addr, null, "the RAM scribble must be caught on a cell, not a register");
+  }
+  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on all ${states.length}`);
+});
+
 test("TEETH: broken twins are caught", { skip }, () => {
   const states = [captureDrifts()[0], ...CRAFTS.map(([, make]) => make())];
   const bites = (twin) => states.filter((s) => unitDiff(twin, s) !== null).length;
   assert.equal(bites(noOp), states.length, "the no-op twin escaped");
   assert.equal(bites(skipDrift), states.length, "the skip-drift twin escaped");
   assert.equal(bites(scribbleData), states.length, "the data-scribble twin escaped");
-  assert.equal(bites(scribbleKeptReg), states.length, "the kept-register control escaped, so the ceiling is vacuous");
   assert.ok(states.every((s) => caughtInMemory(noOp, s)), "the no-op twin is not caught in memory");
   assert.ok(states.every((s) => caughtInMemory(skipDrift, s)), "the skip-drift twin is not caught in memory");
-  console.log(`  TEETH: no-op, skip-drift, data-scribble caught on ${states.length}/${states.length}; kept-register control also caught`);
+  console.log(`  TEETH: no-op, skip-drift, data-scribble caught on ${states.length}/${states.length}`);
 });
