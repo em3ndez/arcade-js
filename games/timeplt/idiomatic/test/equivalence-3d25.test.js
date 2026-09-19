@@ -11,7 +11,6 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { spawnAimedEnemyIntoEraBankWhenInWindow } from "../spawnAimedEnemyIntoEraBankWhenInWindow.js";
 import { loc_3d25 as oracle } from "../../translated/loc_3d25.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
 
 const TARGET = 0x3d25;
@@ -24,10 +23,14 @@ const SPAWN_COOLDOWN = 0xa8f4;
 const SIDE_TOGGLE = 0xa8d4;
 const WINDOW_HALF = 0xa8d6;
 const DATA_TOP = 0xadff;
+const SCRIBBLE_CELL = 0xa5af; // a compared (non-stack) cell the scratch control flips to prove RAM bites
 
-// Flags, the accumulator, the hl the velocity callee leaves, the two-byte stack re-seat, and every
-// shadow the exx / ex-af dance touches -- none is a live-out; the spawn's product is all in memory.
-const EXCLUDED = ["a", "f", "h", "l", "sp", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+// The frogger standard: RAM (masked over the frozen side's stack scratch) is the whole contract, and
+// only genuine named register live-outs are pinned beside it. This spawn is a pure writer -- its sole
+// caller (advanceTwoTileObjectThenTryAimedSpawn) tail-returns and reads no register it leaves, and the
+// whole dispatch chain up to serviceEra1BomberObject is memory-only -- so the set is empty. The search
+// pointers, doubled velocity pair, aim byte and the exx / ex-af shadows are all scratch, not live-outs.
+const GENUINE_LIVE_OUTS = [];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) =>
@@ -58,7 +61,8 @@ function footprint(machine) {
   return n;
 }
 
-// Whole-dump diff on independent clones, minus the frozen side's push window and the ceiling.
+// Whole-dump diff on independent clones, minus the frozen side's push window; then only the genuine
+// register live-outs (none here). RAM outside the window must match byte-for-byte.
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
@@ -67,7 +71,8 @@ function unitDiff(candidate, machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  candidate(b);
+  try { candidate(b); } catch (e) { return { addr: null, a: "returned", b: String(e).slice(0, 40) }; }
+  if (low <= DATA_TOP) throw new Error(`the stack window ${hex4(low)} reached into game data`);
   const da = a.dumpState();
   const db = b.dumpState();
   for (let i = 0; i < da.length; i++) {
@@ -76,8 +81,7 @@ function unitDiff(candidate, machine) {
     if (addr >= low && addr < seat) continue;
     return { addr, a: da[i], b: db[i] };
   }
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
+  for (const k of GENUINE_LIVE_OUTS) {
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
   return null;
@@ -151,6 +155,23 @@ test("STACK: the drift is exactly two bytes and the mask floor clears the data",
   assert.equal(a.regs.sp - b.regs.sp, 2, `the frozen side no longer re-seats two bytes higher (${a.regs.sp - b.regs.sp})`);
   assert.ok(low > DATA_TOP, `the push window ${hex4(low)} reached down into game data`);
   console.log(`  STACK: spDiff 2; window floor ${hex4(low)}`);
+});
+
+test("SCRATCH NOT PINNED: a register-only scribble passes; a RAM scribble is caught", { skip }, () => {
+  // No genuine register live-outs, so scribbling a scratch register the routine leaves is DELIBERATELY
+  // not flagged -- and the same measurement must still catch a scribbled RAM cell, or the clean read on
+  // the register scribble would be worthless.
+  const scribbleScratchReg = (mm) => { spawnAimedEnemyIntoEraBankWhenInWindow(mm); mm.regs.b = u8(mm.regs.b + 1); };
+  const scribbleData = (mm) => { spawnAimedEnemyIntoEraBankWhenInWindow(mm); mm.mem8[SCRIBBLE_CELL] ^= 0xff; };
+  const states = [fullPathEntry(), craft(VARIANTS[1][1])];
+  for (const s of states) {
+    assert.equal(unitDiff(scribbleScratchReg, s), null,
+      "a scratch-register scribble was flagged, but this spawn has no genuine register live-outs to pin");
+    const d = unitDiff(scribbleData, s);
+    assert.notEqual(d, null, "the RAM measurement missed a scribbled cell, so it has no teeth");
+    assert.notEqual(d.addr, null, "the RAM scribble must be caught on a cell, not a register");
+  }
+  console.log(`  SCRATCH NOT PINNED: register scribble ignored; RAM scribble caught on all ${states.length}`);
 });
 
 test("TEETH: broken twins part company IN MEMORY; the genuine routine does not", { skip }, () => {

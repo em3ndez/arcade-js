@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * clearSceneryEntriesThenRunEraScenery — memory-equivalent to the frozen oracle at ROM 0x30D1. GATE: the real coin/attract
- * dispatch (era below four, into the dissolved seat-and-scenery chain) is compared with the dead
- * six-byte stack scratch masked, the two cursors it leaves standing checked and the two-byte drift
- * asserted; crafted era-four entries drive the scenery arm and the guard-fail arm that transfers
- * into a data table and faults, where equivalence is a matching fault over identical RAM; corpus
- * over two tapes, and teeth. Registers scrambled by the dropped tail chains are not compared.
+ * clearSceneryEntriesThenRunEraScenery — memory-equivalent to the frozen oracle at ROM 0x30D1. The frogger standard
+ * applies: every register the body touches is dead-after-return scratch — each returning arm hands
+ * on to a callee (seedScenery / runSceneryForEra) that reseats both cursors, and the guard-fail arm
+ * transfers into a fault — so RAM is the whole contract and no register is pinned (GENUINE_LIVE_OUTS
+ * empty). The real coin/attract dispatch (era below four, into the dissolved seat-and-scenery chain)
+ * is compared with the dead six-byte stack scratch masked and the two-byte drift asserted; crafted
+ * era-four entries drive the scenery arm and the guard-fail arm that transfers into a data table and
+ * faults, where equivalence is a matching fault over identical RAM; corpus over two tapes, and teeth,
+ * with a scratch-not-pinned control beside the RAM measurement.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-30d1.test.js
  */
 
@@ -32,18 +35,26 @@ const DATA_TOP = 0xadff;
 const SEAT_DRIFT = 2;
 const CORPUS_FRAMES = 2000;
 const DISPATCHES = { coin: 3, attract: 1 };
+const SCRIBBLE_CELL = 0xa5af; // a compared (non-stack) cell the teeth flip to prove the RAM measurement bites
+
+/** The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and only
+ *  genuine named register live-outs are pinned beside it. This routine has none — every returning arm
+ *  hands on to a callee that reseats both cursors, so the body's registers are dead-after-return
+ *  scratch and the set is empty. */
+const GENUINE_LIVE_OUTS = [];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${d.addr == null ? "reg" : hex4(d.addr)}: frozen=${d.a} rewrite=${d.b}` : "identical");
 
-// ── the masked comparison ─────────────────────────────────────────────────────────────────
+// ── the masked comparison (frogger standard) ────────────────────────────────────────────────────
 
 /**
  * Oracle vs candidate on independent clones. Both dissolved arms drop a ROM ret and scramble the
  * scratch registers, so RAM is diffed outside [low, seat) — low measured by watching the oracle's
- * own pushes — the two cursors the run leaves standing are checked, and throw-agreement is required
- * so the fault arm counts as equal only when both faults land on identical RAM.
+ * own pushes — throw-agreement is required so the fault arm counts as equal only when both faults
+ * land on identical RAM, and only genuine register live-outs are pinned (none here). RAM is compared
+ * even when both faulted, so a fill run that differs before the fault is still caught.
  */
 function compare(cand, machine) {
   const a = machine.clone();
@@ -66,14 +77,15 @@ function compare(cand, machine) {
     escaped = { addr, a: da[i], b: db[i] };
   }
   const throwMismatch = threwA !== threwB ? { addr: null, a: threwA ? "threw" : "returned", b: threwB ? "threw" : "returned" } : null;
-  let cursor = null;
+  let liveOut = null;
   if (!threwA && !threwB) {
-    if (a.regs.ix !== b.regs.ix) cursor = { addr: null, a: `ix=${hex4(a.regs.ix)}`, b: `ix=${hex4(b.regs.ix)}` };
-    else if (a.regs.iy !== b.regs.iy) cursor = { addr: null, a: `iy=${hex4(a.regs.iy)}`, b: `iy=${hex4(b.regs.iy)}` };
+    for (const k of GENUINE_LIVE_OUTS) {
+      if (a.regs[k] !== b.regs[k]) { liveOut = { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` }; break; }
+    }
   }
-  return { escaped, throwMismatch, cursor, spDiff: a.regs.sp - b.regs.sp, low, seat, threw: threwA };
+  return { escaped, throwMismatch, liveOut, spDiff: a.regs.sp - b.regs.sp, low, seat, threw: threwA };
 }
-const caught = (r) => r.escaped !== null || r.throwMismatch !== null || r.cursor !== null;
+const caught = (r) => r.escaped !== null || r.throwMismatch !== null || r.liveOut !== null;
 
 /** What the oracle leaves in every game cell it moves — addr=value pairs, so two arms that touch
  * the same cells with different bytes still read as different footprints. */
@@ -158,11 +170,9 @@ function variant({ fillStride = 2, fillCount = 8, eraFloor = 4, guardOk = 0x3b, 
   };
 }
 
-/** Scrambles a cursor the run leaves standing; the control that the cursor check has teeth. */
-function brokenMovesCursor(m) {
-  candidate(m);
-  m.regs.ix = (m.regs.ix + 1) & 0xffff;
-}
+// ── scratch-not-pinned controls: a register-only twin passes by design; RAM still bites ──────────
+const scribbleScratchReg = (m) => { candidate(m); m.regs.b = (m.regs.b + 1) & 0xff; };
+const scribbleData = (m) => { candidate(m); m.mem8[SCRIBBLE_CELL] ^= 0xff; };
 
 const TWINS = [
   ["no-op", () => {}, 5],
@@ -181,7 +191,7 @@ test("EQUAL at the real dispatch: identical outside the six-byte scratch window"
   const r = compare(candidate, seatEntry());
   assert.equal(r.escaped, null, `a divergence escaped the scratch window — ${show(r.escaped)}`);
   assert.equal(r.throwMismatch, null, `one side faulted and the other did not — ${show(r.throwMismatch)}`);
-  assert.equal(r.cursor, null, `a cursor diverged — ${show(r.cursor)}`);
+  assert.equal(r.liveOut, null, `a pinned live-out diverged — ${show(r.liveOut)}`);
   assert.equal(r.spDiff, SEAT_DRIFT, "the dropped chain return no longer moves the pointer");
   // ★ The mask is safe only because its floor sits above every game cell any path writes.
   assert.ok(r.low > DATA_TOP, `the scratch floor ${hex4(r.low)} reached into game data`);
@@ -192,7 +202,7 @@ test("PATHS: the scenery arm and the fault arm are each equivalent, and really d
   const prints = {};
   for (const { tag, m, faults } of scenarios()) {
     const r = compare(candidate, m);
-    assert.ok(!caught(r), `${tag} diverged — ${show(r.escaped ?? r.throwMismatch ?? r.cursor)}`);
+    assert.ok(!caught(r), `${tag} diverged — ${show(r.escaped ?? r.throwMismatch ?? r.liveOut)}`);
     if (!faults) assert.equal(r.spDiff, SEAT_DRIFT, `${tag}: the dropped chain return no longer drifts by two`);
     // ★ Vacuity: the crafted era-four arms really fault (or seat) as their tag claims, not silently
     //   fall back to the captured arm's path.
@@ -232,10 +242,19 @@ test("CORPUS: every dispatch of two tapes replays, and all carry era below four"
   console.log(`  CORPUS: coin ${coin.dispatched}, attract ${attract.dispatched}, all era below four, identical`);
 });
 
-test("LIVE-OUT: the two cursors are the register live-out, and the check has teeth", { skip }, () => {
-  assert.equal(compare(candidate, seatEntry()).cursor, null, "a cursor diverged on the real dispatch");
-  assert.notEqual(compare(brokenMovesCursor, seatEntry()).cursor, null, "the cursor control was not caught");
-  console.log("  LIVE-OUT: cursors agree; the scramble control is caught");
+test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
+  // No genuine register live-outs, so a twin that only scribbles a scratch register after the routine
+  // is DELIBERATELY not flagged — and the same measurement must still catch a scribbled RAM cell, or
+  // the clean read on the register twin would be worthless. Runs on the returning (non-fault) arms.
+  const states = scenarios().filter((s) => !s.faults).map((s) => s.m);
+  for (const s of states) {
+    assert.ok(!caught(compare(scribbleScratchReg, s)),
+      "a scratch-register scribble was flagged, but this routine has no genuine register live-outs to pin");
+    const r = compare(scribbleData, s);
+    assert.ok(caught(r), "the RAM measurement missed a scribbled cell, so it has no teeth");
+    assert.notEqual(r.escaped, null, "the RAM scribble must be caught on a cell, not a register");
+  }
+  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on all ${states.length}`);
 });
 
 for (const [label, twin, expected] of TWINS) {

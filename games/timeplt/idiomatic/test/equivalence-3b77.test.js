@@ -16,7 +16,6 @@ import { hasReachedBoundaryBandSelectedByHeading } from "../hasReachedBoundaryBa
 import { retireObjectAndHold } from "../retireObjectAndHold.js";
 import { mirrorTwoTileObjectByHeading } from "../mirrorTwoTileObjectByHeading.js";
 import { spawnAimedEnemyIntoEraBankWhenInWindow } from "../spawnAimedEnemyIntoEraBankWhenInWindow.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
 
 const TARGET = 0x3b77;
@@ -42,10 +41,11 @@ const ERA_COUNT = 0xa8c6;
 const BANK_A_FLAG = 0xa840;
 const WINDOW_HALF = 0xa8d6;
 
-// Only ix and iy survive as live-out; both arms leave their product in memory, and every other
-// register is scratch the dissolved callees leave differently from the frozen path.
-const EXCLUDED = ["a", "b", "c", "d", "e", "f", "h", "l", "sp",
-  "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+// The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and only
+// genuine named register live-outs are pinned. Both arms leave their product in memory, and the whole
+// dispatch chain up to serviceEra1BomberObject tail-returns and reads no register these leave -- so the
+// set is empty. (ix/iy the spawn arm once left are now scratch: the spawn re-expresses them as locals.)
+const GENUINE_LIVE_OUTS = [];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) =>
@@ -95,8 +95,7 @@ function unitDiff(candidate, machine) {
     if (addr >= low && addr < seat) continue;
     return { addr, a: da[i], b: db[i] };
   }
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
+  for (const k of GENUINE_LIVE_OUTS) {
     if (a.regs[k] !== b.regs[k]) return { addr: null, k, a: a.regs[k], b: b.regs[k] };
   }
   if (ra !== rb) return { addr: null, k: "ret", a: ra, b: rb };

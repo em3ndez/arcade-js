@@ -3,7 +3,12 @@
  * ATTACKER_SPAWN_COOLDOWN is clear, the era count is live, and some object in the caller's two-slot bank sits
  * inside a doubled window. Draws a heading toward the player at ENEMY_STANDOFF_AIM_MAIN, alternates the aim's
  * side each spawn via ATTACKER_SPAWN_AIM_SIDE_TOGGLE, then seats coords, the doubled velocity pair, a script and a
- * shape into the era's fixed record+sprite bank and reloads the cooldown. LIVE-OUT: memory. */
+ * shape into the era's fixed record+sprite bank and reloads the cooldown. LIVE-OUT: memory. The routine is a
+ * pure writer — its sole caller (advanceTwoTileObjectThenTryAimedSpawn) tail-returns and reads no register it
+ * leaves, and that whole dispatch chain up to serviceEra1BomberObject is memory-only — so the search pointers,
+ * the window bound and the loop count all live here as JS locals. The one register still seated is the aimed
+ * heading in `a`: the velocity shim reads it off the file as its input and hands the doubled pair back
+ * in d,e,b,c, which this routine reads straight into the record. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { requestEnemyLaunchSound } from "./requestEnemyLaunchSound.js";
@@ -28,7 +33,7 @@ const NEW_SHAPE = 0x62;
 // era count != 1 with the scan flag clear selects the second bank; the guard and the seat both ask.
 const useSecondBank = (m) => m.mem8[ATTACKER_SPAWN_SLOT_COUNT] !== 1 && m.mem8[ERA_OBJECT_RECORD_SLOT2] === 0;
 
-export function spawnAimedEnemyIntoEraBankWhenInWindow(m, ix = m.regs.ix) {
+export function spawnAimedEnemyIntoEraBankWhenInWindow(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
 
   if (mem8[ix] !== SLOT_FREE) return;
@@ -36,49 +41,49 @@ export function spawnAimedEnemyIntoEraBankWhenInWindow(m, ix = m.regs.ix) {
   if (mem8[ATTACKER_SPAWN_SLOT_COUNT] === 0) return;
   if (!useSecondBank(m) && mem8[ACTOR_RECORD_SLOT3] !== 0) return;
 
+  // scan the caller's two-slot bank for an object inside the doubled window; the record pointer walks
+  // in lockstep with the entry pointer but its landing slot is discarded — the seat below is fixed.
   const half = mem8[ATTACKER_SPAWN_WINDOW_HALF];
-  regs.d = half;
-  regs.e = u8(2 * half);
-  regs.b = SEARCH_SLOTS;
+  const full = u8(2 * half);
+  let count = SEARCH_SLOTS;
   let hit = false;
   do {
-    const x = u8(u8(X_ORIGIN - mem8[u16(regs.iy + ENTRY_X)]) + half);
-    const y = u8(u8(Y_ORIGIN - mem8[u16(regs.iy + ENTRY_Y)]) + half);
-    if (x >= regs.e || y >= regs.e) { hit = true; break; }
-    regs.ix = u16(regs.ix + RECORD_STRIDE);
-    regs.iy = u16(regs.iy + ENTRY_STRIDE);
-    regs.b = u8(regs.b - 1);
-  } while (regs.b !== 0);
+    const x = u8(u8(X_ORIGIN - mem8[u16(iy + ENTRY_X)]) + half);
+    const y = u8(u8(Y_ORIGIN - mem8[u16(iy + ENTRY_Y)]) + half);
+    if (x >= full || y >= full) { hit = true; break; }
+    ix = u16(ix + RECORD_STRIDE);
+    iy = u16(iy + ENTRY_STRIDE);
+    count = u8(count - 1);
+  } while (count !== 0);
   if (!hit) return;
 
   requestEnemyLaunchSound(m);
-  regs.hl = ENEMY_STANDOFF_AIM_MAIN;
-  const heading = headingToward(m);
+  const heading = headingToward(m, ENEMY_STANDOFF_AIM_MAIN, iy);
   mem8[ATTACKER_SPAWN_AIM_SIDE_TOGGLE] = u8(mem8[ATTACKER_SPAWN_AIM_SIDE_TOGGLE] + 1);
   const turn = mem8[ATTACKER_SPAWN_AIM_SIDE_TOGGLE] & 1 ? TURN : u8(-TURN);
   const aimed = u8(turn + heading);
 
-  regs.b = mem8[u16(regs.iy + ENTRY_Y)];
-  regs.c = mem8[u16(regs.iy + ENTRY_X)];
+  const foundY = mem8[u16(iy + ENTRY_Y)];
+  const foundX = mem8[u16(iy + ENTRY_X)];
+  let recBank, entBank;
   if (useSecondBank(m)) {
-    regs.ix = ERA_OBJECT_RECORD_SLOT2;
-    regs.iy = ERA_OBJECT_ENTRY_SLOT2;
+    recBank = ERA_OBJECT_RECORD_SLOT2;
+    entBank = ERA_OBJECT_ENTRY_SLOT2;
   } else {
-    regs.ix = ACTOR_RECORD_SLOT3;
-    regs.iy = ACTOR_ENTRY_SLOT3;
+    recBank = ACTOR_RECORD_SLOT3;
+    entBank = ACTOR_ENTRY_SLOT3;
   }
 
-  mem8[regs.iy + ENTRY_Y] = regs.b;
-  mem8[regs.iy + ENTRY_X] = regs.c;
-  regs.a = aimed;
+  mem8[entBank + ENTRY_Y] = foundY;
+  mem8[entBank + ENTRY_X] = foundX;
+  regs.a = aimed; // the velocity shim's input off the register file: the heading it doubles a velocity for
   loc_59c5(m); // fills regs d,e and b,c with the doubled velocity pair for the aimed heading
-  mem8[regs.ix + 0x0a] = regs.e;
-  mem8[regs.ix + 0x0b] = regs.d;
-  mem8[regs.ix + 0x0c] = regs.c;
-  mem8[regs.ix + 0x0d] = regs.b;
-  mem8[regs.iy + 0x01] = NEW_SCRIPT;
-  mem8[regs.iy + 0x30] = NEW_SHAPE;
-  mem8[regs.ix] = u8(mem8[regs.ix] - 1);
-  regs.a = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD];
-  mem8[ATTACKER_SPAWN_COOLDOWN] = regs.a;
+  mem8[recBank + 0x0a] = regs.e;
+  mem8[recBank + 0x0b] = regs.d;
+  mem8[recBank + 0x0c] = regs.c;
+  mem8[recBank + 0x0d] = regs.b;
+  mem8[entBank + 0x01] = NEW_SCRIPT;
+  mem8[entBank + 0x30] = NEW_SHAPE;
+  mem8[recBank] = u8(mem8[recBank] - 1);
+  mem8[ATTACKER_SPAWN_COOLDOWN] = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD];
 }

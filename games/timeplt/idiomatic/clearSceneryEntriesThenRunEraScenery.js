@@ -3,62 +3,54 @@
  * then branch on the era and two runtime guards. Below era four one path seats and runs the whole
  * frame's scenery; at era four and up, when the guard pair reads its expected values a second packed
  * table fills eight entry cells before the scenery runs; a guard that reads wrong transfers into a
- * data table and faults. LIVE-OUT: memory. */
+ * data table and faults. LIVE-OUT: memory. Every register the body touches is dead-after-return
+ * scratch — each returning arm hands on to a callee (seedScenery / runSceneryForEra) that reseats
+ * both cursors, and the guard-fail arm transfers into a fault — so the scratch lives here as JS
+ * locals; only the two caller inputs (fill byte in A, era in C) stay boundary-seated. */
 
+import { u16 } from "../../../core/int.js";
 import { seedSceneryEntriesThenRunScenery } from "./seedSceneryEntriesThenRunScenery.js";
 import { loc_315b } from "./loc_315b.js";
 import { runSceneryForEra } from "./runSceneryForEra.js";
 import { SCENERY_ENTRY_SLOT0, SCENERY_SPRITE_ATTRIBUTE_SLOT0, TAMPER_GLYPH_KONAMI, ERA4_SCENERY_SEED_TABLE } from "./names.js";
 
 const CLEAR_COUNT = 8;
+const CLEAR_STRIDE = 2;
 const ERA_FLOOR = 0x04;
 const GUARD_OK = 0x3b;
 const SUBGUARD_A = 0x05;
 const SUBGUARD_B = 0x10;
 const SEAT_COUNT = 8;
+const SEAT_SHADOW = 0x31; // byte0 of each packed pair lands at the entry cell +0x31
 
 export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.hl = SCENERY_SPRITE_ATTRIBUTE_SLOT0;
-  regs.de = 0x0002;
-  regs.b = CLEAR_COUNT;
-  do {
-    mem8[regs.hl] = fillByte;
-    regs.hl = (regs.hl + regs.de) & 0xffff;
-    regs.b = (regs.b - 1) & 0xff;
-  } while (regs.b !== 0);
-
-  regs.a = era;
-  regs.cp(ERA_FLOOR);
-  if (regs.fC) return seedSceneryEntriesThenRunScenery(m);
-
-  regs.hl = TAMPER_GLYPH_KONAMI;
-  regs.a = mem8[regs.hl];
-  regs.cp(GUARD_OK);
-  if (regs.fNZ) return loc_315b(m);
-
-  regs.hl = (regs.hl + 1) & 0xffff;
-  regs.a = mem8[regs.hl];
-  regs.cp(SUBGUARD_A);
-  if (regs.fNZ) {
-    regs.cp(SUBGUARD_B);
-    if (regs.fNZ) return loc_315b(m);
+  // clear eight object cells, stride two, to the fill byte
+  let clearAddr = SCENERY_SPRITE_ATTRIBUTE_SLOT0;
+  for (let n = CLEAR_COUNT; n !== 0; n--) {
+    mem8[clearAddr] = fillByte;
+    clearAddr = u16(clearAddr + CLEAR_STRIDE);
   }
 
-  regs.b = SEAT_COUNT;
-  regs.iy = SCENERY_ENTRY_SLOT0;
-  regs.hl = ERA4_SCENERY_SEED_TABLE;
-  do {
-    regs.a = mem8[regs.hl];
-    mem8[(regs.iy + 0x31) & 0xffff] = regs.a;
-    regs.hl = (regs.hl + 1) & 0xffff;
-    regs.a = mem8[regs.hl];
-    mem8[regs.iy & 0xffff] = regs.a;
-    regs.hl = (regs.hl + 1) & 0xffff;
-    regs.iy = (regs.iy + 2) & 0xffff;
-    regs.b = (regs.b - 1) & 0xff;
-  } while (regs.b !== 0);
+  if (era < ERA_FLOOR) return seedSceneryEntriesThenRunScenery(m);
+
+  let guardAddr = TAMPER_GLYPH_KONAMI;
+  if (mem8[guardAddr] !== GUARD_OK) return loc_315b(m);
+  guardAddr = u16(guardAddr + 1);
+  const sub = mem8[guardAddr];
+  if (sub !== SUBGUARD_A && sub !== SUBGUARD_B) return loc_315b(m);
+
+  // era-four seed: eight packed pairs fill each entry cell and its shadow at +0x31
+  let src = ERA4_SCENERY_SEED_TABLE;
+  let entry = SCENERY_ENTRY_SLOT0;
+  for (let n = SEAT_COUNT; n !== 0; n--) {
+    mem8[u16(entry + SEAT_SHADOW)] = mem8[src];
+    src = u16(src + 1);
+    mem8[entry] = mem8[src];
+    src = u16(src + 1);
+    entry = u16(entry + 2);
+  }
 
   return runSceneryForEra(m);
 }
