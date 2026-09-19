@@ -940,13 +940,13 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 export const START_TASK_P2 = 0x0101;
 /** RIVET_COL_BASE_RIGHT (0x012b) — Tilemap column-base offset added to VRAM 0x7400 (+5*row) to erase a right-half 100m rivet cell triplet; selected when the slot's low bit is set. NOT a… [code] */
 export const RIVET_COL_BASE_RIGHT = 0x012b;
-/** SPRITE_DMA_SETUP_BLOCK (0x0138) — ROM address of the 9-byte i8257 sprite-DMA setup block handed to blitSpritesViaDma each vblank to blit the sprite shadow buffer. [code] */
+/** SPRITE_DMA_SETUP_BLOCK (0x0138) — ROM address of the 9-byte i8257 sprite-DMA setup block handed to blitSpritesViaDma each vblank to blit the sprite shadow buffer. [seen] */
 export const SPRITE_DMA_SETUP_BLOCK = 0x0138;
 /** RIVET_COL_BASE_LEFT (0x02cb) — Tilemap column-base offset added to VRAM 0x7400 (+5*row) to erase a left-half 100m rivet cell triplet; selected when the slot's low bit is clear. NOT … [code] */
 export const RIVET_COL_BASE_LEFT = 0x02cb;
 /** BCD_RENDER_BYTE_COUNT (0x0304) — BC register immediate (NOT a data address) for the packed-BCD column renderer: B=3 source bytes -> six digits, C=0x04 a dead low-byte marker. Same val… [code] */
 export const BCD_RENDER_BYTE_COUNT = 0x0304;
-/** TASK_HANDLER_TABLE (0x0307) — ROM address of the task-scheduler's 7-entry jump table of 16-bit handler addresses, indexed by the doubled task opcode (masked to 5 bits, OFFSET_MASK … [code] */
+/** TASK_HANDLER_TABLE (0x0307) — ROM address of the task-scheduler's 7-entry jump table of 16-bit handler addresses, indexed by the doubled task opcode (masked to 5 bits, OFFSET_MASK … [seen] */
 export const TASK_HANDLER_TABLE = 0x0307;
 /** CREDIT_SCREEN_TASK (0x030c) — Packed task-ring word loaded into DE for enqueueTask (NOT a data address): high byte = screen-text opcode 0x03, low byte = string selector 0x0c (credi… [code] */
 export const CREDIT_SCREEN_TASK = 0x030c;
@@ -958,9 +958,9 @@ export const MARIO_HITBOX = 0x0407;
 export const BOARD_OPENING_TASK = 0x0501;
 /** OVERLAP_THRESHOLDS_NEUTRAL (0x0508) — Packed per-axis overlap-threshold word (NOT an address): H=5, L=8. Passed in HL to the board overlap-search arm when no left/right direction is held. [code] */
 export const OVERLAP_THRESHOLDS_NEUTRAL = 0x0508;
-/** CREDITED_SUBSTATE_TABLE (0x08b6) — ROM address of the credited-game-state 2-entry dispatch table of 16-bit code addresses, indexed by GAME_SUBSTATE (0x600A) doubled with 8-bit wrap. [code] */
+/** CREDITED_SUBSTATE_TABLE (0x08b6) — ROM address of the credited-game-state 2-entry dispatch table of 16-bit code addresses, indexed by GAME_SUBSTATE (0x600A) doubled with 8-bit wrap. [seen] */
 export const CREDITED_SUBSTATE_TABLE = 0x08b6;
-/** PLAYER_CONTEXT_TEMPLATE (0x095e) — ROM address of the 7-byte player-context init template copied verbatim into bytes 1-7 of each player's context record at game start (byte 0 = starting… [code] */
+/** PLAYER_CONTEXT_TEMPLATE (0x095e) — ROM address of the 7-byte player-context init template copied verbatim into bytes 1-7 of each player's context record at game start (byte 0 = starting… [seen] */
 export const PLAYER_CONTEXT_TEMPLATE = 0x095e;
 /** RIVET_TILE_DEST_TABLE (0x0d17) — ROM address of the 8-entry little-endian pointer table of VRAM destination cells stamped with the fixed rivet tile pair (0xB8 then 0xB7) during 100m r… [code] */
 export const RIVET_TILE_DEST_TABLE = 0x0d17;
@@ -978,41 +978,41 @@ export const RIVET_INTERLUDE_STEP_TABLE = 0x1648;
 export const AIRBORNE_PROBE_RETURN = 0x1c08;
 /** AIRBORNE_OVERLAP_SEARCH_RETURN (0x1c23) — ROM CODE-continuation address: return address pushed by loc_1c05 before searchPlayerObjectOverlap on the fall-height trigger frame, so the callee retu… [code] */
 export const AIRBORNE_OVERLAP_SEARCH_RETURN = 0x1c23;
-/** BARREL_ROLL_GATE_RETURN (0x2017) — ROM CODE-continuation address: return address pushed by advanceRollingBarrel before call 0x24b4 (bottom-of-playfield gate); consumed/discarded by the … [code] */
+/** BARREL_ROLL_GATE_RETURN (0x2017) — ROM CODE-continuation address: return address pushed by advanceRollingBarrel before call 0x24b4 (bottom-of-playfield gate); consumed/discarded by the … [seen] */
 export const BARREL_ROLL_GATE_RETURN = 0x2017;
-/** HAMMER_HIT_HANDLER_RETURN (0x283e) — ROM CODE-continuation address: return address pushed by recordHammerHitOnObject before dispatchBoardCollision; the board collision handler unwinds by … [code] */
+/** HAMMER_HIT_HANDLER_RETURN (0x283e) — ROM CODE-continuation address: return address pushed by recordHammerHitOnObject before dispatchBoardCollision; the board collision handler unwinds by … [seen] */
 export const HAMMER_HIT_HANDLER_RETURN = 0x283e;
-/** BOARD_COLLISION_TABLE (0x2874) — ROM 6-entry jump table of little-endian collision-handler addresses, indexed by BOARD (0x6227: 1=25m,2=50m,3=75m,4=100m; 0/5 null guards), doubled wit… [code] */
+/** BOARD_COLLISION_TABLE (0x2874) — ROM 6-entry jump table of little-endian collision-handler addresses, indexed by BOARD (0x6227: 1=25m,2=50m,3=75m,4=100m; 0/5 null guards), doubled wit… [seen] */
 export const BOARD_COLLISION_TABLE = 0x2874;
 /** LIVE_FIRE_ADVANCE_RETURN (0x31d0) — ROM CODE-continuation address: return address pushed by advanceLiveFires before call 0x3202 (per-object fire advance), which pops it. Manual-stack sea… [code] */
 export const LIVE_FIRE_ADVANCE_RETURN = 0x31d0;
 /** FIRE_STATE_MACHINE_RETURN (0x3233) — ROM CODE-continuation address: return bracket pushed by advanceFire before call 0x333d (driveFireLadderClimb heading/collision state machine); two cal… [code] */
 export const FIRE_STATE_MACHINE_RETURN = 0x3233;
-/** OPTION_TABLE_ROM (0x3565) — ROM source of the fixed 0xAA (170)-byte option/attract table copied verbatim into work RAM at 0x6100 by decodeDipSwitches at power-on. [code] */
+/** OPTION_TABLE_ROM (0x3565) — ROM source of the fixed 0xAA (170)-byte option/attract table copied verbatim into work RAM at 0x6100 by decodeDipSwitches at power-on. [seen] */
 export const OPTION_TABLE_ROM = 0x3565;
 /** BONUS_ITEM_POSITION_TABLE (0x360f) — ROM table of (X,Y) position pairs for the on-board bonus-item sprite; positionBonusItemSprite indexes it by 2*C, entry supplies X then Y stamped into … [code] */
 export const BONUS_ITEM_POSITION_TABLE = 0x360f;
-/** STRING_DESCRIPTOR_PTR_TABLE (0x364b) — ROM table of little-endian pointers to string descriptors; drawStringVertical indexes it by the doubled payload (bit7 masked off) to reach a descripto… [code] */
+/** STRING_DESCRIPTOR_PTR_TABLE (0x364b) — ROM table of little-endian pointers to string descriptors; drawStringVertical indexes it by the doubled payload (bit7 masked off) to reach a descripto… [seen] */
 export const STRING_DESCRIPTOR_PTR_TABLE = 0x364b;
-/** INTRO_SETUP_LAYOUT_TABLE (0x380d) — ROM board-layout segment table passed (in DE) to drawBoardLayout by setupIntroCutsceneStep to draw the intro cutscene's step-0 static playfield. Disti… [code] */
+/** INTRO_SETUP_LAYOUT_TABLE (0x380d) — ROM board-layout segment table passed (in DE) to drawBoardLayout by setupIntroCutsceneStep to draw the intro cutscene's step-0 static playfield. Disti… [seen] */
 export const INTRO_SETUP_LAYOUT_TABLE = 0x380d;
-/** BONUS_DISPLAY_TILE_FRAME (0x384a) — ROM source of the bonus-readout's 18-byte tile frame (6 columns x 3 cells, column stride 0x20) block-copied into video RAM starting at 0x7465 by loc_0… [code] */
+/** BONUS_DISPLAY_TILE_FRAME (0x384a) — ROM source of the bonus-readout's 18-byte tile frame (6 columns x 3 cells, column stride 0x20) block-copied into video RAM starting at 0x7465 by loc_0… [seen] */
 export const BONUS_DISPLAY_TILE_FRAME = 0x384a;
 /** SPRITE_OBJECT_BLOCK_TEMPLATE (0x388c) — ROM base of the fixed 40-byte (0x28 = ten 4-byte records) sprite-object block template reloaded into SPRITE_OBJ_BLOCK via loadSpriteObjectBlock; same … [code] */
 export const SPRITE_OBJECT_BLOCK_TEMPLATE = 0x388c;
-/** INTRO_BEAT_LAYOUT_TABLE (0x392c) — ROM board-layout segment table passed (in DE) to drawBoardLayout by loc_0b06 at the intro cutscene's terminal beat (step 4). Distinct from the step-0 … [code] */
+/** INTRO_BEAT_LAYOUT_TABLE (0x392c) — ROM board-layout segment table passed (in DE) to drawBoardLayout by loc_0b06 at the intro cutscene's terminal beat (step 4). Distinct from the step-0 … [seen] */
 export const INTRO_BEAT_LAYOUT_TABLE = 0x392c;
 /** SPRITE_OBJ_ANIM_FRAME_TABLE (0x3932) — ROM base of a table of 40-byte sprite-object animation-frame records (ten 4-byte sprite records each). advanceBarrelRelease reads a sub-counter and co… [code] */
 export const SPRITE_OBJ_ANIM_FRAME_TABLE = 0x3932;
-/** OBJ_ANIM_STRING_BASE (0x39aa) — ROM base of the object animation-string walked via the object walk pointer. loc_2e9c rewinds the walk pointer here on the string terminator (and fires… [code] */
+/** OBJ_ANIM_STRING_BASE (0x39aa) — ROM base of the object animation-string walked via the object walk pointer. loc_2e9c rewinds the walk pointer here on the string terminator (and fires… [seen] */
 export const OBJ_ANIM_STRING_BASE = 0x39aa;
 /** BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME (0x3a1f) — ROM base of this board-advance interlude step's ten-record (40-byte) sprite-object frame, copied over SPRITE_OBJ_BLOCK by loc_186f when SUBSTATE_TIMER… [code] */
 export const BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME = 0x3a1f;
 /** INTERLUDE_LAYOUT_SEGMENT_TABLE (0x3a5f) — ROM board-layout line-segment table for the between-boards interlude scene; loc_1880 hands it to drawBoardLayout (via regs.de) on the single frame the… [code] */
 export const INTERLUDE_LAYOUT_SEGMENT_TABLE = 0x3a5f;
-/** FIRE_Y_OFFSET_TABLE (0x3a7a) — ROM table of per-frame Y offsets added to a fire's working Y to produce OBJ_Y in advanceFire's publish step; indexed by a record field (OBJ_Y_OFFSET_I… [code] */
+/** FIRE_Y_OFFSET_TABLE (0x3a7a) — ROM table of per-frame Y offsets added to a fire's working Y to produce OBJ_Y in advanceFire's publish step; indexed by a record field (OBJ_Y_OFFSET_I… [seen] */
 export const FIRE_Y_OFFSET_TABLE = 0x3a7a;
-/** WALK_PATH_TABLE_342C (0x3a8c) — ROM scripted position-walk (waypoint) table for the loc_342c object walker: a fresh walk (saved pointer 0) aims here and stamps X seed 38, then the sh… [code] */
+/** WALK_PATH_TABLE_342C (0x3a8c) — ROM scripted position-walk (waypoint) table for the loc_342c object walker: a fresh walk (saved pointer 0) aims here and stamps X seed 38, then the sh… [seen] */
 export const WALK_PATH_TABLE_342C = 0x3a8c;
 /** WALK_PATH_TABLE_3478 (0x3aac) — ROM scripted position-walk path table for the loc_3478 object walker (twin of loc_342c but its OWN table); a fresh walk aims here and picks direction … [code] */
 export const WALK_PATH_TABLE_3478 = 0x3aac;
@@ -1020,7 +1020,7 @@ export const WALK_PATH_TABLE_3478 = 0x3aac;
 export const OBJ_POS_TABLE_MARIOX_CLEAR = 0x3ac4;
 /** OBJ_POS_TABLE_MARIOX_SET (0x3ad4) — ROM table of 2-byte (X,Y) position templates used by loc_34b9 when MARIO_X bit7 is SET (right screen half); companion to 0x3ac4, same layout, entry ch… [code] */
 export const OBJ_POS_TABLE_MARIOX_SET = 0x3ad4;
-/** BOARD_LAYOUT_TABLE_25M (0x3ae4) — ROM board-1 (25m girders) data table, dual-consumed: setup25mGirderBoard passes it (regs.de) to loc_0cc6/drawBoardLayout as line-segments, and loadBoa… [code] */
+/** BOARD_LAYOUT_TABLE_25M (0x3ae4) — ROM board-1 (25m girders) data table, dual-consumed: setup25mGirderBoard passes it (regs.de) to loc_0cc6/drawBoardLayout as line-segments, and loadBoa… [seen] */
 export const BOARD_LAYOUT_TABLE_25M = 0x3ae4;
 /** BOARD_LAYOUT_TABLE_50M (0x3b5d) — ROM board-2 (50m conveyors) layout/object-record data table; drawn via loc_0cc6 (setup50mConveyorBoard sets regs.de=0x3b5d inline) and read as object-… [code] */
 export const BOARD_LAYOUT_TABLE_50M = 0x3b5d;
@@ -1028,13 +1028,13 @@ export const BOARD_LAYOUT_TABLE_50M = 0x3b5d;
 export const BOARD_LAYOUT_TABLE_75M = 0x3be5;
 /** BOARD_LAYOUT_TABLE_RIVET (0x3c8b) — ROM 100m-rivet layout table (board 4 and any BOARD past the first three / board 0); buildBoard's rivet arm hands it to loc_0cc6, and loadBoardObjectRe… [code] */
 export const BOARD_LAYOUT_TABLE_RIVET = 0x3c8b;
-/** HOW_HIGH_CLIMB_FIGURE_TABLE (0x3cf0) — ROM table of 4-byte climbing-figure sprite records (3 bytes read, 1 skipped) painted onto the 'HOW HIGH CAN YOU GET?' girder stack by buildHowHighScre… [code] */
+/** HOW_HIGH_CLIMB_FIGURE_TABLE (0x3cf0) — ROM table of 4-byte climbing-figure sprite records (3 bytes read, 1 skipped) painted onto the 'HOW HIGH CAN YOU GET?' girder stack by buildHowHighScre… [seen] */
 export const HOW_HIGH_CLIMB_FIGURE_TABLE = 0x3cf0;
-/** ANIM_TILE_FILL_TABLE (0x3d08) — ROM [count, dest_lo, dest_hi] VRAM tile-fill span table (zero-count terminated) walked by loc_07cb's timed-animation substate to fill tile 0xb0 across… [code] */
+/** ANIM_TILE_FILL_TABLE (0x3d08) — ROM [count, dest_lo, dest_hi] VRAM tile-fill span table (zero-count terminated) walked by loc_07cb's timed-animation substate to fill tile 0xb0 across… [seen] */
 export const ANIM_TILE_FILL_TABLE = 0x3d08;
-/** BOARD_OVERLAP_DISPATCH_TABLE (0x3e8d) — 6-entry inline jump table (base 0x3e8d, immediately after the loc_3e88 dispatch code) indexed by BOARD, vectoring to each board's object-overlap colli… [code] */
+/** BOARD_OVERLAP_DISPATCH_TABLE (0x3e8d) — 6-entry inline jump table (base 0x3e8d, immediately after the loc_3e88 dispatch code) indexed by BOARD, vectoring to each board's object-overlap colli… [seen] */
 export const BOARD_OVERLAP_DISPATCH_TABLE = 0x3e8d;
-/** BOARD_RECORD_CHECKSUM_ROM (0x3f0c) — ROM base of 6 program bytes summed mod 256 (seed 0x5e) by loadBoardObjectRecords; sum==0 vs nonzero selects the OBJ_PARAM_TABLE1 (second group) base p… [code] */
+/** BOARD_RECORD_CHECKSUM_ROM (0x3f0c) — ROM base of 6 program bytes summed mod 256 (seed 0x5e) by loadBoardObjectRecords; sum==0 vs nonzero selects the OBJ_PARAM_TABLE1 (second group) base p… [seen] */
 export const BOARD_RECORD_CHECKSUM_ROM = 0x3f0c;
 /** BONUS_ITEM_POS_DIVIDER (0x6030) — [code] Frame divider between grid-position steps in runBonusItemValueDisplay: reloaded to 0x0a, decremented each frame a lateral input (P1_INPUT & 0x0… [code] */
 export const BONUS_ITEM_POS_DIVIDER = 0x6030;
