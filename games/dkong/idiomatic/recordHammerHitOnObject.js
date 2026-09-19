@@ -12,15 +12,16 @@
  */
 
 import {
+  COLLIDED_OBJECT_BASE,
+  COLLIDED_OBJECT_INDEX,
+  COLLIDED_OBJECT_STRIDE,
+  HAMMER_HIT_HANDLER_RETURN,
+  HAMMER_IN_PLAY,
+  OBJ_HIT_EXTENT_X,
+  OBJ_HIT_EXTENT_Y,
   OBJ_PAIR_6680,
   OBJ_SEARCH_COUNT,
   OBJ_Y,
-  OBJ_HIT_EXTENT_X,
-  OBJ_HIT_EXTENT_Y,
-  HAMMER_IN_PLAY,
-  COLLIDED_OBJECT_BASE,
-  COLLIDED_OBJECT_STRIDE,
-  COLLIDED_OBJECT_INDEX,
 } from "./names.js";
 import { dispatchBoardCollision } from "./dispatchBoardCollision.js";
 
@@ -28,7 +29,6 @@ const RECORD_STRIDE = 0x10;
 
 // The push is load-bearing: the handler unwinds by popping this word, and without it it pops
 // the wrong one and unwinds two bytes off.
-const HANDLER_RETURN = 0x283e;
 
 export function recordHammerHitOnObject(m) {
   const { regs, mem8, mem16 } = m;
@@ -46,7 +46,7 @@ export function recordHammerHitOnObject(m) {
   regs.h = mem8[recordPtr + OBJ_HIT_EXTENT_X]; // X base tolerance
   regs.l = mem8[recordPtr + OBJ_HIT_EXTENT_Y]; // Y base tolerance
 
-  m.push16(HANDLER_RETURN);
+  m.push16(HAMMER_HIT_HANDLER_RETURN);
   dispatchBoardCollision(m);
 
   const overlap = regs.a;

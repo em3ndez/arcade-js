@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { OBJ_RECORD_66A0 } from "./names.js";
+import {
+  OBJ_66A0_SPRITE_RECORD,
+  OBJ_RECORD_66A0,
+} from "./names.js";
 /**
  * loc_11fa — scatter a six-byte source record into a fixed record plus a four-byte array.
  *
@@ -13,7 +16,6 @@ export function loc_11fa(m, hl = m.regs.hl) {
   const { mem8 } = m;
 
   const REC = OBJ_RECORD_66A0;
-  const ARR = 0x6a28;
 
   const src = hl;
   const b0 = mem8[(src + 0) & 0xffff];
@@ -33,8 +35,8 @@ export function loc_11fa(m, hl = m.regs.hl) {
   mem8[REC + 0x09] = b4;
   mem8[REC + 0x0a] = b5;
 
-  mem8[ARR + 0] = b0;
-  mem8[ARR + 1] = b1;
-  mem8[ARR + 2] = b2;
-  mem8[ARR + 3] = b3;
+  mem8[OBJ_66A0_SPRITE_RECORD + 0] = b0;
+  mem8[OBJ_66A0_SPRITE_RECORD + 1] = b1;
+  mem8[OBJ_66A0_SPRITE_RECORD + 2] = b2;
+  mem8[OBJ_66A0_SPRITE_RECORD + 3] = b3;
 }

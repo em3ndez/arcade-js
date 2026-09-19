@@ -52,11 +52,12 @@ them before quoting any of it.
 | — carrying an earned English name | 327 |
 | — still address-named `loc_XXXX` | 79 |
 | Idiomatic modules written but **not** registered in `ROUTINES` | **23** |
-| `ROUTINES` confidence split | 368 `code` / 38 `seen` / 0 `guess` |
-| `export const` entries in `names.js` | **184** |
-| — work-RAM cells (inside 0x6000–0x6BFF) | 168 |
-| — object/sprite **record field offsets** (not addresses) | 16 |
-| `names.js` tag census | 137 `[seen]` / 47 `[code]` / 0 `[guess]` |
+| `ROUTINES` confidence split | 51 `code` / 355 `seen` / 0 `guess` |
+| `export const` entries in `names.js` | **313** |
+| — work-RAM cells (inside 0x6000–0x6BFF) | 206 |
+| — value consts outside work-RAM (ROM tables, packed words, hardware regs) | 105 |
+| — structural exports (`ROUTINES` map, `STACK_SCRATCH` range) | 2 |
+| `names.js` cert-tag tokens | 172 `[seen]` / 181 `[code]` / 0 `[guess]` |
 | Per-routine memory-equivalence tests | 427 |
 
 ```sh
@@ -76,10 +77,15 @@ console.log("unregistered:", fs.readdirSync("games/dkong/idiomatic")
 # named work-RAM cells, using the names-consistency gate's own definition of "named"
 python3 -c 'import sys;sys.path.insert(0,"tools");import names_consistency as n;
 print(len(n.named_workram(open("games/dkong/idiomatic/names.js").read(), n.workram_window("dkong"))))'
+# export-const total, the two non-hex structural exports, and the cert-tag token census
+grep -c '^export const' games/dkong/idiomatic/names.js
+grep '^export const' games/dkong/idiomatic/names.js | grep -vc '= 0x[0-9a-fA-F]* *;'
+for t in '\[seen\]' '\[code\]' '\[guess\]'; do printf '%s ' "$t"; grep -o "$t" games/dkong/idiomatic/names.js | wc -l; done
 ```
 
-*(The tag census counts each `export const`'s own comment. `OBJ_WALK_PTR_HI` has no comment of its
-own — it is rated by the block it shares with its `_LO` twin, and is counted `[seen]` above.)*
+*(The cert-tag census counts tag tokens across all comments in `names.js`; a const whose doc comment
+carries two tags counts twice. `[code]` marks a cell named from code structure but not yet
+MAME-grounded, so the Class-B naming pass raised it sharply — grounding those is stage-B work.)*
 
 ### The honest floor
 
@@ -93,19 +99,18 @@ Three things are true at once, and only the first is "done":
 2. **Wiring is not.** `resolveAllIdiomatic()` — what the shipping player uses (`manifest.js`
    declares `runtime: "idiomatic"`, and `web/worker.js` runs it under `runIdiomaticGame`) — builds
    its override map by iterating `ROUTINES` and nothing else (`games/dkong/machine.js:1107`).
-   Registration *is* the wiring. The 31 modules absent from `ROUTINES` are therefore not executed:
+   Registration *is* the wiring. The 23 modules absent from `ROUTINES` are therefore not executed:
    at those addresses the live machine still runs the frozen oracle. They are written, reviewed and
    gated; they are not live. `[code]`
 
-   They are five clusters, each blocked on the same registration step:
+   They are four clusters, each blocked on the same registration step:
 
    | cluster | addresses |
    |---|---|
-   | the 25m barrel machine's remaining interior (20) | `0x1F72`, `0x1F8D`, `0x1FAC`, `0x1FCE`, `0x202F`, `0x2038`, `0x2053`, `0x2079`, `0x2083`, `0x20A2`, `0x20B5`, `0x20C3`, `0x20E1`, `0x20EC`, `0x2101`, `0x2104`, `0x2118`, `0x2146`, `0x2153`, `0x215F` |
-   | the five-slot fire pass (3) | `0x31B1`, `0x3202`, `0x333D` |
+   | the 25m barrel machine's remaining interior (16) | `0x1F8D`, `0x1FAC`, `0x202F`, `0x2038`, `0x2053`, `0x2079`, `0x2083`, `0x20A2`, `0x20B5`, `0x20C3`, `0x20E1`, `0x2101`, `0x2118`, `0x2146`, `0x2153`, `0x215F` |
    | the airborne-frame resolver and its object-collision follow-up (3) | `0x1C05`, `0x29AF`, `0x2B1C` |
    | the task dispatcher, its inline-jump trampoline, and task 5 (3) | `0x00CA`, `0x02E3`, `0x062A` |
-   | the 25m barrel-release entry and the fire-pass head (2) | `0x2C8F`, `0x30ED` |
+   | the 50m sprite-object mid-body entry (1) | `0x0400` |
 
 3. **The readable layer is not yet self-contained.** Nineteen call sites inside `idiomatic/` reach
    a callee by importing the frozen oracle (`from "../translated/loc_XXXX.js"`) even though the
@@ -127,14 +132,13 @@ And one measurement about *understanding* rather than code. Net (a) of the enume
 `docs/understanding.md` is written for `mem8[0x…]` bracket syntax, which this port does not use —
 run as written it finds nothing, which is a fact about the regex, not about the code. Run in this
 port's accessor form (`mem.read8/write8/read16/write16(0x6xxx)`, comments stripped, registry cells
-excluded) it finds **15 work-RAM addresses still read or written as bare hex** — `0x6209`,
-`0x620A`, `0x62AF`, `0x62B9`, `0x6350`, `0x6392`, `0x6910`, `0x6919`, `0x694D`, `0x694F`,
-`0x6A20`–`0x6A23`, `0x6A25`. Net (b) finds **47 more addresses aliased to file-local `const`s**
-that were never centralized, **9 of them with conflicting local names across files** — `0x62AF`
-alone carries seven (`BOARD_BOOKKEEPING`, `BOARD_OBJECT_SCRATCH`, `CUTSCENE_BOOKKEEPING`,
-`FRAME_GATE`, `PACE_COUNTER`, `PHASE_COUNTER`, `TICK_COUNTER`), which is precisely the "one
-routine's local view" the registry exists to reconcile. Those 15 + 47 are the to-do list for the
-next naming pass; the sharpest are named in §16.
+excluded) net (a) finds **no work-RAM addresses still read or written as bare hex** — the Class-B
+hoist centralized the last of them. Net (b) finds **12 addresses still aliased to file-local
+`const`s** that were never centralized, **5 of them with conflicting local names across files** —
+`0x62AF` alone carries eight (`BOARD_BOOKKEEPING`, `BOARD_OBJECT_SCRATCH`, `CUTSCENE_BOOKKEEPING`,
+`FINALE_PACE_COUNTER`, `FRAME_GATE`, `PACE_COUNTER`, `PHASE_COUNTER`, `TICK_COUNTER`), which is
+precisely the "one routine's local view" the registry exists to reconcile. Those 12 are the to-do
+list for the next naming pass; the sharpest are named in §16.
 
 ```sh
 # net (a) and net (b), in this port's accessor syntax, against the gate's own idea of "named"
@@ -1224,7 +1228,7 @@ full provenance, and which sounds have sample bytes at all, is [`audio/README.md
 ## 16. Where the model is thin — open questions
 
 Ordered by how much downstream work they block. This is a *highlighted subset*: the exhaustive
-to-do is the enumeration in §1 (15 bare-hex reads plus 47 uncentralized local aliases) and every
+to-do is the enumeration in §1 (no bare-hex reads left, 12 uncentralized local aliases) and every
 `[code]` claim in this file.
 
 1. **The `+1 == 1` barrel arm (ROM 0x20EC) is unidentified, and it is not rare.** 4 606 dispatches
@@ -1234,14 +1238,12 @@ to-do is the enumeration in §1 (15 bare-hex reads plus 47 uncentralized local a
    re-initialise it with a different velocity. Until this is answered, `advanceBarrelMotion`'s name
    covers one behaviour nobody has watched. **Blocking**: it is the largest hole in the barrel
    machine, which is otherwise the best-grounded subsystem in the game.
-2. **`0x62B9`, `0x62BA` and `0x62B8` have no registry names**, and this pass made them the
-   best-understood unnamed cells in the port: one reader in the whole ROM, four writers, a phase
-   pair whose two bits were separated on screen by a control-poke, a 16-tick countdown and a
-   /4 prescaler. Three idiomatic files scope them locally under three different names. Naming them
-   is the obvious next promotion, and the evidence for it is §8.6.
-3. **`0x6348`, the one-shot difficulty latch**, likewise: `[seen]` as a one-way switch set only by
-   `retireBarrelIntoOilDrum`, with two readers that branch simple-vs-graded on it, and three
-   conflicting local names across files (`MODE_LATCH`, `SPAWN_MODE_GATE`, `VELOCITY_MODE_LATCH`).
+2. **`0x62B9` has no registry name** — its siblings `FIXED_HAZARD_PRESCALER` (0x62B8) and
+   `FIXED_HAZARD_ARM_COUNTER` (0x62BA) are now named (Class-B hoist): one reader in the whole ROM,
+   four writers, a phase pair whose two bits were separated on screen by a control-poke, a 16-tick
+   countdown and a /4 prescaler. Naming 0x62B9 is the obvious next promotion; the evidence is §8.6.
+3. **`0x6348` is now `BARREL_DIFFICULTY_LATCH`** (Class-B hoist): `[seen]` as a one-way switch set
+   only by `retireBarrelIntoOilDrum`, with two readers that branch simple-vs-graded on it.
    What a player would *notice* when it flips has not been measured: the A/B is a 25m board with the
    latch forced clear against one forced set, comparing barrel speed spread and ladder-descent rate.
 4. **What are the two 50m travelling objects?** The `BOARD_OBJ_SCRATCH` pair's machine, geometry and
@@ -1313,11 +1315,13 @@ to-do is the enumeration in §1 (15 bare-hex reads plus 47 uncentralized local a
       the routing.
 16. **`loc_0400` is an interior address, not an entry point.** The bytes at ROM 0x03FB are
     `ld a,(BOARD) / cp 0x02 / jp nz,0x0413`, and 0x0400 is that `jp nz` — the third instruction of
-    `slide50mSpriteRowAndServiceColorCycle`. It carries a `ROUTINES` entry and a `translated/`
-    module that duplicates its parent's body entered one instruction later. A scan of the whole
-    image for the little-endian word `00 04` finds no vector pointing there; the three `ld de,0x0400`
-    sites are task messages (opcode 4, argument 0) posted through `enqueueTask`, not addresses.
-    Retiring the phantom entry is a registry edit, not a decompile.
+    `slide50mSpriteRowAndServiceColorCycle` (registered at 0x03FB). It has a `translated/` module and
+    a lifted `idiomatic/` module that duplicate the parent's body entered one instruction later, but
+    no `ROUTINES` entry — it is unregistered, the "50m sprite-object mid-body entry" in §1's unwired
+    cluster. A scan of the whole image for the little-endian word `00 04` finds no vector pointing
+    there; the three `ld de,0x0400` sites are task messages (opcode 4, argument 0) posted through
+    `enqueueTask`, not addresses. Nothing reaches it as an entry, so it stays unregistered; the open
+    item is dropping the redundant module, not a decompile.
 17. **The eight "dropping" barrels are unreconciled.** `BARREL_CLAIM_MODE` bit 7 selects the sprite
     and behaviour kind and bit 0 selects the waypoint table, and they are independent — but the
     grounding run that first suggested otherwise logged 8 alternate-kind stamps without recording
@@ -1359,7 +1363,7 @@ only a map of where to look.
 ## Appendix B — subsystem entry points
 
 Names as they exist in `idiomatic/` right now; roles are in `ROUTINES`, not repeated here.
-`loc_XXXX` entries are lifted and gated but not yet English-named; the five clusters listed in §1
+`loc_XXXX` entries are lifted and gated but not yet English-named; the four clusters listed in §1
 are lifted but not yet wired.
 
 - **Machine spine** — `boot` · `serviceVblankNmi` · `perFrame` · `mainLoop` · `loc_02e3` ·

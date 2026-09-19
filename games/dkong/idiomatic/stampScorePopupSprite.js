@@ -8,11 +8,13 @@
  * board gate is open.
  */
 import { boardBitGate } from "./boardBitGate.js";
-import { POPUP_SPRITE } from "./names.js";
+import {
+  POPUP_SPRITE,
+  SND_TRIGGER_EFFECT,
+} from "./names.js";
 
 const SPRITE_ATTR = 0x07;     // record byte +2
 const BOARD_MASK = 0x05;      // bit0 25m, bit2 75m
-const SOUND_LATCH = 0x6085;   // storing 3 asserts this sound for 3 frames
 
 export function stampScorePopupSprite(m, a = m.regs.a, b = m.regs.b, c = m.regs.c) {
   const { regs, mem8 } = m;
@@ -24,5 +26,5 @@ export function stampScorePopupSprite(m, a = m.regs.a, b = m.regs.b, c = m.regs.
 
   if (!boardBitGate(m, BOARD_MASK)) return;
 
-  mem8[SOUND_LATCH] = 0x03;
+  mem8[SND_TRIGGER_EFFECT] = 0x03;
 }

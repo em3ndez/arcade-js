@@ -8,10 +8,12 @@
  * LIVE-OUT: memory, the stack pointer, and the handler's two result registers.
  */
 
-import { BOARD } from "./names.js";
+import {
+  BOARD,
+  BOARD_COLLISION_TABLE,
+} from "./names.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
-const BOARD_COLLISION_TABLE = 0x2874;
 const DISPATCH_TABLE_2874 = "0x2874 (0x6227 collision dispatch)";
 
 export function dispatchBoardCollision(m, hl = m.regs.hl) {

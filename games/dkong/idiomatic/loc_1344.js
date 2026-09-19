@@ -20,17 +20,17 @@ import { loc_13ca } from "./loc_13ca.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { fillTileBlock } from "./fillTileBlock.js";
 import {
-  LIVES, // the live player-context block, byte 0
-  PLAY_INTRO,
-  P1_CONTEXT, // player 1's saved context; byte 0 is player 1's lives
-  P2_CONTEXT, // player 2's saved context — the copy destination
+  GAMEOVER_BANNER_TOPLEFT_2P,
   GAME_SUBSTATE,
-  SUBSTATE_TIMER,
+  LIVES,
+  P1_CONTEXT,
+  P2_CONTEXT,
   P2_SCORE,
+  PLAY_INTRO,
+  SUBSTATE_TIMER,
 } from "./names.js";
 
 const CONTEXT_BYTES = 8;
-const BLOCK_FILL_TOPLEFT = 0x76d3;
 
 export function loc_1344(m) {
   const { mem8 } = m;
@@ -58,7 +58,7 @@ export function loc_1344(m) {
   enqueueTask(m, 0x03, 0x03);
   enqueueTask(m, 0x03, 0x00);
 
-  fillTileBlock(m, BLOCK_FILL_TOPLEFT);
+  fillTileBlock(m, GAMEOVER_BANNER_TOPLEFT_2P);
 
   mem8[SUBSTATE_TIMER] = 0xc0;
   mem8[GAME_SUBSTATE] = 0x11;

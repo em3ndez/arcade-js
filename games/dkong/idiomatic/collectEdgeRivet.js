@@ -13,15 +13,18 @@
  */
 
 import {
+  EDGE_RIVET_ARMED,
+  EFFECT_SELECT,
+  EFFECT_STATE,
+  ITEM_COLLECTED,
+  MARIO_AIRBORNE,
   MARIO_X,
   MARIO_Y,
-  MARIO_AIRBORNE,
-  EDGE_RIVET_ARMED,
-  RIVET_PRESENT,
   RIVETS_LEFT,
-  EFFECT_STATE,
-  EFFECT_SELECT,
-  ITEM_COLLECTED,
+  RIVET_COL_BASE_LEFT,
+  RIVET_COL_BASE_RIGHT,
+  RIVET_PRESENT,
+  TILEMAP_BASE,
 } from "./names.js";
 
 import { boardBitGate } from "./boardBitGate.js";
@@ -32,9 +35,6 @@ const BOARD_GATE_MASK = 0x08; // board-gate mask: bit3 => this runs only on 100m
 const EDGE_X_LEFT = 0x4b;     // left-edge rivet column
 const EDGE_X_RIGHT = 0xb3;    // right-edge rivet column
 const OFF_FIELD = 0xd0;       // a row index at or past this is off the rivet field
-const COL_BASE_RIGHT = 0x012b; // tilemap column base when the slot's low bit is set (right half)
-const COL_BASE_LEFT = 0x02cb;  // tilemap column base when it is clear (left half)
-const VRAM = 0x7400;           // tilemap base added to the per-slot column offset
 const BLANK_TILE = 0x10;       // erase tile written to the three rivet cells
 
 const rotl8 = (v) => ((v << 1) | (v >> 7)) & 0xff;
@@ -70,8 +70,8 @@ export function collectEdgeRivet(m) {
   mem8[RIVETS_LEFT] = mem8[RIVETS_LEFT] - 1;
 
   const row = slot >> 1;
-  const base = (slot & 1) ? COL_BASE_RIGHT : COL_BASE_LEFT;
-  const vaddr = (VRAM + base + 5 * row) & 0xffff;
+  const base = (slot & 1) ? RIVET_COL_BASE_RIGHT : RIVET_COL_BASE_LEFT;
+  const vaddr = (TILEMAP_BASE + base + 5 * row) & 0xffff;
 
   // low byte wraps inside the page rather than carrying
   const page = vaddr & 0xff00;

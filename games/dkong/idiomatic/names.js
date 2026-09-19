@@ -934,6 +934,263 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 // the EXPORT from `entry ?? name` (games/dkong/machine.js resolveAllIdiomatic,
 // tools/swap_check.mjs). Five entries carry it; every other routine is machine-shaped
 // already and must NOT have one.
+
+// --- dkong Class-B hoisted cells / ROM tables / packed value words ([code]) ---
+/** START_TASK_P2 (0x0101) — Packed task-ring word loaded into DE for enqueueTask (NOT a memory address): opcode 0x01 = bring-in-player-context, argument 0x01 = player index 1 (pl… [code] */
+export const START_TASK_P2 = 0x0101;
+/** RIVET_COL_BASE_RIGHT (0x012b) — Tilemap column-base offset added to VRAM 0x7400 (+5*row) to erase a right-half 100m rivet cell triplet; selected when the slot's low bit is set. NOT a… [code] */
+export const RIVET_COL_BASE_RIGHT = 0x012b;
+/** SPRITE_DMA_SETUP_BLOCK (0x0138) — ROM address of the 9-byte i8257 sprite-DMA setup block handed to blitSpritesViaDma each vblank to blit the sprite shadow buffer. [code] */
+export const SPRITE_DMA_SETUP_BLOCK = 0x0138;
+/** RIVET_COL_BASE_LEFT (0x02cb) — Tilemap column-base offset added to VRAM 0x7400 (+5*row) to erase a left-half 100m rivet cell triplet; selected when the slot's low bit is clear. NOT … [code] */
+export const RIVET_COL_BASE_LEFT = 0x02cb;
+/** BCD_RENDER_BYTE_COUNT (0x0304) — BC register immediate (NOT a data address) for the packed-BCD column renderer: B=3 source bytes -> six digits, C=0x04 a dead low-byte marker. Same val… [code] */
+export const BCD_RENDER_BYTE_COUNT = 0x0304;
+/** TASK_HANDLER_TABLE (0x0307) — ROM address of the task-scheduler's 7-entry jump table of 16-bit handler addresses, indexed by the doubled task opcode (masked to 5 bits, OFFSET_MASK … [code] */
+export const TASK_HANDLER_TABLE = 0x0307;
+/** CREDIT_SCREEN_TASK (0x030c) — Packed task-ring word loaded into DE for enqueueTask (NOT a data address): high byte = screen-text opcode 0x03, low byte = string selector 0x0c (credi… [code] */
+export const CREDIT_SCREEN_TASK = 0x030c;
+/** CREDIT_DISPLAY_TASK (0x0400) — Packed task-ring word loaded into DE for enqueueTask (NOT a data address): opcode 0x04 = credit-display refresh, argument 0x00. Same value/meaning in … [code] */
+export const CREDIT_DISPLAY_TASK = 0x0400;
+/** MARIO_HITBOX (0x0407) — Packed hitbox half-extents (NOT an address; body comment says so) passed to dispatchBoardCollision: high byte 4 = half-width, low byte 7 = half-height. [code] */
+export const MARIO_HITBOX = 0x0407;
+/** BOARD_OPENING_TASK (0x0501) — Packed task-ring word loaded into DE for enqueueTask (NOT a data address): opcode 0x05, argument 0x01 = the board-opening task posted by buildBoard. [code] */
+export const BOARD_OPENING_TASK = 0x0501;
+/** OVERLAP_THRESHOLDS_NEUTRAL (0x0508) — Packed per-axis overlap-threshold word (NOT an address): H=5, L=8. Passed in HL to the board overlap-search arm when no left/right direction is held. [code] */
+export const OVERLAP_THRESHOLDS_NEUTRAL = 0x0508;
+/** CREDITED_SUBSTATE_TABLE (0x08b6) — ROM address of the credited-game-state 2-entry dispatch table of 16-bit code addresses, indexed by GAME_SUBSTATE (0x600A) doubled with 8-bit wrap. [code] */
+export const CREDITED_SUBSTATE_TABLE = 0x08b6;
+/** PLAYER_CONTEXT_TEMPLATE (0x095e) — ROM address of the 7-byte player-context init template copied verbatim into bytes 1-7 of each player's context record at game start (byte 0 = starting… [code] */
+export const PLAYER_CONTEXT_TEMPLATE = 0x095e;
+/** RIVET_TILE_DEST_TABLE (0x0d17) — ROM address of the 8-entry little-endian pointer table of VRAM destination cells stamped with the fixed rivet tile pair (0xB8 then 0xB7) during 100m r… [code] */
+export const RIVET_TILE_DEST_TABLE = 0x0d17;
+/** DEATH_ANIM_PHASE_TABLE (0x1283) — ROM address of the 4-entry jump table of 16-bit targets for Mario's death-animation phases, indexed by DEATH_ANIM_PHASE (0x639D) doubled with 8-bit wr… [code] */
+export const DEATH_ANIM_PHASE_TABLE = 0x1283;
+/** OVERLAP_THRESHOLDS_DIRECTED (0x1308) — Packed per-axis overlap-threshold word (NOT an address): H=0x13, L=0x08. Passed in HL to the board overlap-search arm when a left/right direction IS h… [code] */
+export const OVERLAP_THRESHOLDS_DIRECTED = 0x1308;
+/** BOARD_CLEARED_STEP_TABLE_ODD (0x1623) — ROM address of the 6-entry odd-board (25m/75m) board-advance-interlude step table of 16-bit targets, indexed by BOARD_ADVANCE_STEP (0x6388) doubled wi… [code] */
+export const BOARD_CLEARED_STEP_TABLE_ODD = 0x1623;
+/** BOARD_CLEARED_STEP_TABLE_50M (0x1637) — ROM 5-entry table of little-endian target addresses [16a3,16bb,1732,1757,178e] for the 50m (BOARD bit1) board-cleared interlude; indexed by BOARD_ADVA… [code] */
+export const BOARD_CLEARED_STEP_TABLE_50M = 0x1637;
+/** RIVET_INTERLUDE_STEP_TABLE (0x1648) — ROM 6-entry inline jump table of little-endian targets for the rivet/100m board interlude sequence; indexed by BOARD_ADVANCE_STEP (0x6388) doubled wit… [code] */
+export const RIVET_INTERLUDE_STEP_TABLE = 0x1648;
+/** AIRBORNE_PROBE_RETURN (0x1c08) — ROM CODE-continuation address (not a data cell): return address pushed by loc_1c05 before call 0x2b1c (descent probe) so the callee unwinds back into … [code] */
+export const AIRBORNE_PROBE_RETURN = 0x1c08;
+/** AIRBORNE_OVERLAP_SEARCH_RETURN (0x1c23) — ROM CODE-continuation address: return address pushed by loc_1c05 before searchPlayerObjectOverlap on the fall-height trigger frame, so the callee retu… [code] */
+export const AIRBORNE_OVERLAP_SEARCH_RETURN = 0x1c23;
+/** BARREL_ROLL_GATE_RETURN (0x2017) — ROM CODE-continuation address: return address pushed by advanceRollingBarrel before call 0x24b4 (bottom-of-playfield gate); consumed/discarded by the … [code] */
+export const BARREL_ROLL_GATE_RETURN = 0x2017;
+/** HAMMER_HIT_HANDLER_RETURN (0x283e) — ROM CODE-continuation address: return address pushed by recordHammerHitOnObject before dispatchBoardCollision; the board collision handler unwinds by … [code] */
+export const HAMMER_HIT_HANDLER_RETURN = 0x283e;
+/** BOARD_COLLISION_TABLE (0x2874) — ROM 6-entry jump table of little-endian collision-handler addresses, indexed by BOARD (0x6227: 1=25m,2=50m,3=75m,4=100m; 0/5 null guards), doubled wit… [code] */
+export const BOARD_COLLISION_TABLE = 0x2874;
+/** LIVE_FIRE_ADVANCE_RETURN (0x31d0) — ROM CODE-continuation address: return address pushed by advanceLiveFires before call 0x3202 (per-object fire advance), which pops it. Manual-stack sea… [code] */
+export const LIVE_FIRE_ADVANCE_RETURN = 0x31d0;
+/** FIRE_STATE_MACHINE_RETURN (0x3233) — ROM CODE-continuation address: return bracket pushed by advanceFire before call 0x333d (driveFireLadderClimb heading/collision state machine); two cal… [code] */
+export const FIRE_STATE_MACHINE_RETURN = 0x3233;
+/** OPTION_TABLE_ROM (0x3565) — ROM source of the fixed 0xAA (170)-byte option/attract table copied verbatim into work RAM at 0x6100 by decodeDipSwitches at power-on. [code] */
+export const OPTION_TABLE_ROM = 0x3565;
+/** BONUS_ITEM_POSITION_TABLE (0x360f) — ROM table of (X,Y) position pairs for the on-board bonus-item sprite; positionBonusItemSprite indexes it by 2*C, entry supplies X then Y stamped into … [code] */
+export const BONUS_ITEM_POSITION_TABLE = 0x360f;
+/** STRING_DESCRIPTOR_PTR_TABLE (0x364b) — ROM table of little-endian pointers to string descriptors; drawStringVertical indexes it by the doubled payload (bit7 masked off) to reach a descripto… [code] */
+export const STRING_DESCRIPTOR_PTR_TABLE = 0x364b;
+/** INTRO_SETUP_LAYOUT_TABLE (0x380d) — ROM board-layout segment table passed (in DE) to drawBoardLayout by setupIntroCutsceneStep to draw the intro cutscene's step-0 static playfield. Disti… [code] */
+export const INTRO_SETUP_LAYOUT_TABLE = 0x380d;
+/** BONUS_DISPLAY_TILE_FRAME (0x384a) — ROM source of the bonus-readout's 18-byte tile frame (6 columns x 3 cells, column stride 0x20) block-copied into video RAM starting at 0x7465 by loc_0… [code] */
+export const BONUS_DISPLAY_TILE_FRAME = 0x384a;
+/** SPRITE_OBJECT_BLOCK_TEMPLATE (0x388c) — ROM base of the fixed 40-byte (0x28 = ten 4-byte records) sprite-object block template reloaded into SPRITE_OBJ_BLOCK via loadSpriteObjectBlock; same … [code] */
+export const SPRITE_OBJECT_BLOCK_TEMPLATE = 0x388c;
+/** INTRO_BEAT_LAYOUT_TABLE (0x392c) — ROM board-layout segment table passed (in DE) to drawBoardLayout by loc_0b06 at the intro cutscene's terminal beat (step 4). Distinct from the step-0 … [code] */
+export const INTRO_BEAT_LAYOUT_TABLE = 0x392c;
+/** SPRITE_OBJ_ANIM_FRAME_TABLE (0x3932) — ROM base of a table of 40-byte sprite-object animation-frame records (ten 4-byte sprite records each). advanceBarrelRelease reads a sub-counter and co… [code] */
+export const SPRITE_OBJ_ANIM_FRAME_TABLE = 0x3932;
+/** OBJ_ANIM_STRING_BASE (0x39aa) — ROM base of the object animation-string walked via the object walk pointer. loc_2e9c rewinds the walk pointer here on the string terminator (and fires… [code] */
+export const OBJ_ANIM_STRING_BASE = 0x39aa;
+/** BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME (0x3a1f) — ROM base of this board-advance interlude step's ten-record (40-byte) sprite-object frame, copied over SPRITE_OBJ_BLOCK by loc_186f when SUBSTATE_TIMER… [code] */
+export const BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME = 0x3a1f;
+/** INTERLUDE_LAYOUT_SEGMENT_TABLE (0x3a5f) — ROM board-layout line-segment table for the between-boards interlude scene; loc_1880 hands it to drawBoardLayout (via regs.de) on the single frame the… [code] */
+export const INTERLUDE_LAYOUT_SEGMENT_TABLE = 0x3a5f;
+/** FIRE_Y_OFFSET_TABLE (0x3a7a) — ROM table of per-frame Y offsets added to a fire's working Y to produce OBJ_Y in advanceFire's publish step; indexed by a record field (OBJ_Y_OFFSET_I… [code] */
+export const FIRE_Y_OFFSET_TABLE = 0x3a7a;
+/** WALK_PATH_TABLE_342C (0x3a8c) — ROM scripted position-walk (waypoint) table for the loc_342c object walker: a fresh walk (saved pointer 0) aims here and stamps X seed 38, then the sh… [code] */
+export const WALK_PATH_TABLE_342C = 0x3a8c;
+/** WALK_PATH_TABLE_3478 (0x3aac) — ROM scripted position-walk path table for the loc_3478 object walker (twin of loc_342c but its OWN table); a fresh walk aims here and picks direction … [code] */
+export const WALK_PATH_TABLE_3478 = 0x3aac;
+/** OBJ_POS_TABLE_MARIOX_CLEAR (0x3ac4) — ROM table of 2-byte (X,Y) position templates used by loc_34b9 when MARIO_X bit7 is CLEAR (Mario in the left screen half); the entry is chosen by SPIN_… [code] */
+export const OBJ_POS_TABLE_MARIOX_CLEAR = 0x3ac4;
+/** OBJ_POS_TABLE_MARIOX_SET (0x3ad4) — ROM table of 2-byte (X,Y) position templates used by loc_34b9 when MARIO_X bit7 is SET (right screen half); companion to 0x3ac4, same layout, entry ch… [code] */
+export const OBJ_POS_TABLE_MARIOX_SET = 0x3ad4;
+/** BOARD_LAYOUT_TABLE_25M (0x3ae4) — ROM board-1 (25m girders) data table, dual-consumed: setup25mGirderBoard passes it (regs.de) to loc_0cc6/drawBoardLayout as line-segments, and loadBoa… [code] */
+export const BOARD_LAYOUT_TABLE_25M = 0x3ae4;
+/** BOARD_LAYOUT_TABLE_50M (0x3b5d) — ROM board-2 (50m conveyors) layout/object-record data table; drawn via loc_0cc6 (setup50mConveyorBoard sets regs.de=0x3b5d inline) and read as object-… [code] */
+export const BOARD_LAYOUT_TABLE_50M = 0x3b5d;
+/** BOARD_LAYOUT_TABLE_75M (0x3be5) — ROM board-3 (75m elevators) layout/object-record data table; drawn via loc_0cc6 (setUp75mBoard sets regs.de=0x3be5 inline) and read as object-init rec… [code] */
+export const BOARD_LAYOUT_TABLE_75M = 0x3be5;
+/** BOARD_LAYOUT_TABLE_RIVET (0x3c8b) — ROM 100m-rivet layout table (board 4 and any BOARD past the first three / board 0); buildBoard's rivet arm hands it to loc_0cc6, and loadBoardObjectRe… [code] */
+export const BOARD_LAYOUT_TABLE_RIVET = 0x3c8b;
+/** HOW_HIGH_CLIMB_FIGURE_TABLE (0x3cf0) — ROM table of 4-byte climbing-figure sprite records (3 bytes read, 1 skipped) painted onto the 'HOW HIGH CAN YOU GET?' girder stack by buildHowHighScre… [code] */
+export const HOW_HIGH_CLIMB_FIGURE_TABLE = 0x3cf0;
+/** ANIM_TILE_FILL_TABLE (0x3d08) — ROM [count, dest_lo, dest_hi] VRAM tile-fill span table (zero-count terminated) walked by loc_07cb's timed-animation substate to fill tile 0xb0 across… [code] */
+export const ANIM_TILE_FILL_TABLE = 0x3d08;
+/** BOARD_OVERLAP_DISPATCH_TABLE (0x3e8d) — 6-entry inline jump table (base 0x3e8d, immediately after the loc_3e88 dispatch code) indexed by BOARD, vectoring to each board's object-overlap colli… [code] */
+export const BOARD_OVERLAP_DISPATCH_TABLE = 0x3e8d;
+/** BOARD_RECORD_CHECKSUM_ROM (0x3f0c) — ROM base of 6 program bytes summed mod 256 (seed 0x5e) by loadBoardObjectRecords; sum==0 vs nonzero selects the OBJ_PARAM_TABLE1 (second group) base p… [code] */
+export const BOARD_RECORD_CHECKSUM_ROM = 0x3f0c;
+/** BONUS_ITEM_POS_DIVIDER (0x6030) — [code] Frame divider between grid-position steps in runBonusItemValueDisplay: reloaded to 0x0a, decremented each frame a lateral input (P1_INPUT & 0x0… [code] */
+export const BONUS_ITEM_POS_DIVIDER = 0x6030;
+/** BONUS_ITEM_SPRITE_TOGGLE (0x6031) — [code] Two-state sprite-source toggle for the bonus-item animation: flipped 0<->1 each ANIM_TIMER expiry to select source = SLOT_PTR+3 (live slot spri… [code] */
+export const BONUS_ITEM_SPRITE_TOGGLE = 0x6031;
+/** BONUS_ITEM_ANIM_TIMER (0x6032) — [code] Bonus-item sprite-animation countdown in runBonusItemValueDisplay: armed 0x10, decremented per frame; on expiry it flips SPRITE_TOGGLE, re-rend… [code] */
+export const BONUS_ITEM_ANIM_TIMER = 0x6032;
+/** BONUS_ITEM_VALUE (0x6033) — [code] Decrementing point value shown by runBonusItemValueDisplay: initialised 0x1e, decremented one on each DISPLAY_TIMER expiry; at 0 the item is to… [code] */
+export const BONUS_ITEM_VALUE = 0x6033;
+/** BONUS_ITEM_DISPLAY_TIMER (0x6034) — [code] Display-rate countdown gating the value step in runBonusItemValueDisplay: armed 0x3e, decremented per frame; on 0 it reloads 0x3e and decrement… [code] */
+export const BONUS_ITEM_DISPLAY_TIMER = 0x6034;
+/** BONUS_ITEM_POS_INDEX (0x6035) — [code] Grid-position index (0..0x1d) of the bonus item in runBonusItemValueDisplay: stepped by held left/right input via POS_DIVIDER, fed to positionB… [code] */
+export const BONUS_ITEM_POS_INDEX = 0x6035;
+/** BONUS_ITEM_VIDEO_PTR (0x6036) — [code] 16-bit video-RAM write pointer for the bonus-item value column in runBonusItemValueDisplay: init VIDEO_BASE 0x75e8, walked +/-0x20 as the colum… [code] */
+export const BONUS_ITEM_VIDEO_PTR = 0x6036;
+/** BONUS_ITEM_SLOT_PTR (0x6038) — [code] 16-bit pointer to the current player's slot record found by the 0x22-stride scan (key = rotl8(ACTIVE_PLAYER_INDEX)+1) over PLAYER_SLOT_RECORDS … [code] */
+export const BONUS_ITEM_SLOT_PTR = 0x6038;
+/** BONUS_ITEM_SLOT_COL_PTR (0x603a) — [code] 16-bit destination pointer (SLOT_PTR-0x0d) in runBonusItemValueDisplay: on teardown the 0x0c-byte video value column (walked from VIDEO_BASE by… [code] */
+export const BONUS_ITEM_SLOT_COL_PTR = 0x603a;
+/** SND_TRIGGER_EFFECT (0x6085) — [code] Slot 5 of the 8-entry SND_TRIGGER latch array (base 0x6080, ls259.6h): the score-popup/item effect sound. stampScorePopupSprite stores 3 to ass… [code] */
+export const SND_TRIGGER_EFFECT = 0x6085;
+/** OPTION_TABLE_BASE (0x6100) — [code] Work-RAM base of the 0xaa-byte option/attract config table copied verbatim from ROM 0x3565 at power-on by decodeDipSwitches (ldir, spans 0x6100… [code] */
+export const OPTION_TABLE_BASE = 0x6100;
+/** SCORE_SORT_TABLE_KEY (0x61a5) — [code] Compare anchor (HL start) for loc_13ca's descending high-score bubble sort: the 3-byte little-endian score key of the record one 0x22-stride sl… [code] */
+export const SCORE_SORT_TABLE_KEY = 0x61a5;
+/** SCORE_SORT_DIGITS (0x61b1) — [code] Base of the 21-byte display field of loc_13ca's staging high-score record: 6 unpacked BCD digits (MS first) + 14 blank tiles (0x10) + a 0x3f te… [code] */
+export const SCORE_SORT_DIGITS = 0x61b1;
+/** SCORE_SORT_TAG (0x61c6) — [code] Player-tag byte of loc_13ca's staging record: the A-register tag stored here first (before the game-active guard); sits between the display dig… [code] */
+export const SCORE_SORT_TAG = 0x61c6;
+/** SCORE_SORT_STAGING_KEY (0x61c7) — [code] 3-byte packed-BCD score key of the NEW staging record in loc_13ca: ldir-copied from the live score pointer (HL), then used as the DE compare/sw… [code] */
+export const SCORE_SORT_STAGING_KEY = 0x61c7;
+/** MARIO_CLIMB_TOGGLE (0x6219) — [code] Mario climb-state byte in the climb region (adjacent to CLIMB_FLAG 0x621a, MARIO_CLIMB_LIMIT_A/B 0x621b/c): cleared to 0 by endClimbAtLadderLim… [code] */
+export const MARIO_CLIMB_TOGGLE = 0x6219;
+/** CLIMB_CENTERING_PHASE (0x6222) — [code] Shared two-phase ladder-centering toggle: advanceClimbStep XORs it 0<->1 each climb step to gate the centering arm vs the frame-select/limit ar… [code] */
+export const CLIMB_CENTERING_PHASE = 0x6222;
+/** FIXED_HAZARD_PRESCALER (0x62b8) — 4-frame prescaler of the fixed-hazard/fire machine (animateFixedHazardAndReleaseFire): decremented each qualifying pass, returns until underflow, then… [code] */
+export const FIXED_HAZARD_PRESCALER = 0x62b8;
+/** FIXED_HAZARD_ARM_COUNTER (0x62ba) — Bit1-arm down-counter of the fixed-hazard/fire machine (animateFixedHazardAndReleaseFire): decremented on the bit1-set arm; on underflow it resets PHA… [code] */
+export const FIXED_HAZARD_ARM_COUNTER = 0x62ba;
+/** BARREL_DIFFICULTY_LATCH (0x6348) — One-way barrel behavior/difficulty-mode latch (0=simple/default, nonzero=difficulty-graded). retireBarrelIntoOilDrum sets it to 1 one-way on the first… [code] */
+export const BARREL_DIFFICULTY_LATCH = 0x6348;
+/** PALETTE_ANIM_TIMER (0x638a) — Countdown timer of loc_07cb's timed palette-pattern animation sub-state, paired with 0x638b. 0 arms a fresh 0x60-frame run; otherwise ticks down; on r… [code] */
+export const PALETTE_ANIM_TIMER = 0x638a;
+/** PALETTE_ANIM_PATTERN (0x638b) — Rotating pattern byte paired with PALETTE_ANIM_TIMER (loc_07cb): each active frame its top two bits are streamed into the write-only palette latches 0… [code] */
+export const PALETTE_ANIM_PATTERN = 0x638b;
+/** BARREL_RELEASE_ARMED (0x6392) — 25m barrel-release 'a release is armed this pass' flag (bit0). armBarrelRelease raises it to 1 on entry; driveBarrelRelease reads bit0 to decide wheth… [code] */
+export const BARREL_RELEASE_ARMED = 0x6392;
+/** FIRE_SWEEP_INDEX (0x63a2) — Loop-counter cell for advanceLiveFires' per-frame fire-array sweep: zeroed at sweep start, re-read from memory and incremented once per iteration (OBJ… [code] */
+export const FIRE_SWEEP_INDEX = 0x63a2;
+/** CLIMB_FIGURE_INDEX (0x63a7) — Index into the ROM climb-figure record table (0x3cf0, 4-byte records, <<2) for the 'HOW HIGH' screen (buildHowHighScreen): reset to 0, incremented onc… [code] */
+export const CLIMB_FIGURE_INDEX = 0x63a7;
+/** CLIMB_FIGURE_WALK_PTR (0x63a8) — 16-bit VRAM write pointer (word cell 0x63a8/0x63a9) for the climbing figures on the 'HOW HIGH' screen (buildHowHighScreen): seeded to 0x76dc, each row… [code] */
+export const CLIMB_FIGURE_WALK_PTR = 0x63a8;
+/** SPRITE_OBJ_REC4_CODE (0x6919) — Byte at SPRITE_OBJ_BLOCK(0x6908)+0x11 = sprite-object block record 4's code byte (test equivalence-1880 pins REC4_CODE=SPRITE_OBJ_BLOCK+0x11==0x6919).… [code] */
+export const SPRITE_OBJ_REC4_CODE = 0x6919;
+/** MARIO_SPRITE_Y (0x694f) — Y byte of Mario's sprite record = MARIO_SPRITE_RECORD(0x694c) + SPRITE_Y(0x03) (already an export at 0x694c; test equivalence-2259 treats 0x694f as MA… [code] */
+export const MARIO_SPRITE_Y = 0x694f;
+/** BONUS_COUNTDOWN_SPRITES (0x69a8) — Base of the 25m bonus-countdown sprite group: four 4-byte sprite records (0x10 bytes), block-copied from ROM 0x3ddc at board build (seed25mBoardObject… [code] */
+export const BONUS_COUNTDOWN_SPRITES = 0x69a8;
+/** M50_OBJ2_SPRITE_PAIR (0x69ec) — Base of 50m object-2's mirrored sprite-code record (loc_264c): HL=this base is passed to loc_26a6 every 32nd frame to advance the pair; low cell base+… [code] */
+export const M50_OBJ2_SPRITE_PAIR = 0x69ec;
+/** M50_OBJ2_SPRITE_PAIR_LOW (0x69ed) — Low cell of 50m object-2's mirrored sprite-code pair (M50_OBJ2_SPRITE_PAIR base+1): on the 32nd-frame arm loc_264c re-stamps it from the high cell wit… [code] */
+export const M50_OBJ2_SPRITE_PAIR_LOW = 0x69ed;
+/** M50_OBJ3_SPRITE_PAIR_BASE (0x69f4) — [code] 50m board: base/anchor for object-3's mirrored sprite tile-code counter PAIR inside SPRITE_BUFFER. loc_268d loads HL=0x69f4 and calls loc_26a6,… [code] */
+export const M50_OBJ3_SPRITE_PAIR_BASE = 0x69f4;
+/** HAMMER_OBJ2_SPRITE_RECORD (0x6a1c) — [code] 4-byte sprite-shadow record (X,code,attr,Y) in SPRITE_BUFFER for the SECOND hammer object (OBJ_PAIR_6680's second record, base 0x6690). driveHa… [code] */
+export const HAMMER_OBJ2_SPRITE_RECORD = 0x6a1c;
+/** CUTSCENE_SPRITE_RECORD (0x6a20) — [code] 4-byte sprite-shadow record (X,code,attr,Y) in SPRITE_BUFFER reused by between-board cutscene tableaus. spawnInterludeHeart seeds it 80/76/09/2… [code] */
+export const CUTSCENE_SPRITE_RECORD = 0x6a20;
+/** CUTSCENE_SPRITE_RECORD_2 (0x6a24) — [code] Second 4-byte cutscene sprite-shadow record in SPRITE_BUFFER (adjacent to CUTSCENE_SPRITE_RECORD 0x6a20). loc_1880 (the 'how high' board-advanc… [code] */
+export const CUTSCENE_SPRITE_RECORD_2 = 0x6a24;
+/** CUTSCENE_SPRITE_2_CODE (0x6a25) — [code] The +1 (sprite-code) field of CUTSCENE_SPRITE_RECORD_2 (0x6a24). loc_1880 writes it (=0x39) when staging the 7F/39/01/D8 record; runRivetBoardF… [code] */
+export const CUTSCENE_SPRITE_2_CODE = 0x6a25;
+/** OBJ_66A0_SPRITE_RECORD (0x6a28) — [code] 4-byte sprite-shadow record in SPRITE_BUFFER mirroring OBJ_RECORD_66A0's first 4 bytes (X/code/attr/Y). loc_11fa scatters a 6-byte source into … [code] */
+export const OBJ_66A0_SPRITE_RECORD = 0x6a28;
+/** OBJ_66A0_SPRITE_CODE (0x6a29) — [code] The +1 (sprite-code) field of OBJ_66A0_SPRITE_RECORD (0x6a28). animateFixedHazardAndReleaseFire stamps the fixed-hazard sprite byte here (0x40 … [code] */
+export const OBJ_66A0_SPRITE_CODE = 0x6a29;
+/** TILEMAP_BASE (0x7400) — [code] Base of the 32x32 tilemap video RAM (0x7400-0x77FF; 0x400 cells, row stride 0x20). tileAddrForPixel computes 0x7400 + row*32 + col; clearTilema… [code] */
+export const TILEMAP_BASE = 0x7400;
+/** PLAYFIELD_TOP (0x7404) — [code] Top-left cell of the central 28-column tilemap playfield interior (TILEMAP_BASE + 4). clearPlayfieldAndSprites blanks 32 rows x 28 cols startin… [code] */
+export const PLAYFIELD_TOP = 0x7404;
+/** BONUS_READOUT_TILE_BASE (0x7465) — [code] First video-RAM cell of the on-screen bonus readout's tile frame. loc_062a stamps 18 bytes from ROM table 0x384a here (6 columns x 3 cells, str… [code] */
+export const BONUS_READOUT_TILE_BASE = 0x7465;
+/** LEVEL_UNITS_CELL (0x74a3) — [code] Tilemap cell holding the units digit of the on-screen level number. drawLivesAndLevel decimal-splits LEVEL and writes the units tile here (tens… [code] */
+export const LEVEL_UNITS_CELL = 0x74a3;
+/** CREDIT_DIGITS_CELL (0x74bf) — [code] Tilemap cursor for the 'CREDIT nn' count: high digit lands here, low digit one tilemap row UP (0x74bf-0x20, DE step 0xffe0). drawCreditDisplay … [code] */
+export const CREDIT_DIGITS_CELL = 0x74bf;
+/** LEVEL_TENS_CELL (0x74c3) — [code] Tilemap cell holding the tens digit of the on-screen level number (paired with LEVEL_UNITS_CELL 0x74a3). drawLivesAndLevel writes the tens tile… [code] */
+export const LEVEL_TENS_CELL = 0x74c3;
+/** BONUS_READOUT_LOW_DIGIT_CELL (0x74c6) — [code] Low (units) digit cell of the two-digit bonus readout field (inside the BONUS_READOUT_TILE_BASE frame; high digit one screen column later at 0x… [code] */
+export const BONUS_READOUT_LOW_DIGIT_CELL = 0x74c6;
+/** P2_INDICATOR_COLUMN_BASE (0x74e0) — [code] Video-RAM column base of player 2's on-screen '2UP' indicator column. draw2UpLabel stamps '2'/'U'/'P' at 0x74e0, -0x20, -0x40 (ascending); sele… [code] */
+export const P2_INDICATOR_COLUMN_BASE = 0x74e0;
+/** TWO_DIGIT_FIELD_HIGH_CELL (0x74e6) — VRAM tilemap cell that stampTwoDigitField writes with the HIGH (tens) digit tile of its two-digit on-screen field; the low-digit partner is one screen… [code] */
+export const TWO_DIGIT_FIELD_HIGH_CELL = 0x74e6;
+/** SCORE_VRAM_COLUMN_P2 (0x7521) — Destination VRAM column loc_056b selects (via IX) when its zero/nonzero selector is nonzero — player 2's score/counter column; the zero selector picks… [code] */
+export const SCORE_VRAM_COLUMN_P2 = 0x7521;
+/** BONUS_ITEM_VALUE_ONES_CELL (0x7552) — VRAM tilemap cell holding the ones digit of the decrementing bonus-item point value in runBonusItemValueDisplay (VALUE counts down from 0x1E; split in… [code] */
+export const BONUS_ITEM_VALUE_ONES_CELL = 0x7552;
+/** BONUS_ITEM_VALUE_TENS_CELL (0x7572) — VRAM tilemap cell holding the tens digit of the decrementing bonus-item point value in runBonusItemValueDisplay. [code] */
+export const BONUS_ITEM_VALUE_TENS_CELL = 0x7572;
+/** BONUS_ITEM_VALUE_COL_FLOOR_SENTINEL (0x7588) — Floor sentinel of the bonus-item value's descending video-column walk (0x60 below the column top 0x75e8): when VIDEO_PTR already equals this address t… [code] */
+export const BONUS_ITEM_VALUE_COL_FLOOR_SENTINEL = 0x7588;
+/** INTRO_CUTSCENE_TILE_C (0x75aa) — Third of three fixed VRAM tiles stamped by setupIntroCutsceneStep in the opening Kong-climb intro cutscene setup; stamped with tile 0xD4 (A and B get … [code] */
+export const INTRO_CUTSCENE_TILE_C = 0x75aa;
+/** HOW_HIGH_GIRDER_VRAM_BASE (0x75bc) — Base VRAM cell where buildHowHighScreen begins the descending girder-stack tile fill for the 'HOW HIGH CAN YOU GET?' screen. [code] */
+export const HOW_HIGH_GIRDER_VRAM_BASE = 0x75bc;
+/** BLINK_COLOR_COLUMN_TOP (0x75c4) — Top cell of the shared 3-cell descending colour-cycle VRAM column (stride 0x20 -> 0x75c4/0x75e4/0x7604): paintColorColumnAndHoldBlink (the blink drive… [code] */
+export const BLINK_COLOR_COLUMN_TOP = 0x75c4;
+/** BONUS_ITEM_VALUE_COLUMN_TOP (0x75e8) — Top of the bonus-item value's descending video column in runBonusItemValueDisplay; VIDEO_PTR is seeded here on init and on wrap, and the exit copy rea… [code] */
+export const BONUS_ITEM_VALUE_COLUMN_TOP = 0x75e8;
+/** BONUS_ITEM_VALUE_COL_CEILING_SENTINEL (0x7608) — Ceiling sentinel of the bonus-item value's video-column walk (column top 0x75e8 + 0x20): when the upward advance (cur+0x20) reaches this address the p… [code] */
+export const BONUS_ITEM_VALUE_COL_CEILING_SENTINEL = 0x7608;
+/** COLOR_COLUMN_A_TOP (0x7623) — Top cell of decorative colour column A (paired with column B at 0x7583) in the descending colour-cycle fill; painted by runRivetColorCycleBlink (base … [code] */
+export const COLOR_COLUMN_A_TOP = 0x7623;
+/** INTRO_CUTSCENE_TILE_B (0x7663) — Second of three fixed VRAM tiles stamped by setupIntroCutsceneStep (value 0x10) in the intro cutscene setup. [code] */
+export const INTRO_CUTSCENE_TILE_B = 0x7663;
+/** INTRO_CUTSCENE_TILE_A (0x76a3) — First of three fixed VRAM tiles stamped by setupIntroCutsceneStep (value 0x10) in the intro cutscene setup. [code] */
+export const INTRO_CUTSCENE_TILE_A = 0x76a3;
+/** INTERLUDE_TILE_BLOCK_TOPLEFT (0x76c6) — Top-left VRAM start cell of the 70-tile (5x14) descending tile fill loc_1880 hands to loc_1826 when building the next between-boards interlude arrival… [code] */
+export const INTERLUDE_TILE_BLOCK_TOPLEFT = 0x76c6;
+/** GAMEOVER_BANNER_TOPLEFT_2P (0x76d3) — Top-left VRAM cell of the game-over banner 5x14 tile block at its one-column-left (2-player) position: used directly by loc_1344 (the this-player/othe… [code] */
+export const GAMEOVER_BANNER_TOPLEFT_2P = 0x76d3;
+/** GAMEOVER_BANNER_TOPLEFT_1P (0x76d4) — Top-left VRAM cell of the game-over banner 5x14 tile block at its default 1-player position; losePlayer1Life fills 70 tiles from here (shifting one co… [code] */
+export const GAMEOVER_BANNER_TOPLEFT_1P = 0x76d4;
+/** HOW_HIGH_CLIMB_FIGURE_VRAM_START (0x76dc) — Initial VRAM walk-pointer value seeded into CLIMB_FIGURE_WALK_PTR (0x63a8) for the small climbing figure drawn on each girder of the 'HOW HIGH' screen… [code] */
+export const HOW_HIGH_CLIMB_FIGURE_VRAM_START = 0x76dc;
+/** P1_INDICATOR_COLUMN_BASE (0x7740) — Video-RAM tilemap (0x7400-0x77ff) column-base cell of player-1's top-of-screen indicator/score column. selectPlayerIndicatorColumnBase returns it for … [code] */
+export const P1_INDICATOR_COLUMN_BASE = 0x7740;
+/** P1_SCORE_COLUMN_BASE (0x7781) — Video-RAM tilemap column base for player-1's packed-BCD counter/score render, chosen by loc_056b when the selector is zero (nonzero/P2 twin 0x7521). D… [code] */
+export const P1_SCORE_COLUMN_BASE = 0x7781;
+/** RESERVE_LIVES_MARKER_BASE (0x7783) — Bottom video-RAM tilemap cell of the reserve-lives marker column. drawLivesAndLevel blanks six slots upward from here (TILE_BLANK 0x10) then stamps on… [code] */
+export const RESERVE_LIVES_MARKER_BASE = 0x7783;
+/** DMA_CH0_ADDR (0x7800) — i8257 DMA channel-0 memory-address register (board output, not work RAM); channel 0 = sprite-shadow-buffer source. Written twice (lo then hi) per the … [code] */
+export const DMA_CH0_ADDR = 0x7800;
+/** DMA_CH0_COUNT (0x7801) — i8257 DMA channel-0 terminal-count register (board output); written lo-then-hi. Paired with the channel-0 address for the sprite-buffer source. [code] */
+export const DMA_CH0_COUNT = 0x7801;
+/** DMA_CH1_ADDR (0x7802) — i8257 DMA channel-1 memory-address register (board output); channel 1 = sprite-RAM destination. Written lo-then-hi. [code] */
+export const DMA_CH1_ADDR = 0x7802;
+/** DMA_CH1_COUNT (0x7803) — i8257 DMA channel-1 terminal-count register (board output); written lo-then-hi. Paired with the channel-1 address for the sprite-RAM destination. [code] */
+export const DMA_CH1_COUNT = 0x7803;
+/** DMA_MODE (0x7808) — i8257 mode-set register (board output); written first in the 9-byte setup block (DMA_PROGRAM_PORTS), which also resets the controller's address byte f… [code] */
+export const DMA_MODE = 0x7808;
+/** IN1_PORT (0x7c80) — Hardware input port IN1 (read): player-2 joystick/button port, read only in cocktail mode when ACTIVE_PLAYER_INDEX is nonzero. Sibling of IN0=0x7c00 (… [code] */
+export const IN1_PORT = 0x7c80;
+/** NMI_ENABLE (0x7d84) — LS259 interrupt/NMI-enable latch (board output): written 0 to acknowledge the vblank NMI (serviceVblankNmi), written 1 to re-arm at the frame tail (pe… [code] */
+export const NMI_ENABLE = 0x7d84;
+/** DMA_DRQ (0x7d85) — i8257 DRQ request latch (board output): pulsed 0->1->0 in blitSpritesViaDma; the rising edge synchronously blits the 385-byte sprite shadow buffer to … [code] */
+export const DMA_DRQ = 0x7d85;
+/** PALETTE_BANK_BIT0 (0x7d86) — LS259 palette/gfx-bank output latch, low bit (bit 0) of the 2-bit palette-bank select (write-only, unreadable). Cleared to 0 at power-on. Widely refer… [code] */
+export const PALETTE_BANK_BIT0 = 0x7d86;
+/** PALETTE_BANK_BIT1 (0x7d87) — LS259 palette/gfx-bank output latch, high bit (bit 1) of the 2-bit palette-bank select (write-only, unreadable). Cleared to 0 at power-on. loc_07cb st… [code] */
+export const PALETTE_BANK_BIT1 = 0x7d87;
+/** VRAM_ROW_STEP_UP (0xffe0) — Not an address: the signed 16-bit displacement -0x20 (-32) added to a video-RAM/tilemap pointer to step back one 32-column row, i.e. draw a column upw… [code] */
+export const VRAM_ROW_STEP_UP = 0xffe0;
+
 export const ROUTINES = {
   0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "seen" },

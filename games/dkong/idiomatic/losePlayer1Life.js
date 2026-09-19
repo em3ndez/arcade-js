@@ -15,13 +15,14 @@ import { loc_13ca } from "./loc_13ca.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { loc_1826 } from "../translated/loc_1826.js";
 import {
-  PLAY_INTRO,
+  GAMEOVER_BANNER_TOPLEFT_1P,
+  GAME_SUBSTATE,
   LIVES,
   P1_CONTEXT,
-  TWO_PLAYER_GAME,
   P1_SCORE,
-  GAME_SUBSTATE,
+  PLAY_INTRO,
   SUBSTATE_TIMER,
+  TWO_PLAYER_GAME,
 } from "./names.js";
 
 const CONTEXT_BYTES = 8; // the live player-context block, saved off starting at the life count
@@ -33,7 +34,6 @@ const GAMEOVER_SUBSTATE = 0x10; // no lives left -> the game-over display sequen
 const GAMEOVER_WAIT = 0xc0; //     the hold (~192 frames) before that sequence runs
 
 const SCORE_FORMAT_P1 = 0x01; //   selects player 1's slot for the score format/rank step
-const BANNER_VRAM_TOP = 0x76d4; // where the game-over banner starts on screen
 
 export function losePlayer1Life(m) {
   const { regs, mem8 } = m;
@@ -60,10 +60,10 @@ export function losePlayer1Life(m) {
   loc_13ca(m, SCORE_FORMAT_P1, P1_SCORE);
 
   // In a 2-player game the banner starts one column left, with an extra render task ahead of it.
-  let bannerTop = BANNER_VRAM_TOP;
+  let bannerTop = GAMEOVER_BANNER_TOPLEFT_1P;
   if (mem8[TWO_PLAYER_GAME] !== 0) {
     enqueueTask(m, 0x03, 0x02);
-    bannerTop = (BANNER_VRAM_TOP - 1) & 0xffff;
+    bannerTop = (GAMEOVER_BANNER_TOPLEFT_1P - 1) & 0xffff;
   }
   regs.hl = bannerTop;
   loc_1826(m); // fills 70 tiles from there

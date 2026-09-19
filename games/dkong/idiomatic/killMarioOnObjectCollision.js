@@ -8,11 +8,14 @@
  * LIVE-OUT: memory-only — MARIO_ACTIVE.
  */
 
-import { MARIO_ACTIVE, MARIO_Y } from "./names.js";
+import {
+  MARIO_ACTIVE,
+  MARIO_HITBOX,
+  MARIO_Y,
+} from "./names.js";
 import { dispatchBoardCollision } from "./dispatchBoardCollision.js";
 
 // Packed hitbox: high byte = 4 (half-width), low byte = 7 (half-height). Not an address.
-const MARIO_HITBOX = 0x0407;
 
 export function killMarioOnObjectCollision(m) {
   const { regs, mem8 } = m;

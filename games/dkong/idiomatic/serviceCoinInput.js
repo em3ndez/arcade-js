@@ -9,12 +9,13 @@
 import { silenceSound } from "./silenceSound.js";
 import { enqueueTask } from "./enqueueTask.js";
 import {
-  COIN_EDGE,
   COINS_PARTIAL,
+  COIN_EDGE,
   CREDITS,
-  GAME_STATE,
+  CREDIT_DISPLAY_TASK,
   DIP_COINS_PER_CREDIT,
   DIP_CREDITS_PER_COIN,
+  GAME_STATE,
   SND_TRIGGER,
 } from "./names.js";
 
@@ -24,7 +25,6 @@ const GAME_RUNNING = 0x03;
 const COIN_CHIME = SND_TRIGGER + 3;
 const SND_ASSERT_FRAMES = 0x03; // a trigger value = frames to assert
 const CREDIT_CAP = 0x90;
-const CREDIT_TASK = 0x0400;
 
 /** 8-bit BCD addition (Z80 DAA in its addition form). Score-critical path. */
 function bcdAdd(a, b) {
@@ -68,6 +68,6 @@ export function serviceCoinInput(m) {
 
   mem8[CREDITS] = bcdAdd(credits, mem8[DIP_CREDITS_PER_COIN]);
 
-  regs.de = CREDIT_TASK;
+  regs.de = CREDIT_DISPLAY_TASK;
   enqueueTask(m);
 }

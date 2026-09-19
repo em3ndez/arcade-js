@@ -11,9 +11,15 @@
  */
 
 import { loc_3445 } from "./loc_3445.js";
-import { OBJ_X, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI, MARIO_X } from "./names.js";
+import {
+  MARIO_X,
+  OBJ_STATE,
+  OBJ_WALK_PTR_HI,
+  OBJ_WALK_PTR_LO,
+  OBJ_X,
+  WALK_PATH_TABLE_3478,
+} from "./names.js";
 
-const PATH_TABLE = 0x3aac;
 
 const DIRECTION_BIT = 0x80; // bit 7 of the context byte (MARIO_X) selects the walk direction
 
@@ -31,7 +37,7 @@ export function loc_3478(m, ix = m.regs.ix) {
   let ptr = mem8[field(OBJ_WALK_PTR_LO)] | (mem8[field(OBJ_WALK_PTR_HI)] << 8);
 
   if (ptr === 0) {
-    ptr = PATH_TABLE;
+    ptr = WALK_PATH_TABLE_3478;
     if ((mem8[MARIO_X] & DIRECTION_BIT) === 0) {
       mem8[field(OBJ_STATE)] = DIR_BACKWARD;
       mem8[field(OBJ_X)] = BACKWARD_SEED;

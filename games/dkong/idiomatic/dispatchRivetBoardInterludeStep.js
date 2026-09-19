@@ -7,9 +7,11 @@
  */
 
 import { loc_00ca } from "../translated/loc_00ca.js";
-import { BOARD_ADVANCE_STEP } from "./names.js";
+import {
+  BOARD_ADVANCE_STEP,
+  RIVET_INTERLUDE_STEP_TABLE,
+} from "./names.js";
 
-const STEP_TABLE = 0x1648;
 const DISPATCH_TABLE_1648 = "0x1648 (0x6388 sequence)";
 
 export function dispatchRivetBoardInterludeStep(m) {
@@ -18,7 +20,7 @@ export function dispatchRivetBoardInterludeStep(m) {
   const step = mem8[BOARD_ADVANCE_STEP];
 
   // Doubling into the table offset is an 8-bit result: base + (2*step & 0xff), not base + 2*step.
-  const entry = (STEP_TABLE + ((step * 2) & 0xff)) & 0xffff;
+  const entry = (RIVET_INTERLUDE_STEP_TABLE + ((step * 2) & 0xff)) & 0xffff;
   const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_1648);

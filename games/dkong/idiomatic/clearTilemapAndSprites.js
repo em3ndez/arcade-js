@@ -6,9 +6,11 @@
  * LIVE-OUT: memory-only — the tilemap and sprite-buffer bytes.
  */
 
-import { SPRITE_BUFFER } from "./names.js";
+import {
+  SPRITE_BUFFER,
+  TILEMAP_BASE,
+} from "./names.js";
 
-const TILEMAP_BASE = 0x7400;
 const TILEMAP_BYTES = 0x400; // 1024 = every cell of the 32x32 tilemap
 const BLANK_TILE = 0x10;
 

@@ -9,13 +9,15 @@
  *
  * LIVE-OUT: memory (the glyph and digit cells), plus whatever registers the expander leaves.
  */
-import { CREDITS } from "./names.js";
+import {
+  CREDITS,
+  CREDIT_DIGITS_CELL,
+  VRAM_ROW_STEP_UP,
+} from "./names.js";
 import { drawStringVertical } from "./drawStringVertical.js";
 import { expandBcdDigits } from "./expandBcdDigits.js";
 
 const CREDIT_STRING_INDEX = 0x05;
-const CREDIT_DIGITS_VRAM = 0x74bf; // high digit here, low digit one row up
-const DIGIT_ROW_STEP = 0xffe0; // step one tilemap row up between the two digits
 
 export function drawCreditDisplay(m) {
   const { regs } = m;
@@ -24,8 +26,8 @@ export function drawCreditDisplay(m) {
 
   // The expander takes source pointer, destination cursor, per-digit stride, source-byte count.
   regs.hl = CREDITS;
-  regs.de = DIGIT_ROW_STEP;
-  regs.ix = CREDIT_DIGITS_VRAM;
+  regs.de = VRAM_ROW_STEP_UP;
+  regs.ix = CREDIT_DIGITS_CELL;
   regs.b = 0x01;
   expandBcdDigits(m);
 }

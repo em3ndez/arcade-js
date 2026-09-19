@@ -5,17 +5,19 @@
  *
  * LIVE-OUT: memory-only — the three colour cells at the DE stride, and sprite record #1's code byte.
  */
-import { SPRITE_BUFFER } from "./names.js";
+import {
+  BLINK_COLOR_COLUMN_TOP,
+  SPRITE_BUFFER,
+} from "./names.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
 import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js";
 
-const COLOR_COLUMN_TOP = 0x75c4;
 const SPRITE1_CODE = SPRITE_BUFFER + 5;
 
 export function paintColorColumnAndHoldBlink(m) {
   const { mem8 } = m;
 
-  fillDescendingColumn(m, COLOR_COLUMN_TOP);
+  fillDescendingColumn(m, BLINK_COLOR_COLUMN_TOP);
 
   storeBlinkSpriteCode(m, mem8[SPRITE1_CODE]);
 }

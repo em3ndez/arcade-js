@@ -7,15 +7,17 @@
  */
 
 import { copyByteDisplaced } from "./copyByteDisplaced.js";
-import { INTRO_SCROLL_INDEX } from "./names.js";
+import {
+  INTRO_SCROLL_INDEX,
+  VRAM_ROW_STEP_UP,
+} from "./names.js";
 
-const ROW = 0xffe0; // one 32-column tilemap row, upward
 
 export function scrollClimbGraphicStep(m) {
   const { regs, mem8 } = m;
 
   regs.bc = mem8[INTRO_SCROLL_INDEX];
-  regs.de = ROW; // set once, reused by both copies
+  regs.de = VRAM_ROW_STEP_UP; // set once, reused by both copies
 
   copyByteDisplaced(m, 0x7600);
   copyByteDisplaced(m, 0x75c0);

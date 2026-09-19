@@ -9,14 +9,16 @@
  * render tails write.
  */
 
-import { BARREL_CLAIM_MODE } from "./names.js";
+import {
+  BARREL_CLAIM_MODE,
+  SPRITE_OBJ_ANIM_FRAME_TABLE,
+} from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { loc_2d51 } from "./loc_2d51.js";
 import { loc_2d83 } from "./loc_2d83.js";
 
 const FRAME_GATE = 0x62af;
 const ANIM_COUNTER = 0x638f;
-const ANIM_TABLE = 0x3932;
 const RECORD_STRIDE = 40;      // bytes per table record (ten sprite records of four bytes)
 
 export function advanceBarrelRelease(m) {
@@ -36,7 +38,7 @@ export function advanceBarrelRelease(m) {
   if ((mem8[BARREL_CLAIM_MODE] & 0x01) === 0) {
     index = (index - 1) & 0xff;
   }
-  const source = (ANIM_TABLE + ((index * RECORD_STRIDE) & 0xff)) & 0xffff;
+  const source = (SPRITE_OBJ_ANIM_FRAME_TABLE + ((index * RECORD_STRIDE) & 0xff)) & 0xffff;
 
   loadSpriteObjectBlock(m, source);
 

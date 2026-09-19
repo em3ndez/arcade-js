@@ -8,38 +8,40 @@
  */
 
 import { gameActiveGuard } from "./gameActiveGuard.js";
+import {
+  SCORE_SORT_DIGITS,
+  SCORE_SORT_STAGING_KEY,
+  SCORE_SORT_TABLE_KEY,
+  SCORE_SORT_TAG,
+} from "./names.js";
 
 // Score-format / sort staging area (file-local; none of these cells carries a shared name).
-const PARAM_SLOT = 0x61c6;
-const RAW_SCORE = 0x61c7;
-const DIGITS = 0x61b1;
-const TABLE_KEY = 0x61a5;
 
 export function loc_13ca(m, a = m.regs.a, scorePtr = m.regs.hl) {
   const { mem8 } = m;
 
-  mem8[PARAM_SLOT] = a;
+  mem8[SCORE_SORT_TAG] = a;
 
   if (!gameActiveGuard(m)) return;
 
   const src = scorePtr;
-  for (let i = 0; i < 3; i++) mem8[RAW_SCORE + i] = mem8[(src + i) & 0xffff];
+  for (let i = 0; i < 3; i++) mem8[SCORE_SORT_STAGING_KEY + i] = mem8[(src + i) & 0xffff];
 
   // Unpack the 3 BCD bytes read back-to-front into 6 nibbles (high then low), MS digit first.
   for (let i = 0; i < 3; i++) {
-    const byte = mem8[RAW_SCORE + 2 - i];
-    mem8[DIGITS + 2 * i] = (byte >> 4) & 0x0f;
-    mem8[DIGITS + 2 * i + 1] = byte & 0x0f;
+    const byte = mem8[SCORE_SORT_STAGING_KEY + 2 - i];
+    mem8[SCORE_SORT_DIGITS + 2 * i] = (byte >> 4) & 0x0f;
+    mem8[SCORE_SORT_DIGITS + 2 * i + 1] = byte & 0x0f;
   }
 
   // Pad 14 blank tiles (0x10) then a terminator (0x3f): a fixed 21-byte display field.
-  for (let i = 0; i < 14; i++) mem8[DIGITS + 6 + i] = 0x10;
-  mem8[DIGITS + 6 + 14] = 0x3f;
+  for (let i = 0; i < 14; i++) mem8[SCORE_SORT_DIGITS + 6 + i] = 0x10;
+  mem8[SCORE_SORT_DIGITS + 6 + 14] = 0x3f;
 
   // Bubble the new record up a DESCENDING table (up to 5 passes): stop once the new 3-byte
   // little-endian key is smaller than the one above, else swap the two 25-byte records.
-  let hl = TABLE_KEY;
-  let de = RAW_SCORE;
+  let hl = SCORE_SORT_TABLE_KEY;
+  let de = SCORE_SORT_STAGING_KEY;
   for (let pass = 0; pass < 5; pass++) {
     const keyDe =
       mem8[de] | (mem8[(de + 1) & 0xffff] << 8) | (mem8[(de + 2) & 0xffff] << 16);

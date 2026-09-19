@@ -8,11 +8,13 @@
  */
 
 import { loc_0cc6 } from "./loc_0cc6.js";
-import { SND_BGM } from "./names.js";
+import {
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
+  SND_BGM,
+} from "./names.js";
 
 // Hardware palette-bank output latches (NOT work RAM).
-const PALETTE_BANK_BIT0 = 0x7d86;
-const PALETTE_BANK_BIT1 = 0x7d87;
 
 export function setup50mConveyorBoard(m) {
   const { regs, mem, mem8 } = m;

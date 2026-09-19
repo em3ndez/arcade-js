@@ -7,14 +7,16 @@
  */
 
 import { loc_0cc6 } from "./loc_0cc6.js";
-import { SND_BGM } from "./names.js";
+import {
+  BOARD_LAYOUT_TABLE_25M,
+  SND_BGM,
+} from "./names.js";
 
-const LAYOUT_TABLE_25M = 0x3ae4;
 
 export function setup25mGirderBoard(m) {
   const { regs, mem8 } = m;
 
-  regs.de = LAYOUT_TABLE_25M;
+  regs.de = BOARD_LAYOUT_TABLE_25M;
   mem8[SND_BGM] = 8;
   loc_0cc6(m);
 }

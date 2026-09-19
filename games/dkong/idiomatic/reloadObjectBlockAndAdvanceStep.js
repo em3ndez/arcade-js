@@ -7,15 +7,18 @@
  */
 
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
-import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
+import {
+  BOARD_ADVANCE_STEP,
+  SPRITE_OBJECT_BLOCK_TEMPLATE,
+  SPRITE_OBJ_BLOCK,
+} from "./names.js";
 
-const OBJECT_RECORDS_SRC = 0x388c;
 const BOARD_OBJECT_SCRATCH = 0x62af;
 
 export function reloadObjectBlockAndAdvanceStep(m) {
   const { regs, mem8 } = m;
 
-  loadSpriteObjectBlock(m, OBJECT_RECORDS_SRC);
+  loadSpriteObjectBlock(m, SPRITE_OBJECT_BLOCK_TEMPLATE);
 
   // Patch three record field-0 bytes AFTER the copy (write order is load-bearing).
   mem8[SPRITE_OBJ_BLOCK + 0x04] = 0x66;

@@ -8,10 +8,14 @@
  * LIVE-OUT: memory-only.
  */
 
-import { OBJ_X, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./names.js";
+import {
+  OBJ_WALK_PTR_HI,
+  OBJ_WALK_PTR_LO,
+  OBJ_X,
+  WALK_PATH_TABLE_342C,
+} from "./names.js";
 import { loc_3445 } from "./loc_3445.js";
 
-const TABLE_START = 0x3a8c;
 const X_SEED = 38;
 
 export function loc_342c(m, ix = m.regs.ix) {
@@ -26,7 +30,7 @@ export function loc_342c(m, ix = m.regs.ix) {
   if (saved !== 0) {
     ptr = saved;
   } else {
-    ptr = TABLE_START;
+    ptr = WALK_PATH_TABLE_342C;
     mem8[field(OBJ_X)] = X_SEED;
   }
 

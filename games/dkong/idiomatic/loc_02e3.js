@@ -16,7 +16,11 @@
 
 import { u8 } from "../../../core/int.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { TASK_HEAD, TASK_RING } from "./names.js";
+import {
+  TASK_HANDLER_TABLE,
+  TASK_HEAD,
+  TASK_RING,
+} from "./names.js";
 import { addToScoreTask } from "./addToScoreTask.js";
 import { resetScoreCounter } from "./resetScoreCounter.js";
 import { drawScoreTask } from "./drawScoreTask.js";
@@ -24,7 +28,6 @@ import { drawStringVertical } from "./drawStringVertical.js";
 import { drawCreditLineInAttract } from "./drawCreditLineInAttract.js";
 import { drawLivesAndLevel } from "./drawLivesAndLevel.js";
 
-const HANDLER_TABLE = 0x0307; // seven 16-bit handler addresses, one per task opcode
 const OFFSET_MASK = 0x1f; // the doubled opcode is masked to five bits before indexing
 const SLOT_FREE = 0xff;
 const RING_BASE = u8(TASK_RING); // the dequeue pointer is a low byte within its page
@@ -59,7 +62,7 @@ export function loc_02e3(
   const next = u8(payloadCell + 1);
   mem8[TASK_HEAD] = next < RING_BASE ? RING_BASE : next;
 
-  const target = mem16[HANDLER_TABLE + (doubledOpcode & OFFSET_MASK)];
+  const target = mem16[TASK_HANDLER_TABLE + (doubledOpcode & OFFSET_MASK)];
   regs.a = payload; // the handler's argument
 
   const handler = HANDLERS.get(target);

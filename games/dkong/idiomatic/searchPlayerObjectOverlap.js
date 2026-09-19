@@ -8,12 +8,16 @@
  * LIVE-OUT: memory, plus the severity code the caller consumes after the dispatch.
  */
 
-import { MARIO_ACTIVE, MARIO_Y, P1_INPUT } from "./names.js";
+import {
+  MARIO_ACTIVE,
+  MARIO_Y,
+  OVERLAP_THRESHOLDS_DIRECTED,
+  OVERLAP_THRESHOLDS_NEUTRAL,
+  P1_INPUT,
+} from "./names.js";
 import { dispatchBoardOverlapSearch } from "./dispatchBoardOverlapSearch.js";
 
 // Each byte is one per-axis overlap threshold; the word is selected by whether a direction is held.
-const OVERLAP_THRESHOLDS_NEUTRAL = 0x0508;
-const OVERLAP_THRESHOLDS_DIRECTED = 0x1308;
 
 export function searchPlayerObjectOverlap(m) {
   const { regs, mem8 } = m;

@@ -11,15 +11,16 @@
 
 import { u8 } from "../../../core/int.js";
 import {
+  HAMMER_IN_PLAY,
+  HAMMER_OBJ2_SPRITE_RECORD,
+  HAMMER_TIMER_LO,
   MARIO_HAMMER_ACTIVE,
   MARIO_HAMMER_PENDING,
   MARIO_SPRITE_CODE,
-  HAMMER_TIMER_LO,
-  SND_BGM,
-  OBJ_PAIR_6680,
-  HAMMER_IN_PLAY,
   OBJ_HIT_EXTENT_X,
   OBJ_HIT_EXTENT_Y,
+  OBJ_PAIR_6680,
+  SND_BGM,
 } from "./names.js";
 import { boardBitGate } from "./boardBitGate.js";
 import { marioActiveGuard } from "./marioActiveGuard.js";
@@ -30,7 +31,6 @@ const HAMMER_BOARDS = 0x0b;
 
 const OBJ2_BASE = OBJ_PAIR_6680 + 0x10; // the pair's second object record
 const OBJ1_RECORD = 0x6a18;             // object-1 sprite-record slot
-const OBJ2_RECORD = 0x6a1c;             // object-2 sprite-record slot
 
 const OBJ_X_DISPLACEMENT = 0x0e; // horizontal offset added to Mario's X by the record write
 const OBJ_Y_DISPLACEMENT = 0x0f; // vertical offset added to Mario's Y by the record write
@@ -55,7 +55,7 @@ export function driveHammerSprite(m) {
     recordDest = OBJ1_RECORD;
   } else {
     objBase = OBJ2_BASE;
-    recordDest = OBJ2_RECORD;
+    recordDest = HAMMER_OBJ2_SPRITE_RECORD;
   }
   regs.ix = objBase;
   regs.de = recordDest;

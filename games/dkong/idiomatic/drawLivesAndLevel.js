@@ -6,10 +6,15 @@
  * LIVE-OUT: memory-only.
  */
 
-import { LIVES, LEVEL } from "./names.js";
+import {
+  LEVEL,
+  LEVEL_TENS_CELL,
+  LEVEL_UNITS_CELL,
+  LIVES,
+  RESERVE_LIVES_MARKER_BASE,
+} from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 
-const MARKER_BOTTOM = 0x7783;
 const MARKER_ROW_STEP = 0x20;
 const MARKER_SLOTS = 6;
 const TILE_BLANK = 0x10;
@@ -20,8 +25,6 @@ const FURNITURE = [
   [0x74e3, 0x34],
 ];
 
-const LEVEL_UNITS_CELL = 0x74a3;
-const LEVEL_TENS_CELL = 0x74c3;
 const LEVEL_MAX = 0x63; // 99 decimal
 
 export function drawLivesAndLevel(m, a = m.regs.a) {
@@ -33,7 +36,7 @@ export function drawLivesAndLevel(m, a = m.regs.a) {
   if (!gameActiveGuard(m)) return;
 
   // Blank all six marker slots, bottom cell upward.
-  let cell = MARKER_BOTTOM;
+  let cell = RESERVE_LIVES_MARKER_BASE;
   for (let i = 0; i < MARKER_SLOTS; i++) {
     mem8[cell] = TILE_BLANK;
     cell = (cell - MARKER_ROW_STEP) & 0xffff;
@@ -42,7 +45,7 @@ export function drawLivesAndLevel(m, a = m.regs.a) {
   // One marker per reserve life (LIVES minus lives in play, 8-bit), bottom upward.
   const reserve = (mem8[LIVES] - livesInPlay) & 0xff;
   if (reserve !== 0) {
-    cell = MARKER_BOTTOM;
+    cell = RESERVE_LIVES_MARKER_BASE;
     for (let i = 0; i < reserve; i++) {
       mem8[cell] = TILE_MARKER;
       cell = (cell - MARKER_ROW_STEP) & 0xffff;

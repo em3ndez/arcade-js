@@ -1,3 +1,7 @@
+import {
+  BONUS_READOUT_LOW_DIGIT_CELL,
+  TWO_DIGIT_FIELD_HIGH_CELL,
+} from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * stampTwoDigitField — place a two-digit number's tile pair into the bonus readout field: the
@@ -7,13 +11,11 @@
  * LIVE-OUT: memory-only — the two tilemap cells.
  */
 
-const HIGH_DIGIT_CELL = 0x74e6;
-const LOW_DIGIT_CELL = 0x74c6;
 
 export function stampTwoDigitField(m, a = m.regs.a, b = m.regs.b) {
   const { regs, mem8 } = m;
 
-  mem8[HIGH_DIGIT_CELL] = a;
+  mem8[TWO_DIGIT_FIELD_HIGH_CELL] = a;
   regs.a = b;
-  mem8[LOW_DIGIT_CELL] = regs.a;
+  mem8[BONUS_READOUT_LOW_DIGIT_CELL] = regs.a;
 }

@@ -10,7 +10,15 @@
  * arm and shared tail draw) plus the palette-bank output latch.
  */
 
-import { BOARD, SND_BGM, BONUS_DISPLAY } from "./names.js";
+import {
+  BOARD,
+  BOARD_LAYOUT_TABLE_RIVET,
+  BOARD_OPENING_TASK,
+  BONUS_DISPLAY,
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
+  SND_BGM,
+} from "./names.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { setup25mGirderBoard } from "./setup25mGirderBoard.js";
@@ -20,11 +28,7 @@ import { stampRivetBoardBands } from "./stampRivetBoardBands.js";
 import { loc_0cc6 } from "./loc_0cc6.js";
 
 // Two-bit palette-bank select latch: board control outputs, not work RAM (bit0, then bit1).
-const PALETTE_BANK_BIT0 = 0x7d86;
-const PALETTE_BANK_BIT1 = 0x7d87;
 
-const OPENING_TASK = 0x0501; // opcode 0x05, argument 0x01, packed for the task-ring primitive
-const LAYOUT_TABLE_RIVET = 0x3c8b;
 
 export function buildBoard(m) {
   const { regs, mem, mem8 } = m;
@@ -33,7 +37,7 @@ export function buildBoard(m) {
 
   mem8[BONUS_DISPLAY] = 0;
 
-  regs.de = OPENING_TASK;
+  regs.de = BOARD_OPENING_TASK;
   enqueueTask(m);
 
   // Select palette bank 2: bit0 clear, bit1 set.
@@ -50,6 +54,6 @@ export function buildBoard(m) {
   stampRivetBoardBands(m);
   mem.write8(PALETTE_BANK_BIT0, 1);
   mem8[SND_BGM] = 0x0b;
-  regs.de = LAYOUT_TABLE_RIVET;
+  regs.de = BOARD_LAYOUT_TABLE_RIVET;
   loc_0cc6(m);
 }

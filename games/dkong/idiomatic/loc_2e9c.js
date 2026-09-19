@@ -8,15 +8,17 @@
  * registers — object cursor +16, sprite cursor +4, remaining-object count preserved, step value 4.
  */
 
-import { SND_TRIGGER } from "./names.js";
+import {
+  OBJ_ANIM_STRING_BASE,
+  SND_TRIGGER,
+} from "./names.js";
 import { advanceSpringArcAndDropAtTravelEnd } from "./advanceSpringArcAndDropAtTravelEnd.js";
 
-const ANIMATION_STRING_BASE = 0x39aa;
 
 export function loc_2e9c(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = ANIMATION_STRING_BASE;
+  regs.hl = OBJ_ANIM_STRING_BASE;
   mem8[SND_TRIGGER + 3] = 0x03;
   advanceSpringArcAndDropAtTravelEnd(m);
 }

@@ -7,9 +7,11 @@
  */
 
 import { enqueueTask } from "./enqueueTask.js";
-import { CREDITS } from "./names.js";
+import {
+  CREDITS,
+  CREDIT_DISPLAY_TASK,
+} from "./names.js";
 
-const CREDIT_TASK = 0x0400;
 
 /** Packed-BCD (v - 1), wrapping 0x00 -> 0x99. */
 function bcdDecrement(v) {
@@ -28,6 +30,6 @@ export function spendCredit(m) {
 
   mem8[CREDITS] = bcdDecrement(mem8[CREDITS]);
 
-  regs.de = CREDIT_TASK;
+  regs.de = CREDIT_DISPLAY_TASK;
   enqueueTask(m);
 }

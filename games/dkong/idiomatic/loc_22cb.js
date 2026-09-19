@@ -9,7 +9,10 @@
  */
 
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { DIFFICULTY } from "./names.js";
+import {
+  BARREL_DIFFICULTY_LATCH,
+  DIFFICULTY,
+} from "./names.js";
 import { loc_22e1 } from "./loc_22e1.js";
 import { loc_22f6 } from "./loc_22f6.js";
 import { loc_2303 } from "./loc_2303.js";
@@ -17,12 +20,11 @@ import { loc_231a } from "./loc_231a.js";
 
 // Multiplexed cell: another reader takes it as a spawn/movement gate, so it is named only
 // for its role here.
-const VELOCITY_MODE_LATCH = 0x6348;
 
 export function loc_22cb(m, objRecord = m.regs.ix) {
   const { mem8 } = m;
 
-  if (mem8[VELOCITY_MODE_LATCH] === 0) {
+  if (mem8[BARREL_DIFFICULTY_LATCH] === 0) {
     return loc_22e1(m, objRecord);
   }
 

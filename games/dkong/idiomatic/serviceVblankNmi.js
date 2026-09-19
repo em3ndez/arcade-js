@@ -13,15 +13,17 @@
  */
 
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { ATTRACT } from "./names.js";
+import {
+  ATTRACT,
+  NMI_ENABLE,
+  SPRITE_DMA_SETUP_BLOCK,
+} from "./names.js";
 import { blitSpritesViaDma } from "./blitSpritesViaDma.js";
 import { readControls } from "./readControls.js";
 import { perFrame } from "./perFrame.js";
 
 // Board control ports (io side, NOT work RAM).
-const NMI_ENABLE = 0x7d84; // interrupt-enable latch; cleared to ack, re-enabled by the tail
 const IN2_WATCHDOG = 0x7d00; // read kicks the watchdog; bit 0 = SERVICE switch
-const DMA_SETUP_BLOCK = 0x0138; // 9-byte i8257 setup block
 
 export function serviceVblankNmi(m, sp = m.regs.sp) {
   const { mem, mem8 } = m;
@@ -37,7 +39,7 @@ export function serviceVblankNmi(m, sp = m.regs.sp) {
     );
   }
 
-  blitSpritesViaDma(m, DMA_SETUP_BLOCK);
+  blitSpritesViaDma(m, SPRITE_DMA_SETUP_BLOCK);
 
   if (mem8[ATTRACT] === 0) {
     readControls(m);

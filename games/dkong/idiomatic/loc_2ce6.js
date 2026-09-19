@@ -8,10 +8,12 @@
  * LIVE-OUT: memory-only.
  */
 
-import { SPRITE_X } from "./names.js"; // sprite-record field offset (+0), NOT the object-record OBJ_ACTIVE
+import {
+  BONUS_COUNTDOWN_SPRITES,
+  SPRITE_X,
+} from "./names.js"; // sprite-record field offset (+0), NOT the object-record OBJ_ACTIVE
 import { stampReleasedBarrelKind } from "./stampReleasedBarrelKind.js";
 
-const COUNTDOWN_SPRITES = 0x69a8;
 const COUNTDOWN_RECORDS = 4;
 const SPRITE_RECORD_BYTES = 4;
 
@@ -22,7 +24,7 @@ export function loc_2ce6(m, hl = m.regs.hl) {
   const remaining = mem8[hl];
 
   if (remaining < COUNTDOWN_RECORDS) {
-    mem8[COUNTDOWN_SPRITES + remaining * SPRITE_RECORD_BYTES + SPRITE_X] = 0;
+    mem8[BONUS_COUNTDOWN_SPRITES + remaining * SPRITE_RECORD_BYTES + SPRITE_X] = 0;
   }
 
   return stampReleasedBarrelKind(m);

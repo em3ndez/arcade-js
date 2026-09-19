@@ -6,13 +6,15 @@
  *
  * LIVE-OUT: memory-only.
  */
-import { MARIO_X } from "./names.js";
+import {
+  COLOR_COLUMN_A_TOP,
+  MARIO_X,
+} from "./names.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
 import { blinkSpritePairByX } from "./blinkSpritePairByX.js";
 import { paintColorColumnAndBlinkOff } from "./paintColorColumnAndBlinkOff.js";
 import { blinkSpritePairOn } from "./blinkSpritePairOn.js";
 
-const COLUMN_A_TOP = 0x7623;
 const COLUMN_B_TOP = 0x7583;
 
 const BASE_COLOR = 16; //        the first column's run start; the second column resumes it
@@ -26,7 +28,7 @@ export function runRivetColorCycleBlink(m, c = m.regs.c) {
 
   const sweepCounter = c;
 
-  fillDescendingColumn(m, COLUMN_A_TOP, BASE_COLOR);
+  fillDescendingColumn(m, COLOR_COLUMN_A_TOP, BASE_COLOR);
   fillDescendingColumn(m, COLUMN_B_TOP); // value carries over from the first column (resumes at 13)
 
   if ((sweepCounter & SWEEP_PHASE_BIT) === 0) {
@@ -39,6 +41,6 @@ export function runRivetColorCycleBlink(m, c = m.regs.c) {
     return;
   }
 
-  fillDescendingColumn(m, COLUMN_A_TOP, BRIGHT_BAND_COLOR);
+  fillDescendingColumn(m, COLOR_COLUMN_A_TOP, BRIGHT_BAND_COLOR);
   blinkSpritePairOn(m);
 }

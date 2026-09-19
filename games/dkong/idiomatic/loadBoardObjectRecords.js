@@ -11,16 +11,20 @@
  * LIVE-OUT: memory-only — the de-interleaved bytes in the two destination arrays.
  */
 
-import { BOARD, OBJ_PARAM_TABLE0, OBJ_PARAM_TABLE1 } from "./names.js";
+import {
+  BOARD,
+  BOARD_LAYOUT_TABLE_25M,
+  BOARD_LAYOUT_TABLE_50M,
+  BOARD_LAYOUT_TABLE_75M,
+  BOARD_LAYOUT_TABLE_RIVET,
+  BOARD_RECORD_CHECKSUM_ROM,
+  OBJ_PARAM_TABLE0,
+  OBJ_PARAM_TABLE1,
+} from "./names.js";
 
 const CHECKSUM_SEED = 0x5e;
-const CHECKSUM_ROM = 0x3f0c; // six bytes of program data, summed mod 256
 const CHECKSUM_LEN = 6;
 
-const TABLE_BOARD_1 = 0x3ae4;
-const TABLE_BOARD_2 = 0x3b5d;
-const TABLE_BOARD_3 = 0x3be5;
-const TABLE_DEFAULT = 0x3c8b; // 100m, board 0, and anything past the four
 
 const RECORD_STRIDE = 5; // bytes per record
 const FIELD_A = 0x00; // destination offsets within a group
@@ -35,16 +39,16 @@ export function loadBoardObjectRecords(m) {
 
   let checksum = CHECKSUM_SEED;
   for (let i = 0; i < CHECKSUM_LEN; i++) {
-    checksum = (checksum + mem8[(CHECKSUM_ROM + i) & 0xffff]) & 0xff;
+    checksum = (checksum + mem8[(BOARD_RECORD_CHECKSUM_ROM + i) & 0xffff]) & 0xff;
   }
   let iy = checksum === 0 ? OBJ_PARAM_TABLE1 : (OBJ_PARAM_TABLE1 + 1) & 0xffff;
 
   const board = mem8[BOARD];
   let hl =
-    board === 1 ? TABLE_BOARD_1 :
-    board === 2 ? TABLE_BOARD_2 :
-    board === 3 ? TABLE_BOARD_3 :
-    TABLE_DEFAULT;
+    board === 1 ? BOARD_LAYOUT_TABLE_25M :
+    board === 2 ? BOARD_LAYOUT_TABLE_50M :
+    board === 3 ? BOARD_LAYOUT_TABLE_75M :
+    BOARD_LAYOUT_TABLE_RIVET;
 
   let ix = OBJ_PARAM_TABLE0;
   for (;;) {

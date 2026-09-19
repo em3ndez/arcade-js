@@ -13,11 +13,14 @@
  * barrel-claim mode byte.
  */
 
-import { BONUS_EVENT_MARK, OBJ_ARRAY_64 } from "./names.js";
+import {
+  BARREL_RELEASE_ARMED,
+  BONUS_EVENT_MARK,
+  OBJ_ARRAY_64,
+} from "./names.js";
 import { markNextBarrelAsAltKind } from "./markNextBarrelAsAltKind.js";
 
 const SCRATCH_MODE = 0x638f;
-const SCRATCH_FLAG = 0x6392;
 const RECORDS = 5;
 const STRIDE = 32;
 const EVENT_STEP = 8;
@@ -30,7 +33,7 @@ export function armBarrelRelease(m, scratchValue, bonus) {
   const { mem8 } = m;
 
   mem8[SCRATCH_MODE] = scratchValue;
-  mem8[SCRATCH_FLAG] = 1;
+  mem8[BARREL_RELEASE_ARMED] = 1;
 
   const mark = mem8[BONUS_EVENT_MARK];
   if (mark !== bonus) return;

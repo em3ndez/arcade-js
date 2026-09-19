@@ -13,11 +13,14 @@ import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { enqueueTaskBatch } from "./enqueueTaskBatch.js";
 import { readStartButtonSelector } from "./readStartButtonSelector.js";
-import { ATTRACT, GAME_SUBSTATE } from "./names.js";
+import {
+  ATTRACT,
+  CREDIT_SCREEN_TASK,
+  GAME_SUBSTATE,
+  PALETTE_BANK_BIT0,
+} from "./names.js";
 
-const CREDIT_SCREEN_TASK = 0x030c; // screen-text opcode high, string selector low
 
-const PALETTE_BANK_LATCH = 0x7d86; // two-bit output latch; this cell low bit, next high bit
 
 export function enterCreditScreen(m) {
   const { regs, mem, mem8 } = m;
@@ -34,8 +37,8 @@ export function enterCreditScreen(m) {
   enqueueTaskBatch(m);
 
   // Select palette bank 0: both latch bits 0 (device latch, kept as mem.write8).
-  mem.write8(PALETTE_BANK_LATCH, 0);
-  mem.write8(PALETTE_BANK_LATCH + 1, 0);
+  mem.write8(PALETTE_BANK_BIT0, 0);
+  mem.write8(PALETTE_BANK_BIT0 + 1, 0);
 
   // Fall through into the per-frame start-button read.
   readStartButtonSelector(m);

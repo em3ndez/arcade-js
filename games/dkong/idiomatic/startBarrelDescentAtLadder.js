@@ -11,10 +11,16 @@
 
 import { u8 } from "../../../core/int.js";
 import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";
-import { MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT } from "./names.js";
+import {
+  BARREL_DIFFICULTY_LATCH,
+  DIFFICULTY,
+  MARIO_X,
+  MARIO_Y,
+  P1_INPUT,
+  RANDOM,
+} from "./names.js";
 
 // Multiplexed engine-scratch gate: clear = start immediately; set = run the grading below.
-const SPAWN_MODE_GATE = 0x6348;
 
 export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix) {
   const { regs, mem8 } = m;
@@ -31,7 +37,7 @@ export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix) {
   // Stamp the descent target on every tag-1 hit, before the grading gates.
   mem8[rec(0x17)] = u8(slotByte - 5);
 
-  if (mem8[SPAWN_MODE_GATE] === 0) return advanceRecord(m, rec);
+  if (mem8[BARREL_DIFFICULTY_LATCH] === 0) return advanceRecord(m, rec);
 
   if (u8(mem8[MARIO_Y] - 4) < disc) return;
 

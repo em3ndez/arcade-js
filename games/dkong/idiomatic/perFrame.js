@@ -9,7 +9,11 @@
  * register or flag is live: the interrupted main loop reloads from memory.
  */
 
-import { FRAME, GAME_STATE } from "./names.js";
+import {
+  FRAME,
+  GAME_STATE,
+  NMI_ENABLE,
+} from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { stirRandomSeed } from "./stirRandomSeed.js";
 import { serviceCoinInput } from "./serviceCoinInput.js";
@@ -20,7 +24,6 @@ import { powerOnInit } from "./powerOnInit.js";
 import { dispatchCreditedSubstate } from "./dispatchCreditedSubstate.js";
 
 // Board I/O: the NMI-enable latch. Writing 1 re-arms the NMI.
-const NMI_ENABLE = 0x7d84;
 
 const NMI_GAME_STATE = [
   powerOnInit, //            0 — power-on

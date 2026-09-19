@@ -10,9 +10,11 @@
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { advanceInterludeStepAndLiftKongFigure } from "./advanceInterludeStepAndLiftKongFigure.js";
-import { SPRITE_OBJ_BLOCK } from "./names.js";
+import {
+  SPRITE_OBJECT_BLOCK_TEMPLATE,
+  SPRITE_OBJ_BLOCK,
+} from "./names.js";
 
-const COPY_SOURCE = 0x388c;
 const STAMP_ADDR = SPRITE_OBJ_BLOCK + 0x04;
 const STAMP_VALUE = 0x66;
 const CLEAR_A = SPRITE_OBJ_BLOCK + 0x1c;
@@ -24,7 +26,7 @@ export function stageKongClimbPose(m) {
 
   if (!tickSubstateTimer(m)) return;
 
-  loadSpriteObjectBlock(m, COPY_SOURCE);
+  loadSpriteObjectBlock(m, SPRITE_OBJECT_BLOCK_TEMPLATE);
 
   mem8[STAMP_ADDR] = STAMP_VALUE;
   mem8[CLEAR_A] = 0;

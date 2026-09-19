@@ -7,9 +7,11 @@
  * LIVE-OUT: memory-only — the tilemap cells and the sprite-buffer bytes.
  */
 
-import { SPRITE_BUFFER } from "./names.js";
+import {
+  PLAYFIELD_TOP,
+  SPRITE_BUFFER,
+} from "./names.js";
 
-const PLAYFIELD_TOP = 0x7404;
 const PLAYFIELD_ROWS = 32;
 const PLAYFIELD_COLS = 28;
 const ROW_STRIDE = 0x20;

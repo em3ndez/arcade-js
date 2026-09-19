@@ -11,30 +11,30 @@
  */
 
 import {
+  BOARD_SEQ_PTR,
+  CLIMB_FIGURE_INDEX,
+  CLIMB_FIGURE_WALK_PTR,
+  GAME_SUBSTATE,
+  HOW_HIGH_CLIMB_FIGURE_TABLE,
+  HOW_HIGH_CLIMB_FIGURE_VRAM_START,
+  HOW_HIGH_GIRDER_VRAM_BASE,
+  HOW_HIGH_INDEX,
+  HOW_HIGH_LAST_SEQ,
   MARIO_ACTIVE,
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
-  HOW_HIGH_INDEX,
-  BOARD_SEQ_PTR,
-  HOW_HIGH_LAST_SEQ,
   SUBSTATE_TIMER,
-  GAME_SUBSTATE,
 } from "./names.js";
 import { silenceSound } from "./silenceSound.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 import { enqueueTask } from "./enqueueTask.js";
 
-const PALETTE_BANK_BIT0 = 0x7d86;
-const PALETTE_BANK_BIT1 = 0x7d87;
 
-const CLIMB_FIGURE_INDEX = 0x63a7;
-const CLIMB_FIGURE_WALK_PTR = 0x63a8;
-const CLIMB_FIGURE_WALK_START = 0x76dc;
-const CLIMB_FIGURE_ROM_TABLE = 0x3cf0; // 4-byte records; 3 bytes read, 1 skipped
 const CLIMB_FIGURE_FOOT_TILE = 0x8b;
 
-const GIRDER_VRAM_BASE = 0x75bc;
 const GIRDER_TILE_FIRST = 0x50;
 const GIRDER_TILE_LAST = 0x67;
 const GIRDER_GROUP_STRIDE = 0x23;
@@ -59,7 +59,7 @@ export function buildHowHighScreen(m) {
   mem8[SND_PRIORITY] = 0x02;
   mem8[SND_PRIORITY_FRAMES] = 0x03;
   mem8[CLIMB_FIGURE_INDEX] = 0x00;
-  mem16[CLIMB_FIGURE_WALK_PTR] = CLIMB_FIGURE_WALK_START;
+  mem16[CLIMB_FIGURE_WALK_PTR] = HOW_HIGH_CLIMB_FIGURE_VRAM_START;
 
   // Height rises when the board-order pointer moved since last build (player advanced a board).
   if (mem8[HOW_HIGH_INDEX] >= HEIGHT_MAX + 1) mem8[HOW_HIGH_INDEX] = HEIGHT_MAX;
@@ -71,7 +71,7 @@ export function buildHowHighScreen(m) {
 
   // Count tested at loop bottom, so a height of 0 wraps to 256 rows rather than painting none.
   let rows = mem8[HOW_HIGH_INDEX];
-  let fillPtr = GIRDER_VRAM_BASE;
+  let fillPtr = HOW_HIGH_GIRDER_VRAM_BASE;
   do {
     let tile = GIRDER_TILE_FIRST;
     for (;;) {
@@ -86,7 +86,7 @@ export function buildHowHighScreen(m) {
 
     const idx = mem8[CLIMB_FIGURE_INDEX];
     mem8[CLIMB_FIGURE_INDEX] = idx + 1;
-    let recPtr = (CLIMB_FIGURE_ROM_TABLE + ((idx << 2) & 0xff)) & 0xffff;
+    let recPtr = (HOW_HIGH_CLIMB_FIGURE_TABLE + ((idx << 2) & 0xff)) & 0xffff;
     const ix = mem16[CLIMB_FIGURE_WALK_PTR];
 
     mem8[(ix + 0x60) & 0xffff] = mem8[recPtr]; recPtr = (recPtr + 1) & 0xffff;

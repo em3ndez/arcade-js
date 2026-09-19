@@ -8,10 +8,12 @@
  */
 
 import {
-  SUBSTATE_TIMER,
-  GAME_SUBSTATE,
-  TWO_PLAYER_GAME,
   DIP_COINS_FOR_1P,
+  GAME_SUBSTATE,
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
+  SUBSTATE_TIMER,
+  TWO_PLAYER_GAME,
 } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { enqueueTaskBatch } from "./enqueueTaskBatch.js";
@@ -21,8 +23,6 @@ import { draw2UpLabel } from "./draw2UpLabel.js";
 import { writeDigitPairWithCarry } from "./writeDigitPairWithCarry.js";
 
 // Write-only palette-bank select latches.
-const PALETTE_BANK_LATCH_LO = 0x7d86;
-const PALETTE_BANK_LATCH_HI = 0x7d87;
 
 const DRAW_STRING = 0x03;
 const TITLE_STRING_A = 0x1b;
@@ -33,8 +33,8 @@ const COINAGE_DIGIT_CELL = 0x756c;
 export function composeAttractTitleScreen(m) {
   const { regs, mem, mem8, mem16 } = m;
 
-  mem.write8(PALETTE_BANK_LATCH_LO, 0x00);
-  mem.write8(PALETTE_BANK_LATCH_HI, 0x00);
+  mem.write8(PALETTE_BANK_BIT0, 0x00);
+  mem.write8(PALETTE_BANK_BIT1, 0x00);
 
   regs.d = DRAW_STRING;
   regs.e = TITLE_STRING_A;

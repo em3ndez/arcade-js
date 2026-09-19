@@ -9,10 +9,17 @@
  * LIVE-OUT: memory-only — the seeded and cleared record fields.
  */
 
-import { BOARD, MARIO_X, SPIN_COUNT, OBJ_X, OBJ_Y, OBJ_STATE } from "./names.js";
+import {
+  BOARD,
+  MARIO_X,
+  OBJ_POS_TABLE_MARIOX_CLEAR,
+  OBJ_POS_TABLE_MARIOX_SET,
+  OBJ_STATE,
+  OBJ_X,
+  OBJ_Y,
+  SPIN_COUNT,
+} from "./names.js";
 
-const TABLE_BIT7_CLEAR = 0x3ac4;
-const TABLE_BIT7_SET = 0x3ad4;
 
 const OBJ_X_COMPANION = 0x0e; // gets the same byte as OBJ_X
 const OBJ_Y_COMPANION = 0x0f; // gets the same byte as OBJ_Y
@@ -24,7 +31,7 @@ export function loc_34b9(m, ix = m.regs.ix) {
 
   if (mem8[BOARD] === 0x03) return;
 
-  const table = (mem8[MARIO_X] & 0x80) !== 0 ? TABLE_BIT7_SET : TABLE_BIT7_CLEAR;
+  const table = (mem8[MARIO_X] & 0x80) !== 0 ? OBJ_POS_TABLE_MARIOX_SET : OBJ_POS_TABLE_MARIOX_CLEAR;
   const entry = table + (mem8[SPIN_COUNT] & 0x06);
   const posX = mem8[entry];
   const posY = mem8[entry + 1];

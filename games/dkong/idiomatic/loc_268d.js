@@ -7,11 +7,15 @@
  * counters on the 32nd-frame arm.
  */
 
-import { M50_OBJ3_STEP_DIR, M50_OBJ3_STEP, FRAME } from "./names.js";
+import {
+  FRAME,
+  M50_OBJ3_SPRITE_PAIR_BASE,
+  M50_OBJ3_STEP,
+  M50_OBJ3_STEP_DIR,
+} from "./names.js";
 import { signStepHalfRate } from "./signStepHalfRate.js";
 import { loc_26a6 } from "./loc_26a6.js";
 
-const OBJ3_SPRITE_PAIR = 0x69f4;
 
 export function loc_268d(m) {
   const { regs, mem8 } = m;
@@ -21,7 +25,7 @@ export function loc_268d(m) {
 
   if ((mem8[FRAME] & 0x1f) !== 0x02) return;
 
-  regs.hl = OBJ3_SPRITE_PAIR;
+  regs.hl = M50_OBJ3_SPRITE_PAIR_BASE;
   regs.de = M50_OBJ3_STEP_DIR;
   loc_26a6(m);
 }

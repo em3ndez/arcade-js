@@ -10,11 +10,14 @@
  * the caller cascade overwrites them before any read.
  */
 
-import { MARIO_Y, MARIO_CLIMB_LIMIT_B } from "./names.js";
+import {
+  MARIO_CLIMB_LIMIT_B,
+  MARIO_CLIMB_TOGGLE,
+  MARIO_Y,
+} from "./names.js";
 import { tickMoveStepTimer } from "./tickMoveStepTimer.js";
 
 const CLIMB_FLAG = 0x621a;
-const CLIMB_FLAG_MIRROR = 0x6219;
 
 export function loc_1d76(m) {
   const { mem8 } = m;
@@ -25,7 +28,7 @@ export function loc_1d76(m) {
     return;
   }
 
-  mem8[CLIMB_FLAG_MIRROR] = flag; // dead store, reproduced so memory stays identical
+  mem8[MARIO_CLIMB_TOGGLE] = flag; // dead store, reproduced so memory stays identical
 
   // 8-bit subtraction, so a limit under 0x13 wraps.
   const threshold = (mem8[MARIO_CLIMB_LIMIT_B] - 0x13) & 0xff;

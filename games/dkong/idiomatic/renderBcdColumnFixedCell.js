@@ -10,9 +10,11 @@
  * LIVE-OUT: memory-only — the six digit cells written into video RAM.
  */
 import { expandBcdDigits } from "./expandBcdDigits.js";
+import {
+  BCD_RENDER_BYTE_COUNT,
+  VRAM_ROW_STEP_UP,
+} from "./names.js";
 
-const ROW_STEP = 0xffe0; // back one tilemap row per digit (draws up a column)
-const BYTE_COUNT = 0x0304; // 3 source bytes → 6 digits; low byte is a dead marker
 
 export function renderBcdColumnFixedCell(m, enteredAt057C = false) {
   const { regs } = m;
@@ -21,8 +23,8 @@ export function renderBcdColumnFixedCell(m, enteredAt057C = false) {
     regs.ix = 0x7641; // the fixed destination cell (skipped on the second entry)
   }
   regs.exDeHl(); // source pointer arrives in a register; drop what it displaces
-  regs.de = ROW_STEP;
-  regs.bc = BYTE_COUNT;
+  regs.de = VRAM_ROW_STEP_UP;
+  regs.bc = BCD_RENDER_BYTE_COUNT;
 
   expandBcdDigits(m);
 }

@@ -11,13 +11,17 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED, BONUS_START } from "./names.js";
+import {
+  BONUS_DISPLAY,
+  BONUS_DISPLAY_TILE_FRAME,
+  BONUS_DISPLAY_ZEROED,
+  BONUS_READOUT_TILE_BASE,
+  BONUS_START,
+} from "./names.js";
 import { awardRemainingBonusToScore } from "./awardRemainingBonusToScore.js";
 import { stepBonusDisplayDown } from "./stepBonusDisplayDown.js";
 import { renderBonusDisplay } from "./renderBonusDisplay.js";
 
-const BLOCK_TILES = 0x384a;
-const BLOCK_FIRST_CELL = 0x7465; // where the first column lands
 const BLOCK_COLUMNS = 6;
 const BLOCK_CELLS_PER_COLUMN = 3;
 const BLOCK_COLUMN_STRIDE = 0x20;
@@ -50,8 +54,8 @@ export function loc_062a(m, taskPayload = m.regs.a) {
   // Nibble swap (rotate), not a shift: quotient>15 keeps its own high nibble in the low half.
   mem8[BONUS_DISPLAY] = (quotient << 4) | (quotient >> 4);
 
-  let source = BLOCK_TILES;
-  let cell = BLOCK_FIRST_CELL;
+  let source = BONUS_DISPLAY_TILE_FRAME;
+  let cell = BONUS_READOUT_TILE_BASE;
   for (let column = 0; column < BLOCK_COLUMNS; column++) {
     for (let i = 0; i < BLOCK_CELLS_PER_COLUMN; i++) mem8[cell + i] = mem8[source + i];
     source += BLOCK_CELLS_PER_COLUMN;

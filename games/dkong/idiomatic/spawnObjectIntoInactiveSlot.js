@@ -11,12 +11,18 @@
  * behind (object cursor +16, sprite cursor +4, remaining-object count preserved, step value 4).
  */
 
-import { SPAWN_REQUEST, OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_STATE } from "./names.js";
+import {
+  OBJ_ACTIVE,
+  OBJ_ANIM_STRING_BASE,
+  OBJ_STATE,
+  OBJ_X,
+  OBJ_Y,
+  SPAWN_REQUEST,
+} from "./names.js";
 import { stirRandomSeed } from "./stirRandomSeed.js";
 import { advanceToNextObject } from "./advanceToNextObject.js";
 
 const OBJ_ANIM_PTR = 0x0e;
-const ANIMATION_STRING_BASE = 0x39aa;
 const SPAWN_Y = 80;
 
 export function spawnObjectIntoInactiveSlot(m, ix = m.regs.ix) {
@@ -40,8 +46,8 @@ export function spawnObjectIntoInactiveSlot(m, ix = m.regs.ix) {
   mem8[ix + OBJ_X] = (seed & 0x0f) - 8;
 
   mem8[ix + OBJ_ACTIVE] = 1;
-  mem8[ix + OBJ_ANIM_PTR] = ANIMATION_STRING_BASE;
-  mem8[ix + OBJ_ANIM_PTR + 1] = (ANIMATION_STRING_BASE >> 8);
+  mem8[ix + OBJ_ANIM_PTR] = OBJ_ANIM_STRING_BASE;
+  mem8[ix + OBJ_ANIM_PTR + 1] = (OBJ_ANIM_STRING_BASE >> 8);
 
   advanceToNextObject(m);
 }

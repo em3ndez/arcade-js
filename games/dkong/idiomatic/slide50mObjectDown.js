@@ -9,7 +9,10 @@
  * +4 a per-tick timer. LIVE-OUT: memory-only.
  */
 
-import { MARIO_Y } from "./names.js";
+import {
+  CLIMB_CENTERING_PHASE,
+  MARIO_Y,
+} from "./names.js";
 import { publish50mObjectYToSprite } from "./publish50mObjectYToSprite.js";
 import { marioReachedTargetColumn } from "./marioReachedTargetColumn.js";
 import { stepMarioDownInClimbPose } from "./stepMarioDownInClimbPose.js";
@@ -20,7 +23,6 @@ const TIMER_RELOAD = 4;
 // The climb's settle line as a screen Y: while Mario's Y is smaller he is still above it.
 const CENTRING_BAND = 104;
 // Shared climb-centring toggle; file-local because no reader settles its meaning.
-const CLIMB_CENTRING_TOGGLE = 0x6222;
 
 export function slide50mObjectDown(m, recordBase) {
   const { regs, mem8 } = m;
@@ -54,5 +56,5 @@ export function slide50mObjectDown(m, recordBase) {
   }
 
   // Settled, on an even row: publish the centring toggle from bit 1 of his screen Y.
-  mem8[CLIMB_CENTRING_TOGGLE] = (marioY >> 1) & 1;
+  mem8[CLIMB_CENTERING_PHASE] = (marioY >> 1) & 1;
 }

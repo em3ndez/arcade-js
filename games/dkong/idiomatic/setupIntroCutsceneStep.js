@@ -7,33 +7,38 @@
  * LIVE-OUT: memory-only.
  */
 
-import { SUBSTATE_TIMER, INTRO_STEP, INTRO_WALK_PTR_A, INTRO_WALK_PTR_B } from "./names.js";
+import {
+  INTRO_CUTSCENE_TILE_A,
+  INTRO_CUTSCENE_TILE_B,
+  INTRO_CUTSCENE_TILE_C,
+  INTRO_SETUP_LAYOUT_TABLE,
+  INTRO_STEP,
+  INTRO_WALK_PTR_A,
+  INTRO_WALK_PTR_B,
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
+  SUBSTATE_TIMER,
+} from "./names.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 
 // Palette-bank select latch — a board output, not work RAM.
-const PALETTE_BANK_LO = 0x7d86;
-const PALETTE_BANK_HI = 0x7d87;
 
-const RECORD_TABLE = 0x380d;
 
-const CUTSCENE_TILE_A = 0x76a3;
-const CUTSCENE_TILE_B = 0x7663;
-const CUTSCENE_TILE_C = 0x75aa;
 
 const CUTSCENE_BOOKKEEPING = 0x62af;
 
 export function setupIntroCutsceneStep(m) {
   const { regs, mem, mem8, mem16 } = m;
 
-  mem.write8(PALETTE_BANK_LO, 0x00);
-  mem.write8(PALETTE_BANK_HI, 0x01);
+  mem.write8(PALETTE_BANK_BIT0, 0x00);
+  mem.write8(PALETTE_BANK_BIT1, 0x01);
 
-  regs.de = RECORD_TABLE;
+  regs.de = INTRO_SETUP_LAYOUT_TABLE;
   drawBoardLayout(m);
 
-  mem8[CUTSCENE_TILE_A] = 0x10;
-  mem8[CUTSCENE_TILE_B] = 0x10;
-  mem8[CUTSCENE_TILE_C] = 0xd4;
+  mem8[INTRO_CUTSCENE_TILE_A] = 0x10;
+  mem8[INTRO_CUTSCENE_TILE_B] = 0x10;
+  mem8[INTRO_CUTSCENE_TILE_C] = 0xd4;
 
   mem8[CUTSCENE_BOOKKEEPING] = 0x00;
 

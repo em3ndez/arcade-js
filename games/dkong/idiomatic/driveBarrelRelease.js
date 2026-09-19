@@ -2,7 +2,7 @@
 /**
  * driveBarrelRelease — the release half of the 25m barrel engine. On the girder board, while Mario
  * is alive: if a barrel already went out this pass (EVENT_GATE), step its release animation; else if
- * a release is armed (RELEASE_ARMED), walk the ten OBJ_ARRAY_67 records and hand the first free one
+ * a release is armed (BARREL_RELEASE_ARMED), walk the ten OBJ_ARRAY_67 records and hand the first free one
  * (both low OBJ_ACTIVE bits clear) to the claim. None free writes nothing.
  *
  * The walk counts DOWN because the claim derives the record's slot index from the remaining count,
@@ -15,11 +15,14 @@ import { boardBitGate } from "./boardBitGate.js";
 import { marioActiveGuard } from "./marioActiveGuard.js";
 import { advanceBarrelRelease } from "./advanceBarrelRelease.js";
 import { releaseBarrelIntoFreeSlot } from "./releaseBarrelIntoFreeSlot.js";
-import { OBJ_ARRAY_67, OBJ_ACTIVE } from "./names.js";
+import {
+  BARREL_RELEASE_ARMED,
+  OBJ_ACTIVE,
+  OBJ_ARRAY_67,
+} from "./names.js";
 
 const BOARD_MASK = 1;          // per-board applicability mask: bit0 = the girder board only
 const EVENT_GATE = 0x6393;     // bit0 SET -> a barrel already went out this pass (unnamed scratch)
-const RELEASE_ARMED = 0x6392;  // bit0 SET -> a release is armed for this pass (unnamed scratch)
 const BARREL_SLOTS = 10;       // records in OBJ_ARRAY_67
 const RECORD_STRIDE = 32;      // bytes per object record
 const SLOT_ACTIVE = 0x01;      // OBJ_ACTIVE bit 0 — the record is a barrel already in motion
@@ -33,7 +36,7 @@ export function driveBarrelRelease(m) {
 
   if ((mem8[EVENT_GATE] & 0x01) !== 0) return advanceBarrelRelease(m);
 
-  if ((mem8[RELEASE_ARMED] & 0x01) === 0) return;
+  if ((mem8[BARREL_RELEASE_ARMED] & 0x01) === 0) return;
 
   let record = OBJ_ARRAY_67;
   for (let remaining = BARREL_SLOTS; remaining > 0; remaining--) {

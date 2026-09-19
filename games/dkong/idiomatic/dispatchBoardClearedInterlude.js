@@ -8,13 +8,16 @@
  * LIVE-OUT: memory-only — the parked sprite bytes plus the dispatched arm's writes.
  */
 
-import { BOARD, BOARD_ADVANCE_STEP } from "./names.js";
+import {
+  BOARD,
+  BOARD_ADVANCE_STEP,
+  BOARD_CLEARED_STEP_TABLE_50M,
+  BOARD_CLEARED_STEP_TABLE_ODD,
+} from "./names.js";
 import { clearSpriteColumns } from "./clearSpriteColumns.js";
 import { runRivetBoardInterludeFrame } from "./runRivetBoardInterludeFrame.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
-const STEP_TABLE_ODD = 0x1623; // 25m / 75m
-const STEP_TABLE_50M = 0x1637; // 50m
 
 const DISPATCH_TABLE_1623 = "0x1623 (0x6388 board sub-dispatch)";
 const DISPATCH_TABLE_1637 = "0x1637 (0x6388 board sub-dispatch)";
@@ -36,9 +39,9 @@ export function dispatchBoardClearedInterlude(m) {
 
   const board = mem8[BOARD];
   if ((board & 0x01) !== 0) {
-    dispatchBoardRenderStep(m, STEP_TABLE_ODD, DISPATCH_TABLE_1623);
+    dispatchBoardRenderStep(m, BOARD_CLEARED_STEP_TABLE_ODD, DISPATCH_TABLE_1623);
   } else if ((board & 0x02) !== 0) {
-    dispatchBoardRenderStep(m, STEP_TABLE_50M, DISPATCH_TABLE_1637);
+    dispatchBoardRenderStep(m, BOARD_CLEARED_STEP_TABLE_50M, DISPATCH_TABLE_1637);
   } else {
     runRivetBoardInterludeFrame(m);
   }

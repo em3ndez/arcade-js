@@ -11,16 +11,22 @@
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { loc_0038 } from "../translated/loc_0038.js";
-import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP, INTRO_SCROLL_INDEX } from "./names.js";
+import {
+  INTRO_SCROLL_INDEX,
+  INTRO_STEP,
+  SND_PRIORITY,
+  SND_PRIORITY_FRAMES,
+  SPRITE_OBJECT_BLOCK_TEMPLATE,
+  SPRITE_OBJ_BLOCK,
+} from "./names.js";
 
-const CLIMB_RECORDS_SRC = 0x388c;
 
 export function runIntroClimbStep(m) {
   const { regs, mem8 } = m;
 
   if (!tickSubstateTimer(m)) return;
 
-  loadSpriteObjectBlock(m, CLIMB_RECORDS_SRC);
+  loadSpriteObjectBlock(m, SPRITE_OBJECT_BLOCK_TEMPLATE);
 
   // Two strided add-passes (stride 4, ten records): field 0 takes one constant, field 3 another.
   regs.hl = SPRITE_OBJ_BLOCK;

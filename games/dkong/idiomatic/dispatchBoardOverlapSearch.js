@@ -12,10 +12,12 @@
  * and record pointer it leaves in registers.
  */
 
-import { BOARD } from "./names.js";
+import {
+  BOARD,
+  BOARD_OVERLAP_DISPATCH_TABLE,
+} from "./names.js";
 import { dispatchInlineJumpTable } from "./dispatchInlineJumpTable.js";
 
-const BOARD_DISPATCH_TABLE = 0x3e8d;
 const DISPATCH_SITE = "0x3E8D (loc_3e88 dispatch)";
 
 export function dispatchBoardOverlapSearch(m, hl = m.regs.hl) {
@@ -26,6 +28,6 @@ export function dispatchBoardOverlapSearch(m, hl = m.regs.hl) {
   // The caller's bounds word, below the table base; the arm lifts it back off the stack.
   m.push16(hl);
 
-  m.push16(BOARD_DISPATCH_TABLE);
+  m.push16(BOARD_OVERLAP_DISPATCH_TABLE);
   return dispatchInlineJumpTable(m, DISPATCH_SITE);
 }

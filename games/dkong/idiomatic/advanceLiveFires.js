@@ -12,21 +12,25 @@
  */
 
 import { u8, u16 } from "../../../core/int.js";
-import { OBJ_ITER_PTR, OBJ_ARRAY_64, OBJ_ACTIVE } from "./names.js";
+import {
+  FIRE_SWEEP_INDEX,
+  LIVE_FIRE_ADVANCE_RETURN,
+  OBJ_ACTIVE,
+  OBJ_ARRAY_64,
+  OBJ_ITER_PTR,
+} from "./names.js";
 import { armAlternateFireModeAtHighDifficulty } from "./armAlternateFireModeAtHighDifficulty.js";
 
-const SWEEP_INDEX = 0x63a2; // loop counter cell; carries no registered name
 const FIRE_COUNT = 5;
 const FIRE_STRIDE = 32;
 // The per-object advance pops a return address off the guest stack, so leave one at the call site.
-const AFTER_ADVANCE = 0x31d0;
 
 export function advanceLiveFires(m) {
   const { mem8, mem16 } = m;
 
   armAlternateFireModeAtHighDifficulty(m);
 
-  mem8[SWEEP_INDEX] = 0;
+  mem8[FIRE_SWEEP_INDEX] = 0;
   mem16[OBJ_ITER_PTR] = OBJ_ARRAY_64 - FIRE_STRIDE;
 
   for (;;) {
@@ -35,12 +39,12 @@ export function advanceLiveFires(m) {
     mem16[OBJ_ITER_PTR] = record;
 
     if (mem8[record + OBJ_ACTIVE] !== 0) {
-      m.push16(AFTER_ADVANCE);
+      m.push16(LIVE_FIRE_ADVANCE_RETURN);
       m.call(0x3202);
     }
 
-    const visited = u8(mem8[SWEEP_INDEX] + 1);
-    mem8[SWEEP_INDEX] = visited;
+    const visited = u8(mem8[FIRE_SWEEP_INDEX] + 1);
+    mem8[FIRE_SWEEP_INDEX] = visited;
     if (visited === FIRE_COUNT) return;
   }
 }

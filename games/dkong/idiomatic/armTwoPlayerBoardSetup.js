@@ -9,20 +9,22 @@
  * sub-state, and the three painted tilemap cells.
  */
 
-import { GAME_SUBSTATE } from "./names.js";
+import {
+  GAME_SUBSTATE,
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
+} from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 // Imported in faithful-translation form ON PURPOSE: this tail is a fall-through, so the
 // painter's own return must return from here — the idiomatic twin would swallow it.
 import { loc_09ee } from "../translated/loc_09ee.js";
 
-const BOARD_CONTROL_LATCH_A = 0x7d86;
-const BOARD_CONTROL_LATCH_B = 0x7d87;
 
 export function armTwoPlayerBoardSetup(m) {
   const { regs, mem, mem8 } = m;
 
-  mem.write8(BOARD_CONTROL_LATCH_A, 0x00);
-  mem.write8(BOARD_CONTROL_LATCH_B, 0x00);
+  mem.write8(PALETTE_BANK_BIT0, 0x00);
+  mem.write8(PALETTE_BANK_BIT1, 0x00);
 
   regs.de = 0x0302;
   enqueueTask(m);

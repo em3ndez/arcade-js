@@ -17,16 +17,17 @@
  */
 
 import {
-  FRAME,
-  SUBSTATE_TIMER,
-  INTRO_STEP,
-  SEQ_ADVANCE_PTR,
-  SPRITE_OBJ_BLOCK,
-  SPRITE_BUFFER,
-  SND_TRIGGER,
-  INTRO_WALK_PTR_A,
   CUTSCENE_BAND_COUNT,
+  FRAME,
+  INTRO_BEAT_LAYOUT_TABLE,
   INTRO_SCROLL_INDEX,
+  INTRO_STEP,
+  INTRO_WALK_PTR_A,
+  SEQ_ADVANCE_PTR,
+  SND_TRIGGER,
+  SPRITE_BUFFER,
+  SPRITE_OBJ_BLOCK,
+  SUBSTATE_TIMER,
 } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
@@ -37,7 +38,6 @@ const DISPLAY_Y_CELL = SPRITE_OBJ_BLOCK + 3; // the Y column of the sprite-objec
 const WALK_TERMINATOR = 0x7f;
 const SOUND_LATCH = SND_TRIGGER + 2; // three-frame audio-assert latch
 const PROP_TEMPLATE = 0x385c;
-const LAYOUT_TABLE = 0x392c;
 const VIDEO_CELL_A = 0x74aa;
 const VIDEO_CELL_B = 0x748a;
 
@@ -90,7 +90,7 @@ export function loc_0b06(m) {
 
   // Assert the beat's sound for three frames, then draw the board-layout segment table.
   mem8[SOUND_LATCH] = 0x03;
-  regs.de = LAYOUT_TABLE;
+  regs.de = INTRO_BEAT_LAYOUT_TABLE;
   drawBoardLayout(m);
 
   // Terminal-beat epilogue.

@@ -10,22 +10,26 @@
  * tilemap pair, and on expiry SUBSTATE_TIMER = 2 with GAME_SUBSTATE incremented.
  */
 
-import { SUBSTATE_TIMER, GAME_SUBSTATE, SPRITE_OBJ_BLOCK } from "./names.js";
+import {
+  ANIM_TILE_FILL_TABLE,
+  GAME_SUBSTATE,
+  PALETTE_ANIM_PATTERN,
+  PALETTE_ANIM_TIMER,
+  PALETTE_BANK_BIT0,
+  PALETTE_BANK_BIT1,
+  SPRITE_OBJ_BLOCK,
+  SUBSTATE_TIMER,
+} from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 // Guest-stack-consuming lift form on purpose: not interchangeable with a direct call.
 import { loc_3f24 } from "../translated/loc_3f24.js";
 
-const ANIM_TIMER = 0x638a;
-const ANIM_PATTERN = 0x638b;
 const ARM_FRAMES = 0x60;
 const SEED_PATTERN = 0x5f;
 
-const LATCH_BIT7 = 0x7d86; // write-only palette latch, fed the pattern's bit 7
-const LATCH_BIT6 = 0x7d87; // write-only palette latch, fed the pattern's bit 6
 
-const FILL_TABLE = 0x3d08; // [count, dest_lo, dest_hi] records, zero-count terminated
 const FILL_TILE = 0xb0;
 
 const SPRITE_TEMPLATE = 0x39cf;
@@ -33,32 +37,32 @@ const SPRITE_TEMPLATE = 0x39cf;
 export function loc_07cb(m) {
   const { regs, mem, mem8 } = m;
 
-  let timer = mem8[ANIM_TIMER];
+  let timer = mem8[PALETTE_ANIM_TIMER];
   let pattern;
   if (timer !== 0) {
-    pattern = mem8[ANIM_PATTERN];
+    pattern = mem8[PALETTE_ANIM_PATTERN];
     timer = (timer - 1) & 0xff;
-    mem8[ANIM_TIMER] = timer;
+    mem8[PALETTE_ANIM_TIMER] = timer;
   } else {
     timer = ARM_FRAMES;
-    mem8[ANIM_TIMER] = ARM_FRAMES;
+    mem8[PALETTE_ANIM_TIMER] = ARM_FRAMES;
     pattern = SEED_PATTERN;
   }
 
   if (timer === 0) {
     mem8[SUBSTATE_TIMER] = 0x02;
     mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
-    mem8[ANIM_TIMER] = 0x00;
-    mem8[ANIM_PATTERN] = 0x00;
+    mem8[PALETTE_ANIM_TIMER] = 0x00;
+    mem8[PALETTE_ANIM_PATTERN] = 0x00;
     return;
   }
 
   // Decode the top two pattern bits into the latches, then rotate the pattern left by two.
-  mem.write8(LATCH_BIT7, (pattern >> 7) & 1);
-  mem.write8(LATCH_BIT6, (pattern >> 6) & 1);
-  mem8[ANIM_PATTERN] = ((pattern << 2) | (pattern >> 6));
+  mem.write8(PALETTE_BANK_BIT0, (pattern >> 7) & 1);
+  mem.write8(PALETTE_BANK_BIT1, (pattern >> 6) & 1);
+  mem8[PALETTE_ANIM_PATTERN] = ((pattern << 2) | (pattern >> 6));
 
-  let hl = FILL_TABLE;
+  let hl = ANIM_TILE_FILL_TABLE;
   for (;;) {
     const count = mem8[hl];
     const lo = mem8[(hl + 1) & 0xffff];

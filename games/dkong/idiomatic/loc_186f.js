@@ -10,9 +10,13 @@
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
-import { SUBSTATE_TIMER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./names.js";
+import {
+  BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME,
+  BOARD_ADVANCE_STEP,
+  SND_TRIGGER,
+  SUBSTATE_TIMER,
+} from "./names.js";
 
-const COPY_SOURCE = 0x3a1f; // this step's ten-record sprite-object frame
 const SND_LATCH = SND_TRIGGER + 4; // the sound-trigger shadow this step pulses
 const SND_ASSERT_FRAMES = 0x03; // frames it stays asserted; the sound service counts it down
 
@@ -21,7 +25,7 @@ export function loc_186f(m) {
 
   if (!tickSubstateTimer(m)) return;
 
-  loadSpriteObjectBlock(m, COPY_SOURCE);
+  loadSpriteObjectBlock(m, BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME);
 
   mem8[SND_LATCH] = SND_ASSERT_FRAMES;
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);

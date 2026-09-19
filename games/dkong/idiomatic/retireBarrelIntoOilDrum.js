@@ -5,7 +5,7 @@
  * Three gates each return true and leave everything alone: OBJ_Y must have reached BOTTOM_ROW
  * (larger Y is lower), and OBJ_X must lie inside the column band. Past them the slot is freed
  * (OBJ_ACTIVE, OBJ_X zeroed), the impact sound is asserted, and two latches are armed: the alternate
- * kind sets PHASE_BITS to arm a later fire release, and MODE_LATCH one-way-switches into the
+ * kind sets PHASE_BITS to arm a later fire release, and BARREL_DIFFICULTY_LATCH one-way-switches into the
  * difficulty-graded behaviour on the first firing. The record base arrives in the index register,
  * not as a parameter. Returns false when retired (control has left; caller's remaining code must not
  * run), true when it returned normally.
@@ -13,7 +13,13 @@
  * LIVE-OUT: the protocol value, and nothing else.
  */
 
-import { OBJ_ACTIVE, OBJ_X, OBJ_Y, SND_TRIGGER } from "./names.js";
+import {
+  BARREL_DIFFICULTY_LATCH,
+  OBJ_ACTIVE,
+  OBJ_X,
+  OBJ_Y,
+  SND_TRIGGER,
+} from "./names.js";
 
 // Barrel-record kind flag: 0 default, 1 alternate. File-local because offset 0x15 is a frame timer
 // on other record arrays, so it must not get a shared OBJ_* name.
@@ -34,7 +40,6 @@ const PHASE_CONTINUE = 1;
 const PHASE_SECOND_ARM = 2;
 
 // One-shot mode latch, multiplexed (object-velocity mode / spawn gate), so file-local.
-const MODE_LATCH = 0x6348;
 
 export function retireBarrelIntoOilDrum(m, ix = m.regs.ix) {
   const { mem8 } = m;
@@ -56,7 +61,7 @@ export function retireBarrelIntoOilDrum(m, ix = m.regs.ix) {
   // Pull the caller's return address off the stack: control is not going back there.
   m.regs.hl = m.pop16();
 
-  if (mem8[MODE_LATCH] === 0) mem8[MODE_LATCH] = 1;
+  if (mem8[BARREL_DIFFICULTY_LATCH] === 0) mem8[BARREL_DIFFICULTY_LATCH] = 1;
 
   m.call(0x21ba);
   return false;

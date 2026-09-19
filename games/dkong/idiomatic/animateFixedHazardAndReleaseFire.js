@@ -8,17 +8,22 @@
  * LIVE-OUT: memory-only.
  */
 
-import { OBJ_RECORD_66A0, EVENT_REQ_313C, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
+import {
+  EVENT_REQ_313C,
+  FIXED_HAZARD_ARM_COUNTER,
+  FIXED_HAZARD_PRESCALER,
+  OBJ_66A0_SPRITE_CODE,
+  OBJ_HIT_EXTENT_X,
+  OBJ_HIT_EXTENT_Y,
+  OBJ_RECORD_66A0,
+} from "./names.js";
 import { boardBitGate } from "./boardBitGate.js";
 import { marioActiveGuard } from "./marioActiveGuard.js";
 import { loc_03f2 } from "./loc_03f2.js";
 
 const BOARD_MASK = 0x03;   // applicability mask for the board test: bit0 25m, bit1 50m
 const EVENT_GATE = 0x6350; // bit0 SET -> skip this pass
-const PRESCALER = 0x62b8;  // 4-frame prescaler; reloaded to 4 on underflow, else returns
 const PHASE_BITS = 0x62b9; // bit0 SET -> continue; bit1 selects the sprite arm
-const ARM_COUNTER = 0x62ba;// bit1-arm down-counter; on underflow re-arms PHASE_BITS
-const SPRITE_DEST = 0x6a29; // where the jittered sprite byte lands, inside the sprite buffer
 const SPRITE_BYTE_A = 0x40; // the sprite byte on the bit1-clear arm
 const SPRITE_BYTE_B = 0x42; // the sprite byte on the bit1-set arm
 
@@ -32,11 +37,11 @@ export function animateFixedHazardAndReleaseFire(m) {
 
   if ((mem8[EVENT_GATE] & 0x01) !== 0) return;
 
-  const dec = (mem8[PRESCALER] - 1) & 0xff;
-  mem8[PRESCALER] = dec;
+  const dec = (mem8[FIXED_HAZARD_PRESCALER] - 1) & 0xff;
+  mem8[FIXED_HAZARD_PRESCALER] = dec;
   if (dec !== 0) return;
 
-  mem8[PRESCALER] = 0x04;
+  mem8[FIXED_HAZARD_PRESCALER] = 0x04;
   const phase = mem8[PHASE_BITS];
 
   if ((phase & 0x01) === 0) return;
@@ -44,19 +49,19 @@ export function animateFixedHazardAndReleaseFire(m) {
   if ((phase & 0x02) === 0) {
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff] = 0x02;
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x00;
-    loc_03f2(m, SPRITE_DEST, SPRITE_BYTE_A);
+    loc_03f2(m, OBJ_66A0_SPRITE_CODE, SPRITE_BYTE_A);
   } else {
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff] = 0x02;
     mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x02;
-    loc_03f2(m, SPRITE_DEST, SPRITE_BYTE_B);
+    loc_03f2(m, OBJ_66A0_SPRITE_CODE, SPRITE_BYTE_B);
 
-    const decB = (mem8[ARM_COUNTER] - 1) & 0xff;
-    mem8[ARM_COUNTER] = decB;
+    const decB = (mem8[FIXED_HAZARD_ARM_COUNTER] - 1) & 0xff;
+    mem8[FIXED_HAZARD_ARM_COUNTER] = decB;
     if (decB !== 0) return;
 
     mem8[PHASE_BITS] = 0x01;
     mem8[EVENT_REQ_313C] = 0x01;
   }
 
-  mem8[ARM_COUNTER] = 0x10;
+  mem8[FIXED_HAZARD_ARM_COUNTER] = 0x10;
 }

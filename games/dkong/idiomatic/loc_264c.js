@@ -12,13 +12,19 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { M50_OBJ2_STEP_DIR, M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG, M50_OBJ2_REVERSE_TIMER, FRAME } from "./names.js";
+import {
+  FRAME,
+  M50_OBJ2_REVERSE_TIMER,
+  M50_OBJ2_SPRITE_PAIR,
+  M50_OBJ2_SPRITE_PAIR_LOW,
+  M50_OBJ2_STEP_DIR,
+  M50_OBJ2_STEP_NEG,
+  M50_OBJ2_STEP_POS,
+} from "./names.js";
 import { signStepHalfRate } from "./signStepHalfRate.js";
 import { loc_26a6 } from "./loc_26a6.js";
 
 // Object-2's mirrored sprite-code pair: low cell (base+1), high cell (base+5).
-const OBJ2_SPRITE_PAIR = 0x69ec;
-const OBJ2_PAIR_LOW = 0x69ed;
 
 export function loc_264c(m) {
   const { regs, mem8 } = m;
@@ -30,10 +36,10 @@ export function loc_264c(m) {
 
   if ((mem8[FRAME] & 0x1f) !== 0) return;
 
-  regs.hl = OBJ2_SPRITE_PAIR;
+  regs.hl = M50_OBJ2_SPRITE_PAIR;
   regs.de = M50_OBJ2_REVERSE_TIMER;
   loc_26a6(m);
   const pairHigh = regs.a;
 
-  mem8[OBJ2_PAIR_LOW] = pairHigh & 0x7f; // clear the horizontal-flip bit
+  mem8[M50_OBJ2_SPRITE_PAIR_LOW] = pairHigh & 0x7f; // clear the horizontal-flip bit
 }

@@ -28,7 +28,14 @@
 
 import { u8 } from "../../../core/int.js";
 import {
-  OBJ_INSERT_REQUESTED, OBJ_ITER_PTR, OBJ_STATE, OBJ_X, OBJ_Y, RANDOM,
+  FIRE_STATE_MACHINE_RETURN,
+  FIRE_Y_OFFSET_TABLE,
+  OBJ_INSERT_REQUESTED,
+  OBJ_ITER_PTR,
+  OBJ_STATE,
+  OBJ_X,
+  OBJ_Y,
+  RANDOM,
 } from "./names.js";
 import { turnFireAtGroundEdge } from "./turnFireAtGroundEdge.js";
 import { loc_32bd } from "./loc_32bd.js";
@@ -44,7 +51,6 @@ const OBJ_WORKING_Y = 0x0f;
 const OBJ_Y_OFFSET_INDEX = 0x13; // index into the Y-offset table; counts down, reloads at 0
 const OBJ_TIMER_KIND = 0x19;     // selects which of the two timer ticks runs
 
-const Y_OFFSET_TABLE = 0x3a7a;
 const Y_OFFSET_INDEX_RELOAD = 17;
 
 // Headings the state field carries: state 1 steps the working X up, everything else steps it down.
@@ -61,7 +67,6 @@ const isHighState = (state) => (u8(state - 4) & 0x80) === 0;
 
 // The return bracket the heading/collision state machine consumes; pushed by hand because two of
 // that routine's callees can return by unwinding PAST it, straight back to here.
-const RETURN_FROM_STATE_MACHINE = 0x3233;
 
 /**
  * @param {object} m  the machine. The record pointer arrives in memory, not a register.
@@ -80,7 +85,7 @@ export function advanceFire(m) {
 
     mem8[field(OBJ_Y_OFFSET_INDEX)] = next;
     mem8[field(OBJ_X)] = mem8[field(OBJ_WORKING_X)];
-    mem8[field(OBJ_Y)] = mem8[Y_OFFSET_TABLE + next] + mem8[field(OBJ_WORKING_Y)];
+    mem8[field(OBJ_Y)] = mem8[FIRE_Y_OFFSET_TABLE + next] + mem8[field(OBJ_WORKING_Y)];
   }
 
   // The step was refused: undo the pixel just taken, reverse the heading, then let the girder-slope
@@ -151,7 +156,7 @@ export function advanceFire(m) {
   // The heading/collision state machine, dispatched by address. Two of its callees return by
   // unwinding past it to this exact point, so the call bracket is pushed by hand and execution
   // continues here whether it finished or bailed.
-  m.push16(RETURN_FROM_STATE_MACHINE);
+  m.push16(FIRE_STATE_MACHINE_RETURN);
   m.call(0x333d);
 
   stepMovement();

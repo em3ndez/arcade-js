@@ -18,13 +18,15 @@
  */
 
 import {
-  P1_CONTEXT,
-  P2_CONTEXT,
+  ACTIVE_PLAYER_INDEX,
   DIP_LIVES,
   GAME_STATE,
   GAME_SUBSTATE,
+  P1_CONTEXT,
+  P2_CONTEXT,
+  PLAYER_CONTEXT_TEMPLATE,
+  START_TASK_P2,
   TWO_PLAYER_GAME,
-  ACTIVE_PLAYER_INDEX,
 } from "./names.js";
 import { readStartButtonSelector } from "./readStartButtonSelector.js";
 import { spendCredit } from "./spendCredit.js";
@@ -34,18 +36,16 @@ import { enqueueTask } from "./enqueueTask.js";
 // 8-byte player context: byte 0 = starting lives, bytes 1-7 = the fixed template in program
 // memory, copied verbatim.
 const CONTEXT_BYTES = 0x08;
-const CONTEXT_TEMPLATE = 0x095e;
 const CONTEXT_TEMPLATE_BYTES = 0x07;
 
 // Both arms post opcode 0x01 with the player index as argument.
 const START_TASK_P1 = 0x0100; // opcode 0x01, argument 0x00
-const START_TASK_P2 = 0x0101; // opcode 0x01, argument 0x01
 
 function seedPlayerContext(m, base) {
   const { mem8 } = m;
   mem8[base] = mem8[DIP_LIVES];
   for (let i = 0; i < CONTEXT_TEMPLATE_BYTES; i++) {
-    mem8[base + 1 + i] = mem8[CONTEXT_TEMPLATE + i];
+    mem8[base + 1 + i] = mem8[PLAYER_CONTEXT_TEMPLATE + i];
   }
 }
 

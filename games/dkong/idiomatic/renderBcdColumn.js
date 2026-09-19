@@ -10,16 +10,18 @@
  * renderer. The prologue fixes the standard parameters, then falls into the shared loop.
  */
 import { expandBcdDigits } from "./expandBcdDigits.js";
+import {
+  BCD_RENDER_BYTE_COUNT,
+  VRAM_ROW_STEP_UP,
+} from "./names.js";
 
-const ROW_STEP = 0xffe0; //  -0x20: back one tilemap row per digit (draws up a column)
-const BYTE_COUNT = 0x0304; // 3 source bytes (six digits); the low byte is a dead marker
 
 export function renderBcdColumn(m) {
   const { regs } = m;
 
   regs.exDeHl();       // source pointer moves into the register the loop reads it from
-  regs.de = ROW_STEP;
-  regs.bc = BYTE_COUNT;
+  regs.de = VRAM_ROW_STEP_UP;
+  regs.bc = BCD_RENDER_BYTE_COUNT;
 
   expandBcdDigits(m);
 }

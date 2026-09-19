@@ -7,14 +7,16 @@
  * LIVE-OUT: memory-only — the six digit cells the renderer writes into video RAM.
  */
 import { renderBcdColumn } from "./renderBcdColumn.js"; // caller-column BCD renderer
+import {
+  P1_SCORE_COLUMN_BASE,
+  SCORE_VRAM_COLUMN_P2,
+} from "./names.js";
 
-const COLUMN_IF_ZERO = 0x7781;    // destination column when the selector is zero (video RAM)
-const COLUMN_IF_NONZERO = 0x7521; // destination column when the selector is nonzero (video RAM)
 
 export function loc_056b(m, selector = m.regs.a) {
   const { regs } = m;
 
-  regs.ix = selector === 0 ? COLUMN_IF_ZERO : COLUMN_IF_NONZERO;
+  regs.ix = selector === 0 ? P1_SCORE_COLUMN_BASE : SCORE_VRAM_COLUMN_P2;
 
   renderBcdColumn(m);
 }

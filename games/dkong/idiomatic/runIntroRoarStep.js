@@ -10,15 +10,15 @@
  */
 
 import {
-  SUBSTATE_TIMER,
+  GAME_SUBSTATE,
+  INTRO_STEP,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
-  INTRO_STEP,
-  GAME_SUBSTATE,
+  SPRITE_OBJ_REC4_CODE,
+  SUBSTATE_TIMER,
 } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
-const CUTSCENE_SPRITE_BYTE = 0x6919; // no shared name; kept as its own address
 
 const ROAR_MARK = 0x90; // countdown value at which the roar fires
 const LOWER_MARK = 0x18; // countdown value at which the sprite bump reverses
@@ -32,9 +32,9 @@ export function runIntroRoarStep(m) {
   if (countdown === ROAR_MARK) {
     mem8[SND_PRIORITY] = ROAR_TUNE;
     mem8[SND_PRIORITY_FRAMES] = PRIORITY_PULSE;
-    mem8[CUTSCENE_SPRITE_BYTE] = (mem8[CUTSCENE_SPRITE_BYTE] + 1);
+    mem8[SPRITE_OBJ_REC4_CODE] = (mem8[SPRITE_OBJ_REC4_CODE] + 1);
   } else if (countdown === LOWER_MARK) {
-    mem8[CUTSCENE_SPRITE_BYTE] = (mem8[CUTSCENE_SPRITE_BYTE] - 1);
+    mem8[SPRITE_OBJ_REC4_CODE] = (mem8[SPRITE_OBJ_REC4_CODE] - 1);
   }
 
   if (!tickSubstateTimer(m)) return;

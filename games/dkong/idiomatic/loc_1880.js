@@ -14,7 +14,15 @@ import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 import { addStrided } from "./addStrided.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 import { loc_1826 } from "../translated/loc_1826.js";
-import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./names.js";
+import {
+  BOARD_ADVANCE_STEP,
+  CUTSCENE_SPRITE_RECORD_2,
+  INTERLUDE_LAYOUT_SEGMENT_TABLE,
+  INTERLUDE_TILE_BLOCK_TOPLEFT,
+  SND_TRIGGER,
+  SPRITE_BUFFER,
+  SPRITE_OBJ_BLOCK,
+} from "./names.js";
 
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // field +3 (Y) of sprite-object record 0
 const DESCEND_STEP = 0x01; // +1 into the Y column each frame (slide the block down)
@@ -24,10 +32,7 @@ const LANDED_Y = 0xd0; // the Y at which the block has finished descending
 const REC4_CODE = SPRITE_OBJ_BLOCK + 0x11; // record 4's sprite-code byte
 const REC4_CODE_VALUE = 0x20;
 
-const OBJ_RECORD = 0x6a24; // the staged 4-byte object record
 
-const TILE_FILL_DST = 0x76c6; // start of the 5×14 descending tile fill
-const SEGMENT_TABLE = 0x3a5f; // this scene's line-segment table
 
 const SPRITE_BUF_Y = SPRITE_BUFFER + 3; // field +3 (Y) of sprite-buffer record 0
 const SPRITE_BUF_STRIDE = 0x04; // one 4-byte sprite record
@@ -49,15 +54,15 @@ export function loc_1880(m) {
 
   mem8[REC4_CODE] = REC4_CODE_VALUE;
 
-  mem8[OBJ_RECORD + 0] = 0x7f;
-  mem8[OBJ_RECORD + 1] = 0x39;
-  mem8[OBJ_RECORD + 2] = 0x01;
-  mem8[OBJ_RECORD + 3] = 0xd8;
+  mem8[CUTSCENE_SPRITE_RECORD_2 + 0] = 0x7f;
+  mem8[CUTSCENE_SPRITE_RECORD_2 + 1] = 0x39;
+  mem8[CUTSCENE_SPRITE_RECORD_2 + 2] = 0x01;
+  mem8[CUTSCENE_SPRITE_RECORD_2 + 3] = 0xd8;
 
-  regs.hl = TILE_FILL_DST; // the fill start, read live-in by the fill
+  regs.hl = INTERLUDE_TILE_BLOCK_TOPLEFT; // the fill start, read live-in by the fill
   loc_1826(m);
 
-  regs.de = SEGMENT_TABLE; // the table base, read live-in by the draw
+  regs.de = INTERLUDE_LAYOUT_SEGMENT_TABLE; // the table base, read live-in by the draw
   drawBoardLayout(m);
 
   addStrided(m, SPRITE_BUF_Y_SHIFT, SPRITE_BUF_STRIDE, SPRITE_BUF_COUNT, SPRITE_BUF_Y);

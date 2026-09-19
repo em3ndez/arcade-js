@@ -24,6 +24,8 @@
 
 import { u8 } from "../../../core/int.js";
 import {
+  AIRBORNE_OVERLAP_SEARCH_RETURN,
+  AIRBORNE_PROBE_RETURN,
   EFFECT_SELECT,
   EFFECT_STATE,
   ITEM_COLLECTED,
@@ -40,13 +42,11 @@ const LAND_CHECK_TRIGGER_FRAME = 20;
 
 // Continuations placed on the guest stack before calls that return back through this routine;
 // dropping either push unwinds the callee two bytes off.
-const PROBE_RETURN = 0x1c08;
-const OVERLAP_SEARCH_RETURN = 0x1c23;
 
 export function loc_1c05(m) {
   const { regs, mem8 } = m;
 
-  m.push16(PROBE_RETURN);
+  m.push16(AIRBORNE_PROBE_RETURN);
   m.call(0x2b1c);
   const probeVerdict = regs.a;
 
@@ -63,7 +63,7 @@ export function loc_1c05(m) {
 
   // Trigger frame: arm the fall-height test, then run the overlap search once.
   mem8[MARIO_AIR_LANDCHECK] = 1;
-  m.push16(OVERLAP_SEARCH_RETURN);
+  m.push16(AIRBORNE_OVERLAP_SEARCH_RETURN);
   searchPlayerObjectOverlap(m);
   const severity = regs.a;
 

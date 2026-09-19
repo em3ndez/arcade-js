@@ -9,22 +9,34 @@
  * LIVE-OUT: memory only.
  */
 
-import { MARIO_X, LEVEL, SND_PRIORITY, SND_PRIORITY_FRAMES, BOARD, BOARD_SEQ_PTR, HOW_HIGH_INDEX, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD_ADVANCE_STEP, MARIO_SPRITE_RECORD } from "./names.js";
+import {
+  BOARD,
+  BOARD_ADVANCE_STEP,
+  BOARD_SEQ_PTR,
+  CUTSCENE_SPRITE_2_CODE,
+  CUTSCENE_SPRITE_RECORD,
+  GAME_SUBSTATE,
+  HOW_HIGH_INDEX,
+  LEVEL,
+  MARIO_SPRITE_RECORD,
+  MARIO_SPRITE_Y,
+  MARIO_X,
+  SND_PRIORITY,
+  SND_PRIORITY_FRAMES,
+  SPRITE_OBJ_REC4_CODE,
+  SUBSTATE_TIMER,
+} from "./names.js";
 import { nextAnimationStep } from "./nextAnimationStep.js";
 import { enqueueTask } from "./enqueueTask.js";
 
 const FINALE_PACE_COUNTER = 0x62af;
 
-const FINALE_BLINK_FLAG = 0x6a25;
-const FINALE_ANIM_FLAG = 0x6919;
 const FINALE_BLINK_BIT = 0x80;
 const FINALE_ANIM_BIT = 0x20;
 
 const CUTSCENE_SPRITE_X = MARIO_SPRITE_RECORD;
 const CUTSCENE_SPRITE_CODE = 0x694d;
-const CUTSCENE_SPRITE_Y = 0x694f;
 
-const FINALE_OBJECT_RECORD = 0x6a20;
 const FINALE_OBJECT_BYTE0_LEFT = 0x6f;
 
 const STAGE_AT = 0xe0;
@@ -47,13 +59,13 @@ export function runRivetBoardFinaleThenAdvanceLevel(m) {
 
   if ((counter & 0x07) !== 0) return;
 
-  mem8[FINALE_BLINK_FLAG] = mem8[FINALE_BLINK_FLAG] ^ FINALE_BLINK_BIT;
-  const animInput = mem8[FINALE_ANIM_FLAG] & ~FINALE_ANIM_BIT & 0xff;
+  mem8[CUTSCENE_SPRITE_2_CODE] = mem8[CUTSCENE_SPRITE_2_CODE] ^ FINALE_BLINK_BIT;
+  const animInput = mem8[SPRITE_OBJ_REC4_CODE] & ~FINALE_ANIM_BIT & 0xff;
   const sel = nextAnimationStep(0x00, animInput);
-  mem8[FINALE_ANIM_FLAG] = sel.a | FINALE_ANIM_BIT;
+  mem8[SPRITE_OBJ_REC4_CODE] = sel.a | FINALE_ANIM_BIT;
 
   if (counter === STAGE_AT) {
-    mem8[CUTSCENE_SPRITE_Y] = 0x50;
+    mem8[MARIO_SPRITE_Y] = 0x50;
     if (mem8[MARIO_X] < SCREEN_MIDPOINT) {
       mem8[CUTSCENE_SPRITE_CODE] = 0x80;
       mem8[CUTSCENE_SPRITE_X] = 0x5f;
@@ -67,12 +79,12 @@ export function runRivetBoardFinaleThenAdvanceLevel(m) {
 
   mem8[SND_PRIORITY] = mem8[LEVEL] & 0x01 ? 0x0c : 0x05;
   mem8[SND_PRIORITY_FRAMES] = 0x03;
-  mem8[FINALE_OBJECT_RECORD + 0] = 0x8f;
-  mem8[FINALE_OBJECT_RECORD + 1] = 0x76;
-  mem8[FINALE_OBJECT_RECORD + 2] = 0x09;
-  mem8[FINALE_OBJECT_RECORD + 3] = 0x40;
+  mem8[CUTSCENE_SPRITE_RECORD + 0] = 0x8f;
+  mem8[CUTSCENE_SPRITE_RECORD + 1] = 0x76;
+  mem8[CUTSCENE_SPRITE_RECORD + 2] = 0x09;
+  mem8[CUTSCENE_SPRITE_RECORD + 3] = 0x40;
   if (mem8[MARIO_X] < SCREEN_MIDPOINT) {
-    mem8[FINALE_OBJECT_RECORD] = FINALE_OBJECT_BYTE0_LEFT;
+    mem8[CUTSCENE_SPRITE_RECORD] = FINALE_OBJECT_BYTE0_LEFT;
   }
 }
 

@@ -11,14 +11,18 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_Y, MARIO_CLIMB_LIMIT_A, MARIO_CLIMB_LIMIT_B } from "./names.js";
+import {
+  CLIMB_CENTERING_PHASE,
+  MARIO_CLIMB_LIMIT_A,
+  MARIO_CLIMB_LIMIT_B,
+  MARIO_Y,
+} from "./names.js";
 import { centerMarioAndCommitClimbStep } from "./centerMarioAndCommitClimbStep.js";
 import { endClimbAtLadderLimit } from "./endClimbAtLadderLimit.js";
 import { setClimbSpriteFrame } from "./setClimbSpriteFrame.js";
 
 // Two-phase ladder-centering toggle: flips 0<->1 each step and gates which arm runs. File-local:
 // another routine writes the same byte for an unrelated purpose.
-const CENTERING_PHASE = 0x6222;
 
 export function advanceClimbStep(m, climbStep) {
   const { mem8 } = m;
@@ -26,8 +30,8 @@ export function advanceClimbStep(m, climbStep) {
   const newY = u8(mem8[MARIO_Y] + climbStep);
   mem8[MARIO_Y] = newY;
 
-  const phase = mem8[CENTERING_PHASE] ^ 1;
-  mem8[CENTERING_PHASE] = phase;
+  const phase = mem8[CLIMB_CENTERING_PHASE] ^ 1;
+  mem8[CLIMB_CENTERING_PHASE] = phase;
   if (phase !== 0) {
     centerMarioAndCommitClimbStep(m);
     return;

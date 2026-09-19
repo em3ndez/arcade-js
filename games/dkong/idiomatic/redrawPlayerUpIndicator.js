@@ -7,12 +7,16 @@
  *
  * LIVE-OUT: memory-only.
  */
-import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "./names.js";
+import {
+  CURRENT_PLAYER,
+  FRAME,
+  TWO_PLAYER_GAME,
+  VRAM_ROW_STEP_UP,
+} from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 import { selectPlayerIndicatorColumnBase } from "./selectPlayerIndicatorColumnBase.js";
 
 // −32 columns: one screen row back in the 32-wide tilemap.
-const ROW_BACK = 0xffe0;
 
 export function redrawPlayerUpIndicator(m) {
   const { mem8 } = m;
@@ -29,9 +33,9 @@ export function redrawPlayerUpIndicator(m) {
     // Blink OFF phase: blank the current player's three cells.
     let addr = colBase;
     mem8[addr] = 0x10;
-    addr = (addr + ROW_BACK) & 0xffff;
+    addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
     mem8[addr] = 0x10;
-    addr = (addr + ROW_BACK) & 0xffff;
+    addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
     mem8[addr] = 0x10;
 
     if (mem8[TWO_PLAYER_GAME] === 0) return;
@@ -42,8 +46,8 @@ export function redrawPlayerUpIndicator(m) {
 
   let addr = colBase;
   mem8[addr] = (selector + 1);
-  addr = (addr + ROW_BACK) & 0xffff;
+  addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
   mem8[addr] = 0x25;
-  addr = (addr + ROW_BACK) & 0xffff;
+  addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
   mem8[addr] = 0x20;
 }

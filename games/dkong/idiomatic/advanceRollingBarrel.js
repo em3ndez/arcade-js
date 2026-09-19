@@ -12,7 +12,11 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_X, OBJ_Y } from "./names.js";
+import {
+  BARREL_ROLL_GATE_RETURN,
+  OBJ_X,
+  OBJ_Y,
+} from "./names.js";
 import { snapYToGirder } from "./snapYToGirder.js";
 import { advanceBarrelSpriteOrientation } from "./advanceBarrelSpriteOrientation.js";
 
@@ -34,7 +38,6 @@ const SNAP_OFFSET = 3;
 
 // Return address for the bottom-of-playfield gate, which consumes it on the arm where it takes the
 // walk over.
-const GATE_RETURN = 0x2017;
 
 export function advanceRollingBarrel(
   m,
@@ -60,7 +63,7 @@ export function advanceRollingBarrel(
   advanceBarrelSpriteOrientation(m);
 
   // On its own last arm the gate discards this return address and carries the walk on itself.
-  m.push16(GATE_RETURN);
+  m.push16(BARREL_ROLL_GATE_RETURN);
   if (!m.call(0x24b4)) return;
 
   // Re-read X: the gate writes that field itself, though only on the arm that never comes back.

@@ -8,21 +8,21 @@
  */
 
 import {
-  DIP_LIVES,
   DIP_BONUS_LIFE,
   DIP_COINS_FOR_1P,
   DIP_COINS_FOR_2P,
   DIP_COINS_PER_CREDIT,
   DIP_CREDITS_PER_COIN,
+  DIP_LIVES,
   DIP_UPRIGHT,
+  OPTION_TABLE_BASE,
+  OPTION_TABLE_ROM,
 } from "./names.js";
 
 const DSW0 = 0x7d80; // board port, not work RAM
 
 const BONUS_LIFE_BCD = [0x07, 0x10, 0x15, 0x20];
 
-const OPTION_TABLE_ROM = 0x3565;
-const OPTION_TABLE_DEST = 0x6100;
 const OPTION_TABLE_LEN = 0xaa;
 
 export function decodeDipSwitches(m) {
@@ -57,6 +57,6 @@ export function decodeDipSwitches(m) {
   mem8[DIP_UPRIGHT] = dsw0 & 0x80 ? 0x01 : 0x00;
 
   for (let i = 0; i < OPTION_TABLE_LEN; i++) {
-    mem8[OPTION_TABLE_DEST + i] = mem8[OPTION_TABLE_ROM + i];
+    mem8[OPTION_TABLE_BASE + i] = mem8[OPTION_TABLE_ROM + i];
   }
 }
