@@ -10,27 +10,27 @@
  */
 
 import {
+  ANIM_PACE_COUNTER,
   BARREL_CLAIM_MODE,
+  loc_638f,
   SPRITE_OBJ_ANIM_FRAME_TABLE,
 } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { loc_2d51 } from "./loc_2d51.js";
 import { loc_2d83 } from "./loc_2d83.js";
 
-const FRAME_GATE = 0x62af;
-const ANIM_COUNTER = 0x638f;
 const RECORD_STRIDE = 40;      // bytes per table record (ten sprite records of four bytes)
 
 export function advanceBarrelRelease(m) {
   const { regs, mem8 } = m;
 
-  const gate = (mem8[FRAME_GATE] - 1) & 0xff;
-  mem8[FRAME_GATE] = gate;
+  const gate = (mem8[ANIM_PACE_COUNTER] - 1) & 0xff;
+  mem8[ANIM_PACE_COUNTER] = gate;
   if (gate !== 0) return;
 
-  mem8[FRAME_GATE] = 0x18;
+  mem8[ANIM_PACE_COUNTER] = 0x18;
 
-  const counter = mem8[ANIM_COUNTER];
+  const counter = mem8[loc_638f];
   if (counter === 0) return loc_2d51(m);
 
   // bit0 of the slot-claim mode selects the record: the sub-counter itself, or one less.
@@ -42,11 +42,11 @@ export function advanceBarrelRelease(m) {
 
   loadSpriteObjectBlock(m, source);
 
-  const stepped = (mem8[ANIM_COUNTER] - 1) & 0xff;
-  mem8[ANIM_COUNTER] = stepped;
+  const stepped = (mem8[loc_638f] - 1) & 0xff;
+  mem8[loc_638f] = stepped;
   if (stepped !== 0) return loc_2d51(m);
 
-  mem8[FRAME_GATE] = 0x01;
+  mem8[ANIM_PACE_COUNTER] = 0x01;
   if ((mem8[BARREL_CLAIM_MODE] & 0x01) !== 0) return loc_2d83(m);
   return loc_2d51(m);
 }

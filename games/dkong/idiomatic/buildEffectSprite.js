@@ -8,6 +8,7 @@
  */
 
 import {
+  FIRE_SPRITES,
   OBJ_65A0_SPRITES,
   COLLIDED_OBJECT_BASE,
   COLLIDED_OBJECT_STRIDE,
@@ -31,7 +32,7 @@ export function buildEffectSprite(m) {
   const arrayPage = mem8[COLLIDED_OBJECT_BASE + 1]; // high byte of the 16-bit base
   let sourceBase;
   if (arrayPage === 0x65) sourceBase = OBJ_65A0_SPRITES; // page-0x65 array
-  else if (arrayPage < 0x65) sourceBase = 0x69d0;   // a lower-page array
+  else if (arrayPage < 0x65) sourceBase = FIRE_SPRITES;   // a lower-page array
   else sourceBase = ACTOR_SPRITES;                  // a higher-page array (the barrels)
 
   const index = mem8[COLLIDED_OBJECT_INDEX];

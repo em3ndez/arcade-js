@@ -13,7 +13,7 @@
 
 import { boardBitGate } from "./boardBitGate.js";
 import { enqueueTask } from "./enqueueTask.js";
-import { BONUS_TICK, BONUS_PERIOD, BONUS, BONUS_EXPIRED_STEP, SPAWN_REQUEST } from "./names.js";
+import { BONUS_TICK, BONUS_PERIOD, BONUS, BONUS_EXPIRED_STEP, SPAWN_REQUEST, FIXED_HAZARD_PHASE } from "./names.js";
 
 export function tickTimedBoardBonus(m) {
   const { mem8 } = m;
@@ -26,7 +26,7 @@ export function tickTimedBoardBonus(m) {
   if (tick !== 0) return;
 
   // Period elapsed: post the spawn request in the two cells that carry it together, enqueue a task.
-  mem8[0x62b9] = 3; // bookkeeping byte that moves with the spawn request
+  mem8[FIXED_HAZARD_PHASE] = 3; // bookkeeping byte that moves with the spawn request
   mem8[SPAWN_REQUEST] = 3;
   enqueueTask(m, 0x05, 0x01);
 

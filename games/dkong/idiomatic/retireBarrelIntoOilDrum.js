@@ -5,7 +5,7 @@
  * Three gates each return true and leave everything alone: OBJ_Y must have reached BOTTOM_ROW
  * (larger Y is lower), and OBJ_X must lie inside the column band. Past them the slot is freed
  * (OBJ_ACTIVE, OBJ_X zeroed), the impact sound is asserted, and two latches are armed: the alternate
- * kind sets PHASE_BITS to arm a later fire release, and BARREL_DIFFICULTY_LATCH one-way-switches into the
+ * kind sets FIXED_HAZARD_PHASE to arm a later fire release, and BARREL_DIFFICULTY_LATCH one-way-switches into the
  * difficulty-graded behaviour on the first firing. The record base arrives in the index register,
  * not as a parameter. Returns false when retired (control has left; caller's remaining code must not
  * run), true when it returned normally.
@@ -15,6 +15,7 @@
 
 import {
   BARREL_DIFFICULTY_LATCH,
+  FIXED_HAZARD_PHASE,
   OBJ_ACTIVE,
   OBJ_X,
   OBJ_Y,
@@ -33,9 +34,8 @@ const BAND_HI = 42;
 const IMPACT_SOUND = SND_TRIGGER + 2;
 const SOUND_FRAMES = 3;
 
-// Phase byte the fixed-hazard machine dispatches on. File-local. Bit 0 lets its body run; bit 1
+// Phase byte the fixed-hazard machine dispatches on. Bit 0 lets its body run; bit 1
 // selects the second arm, whose countdown underflow raises the object-insert request.
-const PHASE_BITS = 0x62b9;
 const PHASE_CONTINUE = 1;
 const PHASE_SECOND_ARM = 2;
 
@@ -52,7 +52,7 @@ export function retireBarrelIntoOilDrum(m, ix = m.regs.ix) {
   if (column < BAND_LO) return true;
 
   // Only the alternate kind arms the phase byte, and it does so before the record is torn down.
-  if (mem8[record + OBJ_KIND] !== 0) mem8[PHASE_BITS] = PHASE_CONTINUE | PHASE_SECOND_ARM;
+  if (mem8[record + OBJ_KIND] !== 0) mem8[FIXED_HAZARD_PHASE] = PHASE_CONTINUE | PHASE_SECOND_ARM;
 
   mem8[record + OBJ_ACTIVE] = 0;
   mem8[record + OBJ_X] = 0;

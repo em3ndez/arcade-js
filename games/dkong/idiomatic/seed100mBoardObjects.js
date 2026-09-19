@@ -10,7 +10,15 @@
  * sprite records. It returns into a caller that reloads every register.
  */
 
-import { OBJECT_COLLISION_SPRITES } from "./names.js";
+import {
+  FIRE_RECORDS_100M,
+  FIRE_RECORDS_100M_CODE,
+  FIRE_RECORDS_100M_X,
+  M100_FIRE_SPRITE_PAIR,
+  OBJ_ARRAY_64,
+  OBJ_SPRITE_CODE,
+  OBJECT_COLLISION_SPRITES,
+} from "./names.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
@@ -22,7 +30,7 @@ export function seed100mBoardObjects(m) {
   const { regs, mem8 } = m;
 
   regs.hl = 0x3df0; // source group, re-read every pass
-  regs.de = 0x6407; // destination record base
+  regs.de = (OBJ_ARRAY_64 + OBJ_SPRITE_CODE); // destination record base
   regs.bc = 0x051c; // five records; the stride argument is four short of the record stride
   replicateGroupStrided(m);
 
@@ -38,19 +46,19 @@ export function seed100mBoardObjects(m) {
   }
 
   regs.hl = 0x1182; // the position table, laid down just after the routine body
-  regs.de = 0x64a3; // destination: the first record's +3
+  regs.de = FIRE_RECORDS_100M_X; // destination: the first record's +3
   regs.bc = 0x021e; // two records
   copyBytePairsStrided(m);
 
   regs.hl = 0x117e; // the appearance group
-  regs.de = 0x64a7; // destination: the first record's +7
+  regs.de = FIRE_RECORDS_100M_CODE; // destination: the first record's +7
   regs.bc = 0x021c; // two records
   replicateGroupStrided(m);
 
-  regs.ix = 0x64a0;
+  regs.ix = FIRE_RECORDS_100M;
   mem8[(regs.ix + 0x00) & 0xffff] = 0x01;
   mem8[(regs.ix + 0x20) & 0xffff] = 0x01; // the second record, one stride on
-  regs.hl = 0x6950; // sprite-record destination
+  regs.hl = M100_FIRE_SPRITE_PAIR; // sprite-record destination
   regs.b = 0x02; // two records
   regs.de = 0x0020; // per-record source stride
   gatherSpriteRecords(m);

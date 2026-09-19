@@ -11,7 +11,9 @@
 import {
   EVENT_REQ_313C,
   FIXED_HAZARD_ARM_COUNTER,
+  FIXED_HAZARD_PHASE,
   FIXED_HAZARD_PRESCALER,
+  HIT_EFFECT_LATCH,
   OBJ_66A0_SPRITE_CODE,
   OBJ_HIT_EXTENT_X,
   OBJ_HIT_EXTENT_Y,
@@ -22,8 +24,6 @@ import { marioActiveGuard } from "./marioActiveGuard.js";
 import { loc_03f2 } from "./loc_03f2.js";
 
 const BOARD_MASK = 0x03;   // applicability mask for the board test: bit0 25m, bit1 50m
-const EVENT_GATE = 0x6350; // bit0 SET -> skip this pass
-const PHASE_BITS = 0x62b9; // bit0 SET -> continue; bit1 selects the sprite arm
 const SPRITE_BYTE_A = 0x40; // the sprite byte on the bit1-clear arm
 const SPRITE_BYTE_B = 0x42; // the sprite byte on the bit1-set arm
 
@@ -35,14 +35,14 @@ export function animateFixedHazardAndReleaseFire(m) {
 
   if (!marioActiveGuard(m)) return; // Mario dead -> skip
 
-  if ((mem8[EVENT_GATE] & 0x01) !== 0) return;
+  if ((mem8[HIT_EFFECT_LATCH] & 0x01) !== 0) return;
 
   const dec = (mem8[FIXED_HAZARD_PRESCALER] - 1) & 0xff;
   mem8[FIXED_HAZARD_PRESCALER] = dec;
   if (dec !== 0) return;
 
   mem8[FIXED_HAZARD_PRESCALER] = 0x04;
-  const phase = mem8[PHASE_BITS];
+  const phase = mem8[FIXED_HAZARD_PHASE];
 
   if ((phase & 0x01) === 0) return;
 
@@ -59,7 +59,7 @@ export function animateFixedHazardAndReleaseFire(m) {
     mem8[FIXED_HAZARD_ARM_COUNTER] = decB;
     if (decB !== 0) return;
 
-    mem8[PHASE_BITS] = 0x01;
+    mem8[FIXED_HAZARD_PHASE] = 0x01;
     mem8[EVENT_REQ_313C] = 0x01;
   }
 

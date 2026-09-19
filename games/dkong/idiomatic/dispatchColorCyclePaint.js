@@ -7,12 +7,11 @@
  *
  * LIVE-OUT: memory-only, all written by the chosen painter.
  */
-import { BOARD } from "./names.js";
+import { BOARD, ANIM_STEP_COUNTER } from "./names.js";
 import { runRivetColorCycleBlink } from "./runRivetColorCycleBlink.js";
 import { paintColorColumnWithLowCode } from "./paintColorColumnWithLowCode.js";
 import { paintColorColumnAndHoldBlink } from "./paintColorColumnAndHoldBlink.js";
 
-const SWEEP_COUNTER = 0x6390;
 const RIVET_BOARD = 4;
 const ROW_STRIDE = 0x20;
 const SWEEP_PHASE_BIT = 0x40;
@@ -21,7 +20,7 @@ const HIGH_COLOR_CODE = 0xef;
 export function dispatchColorCyclePaint(m) {
   const { regs, mem8 } = m;
 
-  const sweepPhase = mem8[SWEEP_COUNTER];
+  const sweepPhase = mem8[ANIM_STEP_COUNTER];
   regs.c = sweepPhase;
   regs.de = ROW_STRIDE;
 

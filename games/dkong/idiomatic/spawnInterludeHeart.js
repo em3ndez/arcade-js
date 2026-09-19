@@ -9,14 +9,13 @@
 
 import {
   BLINK_COLOR_COLUMN_TOP,
+  BLINK_SPRITE_CODE,
   CUTSCENE_SPRITE_RECORD,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
 } from "./names.js";
 import { silenceSound } from "./silenceSound.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
-
-const BLINK_SPRITE_CODE = 0x6905;  // blink-sprite code the colour cycle toggles
 
 export function spawnInterludeHeart(m) {
   const { regs, mem8 } = m;

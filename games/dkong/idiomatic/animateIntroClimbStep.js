@@ -10,9 +10,8 @@
 
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js";
 import { scrollClimbGraphicStep } from "./scrollClimbGraphicStep.js";
-import { SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK } from "./names.js";
+import { SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK, ANIM_PACE_COUNTER } from "./names.js";
 
-const TICK_COUNTER = 0x62af; // cutscene's private 1-in-16 tick counter; no shared name
 const CLIMBER_Y = SPRITE_OBJ_BLOCK + 3; // record 0's Y byte — the climbing figure
 
 export function animateIntroClimbStep(m) {
@@ -20,7 +19,7 @@ export function animateIntroClimbStep(m) {
 
   animateSpriteObjectBlock(m);
 
-  if ((mem8[TICK_COUNTER] & 0x0f) === 0) {
+  if ((mem8[ANIM_PACE_COUNTER] & 0x0f) === 0) {
     scrollClimbGraphicStep(m);
   }
 

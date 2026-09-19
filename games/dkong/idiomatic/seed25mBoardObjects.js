@@ -8,7 +8,7 @@
  */
 
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
-import { OBJ_ARRAY_64, OBJ_ARRAY_67, BONUS_COUNTDOWN_SPRITES } from "./names.js";
+import { OBJ_ARRAY_64, OBJ_ARRAY_67, OBJ_ARRAY_67_PAGE68, BONUS_COUNTDOWN_SPRITES, loc_69fc } from "./names.js";
 import { loc_11fa } from "./loc_11fa.js";
 import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
 
@@ -28,7 +28,7 @@ export function seed25mBoardObjects(m) {
 
   loc_11fa(m, 0x3df4);
 
-  blockCopy(mem8, 0x3e00, 0x69fc, 0x04);
+  blockCopy(mem8, 0x3e00, loc_69fc, 0x04);
 
   regs.hl = 0x3e0c; // seedSpriteObjectPair reads its position-table pointer from hl
   seedSpriteObjectPair(m);
@@ -37,5 +37,5 @@ export function seed25mBoardObjects(m) {
   replicateGroupStrided(m, 0x101b, 0x1c, OBJ_ARRAY_67, 0x08, 0x07);
 
   // same src/stride, next dest page; 2 records
-  replicateGroupStrided(m, 0x101b, 0x1c, 0x6800, 0x02, 0x07);
+  replicateGroupStrided(m, 0x101b, 0x1c, OBJ_ARRAY_67_PAGE68, 0x02, 0x07);
 }

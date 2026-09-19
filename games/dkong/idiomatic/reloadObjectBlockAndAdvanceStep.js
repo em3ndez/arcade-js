@@ -11,9 +11,8 @@ import {
   BOARD_ADVANCE_STEP,
   SPRITE_OBJECT_BLOCK_TEMPLATE,
   SPRITE_OBJ_BLOCK,
+  ANIM_PACE_COUNTER,
 } from "./names.js";
-
-const BOARD_OBJECT_SCRATCH = 0x62af;
 
 export function reloadObjectBlockAndAdvanceStep(m) {
   const { regs, mem8 } = m;
@@ -25,7 +24,7 @@ export function reloadObjectBlockAndAdvanceStep(m) {
   mem8[SPRITE_OBJ_BLOCK + 0x1c] = 0x00;
   mem8[SPRITE_OBJ_BLOCK + 0x24] = 0x00;
 
-  mem8[BOARD_OBJECT_SCRATCH] = 0x00;
+  mem8[ANIM_PACE_COUNTER] = 0x00;
 
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

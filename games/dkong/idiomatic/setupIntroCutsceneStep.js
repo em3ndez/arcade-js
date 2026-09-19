@@ -15,6 +15,7 @@ import {
   INTRO_STEP,
   INTRO_WALK_PTR_A,
   INTRO_WALK_PTR_B,
+  ANIM_PACE_COUNTER,
   PALETTE_BANK_BIT0,
   PALETTE_BANK_BIT1,
   SUBSTATE_TIMER,
@@ -22,10 +23,6 @@ import {
 import { drawBoardLayout } from "./drawBoardLayout.js";
 
 // Palette-bank select latch — a board output, not work RAM.
-
-
-
-const CUTSCENE_BOOKKEEPING = 0x62af;
 
 export function setupIntroCutsceneStep(m) {
   const { regs, mem, mem8, mem16 } = m;
@@ -40,7 +37,7 @@ export function setupIntroCutsceneStep(m) {
   mem8[INTRO_CUTSCENE_TILE_B] = 0x10;
   mem8[INTRO_CUTSCENE_TILE_C] = 0xd4;
 
-  mem8[CUTSCENE_BOOKKEEPING] = 0x00;
+  mem8[ANIM_PACE_COUNTER] = 0x00;
 
   mem16[INTRO_WALK_PTR_A] = 0x38b4;
   mem16[INTRO_WALK_PTR_B] = 0x38cb;

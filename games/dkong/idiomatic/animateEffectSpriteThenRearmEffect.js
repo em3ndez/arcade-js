@@ -16,6 +16,7 @@ import {
   EFFECT_PARAM_PTR,
   EFFECT_SPRITE,
   SPRITE_CODE,
+  HIT_EFFECT_LATCH,
 } from "./names.js";
 
 const EFFECT_SPRITE_CELL = EFFECT_SPRITE + SPRITE_CODE;
@@ -33,7 +34,7 @@ export function animateEffectSpriteThenRearmEffect(m) {
 
   if (outer === 0) {
     mem8[EFFECT_SEQ_STATE] = 0; // back to the start of the effect-sequence dispatch
-    mem8[0x6350] = 0; // the shared engine scratch that gates the per-frame cascade
+    mem8[HIT_EFFECT_LATCH] = 0; // the shared engine scratch that gates the per-frame cascade
     mem8[EFFECT_STATE] = 1; // re-arm the parent effect state machine
     mem16[EFFECT_PARAM_PTR] = EFFECT_SPRITE; // param pointer back to the sprite record base
     return;

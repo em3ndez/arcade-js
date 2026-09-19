@@ -13,10 +13,9 @@ import { marioActiveGuard } from "./marioActiveGuard.js";
 import { loc_2c7b } from "./loc_2c7b.js";
 import { loc_2c86 } from "./loc_2c86.js";
 import { loc_2c41 } from "./loc_2c41.js";
-import { BONUS_START, BONUS, DIFFICULTY, FRAME, SPIN_COUNT, BARREL_CLAIM_MODE } from "./names.js";
+import { BONUS_START, BONUS, DIFFICULTY, FRAME, SPIN_COUNT, BARREL_CLAIM_MODE, loc_6393 } from "./names.js";
 
 const BOARD_MASK = 0x01;   // board-test mask: bit 0 = 25m only
-const EVENT_GATE = 0x6393; // bit 0 set -> skip this pass
 
 export function scheduleBarrelRelease(m) {
   const { regs, mem8 } = m;
@@ -26,7 +25,7 @@ export function scheduleBarrelRelease(m) {
 
   if (!marioActiveGuard(m)) return;
 
-  if ((mem8[EVENT_GATE] & 0x01) !== 0) return;
+  if ((mem8[loc_6393] & 0x01) !== 0) return;
 
   const bonus = mem8[BONUS];
   if (bonus === 0) return;

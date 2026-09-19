@@ -22,6 +22,10 @@ import {
   MARIO_ACTIVE,
   BOARD_OBJ_SCRATCH,
   TOP_SPRITES,
+  MARIO_STATE_CLEAR_END,
+  BOARD_STATE_CLEAR_END,
+  loc_6209,
+  loc_620a,
 } from "./names.js";
 
 const BOARD_SETUP = {
@@ -34,8 +38,8 @@ const BOARD_SETUP = {
 export function initBoardState(m) {
   const { mem8 } = m;
 
-  for (let a = MARIO_ACTIVE; a <= 0x6226; a++) mem8[a] = 0x00;
-  for (let a = BOARD_OBJ_SCRATCH; a < 0x6b00; a++) mem8[a] = 0x00;
+  for (let a = MARIO_ACTIVE; a <= MARIO_STATE_CLEAR_END; a++) mem8[a] = 0x00;
+  for (let a = BOARD_OBJ_SCRATCH; a < BOARD_STATE_CLEAR_END; a++) mem8[a] = 0x00;
 
   for (let i = 0; i < 0x40; i++) mem8[BOARD_OBJ_SCRATCH + i] = mem8[0x3d9c + i];
 
@@ -50,8 +54,8 @@ export function initBoardState(m) {
   mem8[BONUS_PERIOD] = period;
   mem8[BONUS_TICK] = period;
 
-  mem8[0x6209] = 0x04;
-  mem8[0x620a] = 0x08;
+  mem8[loc_6209] = 0x04;
+  mem8[loc_620a] = 0x08;
 
   // Bit 2 is set only for BOARD 4 (100m rivet), which skips the top sprites.
   const board = mem8[BOARD];

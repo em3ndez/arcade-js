@@ -11,7 +11,7 @@
  * the board-object bookkeeping marker.
  */
 
-import { OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJ_65A0_SPRITES, OBJECT_COLLISION_SPRITES } from "./names.js";
+import { OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJ_65A0_SPRITES, OBJECT_COLLISION_SPRITES, loc_69fc, loc_6944, M50_OBJ1_SPRITE_PAIR_BASE, FIXED_HAZARD_PHASE } from "./names.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
@@ -39,13 +39,13 @@ export function seed50mBoardObjects(m) {
 
   loc_11fa(m, 0x3dfa);
 
-  copyBlock(mem8, 0x3e04, 0x69fc, 0x0004);
-  copyBlock(mem8, 0x3e1c, 0x6944, 0x0008);
-  copyBlock(mem8, 0x3e24, 0x69e4, 0x0018);
+  copyBlock(mem8, 0x3e04, loc_69fc, 0x0004);
+  copyBlock(mem8, 0x3e1c, loc_6944, 0x0008);
+  copyBlock(mem8, 0x3e24, M50_OBJ1_SPRITE_PAIR_BASE, 0x0018);
 
   regs.hl = 0x3e10; // seedSpriteObjectPair reads its position-table pointer from hl
   seedSpriteObjectPair(m);
 
   copyBlock(mem8, 0x3e3c, OBJECT_COLLISION_SPRITES, 0x000c); // 3 collision records (stride 4)
-  mem8[0x62b9] = 0x01; // board-object bookkeeping: this board is set up
+  mem8[FIXED_HAZARD_PHASE] = 0x01; // board-object bookkeeping: this board is set up
 }

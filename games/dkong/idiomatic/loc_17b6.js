@@ -7,16 +7,13 @@
  * LIVE-OUT: memory-only.
  */
 
-import { SND_PRIORITY, SND_PRIORITY_FRAMES, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, SEQ_ADVANCE_PTR, BOARD_ADVANCE_STEP, COLOR_COLUMN_A_TOP } from "./names.js";
+import { SND_PRIORITY, SND_PRIORITY_FRAMES, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, SEQ_ADVANCE_PTR, BOARD_ADVANCE_STEP, COLOR_COLUMN_A_TOP, ANIM_STEP_COUNTER, BLINK_SPRITE_CODE } from "./names.js";
 import { silenceSound } from "./silenceSound.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
 import { fillTileBlock } from "./fillTileBlock.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
-
-const HOW_HIGH_ANIM = 0x6390;      // how-high interlude animation stepper
-const BLINK_SPRITE_CODE = 0x6905;  // the blink sprite the colour cycle toggles
 
 const SPRITE_TEMPLATE = 0x385c;
 const SPRITE_X_SHIFT = 0x44;
@@ -53,7 +50,7 @@ export function loc_17b6(m) {
   mem8[BLINK_SPRITE_CODE] = 0x13;
 
   mem8[SUBSTATE_TIMER] = 0x20;
-  mem8[HOW_HIGH_ANIM] = 0x80;
+  mem8[ANIM_STEP_COUNTER] = 0x80;
 
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
   mem16[SEQ_ADVANCE_PTR] = BOARD_ADVANCE_STEP;

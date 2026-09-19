@@ -14,15 +14,14 @@ import {
   MARIO_CLIMB_LIMIT_B,
   MARIO_CLIMB_TOGGLE,
   MARIO_Y,
+  loc_621a,
 } from "./names.js";
 import { tickMoveStepTimer } from "./tickMoveStepTimer.js";
-
-const CLIMB_FLAG = 0x621a;
 
 export function loc_1d76(m) {
   const { mem8 } = m;
 
-  const flag = mem8[CLIMB_FLAG];
+  const flag = mem8[loc_621a];
   if (flag === 0) {
     tickMoveStepTimer(m);
     return;

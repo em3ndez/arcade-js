@@ -15,6 +15,7 @@
 import {
   BARREL_CLAIM_MODE,
   BARREL_RELEASE_ARMED,
+  loc_6393,
   OBJ_ACTIVE,
   OBJ_X,
   OBJ_Y,
@@ -26,7 +27,6 @@ import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 
 const STRING_RESTART = 0x39c3; // string source rewound to the first byte
-const SCRATCH_A = 0x6393; // cleared each terminator (shared engine scratch)
 const SPRITE_TEMPLATE = 0x385c; // stored template reloaded into the sprite-object block
 const Y_COLUMN_DELTA = 0xfc; // -4, added to every record's Y field
 
@@ -49,7 +49,7 @@ export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de
   mem8[obj + 0x12] = 0x00;
   mem8[obj + 0x13] = 0x00;
   mem8[obj + 0x14] = 0x00;
-  mem8[SCRATCH_A] = 0x00;
+  mem8[loc_6393] = 0x00;
   mem8[BARREL_RELEASE_ARMED] = 0x00;
 
   mem8[obj + OBJ_X] = mem8[renderPtr];

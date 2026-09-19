@@ -10,7 +10,7 @@
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
-import { OBJ_PAIR_6680, OBJ_ACTIVE, OBJ_X, OBJ_SPRITE_CODE } from "./names.js";
+import { OBJ_PAIR_6680, OBJ_ACTIVE, OBJ_X, OBJ_SPRITE_CODE, HAMMER_OBJ1_SPRITE_RECORD } from "./names.js";
 
 export function seedSpriteObjectPair(m, src = m.regs.hl) {
   const { mem8 } = m;
@@ -28,6 +28,5 @@ export function seedSpriteObjectPair(m, src = m.regs.hl) {
   mem8[(objBase + 0x10 + OBJ_ACTIVE) & 0xffff] = 0x01;
 
   // Step 4 — gather each record into a consecutive 4-byte hardware sprite record.
-  const spriteRecords = 0x6a18;
-  gatherSpriteRecords(m, 0x0010, 0x02, spriteRecords & 0xff00, spriteRecords & 0xff, objBase);
+  gatherSpriteRecords(m, 0x0010, 0x02, HAMMER_OBJ1_SPRITE_RECORD & 0xff00, HAMMER_OBJ1_SPRITE_RECORD & 0xff, objBase);
 }

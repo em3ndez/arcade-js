@@ -15,6 +15,7 @@ import { addStrided } from "./addStrided.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 import { loc_1826 } from "../translated/loc_1826.js";
 import {
+  ANIM_PACE_COUNTER,
   BOARD_ADVANCE_STEP,
   CUTSCENE_SPRITE_RECORD_2,
   INTERLUDE_LAYOUT_SEGMENT_TABLE,
@@ -39,7 +40,6 @@ const SPRITE_BUF_STRIDE = 0x04; // one 4-byte sprite record
 const SPRITE_BUF_COUNT = 0x02; // records 0 and 1
 const SPRITE_BUF_Y_SHIFT = 0x28; // move those two records down 0x28 px
 
-const PACE_COUNTER = 0x62af; // per-frame counter the following step counts back down
 const SND_LATCH = SND_TRIGGER + 2; // sound latch 2
 const SND_ASSERT_FRAMES = 0x03; // held asserted for three frames, then counted down elsewhere
 
@@ -64,7 +64,7 @@ export function loc_1880(m) {
 
   addStrided(m, SPRITE_BUF_Y_SHIFT, SPRITE_BUF_STRIDE, SPRITE_BUF_COUNT, SPRITE_BUF_Y);
 
-  mem8[PACE_COUNTER] = 0x00;
+  mem8[ANIM_PACE_COUNTER] = 0x00;
   mem8[SND_LATCH] = SND_ASSERT_FRAMES;
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

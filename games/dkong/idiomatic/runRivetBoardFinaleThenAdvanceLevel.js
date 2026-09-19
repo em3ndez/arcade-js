@@ -10,6 +10,7 @@
  */
 
 import {
+  ANIM_PACE_COUNTER,
   BOARD,
   BOARD_ADVANCE_STEP,
   BOARD_SEQ_PTR,
@@ -19,6 +20,7 @@ import {
   HOW_HIGH_INDEX,
   LEVEL,
   MARIO_SPRITE_RECORD,
+  MARIO_SPRITE_RECORD_CODE,
   MARIO_SPRITE_Y,
   MARIO_X,
   SND_PRIORITY,
@@ -29,13 +31,10 @@ import {
 import { nextAnimationStep } from "./nextAnimationStep.js";
 import { enqueueTask } from "./enqueueTask.js";
 
-const FINALE_PACE_COUNTER = 0x62af;
-
 const FINALE_BLINK_BIT = 0x80;
 const FINALE_ANIM_BIT = 0x20;
 
 const CUTSCENE_SPRITE_X = MARIO_SPRITE_RECORD;
-const CUTSCENE_SPRITE_CODE = 0x694d;
 
 const FINALE_OBJECT_BYTE0_LEFT = 0x6f;
 
@@ -50,8 +49,8 @@ const BOARD_TABLE_REPEAT_GROUP = 0x3a73;
 export function runRivetBoardFinaleThenAdvanceLevel(m) {
   const { mem8 } = m;
 
-  const counter = (mem8[FINALE_PACE_COUNTER] - 1) & 0xff;
-  mem8[FINALE_PACE_COUNTER] = counter;
+  const counter = (mem8[ANIM_PACE_COUNTER] - 1) & 0xff;
+  mem8[ANIM_PACE_COUNTER] = counter;
   if (counter === 0) {
     advanceBoardSequence(m);
     return;
@@ -67,10 +66,10 @@ export function runRivetBoardFinaleThenAdvanceLevel(m) {
   if (counter === STAGE_AT) {
     mem8[MARIO_SPRITE_Y] = 0x50;
     if (mem8[MARIO_X] < SCREEN_MIDPOINT) {
-      mem8[CUTSCENE_SPRITE_CODE] = 0x80;
+      mem8[MARIO_SPRITE_RECORD_CODE] = 0x80;
       mem8[CUTSCENE_SPRITE_X] = 0x5f;
     } else {
-      mem8[CUTSCENE_SPRITE_CODE] = 0x00;
+      mem8[MARIO_SPRITE_RECORD_CODE] = 0x00;
       mem8[CUTSCENE_SPRITE_X] = 0x9f;
     }
     return;

@@ -6,11 +6,9 @@
  *
  * LIVE-OUT: memory-only.
  */
-import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
+import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP, ANIM_STEP_COUNTER } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
-
-const ANIM_COUNTER = 0x6390; // per-call sub-counter; wraps 0xFF->0x00 every 256 calls
 
 const FRAME_A = 0x39cf; // counter bit 3 SET
 const FRAME_B = 0x39f7; // counter bit 3 CLEAR
@@ -31,8 +29,8 @@ function stampFigure(m, templateAddr) {
 export function stepSpriteAnimationSequence(m) {
   const { mem8 } = m;
 
-  const counter = (mem8[ANIM_COUNTER] + 1) & 0xff;
-  mem8[ANIM_COUNTER] = counter;
+  const counter = (mem8[ANIM_STEP_COUNTER] + 1) & 0xff;
+  mem8[ANIM_STEP_COUNTER] = counter;
 
   if (counter === 0) {
     // Wrap: stamp the base figure, re-arm the hold timer, advance to the next step.

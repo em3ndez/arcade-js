@@ -7,19 +7,18 @@
  * LIVE-OUT: memory-only — the phase counter, and on the eighth call the ten Y bytes, four flipped
  * code bytes, record 9's code byte, and the stirred random seed.
  */
-import { SPRITE_OBJ_BLOCK, RANDOM } from "./names.js";
+import { SPRITE_OBJ_BLOCK, RANDOM, ANIM_PACE_COUNTER } from "./names.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 import { xorMaskStridedPair } from "./xorMaskStridedPair.js";
 import { stirRandomSeed } from "./stirRandomSeed.js";
 
-const PHASE_COUNTER = 0x62af; // private 1-in-8 animation phase counter
 const B = SPRITE_OBJ_BLOCK; // base of the ten 4-byte sprite records
 
 export function animateSpriteObjectBlock(m) {
   const { mem8 } = m;
 
-  const phase = (mem8[PHASE_COUNTER] + 1) & 0xff;
-  mem8[PHASE_COUNTER] = phase;
+  const phase = (mem8[ANIM_PACE_COUNTER] + 1) & 0xff;
+  mem8[ANIM_PACE_COUNTER] = phase;
   if ((phase & 0x07) !== 0) return; // 7 of every 8 calls stop here
 
   addToSpriteObjectColumn(m, B + 3, 0xfc); // scroll every record's Y up 4px

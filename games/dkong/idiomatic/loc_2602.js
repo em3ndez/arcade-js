@@ -10,7 +10,7 @@
  * sprite-animation counter pair.
  */
 
-import { FRAME, M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP_DIR, M50_OBJ1_STEP } from "./names.js";
+import { FRAME, M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP_DIR, M50_OBJ1_STEP, M50_OBJ1_SPRITE_PAIR_BASE } from "./names.js";
 import { reverseStepDirection } from "./reverseStepDirection.js";
 import { loc_26a6 } from "./loc_26a6.js";
 import { loc_26e9 } from "../translated/loc_26e9.js";
@@ -35,5 +35,5 @@ export function loc_2602(m) {
 
   // Every 32nd frame: advance the mirrored sprite-animation counter pair.
   if ((mem8[FRAME] & 0x1f) !== 0x01) return;
-  loc_26a6(m, 0x69e4, 0xe4, M50_OBJ1_STEP_DIR);
+  loc_26a6(m, M50_OBJ1_SPRITE_PAIR_BASE, 0xe4, M50_OBJ1_STEP_DIR);
 }

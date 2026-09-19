@@ -1346,16 +1346,16 @@ only a map of where to look.
 | `0x60B2–0x60BA` | the three packed-BCD score counters |
 | `0x60C0–0x60FF` | the task ring itself: 32 two-byte `[opcode, argument]` slots |
 | `0x611C–…` | player-slot records, stride 0x22 |
-| `0x6200–0x6226` | Mario: position, fixed-point fractions, velocities, sprite state, every movement flag |
+| `0x6200–0x6226` | Mario: position, fixed-point fractions, velocities, sprite state, every movement flag (`MARIO_STATE_CLEAR_END` = 0x6226, the per-board clear bound) |
 | `0x6227–0x622F` | the live player context — board, lives, level, sequence pointer, how-high bookkeeping |
 | `0x6280–0x62BF` | the per-board object template span: the 50m object pair, rivet state, the bonus block |
 | `0x62A0–0x62AC` | the 50m reversal timers / direction latches, and the release-renderer pointers |
-| `0x62B8–0x62BA` | the fixed hazard's phase bits, its /4 prescaler and its release countdown (§8.6) |
+| `0x62B8–0x62BA` | the fixed hazard's phase bits (`FIXED_HAZARD_PHASE` 0x62B9), its /4 prescaler and its release countdown (§8.6) |
 | `0x6300–0x631F` | the two per-board object-parameter tables (the ladder table) |
-| `0x6340–0x6354` | the effect machine and the collision-hit result cells |
-| `0x6380–0x63CD` | difficulty, barrel-claim mode, board-advance and intro step bytes, spawn requests, the segment-drawing scratch, the attract script cursor |
-| `0x6400–0x67FF` | the object-record arrays (§6) |
-| `0x6900–0x6A7F` | the sprite shadow buffer and its named sub-bases |
+| `0x6340–0x6354` | the effect machine and the collision-hit result cells (`HIT_EFFECT_LATCH` 0x6350) |
+| `0x6380–0x63CD` | difficulty, barrel-claim mode, board-advance and intro step bytes, spawn requests, the segment-drawing scratch, the attract script cursor; the shared per-frame anim counters (`ANIM_STEP_COUNTER` 0x6390, `ANIM_PACE_COUNTER` 0x62AF) |
+| `0x6400–0x67FF` | the object-record arrays (§6): incl. `FIRE_RECORDS_100M` (0x64A0, 100m's two extra fires) and `OBJ_ARRAY_67_PAGE68` (0x6800, barrels 8–9) |
+| `0x6900–0x6A7F` | the sprite shadow buffer and its named sub-bases: `FIRE_SPRITES` (0x69D0), `M100_FIRE_SPRITE_PAIR` (0x6950), `OBJ_66_SPRITES` (0x6958), `HAMMER_OBJ1_SPRITE_RECORD` (0x6A18), `M50_OBJ1_SPRITE_PAIR_BASE` (0x69E4), `BLINK_SPRITE_CODE` (0x6905), `MARIO_SPRITE_RECORD_CODE` (0x694D), `SPRITE_OBJ_REC2_X` (0x6910) |
 | `0x6BE0–0x6C00` | dead stack scratch, excluded from the memory-equivalence compare |
 
 ---

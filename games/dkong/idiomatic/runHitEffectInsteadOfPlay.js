@@ -9,11 +9,12 @@
 
 import { dispatchEffectSequenceStep } from "./dispatchEffectSequenceStep.js";
 import { loc_1e94 } from "./loc_1e94.js";
+import { HIT_EFFECT_LATCH } from "./names.js";
 
 export function runHitEffectInsteadOfPlay(m) {
   const { mem8 } = m;
 
-  if (mem8[0x6350] === 0) return true;
+  if (mem8[HIT_EFFECT_LATCH] === 0) return true;
 
   dispatchEffectSequenceStep(m);
   return loc_1e94(m);

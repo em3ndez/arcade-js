@@ -8,9 +8,8 @@
  */
 
 import { silenceSound } from "./silenceSound.js";
-import { TASK_TAIL, TASK_HEAD, TASK_RING } from "./names.js";
+import { TASK_TAIL, TASK_HEAD, TASK_RING, WORK_RAM_BASE } from "./names.js";
 
-const WORK_PAGE_LO = 0x6000;
 const WORK_PAGE_HI = 0x7000; // full 4 KB page; top ~1 KB over-runs into unmapped discard
 
 const SPRITE_RAM_LO = 0x7000;
@@ -33,7 +32,7 @@ const HW_PALETTE_BANK1 = 0x7d87;
 export function clearRamAndInitHardware(m) {
   const { regs, mem, mem8 } = m;
 
-  for (let a = WORK_PAGE_LO; a < WORK_PAGE_HI; a++) mem8[a] = 0;
+  for (let a = WORK_RAM_BASE; a < WORK_PAGE_HI; a++) mem8[a] = 0;
 
   for (let a = SPRITE_RAM_LO; a < SPRITE_RAM_HI; a++) mem8[a] = 0;
 

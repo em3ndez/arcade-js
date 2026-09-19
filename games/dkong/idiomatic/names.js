@@ -1191,6 +1191,62 @@ export const PALETTE_BANK_BIT1 = 0x7d87;
 /** VRAM_ROW_STEP_UP (0xffe0) — Not an address: the signed 16-bit displacement -0x20 (-32) added to a video-RAM/tilemap pointer to step back one 32-column row, i.e. draw a column upw… [code] */
 export const VRAM_ROW_STEP_UP = 0xffe0;
 
+// --- naming-hoist batch 1 (2-derive converged; see grounding tags) ---
+/** WORK_RAM_BASE (0x6000) — Base of the 0x6000-page work RAM; low bound of the power-on RAM-clear loop in clearRamAndInitHardware. A structural page base, not a data cell. (structural constant, not a data cell). */
+export const WORK_RAM_BASE = 0x6000;
+/** MARIO_STATE_CLEAR_END (0x6226) — Inclusive top of the per-board zeroed Mario/player-state span 0x6200-0x6226; initBoardState loop bound, stops just below BOARD (0x6227) which persists (structural constant, not a data cell). */
+export const MARIO_STATE_CLEAR_END = 0x6226;
+/** BOARD_STATE_CLEAR_END (0x6b00) — Exclusive upper bound (page 0x6b00) of the per-board work-RAM clear loop in initBoardState, begun at BOARD_OBJ_SCRATCH (0x6280); structural range boun (structural constant, not a data cell). */
+export const BOARD_STATE_CLEAR_END = 0x6b00;
+/** ANIM_PACE_COUNTER (0x62af) — Shared per-frame scratch counter used by the active animation/cutscene step to pace/gate stepping (inc-and-mask 1-in-8/16, or reload-and-downcount gat [code] */
+export const ANIM_PACE_COUNTER = 0x62af;
+/** FIXED_HAZARD_PHASE (0x62b9) — Fixed-hazard fire-release phase bitfield: bit0 runs body, bit1 selects 2nd arm whose underflow requests a new fire; armed by board setup and spawn tri [code] */
+export const FIXED_HAZARD_PHASE = 0x62b9;
+/** HIT_EFFECT_LATCH (0x6350) — Hit-effect latch: set to the collision overlap on a hammer hit; while nonzero per-frame routines run one effect beat/skip; cleared at effect teardown. [code] */
+export const HIT_EFFECT_LATCH = 0x6350;
+/** ANIM_STEP_COUNTER (0x6390) — Increment-driven animation step/sweep counter, SHARED (subsystem-neutral): drives the attract colour-cycle sweep (up to 0x80) and the how-high/interlu [code] */
+export const ANIM_STEP_COUNTER = 0x6390;
+/** FIRE_RECORDS_100M (0x64a0) — Base of the two 100m-only fire records (records 5-6) in OBJ_ARRAY_64; seed100mBoardObjects (IX) sets +0/+0x20 OBJ_ACTIVE=1 on both. [code] */
+export const FIRE_RECORDS_100M = 0x64a0;
+/** FIRE_RECORDS_100M_X (0x64a3) — OBJ_X (+3) of the first 100m extra fire record (FIRE_RECORDS_100M+3); copyBytePairsStrided seeds the X byte into records 5-6. [code] */
+export const FIRE_RECORDS_100M_X = 0x64a3;
+/** FIRE_RECORDS_100M_CODE (0x64a7) — OBJ_SPRITE_CODE (+7) of the first 100m extra fire record (FIRE_RECORDS_100M+7); replicateGroupStrided seeds the appearance group into records 5-6. [code] */
+export const FIRE_RECORDS_100M_CODE = 0x64a7;
+/** OBJ_ARRAY_67_PAGE68 (0x6800) — Base of barrel records 8-9 (OBJ_ARRAY_67+0x100) on page 0x68; seed25mBoardObjects lays the final 2 of the 10 barrel records here after the first 8 at [code] */
+export const OBJ_ARRAY_67_PAGE68 = 0x6800;
+/** BLINK_SPRITE_CODE (0x6905) — Code byte of SPRITE_BUFFER sprite record 1 (0x6900+5); colour-cycle counter toggles it (seeded 0x13) to blink the sprite. [code] */
+export const BLINK_SPRITE_CODE = 0x6905;
+/** SPRITE_OBJ_REC2_X (0x6910) — X byte of sprite-object block record 2 (SPRITE_OBJ_BLOCK 0x6908 + 0x08); dispatchKongWalkFrame routes the Kong-walk sprite by this X vs the rail regio [code] */
+export const SPRITE_OBJ_REC2_X = 0x6910;
+/** MARIO_SPRITE_RECORD_CODE (0x694d) — Code byte of Mario's sprite record (MARIO_SPRITE_RECORD 0x694c +1); entry_1da6 copies MARIO_SPRITE_CODE(0x6207) here; rivet finale reuses it for the t [code] */
+export const MARIO_SPRITE_RECORD_CODE = 0x694d;
+/** M100_FIRE_SPRITE_PAIR (0x6950) — SPRITE_BUFFER 2-record HW sprite mirror for 100m's extra fire records 5-6 (OBJ_ARRAY_64+0xA0, stride 0x20); seed100mBoardObjects fills, loc_30db clear [code] */
+export const M100_FIRE_SPRITE_PAIR = 0x6950;
+/** OBJ_66_SPRITES (0x6958) — SPRITE_BUFFER 6-record HW sprite mirror of OBJ_ARRAY_66 (75m moving objects); seed75mBoardObjects gathers 6 records here, loc_30db clears B=6 [code] */
+export const OBJ_66_SPRITES = 0x6958;
+/** FIRE_SPRITES (0x69d0) — SPRITE_BUFFER mirror of OBJ_ARRAY_64 (THE FIRES): publishFireSprites gathers its 5 records here; buildEffectSprite/entry_1ea0 read it as the page-<0x6 [code] */
+export const FIRE_SPRITES = 0x69d0;
+/** M50_OBJ1_SPRITE_PAIR_BASE (0x69e4) — 50m board: base of object-1's mirrored sprite tile-code counter PAIR in SPRITE_BUFFER; loc_2602 loads HL=0x69e4 and calls loc_26a6 (steps +1/+5). Sibl [code] */
+export const M50_OBJ1_SPRITE_PAIR_BASE = 0x69e4;
+/** HAMMER_OBJ1_SPRITE_RECORD (0x6a18) — 4-byte sprite-shadow record in SPRITE_BUFFER for the FIRST hammer object (OBJ_PAIR_6680's first record); seedSpriteObjectPair gathers the pair here, d [code] */
+export const HAMMER_OBJ1_SPRITE_RECORD = 0x6a18;
+/** loc_6209 (0x6209) — Mario's object-record (base 0x6200) collision half-extent on X (+0x09=OBJ_HIT_EXTENT_X); initBoardState seeds 4, findCollidingObject reads it paired w [guess] (placeholder; names-debt) */
+export const loc_6209 = 0x6209;
+/** loc_620a (0x620a) — Mario's object-record (base 0x6200) collision half-extent on Y (+0x0a=OBJ_HIT_EXTENT_Y); initBoardState seeds 8, findCollidingObject reads it paired w [guess] (placeholder; names-debt) */
+export const loc_620a = 0x620a;
+/** loc_621a (0x621a) — Shared 1-byte transient flag with unrelated writers: climb machine sets near a ladder-scan end (loc_1afe) and reads to hold the climb timer (loc_1d76) [guess] (placeholder; names-debt) */
+export const loc_621a = 0x621a;
+/** loc_638f (0x638f) — Shared working byte in the 25m barrel-release slot-claim cluster: armBarrelRelease stashes the caller's mode byte here; advanceBarrelRelease reads it [guess] (placeholder; names-debt) */
+export const loc_638f = 0x638f;
+/** loc_6393 (0x6393) — Per-pass gate byte REUSED across two subsystems with divergent meaning: barrel-release 'a release is in-flight / skip this pass' bit0 (set by releaseB [guess] (placeholder; names-debt) */
+export const loc_6393 = 0x6393;
+/** loc_6944 (0x6944) — Dest of an 8-byte (2 sprite-record) fixed-table block copy into SPRITE_BUFFER during 50m board object setup; specific per-record role unclear. [guess] (placeholder; names-debt) */
+export const loc_6944 = 0x6944;
+/** loc_6970 (0x6970) — SPRITE_BUFFER 4-record (0x10-byte) sprite block loaded from fixed ROM template 0x1121 during 75m setup (seed75mBoardObjects), just past OBJ_66_SPRITES [guess] (placeholder; names-debt) */
+export const loc_6970 = 0x6970;
+/** loc_69fc (0x69fc) — 4-byte sprite-shadow record in SPRITE_BUFFER seeded from a fixed ROM template on both 25m (0x3e00) and 50m (0x3e04) board setup; on-screen role not es [guess] (placeholder; names-debt) */
+export const loc_69fc = 0x69fc;
+
 export const ROUTINES = {
   0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "seen" },

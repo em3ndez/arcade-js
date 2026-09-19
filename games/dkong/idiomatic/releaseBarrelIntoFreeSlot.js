@@ -13,12 +13,11 @@
 
 import { u8 } from "../../../core/int.js";
 import {
-  RENDER_OBJ_PTR, RENDER_DST_PTR, ACTOR_SPRITES, OBJ_ACTIVE, BONUS, BONUS_EXPIRED_STEP,
+  RENDER_OBJ_PTR, RENDER_DST_PTR, ACTOR_SPRITES, OBJ_ACTIVE, BONUS, BONUS_EXPIRED_STEP, loc_6393,
 } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { loc_2ce6 } from "./loc_2ce6.js";
 
-const EVENT_GATE = 0x6393;      // bit0 SET -> a release happened this pass (shared engine scratch)
 const SLOT_CLAIMED = 2;         // OBJ_ACTIVE bit 1 = occupied
 const BARREL_SLOTS = 10;
 const SPRITE_RECORD_BYTES = 4;
@@ -35,7 +34,7 @@ export function releaseBarrelIntoFreeSlot(m, record = m.regs.ix, b = m.regs.b) {
   const slotOffset = u8((BARREL_SLOTS - b) * SPRITE_RECORD_BYTES);
   mem16[RENDER_DST_PTR] = ACTOR_SPRITES + slotOffset;
 
-  mem8[EVENT_GATE] = 1;
+  mem8[loc_6393] = 1;
 
   enqueueTask(m, BONUS_TASK_OPCODE, BONUS_TASK_STEP_DOWN);
 

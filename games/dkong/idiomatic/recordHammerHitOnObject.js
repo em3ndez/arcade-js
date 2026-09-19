@@ -17,6 +17,7 @@ import {
   COLLIDED_OBJECT_STRIDE,
   HAMMER_HIT_HANDLER_RETURN,
   HAMMER_IN_PLAY,
+  HIT_EFFECT_LATCH,
   OBJ_HIT_EXTENT_X,
   OBJ_HIT_EXTENT_Y,
   OBJ_PAIR_6680,
@@ -54,7 +55,7 @@ export function recordHammerHitOnObject(m) {
 
   // Always nonzero here; writing it suspends gameplay from the next frame until the effect
   // sequence's teardown clears it.
-  mem8[0x6350] = overlap;
+  mem8[HIT_EFFECT_LATCH] = overlap;
   mem8[COLLIDED_OBJECT_INDEX] = mem8[OBJ_SEARCH_COUNT] - regs.b;
   mem8[COLLIDED_OBJECT_STRIDE] = regs.e;
   mem16[COLLIDED_OBJECT_BASE] = regs.ix;

@@ -14,12 +14,12 @@ import {
   MARIO_SPRITE_CODE,
   MARIO_CLIMB_LIMIT_A,
   MARIO_CLIMB_LIMIT_B,
+  loc_621a,
 } from "./names.js";
 import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";
 import { loc_1b4e } from "./loc_1b4e.js";
 import { climbDownWhileHeld } from "./climbDownWhileHeld.js";
 
-const CLIMB_FLAG = 0x621a;
 const TABLE_SCAN_COUNT = 21;
 
 // Mario's sprite code while STANDING at a ladder, in the low bits; the facing bit is preserved.
@@ -52,7 +52,7 @@ export function armMarioClimbAtLadderEnd(m) {
   mem8[MARIO_SPRITE_CODE] = (mem8[MARIO_SPRITE_CODE] & FACING_BIT) | LADDER_STANDING_POSE;
 
   const nearEndOfScan = residualCount <= NEAR_END_OF_SCAN ? 1 : 0;
-  mem8[CLIMB_FLAG] = nearEndOfScan;
+  mem8[loc_621a] = nearEndOfScan;
 
   if (tag === 0) {
     // Ordinary order: commit callee takes the slot byte in B and (Y+8) in D, then climbs up.

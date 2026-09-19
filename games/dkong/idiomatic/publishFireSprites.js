@@ -19,18 +19,18 @@ import {
   OBJ_Y,
   OBJ_SPRITE_CODE,
   OBJ_SPRITE_ATTR,
+  FIRE_SPRITES,
 } from "./names.js";
 
 const OBJECT_COUNT = 5;
 const OBJECT_STRIDE = 0x20;
-const GATHER_DEST = 0x69d0;
 
 export function publishFireSprites(m) {
   const { mem8 } = m;
 
   const srcPage = OBJ_ARRAY_64 & 0xff00; // the source never leaves this page
   let objLo = OBJ_ARRAY_64 & 0xff;
-  let dst = GATHER_DEST;
+  let dst = FIRE_SPRITES;
 
   for (let i = 0; i < OBJECT_COUNT; i++) {
     if (mem8[srcPage | ((objLo + OBJ_ACTIVE) & 0xff)] !== 0) {

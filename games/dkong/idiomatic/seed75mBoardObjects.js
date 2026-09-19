@@ -14,7 +14,7 @@ import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
-import { OBJ_ARRAY_64, OBJ_ARRAY_66, OBJECT_COLLISION_SPRITES, OBJ_STATE } from "./names.js";
+import { OBJ_ARRAY_64, OBJ_ARRAY_66, OBJECT_COLLISION_SPRITES, OBJ_STATE, OBJ_66_SPRITES, loc_6970 } from "./names.js";
 
 /** Forward block-copy of `count` bytes from `src` to `dst`. */
 function blockCopy(mem8, dst, src, count) {
@@ -41,8 +41,7 @@ export function seed75mBoardObjects(m) {
   const de3 = OBJ_ARRAY_66 + 0x07;
   replicateGroupStrided(m, 0x3e60, 0x0c, de3 & 0xff00, 0x06, de3 & 0xff); // 6 records, record stride 0x10
 
-  const hl4 = 0x6958; // dest — an unnamed slot in the sprite buffer
-  gatherSpriteRecords(m, 0x0010, 0x06, hl4 & 0xff00, hl4 & 0xff, OBJ_ARRAY_66); // 6 records off the object-record base
+  gatherSpriteRecords(m, 0x0010, 0x06, OBJ_66_SPRITES & 0xff00, OBJ_66_SPRITES & 0xff, OBJ_ARRAY_66); // 6 records off the object-record base
 
   blockCopy(mem8, OBJECT_COLLISION_SPRITES, 0x3e48, 0x0c);
 
@@ -58,5 +57,5 @@ export function seed75mBoardObjects(m) {
   mem8[(IX + 0x25) & 0xffff] = 0x60;
   mem8[(IX + 0x2f) & 0xffff] = 0x60;
 
-  blockCopy(mem8, 0x6970, 0x1121, 0x10);
+  blockCopy(mem8, loc_6970, 0x1121, 0x10);
 }
