@@ -10,6 +10,8 @@
  * A = last byte written, B = 0, dest advanced 4 per record within its page, source base
  * advanced one stride per record. The stride is read-only.
  */
+import { u16 } from "../../../core/int.js";
+
 export function gatherSpriteRecords(m, stride = m.regs.de, b = m.regs.b, hi = m.regs.h << 8, l = m.regs.l, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
@@ -19,11 +21,11 @@ export function gatherSpriteRecords(m, stride = m.regs.de, b = m.regs.b, hi = m.
 
   for (let i = 0; i < count; i++) {
     for (const disp of [0x03, 0x07, 0x08, 0x05]) {
-      a = mem8[(ix + disp) & 0xffff];
+      a = mem8[u16(ix + disp)];
       mem8[hi | l] = a;
       l = (l + 1) & 0xff; // in-page wrap: the destination page never changes
     }
-    ix = (ix + stride) & 0xffff;
+    ix = u16(ix + stride);
   }
 
   regs.a = a;

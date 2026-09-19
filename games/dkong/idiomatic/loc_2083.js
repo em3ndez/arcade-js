@@ -9,7 +9,7 @@
  * produced by the continuation.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 
 // Record offsets: +2 is the per-slot walk selector (bit 1 walks one pixel right, bit 2 one left),
 // +14 this sub-state's step counter, +16 the whole-pixel half of the per-frame step (1 right, 255 left).
@@ -23,7 +23,7 @@ const SELECT_WALK_LEFT = 4;
 
 export function loc_2083(m, ix = m.regs.ix) {
   const { mem8 } = m;
-  const at = (offset) => (ix + offset) & 0xffff;
+  const at = (offset) => u16(ix + offset);
 
   // Read back at byte width, so a record at 255 rolls to 0 and takes the last arm.
   const step = u8(mem8[at(SUBSTATE)] + 1);

@@ -8,6 +8,8 @@
  * LIVE-OUT: memory, plus the propagated return value.
  */
 
+import { u16 } from "../../../core/int.js";
+
 const STEP_WHOLE = 16;
 const STEP_FRACTION = 17;
 
@@ -17,7 +19,7 @@ const LEFTWARD_ONE_PIXEL_FRACTION = 0;
 
 export function loc_20b5(m, ix = m.regs.ix) {
   const { mem8 } = m;
-  const at = (offset) => (ix + offset) & 0xffff;
+  const at = (offset) => u16(ix + offset);
 
   if (mem8[at(STEP_WHOLE)] !== 0) return m.call(0x20e1);
 

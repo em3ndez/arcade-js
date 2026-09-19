@@ -10,6 +10,7 @@
  * tilemap pair, and on expiry SUBSTATE_TIMER = 2 with GAME_SUBSTATE incremented.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   ANIM_TILE_FILL_TABLE,
   GAME_SUBSTATE,
@@ -65,14 +66,14 @@ export function loc_07cb(m) {
   let hl = ANIM_TILE_FILL_TABLE;
   for (;;) {
     const count = mem8[hl];
-    const lo = mem8[(hl + 1) & 0xffff];
-    const hi = mem8[(hl + 2) & 0xffff];
-    hl = (hl + 3) & 0xffff;
-    let dest = ((hi << 8) | lo) & 0xffff;
+    const lo = mem8[u16(hl + 1)];
+    const hi = mem8[u16(hl + 2)];
+    hl = u16(hl + 3);
+    let dest = u16((hi << 8) | lo);
     let b = count; // a count of 0 would run 256 times; the table never contains one
     do {
       mem8[dest] = FILL_TILE;
-      dest = (dest + 1) & 0xffff;
+      dest = u16(dest + 1);
       b = (b - 1) & 0xff;
     } while (b !== 0);
     if (mem8[hl] === 0) break;
@@ -85,5 +86,5 @@ export function loc_07cb(m) {
   loc_3f24(m);
 
   addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, 0x44);
-  addToSpriteObjectColumn(m, (SPRITE_OBJ_BLOCK + 3) & 0xffff, 0x78);
+  addToSpriteObjectColumn(m, u16(SPRITE_OBJ_BLOCK + 3), 0x78);
 }

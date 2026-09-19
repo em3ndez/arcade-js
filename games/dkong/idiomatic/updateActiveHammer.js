@@ -25,7 +25,7 @@ import {
   SND_BGM,
   HAMMER_SAVED_BGM,
 } from "./names.js";
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { selectHammerSpriteBlinkByTimer } from "./selectHammerSpriteBlinkByTimer.js";
 import { blinkHammerSpriteOnFramePhase } from "./blinkHammerSpriteOnFramePhase.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js";
@@ -61,12 +61,12 @@ export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c) {
   // write's (Mario X + displacement) resolves to 0.
   mem8[HAMMER_TIMER_HI] = 0;
   mem8[MARIO_HAMMER_ACTIVE] = 0;
-  mem8[(objBase + OBJ_FIELD_01) & 0xffff] = 0;
-  mem8[(objBase + OBJ_X_DISPLACEMENT) & 0xffff] = -mem8[MARIO_X];
+  mem8[u16(objBase + OBJ_FIELD_01)] = 0;
+  mem8[u16(objBase + OBJ_X_DISPLACEMENT)] = -mem8[MARIO_X];
 
   // Restore Mario's normal sprite code and the BGM saved at hammer grab.
   mem8[MARIO_SPRITE_RECORD + SPRITE_CODE] = mem8[MARIO_SPRITE_CODE];
-  mem8[(objBase + OBJ_ACTIVE) & 0xffff] = 0;
+  mem8[u16(objBase + OBJ_ACTIVE)] = 0;
   mem8[SND_BGM] = mem8[HAMMER_SAVED_BGM];
 
   commitSpriteRecordAtMarioOffset(m);

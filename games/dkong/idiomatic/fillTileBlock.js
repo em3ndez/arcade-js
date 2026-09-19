@@ -7,6 +7,8 @@
  * LIVE-OUT: memory-only — the 70 written tilemap cells.
  */
 
+import { u16 } from "../../../core/int.js";
+
 export function fillTileBlock(m, hl = m.regs.hl) {
   const { mem8 } = m;
 
@@ -19,8 +21,8 @@ export function fillTileBlock(m, hl = m.regs.hl) {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < WIDTH; col++) {
       mem8[addr] = TILE;
-      addr = (addr + 1) & 0xffff;
+      addr = u16(addr + 1);
     }
-    addr = (addr - ROW_BACKSTEP) & 0xffff;
+    addr = u16(addr - ROW_BACKSTEP);
   }
 }

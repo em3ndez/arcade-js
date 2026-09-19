@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only — the tilemap cells and the sprite-buffer bytes.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   PLAYFIELD_TOP,
   SPRITE_BUFFER,
@@ -29,20 +30,20 @@ export function clearPlayfieldAndSprites(m) {
   for (let row = 0; row < PLAYFIELD_ROWS; row++) {
     for (let col = 0; col < PLAYFIELD_COLS; col++) {
       mem8[cell] = BLANK_TILE;
-      cell = (cell + 1) & 0xffff;
+      cell = u16(cell + 1);
     }
-    cell = (cell + (ROW_STRIDE - PLAYFIELD_COLS)) & 0xffff;
+    cell = u16(cell + (ROW_STRIDE - PLAYFIELD_COLS));
   }
 
   for (const base of SIDE_COL_BASES) {
     let colCell = base;
     for (let i = 0; i < SIDE_COL_CELLS; i++) {
       mem8[colCell] = BLANK_TILE;
-      colCell = (colCell + ROW_STRIDE) & 0xffff;
+      colCell = u16(colCell + ROW_STRIDE);
     }
   }
 
   for (let i = 0; i < SPRITE_BUFFER_BYTES; i++) {
-    mem8[(SPRITE_BUFFER + i) & 0xffff] = 0x00;
+    mem8[u16(SPRITE_BUFFER + i)] = 0x00;
   }
 }

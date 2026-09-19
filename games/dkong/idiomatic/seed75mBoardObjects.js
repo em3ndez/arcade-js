@@ -10,6 +10,7 @@
  * copies they produce inside the sprite buffer.
  */
 
+import { u16 } from "../../../core/int.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
@@ -31,7 +32,7 @@ import {
 /** Forward block-copy of `count` bytes from `src` to `dst`. */
 function blockCopy(mem8, dst, src, count) {
   for (let i = 0; i < count; i++) {
-    mem8[(dst + i) & 0xffff] = mem8[(src + i) & 0xffff];
+    mem8[u16(dst + i)] = mem8[u16(src + i)];
   }
 }
 
@@ -43,9 +44,9 @@ export function seed75mBoardObjects(m) {
 
   seedObjectBlockSprites(m);
 
-  for (let i = 0; i < 6; i++) mem8[(OBJ_ARRAY_66 + i * 0x10) & 0xffff] = 0x01;
+  for (let i = 0; i < 6; i++) mem8[u16(OBJ_ARRAY_66 + i * 0x10)] = 0x01;
 
-  for (let i = 0; i < 3; i++) mem8[(OBJ_ARRAY_66 + OBJ_STATE + i * 0x10) & 0xffff] = 0x08;
+  for (let i = 0; i < 3; i++) mem8[u16(OBJ_ARRAY_66 + OBJ_STATE + i * 0x10)] = 0x08;
 
   const de2 = OBJ_ARRAY_66 + 0x03; // dest base — each pair lands at +0 and +2 from here
   copyBytePairsStrided(m, OBJ_ARRAY_66_POSITION_TABLE, de2, 0x0e, 0x06); // 6 pairs, record stride 0x10
@@ -58,16 +59,16 @@ export function seed75mBoardObjects(m) {
   blockCopy(mem8, OBJECT_COLLISION_SPRITES, COLLISION_SPRITES_TEMPLATE_75M, 0x0c);
 
   const IX = OBJ_ARRAY_64;
-  mem8[(IX + 0x00) & 0xffff] = 0x01;
-  mem8[(IX + 0x03) & 0xffff] = 0x58;
-  mem8[(IX + 0x0e) & 0xffff] = 0x58;
-  mem8[(IX + 0x05) & 0xffff] = 0x80;
-  mem8[(IX + 0x0f) & 0xffff] = 0x80;
-  mem8[(IX + 0x20) & 0xffff] = 0x01;
-  mem8[(IX + 0x23) & 0xffff] = 0xeb;
-  mem8[(IX + 0x2e) & 0xffff] = 0xeb;
-  mem8[(IX + 0x25) & 0xffff] = 0x60;
-  mem8[(IX + 0x2f) & 0xffff] = 0x60;
+  mem8[u16(IX + 0x00)] = 0x01;
+  mem8[u16(IX + 0x03)] = 0x58;
+  mem8[u16(IX + 0x0e)] = 0x58;
+  mem8[u16(IX + 0x05)] = 0x80;
+  mem8[u16(IX + 0x0f)] = 0x80;
+  mem8[u16(IX + 0x20)] = 0x01;
+  mem8[u16(IX + 0x23)] = 0xeb;
+  mem8[u16(IX + 0x2e)] = 0xeb;
+  mem8[u16(IX + 0x25)] = 0x60;
+  mem8[u16(IX + 0x2f)] = 0x60;
 
   blockCopy(mem8, loc_6970, SPRITE_6970_TEMPLATE_75M, 0x10);
 }

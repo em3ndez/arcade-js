@@ -12,6 +12,7 @@
  * cells, the three collection flags, and whatever the follow-up writes.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   EDGE_RIVET_ARMED,
   EFFECT_SELECT,
@@ -63,7 +64,7 @@ export function collectEdgeRivet(m) {
   if ((a & 0x07) === 0x06) slot |= 0x02;          // the band seam also sets the middle bit
   a = rotl8(x); if (a & 1) slot |= 0x01;          // left/right half, from the X high bit
 
-  const slotAddr = (RIVET_PRESENT + slot) & 0xffff;
+  const slotAddr = u16(RIVET_PRESENT + slot);
   if (mem8[slotAddr] === 0) return;
   mem8[slotAddr] = 0x00;                           // clear this rivet's present flag
 
@@ -71,7 +72,7 @@ export function collectEdgeRivet(m) {
 
   const row = slot >> 1;
   const base = (slot & 1) ? RIVET_COL_BASE_RIGHT : RIVET_COL_BASE_LEFT;
-  const vaddr = (TILEMAP_BASE + base + 5 * row) & 0xffff;
+  const vaddr = u16(TILEMAP_BASE + base + 5 * row);
 
   // low byte wraps inside the page rather than carrying
   const page = vaddr & 0xff00;

@@ -7,6 +7,7 @@
  * LIVE-OUT: memory only — the single stored coordinate.
  */
 
+import { u16 } from "../../../core/int.js";
 import { BOARD, OBJ_STATE } from "./names.js";
 import { snapYToGirder } from "./snapYToGirder.js";
 
@@ -22,9 +23,9 @@ export function settleFireOnGirderSlope(m, ix = m.regs.ix) {
 
   const objBase = ix;
 
-  const companion = mem8[(objBase + OBJ_COMPANION_COORD) & 0xffff];
-  const coord = mem8[(objBase + OBJ_STEPPED_COORD) & 0xffff];
-  const state = mem8[(objBase + OBJ_STATE) & 0xffff];
+  const companion = mem8[u16(objBase + OBJ_COMPANION_COORD)];
+  const coord = mem8[u16(objBase + OBJ_STEPPED_COORD)];
+  const state = mem8[u16(objBase + OBJ_STATE)];
 
-  mem8[(objBase + OBJ_STEPPED_COORD) & 0xffff] = snapYToGirder(companion, coord, state);
+  mem8[u16(objBase + OBJ_STEPPED_COORD)] = snapYToGirder(companion, coord, state);
 }

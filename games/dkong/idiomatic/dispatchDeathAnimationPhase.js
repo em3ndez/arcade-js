@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only — the dispatched arm's RAM writes.
  */
 
+import { u16 } from "../../../core/int.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 import {
   DEATH_ANIM_PHASE,
@@ -20,8 +21,8 @@ export function dispatchDeathAnimationPhase(m) {
   const phase = mem8[DEATH_ANIM_PHASE];
 
   // Doubling into the table offset is an 8-bit result: base + (2*phase & 0xff), not base + 2*phase.
-  const entry = (DEATH_ANIM_PHASE_TABLE + ((phase * 2) & 0xff)) & 0xffff;
-  const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
+  const entry = u16(DEATH_ANIM_PHASE_TABLE + ((phase * 2) & 0xff));
+  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_1283);
 }

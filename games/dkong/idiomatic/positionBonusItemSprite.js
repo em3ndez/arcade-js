@@ -6,6 +6,7 @@
  *
  * LIVE-OUT: memory-only — the four sprite-record bytes.
  */
+import { u16 } from "../../../core/int.js";
 import {
   BONUS_ITEM_POSITION_TABLE,
   SPRITE_BUFFER,
@@ -18,11 +19,11 @@ export function positionBonusItemSprite(m, b = m.regs.b, c = m.regs.c) {
 
   // BC is the full index; B is always 0 here, but the 16-bit add is preserved.
   const doubledC = (c << 1) & 0xff;
-  const index = ((b << 8) | doubledC) & 0xffff;
-  const entry = (BONUS_ITEM_POSITION_TABLE + index) & 0xffff;
+  const index = u16((b << 8) | doubledC);
+  const entry = u16(BONUS_ITEM_POSITION_TABLE + index);
 
   const x = mem8[entry];
-  const y = mem8[(entry + 1) & 0xffff];
+  const y = mem8[u16(entry + 1)];
 
   mem8[RECORD + 0] = x;
   mem8[RECORD + 1] = 0x72;

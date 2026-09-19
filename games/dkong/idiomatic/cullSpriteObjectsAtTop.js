@@ -7,6 +7,7 @@
  * LIVE-OUT: memory (the zeroed X bytes) plus that pointer/stride pair.
  */
 
+import { u16 } from "../../../core/int.js";
 import { SPRITE_OBJ_BLOCK } from "./names.js";
 
 const RECORD_COUNT = 10;
@@ -23,6 +24,6 @@ export function cullSpriteObjectsAtTop(m) {
     }
   }
 
-  regs.hl = (SPRITE_OBJ_BLOCK - 1) & 0xffff;
+  regs.hl = u16(SPRITE_OBJ_BLOCK - 1);
   regs.de = RECORD_STRIDE - 1;
 }

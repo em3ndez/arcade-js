@@ -6,6 +6,7 @@
  * LIVE-OUT: memory plus the record pointer — the column extent, the tilemap, and whatever the
  * resumed walk draws.
  */
+import { u16 } from "../../../core/int.js";
 import { SEG_TILE, SEG_HEIGHT } from "./names.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 
@@ -16,12 +17,12 @@ export function fillColumnAndContinueWalk(m, hl = m.regs.hl, de = m.regs.de) {
   let addr = hl;
   for (;;) {
     mem8[addr] = tile;
-    addr = (addr + 0x20) & 0xffff; // step one whole tilemap row
+    addr = u16(addr + 0x20); // step one whole tilemap row
     const height = mem8[SEG_HEIGHT];
     mem8[SEG_HEIGHT] = (height - 0x08);
     if (height < 0x08) break; // subtraction borrowed -> height spent, column done
   }
 
-  regs.de = (de + 1) & 0xffff;
+  regs.de = u16(de + 1);
   drawBoardLayout(m);
 }

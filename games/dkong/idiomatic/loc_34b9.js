@@ -9,6 +9,7 @@
  * LIVE-OUT: memory-only — the seeded and cleared record fields.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   BOARD,
   MARIO_X,
@@ -38,12 +39,12 @@ export function loc_34b9(m, ix = m.regs.ix) {
 
   const objBase = ix;
 
-  mem8[(objBase + OBJ_X) & 0xffff] = posX;
-  mem8[(objBase + OBJ_X_COMPANION) & 0xffff] = posX;
-  mem8[(objBase + OBJ_Y) & 0xffff] = posY;
-  mem8[(objBase + OBJ_Y_COMPANION) & 0xffff] = posY;
+  mem8[u16(objBase + OBJ_X)] = posX;
+  mem8[u16(objBase + OBJ_X_COMPANION)] = posX;
+  mem8[u16(objBase + OBJ_Y)] = posY;
+  mem8[u16(objBase + OBJ_Y_COMPANION)] = posY;
 
-  mem8[(objBase + OBJ_STATE) & 0xffff] = 0x00;
-  mem8[(objBase + OBJ_CLEAR_18) & 0xffff] = 0x00;
-  mem8[(objBase + OBJ_CLEAR_1C) & 0xffff] = 0x00;
+  mem8[u16(objBase + OBJ_STATE)] = 0x00;
+  mem8[u16(objBase + OBJ_CLEAR_18)] = 0x00;
+  mem8[u16(objBase + OBJ_CLEAR_1C)] = 0x00;
 }

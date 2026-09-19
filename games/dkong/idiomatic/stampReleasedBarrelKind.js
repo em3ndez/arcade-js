@@ -9,6 +9,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./names.js";
 import { advanceBarrelRelease } from "./advanceBarrelRelease.js";
 
@@ -18,13 +19,13 @@ export function stampReleasedBarrelKind(m, ix = m.regs.ix) {
   const obj = ix;
 
   if ((mem8[BARREL_CLAIM_MODE] & 0x80) === 0) {
-    mem8[(obj + OBJ_SPRITE_CODE) & 0xffff] = 0x15;
-    mem8[(obj + OBJ_SPRITE_ATTR) & 0xffff] = 0x0b;
-    mem8[(obj + 0x15) & 0xffff] = 0x00; // mode field (no shared name)
+    mem8[u16(obj + OBJ_SPRITE_CODE)] = 0x15;
+    mem8[u16(obj + OBJ_SPRITE_ATTR)] = 0x0b;
+    mem8[u16(obj + 0x15)] = 0x00; // mode field (no shared name)
   } else {
-    mem8[(obj + OBJ_SPRITE_CODE) & 0xffff] = 0x19;
-    mem8[(obj + OBJ_SPRITE_ATTR) & 0xffff] = 0x0c;
-    mem8[(obj + 0x15) & 0xffff] = 0x01; // mode field (no shared name)
+    mem8[u16(obj + OBJ_SPRITE_CODE)] = 0x19;
+    mem8[u16(obj + OBJ_SPRITE_ATTR)] = 0x0c;
+    mem8[u16(obj + 0x15)] = 0x01; // mode field (no shared name)
   }
 
   return advanceBarrelRelease(m);

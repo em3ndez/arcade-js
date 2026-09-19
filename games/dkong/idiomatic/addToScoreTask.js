@@ -7,6 +7,7 @@
  * leads), and the six-digit score and high-score readouts.
  */
 
+import { u16 } from "../../../core/int.js";
 import { CURRENT_PLAYER, HIGH_SCORE, SCORE_ADDEND_TABLE } from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 import { selectCurrentPlayerScoreCounter } from "./selectCurrentPlayerScoreCounter.js";
@@ -23,7 +24,7 @@ export function addToScoreTask(m, a = m.regs.a) {
   let scorePtr = selectCurrentPlayerScoreCounter(m);
 
   // (payload * 3) taken as a single byte — a large payload wraps back into the table.
-  let addendPtr = (SCORE_ADDEND_TABLE + ((payload * 3) & 0xff)) & 0xffff;
+  let addendPtr = u16(SCORE_ADDEND_TABLE + ((payload * 3) & 0xff));
 
   // Three-byte packed-BCD add, low byte first, threading the decimal carry.
   let carry = 0;
@@ -31,27 +32,27 @@ export function addToScoreTask(m, a = m.regs.a) {
     const sum = bcdAddByte(mem8[scorePtr], mem8[addendPtr], carry);
     mem8[scorePtr] = sum.value;
     carry = sum.carry;
-    scorePtr = (scorePtr + 1) & 0xffff;
-    addendPtr = (addendPtr + 1) & 0xffff;
+    scorePtr = u16(scorePtr + 1);
+    addendPtr = u16(addendPtr + 1);
   }
   const scoreEnd = scorePtr; // one past the counter's top byte
 
   // Redraw the score readout. The column renderer reads its source pointer from the DE
   // register, so hand it the counter's top byte there — the one machine bridge that remains.
-  regs.de = (scoreEnd - 1) & 0xffff;
+  regs.de = u16(scoreEnd - 1);
   loc_056b(m, mem8[CURRENT_PLAYER]);
 
   // Compare against the high score, top byte first, walking down.
-  let cmpPtr = (scoreEnd - 1) & 0xffff;
-  let hsPtr = (HIGH_SCORE + 2) & 0xffff;
+  let cmpPtr = u16(scoreEnd - 1);
+  let hsPtr = u16(HIGH_SCORE + 2);
   let width = 3; // bytes still to resolve — also the copy width, carried over deliberately
   for (;;) {
     const scoreByte = mem8[cmpPtr];
     const hsByte = mem8[hsPtr];
     if (scoreByte < hsByte) return;
     if (scoreByte !== hsByte) break;
-    cmpPtr = (cmpPtr - 1) & 0xffff;
-    hsPtr = (hsPtr - 1) & 0xffff;
+    cmpPtr = u16(cmpPtr - 1);
+    hsPtr = u16(hsPtr - 1);
     width -= 1;
     if (width === 0) return;
   }
@@ -61,8 +62,8 @@ export function addToScoreTask(m, a = m.regs.a) {
   let hsDst = HIGH_SCORE;
   for (let i = 0; i < width; i++) {
     mem8[hsDst] = mem8[srcPtr];
-    srcPtr = (srcPtr + 1) & 0xffff;
-    hsDst = (hsDst + 1) & 0xffff;
+    srcPtr = u16(srcPtr + 1);
+    hsDst = u16(hsDst + 1);
   }
 
   drawHighScore(m);

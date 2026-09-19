@@ -7,6 +7,7 @@
  * LIVE-OUT: the stack pointer past the consumed base, the arm's memory writes, and the arm's skip
  * boolean, which this routine propagates unchanged.
  */
+import { u16 } from "../../../core/int.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
 export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)", a = m.regs.a) {
@@ -22,7 +23,7 @@ export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)", a =
   regs.addHl(regs.de);
 
   regs.e = mem8[regs.hl];
-  regs.hl = (regs.hl + 1) & 0xffff;
+  regs.hl = u16(regs.hl + 1);
   regs.d = mem8[regs.hl];
 
   regs.exDeHl();

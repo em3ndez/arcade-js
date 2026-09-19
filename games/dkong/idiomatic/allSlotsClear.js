@@ -5,11 +5,13 @@
  *
  * LIVE-OUT: the verdict only — true = all clear, false = a slot is occupied. Writes no memory.
  */
+import { u16 } from "../../../core/int.js";
+
 export function allSlotsClear(mem, base, stride) {
-  let addr = base & 0xffff;
+  let addr = u16(base);
   for (let slot = 0; slot < 10; slot++) {
     if (mem.read8(addr) !== 0) return false;
-    addr = (addr + stride) & 0xffff; // 16-bit wrap
+    addr = u16(addr + stride); // 16-bit wrap
   }
   return true;
 }
@@ -27,7 +29,7 @@ export function allSlotsClearFromRegisters(m, base = m.regs.hl, stride = m.regs.
 
   regs.a = 0x00; // tenth cell, zero on this arm
   regs.and(regs.a); // zero test: Z set, S clear, PV even, carry cleared
-  regs.hl = (base + 9 * stride) & 0xffff;
+  regs.hl = u16(base + 9 * stride);
   regs.addHl(stride); // tenth advance — rewrites half-carry/subtract/carry, keeps the above
   regs.b = 0x00;
   return true;

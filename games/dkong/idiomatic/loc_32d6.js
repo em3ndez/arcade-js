@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { MARIO_Y, OBJ_STATE } from "./names.js";
 import { tickFireTimerAndRerollDirection } from "./tickFireTimerAndRerollDirection.js";
 
@@ -17,7 +18,7 @@ const EXIT_FIELD_19 = 0x19; // cleared to 0 alongside the counter on the tick-ou
 
 export function loc_32d6(m, record = m.regs.ix) {
   const { mem8 } = m;
-  const at = (off) => (record + off) & 0xffff;
+  const at = (off) => u16(record + off);
 
   const clearExitAndTick = () => {
     mem8[at(EXIT_FIELD_19)] = 0;

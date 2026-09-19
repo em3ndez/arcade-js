@@ -12,6 +12,7 @@
  * and, on the girder board, the working Y.
  */
 
+import { u16 } from "../../../core/int.js";
 import { OBJ_STATE, OBJ_SPRITE_CODE } from "./names.js";
 import { stepObjectSpriteFrame } from "./stepObjectSpriteFrame.js";
 import { settleFireOnGirderSlope } from "./settleFireOnGirderSlope.js";
@@ -26,12 +27,12 @@ export function walkFireOneStep(m, ix = m.regs.ix) {
   const { mem8 } = m;
 
   const objBase = ix;
-  const codeAddr = (objBase + OBJ_SPRITE_CODE) & 0xffff;
-  const xAddr = (objBase + OBJ_WORKING_X) & 0xffff;
+  const codeAddr = u16(objBase + OBJ_SPRITE_CODE);
+  const xAddr = u16(objBase + OBJ_WORKING_X);
 
   // One direction bit, two effects: which way X moves, and which way the sprite faces.
   const code = mem8[codeAddr];
-  if (mem8[(objBase + OBJ_STATE) & 0xffff] === STATE_STEP_UP) {
+  if (mem8[u16(objBase + OBJ_STATE)] === STATE_STEP_UP) {
     mem8[codeAddr] = code | SPRITE_FLIP;
     mem8[xAddr] = mem8[xAddr] + 1;
   } else {

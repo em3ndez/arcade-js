@@ -9,7 +9,7 @@
  * LIVE-OUT: memory-only — the three record fields.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";
 import {
   BARREL_DIFFICULTY_LATCH,
@@ -24,7 +24,7 @@ import {
 
 export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix, key = m.regs.a) {
   const { regs, mem8 } = m;
-  const rec = (off) => (ix + off) & 0xffff; // a field of the object record the caller pointed at
+  const rec = (off) => u16(ix + off); // a field of the object record the caller pointed at
 
   if (!findOppositeLadderEnd(m)) return;
 

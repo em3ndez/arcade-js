@@ -8,6 +8,7 @@
  * LIVE-OUT: memory (SEG_TILE, SEG_HEIGHT and the tilemap cells) plus the record pointer.
  */
 
+import { u16 } from "../../../core/int.js";
 import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND, SEG_TILE } from "./names.js";
 
 export function fillTileColumn(m, de = m.regs.de) {
@@ -17,7 +18,7 @@ export function fillTileColumn(m, de = m.regs.de) {
 
   // A SIGN test, not an unsigned compare: kinds leaving the subtraction non-negative bail.
   if (((kind - 0x07) & 0x80) === 0) {
-    regs.de = (de + 1) & 0xffff;
+    regs.de = u16(de + 1);
     return;
   }
 
@@ -30,11 +31,11 @@ export function fillTileColumn(m, de = m.regs.de) {
   let addr = mem16[SEG_ADDR1];
   for (;;) {
     mem8[addr] = tile;
-    addr = (addr + 0x20) & 0xffff;
+    addr = u16(addr + 0x20);
     const height = mem8[SEG_HEIGHT];
     mem8[SEG_HEIGHT] = (height - 0x08);
     if (height < 0x08) break;
   }
 
-  regs.de = (de + 1) & 0xffff;
+  regs.de = u16(de + 1);
 }

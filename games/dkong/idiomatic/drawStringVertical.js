@@ -1,3 +1,4 @@
+import { u16 } from "../../../core/int.js";
 import {
   STRING_DESCRIPTOR_PTR_TABLE,
   VRAM_ROW_STEP_UP,
@@ -27,16 +28,16 @@ export function drawStringVertical(m, a = m.regs.a) {
   const blankMode = (payload & 0x80) !== 0;
   const index = ((payload << 1) & 0xff) & TABLE_INDEX_MASK;
 
-  const descriptor = mem16[(STRING_DESCRIPTOR_PTR_TABLE + index) & 0xffff];
+  const descriptor = mem16[u16(STRING_DESCRIPTOR_PTR_TABLE + index)];
   let dst = mem16[descriptor];
-  let src = (descriptor + 2) & 0xffff;
+  let src = u16(descriptor + 2);
 
   for (;;) {
     const ch = mem8[src];
     if (ch === STRING_TERMINATOR) return;
     mem8[dst] = ch;
     if (blankMode) mem8[dst] = BLANK_TILE;
-    src = (src + 1) & 0xffff;
-    dst = (dst + VRAM_ROW_STEP_UP) & 0xffff;
+    src = u16(src + 1);
+    dst = u16(dst + VRAM_ROW_STEP_UP);
   }
 }

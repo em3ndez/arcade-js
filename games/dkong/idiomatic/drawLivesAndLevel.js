@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   LEVEL,
   LEVEL_TENS_CELL,
@@ -39,7 +40,7 @@ export function drawLivesAndLevel(m, a = m.regs.a) {
   let cell = RESERVE_LIVES_MARKER_BASE;
   for (let i = 0; i < MARKER_SLOTS; i++) {
     mem8[cell] = TILE_BLANK;
-    cell = (cell - MARKER_ROW_STEP) & 0xffff;
+    cell = u16(cell - MARKER_ROW_STEP);
   }
 
   // One marker per reserve life (LIVES minus lives in play, 8-bit), bottom upward.
@@ -48,7 +49,7 @@ export function drawLivesAndLevel(m, a = m.regs.a) {
     cell = RESERVE_LIVES_MARKER_BASE;
     for (let i = 0; i < reserve; i++) {
       mem8[cell] = TILE_MARKER;
-      cell = (cell - MARKER_ROW_STEP) & 0xffff;
+      cell = u16(cell - MARKER_ROW_STEP);
     }
   }
 

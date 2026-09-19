@@ -16,7 +16,7 @@
  * left alone.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { MARIO_Y, OBJ_STATE } from "./names.js";
 import { loc_33a1 } from "./loc_33a1.js";
 import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";
@@ -42,7 +42,7 @@ const TABLE_ENTRIES = 21;
  */
 export function driveFireLadderClimb(m, recordBase = m.regs.ix) {
   const { regs, mem8 } = m;
-  const at = (offset) => (recordBase + offset) & 0xffff;
+  const at = (offset) => u16(recordBase + offset);
 
   const state = mem8[at(OBJ_STATE)];
 

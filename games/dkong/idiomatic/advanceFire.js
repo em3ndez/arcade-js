@@ -26,7 +26,7 @@
  * LIVE-OUT: memory-only, plus the void return.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import {
   FIRE_STATE_MACHINE_RETURN,
   FIRE_Y_OFFSET_TABLE,
@@ -76,7 +76,7 @@ export function advanceFire(m) {
   const { regs, mem8, mem16 } = m;
 
   const loadRecord = () => { regs.ix = mem16[OBJ_ITER_PTR]; };
-  const field = (off) => (regs.ix + off) & 0xffff;
+  const field = (off) => u16(regs.ix + off);
 
   // Step 3: publish the working position into the drawn position, and step the table index.
   function publishPosition() {

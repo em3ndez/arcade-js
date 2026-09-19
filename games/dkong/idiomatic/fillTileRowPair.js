@@ -7,6 +7,8 @@
  *
  * LIVE-OUT: memory-only — 34 tilemap cells, 17 of each tile.
  */
+import { u16 } from "../../../core/int.js";
+
 export function fillTileRowPair(m, hl = m.regs.hl) {
   const { mem8 } = m;
 
@@ -14,13 +16,13 @@ export function fillTileRowPair(m, hl = m.regs.hl) {
 
   for (let i = 0; i < 0x11; i++) {
     mem8[addr] = 0xfd;
-    addr = (addr + 1) & 0xffff;
+    addr = u16(addr + 1);
   }
 
-  addr = (addr + 0x0f) & 0xffff;
+  addr = u16(addr + 0x0f);
 
   for (let i = 0; i < 0x11; i++) {
     mem8[addr] = 0xfc;
-    addr = (addr + 1) & 0xffff;
+    addr = u16(addr + 1);
   }
 }

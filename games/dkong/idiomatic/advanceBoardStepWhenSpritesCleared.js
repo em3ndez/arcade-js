@@ -10,6 +10,7 @@
  * animation's own phase counter and the swept sprite block on every pass.
  */
 
+import { u16 } from "../../../core/int.js";
 import { SUBSTATE_TIMER, BOARD_ADVANCE_STEP } from "./names.js";
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js";
 import { cullSpriteObjectsAtTop } from "./cullSpriteObjectsAtTop.js";
@@ -23,8 +24,8 @@ export function advanceBoardStepWhenSpritesCleared(m) {
   animateSpriteObjectBlock(m);
   cullSpriteObjectsAtTop(m); // leaves the scan pointer/stride in HL/DE, each one short
 
-  const base = (regs.hl + 1) & 0xffff;
-  const stride = (regs.de + 1) & 0xffff;
+  const base = u16(regs.hl + 1);
+  const stride = u16(regs.de + 1);
 
   if (!allSlotsClear(mem, base, stride)) return;
 

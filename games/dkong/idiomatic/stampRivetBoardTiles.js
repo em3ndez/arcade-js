@@ -1,3 +1,4 @@
+import { u16 } from "../../../core/int.js";
 import {
   RIVET_TILE_DEST_TABLE,
 } from "./names.js";
@@ -16,6 +17,6 @@ export function stampRivetBoardTiles(m) {
   for (let i = 0, ptr = RIVET_TILE_DEST_TABLE; i < 8; i++, ptr += 2) {
     const dest = mem8[ptr] | (mem8[ptr + 1] << 8);
     mem8[dest] = 0xb8;
-    mem8[(dest + 1) & 0xffff] = 0xb7;
+    mem8[u16(dest + 1)] = 0xb7;
   }
 }

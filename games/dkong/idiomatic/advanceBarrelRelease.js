@@ -9,6 +9,7 @@
  * render tails write.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   ANIM_PACE_COUNTER,
   BARREL_CLAIM_MODE,
@@ -38,7 +39,7 @@ export function advanceBarrelRelease(m) {
   if ((mem8[BARREL_CLAIM_MODE] & 0x01) === 0) {
     index = (index - 1) & 0xff;
   }
-  const source = (SPRITE_OBJ_ANIM_FRAME_TABLE + ((index * RECORD_STRIDE) & 0xff)) & 0xffff;
+  const source = u16(SPRITE_OBJ_ANIM_FRAME_TABLE + ((index * RECORD_STRIDE) & 0xff));
 
   loadSpriteObjectBlock(m, source);
 

@@ -9,6 +9,7 @@
  * LIVE-OUT: on a hit, the four register results, discriminator passing through; on a miss, false.
  */
 
+import { u16 } from "../../../core/int.js";
 import { OBJ_PARAM_TABLE0 } from "./names.js";
 
 const NEAR_SLOT = 0x15;
@@ -28,16 +29,16 @@ export function findOppositeLadderEnd(m, key = m.regs.a, disc = m.regs.d, count 
     let found = false;
     do {
       const hit = mem8[addr] === key;
-      addr = (addr + 1) & 0xffff;
-      count = (count - 1) & 0xffff;
+      addr = u16(addr + 1);
+      count = u16(count - 1);
       if (hit) { found = true; break; }
     } while (count !== 0);
 
     if (!found) return false;
 
-    const match = (addr - 1) & 0xffff;
-    const nearAddr = (match + NEAR_SLOT) & 0xffff;
-    const farAddr = (match + FAR_SLOT) & 0xffff;
+    const match = u16(addr - 1);
+    const nearAddr = u16(match + NEAR_SLOT);
+    const farAddr = u16(match + FAR_SLOT);
 
     if (disc === mem8[nearAddr]) {
       regs.a = 1;

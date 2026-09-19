@@ -8,6 +8,7 @@
  * LIVE-OUT: memory, the stack pointer, and the handler's two result registers.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   BOARD,
   BOARD_COLLISION_TABLE,
@@ -25,8 +26,8 @@ export function dispatchBoardCollision(m, hl = m.regs.hl) {
   m.push16(hl);
 
   // 8-bit offset double: board 128 wraps back to 0.
-  const entry = (BOARD_COLLISION_TABLE + ((board * 2) & 0xff)) & 0xffff;
-  const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
+  const entry = u16(BOARD_COLLISION_TABLE + ((board * 2) & 0xff));
+  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_2874);
 }

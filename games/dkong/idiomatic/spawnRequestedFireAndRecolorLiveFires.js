@@ -17,6 +17,7 @@
  * LIVE-OUT: OBJ_LIVE_COUNT, EVENT_REQ_313C, the per-record fields, plus the caller-skip boolean.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   OBJ_ARRAY_64,
   OBJ_ACTIVE,
@@ -36,12 +37,12 @@ export function spawnRequestedFireAndRecolorLiveFires(m) {
   mem8[OBJ_LIVE_COUNT] = count;
 
   let ix = OBJ_ARRAY_64;
-  for (let i = 0; i < 5; i++, ix = (ix + 0x20) & 0xffff) {
-    if (mem8[(ix + OBJ_ACTIVE) & 0xffff] !== 0) {
+  for (let i = 0; i < 5; i++, ix = u16(ix + 0x20)) {
+    if (mem8[u16(ix + OBJ_ACTIVE)] !== 0) {
       count = (count + 1) & 0xff;
       mem8[OBJ_LIVE_COUNT] = count;
       const hammerHeld = mem8[MARIO_HAMMER_ACTIVE] === 0x01;
-      mem8[(ix + OBJ_SPRITE_ATTR) & 0xffff] = hammerHeld ? 0x00 : 0x01;
+      mem8[u16(ix + OBJ_SPRITE_ATTR)] = hammerHeld ? 0x00 : 0x01;
       continue;
     }
 
@@ -53,8 +54,8 @@ export function spawnRequestedFireAndRecolorLiveFires(m) {
     if (mem8[BOARD] === 0x02 && mem8[DIFFICULTY] === count) return true;
 
     if (mem8[EVENT_REQ_313C] === 0x01) {
-      mem8[(ix + OBJ_ACTIVE) & 0xffff] = 0x01;
-      mem8[(ix + OBJ_INSERT_REQUESTED) & 0xffff] = 0x01;
+      mem8[u16(ix + OBJ_ACTIVE)] = 0x01;
+      mem8[u16(ix + OBJ_INSERT_REQUESTED)] = 0x01;
       mem8[EVENT_REQ_313C] = 0x00;
       count = (count + 1) & 0xff;
       mem8[OBJ_LIVE_COUNT] = count;

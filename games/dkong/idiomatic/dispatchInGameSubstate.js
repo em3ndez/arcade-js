@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only — the sub-state handler's own writes.
  */
 
+import { u16 } from "../../../core/int.js";
 import { GAME_SUBSTATE } from "./names.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
@@ -19,8 +20,8 @@ export function dispatchInGameSubstate(m) {
   const substate = mem8[GAME_SUBSTATE];
 
   // Doubling into the table offset is an 8-bit result: base + (2*substate & 0xff).
-  const entry = (SUBSTATE_TABLE + ((substate * 2) & 0xff)) & 0xffff;
-  const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
+  const entry = u16(SUBSTATE_TABLE + ((substate * 2) & 0xff));
+  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_0702);
 }

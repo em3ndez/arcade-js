@@ -6,11 +6,13 @@
  *
  * LIVE-OUT: memory-only — the two toggled bytes. The register file is left alone.
  */
+import { u16 } from "../../../core/int.js";
+
 export function xorMaskStridedPair(m, mask = m.regs.c, stride = m.regs.de, ptr = m.regs.hl) {
   const { mem8 } = m;
 
   for (let i = 0; i < 2; i++) {
     mem8[ptr] = mem8[ptr] ^ mask;
-    ptr = (ptr + stride) & 0xffff;
+    ptr = u16(ptr + stride);
   }
 }

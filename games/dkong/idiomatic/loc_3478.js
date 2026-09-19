@@ -10,6 +10,7 @@
  * LIVE-OUT: memory-only. The one live register hand-off is the table pointer the shared tail reads.
  */
 
+import { u16 } from "../../../core/int.js";
 import { loc_3445 } from "./loc_3445.js";
 import {
   MARIO_X,
@@ -32,7 +33,7 @@ export function loc_3478(m, ix = m.regs.ix) {
   const { mem8 } = m;
 
   const base = ix;
-  const field = (off) => (base + off) & 0xffff;
+  const field = (off) => u16(base + off);
 
   let ptr = mem8[field(OBJ_WALK_PTR_LO)] | (mem8[field(OBJ_WALK_PTR_HI)] << 8);
 

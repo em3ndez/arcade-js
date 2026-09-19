@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { addStrided } from "./addStrided.js"; // add a value into N bytes at a fixed stride
 import { drawBoardLayout } from "./drawBoardLayout.js"; // walk a board-layout segment table and draw it
 import { FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK, INTRO_WALK_PTR_B, CUTSCENE_BAND_COUNT, BAND_TABLE } from "./names.js";
@@ -46,7 +47,7 @@ export function loc_0b68(m) {
   mem8[SND_TRIGGER + 2] = 0x03; // a 3-frame sound assert
 
   const bandIdx = nibbleSwap((mem8[CUTSCENE_BAND_COUNT] - 1) & 0xff);
-  regs.de = (BAND_TABLE + bandIdx) & 0xffff;
+  regs.de = u16(BAND_TABLE + bandIdx);
   drawBoardLayout(m);
 
   const bandsLeft = (mem8[CUTSCENE_BAND_COUNT] - 1) & 0xff;

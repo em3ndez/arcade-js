@@ -8,7 +8,7 @@
  * LIVE-OUT: memory-only — the caller consumes only the two record fields written here.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { MARIO_X, OBJ_X } from "./names.js";
 
 const OBJ_STEP_DIR = 0x10; // toward-player step code
@@ -18,11 +18,11 @@ export function loc_231a(m, objBase = m.regs.ix) {
   const { mem8 } = m;
 
   const playerX = mem8[MARIO_X];
-  const objX = mem8[(objBase + OBJ_X) & 0xffff];
+  const objX = mem8[u16(objBase + OBJ_X)];
 
   const offset = u8(playerX - objX);
   const topTwoBits = offset >> 6;
 
-  mem8[(objBase + OBJ_STEP_DIR) & 0xffff] = (playerX < objX ? 0xfc : 0x00) | topTwoBits;
-  mem8[(objBase + OBJ_STEP_MAG) & 0xffff] = (offset << 2) | topTwoBits;
+  mem8[u16(objBase + OBJ_STEP_DIR)] = (playerX < objX ? 0xfc : 0x00) | topTwoBits;
+  mem8[u16(objBase + OBJ_STEP_MAG)] = (offset << 2) | topTwoBits;
 }

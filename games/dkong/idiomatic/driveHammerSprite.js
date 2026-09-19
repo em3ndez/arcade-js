@@ -9,7 +9,7 @@
  * LIVE-OUT: memory-only.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import {
   HAMMER_IN_PLAY,
   HAMMER_OBJ1_SPRITE_RECORD,
@@ -50,7 +50,7 @@ export function driveHammerSprite(m) {
   if (!marioActiveGuard(m)) return;
 
   let objBase, recordDest;
-  if ((mem8[(OBJ_PAIR_6680 + HAMMER_IN_PLAY) & 0xffff] & 0x01) !== 0) {
+  if ((mem8[u16(OBJ_PAIR_6680 + HAMMER_IN_PLAY)] & 0x01) !== 0) {
     objBase = OBJ_PAIR_6680;
     recordDest = HAMMER_OBJ1_SPRITE_RECORD;
   } else {
@@ -60,8 +60,8 @@ export function driveHammerSprite(m) {
   regs.ix = objBase;
   regs.de = recordDest;
 
-  mem8[(objBase + OBJ_X_DISPLACEMENT) & 0xffff] = 0x00;
-  mem8[(objBase + OBJ_Y_DISPLACEMENT) & 0xffff] = 0xf0;
+  mem8[u16(objBase + OBJ_X_DISPLACEMENT)] = 0x00;
+  mem8[u16(objBase + OBJ_Y_DISPLACEMENT)] = 0xf0;
 
   if ((mem8[MARIO_HAMMER_ACTIVE] & 0x01) === 0) {
     buildPendingHammerSprite(m);
@@ -70,8 +70,8 @@ export function driveHammerSprite(m) {
 
   mem8[MARIO_HAMMER_PENDING] = 0x00;
   mem8[SND_BGM] = HAMMER_TUNE;
-  mem8[(objBase + OBJ_HIT_EXTENT_X) & 0xffff] = 0x06;
-  mem8[(objBase + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x03;
+  mem8[u16(objBase + OBJ_HIT_EXTENT_X)] = 0x06;
+  mem8[u16(objBase + OBJ_HIT_EXTENT_Y)] = 0x03;
 
   const marioCode = mem8[MARIO_SPRITE_CODE];
   const facing = marioCode & FACING_BIT;
@@ -87,13 +87,13 @@ export function driveHammerSprite(m) {
 
   objTile |= SWING_ALT_BIT;
   hammerCode |= SWING_ALT_BIT;
-  mem8[(objBase + OBJ_HIT_EXTENT_X) & 0xffff] = 0x05;
-  mem8[(objBase + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x06;
-  mem8[(objBase + OBJ_Y_DISPLACEMENT) & 0xffff] = 0x00;
-  mem8[(objBase + OBJ_X_DISPLACEMENT) & 0xffff] = 0xf0;
+  mem8[u16(objBase + OBJ_HIT_EXTENT_X)] = 0x05;
+  mem8[u16(objBase + OBJ_HIT_EXTENT_Y)] = 0x06;
+  mem8[u16(objBase + OBJ_Y_DISPLACEMENT)] = 0x00;
+  mem8[u16(objBase + OBJ_X_DISPLACEMENT)] = 0xf0;
 
   if ((hammerCode & FACING_BIT) !== 0) {
-    mem8[(objBase + OBJ_X_DISPLACEMENT) & 0xffff] = 0x10;
+    mem8[u16(objBase + OBJ_X_DISPLACEMENT)] = 0x10;
   }
 
   regs.b = objTile;

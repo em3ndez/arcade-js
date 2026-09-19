@@ -7,6 +7,7 @@
  * LIVE-OUT: the digit cells written, plus the loop-exit registers (cursor past the last digit,
  * source stepped back past every byte, count zero, last low digit).
  */
+import { u16 } from "../../../core/int.js";
 import { storeDigitAndAdvance } from "./storeDigitAndAdvance.js";
 
 export function expandBcdDigits(m) {
@@ -20,7 +21,7 @@ export function expandBcdDigits(m) {
 
     storeDigitAndAdvance(m, mem8[regs.hl]);
 
-    regs.hl = (regs.hl - 1) & 0xffff;
+    regs.hl = u16(regs.hl - 1);
     regs.b = (regs.b - 1) & 0xff;
   } while (regs.b !== 0);
 }

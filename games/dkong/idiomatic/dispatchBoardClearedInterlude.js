@@ -8,6 +8,7 @@
  * LIVE-OUT: memory-only — the parked sprite bytes plus the dispatched arm's writes.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   BOARD,
   BOARD_ADVANCE_STEP,
@@ -27,8 +28,8 @@ const DISPATCH_TABLE_1637 = "0x1637 (0x6388 board sub-dispatch)";
 function dispatchBoardRenderStep(m, tableBase, site) {
   const { mem8 } = m;
   const step = mem8[BOARD_ADVANCE_STEP];
-  const entry = (tableBase + ((step * 2) & 0xff)) & 0xffff;
-  const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
+  const entry = u16(tableBase + ((step * 2) & 0xff));
+  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
   loc_00ca(m, target, site);
 }
 

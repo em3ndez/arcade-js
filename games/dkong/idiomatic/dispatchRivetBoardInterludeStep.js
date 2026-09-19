@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only — the dispatched arm's writes.
  */
 
+import { u16 } from "../../../core/int.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 import {
   BOARD_ADVANCE_STEP,
@@ -20,8 +21,8 @@ export function dispatchRivetBoardInterludeStep(m) {
   const step = mem8[BOARD_ADVANCE_STEP];
 
   // Doubling into the table offset is an 8-bit result: base + (2*step & 0xff), not base + 2*step.
-  const entry = (RIVET_INTERLUDE_STEP_TABLE + ((step * 2) & 0xff)) & 0xffff;
-  const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
+  const entry = u16(RIVET_INTERLUDE_STEP_TABLE + ((step * 2) & 0xff));
+  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_1648);
 }

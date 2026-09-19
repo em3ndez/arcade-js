@@ -14,6 +14,7 @@
  * LIVE-OUT: memory only.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   OBJ_SPAWN_TIMER,
   OBJ_SPAWN_REQ,
@@ -43,8 +44,8 @@ export function service50mObjectSpawnRequest(m) {
 
   let slot = -1;
   for (let i = 0; i < SLOT_COUNT; i++) {
-    const base = (OBJ_ARRAY_65A0 + i * SLOT_STRIDE) & 0xffff;
-    if ((mem8[(base + OBJ_ACTIVE) & 0xffff] & 0x01) === 0) {
+    const base = u16(OBJ_ARRAY_65A0 + i * SLOT_STRIDE);
+    if ((mem8[u16(base + OBJ_ACTIVE)] & 0x01) === 0) {
       slot = base;
       break;
     }
@@ -53,7 +54,7 @@ export function service50mObjectSpawnRequest(m) {
 
   stirRandomSeed(m);
   const roll = regs.a;
-  mem8[(slot + OBJ_Y) & 0xffff] = 0x7c;
+  mem8[u16(slot + OBJ_Y)] = 0x7c;
 
   let overrideY = roll < 0x60;
   let overrideX; // true -> X field becomes 0xF8, false -> stays 0x07
@@ -68,17 +69,17 @@ export function service50mObjectSpawnRequest(m) {
   }
 
   if (overrideY) {
-    mem8[(slot + OBJ_Y) & 0xffff] = 0xcc;
+    mem8[u16(slot + OBJ_Y)] = 0xcc;
     overrideX = (mem8[M50_OBJ3_STEP_DIR] & 0x80) !== 0;
   }
 
-  mem8[(slot + OBJ_X) & 0xffff] = 0x07;
-  if (overrideX) mem8[(slot + OBJ_X) & 0xffff] = 0xf8;
+  mem8[u16(slot + OBJ_X)] = 0x07;
+  if (overrideX) mem8[u16(slot + OBJ_X)] = 0xf8;
 
-  mem8[(slot + OBJ_ACTIVE) & 0xffff] = 0x01;
-  mem8[(slot + OBJ_SPRITE_CODE) & 0xffff] = 0x4b;
-  mem8[(slot + OBJ_HIT_EXTENT_X) & 0xffff] = 0x08;
-  mem8[(slot + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x03;
+  mem8[u16(slot + OBJ_ACTIVE)] = 0x01;
+  mem8[u16(slot + OBJ_SPRITE_CODE)] = 0x4b;
+  mem8[u16(slot + OBJ_HIT_EXTENT_X)] = 0x08;
+  mem8[u16(slot + OBJ_HIT_EXTENT_Y)] = 0x03;
 
   mem8[OBJ_SPAWN_TIMER] = 0x7c;
   mem8[OBJ_SPAWN_REQ] = 0x00;

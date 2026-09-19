@@ -7,6 +7,8 @@
  * LIVE-OUT: the run of bytes (each raised by the addend, 8-bit wrap), plus A = the
  * last byte written, B = 0, and HL = the pointer past the last target (16-bit wrap).
  */
+import { u16 } from "../../../core/int.js";
+
 export function addStrided(m, c = m.regs.c, de = m.regs.de, b = m.regs.b, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
@@ -19,7 +21,7 @@ export function addStrided(m, c = m.regs.c, de = m.regs.de, b = m.regs.b, hl = m
   for (let i = 0; i < count; i++) {
     a = (addend + mem8[ptr]) & 0xff;
     mem8[ptr] = a;
-    ptr = (ptr + stride) & 0xffff;
+    ptr = u16(ptr + stride);
   }
 
   regs.a = a;

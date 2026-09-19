@@ -8,7 +8,7 @@
  * LIVE-OUT: memory, plus the propagated return value — this routine writes no register and no flag.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { MARIO_Y, OBJ_Y } from "./names.js";
 
 // +0x15 is the per-record kind index (only zero vs non-zero is drawn here); CLEARANCE is the
@@ -18,7 +18,7 @@ const CLEARANCE_BELOW_MARIO = 22;
 
 export function loc_20a2(m, record = m.regs.ix) {
   const { mem8 } = m;
-  const at = (offset) => (record + offset) & 0xffff;
+  const at = (offset) => u16(record + offset);
 
   if (mem8[at(OBJ_KIND)] !== 0) return m.call(0x20b5);
 

@@ -13,6 +13,7 @@
 
 // Imported in its guest-stack-consuming address-layer form on purpose: not interchangeable with
 // a direct call, which would leave the guest stack one word off.
+import { u16 } from "../../../core/int.js";
 import { loc_2ff0 } from "../translated/loc_2ff0.js";
 import { drawGirderSpan } from "./drawGirderSpan.js";
 import { drawLadder } from "./drawLadder.js";
@@ -35,7 +36,7 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de) {
   mem8[SEG_HEIGHT] = a;
 
   // Second point's x: run = difference of the two x values, sub-tile = its low 3 bits.
-  de = (de + 1) & 0xffff;
+  de = u16(de + 1);
   const x2 = mem8[de];
   m.regs.l = x2; // L is the frozen converter's x input
   mem8[SEG_RUN] = (x2 - c);

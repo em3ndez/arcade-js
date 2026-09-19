@@ -16,6 +16,7 @@
  * the incremented cutscene step and the sequence-advance pointer.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   CUTSCENE_BAND_COUNT,
   FRAME,
@@ -68,12 +69,12 @@ export function loc_0b06(m) {
 
   // Copy 8 more bytes from the template's end into the sprite-buffer header. The loader left its
   // source pointer advanced past the 0x28 bytes it copied; the copy chains off that.
-  let src = (PROP_TEMPLATE + OBJ_BLOCK_BYTES) & 0xffff;
+  let src = u16(PROP_TEMPLATE + OBJ_BLOCK_BYTES);
   let dst = SPRITE_BUFFER;
   for (let i = 0; i < 8; i++) {
     mem8[dst] = mem8[src];
-    src = (src + 1) & 0xffff;
-    dst = (dst + 1) & 0xffff;
+    src = u16(src + 1);
+    dst = u16(dst + 1);
   }
 
   // Reposition the fresh row: +0x50 on the X column and −4 on the Y column.

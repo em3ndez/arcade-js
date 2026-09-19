@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import {
   OBJ_ARRAY_64,
@@ -26,7 +27,7 @@ import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
 
 function blockCopy(mem8, src, dst, len) {
   for (let i = 0; i < len; i++) {
-    mem8[(dst + i) & 0xffff] = mem8[(src + i) & 0xffff];
+    mem8[u16(dst + i)] = mem8[u16(src + i)];
   }
 }
 

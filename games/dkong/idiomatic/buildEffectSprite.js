@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   FIRE_SPRITES,
   OBJ_65A0_SPRITES,
@@ -37,11 +38,11 @@ export function buildEffectSprite(m) {
 
   const index = mem8[COLLIDED_OBJECT_INDEX];
   const stride = mem8[COLLIDED_OBJECT_STRIDE];
-  const objRecord = (mem16[COLLIDED_OBJECT_BASE] + stride * index) & 0xffff;
-  const sourceRecord = (sourceBase + 4 * index) & 0xffff;
+  const objRecord = u16(mem16[COLLIDED_OBJECT_BASE] + stride * index);
+  const sourceRecord = u16(sourceBase + 4 * index);
 
-  mem8[(objRecord + OBJ_ACTIVE) & 0xffff] = 0x00;
-  const variant = mem8[(objRecord + 0x15) & 0xffff] === 0 ? 2 : 4;
+  mem8[u16(objRecord + OBJ_ACTIVE)] = 0x00;
+  const variant = mem8[u16(objRecord + 0x15)] === 0 ? 2 : 4;
   mem8[EFFECT_SELECT] = variant;
 
   const field0 = mem8[sourceRecord];
@@ -49,7 +50,7 @@ export function buildEffectSprite(m) {
   mem8[EFFECT_SPRITE + 0] = field0;
   mem8[EFFECT_SPRITE + SPRITE_CODE] = 0x60; // effect sprite tile code
   mem8[EFFECT_SPRITE + SPRITE_ATTR] = 0x0c; // effect sprite colour/attribute
-  mem8[EFFECT_SPRITE + 3] = mem8[(sourceRecord + 3) & 0xffff];
+  mem8[EFFECT_SPRITE + 3] = mem8[u16(sourceRecord + 3)];
 
   mem8[EFFECT_SEQ_STATE] = mem8[EFFECT_SEQ_STATE] + 1;
   mem8[EFFECT_SEQ_INNER] = 6;

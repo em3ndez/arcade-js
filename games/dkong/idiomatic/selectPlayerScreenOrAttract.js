@@ -9,6 +9,7 @@
  * LIVE-OUT: memory, plus the flip-screen latch the composing outcomes drive.
  */
 
+import { u16 } from "../../../core/int.js";
 import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, PLAYER_SLOT_RECORDS } from "./names.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
@@ -23,7 +24,7 @@ const RECORD_COUNT = 5;
 /** True if any of the five records holds `value`. */
 function anyRecordEquals(mem8, value) {
   let addr = PLAYER_SLOT_RECORDS;
-  for (let i = 0; i < RECORD_COUNT; i++, addr = (addr + RECORD_STRIDE) & 0xffff) {
+  for (let i = 0; i < RECORD_COUNT; i++, addr = u16(addr + RECORD_STRIDE)) {
     if (mem8[addr] === value) return true;
   }
   return false;

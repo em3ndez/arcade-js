@@ -7,13 +7,13 @@
  * its twin; and the caller-skip boolean, where false is the two-frame unwind.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { MARIO_AIR_PREV_Y, MARIO_Y } from "./names.js";
 
 export function resolveAirborneTileLanding(m, boundary = m.regs.c, ix = m.regs.ix, e = m.regs.e) {
   const { regs, mem8 } = m;
 
-  const objectY = mem8[(ix + 5) & 0xffff];
+  const objectY = mem8[u16(ix + 5)];
   const probe = u8(mem8[MARIO_AIR_PREV_Y] - objectY + e);
 
   if (probe > boundary) {

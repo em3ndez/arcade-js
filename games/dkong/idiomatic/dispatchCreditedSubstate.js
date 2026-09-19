@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only — whatever the dispatched step writes.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   CREDITED_SUBSTATE_TABLE,
   GAME_SUBSTATE,
@@ -21,8 +22,8 @@ export function dispatchCreditedSubstate(m) {
   const substate = mem8[GAME_SUBSTATE];
 
   // 8-bit offset double: index 0x80 wraps back to 0, matching the guest.
-  const entry = (CREDITED_SUBSTATE_TABLE + ((substate * 2) & 0xff)) & 0xffff;
-  const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
+  const entry = u16(CREDITED_SUBSTATE_TABLE + ((substate * 2) & 0xff));
+  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_08B6);
 }

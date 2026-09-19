@@ -10,6 +10,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { silenceSound } from "./silenceSound.js";
 import { loc_13ca } from "./loc_13ca.js";
 import { enqueueTask } from "./enqueueTask.js";
@@ -47,7 +48,7 @@ export function losePlayer1Life(m) {
 
   // Source and destination do not overlap, so a plain forward copy is faithful.
   for (let i = 0; i < CONTEXT_BYTES; i++) {
-    mem8[(P1_CONTEXT + i) & 0xffff] = mem8[(LIVES + i) & 0xffff];
+    mem8[u16(P1_CONTEXT + i)] = mem8[u16(LIVES + i)];
   }
 
   if (remaining !== 0) {
@@ -63,7 +64,7 @@ export function losePlayer1Life(m) {
   let bannerTop = GAMEOVER_BANNER_TOPLEFT_1P;
   if (mem8[TWO_PLAYER_GAME] !== 0) {
     enqueueTask(m, 0x03, 0x02);
-    bannerTop = (GAMEOVER_BANNER_TOPLEFT_1P - 1) & 0xffff;
+    bannerTop = u16(GAMEOVER_BANNER_TOPLEFT_1P - 1);
   }
   regs.hl = bannerTop;
   loc_1826(m); // fills 70 tiles from there

@@ -1,3 +1,4 @@
+import { u16 } from "../../../core/int.js";
 import {
   DMA_CH0_ADDR,
   DMA_CH0_COUNT,
@@ -40,7 +41,7 @@ export function blitSpritesViaDma(m, block = m.regs.hl) {
 
   for (const port of DMA_PROGRAM_PORTS) {
     mem.write8(port, mem8[block]);
-    block = (block + 1) & 0xffff;
+    block = u16(block + 1);
   }
 
   // DRQ rising edge = THE BLIT: 385 bytes copied synchronously as a side effect of this store.

@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only — the barrel record's countdown, sprite code and sprite attribute.
  */
 
+import { u16 } from "../../../core/int.js";
 import { OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./names.js";
 import { nextAnimationStep } from "./nextAnimationStep.js";
 
@@ -15,7 +16,7 @@ const OBJ_ORIENT_COUNTDOWN = 0x0f;
 export function advanceBarrelSpriteOrientation(m, objBase = m.regs.ix, dirCode = m.regs.c) {
   const { regs, mem8 } = m;
 
-  const counterAddr = (objBase + OBJ_ORIENT_COUNTDOWN) & 0xffff;
+  const counterAddr = u16(objBase + OBJ_ORIENT_COUNTDOWN);
   const counter = mem8[counterAddr];
 
   // Not the beat: just step the countdown and leave the orientation alone.
@@ -25,8 +26,8 @@ export function advanceBarrelSpriteOrientation(m, objBase = m.regs.ix, dirCode =
   }
 
   // The beat: pack the current orientation (code bit 7 high, attr bit 7 low) as the selector.
-  const codeAddr = (objBase + OBJ_SPRITE_CODE) & 0xffff;
-  const attrAddr = (objBase + OBJ_SPRITE_ATTR) & 0xffff;
+  const codeAddr = u16(objBase + OBJ_SPRITE_CODE);
+  const attrAddr = u16(objBase + OBJ_SPRITE_ATTR);
   const code = mem8[codeAddr];
   const attr = mem8[attrAddr];
   const selector = (((code >> 7) & 1) << 1) | ((attr >> 7) & 1);

@@ -9,6 +9,7 @@
  * this record — the walk reads it as the next record's address.
  */
 
+import { u16 } from "../../../core/int.js";
 import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND } from "./names.js";
 import { fillTileColumn } from "./fillTileColumn.js";
 
@@ -25,7 +26,7 @@ export function drawCappedTileColumn(m) {
 
   let addr = mem16[SEG_ADDR1];
   mem8[addr] = 0xb3;               // TOP cap
-  addr = (addr + 0x20) & 0xffff;   // step one tilemap row (map is 0x20 cells wide)
+  addr = u16(addr + 0x20);   // step one tilemap row (map is 0x20 cells wide)
 
   // Pay the extent down: 16 on the first step (top cap = 2 tiles), 8 each body row after.
   const extent0 = mem8[SEG_HEIGHT];
@@ -38,10 +39,10 @@ export function drawCappedTileColumn(m) {
     }
     mem8[SEG_HEIGHT] = extent;            // store the decremented extent (observable)
     mem8[addr] = 0xb1;                    // BODY tile
-    addr = (addr + 0x20) & 0xffff;
+    addr = u16(addr + 0x20);
     spent = extent < 0x08;
     extent = (extent - 0x08) & 0xff;
   }
 
-  regs.de = (regs.de + 1) & 0xffff;
+  regs.de = u16(regs.de + 1);
 }

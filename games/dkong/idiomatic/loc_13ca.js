@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only — the staging area, and the records below it on each sort pass.
  */
 
+import { u16 } from "../../../core/int.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 import {
   SCORE_SORT_DIGITS,
@@ -25,7 +26,7 @@ export function loc_13ca(m, a = m.regs.a, scorePtr = m.regs.hl) {
   if (!gameActiveGuard(m)) return;
 
   const src = scorePtr;
-  for (let i = 0; i < 3; i++) mem8[SCORE_SORT_STAGING_KEY + i] = mem8[(src + i) & 0xffff];
+  for (let i = 0; i < 3; i++) mem8[SCORE_SORT_STAGING_KEY + i] = mem8[u16(src + i)];
 
   // Unpack the 3 BCD bytes read back-to-front into 6 nibbles (high then low), MS digit first.
   for (let i = 0; i < 3; i++) {
@@ -44,23 +45,23 @@ export function loc_13ca(m, a = m.regs.a, scorePtr = m.regs.hl) {
   let de = SCORE_SORT_STAGING_KEY;
   for (let pass = 0; pass < 5; pass++) {
     const keyDe =
-      mem8[de] | (mem8[(de + 1) & 0xffff] << 8) | (mem8[(de + 2) & 0xffff] << 16);
+      mem8[de] | (mem8[u16(de + 1)] << 8) | (mem8[u16(de + 2)] << 16);
     const keyHl =
-      mem8[hl] | (mem8[(hl + 1) & 0xffff] << 8) | (mem8[(hl + 2) & 0xffff] << 16);
+      mem8[hl] | (mem8[u16(hl + 1)] << 8) | (mem8[u16(hl + 2)] << 16);
     if (keyDe < keyHl) return;
 
     // Compare left both pointers at key+2; swap 25 bytes downward. The spans never overlap
     // (records sit 34 bytes apart), so the exchange is order-independent.
     for (let k = 0; k < 25; k++) {
-      const ah = (hl + 2 - k) & 0xffff;
-      const ad = (de + 2 - k) & 0xffff;
+      const ah = u16(hl + 2 - k);
+      const ad = u16(de + 2 - k);
       const tmp = mem8[ah];
       mem8[ah] = mem8[ad];
       mem8[ad] = tmp;
     }
 
     // Step both keys back to the next-higher record pair (net −34 each).
-    hl = (hl - 34) & 0xffff;
-    de = (de - 34) & 0xffff;
+    hl = u16(hl - 34);
+    de = u16(de - 34);
   }
 }

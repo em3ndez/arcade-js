@@ -26,7 +26,7 @@ export function loc_3445(m, ix = m.regs.ix, hl = m.regs.hl) {
   const { regs, mem8 } = m;
 
   const base = ix;
-  const field = (off) => (base + off) & 0xffff;
+  const field = (off) => u16(base + off);
 
   const entry = mem8[hl];
 

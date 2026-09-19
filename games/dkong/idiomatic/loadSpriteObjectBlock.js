@@ -8,6 +8,7 @@
  * state (HL = source + 40, DE = one past the destination, BC = 0). Flags and A untouched.
  */
 
+import { u16 } from "../../../core/int.js";
 import { SPRITE_OBJ_BLOCK } from "./names.js";
 
 const OBJ_BLOCK_BYTES = 0x28; // 10 sprite records x 4 bytes
@@ -19,8 +20,8 @@ export function loadSpriteObjectBlock(m, hl = m.regs.hl) {
   let dst = SPRITE_OBJ_BLOCK;
   for (let i = 0; i < OBJ_BLOCK_BYTES; i++) {
     mem8[dst] = mem8[src];
-    src = (src + 1) & 0xffff;
-    dst = (dst + 1) & 0xffff;
+    src = u16(src + 1);
+    dst = u16(dst + 1);
   }
 
   // Block-move terminal live-outs, read back by register-dispatched frozen callers.

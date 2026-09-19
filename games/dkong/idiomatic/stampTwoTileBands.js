@@ -7,6 +7,8 @@
  * LIVE-OUT: memory-only — the eight tilemap cells.
  */
 
+import { u16 } from "../../../core/int.js";
+
 export function stampTwoTileBands(m, hl = m.regs.hl) {
   const { mem8 } = m;
 
@@ -14,13 +16,13 @@ export function stampTwoTileBands(m, hl = m.regs.hl) {
 
   for (let i = 0; i < 4; i++) {
     mem8[addr] = 0xfd;
-    addr = (addr + 1) & 0xffff;
+    addr = u16(addr + 1);
   }
 
-  addr = (addr + 0x1c) & 0xffff;
+  addr = u16(addr + 0x1c);
 
   for (let i = 0; i < 4; i++) {
     mem8[addr] = 0xfc;
-    addr = (addr + 1) & 0xffff;
+    addr = u16(addr + 1);
   }
 }

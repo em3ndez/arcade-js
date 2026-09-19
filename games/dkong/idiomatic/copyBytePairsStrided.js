@@ -10,6 +10,8 @@
  *
  * LIVE-OUT: memory-only — two destination bytes per pass.
  */
+import { u16 } from "../../../core/int.js";
+
 export function copyBytePairsStrided(m, src = m.regs.hl, de = m.regs.de, stride = m.regs.c, b = m.regs.b) {
   const { mem8 } = m;
 
@@ -19,12 +21,12 @@ export function copyBytePairsStrided(m, src = m.regs.hl, de = m.regs.de, stride 
 
   for (let i = 0; i < passes; i++) {
     mem8[page | lo] = mem8[src];
-    src = (src + 1) & 0xffff;
+    src = u16(src + 1);
 
     lo = (lo + 2) & 0xff; // step past offset +1, low byte only
 
     mem8[page | lo] = mem8[src];
-    src = (src + 1) & 0xffff;
+    src = u16(src + 1);
 
     lo = (lo + stride) & 0xff;
   }

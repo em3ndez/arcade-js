@@ -6,12 +6,13 @@
  * the 180° render flip reproduces a transform the game already assumes, it is not imposed on top.
  * row is 31 at most, so row*32 stays under 0x400 and the final add never wraps. LIVE-OUT: the address.
  */
+import { u16 } from "../../../core/int.js";
 import { TILEMAP_BASE } from "./names.js";
 
 export function tileAddrForPixel(y, x) {
   const col = (x >> 3) & 0x1f;
   const row = ((~y) & 0xff) >> 3;
-  return (TILEMAP_BASE + row * 32 + col) & 0xffff;
+  return u16(TILEMAP_BASE + row * 32 + col);
 }
 
 /**

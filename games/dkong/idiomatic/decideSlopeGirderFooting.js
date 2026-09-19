@@ -8,6 +8,7 @@
  * LIVE-OUT: memory-only — the one-shot fall request, raised on the fall branches only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { triggerMarioFall } from "./triggerMarioFall.js";
 
 const ONE_ROW = 0x20;
@@ -18,7 +19,7 @@ export function decideSlopeGirderFooting(m, d = m.regs.d, hl = m.regs.hl) {
   const probeX = d;
   if ((probeX & 0x07) === 0) return triggerMarioFall(m);
 
-  const upperTile = mem8[(hl - ONE_ROW) & 0xffff];
+  const upperTile = mem8[u16(hl - ONE_ROW)];
 
   // Solid girder = code >= 0xB0 with low nibble under 8; anything else is not ground.
   if (upperTile < 0xb0) return triggerMarioFall(m);

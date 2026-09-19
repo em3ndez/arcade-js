@@ -12,6 +12,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   OBJ_ARRAY_64,
   OBJ_ACTIVE,
@@ -41,7 +42,7 @@ export function publishFireSprites(m) {
       mem8[dst] = mem8[srcPage | ((objLo + OBJ_SPRITE_ATTR) & 0xff)];
       dst = (dst & 0xff00) | ((dst + 1) & 0xff);
       mem8[dst] = mem8[srcPage | ((objLo + OBJ_Y) & 0xff)];
-      dst = (dst + 1) & 0xffff; // next record — this step can carry
+      dst = u16(dst + 1); // next record — this step can carry
     } else {
       // Empty: consume a record without copying; low-byte-only advance, no carry.
       dst = (dst & 0xff00) | ((dst + 4) & 0xff);

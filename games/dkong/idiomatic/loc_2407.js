@@ -18,12 +18,12 @@ const OPERAND_LO = 0x13;  // lower byte of the 16-bit operand to subtract
 export function loc_2407(m, record = m.regs.ix) {
   const { regs, mem8 } = m;
 
-  const packed = mem8[(record + PACKED) & 0xffff];
+  const packed = mem8[u16(record + PACKED)];
   const highDigit = packed >> 4;
   const lowDigit = packed & 0x0f;
   const spread = (highDigit << 8) | (lowDigit << 4);
 
-  const operand = (mem8[(record + OPERAND_HI) & 0xffff] << 8) | mem8[(record + OPERAND_LO) & 0xffff];
+  const operand = (mem8[u16(record + OPERAND_HI)] << 8) | mem8[u16(record + OPERAND_LO)];
 
   const difference = u16(spread - operand);
 

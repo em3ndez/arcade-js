@@ -12,6 +12,7 @@
  * LIVE-OUT: memory-only — the work, sprite and video RAM the frame produces.
  */
 
+import { u16 } from "../../../core/int.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import {
   ATTRACT,
@@ -46,5 +47,5 @@ export function serviceVblankNmi(m, sp = m.regs.sp) {
   }
 
   // Reserve the 12-byte register-save frame the hardware prologue pushed, then run the tail.
-  perFrame(m, (sp - 12) & 0xffff);
+  perFrame(m, u16(sp - 12));
 }

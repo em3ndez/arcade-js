@@ -15,6 +15,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { silenceSound } from "./silenceSound.js";
 import { loc_13ca } from "./loc_13ca.js";
 import { enqueueTask } from "./enqueueTask.js";
@@ -43,7 +44,7 @@ export function loc_1344(m) {
   const lives = (mem8[LIVES] - 1) & 0xff;
   mem8[LIVES] = lives;
   for (let i = 0; i < CONTEXT_BYTES; i++) {
-    mem8[(P2_CONTEXT + i) & 0xffff] = mem8[(LIVES + i) & 0xffff];
+    mem8[u16(P2_CONTEXT + i)] = mem8[u16(LIVES + i)];
   }
 
   if (lives !== 0) {

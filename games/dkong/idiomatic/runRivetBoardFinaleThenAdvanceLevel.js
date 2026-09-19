@@ -9,6 +9,7 @@
  * LIVE-OUT: memory only.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   ANIM_PACE_COUNTER,
   BOARD,
@@ -94,7 +95,7 @@ export function runRivetBoardFinaleThenAdvanceLevel(m) {
 function advanceBoardSequence(m) {
   const { regs, mem8, mem16 } = m;
 
-  let ptr = (mem16[BOARD_SEQ_PTR] + 1) & 0xffff;
+  let ptr = u16(mem16[BOARD_SEQ_PTR] + 1);
   let nextBoard = mem8[ptr];
   if (nextBoard === BOARD_TABLE_TERMINATOR) {
     ptr = BOARD_TABLE_REPEAT_GROUP;

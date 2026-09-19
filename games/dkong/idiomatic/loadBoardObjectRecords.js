@@ -11,6 +11,7 @@
  * LIVE-OUT: memory-only — the de-interleaved bytes in the two destination arrays.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   BOARD,
   BOARD_LAYOUT_TABLE_25M,
@@ -39,9 +40,9 @@ export function loadBoardObjectRecords(m) {
 
   let checksum = CHECKSUM_SEED;
   for (let i = 0; i < CHECKSUM_LEN; i++) {
-    checksum = (checksum + mem8[(BOARD_RECORD_CHECKSUM_ROM + i) & 0xffff]) & 0xff;
+    checksum = (checksum + mem8[u16(BOARD_RECORD_CHECKSUM_ROM + i)]) & 0xff;
   }
-  let iy = checksum === 0 ? OBJ_PARAM_TABLE1 : (OBJ_PARAM_TABLE1 + 1) & 0xffff;
+  let iy = checksum === 0 ? OBJ_PARAM_TABLE1 : u16(OBJ_PARAM_TABLE1 + 1);
 
   const board = mem8[BOARD];
   let hl =
@@ -55,27 +56,27 @@ export function loadBoardObjectRecords(m) {
     const type = mem8[hl];
 
     if (type === TYPE_IX) {
-      hl = (hl + 1) & 0xffff; mem8[(ix + FIELD_A) & 0xffff] = mem8[hl];
-      hl = (hl + 1) & 0xffff; mem8[(ix + FIELD_B) & 0xffff] = mem8[hl];
-      hl = (hl + 1) & 0xffff; // record byte +3 is stepped over, never read
-      hl = (hl + 1) & 0xffff; mem8[(ix + FIELD_C) & 0xffff] = mem8[hl];
-      ix = (ix + 1) & 0xffff;
-      hl = (hl + 1) & 0xffff; // advance to the next record
+      hl = u16(hl + 1); mem8[u16(ix + FIELD_A)] = mem8[hl];
+      hl = u16(hl + 1); mem8[u16(ix + FIELD_B)] = mem8[hl];
+      hl = u16(hl + 1); // record byte +3 is stepped over, never read
+      hl = u16(hl + 1); mem8[u16(ix + FIELD_C)] = mem8[hl];
+      ix = u16(ix + 1);
+      hl = u16(hl + 1); // advance to the next record
       continue;
     }
 
     if (type === TYPE_IY) {
-      hl = (hl + 1) & 0xffff; mem8[(iy + FIELD_A) & 0xffff] = mem8[hl];
-      hl = (hl + 1) & 0xffff; mem8[(iy + FIELD_B) & 0xffff] = mem8[hl];
-      hl = (hl + 1) & 0xffff; // record byte +3 stepped over here too
-      hl = (hl + 1) & 0xffff; mem8[(iy + FIELD_C) & 0xffff] = mem8[hl];
-      iy = (iy + 1) & 0xffff;
-      hl = (hl + 1) & 0xffff;
+      hl = u16(hl + 1); mem8[u16(iy + FIELD_A)] = mem8[hl];
+      hl = u16(hl + 1); mem8[u16(iy + FIELD_B)] = mem8[hl];
+      hl = u16(hl + 1); // record byte +3 stepped over here too
+      hl = u16(hl + 1); mem8[u16(iy + FIELD_C)] = mem8[hl];
+      iy = u16(iy + 1);
+      hl = u16(hl + 1);
       continue;
     }
 
     if (type === TYPE_END) return; // the only exit
 
-    hl = (hl + RECORD_STRIDE) & 0xffff;
+    hl = u16(hl + RECORD_STRIDE);
   }
 }

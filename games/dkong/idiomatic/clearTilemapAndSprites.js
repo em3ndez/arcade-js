@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only — the tilemap and sprite-buffer bytes.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   SPRITE_BUFFER,
   TILEMAP_BASE,
@@ -20,10 +21,10 @@ export function clearTilemapAndSprites(m) {
   const { mem8 } = m;
 
   for (let i = 0; i < TILEMAP_BYTES; i++) {
-    mem8[(TILEMAP_BASE + i) & 0xffff] = BLANK_TILE;
+    mem8[u16(TILEMAP_BASE + i)] = BLANK_TILE;
   }
 
   for (let i = 0; i < SPRITE_BUFFER_BYTES; i++) {
-    mem8[(SPRITE_BUFFER + i) & 0xffff] = 0x00;
+    mem8[u16(SPRITE_BUFFER + i)] = 0x00;
   }
 }

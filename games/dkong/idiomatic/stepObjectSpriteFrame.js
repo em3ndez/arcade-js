@@ -6,14 +6,15 @@
  * LIVE-OUT: memory-only — the record's animation down-counter and its sprite tile code.
  */
 
+import { u16 } from "../../../core/int.js";
 import { OBJ_SPRITE_CODE } from "./names.js";
 
 const OBJ_ANIM_TIMER = 0x15; // object-record field: per-object animation down-counter
 
 export function stepObjectSpriteFrame(m, objBase) {
   const { mem8 } = m;
-  const timerAddr = (objBase + OBJ_ANIM_TIMER) & 0xffff;
-  const codeAddr = (objBase + OBJ_SPRITE_CODE) & 0xffff;
+  const timerAddr = u16(objBase + OBJ_ANIM_TIMER);
+  const codeAddr = u16(objBase + OBJ_SPRITE_CODE);
 
   const timer = mem8[timerAddr];
   if (timer !== 0) {

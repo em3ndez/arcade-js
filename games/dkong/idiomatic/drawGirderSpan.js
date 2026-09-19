@@ -11,6 +11,7 @@
  * advanced past this record so the walk reads the next one.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   SEG_ADDR1, SEG_SUBTILE1, SEG_HEIGHT, SEG_RUN, SEG_KIND, SEG_TILE,
 } from "./names.js";
@@ -30,14 +31,14 @@ export function drawGirderSpan(m) {
   function stamp(skipOnSentinel) {
     const t = mem8[SEG_TILE];
     mem8[hl] = t;
-    hl = (hl + 1) & 0xffff;
+    hl = u16(hl + 1);
     if ((hl & 0x1f) === 0) return; // ran off the right edge of the row
     if (skipOnSentinel && t === 0xf0) return; // 0xF0 sentinel tile: no pair
     mem8[hl] = t - 0x10;
   }
 
   function descend() {
-    hl = (hl + 0x1f) & 0xffff;
+    hl = u16(hl + 0x1f);
     const h = mem8[SEG_HEIGHT];
     if (h < 0x08) return false;
     mem8[SEG_HEIGHT] = h - 0x08;
@@ -73,7 +74,7 @@ export function drawGirderSpan(m) {
       const t = (mem8[SEG_TILE] + 1) & 0xff;
       mem8[SEG_TILE] = t;
       if (t === 0xf8) {
-        hl = (hl + 1) & 0xffff;
+        hl = u16(hl + 1);
         mem8[SEG_TILE] = 0xf0;
       }
       phase = "ROW_CHECK";
@@ -94,11 +95,11 @@ export function drawGirderSpan(m) {
     const t = (mem8[SEG_TILE] - 1) & 0xff;
     mem8[SEG_TILE] = t;
     if (((t - 0xf0) & 0x80) !== 0) {
-      hl = (hl - 1) & 0xffff;
+      hl = u16(hl - 1);
       mem8[SEG_TILE] = 0xf7;
     }
     phase = "STAMP_ROW";
   }
 
-  regs.de = (regs.de + 1) & 0xffff;
+  regs.de = u16(regs.de + 1);
 }

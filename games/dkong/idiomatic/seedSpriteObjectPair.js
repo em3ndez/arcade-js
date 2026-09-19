@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
@@ -24,8 +25,8 @@ export function seedSpriteObjectPair(m, src = m.regs.hl) {
 
   // Step 3 — mark both records active.
   const objBase = OBJ_PAIR_6680;
-  mem8[(objBase + OBJ_ACTIVE) & 0xffff] = 0x01;
-  mem8[(objBase + 0x10 + OBJ_ACTIVE) & 0xffff] = 0x01;
+  mem8[u16(objBase + OBJ_ACTIVE)] = 0x01;
+  mem8[u16(objBase + 0x10 + OBJ_ACTIVE)] = 0x01;
 
   // Step 4 — gather each record into a consecutive 4-byte hardware sprite record.
   gatherSpriteRecords(m, 0x0010, 0x02, HAMMER_OBJ1_SPRITE_RECORD & 0xff00, HAMMER_OBJ1_SPRITE_RECORD & 0xff, objBase);

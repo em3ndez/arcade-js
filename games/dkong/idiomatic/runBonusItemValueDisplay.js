@@ -10,6 +10,7 @@
  *
  * LIVE-OUT: memory-only.
  */
+import { u16 } from "../../../core/int.js";
 import {
   ACTIVE_PLAYER_INDEX,
   BONUS_ITEM_ANIM_TIMER,
@@ -66,7 +67,7 @@ export function runBonusItemValueDisplay(m) {
     let slot = PLAYER_SLOT_RECORDS;
     for (let i = 0; i < 4; i++) {
       if (mem8[slot] === key) break;
-      slot = (slot + 0x22) & 0xffff;
+      slot = u16(slot + 0x22);
     }
     mem16[BONUS_ITEM_SLOT_PTR] = slot;
     mem16[BONUS_ITEM_SLOT_COL_PTR] = (slot - 0x0d);
@@ -106,7 +107,7 @@ export function runBonusItemValueDisplay(m) {
     }
     if (pos === 0x1c) {
       const cur = mem16[BONUS_ITEM_VIDEO_PTR];
-      const next = (cur + 0x20) & 0xffff;
+      const next = u16(cur + 0x20);
       if (next === BONUS_ITEM_VALUE_COL_CEILING_SENTINEL) {
         mem8[BONUS_ITEM_VALUE_COLUMN_TOP] = 0x10;
         mem16[BONUS_ITEM_VIDEO_PTR] = BONUS_ITEM_VALUE_COLUMN_TOP;
@@ -149,13 +150,13 @@ export function runBonusItemValueDisplay(m) {
   let source;
   if (mem8[BONUS_ITEM_SPRITE_TOGGLE] !== 0) {
     mem8[BONUS_ITEM_SPRITE_TOGGLE] = 0x00;
-    source = (mem16[BONUS_ITEM_SLOT_PTR] + 3) & 0xffff;
+    source = u16(mem16[BONUS_ITEM_SLOT_PTR] + 3);
   } else {
     mem8[BONUS_ITEM_SPRITE_TOGGLE] = 0x01;
     source = 0x01bf; // canned digit template
   }
   const iy = mem16[BONUS_ITEM_SLOT_PTR];
-  const dest = mem8[(iy + 4) & 0xffff] | (mem8[(iy + 5) & 0xffff] << 8);
+  const dest = mem8[u16(iy + 4)] | (mem8[u16(iy + 5)] << 8);
   regs.de = source;
   regs.ix = dest;
   renderBcdColumn(m);
@@ -172,7 +173,7 @@ function exitBonusItemDisplay(m) {
 
   const dst = mem16[BONUS_ITEM_SLOT_COL_PTR];
   for (let i = 0; i < 0x0c; i++) {
-    mem8[(dst + i) & 0xffff] = mem8[(BONUS_ITEM_VALUE_COLUMN_TOP - 0x20 * i) & 0xffff];
+    mem8[u16(dst + i)] = mem8[u16(BONUS_ITEM_VALUE_COLUMN_TOP - 0x20 * i)];
   }
 
   for (let arg = 0x14; arg <= 0x18; arg++) {

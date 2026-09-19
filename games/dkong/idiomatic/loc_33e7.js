@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { stepObjectSpriteFrame } from "./stepObjectSpriteFrame.js";
 import { OBJ_STATE } from "./names.js";
 
@@ -20,9 +21,9 @@ export function loc_33e7(m, ix = m.regs.ix) {
   // Animation runs first, before any state/counter field below is read.
   stepObjectSpriteFrame(m, objBase);
 
-  const stateAddr = (objBase + OBJ_STATE) & 0xffff;
-  const counterAddr = (objBase + OBJ_STEP_COUNTER) & 0xffff;
-  const subTimerAddr = (objBase + OBJ_SUB_TIMER) & 0xffff;
+  const stateAddr = u16(objBase + OBJ_STATE);
+  const counterAddr = u16(objBase + OBJ_STEP_COUNTER);
+  const subTimerAddr = u16(objBase + OBJ_SUB_TIMER);
 
   // State other than 8: step the counter up and stop.
   if (mem8[stateAddr] !== 0x08) {

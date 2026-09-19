@@ -10,6 +10,7 @@
  * string byte, and (on the ordinary-byte path) the advanced walk pointer.
  */
 
+import { u16 } from "../../../core/int.js";
 import { FRAME, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y, SPRITE_CODE } from "./names.js";
 import { spawnObjectIntoInactiveSlot } from "./spawnObjectIntoInactiveSlot.js";
 import { loc_2e84 } from "./loc_2e84.js";
@@ -56,7 +57,7 @@ export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
   }
 
   // Step past the byte, accumulate it into OBJ_Y (add, not store), then converge at the tail.
-  regs.hl = (ptr + 1) & 0xffff;
+  regs.hl = u16(ptr + 1);
   mem8[record + OBJ_Y] = delta + mem8[record + OBJ_Y];
   advanceSpringArcAndDropAtTravelEnd(m);
 }

@@ -8,6 +8,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   EVENT_REQ_313C,
   FIXED_HAZARD_ARM_COUNTER,
@@ -47,12 +48,12 @@ export function animateFixedHazardAndReleaseFire(m) {
   if ((phase & 0x01) === 0) return;
 
   if ((phase & 0x02) === 0) {
-    mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff] = 0x02;
-    mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x00;
+    mem8[u16(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X)] = 0x02;
+    mem8[u16(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y)] = 0x00;
     loc_03f2(m, OBJ_66A0_SPRITE_CODE, SPRITE_BYTE_A);
   } else {
-    mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff] = 0x02;
-    mem8[(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x02;
+    mem8[u16(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X)] = 0x02;
+    mem8[u16(OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y)] = 0x02;
     loc_03f2(m, OBJ_66A0_SPRITE_CODE, SPRITE_BYTE_B);
 
     const decB = (mem8[FIXED_HAZARD_ARM_COUNTER] - 1) & 0xff;

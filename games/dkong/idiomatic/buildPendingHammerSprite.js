@@ -9,6 +9,7 @@
  * shared record write lays down.
  */
 
+import { u16 } from "../../../core/int.js";
 import { MARIO_HAMMER_PENDING, MARIO_SPRITE_CODE, SND_BGM, HAMMER_SAVED_BGM, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js";
 
@@ -21,8 +22,8 @@ export function buildPendingHammerSprite(m, objBase = m.regs.ix) {
 
   if ((mem8[MARIO_HAMMER_PENDING] & 0x01) === 0) return;
 
-  mem8[(objBase + OBJ_HIT_EXTENT_X) & 0xffff] = 0x06;
-  mem8[(objBase + OBJ_HIT_EXTENT_Y) & 0xffff] = 0x03;
+  mem8[u16(objBase + OBJ_HIT_EXTENT_X)] = 0x06;
+  mem8[u16(objBase + OBJ_HIT_EXTENT_Y)] = 0x03;
 
   const facing = mem8[MARIO_SPRITE_CODE] & FACING_BIT;
   regs.b = SPRITE_TILE | facing;

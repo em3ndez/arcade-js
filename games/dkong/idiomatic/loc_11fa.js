@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { u16 } from "../../../core/int.js";
 import {
   OBJ_66A0_SPRITE_RECORD,
   OBJ_RECORD_66A0,
@@ -18,12 +19,12 @@ export function loc_11fa(m, hl = m.regs.hl) {
   const REC = OBJ_RECORD_66A0;
 
   const src = hl;
-  const b0 = mem8[(src + 0) & 0xffff];
-  const b1 = mem8[(src + 1) & 0xffff];
-  const b2 = mem8[(src + 2) & 0xffff];
-  const b3 = mem8[(src + 3) & 0xffff];
-  const b4 = mem8[(src + 4) & 0xffff];
-  const b5 = mem8[(src + 5) & 0xffff];
+  const b0 = mem8[u16(src + 0)];
+  const b1 = mem8[u16(src + 1)];
+  const b2 = mem8[u16(src + 2)];
+  const b3 = mem8[u16(src + 3)];
+  const b4 = mem8[u16(src + 4)];
+  const b5 = mem8[u16(src + 5)];
 
   // Field order is scrambled (+5 written after +8), but the targets are distinct so the memory
   // left behind is order-independent.

@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only — the record's timer and state fields.
  */
 
+import { u16 } from "../../../core/int.js";
 import { RANDOM } from "./names.js";
 
 const TIMER = 0x16; // object-record field: periodic countdown
@@ -16,8 +17,8 @@ export function tickFireTimerAndRerollDirection(m, ix = m.regs.ix) {
   const { mem8 } = m;
 
   const record = ix;
-  const timerAddr = (record + TIMER) & 0xffff;
-  const stateAddr = (record + STATE) & 0xffff;
+  const timerAddr = u16(record + TIMER);
+  const stateAddr = u16(record + STATE);
 
   if (mem8[timerAddr] === 0) {
     mem8[timerAddr] = RELOAD;

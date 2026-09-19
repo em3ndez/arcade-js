@@ -7,6 +7,7 @@
  *
  * LIVE-OUT: memory-only.
  */
+import { u16 } from "../../../core/int.js";
 import {
   CURRENT_PLAYER,
   FRAME,
@@ -33,9 +34,9 @@ export function redrawPlayerUpIndicator(m) {
     // Blink OFF phase: blank the current player's three cells.
     let addr = colBase;
     mem8[addr] = 0x10;
-    addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
+    addr = u16(addr + VRAM_ROW_STEP_UP);
     mem8[addr] = 0x10;
-    addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
+    addr = u16(addr + VRAM_ROW_STEP_UP);
     mem8[addr] = 0x10;
 
     if (mem8[TWO_PLAYER_GAME] === 0) return;
@@ -46,8 +47,8 @@ export function redrawPlayerUpIndicator(m) {
 
   let addr = colBase;
   mem8[addr] = (selector + 1);
-  addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
+  addr = u16(addr + VRAM_ROW_STEP_UP);
   mem8[addr] = 0x25;
-  addr = (addr + VRAM_ROW_STEP_UP) & 0xffff;
+  addr = u16(addr + VRAM_ROW_STEP_UP);
   mem8[addr] = 0x20;
 }

@@ -10,6 +10,7 @@
  * girder and sprite video memory, the re-armed countdown and the advanced sub-state.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   BOARD_SEQ_PTR,
   CLIMB_FIGURE_INDEX,
@@ -38,7 +39,7 @@ const CLIMB_FIGURE_FOOT_TILE = 0x8b;
 const GIRDER_TILE_FIRST = 0x50;
 const GIRDER_TILE_LAST = 0x67;
 const GIRDER_GROUP_STRIDE = 0x23;
-const GIRDER_ROW_STEP = -0xa1 & 0xffff;
+const GIRDER_ROW_STEP = u16(-0xa1);
 
 const HEIGHT_MAX = 5;
 const SUBSTATE_TIMER_RELOAD = 0xa0;
@@ -75,27 +76,27 @@ export function buildHowHighScreen(m) {
   do {
     let tile = GIRDER_TILE_FIRST;
     for (;;) {
-      mem8[fillPtr] = tile; tile = (tile + 1) & 0xff; fillPtr = (fillPtr - 1) & 0xffff;
-      mem8[fillPtr] = tile; tile = (tile + 1) & 0xff; fillPtr = (fillPtr - 1) & 0xffff;
-      mem8[fillPtr] = tile; tile = (tile + 1) & 0xff; fillPtr = (fillPtr - 1) & 0xffff;
+      mem8[fillPtr] = tile; tile = (tile + 1) & 0xff; fillPtr = u16(fillPtr - 1);
+      mem8[fillPtr] = tile; tile = (tile + 1) & 0xff; fillPtr = u16(fillPtr - 1);
+      mem8[fillPtr] = tile; tile = (tile + 1) & 0xff; fillPtr = u16(fillPtr - 1);
       mem8[fillPtr] = tile; // 4th tile — `tile` is not advanced past it
       if (tile === GIRDER_TILE_LAST) break;
       tile = (tile + 1) & 0xff;
-      fillPtr = (fillPtr + GIRDER_GROUP_STRIDE) & 0xffff;
+      fillPtr = u16(fillPtr + GIRDER_GROUP_STRIDE);
     }
 
     const idx = mem8[CLIMB_FIGURE_INDEX];
     mem8[CLIMB_FIGURE_INDEX] = idx + 1;
-    let recPtr = (HOW_HIGH_CLIMB_FIGURE_TABLE + ((idx << 2) & 0xff)) & 0xffff;
+    let recPtr = u16(HOW_HIGH_CLIMB_FIGURE_TABLE + ((idx << 2) & 0xff));
     const ix = mem16[CLIMB_FIGURE_WALK_PTR];
 
-    mem8[(ix + 0x60) & 0xffff] = mem8[recPtr]; recPtr = (recPtr + 1) & 0xffff;
-    mem8[(ix + 0x40) & 0xffff] = mem8[recPtr]; recPtr = (recPtr + 1) & 0xffff;
-    mem8[(ix + 0x20) & 0xffff] = mem8[recPtr];
-    mem8[(ix - 0x20) & 0xffff] = CLIMB_FIGURE_FOOT_TILE; // negative displacement
+    mem8[u16(ix + 0x60)] = mem8[recPtr]; recPtr = u16(recPtr + 1);
+    mem8[u16(ix + 0x40)] = mem8[recPtr]; recPtr = u16(recPtr + 1);
+    mem8[u16(ix + 0x20)] = mem8[recPtr];
+    mem8[u16(ix - 0x20)] = CLIMB_FIGURE_FOOT_TILE; // negative displacement
 
     mem16[CLIMB_FIGURE_WALK_PTR] = ix - 4;
-    fillPtr = (fillPtr + GIRDER_ROW_STEP) & 0xffff;
+    fillPtr = u16(fillPtr + GIRDER_ROW_STEP);
 
     rows = (rows - 1) & 0xff;
   } while (rows !== 0);

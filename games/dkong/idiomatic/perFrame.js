@@ -9,6 +9,7 @@
  * register or flag is live: the interrupted main loop reloads from memory.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   FRAME,
   GAME_STATE,
@@ -57,6 +58,6 @@ export function perFrame(m, sp = m.regs.sp) {
   // Re-enable the NMI, then return. The saved registers are dead, so drop the 12-byte frame
   // as one stack-pointer adjustment; the return pops the interrupted program counter.
   mem.write8(NMI_ENABLE, 1);
-  regs.sp = (frameBase + 12) & 0xffff;
+  regs.sp = u16(frameBase + 12);
   m.ret();
 }

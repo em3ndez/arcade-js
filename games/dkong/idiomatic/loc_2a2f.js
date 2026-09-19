@@ -11,16 +11,16 @@
  * is load-bearing, not residual — see the note at the bottom of the body.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { OBJ_X, OBJ_Y } from "./names.js";
 import { tileAddrForPixel } from "./tileAddrForPixel.js";
 
 export function loc_2a2f(m, objPtr = m.regs.ix) {
   const { regs, mem8 } = m;
 
-  const objX = mem8[(objPtr + OBJ_X) & 0xffff];
+  const objX = mem8[u16(objPtr + OBJ_X)];
   // Probe point: 4 px BELOW the object (larger Y is lower on screen).
-  const probeY = u8(mem8[(objPtr + OBJ_Y) & 0xffff] + 4);
+  const probeY = u8(mem8[u16(objPtr + OBJ_Y)] + 4);
   const cell = tileAddrForPixel(objX, probeY);
   const tile = mem8[cell];
 
@@ -45,7 +45,7 @@ export function loc_2a2f(m, objPtr = m.regs.ix) {
   // only if it is ABOVE the probe point (smaller Y).
   const surface = u8((probeY & 0xf8) + slope);
   if (surface < probeY) {
-    mem8[(objPtr + OBJ_Y) & 0xffff] = surface - 4;
+    mem8[u16(objPtr + OBJ_Y)] = surface - 4;
     regs.a = 0x01;
     return true;
   }

@@ -10,6 +10,7 @@
  * sprite records. It returns into a caller that reloads every register.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   FIRE_RECORDS_100M,
   FIRE_RECORDS_100M_CODE,
@@ -46,8 +47,8 @@ export function seed100mBoardObjects(m) {
   let dst = OBJECT_COLLISION_SPRITES;
   for (let i = 0; i < LDIR_BYTES; i++) {
     mem8[dst] = mem8[src];
-    src = (src + 1) & 0xffff;
-    dst = (dst + 1) & 0xffff;
+    src = u16(src + 1);
+    dst = u16(dst + 1);
   }
 
   regs.hl = OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA; // the position table, laid down just after the routine body
@@ -61,8 +62,8 @@ export function seed100mBoardObjects(m) {
   replicateGroupStrided(m);
 
   regs.ix = FIRE_RECORDS_100M;
-  mem8[(regs.ix + 0x00) & 0xffff] = 0x01;
-  mem8[(regs.ix + 0x20) & 0xffff] = 0x01; // the second record, one stride on
+  mem8[u16(regs.ix + 0x00)] = 0x01;
+  mem8[u16(regs.ix + 0x20)] = 0x01; // the second record, one stride on
   regs.hl = M100_FIRE_SPRITE_PAIR; // sprite-record destination
   regs.b = 0x02; // two records
   regs.de = 0x0020; // per-record source stride

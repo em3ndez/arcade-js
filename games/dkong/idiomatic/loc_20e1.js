@@ -8,6 +8,8 @@
  */
 
 // The record's 16-bit horizontal velocity: whole pixels first, then the 1/256-pixel fraction.
+import { u16 } from "../../../core/int.js";
+
 const VELOCITY_X_WHOLE = 0x10;
 const VELOCITY_X_FRACTION = 0x11;
 // This arm's value: one whole pixel per frame, no fraction, positive (rightward).
@@ -16,7 +18,7 @@ const RIGHTWARD_ONE_PIXEL_FRACTION = 0;
 
 export function loc_20e1(m, record = m.regs.ix) {
   const { mem8 } = m;
-  const at = (offset) => (record + offset) & 0xffff;
+  const at = (offset) => u16(record + offset);
 
   mem8[at(VELOCITY_X_WHOLE)] = RIGHTWARD_ONE_PIXEL_WHOLE;
   mem8[at(VELOCITY_X_FRACTION)] = RIGHTWARD_ONE_PIXEL_FRACTION;

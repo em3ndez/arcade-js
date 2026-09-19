@@ -11,6 +11,7 @@
  * the board-object bookkeeping marker.
  */
 
+import { u16 } from "../../../core/int.js";
 import {
   OBJ_ARRAY_64,
   OBJ_ARRAY_65A0,
@@ -37,7 +38,7 @@ import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
 
 function copyBlock(mem8, src, dst, n) {
   for (let i = 0; i < n; i++) {
-    mem8[(dst + i) & 0xffff] = mem8[(src + i) & 0xffff];
+    mem8[u16(dst + i)] = mem8[u16(src + i)];
   }
 }
 

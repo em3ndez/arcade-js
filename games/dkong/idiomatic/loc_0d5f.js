@@ -7,6 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
+import { u16 } from "../../../core/int.js";
 import { initBoardState } from "./initBoardState.js";
 import { loadBoardObjectRecords } from "./loadBoardObjectRecords.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
@@ -32,12 +33,12 @@ export function loc_0d5f(m) {
   // copy below continues the same template stream from that advanced pointer.
   loadSpriteObjectBlock(m, OBJECT_TEMPLATE_SRC);
 
-  let src = (OBJECT_TEMPLATE_SRC + OBJ_BLOCK_BYTES) & 0xffff;
+  let src = u16(OBJECT_TEMPLATE_SRC + OBJ_BLOCK_BYTES);
   let dst = SPRITE_BUFFER;
   for (let i = 0; i < HEAD_COPY_BYTES; i++) {
     mem8[dst] = mem8[src];
-    src = (src + 1) & 0xffff;
-    dst = (dst + 1) & 0xffff;
+    src = u16(src + 1);
+    dst = u16(dst + 1);
   }
 
   const board = mem8[BOARD];

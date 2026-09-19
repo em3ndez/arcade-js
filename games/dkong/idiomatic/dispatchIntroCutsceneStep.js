@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only — the step handler's writes.
  */
 
+import { u16 } from "../../../core/int.js";
 import { INTRO_STEP } from "./names.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
@@ -18,8 +19,8 @@ export function dispatchIntroCutsceneStep(m) {
   const step = mem8[INTRO_STEP];
 
   // Doubling into the table offset is an 8-bit result: base + (2*step & 0xff), not base + 2*step.
-  const entry = (INTRO_STEP_TABLE + ((step * 2) & 0xff)) & 0xffff;
-  const target = mem8[entry] | (mem8[(entry + 1) & 0xffff] << 8);
+  const entry = u16(INTRO_STEP_TABLE + ((step * 2) & 0xff));
+  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_0A7A);
 }
