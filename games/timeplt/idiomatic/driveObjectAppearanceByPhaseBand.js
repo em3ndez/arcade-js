@@ -72,9 +72,6 @@ export function driveObjectAppearanceByPhaseBand(m, object = m.regs.ix, sprite =
   mem8[CLAIM_TOKEN] = 0;
 }
 
-/** The table fetch wants its base and its index in the registers it reads them from. */
 function shapeForStep(m, step) {
-  m.regs.hl = OBJECT_PHASE_SHAPE_TABLE;
-  m.regs.a = step;
-  return fetchTableByte(m);
+  return fetchTableByte(m, OBJECT_PHASE_SHAPE_TABLE, step);
 }

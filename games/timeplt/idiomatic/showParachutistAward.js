@@ -20,16 +20,14 @@ const SECOND_BYTE_IN_ENTRY = 48;
 const SECOND_BYTE = 0x6c;
 
 export function showParachutistAward(m, record = m.regs.ix, sprite = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   mem8[u16(record + STATE_IN_RECORD)] = STATE_CODE;
   requestParachutistAwardSound(m);
 
   const index = mem8[u16(record + INDEX_IN_RECORD)];
   let shape = SHAPE_PAST_THE_END;
   if (index < SHAPE_TABLE_LENGTH) {
-    regs.hl = PARACHUTIST_AWARD_SHAPE_TABLE;
-    regs.a = index;
-    shape = fetchTableByte(m);
+    shape = fetchTableByte(m, PARACHUTIST_AWARD_SHAPE_TABLE, index);
   }
   mem8[u16(sprite + SHAPE_IN_ENTRY)] = shape;
   mem8[u16(sprite + SECOND_BYTE_IN_ENTRY)] = SECOND_BYTE;

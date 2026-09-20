@@ -34,9 +34,7 @@ export function fileScoreIntoHighScoreTable(m) {
     isScoreBelow(m, de);
     if (regs.fNC) { filed = true; break; } // not below -> this is the slot
     de = savedDe;
-    regs.hl = savedHl;
-    regs.a = RECORD_STRIDE;
-    fetchTableByte(m); // walk the standing pointer down one record
+    fetchTableByte(m, savedHl, RECORD_STRIDE); // walk the standing pointer down one record
     if (regs.djnz() !== 0) continue;
     break;
   }
@@ -70,9 +68,8 @@ export function fileScoreIntoHighScoreTable(m) {
   m.lddrAt(0x4d09, 0x4d0b); // copy the three score cells in
 
   regs.a = mem8[regs.de]; // the rank the copy uncovered
-  regs.hl = HIGH_SCORE_INITIALS_CELL_BASE;
   regs.add(regs.a);
-  fetchTableByte(m);
+  fetchTableByte(m, HIGH_SCORE_INITIALS_CELL_BASE);
   mem16[SCRATCH_PTR_B] = regs.hl;
 
   // renumber the rank column top to bottom, 0 upward, one write per record

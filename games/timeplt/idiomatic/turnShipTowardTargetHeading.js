@@ -17,9 +17,8 @@ const WITHIN_ONE_NOTCH = 3;
 const HALF_TURN = 128;
 
 export function turnShipTowardTargetHeading(m) {
-  const { regs, mem8 } = m;
-  regs.hl = loc_1f2e_ADDR;
-  const wanted = fetchTableByte(m);
+  const { mem8 } = m;
+  const wanted = fetchTableByte(m, loc_1f2e_ADDR);
   const heading = mem8[PLAYER_HEADING];
   if (heading !== wanted) {
     const delta = u8(heading - wanted);

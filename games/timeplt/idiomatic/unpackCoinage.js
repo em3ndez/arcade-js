@@ -15,11 +15,9 @@ const RAISING_VALUE = 15;
 const RAISED = 255;
 
 function unpackNibble(m, setting, destination) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   if (setting === RAISING_VALUE) mem8[FREE_PLAY] = RAISED;
-  regs.hl = COINAGE_VALUE_TABLE;
-  regs.a = setting;
-  mem8[destination] = fetchTableByte(m);
+  mem8[destination] = fetchTableByte(m, COINAGE_VALUE_TABLE, setting);
 }
 
 export function unpackCoinage(m) {

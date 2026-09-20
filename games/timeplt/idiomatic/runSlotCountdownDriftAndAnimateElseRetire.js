@@ -26,7 +26,7 @@ const BESIDE_IT_IN_ENTRY = 48;
 const BESIDE_IT = 3;
 
 export function runSlotCountdownDriftAndAnimateElseRetire(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   if (mem8[ERA_INDEX] !== LAST_ERA) {
     retireSlot(m);
@@ -45,8 +45,6 @@ export function runSlotCountdownDriftAndAnimateElseRetire(m, ix = m.regs.ix, iy 
   const nowAt = mem8[ix + COUNTER];
   if (nowAt < SHAPES_FROM) return;
 
-  regs.hl = COUNTDOWN_SLOT_SHAPE_TABLE;
-  regs.a = Math.floor((nowAt - SHAPES_FROM) / HELD_FOR) % SHAPES;
-  mem8[iy + SHAPE_IN_ENTRY] = fetchTableByte(m);
+  mem8[iy + SHAPE_IN_ENTRY] = fetchTableByte(m, COUNTDOWN_SLOT_SHAPE_TABLE, Math.floor((nowAt - SHAPES_FROM) / HELD_FOR) % SHAPES);
   mem8[iy + BESIDE_IT_IN_ENTRY] = BESIDE_IT;
 }

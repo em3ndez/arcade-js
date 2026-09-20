@@ -26,9 +26,7 @@ export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
   const savedPen = playerTwo ? PLAYER_TWO_PEN_GLYPH : PLAYER_ONE_PEN_GLYPH;
   const era = playerTwo ? mem8[PLAYER_TWO_ERA_INDEX] : mem8[PLAYER_ONE_ERA_INDEX];
 
-  regs.a = u8(era * 2);
-  regs.hl = loc_0f8d_ADDR;
-  const glyph = fetchTableByte(m);
+  const glyph = fetchTableByte(m, loc_0f8d_ADDR, u8(era * 2));
   mem8[savedPen] = glyph;
   mem8[PEN_GLYPH] = glyph;
 

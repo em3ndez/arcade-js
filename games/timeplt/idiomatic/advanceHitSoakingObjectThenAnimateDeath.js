@@ -14,7 +14,7 @@ import { postCommand } from "./postCommand.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 
 export function advanceHitSoakingObjectThenAnimateDeath(m, ix = m.regs.ix, iy = m.regs.iy, a = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const record = ix;
   const entry = iy;
   const head = u8(a - 1);
@@ -53,9 +53,7 @@ export function advanceHitSoakingObjectThenAnimateDeath(m, ix = m.regs.ix, iy = 
   if (level < 0x40) return;
   if (((level - 0x40) & 0x07) !== 0) return;
 
-  regs.hl = DEATH_ANIMATION_SHAPE_TABLE;
-  regs.a = ((level - 0x40) >> 3) - 1;
-  const shape = fetchTableByte(m);
+  const shape = fetchTableByte(m, DEATH_ANIMATION_SHAPE_TABLE, ((level - 0x40) >> 3) - 1);
   mem8[entry + 0x03] = shape;
   mem8[entry + 0x01] = shape + 1;
 }
