@@ -13,14 +13,12 @@ import { ACTIVE_PLAYER, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_E
 const FIELD_WIDTH = 2;
 
 export function setSavedPenFromEra(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const secondPlayer = mem8[ACTIVE_PLAYER] !== 0;
   const field = secondPlayer ? PLAYER_TWO_PEN_GLYPH : PLAYER_ONE_PEN_GLYPH;
   const round = mem8[secondPlayer ? PLAYER_TWO_ERA_INDEX : PLAYER_ONE_ERA_INDEX];
 
-  regs.hl = loc_0f8d_ADDR;
-  regs.a = u8(round * FIELD_WIDTH);
-  const entry = offsetAddress(m);
+  const entry = offsetAddress(m, loc_0f8d_ADDR, u8(round * FIELD_WIDTH));
 
   mem8[field] = mem8[entry];
   mem8[u16(field + 1)] = mem8[u16(entry + 1)];

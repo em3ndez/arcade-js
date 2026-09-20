@@ -26,8 +26,7 @@ export function postNextParachutistBonus(m, record = m.regs.ix) {
 
   let argument = PAST_THE_LAST_STEP;
   if (step < STEPS) {
-    regs.a = step;
-    argument = mem8[offsetAddress(m, PARACHUTIST_BONUS_ARG_TABLE)];
+    argument = mem8[offsetAddress(m, PARACHUTIST_BONUS_ARG_TABLE, step)];
   }
   regs.d = COMMAND;
   regs.e = argument;

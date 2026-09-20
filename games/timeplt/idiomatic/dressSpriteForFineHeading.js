@@ -21,13 +21,11 @@ const SHAPE_IN_ENTRY = 1;
 const BESIDE_IT_IN_ENTRY = 48;
 
 export function dressSpriteForFineHeading(m, entry = m.regs.iy, object = m.regs.ix) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   const heading = mem8[u16(object + HEADING)];
   const sector = Math.floor(u8(heading + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
 
-  regs.hl = FINE_HEADING_SHAPE_TABLE;
-  regs.a = sector * ENTRY_WIDTH;
-  const selected = offsetAddress(m);
+  const selected = offsetAddress(m, FINE_HEADING_SHAPE_TABLE, sector * ENTRY_WIDTH);
 
   const farHalf = (mem8[FRAME_TICK] & FAR_HALF_BIT) !== 0;
   mem8[entry + SHAPE_IN_ENTRY] = mem8[selected] + (farHalf ? SHAPES_PER_HALF : 0);

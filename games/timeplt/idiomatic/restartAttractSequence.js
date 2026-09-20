@@ -14,14 +14,12 @@ import { offsetAddress } from "./offsetAddress.js";
 const FOLD_BIAS = 155;
 
 export function restartAttractSequence(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
   mem8[PLAY_ACTIVE] = 0;
   mem8[SEQUENCE_SUBSTEP] = 0;
   mem8[ACTIVE_PLAYER] = 0;
   mem8[SEQUENCE_PHASE] = mem8[ATTRACT_SEQUENCE_START_PHASE];
 
-  regs.a = mem8[ATTRACT_RESTART_FOLD_BYTE];
-  regs.hl = mem16[PLAYER_ANIM_COL_COUNT];
-  const moved = offsetAddress(m);
+  const moved = offsetAddress(m, mem16[PLAYER_ANIM_COL_COUNT], mem8[ATTRACT_RESTART_FOLD_BYTE]);
   mem8[SEQUENCE_SUBSTEP] = u8(u8(moved) ^ (moved >> 8)) - FOLD_BIAS;
 }

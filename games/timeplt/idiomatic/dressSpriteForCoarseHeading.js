@@ -17,12 +17,10 @@ const SECOND_BYTE_IN_ENTRY = 48;
 const HALF_SECTOR = 8;
 
 export function dressSpriteForCoarseHeading(m, object = m.regs.ix, sprite = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const sector = u8(mem8[u16(object + HEADING_IN_RECORD)] + HALF_SECTOR) >> 4;
 
-  regs.hl = COARSE_HEADING_SHAPE_TABLE;
-  regs.a = sector;
-  const shapeEntry = offsetAddress(m);
+  const shapeEntry = offsetAddress(m, COARSE_HEADING_SHAPE_TABLE, sector);
 
   mem8[u16(sprite + SHAPE_IN_ENTRY)] = mem8[shapeEntry];
   mem8[u16(sprite + SECOND_BYTE_IN_ENTRY)] = mem8[u16(shapeEntry + SECOND_TABLE_GAP)];

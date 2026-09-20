@@ -13,13 +13,6 @@ const RECORD_BYTES = 4;
 
 export function loadDifficultyRecord(m, index = m.regs.a) {
   const { mem8 } = m;
-  const record = tableEntry(m, RECORD_TABLE, u8(index * RECORD_BYTES));
+  const record = offsetAddress(m, RECORD_TABLE, u8(index * RECORD_BYTES));
   for (let i = 0; i < RECORD_BYTES; i++) mem8[START_RUNG_ROUNDS_1_5 + i] = mem8[record + i];
-}
-
-/** The address step wants its base and its offset in the registers it reads them from. */
-function tableEntry(m, base, offset) {
-  m.regs.hl = base;
-  m.regs.a = offset;
-  return offsetAddress(m);
 }

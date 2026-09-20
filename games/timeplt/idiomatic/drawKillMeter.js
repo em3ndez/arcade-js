@@ -23,10 +23,8 @@ const LONGEST_BAR = 31;
 const BLANK_GLYPH = 241;
 
 export function drawKillMeter(m) {
-  const { regs, mem8 } = m;
-  regs.hl = KILL_METER_GLYPH_ROW_TABLE;
-  regs.a = u8(ROW_BYTES * mem8[ERA_INDEX]);
-  const row = offsetAddress(m);
+  const { mem8 } = m;
+  const row = offsetAddress(m, KILL_METER_GLYPH_ROW_TABLE, u8(ROW_BYTES * mem8[ERA_INDEX]));
   const barGlyphs = [mem8[row], mem8[u16(row + 1)]];
 
   const owed = mem8[KILLS_REMAINING];

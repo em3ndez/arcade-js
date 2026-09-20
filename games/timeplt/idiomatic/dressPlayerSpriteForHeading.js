@@ -13,11 +13,9 @@ const STEPS_PER_SECTOR = 256 / SECTORS;
 const SECOND_TABLE = SECTORS;
 
 export function dressPlayerSpriteForHeading(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   const sector = Math.floor(u8(mem8[PLAYER_HEADING] + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
-  regs.hl = PLAYER_HEADING_SHAPE_TABLE;
-  regs.a = sector;
-  const entry = offsetAddress(m);
+  const entry = offsetAddress(m, PLAYER_HEADING_SHAPE_TABLE, sector);
   mem8[PLAYER_SPRITE_CODE] = mem8[entry];
   mem8[PLAYER_SPRITE_ATTRIBUTE] = mem8[entry + SECOND_TABLE];
 }
