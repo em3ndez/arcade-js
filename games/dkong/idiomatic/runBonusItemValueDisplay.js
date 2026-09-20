@@ -46,13 +46,13 @@ function rotl8(v) {
 }
 
 export function runBonusItemValueDisplay(m) {
-  const { regs, mem, mem8, mem16 } = m;
+  const { regs, mem8, mem16 } = m;
 
   drawCreditDisplay(m);
 
   if (mem8[SUBSTATE_TIMER] === 0) {
-    mem.write8(PALETTE_BANK_BIT0, 0x00); // palette bank %00
-    mem.write8(PALETTE_BANK_BIT1, 0x00);
+    mem8[PALETTE_BANK_BIT0] = 0x00; // palette bank %00
+    mem8[PALETTE_BANK_BIT1] = 0x00;
     mem8[SUBSTATE_TIMER] = 0x01;
     mem8[BONUS_ITEM_POS_DIVIDER] = 0x0a;
     mem8[BONUS_ITEM_SPRITE_TOGGLE] = 0x00;

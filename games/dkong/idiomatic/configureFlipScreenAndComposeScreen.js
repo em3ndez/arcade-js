@@ -20,9 +20,9 @@ import { enqueueTask } from "./enqueueTask.js";
 const FLIPSCREEN = 0x7d82;
 
 export function configureFlipScreenAndComposeScreen(m, a = m.regs.a) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
-  mem.write8(FLIPSCREEN, (a | mem8[DIP_UPRIGHT]) & 0xff);
+  mem8[FLIPSCREEN] = (a | mem8[DIP_UPRIGHT]) & 0xff;
   mem8[SUBSTATE_TIMER] = 0x00;
   mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 

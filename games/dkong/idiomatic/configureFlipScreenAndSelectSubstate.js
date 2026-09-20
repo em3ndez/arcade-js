@@ -17,12 +17,12 @@ import { silenceSound } from "./silenceSound.js";
 const FLIPSCREEN = 0x7d82;
 
 export function configureFlipScreenAndSelectSubstate(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   clearTilemapAndSprites(m);
   silenceSound(m);
 
-  mem.write8(FLIPSCREEN, 1);
+  mem8[FLIPSCREEN] = 1;
 
   if (mem8[ACTIVE_PLAYER_INDEX] === 0) {
     mem8[GAME_SUBSTATE] = 0x01;
@@ -31,7 +31,7 @@ export function configureFlipScreenAndSelectSubstate(m) {
 
   // Cocktail cabinet: clear flip-screen so player 2 sees the mirrored screen.
   if (mem8[DIP_UPRIGHT] !== 1) {
-    mem.write8(FLIPSCREEN, 0);
+    mem8[FLIPSCREEN] = 0;
   }
   mem8[GAME_SUBSTATE] = 0x03;
 }

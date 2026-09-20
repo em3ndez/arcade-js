@@ -31,7 +31,7 @@ import { loc_0cc6 } from "./loc_0cc6.js";
 
 
 export function buildBoard(m) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
   clearPlayfieldAndSprites(m);
 
@@ -41,8 +41,8 @@ export function buildBoard(m) {
   enqueueTask(m);
 
   // Select palette bank 2: bit0 clear, bit1 set.
-  mem.write8(PALETTE_BANK_BIT0, 0);
-  mem.write8(PALETTE_BANK_BIT1, 1);
+  mem8[PALETTE_BANK_BIT0] = 0;
+  mem8[PALETTE_BANK_BIT1] = 1;
 
   const board = mem8[BOARD];
   if (board === 1) { setup25mGirderBoard(m); return; }
@@ -52,7 +52,7 @@ export function buildBoard(m) {
   // 100m-rivet arm (BOARD == 4 and any other value): stamp the bands, raise palette bit0 to
   // bank 3, queue the rivet tune, and hand the rivet layout table to the shared tail.
   stampRivetBoardBands(m);
-  mem.write8(PALETTE_BANK_BIT0, 1);
+  mem8[PALETTE_BANK_BIT0] = 1;
   mem8[SND_BGM] = 0x0b;
   regs.de = BOARD_LAYOUT_TABLE_RIVET;
   loc_0cc6(m);

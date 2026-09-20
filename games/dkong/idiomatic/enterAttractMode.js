@@ -13,8 +13,8 @@ import { GAME_STATE, ATTRACT, GAME_SUBSTATE } from "./names.js";
 const FLIPSCREEN_LATCH = 0x7d82;
 
 export function enterAttractMode(m) {
-  const { mem, mem8 } = m;
-  mem.write8(FLIPSCREEN_LATCH, 1); // board output (write-only) — not in the RAM dump
+  const { mem8 } = m;
+  mem8[FLIPSCREEN_LATCH] = 1; // board output (write-only) — not in the RAM dump
   mem8[GAME_STATE] = 1;
   mem8[ATTRACT] = 1;
   mem8[GAME_SUBSTATE] = 0;

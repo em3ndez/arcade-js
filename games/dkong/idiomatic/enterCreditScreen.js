@@ -23,7 +23,7 @@ import {
 
 
 export function enterCreditScreen(m) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
   clearPlayfieldAndSprites(m);
 
@@ -36,9 +36,9 @@ export function enterCreditScreen(m) {
 
   enqueueTaskBatch(m);
 
-  // Select palette bank 0: both latch bits 0 (device latch, kept as mem.write8).
-  mem.write8(PALETTE_BANK_BIT0, 0);
-  mem.write8(PALETTE_BANK_BIT0 + 1, 0);
+  // Select palette bank 0: both latch bits 0.
+  mem8[PALETTE_BANK_BIT0] = 0;
+  mem8[PALETTE_BANK_BIT0 + 1] = 0;
 
   // Fall through into the per-frame start-button read.
   readStartButtonSelector(m);

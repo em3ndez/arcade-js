@@ -35,16 +35,16 @@ const DMA_PROGRAM_PORTS = [
 ];
 
 export function blitSpritesViaDma(m, block = m.regs.hl) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
-  mem.write8(DMA_DRQ, 0);
+  mem8[DMA_DRQ] = 0;
 
   for (const port of DMA_PROGRAM_PORTS) {
-    mem.write8(port, mem8[block]);
+    mem8[port] = mem8[block];
     block = u16(block + 1);
   }
 
   // DRQ rising edge = THE BLIT: 385 bytes copied synchronously as a side effect of this store.
-  mem.write8(DMA_DRQ, 1);
-  mem.write8(DMA_DRQ, 0);
+  mem8[DMA_DRQ] = 1;
+  mem8[DMA_DRQ] = 0;
 }

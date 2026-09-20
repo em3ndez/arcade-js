@@ -36,7 +36,7 @@ const FILL_TILE = 0xb0;
 const SPRITE_TEMPLATE = 0x39cf;
 
 export function loc_07cb(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   let timer = mem8[PALETTE_ANIM_TIMER];
   let pattern;
@@ -59,8 +59,8 @@ export function loc_07cb(m) {
   }
 
   // Decode the top two pattern bits into the latches, then rotate the pattern left by two.
-  mem.write8(PALETTE_BANK_BIT0, (pattern >> 7) & 1);
-  mem.write8(PALETTE_BANK_BIT1, (pattern >> 6) & 1);
+  mem8[PALETTE_BANK_BIT0] = (pattern >> 7) & 1;
+  mem8[PALETTE_BANK_BIT1] = (pattern >> 6) & 1;
   mem8[PALETTE_ANIM_PATTERN] = ((pattern << 2) | (pattern >> 6));
 
   let hl = ANIM_TILE_FILL_TABLE;

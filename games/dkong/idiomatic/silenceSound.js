@@ -19,10 +19,10 @@ import {
 } from "./names.js";
 
 export function silenceSound(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   for (let i = 0; i < 8; i++) {
-    mem.write8(SOUND_TRIGGER_LATCH + i, 0);
+    mem8[SOUND_TRIGGER_LATCH + i] = 0;
     mem8[SND_TRIGGER + i] = 0;
   }
 
@@ -31,6 +31,6 @@ export function silenceSound(m) {
   mem8[SND_PRIORITY] = 0;
   mem8[SND_PRIORITY_FRAMES] = 0;
 
-  mem.write8(SOUND_IRQ, 0);
-  mem.write8(SOUND_TUNE_LATCH, 0);
+  mem8[SOUND_IRQ] = 0;
+  mem8[SOUND_TUNE_LATCH] = 0;
 }

@@ -31,10 +31,10 @@ const TITLE_STRING_B = 0x1c;
 const COINAGE_DIGIT_CELL = 0x756c;
 
 export function composeAttractTitleScreen(m) {
-  const { mem, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
-  mem.write8(PALETTE_BANK_BIT0, 0x00);
-  mem.write8(PALETTE_BANK_BIT1, 0x00);
+  mem8[PALETTE_BANK_BIT0] = 0x00;
+  mem8[PALETTE_BANK_BIT1] = 0x00;
 
   enqueueTask(m, DRAW_STRING, TITLE_STRING_A);
   enqueueTask(m, DRAW_STRING, TITLE_STRING_B);

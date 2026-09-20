@@ -34,7 +34,7 @@ const SLOT_FREE = 0xff;
 const QUEUE_EMPTY = 0xc0;
 
 export function clearRamAndInitHardware(m) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
   for (let a = WORK_RAM_BASE; a < WORK_PAGE_HI; a++) mem8[a] = 0;
 
@@ -46,14 +46,14 @@ export function clearRamAndInitHardware(m) {
   mem8[TASK_TAIL] = QUEUE_EMPTY;
   mem8[TASK_HEAD] = QUEUE_EMPTY;
 
-  mem.write8(SPRITE_BANK, 0);
-  mem.write8(PALETTE_BANK_BIT0, 0);
-  mem.write8(PALETTE_BANK_BIT1, 0);
-  mem.write8(FLIPSCREEN, 1);
+  mem8[SPRITE_BANK] = 0;
+  mem8[PALETTE_BANK_BIT0] = 0;
+  mem8[PALETTE_BANK_BIT1] = 0;
+  mem8[FLIPSCREEN] = 1;
 
   regs.sp = 0x6c00;
 
   silenceSound(m);
 
-  mem.write8(NMI_ENABLE, 1);
+  mem8[NMI_ENABLE] = 1;
 }

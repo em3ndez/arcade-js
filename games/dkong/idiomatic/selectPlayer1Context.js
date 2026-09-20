@@ -13,9 +13,9 @@ import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, GAME_SUBSTATE } from "./names.js";
 const FLIPSCREEN = 0x7d82;
 
 export function selectPlayer1Context(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
   mem8[CURRENT_PLAYER] = 0;
   mem8[ACTIVE_PLAYER_INDEX] = 0;
   mem8[GAME_SUBSTATE] = 0;
-  mem.write8(FLIPSCREEN, 1);
+  mem8[FLIPSCREEN] = 1;
 }

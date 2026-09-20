@@ -34,7 +34,7 @@ const NMI_GAME_STATE = [
 ];
 
 export function perFrame(m, sp = m.regs.sp) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
   // Snapshot the entry stack pointer: the dispatch does not reliably restore it, but is
   // stack-neutral overall, so the epilogue is a pure function of this value.
@@ -57,7 +57,7 @@ export function perFrame(m, sp = m.regs.sp) {
 
   // Re-enable the NMI, then return. The saved registers are dead, so drop the 12-byte frame
   // as one stack-pointer adjustment; the return pops the interrupted program counter.
-  mem.write8(NMI_ENABLE, 1);
+  mem8[NMI_ENABLE] = 1;
   regs.sp = u16(frameBase + 12);
   m.ret();
 }

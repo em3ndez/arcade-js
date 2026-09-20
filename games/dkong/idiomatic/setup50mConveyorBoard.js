@@ -18,11 +18,11 @@ import {
 // Hardware palette-bank output latches (NOT work RAM).
 
 export function setup50mConveyorBoard(m) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
   // Palette bank 1 (bit0 set, bit1 clear).
-  mem.write8(PALETTE_BANK_BIT0, 0x01);
-  mem.write8(PALETTE_BANK_BIT1, 0x00);
+  mem8[PALETTE_BANK_BIT0] = 0x01;
+  mem8[PALETTE_BANK_BIT1] = 0x00;
 
   mem8[SND_BGM] = 0x09; // 50m background tune (25m=0x08, 50m=0x09, 75m=0x0A)
 

@@ -19,15 +19,15 @@ const IN0 = 0x7c00; // player-1 joystick port (hardware input)
 const COCKTAIL_PLAYER_SELECT = ACTIVE_PLAYER_INDEX; // non-zero => read IN1_PORT on a cocktail cabinet
 
 export function readControls(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   let raw;
   if (mem8[DIP_UPRIGHT] !== 0) {
-    raw = mem.read8(IN0);
+    raw = mem8[IN0];
   } else if (mem8[COCKTAIL_PLAYER_SELECT] !== 0) {
-    raw = mem.read8(IN1_PORT);
+    raw = mem8[IN1_PORT];
   } else {
-    raw = mem.read8(IN0);
+    raw = mem8[IN0];
   }
 
   const direction = raw & 0x0f;

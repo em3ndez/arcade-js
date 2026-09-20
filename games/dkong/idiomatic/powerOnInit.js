@@ -37,7 +37,7 @@ const OPENING_TASKS = [
 ];
 
 export function powerOnInit(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   clearPlayfieldAndSprites(m);
 
@@ -54,7 +54,7 @@ export function powerOnInit(m) {
 
   decodeDipSwitches(m);
 
-  mem.write8(FLIPSCREEN, 1);
+  mem8[FLIPSCREEN] = 1;
   mem8[GAME_STATE] = 1;
   mem8[BOARD] = 1;
   mem8[GAME_SUBSTATE] = 0;

@@ -27,13 +27,13 @@ import { perFrame } from "./perFrame.js";
 const IN2_WATCHDOG = 0x7d00; // read kicks the watchdog; bit 0 = SERVICE switch
 
 export function serviceVblankNmi(m, sp = m.regs.sp) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   // Acknowledge the NMI (and lock out re-entry until the tail re-enables it).
-  mem.write8(NMI_ENABLE, 0);
+  mem8[NMI_ENABLE] = 0;
 
   // Kick the watchdog (the read is the kick) and reject the SERVICE switch.
-  if (mem.read8(IN2_WATCHDOG) & 0x01) {
+  if (mem8[IN2_WATCHDOG] & 0x01) {
     throw new NotImplemented(
       "SERVICE switch held: jp 0x4000 at ROM 0x0077 -- out-of-policy input, " +
         "no diagnostic ROM exists on this romset",

@@ -17,7 +17,7 @@ import { drawCreditDisplay } from "./drawCreditDisplay.js";
 const IN2 = 0x7d00;
 
 export function readStartButtonSelector(m) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
   let prompt; // string index — scratch, consumed by the redraw; not a live-out
   if (mem8[CREDITS] === 0x01) {
@@ -34,5 +34,5 @@ export function readStartButtonSelector(m) {
   }
 
   // regs.b stays m.regs: drawCreditDisplay zeroes it on draw frames, so the AND gives 0 there.
-  return (regs.a = mem.read8(IN2) & regs.b); // port read kicks the watchdog
+  return (regs.a = mem8[IN2] & regs.b); // port read kicks the watchdog
 }

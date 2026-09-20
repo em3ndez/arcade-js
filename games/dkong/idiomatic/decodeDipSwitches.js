@@ -26,8 +26,8 @@ const BONUS_LIFE_BCD = [0x07, 0x10, 0x15, 0x20];
 const OPTION_TABLE_LEN = 0xaa;
 
 export function decodeDipSwitches(m) {
-  const { mem, mem8 } = m;
-  const dsw0 = mem.read8(DSW0);
+  const { mem8 } = m;
+  const dsw0 = mem8[DSW0];
 
   mem8[DIP_LIVES] = (dsw0 & 0x03) + 0x03;
 

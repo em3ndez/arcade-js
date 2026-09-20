@@ -22,7 +22,7 @@ import {
 } from "./names.js";
 
 export function soundDriverTick(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[ATTRACT] !== 0) return;
 
@@ -35,7 +35,7 @@ export function soundDriverTick(m) {
       mem8[SND_TRIGGER + i] = (shadow - 1);
       bit = 1;
     }
-    mem.write8(SOUND_TRIGGER_LATCH + i, bit);
+    mem8[SOUND_TRIGGER_LATCH + i] = bit;
   }
 
   const priorityFrames = mem8[SND_PRIORITY_FRAMES];
@@ -46,7 +46,7 @@ export function soundDriverTick(m) {
   } else {
     tune = mem8[SND_BGM];
   }
-  mem.write8(SOUND_TUNE_LATCH, tune);
+  mem8[SOUND_TUNE_LATCH] = tune;
 
   const irqTrigger = mem8[SND_IRQ_TRIGGER];
   let irq;
@@ -56,5 +56,5 @@ export function soundDriverTick(m) {
     mem8[SND_IRQ_TRIGGER] = (irqTrigger - 1);
     irq = 1;
   }
-  mem.write8(SOUND_IRQ, irq);
+  mem8[SOUND_IRQ] = irq;
 }

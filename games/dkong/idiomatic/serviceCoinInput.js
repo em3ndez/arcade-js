@@ -39,9 +39,9 @@ function bcdAdd(a, b) {
 }
 
 export function serviceCoinInput(m) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
 
-  const coinPresent = (mem.read8(IN2_PORT) & COIN1_BIT) !== 0;
+  const coinPresent = (mem8[IN2_PORT] & COIN1_BIT) !== 0;
 
   if (!coinPresent) {
     mem8[COIN_EDGE] = 0x01;
