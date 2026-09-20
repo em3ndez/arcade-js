@@ -393,7 +393,6 @@ export const DEBT = {
     "loc_00ca.js",
     "loc_02e3.js",
     "loc_0400.js",
-    "loc_1c05.js",
     "loc_202f.js",
     "loc_2038.js",
     "loc_2079.js",

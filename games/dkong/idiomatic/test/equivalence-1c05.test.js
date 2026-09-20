@@ -57,7 +57,7 @@ import { loc_1c3a } from "../loc_1c3a.js";
 import { markFatalFallByHeight } from "../markFatalFallByHeight.js";
 import { searchPlayerObjectOverlap } from "../searchPlayerObjectOverlap.js";
 import { writeMarioSpriteRecord } from "../writeMarioSpriteRecord.js";
-import { Machine } from "../../machine.js";
+import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import {
   STACK_SCRATCH,
@@ -81,6 +81,15 @@ const TARGET = 0x1c05;
 const DESCENT_PROBE = 0x2b1c;
 const ATTRACT_FRAMES = 6000;
 const LAND_CHECK_TRIGGER_FRAME = 20;
+
+// The per-board object-overlap arms (BOARD_OVERLAP_DISPATCH_TABLE @0x3e8d), all wired idiomatic in the
+// shipping config. The candidate below dispatches them IDIOMATICALLY so its guest stack matches the
+// shipping game: idiomatic loc_1c05 opens no guest bracket around the overlap search because these arms
+// return via JS (not a guest `ret`). Running them as the frozen oracle here — the mixed world the
+// capture hook alone produces — would demand a bracket the shipping game never needs. The oracle side
+// keeps the frozen arms (its own `ret` closes its own push), so this stays a faithful reference compare.
+const OVERLAP_ARMS = [0x3e99, 0x28b0, 0x28e0, 0x2901];
+const SHIP = ROM_PRESENT ? await resolveAllIdiomatic() : null;
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -123,6 +132,9 @@ function runOracle(entry, prep) {
  */
 function runCandidate(entry, fn, prep) {
   const c = entry.clone();
+  // Shipping model: the overlap arms run idiomatic (they return via JS, opening no guest bracket), so
+  // the candidate's stack matches the live game rather than the capture's oracle-arm mixed world.
+  for (const addr of OVERLAP_ARMS) c.routines.set(addr, SHIP.get(addr));
   if (prep) prep(c);
   const value = fn(c);
   c.ret();

@@ -323,7 +323,7 @@ test("CRAFTED ARMS: the two abandons attract never reaches, and the death hand-o
 // control freezes the whole subtree together: internally bracket-consistent on both sides, and 0x1F72
 // (twin-e's dropped-bracket tooth) is frozen oracle either way, so that tooth is preserved.
 const TARGET_SUBTREE = [
-  0x062a, 0x1f8d, 0x1fac, 0x2053, 0x2101, 0x2118, 0x2146, 0x2153, 0x215f, 0x2b1c,
+  0x062a, 0x1c05, 0x1f8d, 0x1fac, 0x2053, 0x2101, 0x2118, 0x2146, 0x2153, 0x215f, 0x2b1c,
 ];
 async function shippingWithTargetFrozen() {
   const overrides = await resolveAllIdiomatic();

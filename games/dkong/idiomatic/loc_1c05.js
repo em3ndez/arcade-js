@@ -24,7 +24,6 @@
 
 import { u8 } from "../../../core/int.js";
 import {
-  AIRBORNE_OVERLAP_SEARCH_RETURN,
   AIRBORNE_PROBE_RETURN,
   EFFECT_SELECT,
   EFFECT_STATE,
@@ -40,8 +39,8 @@ import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 const LAND_CHECK_TRIGGER_FRAME = 20;
 
-// Continuations placed on the guest stack before calls that return back through this routine;
-// dropping either push unwinds the callee two bytes off.
+// The overlap search below opens NO guest return bracket: every board's overlap arm is idiomatic
+// (returns via JS, not a guest ret), so a pushed continuation would orphan -- SP -2 at a barrel-jump.
 
 export function loc_1c05(m) {
   const { regs, mem8 } = m;
@@ -63,7 +62,6 @@ export function loc_1c05(m) {
 
   // Trigger frame: arm the fall-height test, then run the overlap search once.
   mem8[MARIO_AIR_LANDCHECK] = 1;
-  m.push16(AIRBORNE_OVERLAP_SEARCH_RETURN);
   searchPlayerObjectOverlap(m);
   const severity = regs.a;
 
