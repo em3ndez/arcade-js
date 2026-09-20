@@ -16,7 +16,6 @@ export function advanceInitialUp(m, index = m.regs.c) {
   if (next === 0) next = 10; // disengaged 255 rolls over -> re-enter at the range bottom
   if (next > 35) next = 255; // stepped past the top -> disengage
 
-  // Hand the new index back to the caller (also left in register C for the caller that reads it).
-  m.regs.c = next;
-  return next;
+  // Hand the new index back — return-carried, and kept in C for the caller that reads it.
+  return (m.regs.c = next);
 }

@@ -10,13 +10,10 @@
 import { advanceChamberCreatureAnimation } from "./advanceChamberCreatureAnimation.js";
 import { u16 } from "../../../core/int.js";
 
-export function drawTerrainColumn(m) {
-  const { regs, mem8 } = m;
-
-  let src = regs.ix; // read cursor into the tile-pattern table
-  let dst = regs.hl; // the column's bottom tile-map cell
-  const rowStep = regs.de; // step to the next cell one screen row up (a negative stride)
-  let remaining = regs.b; // number of cells to write (zero means a full 256-cell run)
+export function drawTerrainColumn(m, src = m.regs.ix, dst = m.regs.hl, rowStep = m.regs.de, remaining = m.regs.b) {
+  const { mem8 } = m;
+  // src: tile-pattern read cursor. dst: column's bottom tile-map cell. rowStep: one screen row up
+  // (a negative stride). remaining: cells to write (zero means a full 256-cell run).
 
   // Copy the run up the column, one cell per screen row; the count is tested only after each write.
   do {

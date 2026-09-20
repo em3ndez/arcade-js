@@ -30,7 +30,6 @@ export function advanceObjectWalkFrame(m) {
   // Two-frame walk: odd sprite code when phase bit 1 is set, even otherwise.
   mem8[PLAYER_FACING] = phase & 2 ? 0xb3 : 0xb2;
 
-  // Hand the phase forward (in E) and build the object's deferral record.
-  regs.e = phase;
-  return stageObjectSpriteRecord(m);
+  // Hand the phase forward in E (caller reads it), then build and return the deferral record.
+  return (regs.e = phase, stageObjectSpriteRecord(m));
 }

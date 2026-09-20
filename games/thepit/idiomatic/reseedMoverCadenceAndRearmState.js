@@ -20,5 +20,5 @@ export function reseedMoverCadenceAndRearmState(m) {
   m.mem8[ENEMY_WORK_SPRITE] = 9;
 
   // Leave 9 in the accumulator in case a caller reads it back.
-  m.regs.a = 9;
+  return (m.regs.a = 9);
 }

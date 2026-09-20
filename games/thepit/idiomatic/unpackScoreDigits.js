@@ -12,8 +12,8 @@
 
 import { SCORE_DISPLAY_HIGH, SCORE_DISPLAY_LOW } from "./names.js";
 import { u16 } from "../../../core/int.js";
-export function unpackScoreDigits(m) {
-  const { regs, mem8 } = m;
+export function unpackScoreDigits(m, ptr = m.regs.hl) {
+  const { mem8 } = m;
 
   const hi = mem8[SCORE_DISPLAY_HIGH];
   const lo = mem8[SCORE_DISPLAY_LOW];
@@ -24,11 +24,10 @@ export function unpackScoreDigits(m) {
   // Leading-zero blanking: a zero top digit is skipped, shifting the run down one.
   const start = cells[0] === 0 ? 1 : 0;
 
-  let ptr = regs.hl;
   for (let i = start; i < cells.length; i++) {
     mem8[ptr] = cells[i];
     // Advance after every cell except the last — the pointer is left resting on it.
     if (i < cells.length - 1) ptr = u16(ptr + 1);
   }
-  regs.hl = ptr;
+  return (m.regs.hl = ptr);
 }

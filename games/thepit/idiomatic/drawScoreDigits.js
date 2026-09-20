@@ -47,6 +47,6 @@ export function drawScoreDigits(m) {
   const secondCell = secondDigit === 0 && leadDigit === 0 ? BLANK_TILE : secondDigit;
   mem8[base + 2 * ROW] = secondCell;
 
-  // Hand the column base back — the HUD-redraw caller reads it to blank the cells above.
-  regs.ix = base;
+  // Hand the column base back — return-carried, and kept in IX for the HUD-redraw caller.
+  return (regs.ix = base);
 }

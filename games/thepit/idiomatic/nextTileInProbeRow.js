@@ -40,8 +40,8 @@ export function nextTileInProbeRow(m) {
     }
   }
 
-  // Publish what the caller reads: the found/not-found answer it branches on,
-  // plus the cursor position where the scan left it.
-  regs.hl = cursor;
+  // Publish what the caller reads: the zero flag it branches on (a cross-file live-out
+  // to the move dispatcher), plus the scan's end cursor returned for idiomatic callers.
   regs.f = matched ? regs.f | F_Z : regs.f & ~F_Z;
+  return (regs.hl = cursor);
 }
