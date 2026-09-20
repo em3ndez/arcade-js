@@ -28,7 +28,11 @@ human in the loop. ROM is **never** committed
 identifier renames; never `--no-verify` without per-commit approval. Work **in batches — ~15 agents ×
 3–4 routines each (≈50/batch); fan aggressively**, **one commit per batch, single-threaded** (don't
 author the next batch while one is under review), and **fan the review at the same scale** (≈1 agent per
-8 routines). Never retreat to one-routine-at-a-time when a batchable pool exists. Every commit gets an
+8 routines). Never retreat to one-routine-at-a-time when a batchable pool exists. **A "coordinated
+refactor" or an "ABI seam" is NOT a synonym for un-fannable: decompose it to its fannable UNIT — a
+caller/callee cluster, a shared callee, a single-owner shared cell — and fan THAT. A flat per-file fan
+stalling is evidence of the wrong unit, never proof the work is serial** (the legacy-retrofit
+register-seam miss, 2026-09-20; the fan-out method is in §4). Every commit gets an
 **independent reviewer** — a gate is not a review; run the repo's gates *before* the reviewer, and
 verify a reviewer's *reasons*, not just its ruling. **Grounding always uses MAME, never the JS engine**
 (self-grounding is circular). **Author ≠ checker** — mutation-test every routine. **Quote from a command
@@ -418,6 +422,42 @@ feeds the next batch's targets.
   `games/<game>/idiomatic-budget.txt` (a single integer — game-local config, NOT in common `tools/`) is a
   **shrinking ratchet** (legacy games frozen at their count); a game with no such file is held at 0, and a
   game is IDIOMATIC (a done requirement) only at 0.
+- **The register / ABI-seam residual FANS — it is not a serial "coordinated refactor" (the 2026-09-20
+  miss).** The `regs.*` left after the leaf conversions is the register-passing ABI seam (live-in/live-out
+  between a caller and a callee), and the reflex to call it un-fannable is wrong: a per-FILE flat fan stalls
+  (a file cannot drop a register the callee only returns via the register), so it *reads* as serial while
+  the work fans at a different UNIT. Fan it:
+  - **Agents convert with the three BRIDGE-PRESERVING, memory-equivalent forms** — input→param-default
+    (`fn(m, x = m.regs.X)`), output→**return-assignment** (`return (m.regs.X = v)`, a tuple for several),
+    dead-scratch→plain local. Each is MEMORY-EQUIVALENT by a DIFFERENT mechanism — return-assignment KEEPS the
+    register write, param-default READS the register bridge (both leave a register-reading caller untouched),
+    and dead-scratch→local is safe ONLY when nothing reads the register back. Misclassifying a live register as
+    dead is the R37 live-game breakage, and the module's OWN eq test can MISS it — the drop surfaces in a
+    TRANSITIVE caller's eq test, so run the WHOLE game's eq suite before commit, NOT a scoped pick; a
+    misclassification then reddens and reverts. Agents WRITE + `node --check` + worklist-delta only; the LEAD
+    runs each eq test by exit code and REVERTS any red (the §4 fan contract). When unsure input-vs-output, treat
+    it as OUTPUT (return-assignment) — always safe, it keeps the write.
+  - **The residual bottleneck is a SHARED CALLEE that leaves an output in a register instead of RETURNING
+    it** — its callers cannot drop the read until it returns. So the fannable unit is the **shared
+    output-callee cluster**: make the callee tuple-RETURN its outputs, then fan its callers to consume the
+    return. **Organize the fan around the callee, not the caller.**
+  - **The flatly-mechanical levers fan with ZERO coordination, value-identical, per file:**
+    `mem.read8/write8(x)` → the indexed `mem8[x]` view; a redundant width-mask on a `mem8[]=`/`mem16[]=`
+    write; `(x) & 0xffff` → `u16(x)`. Do these first — they need no classification.
+  - **A raw-address (`addr`) residual fans as the GROUNDED-NAMING workflow, NOT a flat guess-fan** — a shared
+    cell gets ONE owner (never each caller's local view, which collides and ships a wrong name), and each
+    name is grounded in MAME (stage B). A jump-TABLE dispatcher (the raw words ARE the table) stays serial.
+  - **⚠ The genuinely-harder LAST MILE (fan it, but with care — do not over-promise it all falls to the three
+    forms):** two sub-classes resist the bridge-forms. **(a) The eq test OVER-PINS the register file** — it
+    holds a register the runbook says must NOT be held (memory-eq is RAM + pc + SP + *declared* live-out,
+    never the full register file), so localizing the register reddens a test that should not have compared it.
+    RELAX the HELD set to the oracle's TRUE live-outs FIRST (derive from the oracle, proposer≠confirmer — this
+    is the blessed "adapt the eq test, never delete coverage"), THEN the register localizes. **(b) The
+    register is the OPERAND of a retained Z80 machine op** (`m.lddrAt` block copy reads bc/de/hl; `daa` reads
+    the incoming carry; `exx`/`exAf` bank-swap; `djnz` counter) — no bridge-form touches it; it needs the
+    machine op itself re-expressed idiomatically (a deeper rewrite), else it is the honest "Z80 primitive
+    still present" residue. Neither sub-class is un-fannable — both fan — but each carries an extra step, so a
+    seam-fan's yield is "most of it," not "all of it in one pass."
 - **Closure — a reachable routine still served by the oracle is cruft too.** A generator layer silently
   falls back to the translated routine for anything unlifted, so it *runs correctly* and the behavioural
   worklist (the state diff, §2) never flags it — a whole reachable sub-tree can stay frozen while every gate
