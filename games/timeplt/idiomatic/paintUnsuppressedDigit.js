@@ -16,13 +16,11 @@ const CHARACTER_PLANE_BIT = 0x0400;
 export function paintUnsuppressedDigit(m, a = m.regs.a, c = m.regs.c, hl = m.regs.hl, de = m.regs.de) {
   const { regs, mem8 } = m;
   const runPointer = hl;
-  regs.hl = DIGIT_GLYPH_TABLE;
-  regs.a = a & DIGIT_BITS;
-  const glyph = fetchTableByte(m);
+  const glyph = fetchTableByte(m, DIGIT_GLYPH_TABLE, a & DIGIT_BITS);
   regs.hl = runPointer;
 
   mem8[de] = glyph;
   regs.a = c;
-  mem8[de & ~CHARACTER_PLANE_BIT] = regs.a;
+  mem8[de & ~CHARACTER_PLANE_BIT] = c;
   regs.de |= CHARACTER_PLANE_BIT;
 }

@@ -58,11 +58,11 @@ export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.re
 
   const index = u8(u8(era * 16) + (mem8[FRAME_TICK] & 0x02));
   const quadrant = (u8(SETTLED - mem8[record + QUADRANT_SEED]) >> 1) & 0x03;
-  offsetAddress(m, HEADING_SHAPE_PAIR_TABLE, u8(quadrant * 4 + index));
-  const shapeLo = mem8[regs.hl];
-  const shapeHi = mem8[u16(regs.hl + 1)];
-  offsetAddress(m, ERA_SPRITE_COLOUR_TABLE, era);
-  const colour = mem8[regs.hl];
+  const shapePtr = offsetAddress(m, HEADING_SHAPE_PAIR_TABLE, u8(quadrant * 4 + index));
+  const shapeLo = mem8[shapePtr];
+  const shapeHi = mem8[u16(shapePtr + 1)];
+  const colourPtr = offsetAddress(m, ERA_SPRITE_COLOUR_TABLE, era);
+  const colour = mem8[colourPtr];
 
   if (u8(mem8[record + HEADING] + HEADING_BIAS) < HALF) {
     mem8[entry + SHAPE_LO] = shapeHi;

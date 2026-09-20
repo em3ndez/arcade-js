@@ -44,11 +44,8 @@ export function headingToward(m, point = m.regs.hl, object = m.regs.iy) {
   const longer = Math.max(firstLeg, secondLeg);
   let rung = Math.floor((shorter * RUNGS_PER_SECTOR) / longer);
 
-  regs.hl = OCTANT_BASE_HEADING_TABLE;
-  regs.a = sector;
-  const heading = mem8[offsetAddress(m)];
+  const heading = mem8[offsetAddress(m, OCTANT_BASE_HEADING_TABLE, sector)];
   if (heading & COUNTS_BACKWARDS) rung = RUNGS_PER_SECTOR - 1 - rung;
 
-  regs.a = u8(heading + rung);
-  return regs.a;
+  return (regs.a = u8(heading + rung));
 }
