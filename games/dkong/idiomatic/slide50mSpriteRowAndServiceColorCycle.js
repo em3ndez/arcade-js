@@ -14,16 +14,14 @@ import { serviceColorCycle } from "./serviceColorCycle.js";
 const SPRITE_OBJ_REC2_X = SPRITE_OBJ_BLOCK + 8;
 
 export function slide50mSpriteRowAndServiceColorCycle(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[BOARD] !== 2) {
     serviceColorCycle(m);
     return;
   }
 
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = mem8[M50_OBJ1_STEP];
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, mem8[M50_OBJ1_STEP]);
 
   mem8[M50_OBJ_ROW_SHIFT] = mem8[SPRITE_OBJ_REC2_X] - 0x3b;
 

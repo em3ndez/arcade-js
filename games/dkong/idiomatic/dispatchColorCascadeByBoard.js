@@ -18,7 +18,7 @@ const BOARD_BIT1 = 0x02;
 const Y_SHIFT = 0xfc; // signed byte −4
 
 export function dispatchColorCascadeByBoard(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const board = mem8[BOARD];
 
@@ -28,9 +28,7 @@ export function dispatchColorCascadeByBoard(m) {
   }
 
   if ((board & BOARD_BIT1) === 0) {
-    regs.hl = SPRITE_OBJ_BLOCK + SPRITE_Y;
-    regs.c = Y_SHIFT;
-    addToSpriteObjectColumn(m);
+    addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK + SPRITE_Y, Y_SHIFT);
   }
 
   dispatchColorCyclePaint(m);

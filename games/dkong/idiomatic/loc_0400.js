@@ -14,16 +14,14 @@ import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 import { serviceColorCycle } from "./serviceColorCycle.js";
 
 export function loc_0400(m, nz = m.regs.fNZ) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (nz) {
     serviceColorCycle(m);
     return;
   }
 
-  regs.hl = SPRITE_OBJ_BLOCK; // the X field of the block's first record
-  regs.c = mem8[M50_OBJ1_STEP];
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, mem8[M50_OBJ1_STEP]);
 
   mem8[M50_OBJ_ROW_SHIFT] = mem8[SPRITE_OBJ_BLOCK + 8] - 0x3b;
 

@@ -19,11 +19,8 @@ const HOLD_FRAMES = 0x20;
 
 // Copy the template over SPRITE_OBJ_BLOCK, then bias the X column of all ten records.
 function stampFigure(m, templateAddr) {
-  const { regs } = m;
   loadSpriteObjectBlock(m, templateAddr);
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = X_COLUMN_SHIFT;
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, X_COLUMN_SHIFT);
 }
 
 export function stepSpriteAnimationSequence(m) {

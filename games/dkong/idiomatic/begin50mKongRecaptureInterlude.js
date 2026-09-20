@@ -23,7 +23,7 @@ const FIGURE_TEMPLATE = 0x385c;
 const TEMPLATE_ANCHOR_X = 0x3b;
 
 export function begin50mKongRecaptureInterlude(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   spawnInterludeHeart(m);
 
@@ -32,9 +32,7 @@ export function begin50mKongRecaptureInterlude(m) {
 
   loadSpriteObjectBlock(m, FIGURE_TEMPLATE);
 
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = shift;
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, shift);
 
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 }

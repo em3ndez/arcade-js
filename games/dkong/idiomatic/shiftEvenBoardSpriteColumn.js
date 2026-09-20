@@ -15,14 +15,12 @@ const DEFAULT_SHIFT = 0x44;
 const BOARD_BIT1 = 0x02;
 
 export function shiftEvenBoardSpriteColumn(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const board = mem8[BOARD];
   const shiftX = (board & BOARD_BIT1) !== 0 ? mem8[M50_OBJ_ROW_SHIFT] : DEFAULT_SHIFT;
 
-  regs.hl = SPRITE_OBJ_BLOCK;
-  regs.c = shiftX;
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, shiftX);
 
   dispatchColorCyclePaint(m);
 }

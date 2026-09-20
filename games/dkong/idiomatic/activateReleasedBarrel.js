@@ -19,7 +19,7 @@ const SPRITE_TEMPLATE = 0x385c; // stored template reloaded into the sprite-obje
 const Y_COLUMN_DELTA = 0xfc; // -4, added to every record's Y field
 
 export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   mem16[RENDER_STR_PTR] = ANIM_STRING_RESTART;
 
@@ -45,7 +45,6 @@ export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de
 
   loadSpriteObjectBlock(m, SPRITE_TEMPLATE); // copies 40 bytes from HL into SPRITE_OBJ_BLOCK
 
-  regs.hl = SPRITE_OBJ_BLOCK + SPRITE_Y; // the Y column
-  regs.c = Y_COLUMN_DELTA; // -4
-  addToSpriteObjectColumn(m); // adds C into all ten Y fields
+  // adds -4 into all ten Y fields
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK + SPRITE_Y, Y_COLUMN_DELTA);
 }

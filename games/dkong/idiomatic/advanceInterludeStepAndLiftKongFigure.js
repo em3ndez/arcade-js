@@ -12,14 +12,12 @@ import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
 
 export function advanceInterludeStepAndLiftKongFigure(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 
   // 25m only (bit 0 of the board mask); any other board skips the lift.
   if (!boardBitGate(m, 0x01)) return;
 
-  regs.hl = SPRITE_OBJ_BLOCK + 3;
-  regs.c = 0xfc; // -4, 8-bit
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK + 3, 0xfc); // -4
 }

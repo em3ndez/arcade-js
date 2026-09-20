@@ -25,7 +25,7 @@ const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // field 3 (Y byte) of sprite-object reco
 const Y_NUDGE = 0x04;
 
 export function stageNextKongPoseWhenHoldExpires(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (!tickSubstateTimer(m)) return;
 
@@ -37,7 +37,5 @@ export function stageNextKongPoseWhenHoldExpires(m) {
   if (!boardBitGate(m, BOARD_MASK_75M)) return;
 
   // 75m only: add +4 to the Y column of all ten sprite-object records.
-  regs.hl = Y_COLUMN;
-  regs.c = Y_NUDGE;
-  addToSpriteObjectColumn(m);
+  addToSpriteObjectColumn(m, Y_COLUMN, Y_NUDGE);
 }
