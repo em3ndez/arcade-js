@@ -73,8 +73,7 @@ export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEnt
     if (nearAim >= fullAim) return;
   }
 
-  regs.hl = ENEMY_STANDOFF_AIM_MAIN; // the aim callee reads its point out of hl
-  const heading = headingToward(m);
+  const heading = headingToward(m, ENEMY_STANDOFF_AIM_MAIN);
   const aim = u8(u8(heading - mem8[u16(ixEntry + OBJ_X)]) + 0x10);
   if (aim >= 0x20) return; // aim not aligned to the object's own heading
 

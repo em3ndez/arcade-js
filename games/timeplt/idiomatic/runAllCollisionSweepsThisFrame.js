@@ -20,18 +20,11 @@ export function runAllCollisionSweepsThisFrame(m) {
   const { regs, mem8 } = m;
   stagePlayerShotSweepAgainstTargetsAndRun(m);
 
-  regs.b = 4;
-  regs.de = ACTOR_RECORD_SLOT0;
-  regs.iy = ACTOR_ENTRY_SLOT0;
-  regs.l = 5;
-  regs.h = 11;
-  destroyPlayerAndObjectsTouchingIt(m);
+  regs.de = ACTOR_RECORD_SLOT0; // callee writes back only regs.e; regs.d must persist for the later cursor reads
+  destroyPlayerAndObjectsTouchingIt(m, ACTOR_RECORD_SLOT0, ACTOR_ENTRY_SLOT0, 5, 11, 4);
 
   if (mem8[MOTHER_SHIP_ARMED] !== 0) {
-    regs.b = 5;
-    regs.l = 7;
-    regs.h = 15;
-    destroySlotsAndPlayerOnContact(m);
+    destroySlotsAndPlayerOnContact(m, regs.de, regs.iy, 5, 7, 15);
     ramTestPlayerVsMotherShip(m);
 
     regs.b = 3;
@@ -47,15 +40,9 @@ export function runAllCollisionSweepsThisFrame(m) {
     return markObjectsTouchingPlayer(m);
   }
 
-  regs.b = 7;
-  regs.l = 7;
-  regs.h = 15;
-  destroySlotsAndPlayerOnContact(m);
+  destroySlotsAndPlayerOnContact(m, regs.de, regs.iy, 7, 7, 15);
 
-  regs.b = 3;
-  regs.l = 6;
-  regs.h = 13;
-  destroyTargetsReachedByFixedAttacker(m);
+  destroyTargetsReachedByFixedAttacker(m, regs.de, regs.iy, 3, 6, 13);
 
   regs.b = 1;
   regs.l = 8;

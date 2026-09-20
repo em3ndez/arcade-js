@@ -19,26 +19,24 @@ const ARMED_TARGETS = 0x09;
 const OPEN_TARGETS = 0x0b;
 
 export function dispatchEra4CollisionByFrameParity(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
   if ((mem8[FRAME_TICK] & 0x01) === 0) return runAllCollisionSweepsThisFrame(m);
 
   const armed = mem8[MOTHER_SHIP_ARMED] !== 0;
   const targets = armed ? ARMED_TARGETS : OPEN_TARGETS;
 
-  regs.de = ACTOR_RECORD_SLOT0;
-  regs.iy = ACTOR_ENTRY_SLOT0;
-  regs.ix = PLAYER_SHOT_ARRAY;
-  regs.a_ = targets;
-  regs.b = targets;
-  regs.c = SHOTS;
   mem16[SCRATCH_PTR_B] = ACTOR_RECORD_SLOT0;
   mem16[SCRATCH_PTR_A] = ACTOR_ENTRY_SLOT0;
-  regs.l = REACH;
-  regs.h = SPAN;
 
   if (armed) {
-    destroyTargetsHitByShots(m);
+    destroyTargetsHitByShots(
+      m, PLAYER_SHOT_ARRAY, ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0,
+      targets, targets, SHOTS, REACH, SPAN,
+    );
     return destroyMotherShipAndShotOnMutualHit(m);
   }
-  return destroyTargetsHitByShots(m);
+  return destroyTargetsHitByShots(
+    m, PLAYER_SHOT_ARRAY, ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0,
+    targets, targets, SHOTS, REACH, SPAN,
+  );
 }

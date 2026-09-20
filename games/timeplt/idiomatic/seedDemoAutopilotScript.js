@@ -7,7 +7,7 @@ import { loc_2251 } from "./loc_2251.js";
 import { DEMO_SCRIPT_DWELL, DEMO_SCRIPT_POINTER_HI, DEMO_SCRIPT_POINTER_LO, PLAYER_ONE_ERA_INDEX, TAMPER_COLOUR_READBACK, TAMPER_GLYPH_READBACK } from "./names.js";
 
 export function seedDemoAutopilotScript(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const selector = mem8[PLAYER_ONE_ERA_INDEX];
   const script =
@@ -19,10 +19,9 @@ export function seedDemoAutopilotScript(m) {
   mem8[DEMO_SCRIPT_POINTER_LO] = script;
   mem8[DEMO_SCRIPT_POINTER_HI] = script >> 8;
 
-  // a genuine tile image returns; a failed readback drops into the trap, carrying the cursor it read
-  regs.de = script;
-  if (mem8[TAMPER_GLYPH_READBACK] !== 0xfd) { regs.hl = TAMPER_GLYPH_READBACK; return loc_2251(m); }
+  // a genuine tile image returns; a failed readback drops into the trap, which churns the cursor (de)
+  // and the read address (hl) it is handed, so seat both as they enter it
+  if (mem8[TAMPER_GLYPH_READBACK] !== 0xfd) return (m.regs.de = script, m.regs.hl = TAMPER_GLYPH_READBACK, loc_2251(m));
   if (mem8[TAMPER_COLOUR_READBACK] === 0x10 || mem8[TAMPER_COLOUR_READBACK] === 0x05) return;
-  regs.hl = TAMPER_COLOUR_READBACK;
-  return loc_2251(m);
+  return (m.regs.de = script, m.regs.hl = TAMPER_COLOUR_READBACK, loc_2251(m));
 }

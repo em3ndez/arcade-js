@@ -32,7 +32,8 @@ export function buildCopyrightScreenThenVerifyImage(m) {
     low = u8(low + 1);
   }
 
+  // seat A and the borrow flag the failure landing reads back, then branch on the match
   regs.a = fold;
   regs.sub(CHECKSUM_MATCH);
-  return regs.fNZ ? loc_08fa(m) : advanceSequenceSubStep(m);
+  return fold !== CHECKSUM_MATCH ? loc_08fa(m) : advanceSequenceSubStep(m);
 }

@@ -19,21 +19,16 @@ const DIGIT_BITS = 0x0f;
 const CHARACTER_PLANE_BIT = 0x0400;
 
 export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m.regs.b, colour = m.regs.c, hl = m.regs.hl, de = m.regs.de) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const digit = value & DIGIT_BITS;
 
   if (digit === 0 && allowance !== 0) {
-    regs.b = u8(allowance - 1);
     retreatCharCursor(m);
-    return;
+    return (m.regs.b = u8(allowance - 1));
   }
-  regs.b = 0;
 
-  const runPointer = hl;
   const glyph = fetchTableByte(m, DIGIT_GLYPH_TABLE_2, digit);
-  regs.hl = runPointer;
-
   mem8[de] = glyph;
   mem8[de & ~CHARACTER_PLANE_BIT] = colour;
-  regs.de |= CHARACTER_PLANE_BIT;
+  return [m.regs.b = 0, m.regs.hl = hl, m.regs.de = de | CHARACTER_PLANE_BIT];
 }

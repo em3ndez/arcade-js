@@ -42,14 +42,13 @@ export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   if (state === HELD) return;
 
   if (state === REAIM_THEN_HOLD) {
-    headingToward(m, ENEMY_AIM_POINT_TABLE);
-    mem8[record + 1] = u8(regs.a + 0x80);
+    const heading = headingToward(m, ENEMY_AIM_POINT_TABLE);
+    mem8[record + 1] = u8(heading + 0x80);
     mem8[record + 8] = HELD;
     mem8[record + 9] = 0x00;
     return;
   }
 
   offsetAddress(m, ENEMY_AIM_POINT_TABLE, u8(state + state));
-  headingToward(m);
-  mem8[record + 1] = regs.a;
+  mem8[record + 1] = headingToward(m);
 }

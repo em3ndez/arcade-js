@@ -21,7 +21,7 @@ export function serviceEra0BallisticObjectBank(m) {
   regs.iy = ERA_OBJECT_ENTRY_SLOT0;
   regs.b = BANK_SLOTS;
 
-  const marker = mem8[regs.ix];
+  const marker = mem8[ERA_OBJECT_RECORD_SLOT0];
   if (marker === EMPTY) return advanceSlotThenSweepObjectBankByHead(m);
   if (marker !== BALLISTIC) return sweepObjectSlotBankServicingFirstSlot(m);
   flyAlongBallisticArc(m);

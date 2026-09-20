@@ -15,20 +15,20 @@ import { advanceCharCursor } from "./advanceCharCursor.js";
 const COLOUR_PLANE_GAP = 0x400;
 const NEXT_LINE = 32;
 
-export function stampTwoByTwoTileBlock(m, base = m.regs.b, colour = m.regs.c) {
-  const { regs, mem8 } = m;
+export function stampTwoByTwoTileBlock(m, base = m.regs.b, colour = m.regs.c, de = m.regs.de) {
+  const { mem8 } = m;
 
-  mem8[regs.de] = base + 3;
-  regs.de = u16(regs.de - 1);
-  mem8[regs.de] = base + 2;
-  advanceCharCursor(m);
+  mem8[de] = base + 3;
+  de = u16(de - 1);
+  mem8[de] = base + 2;
+  de = advanceCharCursor(m, de);
 
-  mem8[regs.de] = base;
-  regs.de = u16(regs.de + 1);
-  mem8[regs.de] = base + 1;
+  mem8[de] = base;
+  de = u16(de + 1);
+  mem8[de] = base + 1;
 
-  let colourCell = u16(regs.de - COLOUR_PLANE_GAP);
-  advanceCharCursor(m);
+  let colourCell = u16(de - COLOUR_PLANE_GAP);
+  de = advanceCharCursor(m, de);
 
   mem8[colourCell] = colour;
   colourCell = u16(colourCell - 1);

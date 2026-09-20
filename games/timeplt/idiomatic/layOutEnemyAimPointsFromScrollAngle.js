@@ -20,11 +20,11 @@ const DOWN = 0x84;
 function plot(m, term, centre, off8, off16, mirror) {
   const { regs, mem8 } = m;
   regs.hl = u16(term << 3);
-  regs.a = u8(regs.h + centre); mem8[u16(regs.ix + off8)] = regs.a;
-  if (mirror) { regs.a = u8(centre - regs.h); mem8[u16(regs.ix + off8 + 4)] = regs.a; }
+  mem8[u16(regs.ix + off8)] = u8(regs.h + centre);
+  if (mirror) mem8[u16(regs.ix + off8 + 4)] = u8(centre - regs.h);
   regs.hl = u16(regs.hl << 1);
-  regs.a = u8(regs.h + centre); mem8[u16(regs.ix + off16)] = regs.a;
-  if (mirror) { regs.a = u8(centre - regs.h); mem8[u16(regs.ix + off16 + 4)] = regs.a; }
+  mem8[u16(regs.ix + off16)] = u8(regs.h + centre);
+  if (mirror) mem8[u16(regs.ix + off16 + 4)] = u8(centre - regs.h);
 }
 
 export function layOutEnemyAimPointsFromScrollAngle(m, c = m.regs.c) {

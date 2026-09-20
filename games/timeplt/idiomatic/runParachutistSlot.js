@@ -27,27 +27,23 @@ const CONTROL_OFFSET = 0x30;
 const CONTROL_BYTE = 0x75;
 
 export function runParachutistSlot(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   if (mem8[ERA_INDEX] === ERA_WITH_NO_PARACHUTISTS) return;
 
-  regs.ix = PARACHUTIST_RECORD;
-  regs.iy = PARACHUTIST_ENTRY;
   const state = mem8[PARACHUTIST_RECORD];
-  if (state === FREE_SLOT) return spawnAtEdgeAhead(m);
+  if (state === FREE_SLOT) return spawnAtEdgeAhead(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
 
   if (state !== IN_FLIGHT) {
-    driftWithWorldScroll(m);
-    if (state === POST_BONUS_STATE) return postNextParachutistBonus(m);
-    if (state >= SHOW_AWARD_FROM) return showParachutistAward(m);
+    driftWithWorldScroll(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
+    if (state === POST_BONUS_STATE) return postNextParachutistBonus(m, PARACHUTIST_RECORD);
+    if (state >= SHOW_AWARD_FROM) return showParachutistAward(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
     mem8[PARACHUTIST_RECORD] = state - 1;
     if (mem8[PARACHUTIST_RECORD] !== 0) return;
-    return retireSlotIntoCooldown(m);
+    return retireSlotIntoCooldown(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
   }
 
-  flyAlongStoredVelocity(m);
-  if (hasReachedRetireLine(m)) return retireSlotIntoCooldown(m);
-  regs.hl = PARACHUTIST_FLIGHT_SHAPE_TABLE;
-  regs.a = (mem8[FRAME_TICK] >> 4) & 7;
-  mem8[PARACHUTIST_ENTRY + SHAPE_OFFSET] = fetchTableByte(m);
+  flyAlongStoredVelocity(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
+  if (hasReachedRetireLine(m, PARACHUTIST_ENTRY)) return retireSlotIntoCooldown(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
+  mem8[PARACHUTIST_ENTRY + SHAPE_OFFSET] = fetchTableByte(m, PARACHUTIST_FLIGHT_SHAPE_TABLE, (mem8[FRAME_TICK] >> 4) & 7);
   mem8[PARACHUTIST_ENTRY + CONTROL_OFFSET] = CONTROL_BYTE;
 }

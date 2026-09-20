@@ -28,8 +28,7 @@ export function armMotherShipOrStep(m) {
 
   if (mem8[ROUND_TRANSITION_HOLD] === HELD) return;
 
-  regs.a = mem8[MOTHER_SHIP_ARMED];
-  if (regs.a !== 0) return m.call(loc_43f0);
+  if (mem8[MOTHER_SHIP_ARMED] !== 0) return m.call(loc_43f0);
 
   if ((mem8[FRAME_TICK] & PHASE_MASK) !== PHASE_DUE) return;
 

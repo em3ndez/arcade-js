@@ -27,8 +27,8 @@ export function armBomberSlotWhenTimerFires(m, ix = m.regs.ix, iy = m.regs.iy) {
   }
 
   // shape record: rotate the heading to an even table offset, take its two bytes
-  regs.a = ((index >> 2) | (index << 6)) & 0x3e;
-  mem8[u16(iy + 0x31)] = fetchTableByte(m, HEADING_SHAPE_TABLE);
+  const shapeIndex = ((index >> 2) | (index << 6)) & 0x3e;
+  mem8[u16(iy + 0x31)] = fetchTableByte(m, HEADING_SHAPE_TABLE, shapeIndex);
   const hl = regs.hl;
   mem8[u16(iy + 0x00)] = mem8[u16(hl + 1)];
 

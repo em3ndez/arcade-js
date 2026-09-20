@@ -13,18 +13,15 @@ const ENTRY_STRIDE = 2;
 const BALLISTIC = 0xff;
 
 export function sweepObjectSlotBankByHead(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   let record = ix;
   let entry = iy;
   let count = b;
 
   for (;;) {
-    // Re-seat the cursor each turn; the services read it off ix/iy and need not hand it back.
-    regs.ix = record;
-    regs.iy = entry;
     const head = mem8[record];
-    if (head === BALLISTIC) flyAlongBallisticArc(m);
-    else if (head !== 0) runOneShotAnimatedObjectSlot(m);
+    if (head === BALLISTIC) flyAlongBallisticArc(m, record, entry);
+    else if (head !== 0) runOneShotAnimatedObjectSlot(m, record, entry);
 
     record = u16(record + RECORD_STRIDE);
     entry = u16(entry + ENTRY_STRIDE);
@@ -32,6 +29,5 @@ export function sweepObjectSlotBankByHead(m, ix = m.regs.ix, iy = m.regs.iy, b =
     if (count === 0) break;
   }
 
-  regs.ix = record;
-  regs.iy = entry;
+  return [m.regs.ix = record, m.regs.iy = entry];
 }

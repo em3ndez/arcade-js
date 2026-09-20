@@ -139,23 +139,23 @@ export function loc_43f0_4554(m, phase = m.regs.c, ix = m.regs.ix, iy = m.regs.i
 }
 
 export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
   driftWithWorldScroll(m);
 
-  // Dress the pair unless its heading or Y is out of range -> flag 0xFF instead. B is left holding
-  // the heading (or, past the first gate, the Y) -- a genuine live-in the warp/flash tail reads.
+  // Dress the pair unless its heading or Y is out of range -> flag 0xFF instead. b holds the
+  // heading (or, past the first gate, the Y) -- a genuine live-in threaded to the warp/flash tail.
   const heading = mem8[Y(0x31)];
-  regs.b = heading;
+  let b = heading;
   let flatten = false;
   if (u8(heading + 0x13) < 0x03) {
     flatten = true;
   } else {
     mem8[Y(0x33)] = u8(heading + 0x10);
     const yval = mem8[Y(0x00)];
-    regs.b = yval;
+    b = yval;
     if (u8(yval + 0x08) < 0x28) flatten = true;
     else mem8[Y(0x02)] = yval;
   }
@@ -177,7 +177,7 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   const spent = u8(mem8[X(STATE)] - 1);
   mem8[X(STATE)] = spent;
-  if (spent === 0x00) return loc_43f0_4646(m);
+  if (spent === 0x00) return loc_43f0_4646(m, ix, b);
   if (mem8[X(STATE)] !== SPENT_HOLD) return;
   mem8[Y(0x01)] = 0xff;
   mem8[Y(0x03)] = 0xff;
@@ -198,7 +198,7 @@ export function loc_43f0_4623(m, ix = m.regs.ix, iy = m.regs.iy) {
   return postCommand(m, (WARP_SOUND >> 8) & 0xff, WARP_SOUND & 0xff);
 }
 
-export function loc_43f0_4646(m, ix = m.regs.ix) {
+export function loc_43f0_4646(m, ix = m.regs.ix, b = m.regs.b) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
 
@@ -209,7 +209,7 @@ export function loc_43f0_4646(m, ix = m.regs.ix) {
     if (next === RESTART_LOW) return;
     if (next === RESTART_HIGH) return;
   }
-  return stepMotherShipWarpFlashFrame(m);
+  return stepMotherShipWarpFlashFrame(m, b);
 }
 
 export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
@@ -238,12 +238,10 @@ export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
   return requestCurrentEraSound(m);
 }
 
-export function loc_43f0_46f0(m) {
+export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
   // ix/iy walk the two-slot bank and stay live: on a spawn they carry the current record/entry into
   // loc_43f0_4734, so each advance writes them back to regs.
-  let ix = regs.ix;
-  let iy = regs.iy;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
@@ -281,7 +279,7 @@ export function loc_43f0_4734(m) {
   } while (count !== 0);
 }
 
-export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl) {
+export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy = m.regs.iy) {
   const { regs, mem8, mem16 } = m;
 
   mem16[SCRATCH_PTR_A] = recordPtr;
@@ -290,26 +288,25 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl) {
   requestEnemyLaunchSound(m);
 
   // Aim: the heading at the player, nudged +/-0x18 by an alternating side toggle.
-  const heading = headingToward(m, ENEMY_STANDOFF_AIM_MAIN); // object = regs.iy (mother-ship entry)
+  const heading = headingToward(m, ENEMY_STANDOFF_AIM_MAIN); // object = iy (mother-ship entry)
   mem8[MOTHER_SHIP_AIM_SIDE_TOGGLE] = u8(mem8[MOTHER_SHIP_AIM_SIDE_TOGGLE] + 1);
   let aim = (mem8[MOTHER_SHIP_AIM_SIDE_TOGGLE] & 0x01) ? 0x18 : u8(0 - 0x18);
   aim = u8(aim + heading);
 
   // Carry the mother-ship's own heading/X across the retarget, then re-point ix/iy at the new slot.
-  const spriteHeading = mem8[u16(regs.iy + 0x31)];
-  const spriteX = mem8[u16(regs.iy + 0x00)];
-  regs.ix = recordPtr; // retarget at the new entry (live-out)
+  const spriteHeading = mem8[u16(iy + 0x31)];
+  const spriteX = mem8[u16(iy + 0x00)];
+  regs.ix = recordPtr; // retarget at the new entry (live-out; the stage arm reads ix/iy)
   regs.iy = entryPtr;
-  const X = (d) => u16(regs.ix + d);
-  const Y = (d) => u16(regs.iy + d);
+  const X = (d) => u16(recordPtr + d);
+  const Y = (d) => u16(entryPtr + d);
   mem8[X(0x02)] = aim;
   mem8[Y(0x31)] = spriteHeading;
   mem8[Y(0x00)] = spriteX;
 
   // Dispatch the era's stage arm; it hands the stage vector back in E/D/C/B.
-  regs.a = mem8[ERA_INDEX];
   regs.hl = MOTHER_SHIP_STAGE_ARM_TABLE; // the stage-vector arms sit inline just below
-  const arm = fetchTableWord(m);
+  const arm = fetchTableWord(m, mem8[ERA_INDEX]);
   regs.de = regs.hl;
   regs.hl = arm;
   m.call(arm); // dispatch to the stage's arm directly

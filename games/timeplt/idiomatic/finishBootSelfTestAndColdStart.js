@@ -15,24 +15,18 @@ const STORE = 10;
 const CHECKSUM_SPAN = 0x100;
 const CHECKSUM_TOTAL = 0xc5;
 
-export function finishBootSelfTestAndColdStart(m) {
-  const { regs, mem, mem8 } = m;
+export function finishBootSelfTestAndColdStart(m, a = m.regs.a) {
+  const { mem, mem8 } = m;
 
-  regs.rrca();
-  const rolled = regs.a;
-  regs.and(0x07);
-  mem8[DIFFICULTY_SETTING] = regs.a;
+  const rolled = ((a >> 1) | (a << 7)) & 0xff; // RRCA
+  mem8[DIFFICULTY_SETTING] = rolled & 0x07;
 
-  regs.a = rolled;
-  regs.rrca();
-  regs.rrca();
-  regs.rrca();
-  regs.and(0x01);
-  mem8[DEMO_SOUNDS_ENABLE] = regs.a;
-  mem.write8(WATCHDOG_RESET, regs.a, STORE);
+  const demoSounds = ((rolled >> 3) | (rolled << 5)) & 0x01; // RRCA x3, low bit
+  mem8[DEMO_SOUNDS_ENABLE] = demoSounds;
+  mem.write8(WATCHDOG_RESET, demoSounds, STORE);
 
-  regs.a = mem8[FLIPSCREEN_INIT_BYTE];
-  mem.write8(FLIPSCREEN_LATCH, regs.a, STORE);
+  const flip = mem8[FLIPSCREEN_INIT_BYTE];
+  mem.write8(FLIPSCREEN_LATCH, flip, STORE);
 
   tileCharPlaneWithBoxLattice(m);
 
@@ -40,7 +34,8 @@ export function finishBootSelfTestAndColdStart(m) {
   for (let i = 0; i < CHECKSUM_SPAN; i++) {
     total = (total + mem8[u16(BOOT_SELFTEST_CHECKSUM_BASE + i)]) & 0xff;
   }
-  regs.a = (total - CHECKSUM_TOTAL) & 0xff;
-  if (regs.a !== 0) return saveAccumulatorForFrameInterrupt(m); // tampered image: derail into the frame handler
-  return petWatchdogThroughStartupDelayThenStartMachine(m);
+  const status = (total - CHECKSUM_TOTAL) & 0xff;
+  // status rides A into either handoff (saveAccumulator reads AF; petWatchdog reads A).
+  if (status !== 0) return (m.regs.a = status, saveAccumulatorForFrameInterrupt(m)); // tampered image: derail into the frame handler
+  return (m.regs.a = status, petWatchdogThroughStartupDelayThenStartMachine(m));
 }

@@ -20,18 +20,18 @@ const AIM_HEADING = 1;
 const SECOND_COORD = 49;
 const ARRIVED = 16;
 
-export function flyTowardShipStandoffThenEndApproach(m, bc = m.regs.bc) {
+export function flyTowardShipStandoffThenEndApproach(m, bc = m.regs.bc, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
   const held = bc;
 
   if ((mem8[FRAME_TICK] & REAIM_MASK) === 0) {
-    const point = mem8[u16(regs.ix + AIM_SELECTOR)] & 1 ? ENEMY_STANDOFF_AIM_SET : ENEMY_STANDOFF_AIM_CLEAR;
-    mem8[u16(regs.ix + AIM_HEADING)] = headingToward(m, point);
+    const point = mem8[u16(ix + AIM_SELECTOR)] & 1 ? ENEMY_STANDOFF_AIM_SET : ENEMY_STANDOFF_AIM_CLEAR;
+    mem8[u16(ix + AIM_HEADING)] = headingToward(m, point);
     // headingToward drops the two axis gaps it measures; recompute them to spot arrival.
-    const firstGap = Math.abs(mem8[point] - mem8[regs.iy]);
+    const firstGap = Math.abs(mem8[point] - mem8[iy]);
     const secondGap =
-      Math.abs(mem8[(point & 0xff00) | u8(point - 1)] - mem8[u16(regs.iy + SECOND_COORD)]);
-    if (firstGap < ARRIVED && secondGap < ARRIVED) endApproachNow(m, regs.ix);
+      Math.abs(mem8[(point & 0xff00) | u8(point - 1)] - mem8[u16(iy + SECOND_COORD)]);
+    if (firstGap < ARRIVED && secondGap < ARRIVED) endApproachNow(m, ix);
   }
 
   steerTowardAimAtFixedRate(m);

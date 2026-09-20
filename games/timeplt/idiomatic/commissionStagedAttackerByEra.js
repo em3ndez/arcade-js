@@ -73,10 +73,10 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
     return tailOff(requestTwoSoundsWhilePlaying);
   }
 
-  headingToward(m, ENEMY_STANDOFF_AIM_MAIN, entry);
-  mem8[record + 0x01] = regs.a;
+  const aim = headingToward(m, ENEMY_STANDOFF_AIM_MAIN, entry);
+  mem8[record + 0x01] = aim;
   if (era >= 3) {
-    mem8[record + 0x02] = regs.a;
+    mem8[record + 0x02] = aim;
   } else {
     let a = ((mem8[record + 0x0f] >> 1) | (mem8[record + 0x0f] << 7)) & 0xff; // rrca
     a = (a & 0x80) + 0x40; // +/- half a turn from bit 0 of the stored byte

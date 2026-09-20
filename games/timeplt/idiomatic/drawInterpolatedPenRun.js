@@ -27,23 +27,23 @@ export function drawInterpolatedPenRun(m) {
   mem16[PEN_ROW_STEP] = stepToward(mem16[PEN_ROW_TARGET], mem16[PEN_ROW_POS]);
   mem16[PEN_COLUMN_STEP] = stepToward(mem16[PEN_COLUMN_TARGET], mem16[PEN_COLUMN_POS]);
 
+  let cell;
   do {
     mem16[PEN_ROW_POS] = mem16[PEN_ROW_POS] + mem16[PEN_ROW_STEP];
     mem16[PEN_COLUMN_POS] = mem16[PEN_COLUMN_POS] + mem16[PEN_COLUMN_STEP];
-    plotPenCell(m);
-  } while (regs.hl !== mem16[PEN_RUN_END_CELL]);
+    cell = plotPenCell(m)[0];
+  } while (cell !== mem16[PEN_RUN_END_CELL]);
 
   mem8[PEN_ROUTE_LEG] = mem8[PEN_ROUTE_LEG] + 1;
-  regs.a = mem8[PEN_ROUTE_LEG];
-  regs.hl = PEN_ROUTE_TABLE;
-  fetchTableWord(m);
+  regs.hl = PEN_ROUTE_TABLE; // table base for fetchTableWord's offsetAddress (no hl param there)
+  const word = fetchTableWord(m, mem8[PEN_ROUTE_LEG]);
 
   mem8[PEN_ROW_POS] = 0;
-  mem8[PEN_ROW_POS + 1] = regs.e;
+  mem8[PEN_ROW_POS + 1] = word & 0xff;
   mem8[PEN_COLUMN_POS] = 0;
-  mem8[PEN_COLUMN_POS + 1] = regs.d;
+  mem8[PEN_COLUMN_POS + 1] = word >> 8;
 
-  regs.a = regs.e;
+  regs.a = word & 0xff; // sets the Z-flag live-out callers branch on
   regs.and(regs.a);
   m.ret(10);
 }
