@@ -17,23 +17,20 @@ const CHARACTER_PLANE_BIT = 0x0400;
 const LOW_NIBBLE = 0x0f;
 
 export function paintSuppressedDigit(m, a = m.regs.a, b = m.regs.b, c = m.regs.c, hl = m.regs.hl, de = m.regs.de) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   const digit = a & LOW_NIBBLE;
 
-  let entry;
+  let entry, flag = b;
   if (digit !== 0) {
-    regs.b = b + 1;
+    flag = b + 1;
     entry = digit;
   } else {
     entry = b === 0 ? mem8[LEADING_ZERO_BLANK_GLYPH_INDEX] : 0;
   }
 
   const glyph = fetchTableByte(m, DIGIT_GLYPH_TABLE, entry);
-  regs.hl = hl;
-
   const cell = de;
   mem8[cell] = glyph;
-  regs.a = c;
   mem8[cell & ~CHARACTER_PLANE_BIT] = c;
-  regs.de = cell | CHARACTER_PLANE_BIT;
+  return [m.regs.b = flag, m.regs.hl = hl, m.regs.a = c, m.regs.de = cell | CHARACTER_PLANE_BIT];
 }
