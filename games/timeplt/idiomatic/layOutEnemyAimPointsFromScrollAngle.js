@@ -33,12 +33,12 @@ export function layOutEnemyAimPointsFromScrollAngle(m, c = m.regs.c) {
   regs.ix = ENEMY_AIM_ANCHOR_Y;
 
   regs.a = u8(mem8[PLAYER_HEADING] + QUARTER_TURN);
-  loc_59d1(m);
-  plot(m, regs.de, ACROSS, 0x10, 0x12, true);
-  plot(m, regs.bc, DOWN, 0x11, 0x13, true);
+  const [deQuarter, bcQuarter] = loc_59d1(m);
+  plot(m, deQuarter, ACROSS, 0x10, 0x12, true);
+  plot(m, bcQuarter, DOWN, 0x11, 0x13, true);
 
   regs.a = mem8[PLAYER_HEADING];
-  loc_59d1(m);
-  plot(m, regs.de, ACROSS, 0x18, 0x1a, false);
-  plot(m, regs.bc, DOWN, 0x19, 0x1b, false);
+  const [deStraight, bcStraight] = loc_59d1(m);
+  plot(m, deStraight, ACROSS, 0x18, 0x1a, false);
+  plot(m, bcStraight, DOWN, 0x19, 0x1b, false);
 }

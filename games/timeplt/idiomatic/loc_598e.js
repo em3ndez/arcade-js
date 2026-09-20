@@ -9,5 +9,5 @@ import { loc_59d7 as VELOCITY_TABLE } from "./names.js";
 const HEADING_CELL = 2;
 
 export function loc_598e(m, heading = m.mem8[m.regs.ix + HEADING_CELL]) {
-  doubledVelocityForHeading(m, VELOCITY_TABLE, heading);
+  return doubledVelocityForHeading(m, VELOCITY_TABLE, heading);
 }

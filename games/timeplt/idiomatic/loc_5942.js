@@ -8,5 +8,5 @@ import { loc_59d7 } from "./names.js";
 const VELOCITY_TABLE = loc_59d7;
 
 export function loc_5942(m) {
-  velocityForHeading(m, VELOCITY_TABLE);
+  return velocityForHeading(m, VELOCITY_TABLE);
 }

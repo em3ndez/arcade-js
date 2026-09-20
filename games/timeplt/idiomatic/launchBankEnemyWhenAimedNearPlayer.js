@@ -87,14 +87,13 @@ export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEnt
   mem8[entIy] = coordX;
 
   regs.a = heading; // the velocity shim reads the heading out of the accumulator
-  if (mem8[ERA_INDEX] !== 0) loc_59d1(m);
-  else loc_59cb(m);
+  const [de, bc] = mem8[ERA_INDEX] !== 0 ? loc_59d1(m) : loc_59cb(m);
 
-  // the shim hands its doubled pair back on the register file: de then bc, stored low, high, low, high
-  mem8[u16(recIx + VELOCITY + 0)] = regs.e;
-  mem8[u16(recIx + VELOCITY + 1)] = regs.d;
-  mem8[u16(recIx + VELOCITY + 2)] = regs.c;
-  mem8[u16(recIx + VELOCITY + 3)] = regs.b;
+  // the shim's doubled pair: de then bc, stored low, high, low, high
+  mem8[u16(recIx + VELOCITY + 0)] = de;
+  mem8[u16(recIx + VELOCITY + 1)] = de >> 8;
+  mem8[u16(recIx + VELOCITY + 2)] = bc;
+  mem8[u16(recIx + VELOCITY + 3)] = bc >> 8;
   mem8[u16(entIy + 0x01)] = 0x4d;
   mem8[u16(entIy + SPRITE_STATE)] = 0x62;
   mem8[BANK_LAUNCH_COOLDOWN] = mem8[BANK_LAUNCH_COOLDOWN_PERIOD];

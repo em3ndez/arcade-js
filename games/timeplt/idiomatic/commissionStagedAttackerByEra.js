@@ -23,7 +23,7 @@ import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN
 const OFFSET_STEP = 0x1a;
 
 export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy, facing = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const d = mem8[spawnerEntry + 0x31];
   const e = mem8[spawnerRecord + 0x03];
@@ -62,11 +62,11 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
   if (era === 3) {
     const backHalf = (facing + 0x40) & 0x80; // which half of the circle the facing lies in
     mem8[record + 0x02] = backHalf ? u8(facing - OFFSET_STEP) : u8(facing + OFFSET_STEP);
-    loc_598e(m, mem8[record + 0x02]);
-    mem8[record + 0x0a] = regs.e;
-    mem8[record + 0x0b] = regs.d;
-    mem8[record + 0x0c] = regs.c;
-    mem8[record + 0x0d] = regs.b;
+    const [de, bc] = loc_598e(m, mem8[record + 0x02]);
+    mem8[record + 0x0a] = de;
+    mem8[record + 0x0b] = de >> 8;
+    mem8[record + 0x0c] = bc;
+    mem8[record + 0x0d] = bc >> 8;
     mem8[record + 0x02] = facing;
     dressSpriteShapeAndAttributeForHeadingSector(m, record, entry);
     mem8[record + 0x0e] = 0x20;

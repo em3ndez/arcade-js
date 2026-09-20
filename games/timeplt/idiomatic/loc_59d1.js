@@ -7,5 +7,5 @@ import { doubledVelocityForHeading } from "./doubledVelocityForHeading.js";
 const VELOCITY_TABLE = 0x5e00;
 
 export function loc_59d1(m) {
-  doubledVelocityForHeading(m, VELOCITY_TABLE);
+  return doubledVelocityForHeading(m, VELOCITY_TABLE);
 }

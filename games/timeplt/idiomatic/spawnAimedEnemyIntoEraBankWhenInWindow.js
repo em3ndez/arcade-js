@@ -77,11 +77,11 @@ export function spawnAimedEnemyIntoEraBankWhenInWindow(m, ix = m.regs.ix, iy = m
   mem8[entBank + ENTRY_Y] = foundY;
   mem8[entBank + ENTRY_X] = foundX;
   regs.a = aimed; // the velocity shim's input off the register file: the heading it doubles a velocity for
-  loc_59c5(m); // fills regs d,e and b,c with the doubled velocity pair for the aimed heading
-  mem8[recBank + 0x0a] = regs.e;
-  mem8[recBank + 0x0b] = regs.d;
-  mem8[recBank + 0x0c] = regs.c;
-  mem8[recBank + 0x0d] = regs.b;
+  const [de, bc] = loc_59c5(m); // doubled velocity pair for the aimed heading
+  mem8[recBank + 0x0a] = de;
+  mem8[recBank + 0x0b] = u8(de >> 8);
+  mem8[recBank + 0x0c] = bc;
+  mem8[recBank + 0x0d] = u8(bc >> 8);
   mem8[entBank + 0x01] = NEW_SCRIPT;
   mem8[entBank + 0x30] = NEW_SHAPE;
   mem8[recBank] = u8(mem8[recBank] - 1);
