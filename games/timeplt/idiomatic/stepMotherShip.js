@@ -305,8 +305,7 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy
   mem8[Y(0x00)] = spriteX;
 
   // Dispatch the era's stage arm; it hands the stage vector back in E/D/C/B.
-  regs.hl = MOTHER_SHIP_STAGE_ARM_TABLE; // the stage-vector arms sit inline just below
-  const arm = fetchTableWord(m, mem8[ERA_INDEX]);
+  const arm = fetchTableWord(m, mem8[ERA_INDEX], MOTHER_SHIP_STAGE_ARM_TABLE); // stage-vector arms sit inline below the table
   regs.de = regs.hl;
   regs.hl = arm;
   m.call(arm); // dispatch to the stage's arm directly

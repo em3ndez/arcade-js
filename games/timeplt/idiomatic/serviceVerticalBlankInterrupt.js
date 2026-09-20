@@ -54,8 +54,7 @@ export function serviceVerticalBlankInterrupt(m, bc = m.regs.bc, de = m.regs.de,
 
   serviceCoinInputs(m);
 
-  regs.hl = SEQUENCE_PHASE_ARM_TABLE;
-  const arm = fetchTableWord(m, mem8[SEQUENCE_PHASE] & 0x03);
+  const arm = fetchTableWord(m, mem8[SEQUENCE_PHASE] & 0x03, SEQUENCE_PHASE_ARM_TABLE);
   regs.de = regs.hl;
   regs.hl = arm;
   m.push16(sendOneQueuedSoundThenUnwindTheFrameInterrupt_ADDR); // the arm returns here, and the epilogue unwinds from there

@@ -13,8 +13,7 @@ import { noOpSequencePhase2Tail } from "./noOpSequencePhase2Tail.js";
 
 export function dispatchSequencePhase2SubStepArm(m) {
   const { regs, mem8 } = m;
-  regs.hl = PHASE2_SUBSTEP_DISPATCH_TABLE;
-  const arm = fetchTableWord(m, mem8[SEQUENCE_SUBSTEP]);
+  const arm = fetchTableWord(m, mem8[SEQUENCE_SUBSTEP], PHASE2_SUBSTEP_DISPATCH_TABLE);
   regs.de = regs.hl;
   regs.hl = arm;
   m.call(arm);

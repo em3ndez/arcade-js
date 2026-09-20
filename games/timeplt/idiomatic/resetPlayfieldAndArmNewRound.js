@@ -23,7 +23,7 @@ const ENTRY_STRIDE = 2;
 const CLEARED_ENTRY_OFFSETS = [0, 2, 4, 6, 0x31, 0x33, 0x35, 0x37];
 
 export function resetPlayfieldAndArmNewRound(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   mem16[WORLD_SCROLL_Y] = 0;
   mem16[WORLD_SCROLL_X] = 0;
@@ -63,9 +63,7 @@ export function resetPlayfieldAndArmNewRound(m) {
   seatEraSceneryRowThenClearAndRunScenery(m);
 
   const band = (mem8[ERA_INDEX] & 0x0f) << 4; // era in the high nibble, index into the word table
-  regs.a = u8(mem8[ERA_RUNG] + band);
-  regs.hl = ERA_RUNG_SETTINGS_POINTER_TABLE;
-  const src = fetchTableWord(m);
+  const src = fetchTableWord(m, u8(mem8[ERA_RUNG] + band), ERA_RUNG_SETTINGS_POINTER_TABLE);
 
   mem8[BANK_LAUNCH_SLOT_COUNT] = mem8[src];
   mem8[BANK_LAUNCH_NEAR_HALF_X] = mem8[src + 1];

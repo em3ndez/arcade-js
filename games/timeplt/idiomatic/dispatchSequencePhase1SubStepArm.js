@@ -13,8 +13,7 @@ import { advanceSequenceElseStartFreePlayGame } from "./advanceSequenceElseStart
 
 export function dispatchSequencePhase1SubStepArm(m) {
   const { regs, mem8 } = m;
-  regs.hl = PHASE1_SUBSTEP_DISPATCH_TABLE;
-  const arm = fetchTableWord(m, mem8[SEQUENCE_SUBSTEP]);
+  const arm = fetchTableWord(m, mem8[SEQUENCE_SUBSTEP], PHASE1_SUBSTEP_DISPATCH_TABLE);
   regs.de = regs.hl;
   regs.hl = arm;
   m.push16(advanceSequenceElseStartFreePlayGame_ADDR);

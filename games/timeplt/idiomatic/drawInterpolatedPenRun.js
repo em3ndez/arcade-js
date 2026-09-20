@@ -35,8 +35,7 @@ export function drawInterpolatedPenRun(m) {
   } while (cell !== mem16[PEN_RUN_END_CELL]);
 
   mem8[PEN_ROUTE_LEG] = mem8[PEN_ROUTE_LEG] + 1;
-  regs.hl = PEN_ROUTE_TABLE; // table base for fetchTableWord's offsetAddress (no hl param there)
-  const word = fetchTableWord(m, mem8[PEN_ROUTE_LEG]);
+  const word = fetchTableWord(m, mem8[PEN_ROUTE_LEG], PEN_ROUTE_TABLE);
 
   mem8[PEN_ROW_POS] = 0;
   mem8[PEN_ROW_POS + 1] = word & 0xff;

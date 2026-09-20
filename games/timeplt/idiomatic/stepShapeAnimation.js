@@ -26,9 +26,7 @@ export function stepShapeAnimation(m, record = m.regs.ix) {
   mem8[record + STEP_TIMER] = step;
   regs.c = step;
 
-  regs.a = mem8[record + RUN_SELECTOR];
-  regs.hl = SHAPE_RUN_POINTER_TABLE;
-  fetchTableWord(m);
+  fetchTableWord(m, mem8[record + RUN_SELECTOR], SHAPE_RUN_POINTER_TABLE);
   regs.exDeHl();
 
   regs.a = step;

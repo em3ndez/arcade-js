@@ -16,11 +16,8 @@ const DESTINATIONS = [
 ];
 
 export function applyEraRungSettings(m) {
-  const { mem8, regs } = m;
-  regs.a = u8(ROWS_PER_ERA * (mem8[ERA_INDEX] % ROWS_PER_ERA) + mem8[ERA_RUNG]);
-  regs.hl = ERA_RUNG_SETTINGS_POINTER_TABLE;
-
-  let source = fetchTableWord(m);
+  const { mem8 } = m;
+  let source = fetchTableWord(m, u8(ROWS_PER_ERA * (mem8[ERA_INDEX] % ROWS_PER_ERA) + mem8[ERA_RUNG]), ERA_RUNG_SETTINGS_POINTER_TABLE);
   for (const cells of DESTINATIONS) {
     const value = mem8[source];
     for (const cell of cells) mem8[cell] = value;
