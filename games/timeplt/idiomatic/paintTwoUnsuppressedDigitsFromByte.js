@@ -10,13 +10,11 @@ import { paintUnsuppressedDigit } from "./paintUnsuppressedDigit.js";
 const HIGH_DIGIT_SHIFT = 4;
 
 export function paintTwoUnsuppressedDigitsFromByte(m, hl = m.regs.hl) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = mem8[hl] >> HIGH_DIGIT_SHIFT;
-  paintUnsuppressedDigit(m);
+  paintUnsuppressedDigit(m, mem8[hl] >> HIGH_DIGIT_SHIFT);
   advanceCharCursor(m);
 
-  regs.a = mem8[regs.hl];
-  paintUnsuppressedDigit(m);
+  paintUnsuppressedDigit(m, mem8[hl]);
   advanceCharCursor(m);
 }

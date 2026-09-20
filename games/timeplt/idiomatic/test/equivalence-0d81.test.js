@@ -121,7 +121,7 @@ const HELPERS = [
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
-    text.includes(`${name}(m)`) &&
+    (text.includes(`${name}(m)`) || text.includes(`${name}(m,`)) &&
     !text.includes(ownConstant);
 }
 
