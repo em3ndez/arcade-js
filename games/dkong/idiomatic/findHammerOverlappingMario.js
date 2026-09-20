@@ -17,8 +17,7 @@ export function findHammerOverlappingMario(m) {
   const { regs, mem8 } = m;
 
   regs.iy = MARIO_ACTIVE; // base of Mario's live block: the search reads his X for the second axis
-  regs.a = mem8[MARIO_Y];
-  regs.c = regs.a;
+  regs.c = mem8[MARIO_Y]; // Mario's Y = the first-axis reference point
   regs.hl = 0x0408; // per-axis base tolerances: 8 first axis, 4 second
 
   regs.b = 0x02;

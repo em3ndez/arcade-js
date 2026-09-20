@@ -35,19 +35,16 @@ export function* mainLoop(m) {
     redrawPlayerUpIndicator(m);
     awardBonusLifeAtThreshold(m);
 
-    regs.hl = SPIN_COUNT;
-    mem8[regs.hl] = regs.inc8(mem8[regs.hl]);
+    mem8[SPIN_COUNT] = mem8[SPIN_COUNT] + 1;
 
-    regs.hl = FRAME_SEEN;
-    regs.a = mem8[FRAME];
-    regs.cp(mem8[regs.hl]);
-    if (regs.fZ) {
+    const frame = mem8[FRAME];
+    if (frame === mem8[FRAME_SEEN]) {
       // Frame counter unchanged — this spin IS the vblank wait; the interrupt moves it on.
       yield;
       continue;
     }
 
-    mem8[regs.hl] = regs.a;
+    mem8[FRAME_SEEN] = frame;
     rampDifficulty(m);
     animateFixedHazardAndReleaseFire(m);
     yield;

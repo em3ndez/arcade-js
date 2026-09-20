@@ -27,9 +27,10 @@ export function probeMarioDescentLanding(m) {
 
   if (mem8[BOARD] !== BOARD_25M) return loc_2b53(m);
 
-  regs.hl = (mem8[MARIO_X] << 8) | u8(mem8[MARIO_Y] + PROBE_OFFSET);
-  if (probeTileForLanding(m) === false) return false;
+  const probeHl = (mem8[MARIO_X] << 8) | u8(mem8[MARIO_Y] + PROBE_OFFSET);
+  if (probeTileForLanding(m, probeHl) === false) return false;
 
+  // regs.a/e/c below are probeTileForLanding's outputs, read back off the bridge.
   if (regs.a === 0) return loc_2b51(m);
 
   const probeCoord = regs.e;
@@ -37,7 +38,5 @@ export function probeMarioDescentLanding(m) {
   if (u8(probeCoord - surfaceBoundary) >= SNAP_REACH) return loc_2b74(m);
 
   mem8[MARIO_Y] = surfaceBoundary - PROBE_OFFSET;
-  regs.a = 1;
-  regs.b = 1;
-  return loc_2b51(m);
+  return (m.regs.a = 1, m.regs.b = 1, loc_2b51(m)); // keep the two result bytes on the bridge
 }

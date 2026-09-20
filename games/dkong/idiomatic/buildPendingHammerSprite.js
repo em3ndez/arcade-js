@@ -18,7 +18,7 @@ const FACING_BIT = 0x80; // Mario's horizontal-facing bit (1 = facing right)
 const SPRITE_ATTRIBUTE = 0x07;
 
 export function buildPendingHammerSprite(m, objBase = m.regs.ix) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if ((mem8[MARIO_HAMMER_PENDING] & 0x01) === 0) return;
 
@@ -26,10 +26,10 @@ export function buildPendingHammerSprite(m, objBase = m.regs.ix) {
   mem8[u16(objBase + OBJ_HIT_EXTENT_Y)] = 0x03;
 
   const facing = mem8[MARIO_SPRITE_CODE] & FACING_BIT;
-  regs.b = SPRITE_TILE | facing;
-  regs.c = SPRITE_ATTRIBUTE;
+  const spriteCode = SPRITE_TILE | facing;
+  const spriteAttr = SPRITE_ATTRIBUTE;
 
   mem8[HAMMER_SAVED_BGM] = mem8[SND_BGM];
 
-  commitSpriteRecordAtMarioOffset(m);
+  commitSpriteRecordAtMarioOffset(m, undefined, objBase, spriteCode, spriteAttr);
 }

@@ -17,8 +17,8 @@ import {
 } from "./names.js";
 import { drawCappedTileColumn } from "./drawCappedTileColumn.js";
 
-export function drawGirderSpan(m) {
-  const { regs, mem8, mem16 } = m;
+export function drawGirderSpan(m, de = m.regs.de) {
+  const { mem8, mem16 } = m;
 
   if (mem8[SEG_KIND] !== 0x02) {
     return drawCappedTileColumn(m);
@@ -101,5 +101,5 @@ export function drawGirderSpan(m) {
     phase = "STAMP_ROW";
   }
 
-  regs.de = u16(regs.de + 1);
+  return (m.regs.de = u16(de + 1));
 }

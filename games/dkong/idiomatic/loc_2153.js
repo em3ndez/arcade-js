@@ -14,9 +14,8 @@ const AIRBORNE_FRAMES = 20; // elapsed airborne frames; scales the gravity term
 const X_FRAC = 4;
 const Y_FRAC = 6;
 
-export function loc_2153(m, stored = m.regs.a,) {
+export function loc_2153(m, stored = m.regs.a, record = m.regs.ix) {
   const { mem8 } = m;
-  const record = m.regs.ix;
 
   mem8[record + AIRBORNE_FRAMES] = stored;
   mem8[record + X_FRAC] = stored;

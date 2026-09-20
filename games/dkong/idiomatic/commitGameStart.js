@@ -50,11 +50,10 @@ function seedPlayerContext(m, base) {
 }
 
 export function commitGameStart(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // 0x04 = 1-player, 0x08 = 2-player, anything else keeps waiting.
-  readStartButtonSelector(m);
-  const selector = regs.a;
+  const selector = readStartButtonSelector(m);
 
   let twoPlayer;
   if (selector === 0x04) {
@@ -65,8 +64,8 @@ export function commitGameStart(m) {
     spendCredit(m); // two credits, one per player
     spendCredit(m);
     seedPlayerContext(m, P2_CONTEXT);
-    regs.de = START_TASK_P2;
-    enqueueTask(m);
+    // d = opcode (high byte), e = player index (low byte).
+    enqueueTask(m, (START_TASK_P2 >> 8) & 0xff, START_TASK_P2 & 0xff);
     twoPlayer = true;
   } else {
     return;
@@ -78,8 +77,7 @@ export function commitGameStart(m) {
   mem8[TWO_PLAYER_GAME] = twoPlayer ? 0x01 : 0x00;
   clearPlayfieldAndSprites(m);
   seedPlayerContext(m, P1_CONTEXT);
-  regs.de = START_TASK_P1;
-  enqueueTask(m);
+  enqueueTask(m, (START_TASK_P1 >> 8) & 0xff, START_TASK_P1 & 0xff);
 
   mem8[GAME_SUBSTATE] = 0x00;
   mem8[GAME_STATE] = 0x03;

@@ -25,7 +25,7 @@ export function loc_26a6(m, hl = m.regs.hl, l = m.regs.l, de = m.regs.de) {
     result = stepRing(mem8, p4, +1, 0xd3, 0xd0);
   }
 
-  regs.a = result;
+  return (regs.a = result);
 }
 
 /**

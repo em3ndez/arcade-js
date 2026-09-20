@@ -79,9 +79,8 @@ export function driveHammerSprite(m) {
   let hammerCode = u8(marioCode << 1) | facing | HAMMER_CODE_FLAG; // -> Mario's on-screen code
 
   if ((mem8[HAMMER_TIMER_LO] & SWING_PHASE_BIT) === 0) {
-    regs.b = objTile;
-    regs.c = hammerCode;
-    updateActiveHammer(m);
+    regs.b = objTile; // ix/de/b ride the bridge into commitSpriteRecordAtMarioOffset
+    updateActiveHammer(m, objBase, hammerCode);
     return;
   }
 
@@ -97,6 +96,5 @@ export function driveHammerSprite(m) {
   }
 
   regs.b = objTile;
-  regs.c = hammerCode;
-  updateActiveHammer(m);
+  updateActiveHammer(m, objBase, hammerCode);
 }

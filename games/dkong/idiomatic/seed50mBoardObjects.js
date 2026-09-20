@@ -43,7 +43,7 @@ function copyBlock(mem8, src, dst, n) {
 }
 
 export function seed50mBoardObjects(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // dest OBJ_ARRAY_64+7; 5 records, stride 0x1c
   replicateGroupStrided(m, OBJ_ARRAY_64_TEMPLATE, 0x1c, OBJ_ARRAY_64, 0x05, 0x07);
@@ -61,8 +61,7 @@ export function seed50mBoardObjects(m) {
   copyBlock(mem8, SPRITE_6944_TEMPLATE_50M, loc_6944, 8);
   copyBlock(mem8, M50_OBJ1_SPRITE_PAIR_TEMPLATE, M50_OBJ1_SPRITE_PAIR_BASE, 24);
 
-  regs.hl = OBJ_PAIR_6680_POSITION_TABLE_50M; // seedSpriteObjectPair reads its position-table pointer from hl
-  seedSpriteObjectPair(m);
+  seedSpriteObjectPair(m, OBJ_PAIR_6680_POSITION_TABLE_50M);
 
   copyBlock(mem8, COLLISION_SPRITES_TEMPLATE_50M, OBJECT_COLLISION_SPRITES, 12); // 3 collision records (stride 4)
   mem8[FIXED_HAZARD_PHASE] = 0x01; // board-object bookkeeping: this board is set up

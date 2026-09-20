@@ -15,7 +15,6 @@ import { drawHighScore } from "./drawHighScore.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 
 export function drawScoreTask(m, a = m.regs.a) {
-  const { regs } = m;
   const payload = a;
 
   if (payload === 3) {
@@ -27,7 +26,5 @@ export function drawScoreTask(m, a = m.regs.a) {
     return;
   }
 
-  regs.de = (payload === 0 ? P1_SCORE : P2_SCORE) + 2;
-
-  loc_056b(m);
+  return (m.regs.de = (payload === 0 ? P1_SCORE : P2_SCORE) + 2, loc_056b(m));
 }

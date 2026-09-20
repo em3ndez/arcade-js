@@ -9,7 +9,7 @@
 import { u16 } from "../../../core/int.js";
 
 export function fillDescendingColumn(m, hl = m.regs.hl, a = m.regs.a, de = m.regs.de) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   let addr = u16(hl);
   let val = a & 0xff;
@@ -21,7 +21,5 @@ export function fillDescendingColumn(m, hl = m.regs.hl, a = m.regs.a, de = m.reg
     val = (val - 1) & 0xff;
   }
 
-  regs.a = val;
-  regs.hl = addr;
-  regs.b = 0;
+  return [m.regs.a = val, m.regs.hl = addr, m.regs.b = 0];
 }

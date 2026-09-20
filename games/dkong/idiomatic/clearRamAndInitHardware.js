@@ -34,7 +34,7 @@ const SLOT_FREE = 0xff;
 const QUEUE_EMPTY = 0xc0;
 
 export function clearRamAndInitHardware(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   for (let a = WORK_RAM_BASE; a < WORK_PAGE_HI; a++) mem8[a] = 0;
 
@@ -51,9 +51,5 @@ export function clearRamAndInitHardware(m) {
   mem8[PALETTE_BANK_BIT1] = 0;
   mem8[FLIPSCREEN] = 1;
 
-  regs.sp = 0x6c00;
-
-  silenceSound(m);
-
-  mem8[NMI_ENABLE] = 1;
+  return (m.regs.sp = 0x6c00, silenceSound(m), (mem8[NMI_ENABLE] = 1));
 }

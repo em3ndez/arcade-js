@@ -13,9 +13,8 @@ import {
 
 
 export function stampTwoDigitField(m, a = m.regs.a, b = m.regs.b) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[TWO_DIGIT_FIELD_HIGH_CELL] = a;
-  regs.a = b;
-  mem8[BONUS_READOUT_LOW_DIGIT_CELL] = regs.a;
+  mem8[BONUS_READOUT_LOW_DIGIT_CELL] = b;
 }

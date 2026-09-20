@@ -14,7 +14,7 @@ import { loc_2b91 } from "./loc_2b91.js";
 import { MARIO_AIR_VX_HI, MARIO_X } from "./names.js";
 
 export function loc_2b7a(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const velocityHiZero = mem8[MARIO_AIR_VX_HI] === 0;
   const marioX = mem8[MARIO_X];
@@ -23,6 +23,6 @@ export function loc_2b7a(m) {
     return loc_2b8b(m, marioX); // sibling arm snaps and commits
   }
 
-  regs.a = (marioX | 0x07) - 4; // snap to the 8-pixel column, then commit directly
-  return loc_2b91(m);
+  // snap to the 8-pixel column, then commit directly
+  return loc_2b91(m, (marioX | 0x07) - 4);
 }

@@ -12,8 +12,8 @@
 import { u16 } from "../../../core/int.js";
 import { SEG_SUBTILE2, SEG_ADDR2, SEG_KIND } from "./names.js";
 
-export function drawSegmentEndCap(m) {
-  const { regs, mem8, mem16 } = m;
+export function drawSegmentEndCap(m, de = m.regs.de) {
+  const { mem8, mem16 } = m;
 
   const remainder = mem8[SEG_SUBTILE2];
   const ptr = mem16[SEG_ADDR2];
@@ -30,5 +30,5 @@ export function drawSegmentEndCap(m) {
     mem8[page | ((col + 1) & 0xff)] = (remainder + 0xe0);
   }
 
-  regs.de = u16(regs.de + 1);
+  return (m.regs.de = u16(de + 1));
 }

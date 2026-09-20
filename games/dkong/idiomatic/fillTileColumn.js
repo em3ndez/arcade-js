@@ -12,14 +12,13 @@ import { u16 } from "../../../core/int.js";
 import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND, SEG_TILE } from "./names.js";
 
 export function fillTileColumn(m, de = m.regs.de) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   const kind = mem8[SEG_KIND];
 
   // A SIGN test, not an unsigned compare: kinds leaving the subtraction non-negative bail.
   if (((kind - 0x07) & 0x80) === 0) {
-    regs.de = u16(de + 1);
-    return;
+    return (m.regs.de = u16(de + 1));
   }
 
   let tile;
@@ -37,5 +36,5 @@ export function fillTileColumn(m, de = m.regs.de) {
     if (height < 0x08) break;
   }
 
-  regs.de = u16(de + 1);
+  return (m.regs.de = u16(de + 1));
 }

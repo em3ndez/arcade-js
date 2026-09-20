@@ -21,11 +21,10 @@ const ARRIVAL_CODE_SOURCE = 0x15;
 const ARM_SELECT = 0x02;
 const ARRIVAL_CODE_BASE = 21;
 
-export function loc_1fac(m) {
-  const { regs, mem8 } = m;
-  const record = regs.ix;
+export function loc_1fac(m, record = m.regs.ix) {
+  const { mem8 } = m;
 
-  regs.exx();
+  m.regs.exx();
 
   const y = u8(mem8[record + OBJ_Y] + 1);
   mem8[record + OBJ_Y] = y;

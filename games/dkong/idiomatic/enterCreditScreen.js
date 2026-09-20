@@ -23,14 +23,13 @@ import {
 
 
 export function enterCreditScreen(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   clearPlayfieldAndSprites(m);
 
   mem8[ATTRACT] = 0;
 
-  regs.de = CREDIT_SCREEN_TASK;
-  enqueueTask(m);
+  enqueueTask(m, (CREDIT_SCREEN_TASK >> 8) & 0xff, CREDIT_SCREEN_TASK & 0xff);
 
   mem8[GAME_SUBSTATE] = (mem8[GAME_SUBSTATE] + 1);
 

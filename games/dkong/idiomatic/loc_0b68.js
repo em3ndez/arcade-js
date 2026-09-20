@@ -27,7 +27,7 @@ function strideAddTen(m, hl, c) {
 }
 
 export function loc_0b68(m) {
-  const { mem8, mem16, regs } = m;
+  const { mem8, mem16 } = m;
 
   if (mem8[FRAME] & 0x01) return;
 
@@ -47,8 +47,7 @@ export function loc_0b68(m) {
   mem8[SND_TRIGGER + 2] = 0x03; // a 3-frame sound assert
 
   const bandIdx = nibbleSwap((mem8[CUTSCENE_BAND_COUNT] - 1) & 0xff);
-  regs.de = u16(BAND_TABLE + bandIdx);
-  drawBoardLayout(m);
+  drawBoardLayout(m, undefined, u16(BAND_TABLE + bandIdx));
 
   const bandsLeft = (mem8[CUTSCENE_BAND_COUNT] - 1) & 0xff;
   mem8[CUTSCENE_BAND_COUNT] = bandsLeft;

@@ -44,8 +44,7 @@ export function loc_2053(m, record = m.regs.ix,) {
   m.push16(0x206b);
   if (!m.call(0x24b4)) return;
 
-  regs.c = (mem8[record + OBJ_VELOCITY_X_HI] & 1) * 4;
-  advanceBarrelSpriteOrientation(m);
+  advanceBarrelSpriteOrientation(m, record, (mem8[record + OBJ_VELOCITY_X_HI] & 1) * 4);
 
   return publishBarrelSprite(m);
 }

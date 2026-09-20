@@ -13,22 +13,13 @@ import { moveMarioX } from "./moveMarioX.js";
 import { selectConveyorStepAndMoveMario } from "./selectConveyorStepAndMoveMario.js";
 
 export function carryMarioOnConveyorRow(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.b = mem8[MARIO_X]; // prior-X input every mover adds its step to
-
+  const priorX = mem8[MARIO_X]; // prior-X input every mover adds its step to; re-seated per path
   const y = mem8[MARIO_Y];
 
-  if (y === 0x50) {
-    moveMarioX(m, mem8[M50_OBJ1_STEP]);
-    return;
-  }
-  if (y === 0x78) {
-    selectConveyorStepAndMoveMario(m);
-    return;
-  }
-  if (y === 0xc8) {
-    moveMarioX(m, mem8[M50_OBJ3_STEP]);
-    return;
-  }
+  if (y === 0x50) return (m.regs.b = priorX, moveMarioX(m, mem8[M50_OBJ1_STEP]));
+  if (y === 0x78) return (m.regs.b = priorX, selectConveyorStepAndMoveMario(m));
+  if (y === 0xc8) return (m.regs.b = priorX, moveMarioX(m, mem8[M50_OBJ3_STEP]));
+  return (m.regs.b = priorX);
 }

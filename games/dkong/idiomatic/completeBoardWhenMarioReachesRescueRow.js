@@ -6,18 +6,14 @@
  * board is won — fall into the board-won tail (stamps facing, commits the advance, unwinds) and
  * propagate its false.
  *
- * WARNING: use a real compare, not a value test — cp leaves the carry the board-won tail reads to
- * pick Mario's facing. Y arrives in a register from the caller, so it is read off the machine.
+ * Y arrives from the caller's A register. Unsigned CP sets carry when A < 0x31, and the board-won
+ * tail reads that carry to pick Mario's facing; reaching the tail means A < 0x31, so hand it true.
  */
 
 import { loc_1e6d } from "./loc_1e6d.js";
 
-export function completeBoardWhenMarioReachesRescueRow(m) {
-  const { regs } = m;
+export function completeBoardWhenMarioReachesRescueRow(m, y = m.regs.a) {
+  if (y >= 0x31) return true;
 
-  regs.cp(0x31);
-
-  if (!regs.fC) return true;
-
-  return loc_1e6d(m);
+  return loc_1e6d(m, true);
 }

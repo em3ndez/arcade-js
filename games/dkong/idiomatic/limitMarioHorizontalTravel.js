@@ -8,7 +8,7 @@
 import { MARIO_X, MARIO_Y, BOARD } from "./names.js";
 
 export function limitMarioHorizontalTravel(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const x = mem8[MARIO_X];
 
   let d, e;
@@ -26,7 +26,6 @@ export function limitMarioHorizontalTravel(m) {
     d = 1; e = 0;
   }
 
-  regs.d = d;
-  regs.e = e;
-  return { d, e };
+  // Return-assignment keeps the register mirror for translated dispatch.
+  return { d: (m.regs.d = d), e: (m.regs.e = e) };
 }

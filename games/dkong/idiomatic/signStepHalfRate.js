@@ -10,14 +10,13 @@
 import { FRAME } from "./names.js";
 
 export function signStepHalfRate(m, ptr = m.regs.hl) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if ((mem8[FRAME] & 0x01) === 0) {
-    regs.a = 0x00;
-    return;
+    return (m.regs.a = 0x00);
   }
 
   const step = (mem8[ptr] & 0x80) ? 0xff : 0x01;
   mem8[ptr] = step;
-  regs.a = step;
+  return (m.regs.a = step);
 }

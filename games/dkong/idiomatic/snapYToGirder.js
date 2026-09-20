@@ -42,6 +42,5 @@ export function snapYToGirder(x, y, step) {
  * accumulator/step/flags) is dropped, no consumer.
  */
 export function snapYToGirderFromRegisters(m, h = m.regs.h, l = m.regs.l, b = m.regs.b) {
-  const { regs } = m;
-  regs.l = snapYToGirder(h, l, b);
+  return (m.regs.l = snapYToGirder(h, l, b));
 }

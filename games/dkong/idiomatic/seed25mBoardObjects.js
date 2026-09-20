@@ -32,7 +32,7 @@ function blockCopy(mem8, src, dst, len) {
 }
 
 export function seed25mBoardObjects(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   blockCopy(mem8, BONUS_COUNTDOWN_SPRITES_TEMPLATE, BONUS_COUNTDOWN_SPRITES, 0x10);
 
@@ -42,8 +42,7 @@ export function seed25mBoardObjects(m) {
 
   blockCopy(mem8, SPRITE_69FC_TEMPLATE_25M, loc_69fc, 0x04);
 
-  regs.hl = OBJ_PAIR_6680_POSITION_TABLE_25M; // seedSpriteObjectPair reads its position-table pointer from hl
-  seedSpriteObjectPair(m);
+  seedSpriteObjectPair(m, OBJ_PAIR_6680_POSITION_TABLE_25M);
 
   replicateGroupStrided(m, OBJ_ARRAY_67_TEMPLATE, 0x1c, OBJ_ARRAY_67, 0x08, 0x07);
   replicateGroupStrided(m, OBJ_ARRAY_67_TEMPLATE, 0x1c, OBJ_ARRAY_67_PAGE68, 0x02, 0x07);

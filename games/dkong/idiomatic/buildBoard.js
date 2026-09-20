@@ -31,14 +31,13 @@ import { loc_0cc6 } from "./loc_0cc6.js";
 
 
 export function buildBoard(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   clearPlayfieldAndSprites(m);
 
   mem8[BONUS_DISPLAY] = 0;
 
-  regs.de = BOARD_OPENING_TASK;
-  enqueueTask(m);
+  enqueueTask(m, BOARD_OPENING_TASK >> 8, BOARD_OPENING_TASK & 0xff);
 
   // Select palette bank 2: bit0 clear, bit1 set.
   mem8[PALETTE_BANK_BIT0] = 0;
@@ -54,6 +53,7 @@ export function buildBoard(m) {
   stampRivetBoardBands(m);
   mem8[PALETTE_BANK_BIT0] = 1;
   mem8[SND_BGM] = 0x0b;
-  regs.de = BOARD_LAYOUT_TABLE_RIVET;
+  // Re-seat: the shared board-layout tail reads the layout-table pointer from the bridge.
+  m.regs.de = BOARD_LAYOUT_TABLE_RIVET;
   loc_0cc6(m);
 }

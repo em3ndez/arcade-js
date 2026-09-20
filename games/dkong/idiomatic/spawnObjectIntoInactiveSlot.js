@@ -26,7 +26,7 @@ const OBJ_ANIM_PTR = 0x0e;
 const SPAWN_Y = 80;
 
 export function spawnObjectIntoInactiveSlot(m, ix = m.regs.ix) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if ((mem8[SPAWN_REQUEST] & 0x01) === 0) {
     advanceToNextObject(m);
@@ -41,8 +41,7 @@ export function spawnObjectIntoInactiveSlot(m, ix = m.regs.ix) {
 
   // Initial X: stirred seed's low nibble biased down by 8, spreading over a 16-wide window that
   // straddles zero as a byte. The stirrer leaves the fresh seed in the accumulator.
-  stirRandomSeed(m);
-  const seed = regs.a;
+  const [seed] = stirRandomSeed(m);
   mem8[ix + OBJ_X] = (seed & 0x0f) - 8;
 
   mem8[ix + OBJ_ACTIVE] = 1;

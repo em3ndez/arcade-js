@@ -12,9 +12,9 @@ import { u16 } from "../../../core/int.js";
 import { MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X } from "./names.js";
 
 export function loc_2b91(m, x = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   mem8[MARIO_X] = x;
   mem8[u16(MARIO_SPRITE_RECORD + SPRITE_X)] = x;
-  regs.a = 0x01; // accept signal
+  m.regs.a = 0x01; // accept signal read back up the chain; return slot holds the protocol flag
   return false; // caller-skip: unwind two levels
 }

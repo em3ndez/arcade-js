@@ -27,9 +27,7 @@ const CENTER_X = 0x80;         // midpoint of the 0..255 X range; the center-spl
 const CULL_SPRITE_STRIDE = 0x04; // four bytes per sprite record
 
 export function advance50mObjectRow(m) {
-  const { regs, mem8 } = m;
-
-  regs.de = SLOT_STRIDE; // LIVE-OUT
+  const { mem8 } = m;
 
   for (let i = 0; i < SLOT_COUNT; i++) {
     const slot = OBJ_ARRAY_65A0 + SLOT_STRIDE * i;
@@ -60,4 +58,6 @@ export function advance50mObjectRow(m) {
       mem8[OBJ_65A0_SPRITES + CULL_SPRITE_STRIDE * i] = 0;
     }
   }
+
+  return (m.regs.de = SLOT_STRIDE); // LIVE-OUT: record stride, caller's pointer increment
 }

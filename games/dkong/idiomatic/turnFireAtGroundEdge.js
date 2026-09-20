@@ -21,7 +21,7 @@ const GROUND_PROBE_DROP = 0x0c; // probe 12 pixels BELOW the fire, not ahead of 
 const TILE_FLOOR = 0xb0;
 const NIBBLE_LIMIT = 0x08;
 
-/** @returns {boolean} true when the probed tile is OUTSIDE the accepted band. */
+/** @returns {number} 1 when the probed tile is OUTSIDE the accepted band, else 0. */
 export function turnFireAtGroundEdge(m) {
   const { regs, mem8, mem16 } = m;
 
@@ -38,7 +38,6 @@ export function turnFireAtGroundEdge(m) {
   return verdict(false);
 
   function verdict(outOfBand) {
-    regs.a = outOfBand ? 0x01 : 0x00;
-    return outOfBand;
+    return (regs.a = outOfBand ? 0x01 : 0x00);
   }
 }

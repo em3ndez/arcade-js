@@ -10,16 +10,20 @@
 import { drawSegmentEndCap } from "./drawSegmentEndCap.js";
 import { SEG_RUN } from "./names.js";
 
-export function drawLadder(m) {
-  const { regs, mem8 } = m;
+export function drawLadder(m, hl = m.regs.hl) {
+  const { mem8 } = m;
+
+  let col = hl & 0xff; // only the low byte walks; the page holds
+  const page = hl - col;
 
   for (;;) {
     const span = mem8[SEG_RUN];
     mem8[SEG_RUN] = (span - 0x08); // store back every step, borrow or not
     if (span < 0x08) break; // borrowed -> span exhausted
-    regs.l = (regs.l + 1) & 0xff;
-    mem8[regs.hl] = 0xc0;
+    col = (col + 1) & 0xff;
+    mem8[page + col] = 0xc0;
   }
 
-  drawSegmentEndCap(m);
+  drawSegmentEndCap(m); // reads no register; the cursor stays valid across it
+  return (m.regs.hl = page + col);
 }

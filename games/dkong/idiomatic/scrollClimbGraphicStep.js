@@ -14,13 +14,13 @@ import {
 
 
 export function scrollClimbGraphicStep(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.bc = mem8[INTRO_SCROLL_INDEX];
-  regs.de = VRAM_ROW_STEP_UP; // set once, reused by both copies
+  const bc = mem8[INTRO_SCROLL_INDEX];
+  const de = VRAM_ROW_STEP_UP; // set once, reused by both copies
 
-  copyByteDisplaced(m, 0x7600);
-  copyByteDisplaced(m, 0x75c0);
+  copyByteDisplaced(m, 0x7600, bc, de);
+  copyByteDisplaced(m, 0x75c0, bc, de);
 
   mem8[INTRO_SCROLL_INDEX] = (mem8[INTRO_SCROLL_INDEX] - 1);
 }

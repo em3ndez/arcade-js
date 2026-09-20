@@ -23,19 +23,10 @@ const INITIAL_VY = -16; // signed 16-bit, 1/256-pixel units
 const FALLING_ARM = 8;
 const SPRITE_TAIL = 0x21ba;
 
-/**
- * @param {object} m  the machine (memory, and the register file the sprite tail reads).
- * @param {number} resetValue  blanked into the four counter/fraction fields; both callers
- *   clear it before entry, so in play it is 0. The record base, by contrast, is NOT a
- *   parameter: the shared tail reads that register directly, so a caller passing a different
- *   record would be ignored one hand-off later.
- */
-export function loc_2038(
-  m,
-  resetValue = m.regs.a,
-) {
+// resetValue: blanked into the four counter/fraction fields (0 in play). record: a bridge param
+// the shared tail also reads via m.regs.ix — leave it defaulted or the hand-off desyncs.
+export function loc_2038(m, resetValue = m.regs.a, record = m.regs.ix) {
   const { mem8 } = m;
-  const record = m.regs.ix;
 
   // Launch downhill: with this velocity negative the motion never turns over.
   mem8[record + INITIAL_VY_HI] = INITIAL_VY >> 8;

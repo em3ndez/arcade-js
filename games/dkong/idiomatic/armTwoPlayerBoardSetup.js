@@ -21,15 +21,13 @@ import { loc_09ee } from "../translated/loc_09ee.js";
 
 
 export function armTwoPlayerBoardSetup(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[PALETTE_BANK_BIT0] = 0x00;
   mem8[PALETTE_BANK_BIT1] = 0x00;
 
-  regs.de = 0x0302;
-  enqueueTask(m);
-  regs.de = 0x0201;
-  enqueueTask(m);
+  enqueueTask(m, 0x03, 0x02);
+  enqueueTask(m, 0x02, 0x01);
 
   mem8[GAME_SUBSTATE] = 0x05;
 

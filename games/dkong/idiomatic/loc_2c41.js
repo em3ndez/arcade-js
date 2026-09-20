@@ -15,14 +15,8 @@ import { stirRandomSeed } from "./stirRandomSeed.js";
 import { loc_2c86 } from "./loc_2c86.js";
 import { loc_2c49 } from "./loc_2c49.js";
 
-/**
- * @param {object} m  the machine; the bonus value arrives in a register, consumed by the mode entry.
- */
 export function loc_2c41(m) {
-  const { regs } = m;
-
-  stirRandomSeed(m);
-  const seed = regs.a;
+  const [seed] = stirRandomSeed(m);
 
   if ((seed & 0x0f) !== 0) {
     loc_2c86(m);

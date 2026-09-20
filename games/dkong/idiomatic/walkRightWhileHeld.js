@@ -19,7 +19,7 @@ const CONTROL_RIGHT = 0x01;
 const AT_RIGHT_LIMIT = 1;
 
 export function walkRightWhileHeld(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const positionGate = limitMarioHorizontalTravel(m);
   const control = mem8[P1_INPUT];
@@ -28,5 +28,6 @@ export function walkRightWhileHeld(m) {
     return walkMarioRight(m);
   }
 
-  return walkLeftWhileHeld(m, regs.d, control);
+  // positionGate.d mirrors regs.d (the gate re-seats it), so pass the value.
+  return walkLeftWhileHeld(m, positionGate.d, control);
 }

@@ -16,9 +16,10 @@ import { advanceSpringArcAndDropAtTravelEnd } from "./advanceSpringArcAndDropAtT
 
 
 export function loc_2e9c(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.hl = OBJ_ANIM_STRING_BASE;
+  // R37 re-seat: the convergence callee reads the string base from l/h off the bridge.
+  m.regs.hl = OBJ_ANIM_STRING_BASE;
   mem8[SND_TRIGGER + 3] = 0x03;
   advanceSpringArcAndDropAtTravelEnd(m);
 }

@@ -33,7 +33,7 @@ const SLOT_STRIDE = 0x10; // the record stride of the object array scanned here
 const SLOT_COUNT = 6;     // records scanned for a free slot
 
 export function service50mObjectSpawnRequest(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[OBJ_SPAWN_TIMER] !== 0) {
     mem8[OBJ_SPAWN_TIMER] = mem8[OBJ_SPAWN_TIMER] - 1;
@@ -52,8 +52,7 @@ export function service50mObjectSpawnRequest(m) {
   }
   if (slot === -1) return; // every slot busy — nothing spawned, no decrement
 
-  stirRandomSeed(m);
-  const roll = regs.a;
+  const [roll] = stirRandomSeed(m);
   mem8[u16(slot + OBJ_Y)] = 0x7c;
 
   let overrideY = roll < 0x60;
@@ -61,8 +60,7 @@ export function service50mObjectSpawnRequest(m) {
 
   if (!overrideY) {
     if (((mem8[M50_OBJ2_STEP_DIR] - 1) & 0xff) !== 0) {
-      stirRandomSeed(m);
-      overrideX = regs.a < 0x68;
+      overrideX = stirRandomSeed(m)[0] < 0x68;
     } else {
       overrideY = true;
     }

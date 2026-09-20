@@ -26,10 +26,9 @@ function bcdDecrement(v) {
 }
 
 export function spendCredit(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[CREDITS] = bcdDecrement(mem8[CREDITS]);
 
-  regs.de = CREDIT_DISPLAY_TASK;
-  enqueueTask(m);
+  enqueueTask(m, (CREDIT_DISPLAY_TASK >> 8) & 0xff, CREDIT_DISPLAY_TASK & 0xff);
 }

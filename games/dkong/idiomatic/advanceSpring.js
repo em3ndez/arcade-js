@@ -27,7 +27,7 @@ const RETIRE_STATE = 4;            // the OBJ_STATE the step-and-deactivate hand
 const STRING_TERMINATOR = 0x7f;    // end of the height string: rewind and bounce again
 
 export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if ((mem8[record + OBJ_ACTIVE] & 0x01) === 0) {
     spawnObjectIntoInactiveSlot(m);
@@ -46,18 +46,19 @@ export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
 
   mem8[record + OBJ_X] = mem8[record + OBJ_X] + CROSS_STEP;
 
-  // Next height-string byte via the record's walk pointer; handed to the tails in regs.c.
+  // Next height-string byte via the record's walk pointer; it is the last-read byte the tails need.
   const ptr = mem8[record + OBJ_STR_PTR] | (mem8[record + OBJ_STR_PTR + 1] << 8);
   const delta = mem8[ptr];
-  regs.c = delta;
 
   if (delta === STRING_TERMINATOR) {
+    // Re-seat: the terminator tail reads the last string byte from the bridge.
+    m.regs.c = delta;
     loc_2e9c(m);
     return;
   }
 
   // Step past the byte, accumulate it into OBJ_Y (add, not store), then converge at the tail.
-  regs.hl = u16(ptr + 1);
+  const next = u16(ptr + 1);
   mem8[record + OBJ_Y] = delta + mem8[record + OBJ_Y];
-  advanceSpringArcAndDropAtTravelEnd(m);
+  advanceSpringArcAndDropAtTravelEnd(m, record, next & 0xff, next >> 8, delta);
 }

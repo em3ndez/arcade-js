@@ -55,5 +55,5 @@ export function loc_3478(m, ix = m.regs.ix) {
   }
 
   // Hand over to the shared walk tail with the table pointer.
-  loc_3445(m, m.regs.ix, ptr);
+  loc_3445(m, ix, ptr);
 }

@@ -11,9 +11,7 @@ const SPRITE_CODE = 0x7d; // stamped into the effect record's code byte
 const TASK_MESSAGE = 0x0003; // the deferred-task message: opcode 0, argument 3
 
 export function stageAward300Popup(m) {
-  const { regs } = m;
-
-  regs.b = SPRITE_CODE;
-  regs.de = TASK_MESSAGE;
-  stageAwardPopupAtHitObject(m);
+  // Message re-seat: the feeder's enqueueTask reads d/e from the register bridge.
+  m.regs.de = TASK_MESSAGE;
+  stageAwardPopupAtHitObject(m, SPRITE_CODE); // sprite code forwarded as the feeder's b param
 }

@@ -29,14 +29,14 @@ export function probeTileForLanding(m, hl = m.regs.hl) {
   const pixel = hl;
   const y = (pixel >> 8) & 0xff;
   const x = pixel & 0xff;
-  regs.hl = tileAddrForPixel(y, x);
+  const addr = tileAddrForPixel(y, x); // local cell address, not a live-out
   regs.de = pixel; // E = x survives to the tail call
 
-  let tile = mem8[regs.hl];
+  let tile = mem8[addr];
 
   if (tile < 0xb0) return reject(regs);           // below the surface-tile band
   if ((tile & 0x0f) >= 0x08) return reject(regs); // right half of the tile pair
-  tile = mem8[regs.hl];
+  tile = mem8[addr];
   if (tile === 0xc0) return reject(regs);         // the excluded tile
 
   if (tile < 0xc0) {

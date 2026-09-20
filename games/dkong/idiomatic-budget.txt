@@ -1,4 +1,4 @@
 # Idiomatic-gate cruft budget for this game — a shrinking ratchet toward 0 (single integer, first
 # non-comment line). Absent -> implicit 0. A game is IDIOMATIC (a done requirement) only at 0.
 # dkong: legacy-retrofit DEBT campaign IN PROGRESS (Karl opened it) — marched down per batch.
-816
+686

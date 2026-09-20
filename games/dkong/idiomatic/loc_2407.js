@@ -27,6 +27,5 @@ export function loc_2407(m, record = m.regs.ix) {
 
   const difference = u16(spread - operand);
 
-  regs.hl = difference;
-  return difference;
+  return (regs.hl = difference);
 }

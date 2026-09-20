@@ -1,20 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * addToSpriteObjectColumn — add one signed delta into the SAME field of all ten sprite-object
- * records at once, shifting a whole column of them together.
- *
- * A shim in front of the general strided add. It hard-wires the two numbers specific to the
- * sprite-object block — a stride of 4 (one record) and a count of 10 — NOT read from the
- * caller. The caller supplies which field to hit and the signed delta: pointing at the first
- * byte moves every record's X, three bytes in moves the Y. The 8-bit add wraps. The stride is
- * a genuine output too: one caller invokes this for it and leaves the add as a side effect.
+ * records at once. A shim over the general strided add hard-wiring stride 4 (one record) and
+ * count 10; the caller supplies the field pointer and signed delta (first byte = X, +3 = Y).
+ * The 8-bit add wraps. regs.de (the stride) is a live-out one caller reads back.
  */
 import { addStrided } from "./addStrided.js";
 
 export function addToSpriteObjectColumn(m, hl = m.regs.hl, c = m.regs.c) {
-  const { regs } = m;
-  regs.de = 0x0004; // stride: one sprite-object record; count: ten records (regs.de is a live-out)
-  regs.b = 0x0a;
+  // stride 4 (one record), count 10; regs.de is a live-out a caller reads back.
+  m.regs.de = 0x0004;
 
-  addStrided(m, c, undefined, undefined, hl);
+  addStrided(m, c, 0x0004, 0x0a, hl);
 }

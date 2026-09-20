@@ -21,13 +21,8 @@ import { dispatchInlineJumpTable } from "./dispatchInlineJumpTable.js";
 const DISPATCH_SITE = "0x3E8D (loc_3e88 dispatch)";
 
 export function dispatchBoardOverlapSearch(m, hl = m.regs.hl) {
-  const { regs, mem8 } = m;
-
-  regs.a = mem8[BOARD];
+  const { mem8 } = m;
 
   // The caller's bounds word, below the table base; the arm lifts it back off the stack.
-  m.push16(hl);
-
-  m.push16(BOARD_OVERLAP_DISPATCH_TABLE);
-  return dispatchInlineJumpTable(m, DISPATCH_SITE);
+  return (m.regs.a = mem8[BOARD], m.push16(hl), m.push16(BOARD_OVERLAP_DISPATCH_TABLE), dispatchInlineJumpTable(m, DISPATCH_SITE));
 }

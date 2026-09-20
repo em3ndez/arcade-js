@@ -16,14 +16,11 @@ export function resolveAirborneTileLanding(m, boundary = m.regs.c, ix = m.regs.i
   const objectY = mem8[u16(ix + 5)];
   const probe = u8(mem8[MARIO_AIR_PREV_Y] - objectY + e);
 
+  // Result code + twin ride the return as register writes; the boolean is the caller-skip.
   if (probe > boundary) {
-    regs.a = 2;
-    regs.b = 0;
-    return true;
+    return (regs.a = 2, regs.b = 0, true);
   }
 
   mem8[MARIO_Y] = boundary - 7;
-  regs.a = 1;
-  regs.b = 1;
-  return false;
+  return (regs.a = 1, regs.b = 1, false);
 }

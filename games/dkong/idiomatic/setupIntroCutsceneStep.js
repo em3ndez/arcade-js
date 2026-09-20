@@ -25,13 +25,12 @@ import { drawBoardLayout } from "./drawBoardLayout.js";
 // Palette-bank select latch — a board output, not work RAM.
 
 export function setupIntroCutsceneStep(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   mem8[PALETTE_BANK_BIT0] = 0x00;
   mem8[PALETTE_BANK_BIT1] = 0x01;
 
-  regs.de = INTRO_SETUP_LAYOUT_TABLE;
-  drawBoardLayout(m);
+  drawBoardLayout(m, undefined, INTRO_SETUP_LAYOUT_TABLE);
 
   mem8[INTRO_CUTSCENE_TILE_A] = 0x10;
   mem8[INTRO_CUTSCENE_TILE_B] = 0x10;

@@ -16,7 +16,6 @@ export function selectPlayerIndicatorColumnBase(playerSelector) {
  * pair callers read. The selector is not overwritten and the zero-test flags survive both exits.
  */
 export function selectPlayerIndicatorColumnBaseFromRegisters(m, a = m.regs.a) {
-  const { regs } = m;
-  regs.and(a); // zero test only: leaves the selector alone, sets zero from it, clears carry
-  regs.hl = selectPlayerIndicatorColumnBase(a);
+  m.regs.and(a); // zero test only: leaves the selector alone, sets zero from it, clears carry
+  return (m.regs.hl = selectPlayerIndicatorColumnBase(a));
 }

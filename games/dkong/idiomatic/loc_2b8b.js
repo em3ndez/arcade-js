@@ -12,9 +12,5 @@
 import { loc_2b91 } from "./loc_2b91.js";
 
 export function loc_2b8b(m, candidateX = m.regs.a) {
-  const { regs } = m;
-
-  regs.a = ((candidateX - 8) | 0x07) + 4;
-
-  return loc_2b91(m);
+  return loc_2b91(m, ((candidateX - 8) | 0x07) + 4);
 }

@@ -93,7 +93,7 @@ export function runRivetBoardFinaleThenAdvanceLevel(m) {
  * hand the game to the interlude sub-state.
  */
 function advanceBoardSequence(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   let ptr = u16(mem16[BOARD_SEQ_PTR] + 1);
   let nextBoard = mem8[ptr];
@@ -105,8 +105,7 @@ function advanceBoardSequence(m) {
   mem8[BOARD] = nextBoard;
   mem8[LEVEL] = mem8[LEVEL] + 1;
 
-  regs.de = 0x0500;
-  enqueueTask(m);
+  enqueueTask(m, 0x05, 0x00);
 
   mem8[HOW_HIGH_INDEX] = 0x00;
   mem8[BOARD_ADVANCE_STEP] = 0x00;

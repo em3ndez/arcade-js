@@ -18,14 +18,14 @@ import { loc_26a6 } from "./loc_26a6.js";
 
 
 export function loc_268d(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   signStepHalfRate(m, M50_OBJ3_STEP_DIR);
-  mem8[M50_OBJ3_STEP] = regs.a;
+  // Recover the ±1 step under the same parity gate the helper uses (0 on even frames).
+  const step = (mem8[FRAME] & 0x01) === 0 ? 0x00 : mem8[M50_OBJ3_STEP_DIR];
+  mem8[M50_OBJ3_STEP] = step;
 
   if ((mem8[FRAME] & 0x1f) !== 0x02) return;
 
-  regs.hl = M50_OBJ3_SPRITE_PAIR_BASE;
-  regs.de = M50_OBJ3_STEP_DIR;
-  loc_26a6(m);
+  loc_26a6(m, M50_OBJ3_SPRITE_PAIR_BASE, M50_OBJ3_SPRITE_PAIR_BASE & 0xff, M50_OBJ3_STEP_DIR);
 }

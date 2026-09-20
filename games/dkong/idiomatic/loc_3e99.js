@@ -18,7 +18,7 @@ const GROUP2_RECORDS = 5;
 const RECORD_STRIDE = 32;
 
 export function loc_3e99(m, iyBase = m.regs.iy, cProbe = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Bounds word stacked across the trampoline: low byte = vertical, high byte = horizontal tolerance.
   const bounds = m.pop16();
@@ -44,6 +44,5 @@ export function loc_3e99(m, iyBase = m.regs.iy, cProbe = m.regs.c) {
   else if (overlaps < 3) code = 3;
   else code = 7;
 
-  regs.a = code;
-  return code;
+  return (m.regs.a = code);
 }

@@ -13,8 +13,8 @@ import { u16 } from "../../../core/int.js";
 import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND } from "./names.js";
 import { fillTileColumn } from "./fillTileColumn.js";
 
-export function drawCappedTileColumn(m) {
-  const { regs, mem8, mem16 } = m;
+export function drawCappedTileColumn(m, de = m.regs.de) {
+  const { mem8, mem16 } = m;
 
   const kind = mem8[SEG_KIND];
 
@@ -44,5 +44,5 @@ export function drawCappedTileColumn(m) {
     extent = (extent - 0x08) & 0xff;
   }
 
-  regs.de = u16(regs.de + 1);
+  return (m.regs.de = u16(de + 1));
 }

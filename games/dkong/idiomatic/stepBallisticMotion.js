@@ -11,7 +11,7 @@
 import { u16 } from "../../../core/int.js";
 
 export function stepBallisticMotion(m, ix = m.regs.ix) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const at = (d) => u16(ix + d);
 
   const posA = (mem8[at(0x03)] << 8) | mem8[at(0x04)];
@@ -29,6 +29,5 @@ export function stepBallisticMotion(m, ix = m.regs.ix) {
   mem8[at(0x06)] = newB;
   mem8[at(0x14)] = (t + 1);
 
-  regs.h = newB >> 8;
-  regs.l = newB & 0xff;
+  return [m.regs.h = newB >> 8, m.regs.l = newB & 0xff];
 }

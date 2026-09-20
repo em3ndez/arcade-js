@@ -15,7 +15,7 @@ const RECORD_STRIDE = 4; // +0 X, +1 code, +2 attr, +3 Y
 const TOP_Y = 0x19;
 
 export function cullSpriteObjectsAtTop(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   for (let i = 0; i < RECORD_COUNT; i++) {
     const record = SPRITE_OBJ_BLOCK + i * RECORD_STRIDE;
@@ -24,6 +24,5 @@ export function cullSpriteObjectsAtTop(m) {
     }
   }
 
-  regs.hl = u16(SPRITE_OBJ_BLOCK - 1);
-  regs.de = RECORD_STRIDE - 1;
+  return [m.regs.hl = u16(SPRITE_OBJ_BLOCK - 1), m.regs.de = RECORD_STRIDE - 1];
 }

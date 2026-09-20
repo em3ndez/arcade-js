@@ -10,10 +10,5 @@
  */
 
 export function advanceToNextObject(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs } = m;
-
-  regs.ix = ix + 16;
-  regs.iy = iy + 4;
-
-  regs.de = 4;
+  return [(m.regs.ix = ix + 16), (m.regs.iy = iy + 4), (m.regs.de = 4)];
 }

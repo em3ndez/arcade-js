@@ -8,11 +8,10 @@
 import { RANDOM, FRAME, SPIN_COUNT } from "./names.js";
 
 export function stirRandomSeed(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const seed = (mem8[RANDOM] + mem8[FRAME] + mem8[SPIN_COUNT]) & 0xff;
   mem8[RANDOM] = seed;
 
-  regs.a = seed;
-  regs.hl = SPIN_COUNT;
+  return [m.regs.a = seed, m.regs.hl = SPIN_COUNT];
 }

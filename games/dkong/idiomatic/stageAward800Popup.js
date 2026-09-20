@@ -8,11 +8,7 @@
 import { stageAwardPopupAtHitObject } from "./stageAwardPopupAtHitObject.js";
 
 export function stageAward800Popup(m) {
-  const { regs } = m;
-
-  // Fixed parameters: the effect sprite's code byte, then the deferred-task message.
-  regs.b = 0x7f;
-  regs.de = 0x0008;
-
-  stageAwardPopupAtHitObject(m);
+  // Message re-seat: the feeder's enqueueTask reads d/e from the register bridge.
+  m.regs.de = 0x0008;
+  stageAwardPopupAtHitObject(m, 0x7f); // sprite code forwarded as the feeder's b param
 }

@@ -165,7 +165,7 @@ export function runBonusItemValueDisplay(m) {
 
 /** Tear the item down, step the phase machine back, copy the video column into the slot record, and post the follow-up tasks. */
 function exitBonusItemDisplay(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   mem8[mem16[BONUS_ITEM_SLOT_PTR]] = 0x00;
   mem8[SUBSTATE_TIMER] = 0x80;

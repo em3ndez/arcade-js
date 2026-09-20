@@ -39,7 +39,7 @@ function bcdAdd(a, b) {
 }
 
 export function serviceCoinInput(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const coinPresent = (mem8[IN2_PORT] & COIN1_BIT) !== 0;
 
@@ -68,6 +68,5 @@ export function serviceCoinInput(m) {
 
   mem8[CREDITS] = bcdAdd(credits, mem8[DIP_CREDITS_PER_COIN]);
 
-  regs.de = CREDIT_DISPLAY_TASK;
-  enqueueTask(m);
+  enqueueTask(m, (CREDIT_DISPLAY_TASK >> 8) & 0xff, CREDIT_DISPLAY_TASK & 0xff);
 }

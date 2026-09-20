@@ -1,19 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * driveFireLadderClimb — switch one fire between walking a girder and climbing a ladder. It never
- * moves the fire; it only picks a destination height and a direction. OBJ_STATE selects the half:
- * a walking state runs the on-foot decision, an ascend/descend state watches for arrival.
- *
- * On foot: a height guard runs first (on the lower boards it abandons the climb once the fire has
- * risen past its line; the top board always proceeds). The fire's X keys a pair of ladder-end
- * heights and the lookup returns the one it is NOT on — the far slot sends it up, the near slot
- * down. Ascent is unconditional; descent is taken only while the fire is above Mario's row.
- *
- * Travelling: both states poll the biased Y base against the destination and drop to on-foot on
- * the nose. They differ only in that an ascent, and only with RECORD_MODE 2, raises the arrival
- * mark. RECORD_MODE and the mark's meaning are open.
- * LIVE-OUT: memory only (the three record bytes); no register or flag survives, record pointer
- * left alone.
+ * driveFireLadderClimb — switch one fire between walking a girder and climbing a ladder; it never
+ * moves the fire, only picks a destination height and direction. OBJ_STATE selects the half.
+ * On foot: a height guard runs first (lower boards abandon once risen past the line; top proceeds).
+ * The fire's X keys a pair of ladder-end heights; the lookup returns the one it is NOT on (far slot
+ * up, near slot down). Ascent is unconditional; descent only while above Mario's row.
+ * Travelling: both states poll the biased Y base against the destination and drop to on-foot on the
+ * nose, differing only in that an ascent with RECORD_MODE 2 raises the arrival mark.
+ * LIVE-OUT: memory only (the three record bytes).
  */
 
 import { u8, u16 } from "../../../core/int.js";
@@ -58,13 +52,12 @@ export function driveFireLadderClimb(m, recordBase = m.regs.ix) {
   // On foot: a fire that has risen above the guard's height line abandons this routine.
   if (!loc_33a1(m)) return;
 
-  regs.d = u8(mem8[at(RECORD_Y_BASE)] + Y_BASE_BIAS);
-  regs.a = mem8[at(RECORD_X)];
-  regs.bc = TABLE_ENTRIES;
-  if (!findOppositeLadderEnd(m)) return; // this X is paired with no heights
+  // live-in: key = X, disc = biased Y base, count = table entries.
+  const yBiased = u8(mem8[at(RECORD_Y_BASE)] + Y_BASE_BIAS);
+  if (!findOppositeLadderEnd(m, mem8[at(RECORD_X)], yBiased, TABLE_ENTRIES)) return;
 
-  const standingOnFarSlot = regs.a === 0;
-  mem8[at(RECORD_DESTINATION)] = regs.b;
+  const standingOnFarSlot = regs.a === 0; // end tag returned in A
+  mem8[at(RECORD_DESTINATION)] = regs.b; // opposite height returned in B
 
   if (standingOnFarSlot) {
     mem8[at(OBJ_STATE)] = STATE_ASCEND;

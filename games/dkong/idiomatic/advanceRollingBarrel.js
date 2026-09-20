@@ -43,9 +43,9 @@ const SNAP_OFFSET = 3;
 export function advanceRollingBarrel(
   m,
   slopeStep = m.regs.b /* default: both entry arms leave the selector in this register */,
+  record = m.regs.ix /* default: the continuations read this record back off the register */,
 ) {
   const { mem8, regs } = m;
-  const record = regs.ix;
 
   const x = mem8[record + OBJ_X];
 
