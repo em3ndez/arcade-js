@@ -6,6 +6,7 @@
  * LIVE-OUT: the two fills and the watchdog kicks (after fill one, then once per summed byte), then the handoff.
  */
 
+import { u16 } from "../../../core/int.js";
 import { initColdStartRamThenSeedConfig } from "./initColdStartRamThenSeedConfig.js";
 import { trampolineToSeatTheStackAndSettleTheControlLatch_ADDR, COLOUR_RAM_BASE_WORD, VIDEO_RAM_BASE_WORD, loc_59d7, WATCHDOG_RESET } from "./names.js";
 
@@ -16,7 +17,6 @@ const FIRST_PAGE_PAST_ROM = 0x60;
 const GENUINE_TOTAL = 0xaf;
 
 const u8 = (x) => x & 0xff;
-const u16 = (x) => x & 0xffff;
 
 export function clearScreenRamAndVerifyImageThenColdInit(m) {
   const { mem8, mem16 } = m;

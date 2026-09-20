@@ -7,6 +7,7 @@
  * downward search (spawnEnemyIntoFreeSlotElseStepSearch -> closeOneTurnOfTheFreeSlotSearch, which reads
  * b/ix/iy off the register file) threads correctly — none survive the return. */
 
+import { u16 } from "../../../core/int.js";
 import { loc_3793 } from "./loc_3793.js";
 import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotElseStepSearch.js";
 import { CRAFT_ENTRY_SLOT6, CRAFT_RECORD_SLOT0, CRAFT_RECORD_SLOT6, KILLS_REMAINING, ROUND_CRAFT_COUNT } from "./names.js";
@@ -28,7 +29,7 @@ export function spawnEnemyCraftWhenBandUnderTwo(m, hl = m.regs.hl) {
   let ptr = CRAFT_RECORD_SLOT0;
   for (let n = BAND_SLOTS; n > 0; n--) {
     if (mem8[ptr] !== 0x00) busy += 1;
-    ptr = (ptr + RECORD_STRIDE) & 0xffff;
+    ptr = u16(ptr + RECORD_STRIDE);
   }
   if (busy >= BUSY_CEILING) return; // two or more slots already busy
 

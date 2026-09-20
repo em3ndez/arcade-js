@@ -8,7 +8,7 @@
 
 import { setTheLaunchFacingInsideOneAimWindow } from "./setTheLaunchFacingInsideOneAimWindow.js";
 import { commissionStagedAttackerByEra } from "./commissionStagedAttackerByEra.js";
-import { u8 } from "../../../core/int.js";
+import { u8, u16 } from "../../../core/int.js";
 import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ERA_INDEX, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, FRAME_TICK, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const PHASE_BIAS = 5;
@@ -35,7 +35,7 @@ export function launchAttackerIntoFreeSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   for (; count > 0; count--) {
     if (mem8[record] === 0) { free = true; break; }
     record = (record & 0xff00) | u8(record + RECORD_STRIDE); // step L only; the bank never carries into H
-    entry = (entry + 2) & 0xffff;
+    entry = u16(entry + 2);
   }
   if (!free) return;
 

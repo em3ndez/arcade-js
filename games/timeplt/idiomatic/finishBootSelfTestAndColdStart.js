@@ -5,6 +5,7 @@
  * and a mismatch derails into the frame handler; a good image cold-starts and does not return.
  * LIVE-OUT: memory, the LS259 latch, and the watchdog kicks. */
 
+import { u16 } from "../../../core/int.js";
 import { tileCharPlaneWithBoxLattice } from "./tileCharPlaneWithBoxLattice.js";
 import { saveAccumulatorForFrameInterrupt } from "./saveAccumulatorForFrameInterrupt.js";
 import { petWatchdogThroughStartupDelayThenStartMachine } from "./petWatchdogThroughStartupDelayThenStartMachine.js";
@@ -37,7 +38,7 @@ export function finishBootSelfTestAndColdStart(m) {
 
   let total = 0;
   for (let i = 0; i < CHECKSUM_SPAN; i++) {
-    total = (total + mem8[(BOOT_SELFTEST_CHECKSUM_BASE + i) & 0xffff]) & 0xff;
+    total = (total + mem8[u16(BOOT_SELFTEST_CHECKSUM_BASE + i)]) & 0xff;
   }
   regs.a = (total - CHECKSUM_TOTAL) & 0xff;
   if (regs.a !== 0) return saveAccumulatorForFrameInterrupt(m); // tampered image: derail into the frame handler

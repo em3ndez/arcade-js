@@ -4,6 +4,7 @@
  * services its shape-cycle. Cursors stride one record and one sprite entry per slot; the seated count
  * bounds the pass, and the first slot is always serviced. LIVE-OUT: memory only. */
 
+import { u16 } from "../../../core/int.js";
 import { runOneShotAnimatedObjectSlot } from "./runOneShotAnimatedObjectSlot.js";
 import { flyAlongBallisticArc } from "./flyAlongBallisticArc.js";
 
@@ -18,8 +19,8 @@ export function sweepObjectSlotBankServicingFirstSlot(m) {
   for (;;) {
     if (service) runOneShotAnimatedObjectSlot(m);
 
-    regs.ix = (regs.ix + RECORD_STRIDE) & 0xffff;
-    regs.iy = (regs.iy + SPRITE_STRIDE) & 0xffff;
+    regs.ix = u16(regs.ix + RECORD_STRIDE);
+    regs.iy = u16(regs.iy + SPRITE_STRIDE);
     regs.b = (regs.b - 1) & 0xff;
     if (regs.b === 0) return;
 

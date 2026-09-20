@@ -7,6 +7,7 @@
  * uncovered, and the rank column is renumbered top to bottom. A score that beats none is dropped.
  * LIVE-OUT: the board, the two saved pointers, and carry — clear when filed, set when dropped. */
 
+import { u16 } from "../../../core/int.js";
 import { isScoreBelow } from "./isScoreBelow.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { ACTIVE_PLAYER, HIGH_SCORE_REC0_SCORE_HI, HIGH_SCORE_SLIDE_SRC, HIGH_SCORE_TABLE_BASE, HIGH_SCORE_TABLE_END, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI, SCRATCH_PTR_A, SCRATCH_PTR_B, HIGH_SCORE_INITIALS_CELL_BASE } from "./names.js";
@@ -55,11 +56,11 @@ export function fileScoreIntoHighScoreTable(m) {
   }
 
   for (let i = 0; i < 3; i++) {
-    regs.hl = (regs.hl - 1) & 0xffff;
+    regs.hl = u16(regs.hl - 1);
     mem8[regs.hl] = NAME_SENTINEL;
   }
   mem16[SCRATCH_PTR_A] = regs.hl;
-  regs.hl = (regs.hl - 1) & 0xffff;
+  regs.hl = u16(regs.hl - 1);
   regs.de = savedDe;
   regs.bc = 0x0003;
   regs.exDeHl();
@@ -75,7 +76,7 @@ export function fileScoreIntoHighScoreTable(m) {
   let rankAddr = HIGH_SCORE_TABLE_BASE;
   for (let rank = 0; rank < RECORD_COUNT; rank++) {
     mem8[rankAddr] = rank;
-    rankAddr = (rankAddr + RECORD_STRIDE) & 0xffff;
+    rankAddr = u16(rankAddr + RECORD_STRIDE);
   }
 
   regs.scf();

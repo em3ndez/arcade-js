@@ -4,6 +4,7 @@
  * a live countdown the shape-cycle service runs down; the cursor strides one record and two
  * sprite-entry bytes per slot, for the caller's count. LIVE-OUT: memory. */
 
+import { u16 } from "../../../core/int.js";
 import { flyAlongBallisticArc } from "./flyAlongBallisticArc.js";
 import { runOneShotAnimatedObjectSlot } from "./runOneShotAnimatedObjectSlot.js";
 
@@ -25,8 +26,8 @@ export function sweepObjectSlotBankByHead(m, ix = m.regs.ix, iy = m.regs.iy, b =
     if (head === BALLISTIC) flyAlongBallisticArc(m);
     else if (head !== 0) runOneShotAnimatedObjectSlot(m);
 
-    record = (record + RECORD_STRIDE) & 0xffff;
-    entry = (entry + ENTRY_STRIDE) & 0xffff;
+    record = u16(record + RECORD_STRIDE);
+    entry = u16(entry + ENTRY_STRIDE);
     count = (count - 1) & 0xff;
     if (count === 0) break;
   }

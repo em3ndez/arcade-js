@@ -4,6 +4,7 @@
  * stepped over, and the first slot carrying any other marker hands the rest of the bank to the
  * servicing sweep. Cursors stride one record and one sprite entry per slot. LIVE-OUT: memory. */
 
+import { u16 } from "../../../core/int.js";
 import { sweepObjectSlotBankServicingFirstSlot } from "./sweepObjectSlotBankServicingFirstSlot.js";
 import { flyAlongBallisticArc } from "./flyAlongBallisticArc.js";
 
@@ -15,8 +16,8 @@ const BALLISTIC = 0xff;
 export function advanceSlotThenSweepObjectBankByHead(m) {
   const { regs, mem8 } = m;
   for (;;) {
-    regs.ix = (regs.ix + RECORD_STRIDE) & 0xffff;
-    regs.iy = (regs.iy + SPRITE_STRIDE) & 0xffff;
+    regs.ix = u16(regs.ix + RECORD_STRIDE);
+    regs.iy = u16(regs.iy + SPRITE_STRIDE);
     regs.b = (regs.b - 1) & 0xff;
     if (regs.b === 0) return;
 

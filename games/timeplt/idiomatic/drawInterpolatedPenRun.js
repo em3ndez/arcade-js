@@ -8,15 +8,16 @@
  * LIVE-OUT: the stamped cells and the pen state; the Z flag (new row integer == 0), which callers
  * branch on with a conditional return. */
 
+import { u16 } from "../../../core/int.js";
 import { plotPenCell } from "./plotPenCell.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { PEN_COLUMN_POS, PEN_COLUMN_STEP, PEN_ROUTE_LEG, PEN_ROW_POS, PEN_ROW_STEP, PEN_ROUTE_TABLE, PEN_COLUMN_TARGET, PEN_RUN_END_CELL, PEN_ROW_TARGET } from "./names.js";
 
 /** (target - current) times sixteen, keeping only the signed high byte: the per-step increment. */
 function stepToward(target, current) {
-  const delta = (target - current) & 0xffff;
+  const delta = u16(target - current);
   const highByte = (delta >> 12) & 1 ? 0xff00 : 0x0000;
-  return (highByte | ((delta >> 4) & 0xff)) & 0xffff;
+  return u16(highByte | ((delta >> 4) & 0xff));
 }
 
 export function drawInterpolatedPenRun(m) {

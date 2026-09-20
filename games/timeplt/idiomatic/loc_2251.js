@@ -7,6 +7,8 @@
  * nothing ever faults the run falls into HALT and burns cycles until the frame budget unwinds it.
  * LIVE-OUT: the write fault the register churn addresses, else a halt; no return. */
 
+import { u16 } from "../../../core/int.js";
+
 export function loc_2251(m, a = m.regs.a) {
   const { regs, mem, mem8 } = m;
 
@@ -33,11 +35,11 @@ export function loc_2251(m, a = m.regs.a) {
   regs.d = regs.h;
   regs.a = mem8[regs.bc];
   regs.sub(mem8[regs.hl]);
-  regs.bc = (regs.bc + 1) & 0xffff;
+  regs.bc = u16(regs.bc + 1);
   regs.h = regs.b;
   regs.rrca();
   regs.adc(regs.d);
-  regs.hl = (regs.hl + 1) & 0xffff;
+  regs.hl = u16(regs.hl + 1);
   regs.c = regs.b;
   regs.cp(regs.c);
   mem8[regs.bc] = regs.a;
