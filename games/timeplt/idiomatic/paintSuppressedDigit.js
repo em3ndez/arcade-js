@@ -28,15 +28,12 @@ export function paintSuppressedDigit(m, a = m.regs.a, b = m.regs.b, c = m.regs.c
     entry = b === 0 ? mem8[LEADING_ZERO_BLANK_GLYPH_INDEX] : 0;
   }
 
-  const held = hl;
-  regs.hl = DIGIT_GLYPH_TABLE;
-  regs.a = entry;
-  const glyph = fetchTableByte(m);
-  regs.hl = held;
+  const glyph = fetchTableByte(m, DIGIT_GLYPH_TABLE, entry);
+  regs.hl = hl;
 
   const cell = de;
   mem8[cell] = glyph;
   regs.a = c;
-  mem8[cell & ~CHARACTER_PLANE_BIT] = regs.a;
+  mem8[cell & ~CHARACTER_PLANE_BIT] = c;
   regs.de = cell | CHARACTER_PLANE_BIT;
 }

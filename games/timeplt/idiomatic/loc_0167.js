@@ -12,14 +12,14 @@ import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSo
 export function loc_0167(m, a = m.regs.a, b = m.regs.b, c = m.regs.c, d = m.regs.d) {
   const { regs, mem8 } = m;
 
-  regs.l = a;
-  regs.and(mem8[regs.hl]);
-  regs.d = regs.inc8(d);
+  regs.l = a; // seeds the pointer the table fetch reads back; stays a register
+  const ptr = regs.hl;
+  regs.and(mem8[ptr]);
+  regs.inc8(d);
   regs.adc(b);
-  regs.d = regs.a;
-  regs.and(regs.l);
+  regs.and(a);
   regs.cp(regs.a);
-  mem8[regs.hl] = u8(mem8[regs.hl] + 1);
+  mem8[ptr] = u8(mem8[ptr] + 1);
 
   fetchTableWord(m);
 

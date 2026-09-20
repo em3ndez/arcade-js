@@ -24,16 +24,16 @@ export function fileScoreIntoHighScoreTable(m) {
   regs.hl = HIGH_SCORE_REC0_SCORE_HI;
   regs.b = RECORD_COUNT;
   // player one selected when the active-player flag reads zero
-  regs.de = mem8[ACTIVE_PLAYER] === 0 ? PLAYER1_SCORE_HI : PLAYER2_SCORE_HI;
+  let de = mem8[ACTIVE_PLAYER] === 0 ? PLAYER1_SCORE_HI : PLAYER2_SCORE_HI;
 
-  let savedDe = regs.de;
+  let savedDe = de;
   let filed = false;
   for (;;) {
-    savedDe = regs.de;
+    savedDe = de;
     const savedHl = regs.hl;
-    isScoreBelow(m);
+    isScoreBelow(m, de);
     if (regs.fNC) { filed = true; break; } // not below -> this is the slot
-    regs.de = savedDe;
+    de = savedDe;
     regs.hl = savedHl;
     regs.a = RECORD_STRIDE;
     fetchTableByte(m); // walk the standing pointer down one record
@@ -44,8 +44,9 @@ export function fileScoreIntoHighScoreTable(m) {
   if (!filed) { regs.scf(); return; } // beat nothing
 
   regs.b = regs.dec8(regs.b);
+  let slotPtr;
   if (regs.fZ) {
-    regs.hl = HIGH_SCORE_TABLE_END; // slot is the bottom record; nothing to slide
+    slotPtr = HIGH_SCORE_TABLE_END; // slot is the bottom record; nothing to slide
   } else {
     regs.hl = HIGH_SCORE_SLIDE_SRC;
     regs.de = HIGH_SCORE_TABLE_END;
@@ -53,14 +54,16 @@ export function fileScoreIntoHighScoreTable(m) {
     regs.b = 0x00;
     m.lddrAt(0x4cf4, 0x4cf6);
     regs.exDeHl();
+    slotPtr = regs.hl;
   }
 
   for (let i = 0; i < 3; i++) {
-    regs.hl = u16(regs.hl - 1);
-    mem8[regs.hl] = NAME_SENTINEL;
+    slotPtr = u16(slotPtr - 1);
+    mem8[slotPtr] = NAME_SENTINEL;
   }
-  mem16[SCRATCH_PTR_A] = regs.hl;
-  regs.hl = u16(regs.hl - 1);
+  mem16[SCRATCH_PTR_A] = slotPtr;
+  slotPtr = u16(slotPtr - 1);
+  regs.hl = slotPtr;
   regs.de = savedDe;
   regs.bc = 0x0003;
   regs.exDeHl();

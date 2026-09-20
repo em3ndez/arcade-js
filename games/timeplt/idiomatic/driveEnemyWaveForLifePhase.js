@@ -41,13 +41,9 @@ export function driveEnemyWaveForLifePhase(m) {
   mem8[WAVE_DESCRIPTOR_INDEX] = u8(2 * mem8[ERA_INDEX] + parityBit);
 
   const headingIndex = u8(mem8[PLAYER_HEADING] + 8) >> 4;
-  regs.hl = WAVE_HEADING_BIAS_TABLE;
-  regs.a = headingIndex;
-  const bias = mem8[offsetAddress(m)];
+  const bias = mem8[offsetAddress(m, WAVE_HEADING_BIAS_TABLE, headingIndex)];
 
-  regs.a = u8(16 * mem8[WAVE_DESCRIPTOR_INDEX]);
-  regs.hl = WAVE_DESCRIPTOR_TABLE;
-  let descriptor = offsetAddress(m); // two-byte entries, one consumed per filled slot
+  let descriptor = offsetAddress(m, WAVE_DESCRIPTOR_TABLE, u8(16 * mem8[WAVE_DESCRIPTOR_INDEX])); // two-byte entries, one consumed per filled slot
 
   const count = mem8[KILLS_REMAINING] !== 0 ? mem8[ROUND_CRAFT_COUNT] : DEFAULT_COUNT;
   mem8[WAVE_KILL_COUNTDOWN] = 0;
@@ -57,10 +53,10 @@ export function driveEnemyWaveForLifePhase(m) {
   let remaining = count;
   do {
     if (mem8[record] === 0) {
-      regs.a = u8(2 * (mem8[descriptor] + bias));
-      regs.hl = WAVE_SHAPE_TABLE;
-      mem8[entry + 0x31] = fetchTableByte(m);
-      mem8[entry] = mem8[regs.hl + 1];
+      const shapeIndex = u8(2 * (mem8[descriptor] + bias));
+      const shapeEntry = u16(WAVE_SHAPE_TABLE + shapeIndex);
+      mem8[entry + 0x31] = fetchTableByte(m, WAVE_SHAPE_TABLE, shapeIndex);
+      mem8[entry] = mem8[shapeEntry + 1];
 
       const aimed = u8(mem8[PLAYER_HEADING] + AIM_OFFSET);
       mem8[record + 0x01] = aimed;
