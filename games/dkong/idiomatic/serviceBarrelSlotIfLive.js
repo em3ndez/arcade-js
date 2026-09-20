@@ -7,12 +7,13 @@
  * LIVE-OUT: the staging cursor's low byte plus the propagated return; carry passes through.
  */
 
+import { advanceBarrelMotion } from "./advanceBarrelMotion.js";
 import { OBJ_ACTIVE } from "./names.js";
 
 export function serviceBarrelSlotIfLive(m, record = m.regs.ix, cursorLow = m.regs.l) {
   const { regs, mem8 } = m;
 
-  if (mem8[record + OBJ_ACTIVE] === 1) return m.call(0x1f93);
+  if (mem8[record + OBJ_ACTIVE] === 1) return advanceBarrelMotion(m);
 
   regs.l = cursorLow + 3; // low byte only, so the cursor never leaves its page
   return m.call(0x1f8d);

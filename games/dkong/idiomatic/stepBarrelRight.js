@@ -11,6 +11,7 @@
  * tail's return propagated unchanged.
  */
 
+import { advanceRollingBarrel } from "./advanceRollingBarrel.js";
 import { OBJ_X } from "./names.js";
 
 const GIRDER_SNAP_STEP = 1; // girder-snap step selector: snap on the offset-0 edge
@@ -27,5 +28,5 @@ export function stepBarrelRight(m, record = m.regs.ix) {
   mem8[record + OBJ_X] = mem8[record + OBJ_X] + 1;
 
   regs.ix = record;
-  return m.call(0x1ff6);
+  return advanceRollingBarrel(m);
 }

@@ -9,6 +9,7 @@
  * speed mirrored into the register pair (no reader for the mirror is known).
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { loc_2407 } from "./loc_2407.js";
 
 const LAUNCH_VY_HI = 0x12; //     upper half of the speed the vertical arc started with
@@ -35,5 +36,5 @@ export function loc_20c3(m, record = m.regs.ix) {
 
   regs.hl = damped; // mirrored where the tail parks it; kept because the hardware leaves it, no known consumer
 
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

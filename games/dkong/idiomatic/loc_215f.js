@@ -9,6 +9,7 @@
  * discriminator against Mario's Y − 4. LIVE-OUT: memory-only, plus the shared tail's return.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { startBarrelDescentAtLadder } from "./startBarrelDescentAtLadder.js";
 
 // Entries per field column in the de-interleaved object-parameter table (the grader scans one).
@@ -26,5 +27,5 @@ export function loc_215f(m, searchKey = m.regs.h, rowField = m.regs.l) {
   regs.bc = PARAM_TABLE_COLUMN;
   startBarrelDescentAtLadder(m);
 
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

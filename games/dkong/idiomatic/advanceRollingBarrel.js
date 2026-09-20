@@ -11,6 +11,7 @@
  * off the machine itself.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { u8 } from "../../../core/int.js";
 import {
   BARREL_ROLL_GATE_RETURN,
@@ -69,7 +70,7 @@ export function advanceRollingBarrel(
   // Re-read X: the gate writes that field itself, though only on the arm that never comes back.
   const xNow = mem8[record + OBJ_X];
   if (xNow < X_LOW_EDGE) return m.call(0x202f);
-  if (xNow < X_HIGH_EDGE) return m.call(0x21ba);
+  if (xNow < X_HIGH_EDGE) return publishBarrelSprite(m);
 
   // Past the high edge: stamp the rightward step, hand to the shared motion writer.
   mem8[record + STEP_X_HI] = STEP_X_RIGHT >> 8;

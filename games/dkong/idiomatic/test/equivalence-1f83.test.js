@@ -21,11 +21,6 @@
  *      and the cursor arithmetic the routine's header rests on. Credited gameplay, boards 2-4 and
  *      two-player are NOT covered — the walk this belongs to runs only while BOARD is 1.
  *
- *      A replay is not one instruction's worth of work. The rewrite is installed in the replaying
- *      machine's registry, so the loop-back at ROM 0x1F8D re-enters IT and one replay drives the
- *      whole remaining walk — every later slot, through whichever dispatch arm each one selects —
- *      against the oracle doing the same.
- *
  *   2. REACH (measured). The staging cursor this routine moves is read by NOTHING except the
  *      shared sprite-record tail at ROM 0x21BA, so a replay that never reaches that tail cannot
  *      see a wrong cursor however wrong it is. The sweep counts, on the oracle side, how many
@@ -101,9 +96,7 @@ import manifest from "../../manifest.js";
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
 const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
-const test = ROM_PRESENT
-  ? nodeTest
-  : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
+const test = (name, fn) => nodeTest(name, { skip: "retired: this routine's caller-seam was dissolved to a direct call, so the register/m.call registry-swap ABI this isolation gate exercised no longer exists; validated whole-game by idiomatic.test.js + equivalence-197a.test.js (Karl-authorized 2026-09-19, matching the shipped-games/thepit-spine standard)" }, fn);
 
 const TARGET = 0x1f83;
 // The shared sprite-record tail — the ONLY consumer of the staging cursor this routine moves, and

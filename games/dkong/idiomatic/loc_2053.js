@@ -13,6 +13,7 @@
  * control leaves through is the observable.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { u8 } from "../../../core/int.js";
 import { OBJ_X } from "./names.js";
 import { stepBallisticMotion } from "./stepBallisticMotion.js";
@@ -46,5 +47,5 @@ export function loc_2053(m, record = m.regs.ix,) {
   regs.c = (mem8[record + OBJ_VELOCITY_X_HI] & 1) * 4;
   advanceBarrelSpriteOrientation(m);
 
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

@@ -8,6 +8,8 @@
  * LIVE-OUT: whatever the hand-off returns, forwarded unchanged.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
+import { advanceBarrelTileAnimation } from "./advanceBarrelTileAnimation.js";
 import { u8 } from "../../../core/int.js";
 import { OBJ_ACTIVE, OBJ_X } from "./names.js";
 
@@ -19,9 +21,9 @@ export function retireBarrelAtEndOfRange(m, ix = m.regs.ix) {
   const { mem8 } = m;
   const record = ix;
 
-  if (u8(mem8[record + OBJ_X] + WRAP_MARGIN) >= X_LIMIT) return m.call(0x1fce);
+  if (u8(mem8[record + OBJ_X] + WRAP_MARGIN) >= X_LIMIT) return advanceBarrelTileAnimation(m);
 
   mem8[record + OBJ_ACTIVE] = 0;
   mem8[record + OBJ_X] = 0;
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

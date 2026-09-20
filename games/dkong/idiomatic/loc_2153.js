@@ -1,3 +1,4 @@
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * loc_2153 — clear an object record's fractional X/Y remainders and its airborne-frame counter,
@@ -22,5 +23,5 @@ export function loc_2153(m, stored = m.regs.a,) {
   mem8[record + Y_FRAC] = stored;
 
   // Shared object-sprite tail, reached by a jump, so its result is this routine's result.
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

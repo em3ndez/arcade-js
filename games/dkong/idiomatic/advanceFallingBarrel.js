@@ -12,6 +12,7 @@
  * LIVE-OUT: the return value only. The residual accumulator and shadow B are dropped.
  */
 
+import { retireBarrelAtEndOfRange } from "./retireBarrelAtEndOfRange.js";
 import { u8 } from "../../../core/int.js";
 import { loc_2a2f } from "./loc_2a2f.js"; // the girder/slope probe
 import { stepBallisticMotion } from "./stepBallisticMotion.js";
@@ -30,7 +31,7 @@ export function advanceFallingBarrel(m, record = m.regs.ix) {
 
   // Byte subtraction: an OBJ_Y under the re-arm distance wraps and passes the gate.
   const lastContactY = mem8[record + OBJ_CONTACT_Y];
-  if (u8(objectY - CONTACT_REARM_DISTANCE) < lastContactY) return m.call(0x2104);
+  if (u8(objectY - CONTACT_REARM_DISTANCE) < lastContactY) return retireBarrelAtEndOfRange(m);
 
   if (loc_2a2f(m)) return m.call(0x2118);
   return m.call(0x2101);

@@ -11,6 +11,8 @@
  * would be honoured here and ignored one call later.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
+import { advanceBarrelTileAnimation } from "./advanceBarrelTileAnimation.js";
 import { u8 } from "../../../core/int.js";
 import { OBJ_Y, OBJ_SPRITE_CODE } from "./names.js";
 
@@ -28,7 +30,7 @@ export function loc_1fac(m) {
   const y = u8(mem8[record + OBJ_Y] + 1);
   mem8[record + OBJ_Y] = y;
 
-  if (mem8[record + TRAVEL_TARGET_Y] !== y) return m.call(0x1fce);
+  if (mem8[record + TRAVEL_TARGET_Y] !== y) return advanceBarrelTileAnimation(m);
 
   // Arrived: rotate the source byte left by two (the top bits wrap into the bottom) and stamp.
   const source = mem8[record + ARRIVAL_CODE_SOURCE];
@@ -36,5 +38,5 @@ export function loc_1fac(m) {
 
   mem8[record + ARM_SELECT] = mem8[record + ARM_SELECT] ^ 0x07;
 
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

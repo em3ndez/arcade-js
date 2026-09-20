@@ -58,9 +58,7 @@ import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
 const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
-const test = ROM_PRESENT
-  ? nodeTest
-  : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/dkong/rom/maincpu.bin" }, fn);
+const test = (name, fn) => nodeTest(name, { skip: "retired: this routine's caller-seam was dissolved to a direct call, so the register/m.call registry-swap ABI this isolation gate exercised no longer exists; validated whole-game by idiomatic.test.js + equivalence-197a.test.js (Karl-authorized 2026-09-19, matching the shipped-games/thepit-spine standard)" }, fn);
 
 const TARGET = 0x2083;
 const ATTRACT_FRAMES = 4000;

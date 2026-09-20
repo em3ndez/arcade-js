@@ -9,10 +9,11 @@
  * cascade's return value is propagated unchanged.
  */
 
+import { runGameplayFrame } from "./runGameplayFrame.js";
 import { advanceAttractDemoInput } from "./advanceAttractDemoInput.js";
 
 export function runAttractDemoFrame(m) {
   advanceAttractDemoInput(m);
 
-  return m.call(0x197a);
+  return runGameplayFrame(m);
 }

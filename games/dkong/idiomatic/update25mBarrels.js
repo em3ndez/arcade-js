@@ -11,6 +11,7 @@
  * LIVE-OUT: nothing — the walk overwrites every register, and neither arm returns a value.
  */
 
+import { serviceBarrelSlotIfLive } from "./serviceBarrelSlotIfLive.js";
 import { BOARD, OBJ_ARRAY_67, ACTOR_SPRITES } from "./names.js";
 
 const GIRDER_BOARD = 1; // the BOARD value that runs the walk (25m)
@@ -28,5 +29,5 @@ export function update25mBarrels(m) {
   regs.de = RECORD_STRIDE;
   regs.b = OBJECT_SLOTS;
 
-  return m.call(0x1f83);
+  return serviceBarrelSlotIfLive(m);
 }

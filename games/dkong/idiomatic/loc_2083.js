@@ -9,6 +9,7 @@
  * produced by the continuation.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { u8, u16 } from "../../../core/int.js";
 
 // Record offsets: +2 is the per-slot walk selector (bit 1 walks one pixel right, bit 2 one left),
@@ -35,5 +36,5 @@ export function loc_2083(m, ix = m.regs.ix) {
   mem8[at(ARM_SELECT)] =
     mem8[at(STEP_WHOLE)] === RIGHTWARD_ONE_PIXEL ? SELECT_WALK_RIGHT : SELECT_WALK_LEFT;
 
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

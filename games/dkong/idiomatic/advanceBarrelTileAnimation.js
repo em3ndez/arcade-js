@@ -8,6 +8,7 @@
  * LIVE-OUT: memory, the guest pc and SP, and the propagated return value. No register and no flag.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { u8 } from "../../../core/int.js";
 import { OBJ_SPRITE_CODE } from "./names.js";
 
@@ -28,5 +29,5 @@ export function advanceBarrelTileAnimation(m, record = m.regs.ix) {
   }
   mem8[record + OBJ_ANIM_PRESCALER] = remaining;
 
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

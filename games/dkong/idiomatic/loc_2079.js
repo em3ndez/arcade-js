@@ -9,11 +9,12 @@
  * @param {number} recordBase  the record to retire; must equal the machine's record pointer.
  * @returns {*} whatever the shared tail returns; propagated so a downstream skip isn't swallowed.
  */
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { OBJ_ACTIVE, OBJ_X } from "./names.js";
 
 export function loc_2079(m, recordBase = m.regs.ix) {
   const { mem8 } = m;
   mem8[recordBase + OBJ_ACTIVE] = 0;
   mem8[recordBase + OBJ_X] = 0;
-  return m.call(0x21ba);
+  return publishBarrelSprite(m);
 }

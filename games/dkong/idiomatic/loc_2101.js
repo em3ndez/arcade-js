@@ -1,3 +1,4 @@
+import { retireBarrelAtEndOfRange } from "./retireBarrelAtEndOfRange.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * loc_2101 — offer an object to the bottom-of-screen retirement check, then run the left-edge
@@ -14,5 +15,5 @@ export function loc_2101(m) {
 
   if (!m.call(0x24b4)) return undefined;
 
-  return m.call(0x2104);
+  return retireBarrelAtEndOfRange(m);
 }
