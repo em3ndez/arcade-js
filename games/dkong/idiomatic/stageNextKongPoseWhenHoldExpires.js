@@ -34,8 +34,7 @@ export function stageNextKongPoseWhenHoldExpires(m) {
   mem8[SUBSTATE_TIMER] = POSE_HOLD_FRAMES;
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
 
-  regs.a = BOARD_MASK_75M;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, BOARD_MASK_75M)) return;
 
   // 75m only: add +4 to the Y column of all ten sprite-object records.
   regs.hl = Y_COLUMN;

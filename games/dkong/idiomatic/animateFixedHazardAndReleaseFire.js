@@ -29,10 +29,9 @@ const SPRITE_BYTE_A = 0x40; // the sprite byte on the bit1-clear arm
 const SPRITE_BYTE_B = 0x42; // the sprite byte on the bit1-set arm
 
 export function animateFixedHazardAndReleaseFire(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = BOARD_MASK;
-  if (!boardBitGate(m)) return; // closed on 75m/100m -> skip the whole routine
+  if (!boardBitGate(m, BOARD_MASK)) return; // closed on 75m/100m -> skip the whole routine
 
   if (!marioActiveGuard(m)) return; // Mario dead -> skip
 

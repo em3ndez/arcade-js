@@ -20,8 +20,7 @@ const BOARD_MASK = 0x01;   // board-test mask: bit 0 = 25m only
 export function scheduleBarrelRelease(m) {
   const { regs, mem8 } = m;
 
-  regs.a = BOARD_MASK;
-  if (!boardBitGate(m)) return;
+  if (!boardBitGate(m, BOARD_MASK)) return;
 
   if (!marioActiveGuard(m)) return;
 
