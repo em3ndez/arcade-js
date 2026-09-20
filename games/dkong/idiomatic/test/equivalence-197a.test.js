@@ -317,10 +317,19 @@ test("CRAFTED ARMS: the two abandons attract never reaches, and the death hand-o
  * the candidate; the assertion is there so a future map that no longer carries the address turns
  * this into a failure instead of a silent no-op.
  */
+// The 0x197A gameplay-frame subtree's barrel/object callees. Freezing 0x197A to oracle while these
+// stay idiomatic leaves oracle-0x197A opening push brackets its idiomatic callees never ret-consume —
+// a HALF-WIRED SP artifact (the same one ARM 1 excludes above), not a routine defect. So the honest
+// control freezes the whole subtree together: internally bracket-consistent on both sides, and 0x1F72
+// (twin-e's dropped-bracket tooth) is frozen oracle either way, so that tooth is preserved.
+const TARGET_SUBTREE = [
+  0x062a, 0x1f8d, 0x1fac, 0x2053, 0x2101, 0x2118, 0x2146, 0x2153, 0x215f, 0x2b1c,
+];
 async function shippingWithTargetFrozen() {
   const overrides = await resolveAllIdiomatic();
   assert.equal(overrides.has(TARGET), true, "0x197A should be in ROUTINES — the control removes it");
   overrides.delete(TARGET);
+  for (const a of TARGET_SUBTREE) overrides.delete(a);
   return overrides;
 }
 

@@ -1331,6 +1331,16 @@ export const OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA = 0x1182;
 export const OBJ_ARRAY_65_TEMPLATE = 0x11a2;
 
 export const ROUTINES = {
+  0x062a: { name: "loc_062a", role: "one step of the on-screen bonus readout, run as a scheduled task", cert: "code" },
+  0x1f8d: { name: "loc_1f8d", role: "the between-slots step of the 25m object walk", cert: "code" },
+  0x1fac: { name: "loc_1fac", role: "carry an OBJ_ARRAY_67 girder record one step along its travel", cert: "code" },
+  0x2053: { name: "loc_2053", role: "arc-travel branch of the OBJ_ARRAY_67 object sweep", cert: "code" },
+  0x2101: { name: "loc_2101", role: "offer an object to bottom-of-screen then left-edge retirement checks", cert: "code" },
+  0x2118: { name: "loc_2118", role: "split one object record on vertical position (OBJ_Y)", cert: "code" },
+  0x2146: { name: "loc_2146", role: "object re-launch arm taken while Y is still above the 0xE0 line", cert: "code" },
+  0x2153: { name: "loc_2153", role: "clear an object record fractional X/Y remainders and airborne counter", cert: "code" },
+  0x215f: { name: "loc_215f", role: "stage the grader inputs for one object, run the grader, fall into the sprite tail", cert: "code" },
+  0x2b1c: { name: "loc_2b1c", role: "probe Mario descent landing; on a normal result run the board-gated follow-up", cert: "code" },
   0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "seen" },
   0x0010: { name: "marioActiveGuard", role: "caller-skip guard: proceed only while Mario is alive", cert: "seen" },
