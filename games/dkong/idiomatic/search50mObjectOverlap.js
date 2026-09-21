@@ -6,7 +6,8 @@
  * object array; the first overlap takes a caller-skip return that abandons the later sweeps.
  * The stride's high byte stays zero, so sweeps 2 and 3 reload only its low byte.
  *
- * LIVE-OUT: the search-count cell plus the search result the dispatch caller consumes.
+ * LIVE-OUT: the search-count cell plus the search result the dispatch caller consumes (the
+ * tolerance word, stride and array base ride each exit's return so they persist).
  */
 
 import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJ_RECORD_66A0 } from "./names.js";
@@ -15,23 +16,26 @@ import { findCollidingObject } from "./findCollidingObject.js";
 export function search50mObjectOverlap(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = m.pop16();
+  // Recover the pushed tolerances: low byte = axis-1 window, high byte = axis-2 window.
+  const bounds = m.pop16();
+  const tolLow = bounds & 0xff;
+  const tolHigh = bounds >> 8;
 
-  // Sweep 1 — five-record array, 32-byte stride (full stride word).
+  // Sweep 1 — five-record array, 32-byte stride. B is seated for the search's djnz.
   mem8[OBJ_SEARCH_COUNT] = 0x05;
   regs.b = 0x05;
-  regs.de = 0x0020;
-  regs.ix = OBJ_ARRAY_64;
-  if (!findCollidingObject(m)) return true;
+  // prettier-ignore
+  if (!findCollidingObject(m, OBJ_ARRAY_64, undefined, tolLow, undefined, tolHigh, 32)) return (regs.hl = bounds, regs.de = 32, regs.ix = OBJ_ARRAY_64, true);
 
-  // Sweep 2 — this board's mover array, 16-byte stride, 6 records (low byte only).
+  // Sweep 2 — this board's mover array, 16-byte stride, 6 records.
   mem8[OBJ_SEARCH_COUNT] = 0x06;
   regs.b = 0x06;
-  regs.e = 0x10;
-  regs.ix = OBJ_ARRAY_65A0;
-  if (!findCollidingObject(m)) return true;
+  // prettier-ignore
+  if (!findCollidingObject(m, OBJ_ARRAY_65A0, undefined, tolLow, undefined, tolHigh, 16)) return (regs.hl = bounds, regs.de = 16, regs.ix = OBJ_ARRAY_65A0, true);
 
   // Sweep 3 — single record, stride zero.
   mem8[OBJ_SEARCH_COUNT] = 0x01;
-  return (regs.b = 0x01, regs.e = 0x00, regs.ix = OBJ_RECORD_66A0, findCollidingObject(m), true);
+  regs.b = 0x01;
+  findCollidingObject(m, OBJ_RECORD_66A0, undefined, tolLow, undefined, tolHigh, 0);
+  return (regs.hl = bounds, regs.de = 0, regs.ix = OBJ_RECORD_66A0, true);
 }
