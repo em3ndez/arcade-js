@@ -9,12 +9,9 @@
  *   - clearly above -> he LANDS: Y set a standing height above the line, just-repositioned flag raised.
  *   - clearly below -> he DIES: the flag that keeps him active is cleared.
  *   - between      -> SIDE-ON: X snapped to the middle of his 8px cell, written to position and sprite.
- *
  * ONE BRANCH IS COLLAPSED: the side-on case's two ways of computing the snapped X both equal
- * 8*floor(X/8)+3 for all 256 inputs, so the velocity byte cannot change it and one expression remains.
- * NOT CLAIMED: what the objects in this array are on this board — hence the address-shaped name.
- * LIVE-OUT: Mario's Y + just-repositioned flag (land); his active flag (kill); his X + sprite-record
- * X (side-on); the caller-resumes answer + two airborne-handler values; matched record in the index reg.
+ * 8*floor(X/8)+3 for all inputs, so one expression remains. LIVE-OUT: the search verdict A + the
+ * land/stay-airborne selector B the airborne handler reads; Mario's cells go to RAM.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -62,12 +59,8 @@ export function loc_29af(m) {
   // Board gate: this contact check belongs to one board only.
   if (!boardBitGate(m, BOARD_MASK)) return true;
 
-  // Stage the search's reference point and spans in registers (iy is Mario's record base).
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem8[MARIO_Y];
-  regs.l = CONTACT_SPAN_Y;
-  regs.h = CONTACT_SPAN_X;
-  loc_2a22(m);
+  // Run the six-record overlap search against Mario: reference point c = his Y, spans l/h, base iy.
+  loc_2a22(m, mem8[MARIO_Y], CONTACT_SPAN_Y, MARIO_ACTIVE, CONTACT_SPAN_X);
   if (regs.a === 0) return true;
 
   // Match is reported as count minus index; recover the record — it rides each arm's return into

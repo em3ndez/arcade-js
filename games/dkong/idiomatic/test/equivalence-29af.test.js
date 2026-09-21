@@ -10,8 +10,9 @@
  * MARIO_X + MARIO_SPRITE_RECORD's X, skips the caller).
  *
  * THE CONTRACT COMPARED HERE is RAM minus STACK_SCRATCH, the boolean return, and — where the
- * board gate OPENED — the register file the frozen continuation reads (A, B, C, DE, H, L, IX,
- * IY). pc/SP are NOT compared: the idiomatic routine replaces the Z80 stack with the JS call
+ * board gate OPENED — the register the frozen continuation reads back (A the verdict, B the
+ * count-minus-index; the search's inputs C/DE/H/L/IX/IY are read by no caller, derived below).
+ * pc/SP are NOT compared: the idiomatic routine replaces the Z80 stack with the JS call
  * stack, so the oracle's pushes and its one- or two-word return are dead scratch (every entry
  * puts SP inside STACK_SCRATCH so they land there). On a CLOSED gate the registers are not
  * compared either, and that is derived rather than convenient: the oracle's closed arm runs the
@@ -128,13 +129,14 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-// The registers the frozen continuation can still read. A and B are the genuine live-out on the
-// two skipping returns; the rest are the search's inputs/outputs, compared because they are free
-// evidence that the marshalling matches. D is deliberately absent — on a touch the oracle parks
-// the contact line there as scratch, and nothing reads it: neither the caller loc_2b1c nor any
-// of loc_1c3a / loc_1c4f / loc_1d95 / loc_1da6, which is the closed set of code the two skipping
-// returns reach. E (the search stride) IS compared. See the header for why F, pc and SP are out.
-const REG_NAMES = ["a", "b", "c", "e", "h", "l", "ix", "iy"];
+// DECLARED live-outs, derived from the oracle (proposer!=confirmer). The two skipping arms unwind two
+// levels to loc_1c05, which reads only A (the verdict), and its tail loc_1c3a reads A and B (land vs
+// stay-airborne); the plain-return arm's caller loc_2b1c reads neither (it does `xor a; ld b,a`). So A
+// and B are the whole register contract. C/E/H/L/IY are the search INPUTS 29af stages and IX the matched
+// record it writes — none read back by any caller (the closed reachable set loc_2b1c/loc_1c05/loc_1c3a/
+// loc_1c4f/settleMarioOnLanding/writeMarioSpriteRecord holds zero IX reads), so pinning them over-compares
+// a rewrite that drops the seats. D scratch; F, pc, SP out (see header).
+const REG_NAMES = ["a", "b"];
 
 /** Full contract diff on a shared entry: RAM − STACK_SCRATCH, the boolean return, and (only when
  *  the board gate opens) the register file. */

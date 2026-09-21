@@ -88,10 +88,12 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-// The live register file. A and B are the search result loc_29af reads; C/DE/H/L/IX/IY are the
-// preserved inputs; F is the flag byte, which falls out of findCollidingObject's arithmetic identically on
-// both layers (its own gate proves that). loc_2a22 writes no work RAM, so these ARE the contract.
-const REG_NAMES = ["a", "b", "c", "de", "h", "l", "ix", "iy", "f"];
+// The DECLARED live-outs, derived from the oracle (proposer!=confirmer): loc_29af reads exactly A (hit/
+// exhaust verdict) and B (count-minus-index) back from loc_2a22; C/DE/H/L/IX/IY are preserved INPUTS the
+// wrapper seats or passes through and no caller reads (loc_29af re-seats IX itself and never reads DE),
+// so pinning them over-compares and would falsely redden a rewrite that legitimately drops the seats. F is
+// kept — it falls out of findCollidingObject's arithmetic identically on both layers (its own gate proves it).
+const REG_NAMES = ["a", "b", "f"];
 function regDiffs(o, c) {
   const out = [];
   for (const n of REG_NAMES) if (o.regs[n] !== c.regs[n]) out.push(`reg ${n} oracle=${hx(o.regs[n])} cand=${hx(c.regs[n])}`);
