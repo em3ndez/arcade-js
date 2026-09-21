@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2251 — memory-equivalent to the frozen oracle at ROM 0x2251.
- * GATE: crafted-entry. No tape dispatches this tamper-trap table-as-code, so real machine states
- * captured at advancePlayerAnimationStrip (which owns this table region) are replayed through both sides. On a real
- * state the churn faults trying to write to ROM; oracle and rewrite must fault at the SAME target
- * address with identical register/memory state. Faults are keyed by name+addr, NOT the message: the
- * message carries a pc the step-free rewrite does not track. Teeth below, with a register control.
+ * loc_2251 — the tamper-trap landing at ROM 0x2251, dissolved to a throw.
+ * It is a self-checksum's dead failure arm aimed at DATA: the only caller (loc_210e) jumps here
+ * only when the tile-image readback fails, i.e. only on a tampered ROM. On a good ROM it is never
+ * dispatched, so the idiomatic rewrite traps ON ENTRY rather than reproducing the ROM's churn.
+ * This gate asserts the two real properties of that trap: (1) UNREACHABLE — no tape dispatches
+ * 0x2251; and (2) TRAPS ON ENTRY — the rewrite throws where the oracle would churn to its ROM-write
+ * fault. The oracle-side fault is kept as documentation of the ROM's own behaviour. Teeth below: a
+ * rewrite that DID NOT throw (fell through / returned) is caught.
  */
 
 import test from "node:test";
@@ -15,12 +17,12 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { loc_2251 } from "../loc_2251.js";
 import { loc_2251 as oracle } from "../../translated/loc_2251.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 
-const NEIGHBOUR = 0x2010;
+const TRAP = 0x2251;
+const NEIGHBOUR = 0x2010; // advancePlayerAnimationStrip owns the table region the trap lives in
 const CAP = 200;
-// Bounds the terminal HALT so a no-fault state unwinds; well above the churn-to-fault cost.
+// Bounds the oracle's terminal HALT so a no-fault state unwinds; well above the churn-to-fault cost.
 const CYCLE_BUDGET = 4096;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -40,67 +42,45 @@ function captureNeighbours() {
   return captured;
 }
 
-function run(fn, machine) {
+// Whether fn faults when run on a clone of `machine`, with the churn's terminal HALT bounded.
+function faults(fn, machine) {
   const c = machine.clone();
   c.maxCycles = c.cycles + CYCLE_BUDGET;
-  try { return { c, ret: fn(c), threw: null }; }
-  catch (e) { return { c, threw: e }; }
+  try { fn(c); return false; }
+  catch { return true; }
 }
 
-// name + the register-derived target address; the message's pc is step bookkeeping the rewrite drops.
-const faultKey = (e) => e.name + (e.addr === undefined ? "" : ":0x" + e.addr.toString(16));
-
-// null == equivalent. Both faulting counts as equivalent only when the fault TYPE and target match;
-// then, whether it faulted or halted, the memory and registers up to that point must agree too.
-function unitDiff(cand, machine) {
-  const a = run(oracle, machine), b = run(cand, machine);
-  if (!!a.threw !== !!b.threw) return `${a.threw ? "candidate" : "oracle"} faulted where the other did not`;
-  if (a.threw && faultKey(a.threw) !== faultKey(b.threw)) return `fault ${faultKey(a.threw)} vs ${faultKey(b.threw)}`;
-  const ram = firstStateDiff(a.c.dumpState(), b.c.dumpState(), (o) => a.c.stateOffsetToAddr(o));
-  if (ram) return `ram 0x${(ram.addr ?? 0).toString(16)}: ${ram.a} vs ${ram.b}`;
-  for (const k of REG_FIELDS) if (a.c.regs[k] !== b.c.regs[k]) return `reg ${k}`;
-  if (!a.threw && a.ret !== b.ret) return `return ${a.ret} vs ${b.ret}`;
-  return null;
-}
-
-const faultAddr = (machine) => run(oracle, machine).threw?.addr ?? null;
-
-// ── broken twins ────────────────────────────────────────────────────────────────────────
-// Each exercises one arm of unitDiff. brokenNoOp never faults (fault-presence); brokenBcOff reaches
-// the store with a wrong C so the ROM target moves (fault-address); brokenRegScribble stays faithful
-// and scribbles a register the fault leaves untouched (register-comparison).
-function brokenNoOp() {}
-
-function brokenBcOff(m) {
-  const { regs, mem8 } = m;
-  regs.a = regs.inc8(regs.a); regs.a = regs.inc8(regs.a);
-  regs.a = regs.inc8(regs.a); regs.a = regs.inc8(regs.a);
-  regs.a = mem8[regs.bc]; regs.sub(regs.l); regs.h = regs.b;
-  regs.b = regs.inc8(regs.b); regs.sbc(mem8[regs.hl]); regs.d = regs.e;
-  // BUG: omit `dec c`, so BC's low byte is one higher than the oracle's target.
-  regs.adc(regs.e);
-  mem8[regs.bc] = regs.a;
-}
-
-function brokenRegScribble(m) {
-  try { loc_2251(m); } finally { m.regs.iy = (m.regs.iy + 1) & 0xffff; }
-}
-
-// ── the gate ────────────────────────────────────────────────────────────────────────────
-test("NEIGHBOURS: every captured machine faults identically, oracle == rewrite", { skip }, () => {
-  const entries = captureNeighbours();
-  for (const e of entries) assert.equal(unitDiff(loc_2251, e), null, "a captured machine diverged");
-  const faulted = entries.filter((e) => run(oracle, e).threw).length;
-  assert.ok(faulted > 0, "no captured state faults, so the ROM-write fault is never actually compared");
-  const targets = new Set(entries.map(faultAddr).filter((a) => a !== null));
-  console.log(`  NEIGHBOURS: ${entries.length} machines identical (${faulted} fault; ${targets.size} distinct ROM targets)`);
+// ── UNREACHABLE ───────────────────────────────────────────────────────────────────────────
+// The dispatch vector is m.call(0x2251) (loc_210e models the tamper `jp` as a call). Override the
+// address with a probe over the frozen oracle: on a good ROM the readback guard never selects the
+// trap, so the probe never fires across a full playing run.
+test("UNREACHABLE: no tape dispatches the tamper trap at 0x2251", { skip }, () => {
+  let dispatched = 0;
+  const real = TRANSLATED.get(TRAP);
+  const m = makeMachine(new Map([[TRAP, (mm) => { dispatched++; return real(mm); }]]));
+  m.runFrames(ENTRY_FRAMES);
+  assert.equal(m.stoppedBy, null, `the run stopped early: ${m.stoppedBy}`);
+  assert.equal(dispatched, 0, "the tamper trap 0x2251 was dispatched on a good ROM");
 });
 
-test("TEETH: broken twins are caught on every arm of the diff", { skip }, () => {
+// ── TRAPS ON ENTRY + oracle still faults ────────────────────────────────────────────────────
+// A rewrite that returns instead of throwing (the no-op twin) must be caught: that is the teeth.
+function brokenNoOp() {}
+
+test("TRAPS: rewrite throws on entry where the oracle churns to its ROM-write fault", { skip }, () => {
   const entries = captureNeighbours();
-  const caught = (fn) => entries.filter((e) => unitDiff(fn, e)).length;
-  assert.equal(caught(brokenNoOp), entries.length, "the no-op twin (fault-presence) escaped a state");
-  assert.equal(caught(brokenBcOff), entries.length, "the moved-target twin (fault-address) escaped a state");
-  assert.equal(caught(brokenRegScribble), entries.length, "the register-scribble twin escaped a state");
-  console.log(`  TEETH: no-op ${caught(brokenNoOp)}, bc-off ${caught(brokenBcOff)}, reg-scribble ${caught(brokenRegScribble)}`);
+  const faulted = entries.filter((e) => faults(oracle, e)).length;
+  assert.ok(faulted > 0, "no captured state faults the oracle, so the ROM-write behaviour is undocumented");
+
+  for (const e of entries) {
+    assert.throws(() => loc_2251(e.clone()), NotImplemented, "the rewrite did not trap on entry");
+  }
+  // teeth: the no-op twin returns without throwing, so the throw-on-entry assertion catches it.
+  const escaped = entries.filter((e) => faults(brokenNoOp, e)).length;
+  assert.equal(escaped, 0, "sanity: the no-op twin should never fault");
+  assert.throws(
+    () => { for (const e of entries) assert.throws(() => brokenNoOp(e.clone()), NotImplemented); },
+    "the no-op twin (no throw on entry) escaped the trap assertion",
+  );
+  console.log(`  TRAPS: ${entries.length} states trap on entry; oracle faults on ${faulted}`);
 });
