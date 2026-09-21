@@ -1,6 +1,7 @@
 import { stepBarrelRight } from "./stepBarrelRight.js";
 import { stepBarrelLeft } from "./stepBarrelLeft.js";
 import { advanceFallingBarrel } from "./advanceFallingBarrel.js";
+import { loc_1fac } from "./loc_1fac.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * advanceBarrelMotion — move a live barrel one frame, dispatching to one of five motion arms
@@ -20,7 +21,7 @@ export function advanceBarrelMotion(m, record = m.regs.ix) {
   if (mem8[record + BRANCH_SELECT] === 1) return advanceFallingBarrel(m);
 
   const mode = mem8[record + BRANCH_MODE_BITS];
-  if (mode & 1) return m.call(0x1fac);
+  if (mode & 1) return loc_1fac(m);
   if (mode & 2) return stepBarrelRight(m);
   if (mode & 4) return stepBarrelLeft(m);
 

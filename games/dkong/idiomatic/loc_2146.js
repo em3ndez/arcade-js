@@ -11,6 +11,7 @@
  */
 
 import { loc_2407 } from "./loc_2407.js";
+import { loc_2153 } from "./loc_2153.js";
 import { loc_22cb } from "./loc_22cb.js";
 import { OBJ_Y } from "./names.js";
 
@@ -24,5 +25,5 @@ export function loc_2146(m, record = m.regs.ix) {
 
   mem8[record + OBJ_Y_SNAPSHOT] = mem8[record + OBJ_Y];
 
-  return (regs.a = 0, m.call(0x2153));
+  return (regs.a = 0, loc_2153(m));
 }

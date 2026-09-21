@@ -10,6 +10,7 @@
  */
 
 import { publishBarrelSprite } from "./publishBarrelSprite.js";
+import { loc_215f } from "./loc_215f.js";
 import { u8 } from "../../../core/int.js";
 import {
   BARREL_ROLL_GATE_RETURN,
@@ -47,7 +48,7 @@ export function advanceRollingBarrel(m, slopeStep = m.regs.b, record = m.regs.ix
 
   // One X in eight takes the ladder detour, which reads both coordinates off the return bridge.
   if ((x & 7) === 3) {
-    return (m.regs.h = x), (m.regs.l = mem8[record + OBJ_Y]), m.call(0x215f);
+    return (m.regs.h = x), (m.regs.l = mem8[record + OBJ_Y]), loc_215f(m);
   }
 
   // Re-glue the barrel to the girder slope it just stepped along.
