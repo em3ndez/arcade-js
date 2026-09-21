@@ -1,28 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchDeathAnimationPhase — vector Mario's death animation to its current-phase handler, read
- * from a 4-entry jump table of little-endian target addresses (slot 3 is unreachable padding).
+ * dispatchDeathAnimationPhase — router for Mario's death-animation state machine in
+ * DEATH_ANIM_PHASE: hand the frame to the handler for phase 0/1/2; any other value raises.
  *
  * LIVE-OUT: memory-only — the dispatched arm's RAM writes.
  */
+import { DEATH_ANIM_PHASE } from "./names.js";
+import { NotImplemented } from "../../../boards/dkong/io.js";
+import { beginMarioDeathAnimation } from "./beginMarioDeathAnimation.js";
+import { stepMarioDeathAnimation } from "./stepMarioDeathAnimation.js";
+import { loc_12de } from "./loc_12de.js";
 
-import { u16 } from "../../../core/int.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
-import {
-  DEATH_ANIM_PHASE,
-  DEATH_ANIM_PHASE_TABLE,
-} from "./names.js";
-
-const DISPATCH_TABLE_1283 = "0x1283 (0x639D dispatch)";
+const HANDLERS = [
+  beginMarioDeathAnimation, // phase 0 — seed the animation, prime the tick counter, advance the phase
+  stepMarioDeathAnimation, // phase 1 — rotate the sprite each gate tick, advance the phase at expiry
+  loc_12de, // phase 2 — on timer expiry, advance the game sub-state and re-arm the gate
+];
 
 export function dispatchDeathAnimationPhase(m) {
-  const { mem8 } = m;
+  const handler = HANDLERS[m.mem8[DEATH_ANIM_PHASE]];
+  if (handler) return handler(m);
 
-  const phase = mem8[DEATH_ANIM_PHASE];
-
-  // Doubling into the table offset is an 8-bit result: base + (2*phase & 0xff), not base + 2*phase.
-  const entry = u16(DEATH_ANIM_PHASE_TABLE + ((phase * 2) & 0xff));
-  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
-
-  loc_00ca(m, target, DISPATCH_TABLE_1283);
+  throw new NotImplemented(
+    `dispatchDeathAnimationPhase: DEATH_ANIM_PHASE ${m.mem8[DEATH_ANIM_PHASE]} has no handler (phases above 2 do not occur).`,
+  );
 }

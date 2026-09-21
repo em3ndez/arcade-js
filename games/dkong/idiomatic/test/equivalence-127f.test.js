@@ -1,47 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for dispatchDeathAnimationPhase (ROM 0x127F) — the phase dispatcher of Mario's
- * DEATH ANIMATION: `ld a,(0x639d)` then vector through the 4-entry inline jump table at ROM
- * 0x1283 (phase 0 -> 0x128B seed, 1 -> 0x12AC step, 2 -> 0x12DE hand-off, 3 -> 0x0000 padding).
- *
- * REACHABILITY — CORRECTED (pass 13). This header used to claim dispatchDeathAnimationPhase is
- * "NOT reached in plain attract ... 0 natural dispatches over an attract run". That is FALSE:
- * the attract demo ENDS BY KILLING ITS OWN MARIO, so pure attract (zero coins, zero inputs,
- * zero pokes) runs the whole cluster 9 times in 400 s of real MAME, the 0x639D/0x639E write
- * taps firing from frame 2719; and it is reached in every credited game as in-game sub-state
- * 0x0D. It has no dispatch site of its own — 0x127C falls straight through into it, 1:1 — which
- * is why nothing hooks it here, but that is a HOOKING detail, not unreachability.
- *
- * It is not a leaf either: it dispatches a handler that steps Mario's sprite record
- * (0x694D/0x694E) through four orientations and eventually advances the game sub-state. So it
- * is validated by MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH, pc, SP),
- * never the full register file and never cycles, with a FRESH clone per case, using CRAFTED
- * entries (doc-06: a real state + a surgical poke). ★ HONEST SCOPE (R17): real dispatches DO
- * exist and this gate does NOT replay them — every case below is a crafted selector on a real
- * captured base. Adding a captured-episode case is open work, not something already covered:
- *
- *   1. FULL-HANDLER (crafted reachable arms) — take a real attract-run machine, poke the
- *      phase 0x639D to each reachable index (0, 1, 2) and open the 0x6009 tick gate so the
- *      arm's body actually runs, and run the ORACLE on one clone and dispatchDeathAnimationPhase on another.
- *      The FULL oracle arm handler runs on BOTH sides, so a wrong target OR a live
- *      register/flag handoff the folded-away trampoline would have supplied surfaces as
- *      divergent RAM. Proven non-vacuous: each arm mutates RAM vs the untouched base.
- *
- *   2. CRAFTED (exhaustive selector sweep) — the off-table indices the game never reaches
- *      (the table has 3 real slots + one 0x0000 PADDING slot: 0x639D has exactly three
- *      writers in the ROM — inc @0x1298, inc @0x12D7, block-clear @0x0F69 — and none can
- *      produce 3, so slot 3 is structurally unreachable, not an arm. The selector is NOT
- *      range-checked, hence this sweep is about table MATH, not about a real state). On
- *      a real captured base, poke 0x639D to every byte 0..255 identically on both sides and
- *      route ANY computed target to an IDENTICAL catch-all stub (so the handler never runs),
- *      then compare the target the dispatcher handed the stub + SP. This exhaustively pins
- *      the `0x1283 + (2*sel & 0xff)` 8-bit-wrap table math, including the wrap region
- *      sel >= 0x80, and the 0x0000 (index 3) slot.
- *
- *   3. TEETH — a twin that forms the offset as a full 16-bit `2*sel` (skipping the 8-bit
- *      `add a,a` wrap) MUST be caught by the selector sweep at sel >= 0x80.
- *
- * Run: node --test games/dkong/idiomatic/test/equivalence-127f.test.js
+ * Equivalence test for dispatchDeathAnimationPhase (ROM 0x127F), now DISSOLVED to a direct
+ * `HANDLERS[m.mem8[DEATH_ANIM_PHASE]](m)` (phase 0 -> beginMarioDeathAnimation, 1 ->
+ * stepMarioDeathAnimation, 2 -> loc_12de) — no ROM jump table, no computed target, no
+ * loc_00ca/m.call/m.overrides seam (the retired table-math/stub-sweep/wrap TEETH are gone).
+ * Validated by MEMORY-equivalence vs the frozen oracle loc_127f: RAM − STACK_SCRATCH, never
+ * SP/pc/registers/cycles (the dissolved form does not seat a guest return, so SP/pc differ).
+ * Two arms:
+ *   1. FULL-HANDLER — on a real attract base, poke DEATH_ANIM_PHASE (0x639D) to each reachable
+ *      index 0/1/2 with the 0x6009 tick gate open, run the oracle on one clone and the candidate
+ *      on another; the full arm handler runs both sides, so a wrong mapping or a dropped
+ *      register/flag handoff surfaces as divergent RAM. Non-vacuous: each arm mutates RAM.
+ *   2. MAPPING TOOTH — a twin with phases 0 and 1 swapped must be CAUGHT (RAM diverges on ≥1
+ *      reachable phase), pinning the HANDLERS ordering.
  */
 
 import nodeTest from "node:test";
@@ -50,7 +21,9 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_127f as oracle } from "../../translated/loc_127f.js";
 import { dispatchDeathAnimationPhase } from "../dispatchDeathAnimationPhase.js";
-import { loc_00ca } from "../../translated/loc_00ca.js";
+import { beginMarioDeathAnimation } from "../beginMarioDeathAnimation.js";
+import { stepMarioDeathAnimation } from "../stepMarioDeathAnimation.js";
+import { loc_12de } from "../loc_12de.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, DEATH_ANIM_PHASE, SUBSTATE_TIMER } from "../names.js";
 
@@ -63,8 +36,6 @@ const test = ROM_PRESENT
 
 // DEATH_ANIM_PHASE (0x639D, the phase selector) and SUBSTATE_TIMER (0x6009, the rst-0x18
 // tick gate; = 1 makes the next tick expire) come from names.js — the single source of truth.
-const PHASE_TABLE = 0x1283;   // ROM inline jump table base
-const DISPATCH_TABLE_1283 = "0x1283 (0x639D dispatch)";
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // First differing RAM byte between two dumps, EXCLUDING the dead stack-scratch region
@@ -82,7 +53,8 @@ function firstRamDiffExStack(a, b, offToAddr) {
 
 // A real, self-consistent machine: boot + a stretch of attract so work RAM (the sprite
 // record 0x694D/0x694E, the player index 0x600E, the object scratch the arms touch) holds
-// realistic values. dispatchDeathAnimationPhase is never dispatched here — we craft its entry by poking.
+// realistic values. dispatchDeathAnimationPhase is never dispatched here — we craft its entry
+// by poking.
 function attractBase(frames = 180) {
   const m = new Machine(ROM);
   m.runFrames(frames);
@@ -90,7 +62,7 @@ function attractBase(frames = 180) {
 }
 
 // Stamp a crafted dispatch entry onto a clone: a deep stack with a plausible caller return
-// (so the arm's terminal `ret` has a sane target), the phase, and an open tick gate.
+// (so the oracle arm's terminal `ret` has a sane target), the phase, and an open tick gate.
 function craftEntry(base, phase, gateOpen = true) {
   const m = base.clone();
   m.regs.sp = 0x6c00;
@@ -122,87 +94,47 @@ test("FULL-HANDLER: dispatchDeathAnimationPhase == oracle on real bases poked to
       ramDiff && `RAM diverged at ${hx(ramDiff.addr)}: oracle=${ramDiff.a} cand=${ramDiff.b} ` +
         `(phase ${hx(phase)})`,
     );
-    assert.equal(b.regs.sp, a.regs.sp, `SP diverged (phase ${hx(phase)}): oracle=${hx(a.regs.sp)} cand=${hx(b.regs.sp)}`);
-    assert.equal(b.pc, a.pc, `pc diverged (phase ${hx(phase)}): oracle=${hx(a.pc)} cand=${hx(b.pc)}`);
 
     // Non-vacuous: the arm body actually ran and wrote RAM (else the replay proves nothing).
     if (firstRamDiffExStack(before, a.dumpState(), (o) => a.stateOffsetToAddr(o))) mutatedAny = true;
   }
   assert.ok(mutatedAny, "no reachable arm mutated RAM — the gate was never open, replay is vacuous");
-  console.log(`  FULL-HANDLER: phases {0x00,0x01,0x02} — full oracle arm run both sides, RAM(−stack)+pc+SP identical`);
+  console.log(`  FULL-HANDLER: phases {0x00,0x01,0x02} — full oracle arm run both sides, RAM(−stack) identical`);
 });
 
-// -- 2. CRAFTED (exhaustive selector sweep) -----------------------------------
+// -- 2. MAPPING TOOTH ---------------------------------------------------------
 
-// A catch-all override object (duck-typed like the Machine's overrides Map) that routes
-// ANY computed target to `stub`, so the dispatched arm never runs and we can read the
-// target the dispatcher formed. loc_00ca consults m.overrides first, and BOTH the
-// oracle (via the rst-0x28 trampoline) and the candidate reach the same target through it.
-function stubOverrides(rec) {
-  const SENTINEL = 0x5a;
-  return {
-    has: () => true,
-    get: (target) => (mm) => { rec.push({ target, sp: mm.regs.sp }); return SENTINEL; },
-  };
+// Broken twin: the correct HANDLERS array with phases 0 and 1 swapped
+// (beginMarioDeathAnimation <-> stepMarioDeathAnimation). A wrong slot ordering. The
+// FULL-HANDLER cross-check must catch it on at least one real reachable phase.
+function brokenSwappedDispatch(m) {
+  const WRONG = [
+    stepMarioDeathAnimation, // phase 0 <- phase 1's handler (SWAPPED)
+    beginMarioDeathAnimation, // phase 1 <- phase 0's handler (SWAPPED)
+    loc_12de,
+  ];
+  const handler = WRONG[m.mem8[DEATH_ANIM_PHASE]];
+  return handler(m);
 }
 
-// Run oracle and candidate on identically-poked clones for one selector; return the
-// { target, sp } each handed the stub.
-function runCraftedSelector(base, candidate, sel) {
-  const mA = craftEntry(base, sel, /*gateOpen*/ false);
-  const mB = craftEntry(base, sel, /*gateOpen*/ false);
-  const recA = [], recB = [];
-  mA.overrides = stubOverrides(recA);
-  mB.overrides = stubOverrides(recB);
-  oracle(mA);
-  candidate(mB);
-  return { recA, recB };
-}
-
-test("CRAFTED: dispatchDeathAnimationPhase == oracle over all 256 selectors (0x1283 table)", () => {
+test("MAPPING TOOTH: the swapped-handler twin is CAUGHT by the full-handler cross-check", () => {
   const base = attractBase();
-  let count = 0;
-  let mismatch = null;
-  for (let sel = 0; sel < 256 && !mismatch; sel++) {
-    const { recA, recB } = runCraftedSelector(base, dispatchDeathAnimationPhase, sel);
-    count++;
-    if (recA.length !== 1 || recB.length !== 1) {
-      mismatch = { sel, why: `dispatch fired ${recA.length}/${recB.length} times (want 1/1)` };
-    } else if (recA[0].target !== recB[0].target) {
-      mismatch = { sel, why: `target ${hx(recA[0].target)}/${hx(recB[0].target)}` };
-    } else if (recA[0].sp !== recB[0].sp) {
-      mismatch = { sel, why: `SP ${hx(recA[0].sp)}/${hx(recB[0].sp)}` };
-    }
+  const REACHABLE = [0x00, 0x01, 0x02];
+
+  let caught = 0;
+  let example = null;
+  for (const phase of REACHABLE) {
+    const a = craftEntry(base, phase); // oracle (correct mapping)
+    const b = craftEntry(base, phase); // broken twin (swapped mapping)
+    oracle(a);
+    brokenSwappedDispatch(b);
+    const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
+    if (ramDiff) { caught++; if (!example) example = { phase, ramDiff }; }
   }
-  assert.equal(mismatch, null, mismatch && `mismatch at sel=${hx(mismatch.sel)}: ${mismatch.why}`);
-  assert.equal(count, 256, "must have swept all 256 selectors");
-  console.log(`  CRAFTED: ${count} selectors — dispatched target + SP identical to the oracle`);
-});
-
-// -- 3. TEETH -----------------------------------------------------------------
-
-/**
- * Broken twin: forms the table offset as a FULL 16-bit `2*sel` instead of the hardware's
- * 8-bit `add a,a` (`2*sel & 0xff`). It agrees with the oracle for every selector < 0x80
- * and diverges from 0x80 up, so only a sweep across the wrap catches it.
- */
-function brokenDispatch(m) {
-  const { mem } = m;
-  const sel = mem.read8(DEATH_ANIM_PHASE);
-  const entry = (PHASE_TABLE + 2 * sel) & 0xffff; // BUG: no 8-bit wrap on the *2
-  const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-  loc_00ca(m, target, DISPATCH_TABLE_1283);
-}
-
-test("TEETH: the 16-bit-offset twin (no 8-bit wrap) is CAUGHT by the selector sweep", () => {
-  const base = attractBase();
-  let caughtAt = null;
-  for (let sel = 0; sel < 256 && caughtAt === null; sel++) {
-    const { recA, recB } = runCraftedSelector(base, brokenDispatch, sel);
-    if (recA.length !== 1 || recB.length !== 1 || recA[0].target !== recB[0].target) {
-      caughtAt = sel;
-    }
-  }
-  assert.notEqual(caughtAt, null, "the sweep FAILED to catch the missing 8-bit offset wrap — it is worthless");
-  console.log(`  TEETH: caught the 16-bit-offset twin at sel=${hx(caughtAt)}`);
+  assert.ok(caught >= 1, "the full-handler cross-check FAILED to catch the swapped-handler twin — the mapping is untested");
+  console.log(
+    `  MAPPING TOOTH: caught the swapped-handler twin on ${caught} of ${REACHABLE.length} reachable phases; ` +
+      `e.g. phase ${hx(example.phase)} diverges at ${hx(example.ramDiff.addr)} ` +
+      `(oracle=${example.ramDiff.a} broken=${example.ramDiff.b})`,
+  );
 });
