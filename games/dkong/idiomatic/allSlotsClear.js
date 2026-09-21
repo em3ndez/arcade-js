@@ -31,6 +31,5 @@ export function allSlotsClearFromRegisters(m, base = m.regs.hl, stride = m.regs.
   regs.and(regs.a); // zero test: Z set, S clear, PV even, carry cleared
   regs.hl = u16(base + 9 * stride);
   regs.addHl(stride); // tenth advance — rewrites half-carry/subtract/carry, keeps the above
-  regs.b = 0x00;
-  return true;
+  return (m.regs.b = 0x00), true;
 }

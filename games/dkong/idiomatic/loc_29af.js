@@ -3,21 +3,18 @@
  * loc_29af — resolve what happens when an airborne Mario meets a moving object in this board's
  * object array: he lands on it, he dies under it, or he is nudged aside. Runs only while Mario is
  * airborne and only on board 3 — a board gate closes it elsewhere, leaving the caller untouched.
- * With the gate open the overlap search is asked whether Mario touches any of the six records,
- * allowing 8px vertically and 4px horizontally around his position. On an overlap the contact is
- * judged from where Mario was BEFORE this frame's motion, against a line 4 above the object's Y:
+ * With the gate open the overlap search checks Mario against the six records (8px vertically, 4px
+ * horizontally). On an overlap the contact is judged from his pre-motion Y, against a line 4 above
+ * the object's Y:
  *   - clearly above -> he LANDS: Y set a standing height above the line, just-repositioned flag raised.
  *   - clearly below -> he DIES: the flag that keeps him active is cleared.
  *   - between      -> SIDE-ON: X snapped to the middle of his 8px cell, written to position and sprite.
  *
- * ONE BRANCH IS COLLAPSED: the side-on case originally picked between two ways of computing the
- * snapped X on the horizontal-velocity high byte, but both equal 8*floor(X/8)+3 for all 256 inputs
- * (wraps included), so the velocity cannot change the stored value and only one expression remains.
+ * ONE BRANCH IS COLLAPSED: the side-on case's two ways of computing the snapped X both equal
+ * 8*floor(X/8)+3 for all 256 inputs, so the velocity byte cannot change it and one expression remains.
  * NOT CLAIMED: what the objects in this array are on this board — hence the address-shaped name.
- *
- * LIVE-OUT: Mario's Y and just-repositioned flag (land arm); his active flag (kill arm); his X and
- * his sprite record's X (side-on arm); plus the answer that says whether the caller resumes and the
- * two values the airborne handler reads. The matched record is left in the index register.
+ * LIVE-OUT: Mario's Y + just-repositioned flag (land); his active flag (kill); his X + sprite-record
+ * X (side-on); the caller-resumes answer + two airborne-handler values; matched record in the index reg.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -73,9 +70,9 @@ export function loc_29af(m) {
   loc_2a22(m);
   if (regs.a === 0) return true;
 
-  // Match is reported as count minus index; recover the record, left in ix for the handler.
+  // Match is reported as count minus index; recover the record — it rides each arm's return into
+  // ix for the handler (set on every post-match path, as before the standalone write).
   const record = OBJ_ARRAY_66 + (RECORD_COUNT - regs.b) * RECORD_STRIDE;
-  regs.ix = record;
 
   const contactLine = u8(mem8[record + OBJ_Y] - CONTACT_LINE_RISE);
   const previousY = mem8[MARIO_AIR_PREV_Y];
@@ -84,23 +81,19 @@ export function loc_29af(m) {
   if (u8(previousY + ABOVE_CLEARANCE) < contactLine) {
     mem8[MARIO_Y] = contactLine - STANDING_HEIGHT;
     mem8[EDGE_REPOSITION_FLAG] = 1;
-    regs.a = 1;
-    regs.b = 1;
-    return false;
+    return (regs.ix = record, regs.a = 1, regs.b = 1, false);
   }
 
   // Clearly below it -> Mario is killed.
   if (u8(previousY - BELOW_CLEARANCE) >= contactLine) {
     mem8[MARIO_ACTIVE] = 0;
-    regs.a = 0;
-    return true;
+    return (regs.ix = record, regs.a = 0, true);
   }
 
   // Side-on contact -> snap Mario to the middle of his 8px cell, in position and sprite record.
   const snappedX = (mem8[MARIO_X] | CELL_LOW_BITS) - CELL_HALF;
   mem8[MARIO_X] = snappedX;
   mem8[MARIO_SPRITE_RECORD + SPRITE_X] = snappedX;
-  regs.a = 1;
-  regs.b = 0; // the handler reads b as land(1)/stay-airborne(0)
-  return false;
+  // the handler reads b as land(1)/stay-airborne(0)
+  return (regs.ix = record, regs.a = 1, regs.b = 0, false);
 }

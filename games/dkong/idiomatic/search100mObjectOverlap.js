@@ -16,14 +16,7 @@ const RECORD_STRIDE = 32;
 export function search100mObjectOverlap(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = m.pop16();
-
   mem8[OBJ_SEARCH_COUNT] = SWEEP_COUNT;
 
-  regs.b = SWEEP_COUNT;
-  regs.de = RECORD_STRIDE;
-  regs.ix = OBJ_ARRAY_64;
-  findCollidingObject(m);
-
-  return true;
+  return (regs.hl = m.pop16(), regs.b = SWEEP_COUNT, regs.de = RECORD_STRIDE, regs.ix = OBJ_ARRAY_64, findCollidingObject(m), true);
 }

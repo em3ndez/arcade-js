@@ -18,8 +18,6 @@ export function seedObjectBlockSprites(m) {
   regs.bc = 0x0a0c; // 0x0A records; stride byte 0x0C (record stride = this + 4 = 0x10)
   replicateGroupStrided(m, OBJ_ARRAY_65_TEMPLATE);
 
-  regs.ix = OBJ_ARRAY_65; // object-record base
-  regs.hl = ACTOR_SPRITES; // dest: 10 consecutive 4-byte sprite records in the shadow buffer
-  regs.de = 0x0010; // per-record source stride
-  gatherSpriteRecords(m, 0x0010, 0x0a);
+  // base / dest / per-record stride ride the return so the frozen gather reads them off the bridge.
+  return [regs.ix = OBJ_ARRAY_65, regs.hl = ACTOR_SPRITES, regs.de = 0x0010, gatherSpriteRecords(m, 0x0010, 0x0a)];
 }

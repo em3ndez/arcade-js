@@ -15,6 +15,6 @@ export function loc_2b91(m, x = m.regs.a) {
   const { mem8 } = m;
   mem8[MARIO_X] = x;
   mem8[u16(MARIO_SPRITE_RECORD + SPRITE_X)] = x;
-  m.regs.a = 0x01; // accept signal read back up the chain; return slot holds the protocol flag
-  return false; // caller-skip: unwind two levels
+  // Accept signal A=1 rides the return; the return slot still carries the unwind flag (false).
+  return (m.regs.a = 0x01, false); // caller-skip: unwind two levels
 }

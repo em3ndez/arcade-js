@@ -33,7 +33,6 @@ export function publishBarrelSprite(m) {
   mem8[page + u8(cursor + SPRITE_ATTR)] = mem8[record + OBJ_SPRITE_ATTR];
   mem8[page + u8(cursor + SPRITE_Y)] = mem8[record + OBJ_Y];
 
-  regs.l = cursor + 3;
-
-  return m.call(0x1f8d);
+  // advancing the cursor rides the tail call to the between-slots step.
+  return (m.regs.l = cursor + 3, m.call(0x1f8d));
 }

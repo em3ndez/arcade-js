@@ -22,11 +22,7 @@ import { dispatchBoardOverlapSearch } from "./dispatchBoardOverlapSearch.js";
 export function searchPlayerObjectOverlap(m) {
   const { regs, mem8 } = m;
 
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem8[MARIO_Y] + 12;
-  regs.hl = (mem8[P1_INPUT] & 0x03) === 0
-    ? OVERLAP_THRESHOLDS_NEUTRAL
-    : OVERLAP_THRESHOLDS_DIRECTED;
-
-  return dispatchBoardOverlapSearch(m);
+  // The three staged inputs (object base, Y+12 bound, direction-selected threshold word) ride the
+  // return so the frozen dispatch arm reads them off the bridge; last element is its severity code.
+  return [regs.iy = MARIO_ACTIVE, regs.c = mem8[MARIO_Y] + 12, regs.hl = (mem8[P1_INPUT] & 0x03) === 0 ? OVERLAP_THRESHOLDS_NEUTRAL : OVERLAP_THRESHOLDS_DIRECTED, dispatchBoardOverlapSearch(m)][3];
 }

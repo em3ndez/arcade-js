@@ -15,6 +15,6 @@ export function serviceBarrelSlotIfLive(m, record = m.regs.ix, cursorLow = m.reg
 
   if (mem8[record + OBJ_ACTIVE] === 1) return advanceBarrelMotion(m);
 
-  regs.l = cursorLow + 3; // low byte only, so the cursor never leaves its page
-  return m.call(0x1f8d);
+  // Low byte only, so the cursor never leaves its page; the write rides the return, then dispatch.
+  return [regs.l = cursorLow + 3, m.call(0x1f8d)][1];
 }

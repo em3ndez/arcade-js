@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * update25mBarrels — head of the 25m barrel engine. On the girder board only, seed the per-frame
- * slot walk over the ten OBJ_ARRAY_67 barrel records and hand it the sprite cursor that runs
- * alongside them; on the other three boards it returns having touched nothing.
- *
- * The walk advances the record pointer by one stride and the sprite cursor by four bytes each
- * iteration, so across ten iterations the cursor sweeps the ten stride-4 ACTOR_SPRITES records.
- * Reads BOARD only; every write comes from the walk it falls into.
- *
- * LIVE-OUT: nothing — the walk overwrites every register, and neither arm returns a value.
+ * slot walk over the ten OBJ_ARRAY_67 barrel records and hand it the sprite cursor; on the other
+ * three boards it returns having touched nothing. The walk advances the record pointer one stride
+ * and the sprite cursor four bytes each of ten iterations, sweeping the stride-4 ACTOR_SPRITES.
+ * LIVE-OUT: nothing — the walk overwrites every register; neither arm returns a value.
  */
 
 import { serviceBarrelSlotIfLive } from "./serviceBarrelSlotIfLive.js";
@@ -23,11 +19,7 @@ export function update25mBarrels(m) {
 
   if (mem8[BOARD] !== GIRDER_BOARD) return;
 
-  // The walk reads its four working values from registers rather than as arguments.
-  regs.ix = OBJ_ARRAY_67;
-  regs.hl = ACTOR_SPRITES;
-  regs.de = RECORD_STRIDE;
-  regs.b = OBJECT_SLOTS;
-
-  return serviceBarrelSlotIfLive(m);
+  // The walk reads its four working values from registers rather than as arguments; seed them on
+  // the tail-call return so the writes still land (left-to-right) before serviceBarrelSlotIfLive.
+  return (regs.ix = OBJ_ARRAY_67), (regs.hl = ACTOR_SPRITES), (regs.de = RECORD_STRIDE), (regs.b = OBJECT_SLOTS), serviceBarrelSlotIfLive(m);
 }

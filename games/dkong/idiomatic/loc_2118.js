@@ -27,6 +27,5 @@ export function loc_2118(m, record = m.regs.ix) {
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
 
-  m.regs.a = 0;
-  return m.call(0x2153);
+  return (m.regs.a = 0, m.call(0x2153));
 }

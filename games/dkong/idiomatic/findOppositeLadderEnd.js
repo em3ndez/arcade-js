@@ -20,7 +20,7 @@ const FAR_SLOT = 0x2a;
  * @returns {boolean} true on a hit (results in registers); false on a miss.
  */
 export function findOppositeLadderEnd(m, key = m.regs.a, disc = m.regs.d, count = m.regs.bc) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   let addr = OBJ_PARAM_TABLE0;
 
@@ -41,18 +41,10 @@ export function findOppositeLadderEnd(m, key = m.regs.a, disc = m.regs.d, count 
     const farAddr = u16(match + FAR_SLOT);
 
     if (disc === mem8[nearAddr]) {
-      regs.a = 1;
-      regs.b = mem8[farAddr];
-      regs.c = count & 0xff;
-      regs.e = key;
-      return true;
+      return (m.regs.a = 1, m.regs.b = mem8[farAddr], m.regs.c = count & 0xff, m.regs.e = key, true);
     }
     if (disc === mem8[farAddr]) {
-      regs.a = 0;
-      regs.b = mem8[nearAddr];
-      regs.c = count & 0xff;
-      regs.e = key;
-      return true;
+      return (m.regs.a = 0, m.regs.b = mem8[nearAddr], m.regs.c = count & 0xff, m.regs.e = key, true);
     }
     // Neither slot matched — resume scanning past this entry.
   }

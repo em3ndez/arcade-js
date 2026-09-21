@@ -5,10 +5,8 @@
  * ladder detour or to an edge arm as the position gates fire. Most passes are mid-playfield and
  * fall straight through to the shared sprite publish.
  *
- * The record base stays in the index register on purpose: the continuations read that register
- * directly, so a caller passing a different record would be obeyed by the lines here and ignored
- * one call later. The direction code is likewise never touched — the orientation refresh reads it
- * off the machine itself.
+ * The record base stays in the index register on purpose — the continuations read it directly, so a
+ * different record would be ignored one call later; the direction code is read off the machine too.
  */
 
 import { publishBarrelSprite } from "./publishBarrelSprite.js";
@@ -40,20 +38,16 @@ const SNAP_OFFSET = 3;
 // Return address for the bottom-of-playfield gate, which consumes it on the arm where it takes the
 // walk over.
 
-export function advanceRollingBarrel(
-  m,
-  slopeStep = m.regs.b /* default: both entry arms leave the selector in this register */,
-  record = m.regs.ix /* default: the continuations read this record back off the register */,
-) {
-  const { mem8, regs } = m;
+// Param-defaults (both exempt): slopeStep — both entry arms leave the selector in regs.b;
+// record — the continuations read this record back off regs.ix.
+export function advanceRollingBarrel(m, slopeStep = m.regs.b, record = m.regs.ix) {
+  const { mem8 } = m;
 
   const x = mem8[record + OBJ_X];
 
-  // One X in eight takes the ladder detour, which reads both coordinates out of the registers.
+  // One X in eight takes the ladder detour, which reads both coordinates off the return bridge.
   if ((x & 7) === 3) {
-    regs.h = x;
-    regs.l = mem8[record + OBJ_Y];
-    return m.call(0x215f);
+    return (m.regs.h = x), (m.regs.l = mem8[record + OBJ_Y]), m.call(0x215f);
   }
 
   // Re-glue the barrel to the girder slope it just stepped along.
@@ -75,6 +69,6 @@ export function advanceRollingBarrel(
   // Past the high edge: stamp the rightward step, hand to the shared motion writer.
   mem8[record + STEP_X_HI] = STEP_X_RIGHT >> 8;
   mem8[record + STEP_X_LO] = STEP_X_RIGHT;
-  regs.a = 0; // the shared writer stores the accumulator into four further record bytes
-  return m.call(0x2038);
+  // the shared motion writer stores the accumulator (0) into four further record bytes.
+  return (m.regs.a = 0), m.call(0x2038);
 }

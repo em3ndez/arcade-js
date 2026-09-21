@@ -20,6 +20,6 @@ export function loc_2b1c(m) {
   if (!probeMarioDescentLanding(m)) return;
 
   m.call(0x29af);
-  regs.a = 0;
-  regs.b = 0;
+  // The zeroed result pair rides the return; loc_2b1c's own return value stays undefined.
+  return void (regs.a = 0, regs.b = 0);
 }

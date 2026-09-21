@@ -14,9 +14,9 @@ import {
 
 
 export function setup25mGirderBoard(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.de = BOARD_LAYOUT_TABLE_25M;
   mem8[SND_BGM] = 8;
-  loc_0cc6(m);
+  // de reaches the shared board-layout tail in a register; assign it first in the return tuple (left-to-right).
+  return [(m.regs.de = BOARD_LAYOUT_TABLE_25M), loc_0cc6(m)];
 }

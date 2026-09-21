@@ -18,7 +18,6 @@ export function clearStridedBytes(m, hl = m.regs.hl, b = m.regs.b) {
     lo = (lo + 4) & 0xff; // low byte only, wraps within the page
   }
 
-  regs.a = lo;
-  regs.hl = page | lo;
-  regs.b = 0;
+  // LIVE-OUT bridge (A, HL, B) rides the return; no flags reproduced.
+  return [regs.a = lo, regs.hl = page | lo, regs.b = 0];
 }

@@ -8,8 +8,8 @@
 import { addStrided } from "./addStrided.js";
 
 export function addToSpriteObjectColumn(m, hl = m.regs.hl, c = m.regs.c) {
-  // stride 4 (one record), count 10; regs.de is a live-out a caller reads back.
-  m.regs.de = 0x0004;
-
+  // stride 4 (one record), count 10; regs.de is a live-out a caller reads back — addStrided
+  // never touches de, so the write rides the return (same memory/register result).
   addStrided(m, c, 0x0004, 0x0a, hl);
+  return [m.regs.de = 0x0004];
 }

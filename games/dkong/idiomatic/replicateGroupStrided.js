@@ -24,7 +24,5 @@ export function replicateGroupStrided(m, src = m.regs.hl, stride = m.regs.c, pag
     e = (e + stride) & 0xff;
   }
 
-  regs.e = e;
-  regs.a = e;
-  regs.b = 0;
+  return [regs.e = e, regs.a = e, regs.b = 0];
 }

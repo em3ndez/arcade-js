@@ -59,8 +59,7 @@ export function findCollidingObject(
     }
 
     if (hit) {
-      regs.a = 0x01;
-      return false; // FALSE = a hit was found (caller-skip)
+      return (m.regs.a = 0x01, false); // FALSE = a hit was found (caller-skip)
     }
 
     rec = u16(rec + de);

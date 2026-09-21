@@ -56,8 +56,7 @@ export function perFrame(m, sp = m.regs.sp) {
   handler(m);
 
   // Re-enable the NMI, then return. The saved registers are dead, so drop the 12-byte frame
-  // as one stack-pointer adjustment; the return pops the interrupted program counter.
+  // as one stack-pointer adjustment ridden onto the return; the return pops the interrupted PC.
   mem8[NMI_ENABLE] = 1;
-  regs.sp = u16(frameBase + 12);
-  m.ret();
+  return (regs.sp = u16(frameBase + 12), m.ret());
 }

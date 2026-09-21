@@ -34,7 +34,6 @@ export function loc_20c3(m, record = m.regs.ix) {
   mem8[record + X_FRAC] = 0;
   mem8[record + Y_FRAC] = 0;
 
-  regs.hl = damped; // mirrored where the tail parks it; kept because the hardware leaves it, no known consumer
-
-  return publishBarrelSprite(m);
+  // damped mirrored where the tail parks it (no known consumer); the write rides the return.
+  return (regs.hl = damped, publishBarrelSprite(m));
 }

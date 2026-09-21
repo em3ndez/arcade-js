@@ -53,7 +53,6 @@ export function buildBoard(m) {
   stampRivetBoardBands(m);
   mem8[PALETTE_BANK_BIT0] = 1;
   mem8[SND_BGM] = 0x0b;
-  // Re-seat: the shared board-layout tail reads the layout-table pointer from the bridge.
-  m.regs.de = BOARD_LAYOUT_TABLE_RIVET;
-  loc_0cc6(m);
+  // Re-seat: the shared board-layout tail reads the layout-table pointer off the bridge (rides the return).
+  return loc_0cc6((m.regs.de = BOARD_LAYOUT_TABLE_RIVET, m));
 }

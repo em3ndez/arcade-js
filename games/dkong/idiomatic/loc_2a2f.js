@@ -46,8 +46,7 @@ export function loc_2a2f(m, objPtr = m.regs.ix) {
   const surface = u8((probeY & 0xf8) + slope);
   if (surface < probeY) {
     mem8[u16(objPtr + OBJ_Y)] = surface - 4;
-    regs.a = 0x01;
-    return true;
+    return (regs.a = 0x01, true);
   }
   return noContact();
 
@@ -55,7 +54,6 @@ export function loc_2a2f(m, objPtr = m.regs.ix) {
   // alone would leave A holding the preceding gravity step's reliably NON-ZERO value, so every
   // probe would falsely report contact. The flags it also carries are dead.
   function noContact() {
-    regs.a = 0x00;
-    return false;
+    return (regs.a = 0x00, false);
   }
 }

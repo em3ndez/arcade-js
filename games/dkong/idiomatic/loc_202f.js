@@ -18,8 +18,6 @@ export function loc_202f(m, record = m.regs.ix) {
   mem8[record + 0x10] = STEP_LEFT_HI;
   mem8[record + 0x11] = STEP_LEFT_LO;
 
-  // The tail stores this zero into four more record bytes, collecting it out of the accumulator.
-  regs.a = 0;
-
-  return m.call(0x2038);
+  // The tail stores this zero into four more record bytes; the write rides the return into it.
+  return (regs.a = 0, m.call(0x2038));
 }

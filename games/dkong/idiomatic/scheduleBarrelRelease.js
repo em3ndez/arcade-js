@@ -31,9 +31,7 @@ export function scheduleBarrelRelease(m) {
 
   const stepped = u8(mem8[BONUS_START] - 2);
   if (stepped < bonus) {
-    regs.a = stepped;
-    regs.c = bonus;
-    return loc_2c7b(m);
+    return (regs.a = stepped, regs.c = bonus, loc_2c7b(m));
   }
 
   if ((mem8[BARREL_CLAIM_MODE] & 0x02) !== 0) {
@@ -53,13 +51,11 @@ export function scheduleBarrelRelease(m) {
 
   const halfStart = mem8[BONUS_START] >> 1;
   if (halfStart < bonus) {
-    regs.c = bonus;
-    return loc_2c41(m);
+    return (regs.c = bonus, loc_2c41(m));
   }
 
   // Otherwise fire only on odd spin-counter frames.
   if ((mem8[SPIN_COUNT] & 0x01) === 0) return;
 
-  regs.c = bonus;
-  return loc_2c41(m);
+  return (regs.c = bonus, loc_2c41(m));
 }

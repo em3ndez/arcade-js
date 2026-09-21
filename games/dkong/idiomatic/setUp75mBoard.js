@@ -11,10 +11,10 @@ import { loc_0cc6 } from "./loc_0cc6.js";
 import { SND_BGM, BOARD_LAYOUT_TABLE_75M } from "./names.js";
 
 export function setUp75mBoard(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   stamp75mBoardTiles(m);
   mem8[SND_BGM] = 0x0a;
-  regs.de = BOARD_LAYOUT_TABLE_75M;
-  loc_0cc6(m);
+  // de reaches the shared board-layout tail in a register; assign it first in the return tuple (left-to-right).
+  return [(m.regs.de = BOARD_LAYOUT_TABLE_75M), loc_0cc6(m)];
 }

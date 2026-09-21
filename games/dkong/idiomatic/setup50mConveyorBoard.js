@@ -18,7 +18,7 @@ import {
 // Hardware palette-bank output latches (NOT work RAM).
 
 export function setup50mConveyorBoard(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Palette bank 1 (bit0 set, bit1 clear).
   mem8[PALETTE_BANK_BIT0] = 0x01;
@@ -26,7 +26,6 @@ export function setup50mConveyorBoard(m) {
 
   mem8[SND_BGM] = 0x09; // 50m background tune (25m=0x08, 50m=0x09, 75m=0x0A)
 
-  // The table address reaches the tail in a register, so set it last.
-  regs.de = BOARD_LAYOUT_TABLE_50M;
-  loc_0cc6(m);
+  // de reaches the shared board-layout tail in a register; assign it first in the return tuple (left-to-right).
+  return [(m.regs.de = BOARD_LAYOUT_TABLE_50M), loc_0cc6(m)];
 }

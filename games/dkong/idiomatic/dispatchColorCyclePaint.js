@@ -21,22 +21,17 @@ export function dispatchColorCyclePaint(m) {
   const { regs, mem8 } = m;
 
   const sweepPhase = mem8[ANIM_STEP_COUNTER];
-  regs.c = sweepPhase;
-  regs.de = ROW_STRIDE;
 
+  // C = blink phase and DE = row stride are the common painter inputs; each dispatch
+  // rides those writes (plus A on the high-code arm) onto its return.
   if (mem8[BOARD] === RIVET_BOARD) {
-    runRivetColorCycleBlink(m);
-    return;
+    return runRivetColorCycleBlink((regs.c = sweepPhase, regs.de = ROW_STRIDE, m));
   }
-
   if (sweepPhase === 0) {
-    paintColorColumnWithLowCode(m);
-    return;
+    return paintColorColumnWithLowCode((regs.c = sweepPhase, regs.de = ROW_STRIDE, m));
   }
   if (sweepPhase & SWEEP_PHASE_BIT) {
-    regs.a = HIGH_COLOR_CODE;
-    paintColorColumnAndHoldBlink(m);
-    return;
+    return paintColorColumnAndHoldBlink((regs.c = sweepPhase, regs.de = ROW_STRIDE, regs.a = HIGH_COLOR_CODE, m));
   }
-  paintColorColumnWithLowCode(m);
+  return paintColorColumnWithLowCode((regs.c = sweepPhase, regs.de = ROW_STRIDE, m));
 }

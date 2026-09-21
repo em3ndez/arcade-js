@@ -36,25 +36,25 @@ const RECORD_ATTR = 0x07;
 const EXPIRY_HIGH = 0x02; // high byte at which the ~512-count lifetime is up
 
 export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[MARIO_SPRITE_RECORD + SPRITE_CODE] = c;
-  regs.c = RECORD_ATTR;
+
+  // The record attribute (RECORD_ATTR) is the c the sprite-blink/commit arms read off the bridge;
+  // it rides each arm's return so it still lands before the callee, on every path.
 
   // Tick the low byte; while it advances without wrapping, just lay down the record.
   const lo = u8(mem8[HAMMER_TIMER_LO] + 1);
   mem8[HAMMER_TIMER_LO] = lo;
   if (lo !== 0) {
-    selectHammerSpriteBlinkByTimer(m);
-    return;
+    return (m.regs.c = RECORD_ATTR), selectHammerSpriteBlinkByTimer(m);
   }
 
   // Low byte wrapped: carry into the high byte. Below expiry, flash while committing.
   const hi = u8(mem8[HAMMER_TIMER_HI] + 1);
   mem8[HAMMER_TIMER_HI] = hi;
   if (hi !== EXPIRY_HIGH) {
-    blinkHammerSpriteOnFramePhase(m);
-    return;
+    return (m.regs.c = RECORD_ATTR), blinkHammerSpriteOnFramePhase(m);
   }
 
   // Lifetime up. Park the sprite at the origin: X-displacement = −Mario's X, so the record
@@ -69,5 +69,5 @@ export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c) {
   mem8[u16(objBase + OBJ_ACTIVE)] = 0;
   mem8[SND_BGM] = mem8[HAMMER_SAVED_BGM];
 
-  commitSpriteRecordAtMarioOffset(m);
+  return (m.regs.c = RECORD_ATTR), commitSpriteRecordAtMarioOffset(m);
 }

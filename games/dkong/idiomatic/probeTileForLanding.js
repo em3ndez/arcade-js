@@ -18,9 +18,7 @@ import { resolveAirborneTileLanding } from "./resolveAirborneTileLanding.js";
 
 /** REJECT tail: report code 0 in A and its twin 0 in B, normal return. */
 function reject(regs) {
-  regs.a = 0;
-  regs.b = 0;
-  return true;
+  return (regs.a = 0, regs.b = 0, true); // the twin result bytes ride the return
 }
 
 export function probeTileForLanding(m, hl = m.regs.hl) {
@@ -40,8 +38,8 @@ export function probeTileForLanding(m, hl = m.regs.hl) {
   if (tile === 0xc0) return reject(regs);         // the excluded tile
 
   if (tile < 0xc0) {
-    regs.c = u8((x & 0xf8) - 1); // HIT (silent): x's 8-pixel column, minus one
-    return resolveAirborneTileLanding(m);
+    // HIT (silent): x's 8-pixel column, minus one; the C boundary rides the tail call.
+    return (regs.c = u8((x & 0xf8) - 1), resolveAirborneTileLanding(m));
   }
 
   // Above 0xC0: column offset from the tile band.
@@ -52,7 +50,7 @@ export function probeTileForLanding(m, hl = m.regs.hl) {
   else col = u8((tile & 0x0f) - 1);
 
   const boundary = u8((x & 0xf8) + col);
-  regs.c = boundary;
-  if (boundary < x) return resolveAirborneTileLanding(m); // HIT only if left of x
-  return reject(regs);
+  // HIT only if left of x; the C boundary rides whichever tail this arm takes.
+  if (boundary < x) return (regs.c = boundary, resolveAirborneTileLanding(m));
+  return (regs.c = boundary, reject(regs));
 }

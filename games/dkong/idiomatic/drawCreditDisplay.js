@@ -24,10 +24,7 @@ export function drawCreditDisplay(m) {
 
   drawStringVertical(m, CREDIT_STRING_INDEX);
 
-  // The expander takes source pointer, destination cursor, per-digit stride, source-byte count.
-  regs.hl = CREDITS;
-  regs.de = VRAM_ROW_STEP_UP;
-  regs.ix = CREDIT_DIGITS_CELL;
-  regs.b = 0x01;
-  expandBcdDigits(m);
+  // The expander takes source pointer, destination cursor, per-digit stride, source-byte count;
+  // those four inputs ride the return onto its bridge (writes land first — memory-identical).
+  return [regs.hl = CREDITS, regs.de = VRAM_ROW_STEP_UP, regs.ix = CREDIT_DIGITS_CELL, regs.b = 0x01, expandBcdDigits(m)];
 }

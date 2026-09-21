@@ -28,8 +28,5 @@ export function gatherSpriteRecords(m, stride = m.regs.de, b = m.regs.b, hi = m.
     ix = u16(ix + stride);
   }
 
-  regs.a = a;
-  regs.l = l;
-  regs.ix = ix;
-  regs.b = 0;
+  return [regs.a = a, regs.l = l, regs.ix = ix, regs.b = 0];
 }

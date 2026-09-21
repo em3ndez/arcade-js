@@ -61,11 +61,9 @@ export function seed100mBoardObjects(m) {
   regs.bc = 0x021c; // two records
   replicateGroupStrided(m);
 
-  regs.ix = FIRE_RECORDS_100M;
-  mem8[u16(regs.ix + 0x00)] = 0x01;
-  mem8[u16(regs.ix + 0x20)] = 0x01; // the second record, one stride on
-  regs.hl = M100_FIRE_SPRITE_PAIR; // sprite-record destination
-  regs.b = 0x02; // two records
-  regs.de = 0x0020; // per-record source stride
-  gatherSpriteRecords(m);
+  const fireBase = FIRE_RECORDS_100M;
+  mem8[u16(fireBase + 0x00)] = 0x01;
+  mem8[u16(fireBase + 0x20)] = 0x01; // the second record, one stride on
+  // base / dest / count / stride ride the return so the frozen gather reads them off the bridge.
+  return [regs.ix = fireBase, regs.hl = M100_FIRE_SPRITE_PAIR, regs.b = 0x02, regs.de = 0x0020, gatherSpriteRecords(m)];
 }

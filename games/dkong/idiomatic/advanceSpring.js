@@ -51,10 +51,8 @@ export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
   const delta = mem8[ptr];
 
   if (delta === STRING_TERMINATOR) {
-    // Re-seat: the terminator tail reads the last string byte from the bridge.
-    m.regs.c = delta;
-    loc_2e9c(m);
-    return;
+    // Re-seat: the terminator tail reads the last string byte off the return bridge.
+    return (m.regs.c = delta), void loc_2e9c(m);
   }
 
   // Step past the byte, accumulate it into OBJ_Y (add, not store), then converge at the tail.

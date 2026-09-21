@@ -24,7 +24,5 @@ export function addStrided(m, c = m.regs.c, de = m.regs.de, b = m.regs.b, hl = m
     ptr = u16(ptr + stride);
   }
 
-  regs.a = a;
-  regs.hl = ptr;
-  regs.b = 0;
+  return [regs.a = a, regs.hl = ptr, regs.b = 0];
 }

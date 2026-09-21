@@ -20,6 +20,6 @@ export function blinkHammerSpriteOnFramePhase(m, c = m.regs.c) {
     c = BLINK_ATTR;
   }
 
-  m.regs.c = c; // R37: commit reads the attribute from the register bridge
-  commitSpriteRecordAtMarioOffset(m);
+  // R37: commit reads the attribute off the register bridge — the write rides the return.
+  return commitSpriteRecordAtMarioOffset((m.regs.c = c, m));
 }

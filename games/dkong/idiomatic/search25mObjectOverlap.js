@@ -39,10 +39,5 @@ export function search25mObjectOverlap(m) {
 
   // Sweep 3 — single record, stride zero.
   mem8[OBJ_SEARCH_COUNT] = SWEEP3_COUNT;
-  regs.b = SWEEP3_COUNT;
-  regs.e = 0x00;
-  regs.ix = OBJ_RECORD_66A0;
-  if (!findCollidingObject(m)) return true;
-
-  return true;
+  return (regs.b = SWEEP3_COUNT, regs.e = 0x00, regs.ix = OBJ_RECORD_66A0, findCollidingObject(m), true);
 }
