@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * nextAnimationStep — pure bit-field lookup over a packed byte C of four 2-bit fields, keyed by
- * input byte `a` (bit 0 picks a family {0x90,0x6c} vs {0xb4,0x1e}, bit 2 picks within it) and a
- * 2-bit selector `b` (decremented first, on the bit-0-set family, when its bit 2 is set). Scans C's
- * fields by rotating right two bits until the low two match, then exits on the field AFTER the match:
- * that value returns with CARRY set unless it is 3, in which case bit 2 of the original input is
- * cleared and it is decremented (return 3 while nonzero, else 0x04, CARRY clear).
- * ⚠ FAITHFUL NON-TERMINATION: when no field can equal the effective selector (>3, or ==3 with
- * C==0x90 which has no 3) the loop spins forever, exactly as the hardware does — a guard would
- * silently turn the hang into a wrong terminating result, so none is added.
- * LIVE-OUT: the result byte; the carry and residual registers are reproduced for fidelity, not
- * as liveness claims.
+ * input byte `a` (bit 0 picks family {0x90,0x6c} vs {0xb4,0x1e}, bit 2 picks within it) and a 2-bit
+ * selector `b` (decremented first, on the bit-0-set family, when its bit 2 is set). Rotates C right
+ * two bits until the low two match, exits on the field AFTER the match: CARRY set unless it is 3, in
+ * which case bit 2 of the input is cleared and it decrements (3 while nonzero, else 0x04, CARRY clear).
+ * ⚠ FAITHFUL NON-TERMINATION: no field can equal the selector (>3, or ==3 with C==0x90) → spins
+ * forever as the hardware does; a guard would silently turn the hang into a wrong result.
+ * LIVE-OUT: the result byte; carry and residual registers are reproduced for fidelity, not liveness.
  */
 export function nextAnimationStep(a, b) {
-  const ror2 = (v) => ((v >> 2) | (v << 6)) & 0xff; // 8-bit rotate right by two bits
+  const ror2 = (v) => ((v >> 2) | (v << 6)) & 0xff;
 
   const d = a; // original input, saved for the exit test
   let bEff = b;
@@ -45,22 +42,22 @@ export function nextAnimationStep(a, b) {
  * nextAnimationStepFromRegisters — the seam entry: marshals the machine to the pure function's
  * (a, b) inputs and replays its register/flag return. ⚠ Wired DIRECTLY (machine as the byte arg,
  * selector undefined) the scan loop's match never fires and it hangs — the marshalling is
- * load-bearing. Flags are rebuilt by replaying the terminal compare + decrement, not assembled.
+ * load-bearing. Each branch's plain outputs ride a return-assignment; the terminal compare and the
+ * deep-exit decrement stay machine ops — they, not a plain store, set the F the seam gate pins.
  */
 export function nextAnimationStepFromRegisters(m, input = m.regs.a, bIn = m.regs.b) {
   const { regs } = m;
   const r = nextAnimationStep(input, bIn);
 
-  regs.b = r.b;
-  regs.c = r.c;
-  regs.d = input;
+  regs.a = r.carry ? r.a : 0x03; // the accumulator the terminal `cp 0x03` compares
+  regs.cp(0x03);                 // terminal compare — sets the returned F (flag-ABI residue)
 
-  regs.a = r.carry ? r.a : 0x03;
-  regs.cp(0x03); // replays the terminal compare (fidelity, not a consumer)
-  if (!r.carry) {
-    // next == 3: the two-stage exit clears bit 2 of the saved input and decrements it
-    regs.d = regs.res(2, regs.d);
-    regs.d = regs.dec8(regs.d);
-    regs.a = r.a;
+  if (r.carry) {
+    return [m.regs.b = r.b, m.regs.c = r.c, m.regs.d = input, m.regs.a = r.a];
   }
+
+  // next == 3: `res 2,d` is a flagless value op (`input & ~0x04`); `dec d` is the deep exit's final
+  // flag-setter, so it stays a machine op while b/c/a ride the return.
+  regs.d = regs.dec8(input & ~0x04);
+  return [m.regs.b = r.b, m.regs.c = r.c, m.regs.a = r.a];
 }
