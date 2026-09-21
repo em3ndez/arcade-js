@@ -8,14 +8,19 @@
  * pointer and the sweep index (0x63A2) both live in MEMORY and are re-read every
  * iteration, so a callee that rewrites either one steers the rest of the sweep.
  *
- * CONTRACT COMPARED HERE: work/sprite/video RAM minus STACK_SCRATCH, the return value,
- * and — as an EXTRA beyond the required contract, because this routine leaves a live
- * guest-stack bracket — pc and SP. The candidate replaces the oracle's `push16 0x31b4 /
- * call 0x31dd` bracket with a direct JS call, so the oracle writes two return-address
- * bytes into the dead STACK_SCRATCH that the candidate never writes; that region is
- * excluded. runCandidate performs ONE m.ret() after the routine, standing in for the
- * terminal `ret` the idiomatic layer models as a JS return (live, the machine's seam
- * supplies it), which is what lets pc and SP be compared at all.
+ * CONTRACT COMPARED HERE: work/sprite/video RAM minus STACK_SCRATCH, plus the return value. The
+ * dissolved advanceLiveFires is SP-neutral — it DIRECT-calls advanceFire and owns no guest-stack
+ * bracket — so pc and SP are NOT compared (the earlier arm compared them only because the seam form
+ * left a live bracket; that is gone). The oracle still splices through the guest stack, so the two
+ * return-address bytes it writes land in the dead STACK_SCRATCH and are excluded. The whole-game SP
+ * tests are what now guard SP-correctness; this file does not.
+ *
+ * ONE-LEVEL-DEEPER DISSOLUTION — why the crafted arms changed shape. advanceLiveFires no longer
+ * calls `m.call(0x3202)`; it calls advanceFire directly. A stub installed at 0x3202 is therefore
+ * BYPASSED by the candidate, so the old marker/steering stubs (which stood in for the object body)
+ * could no longer be compared against it. The crafted equivalence now runs both sides on the REAL
+ * object body and proves the call with a delegating counter; the stub survives only where the caller
+ * keeps the seam — the TEETH twins, which are written `m.call(0x3202)`.
  *
  * WHAT EACH TEST ACTUALLY COVERS — read this before trusting a green run:
  *
@@ -24,20 +29,25 @@
  *      distinct entry shape (the five occupancy flags), and the test asserts the sample
  *      covers every shape seen. ATTRACT PRESENTS EXACTLY ONE SHAPE — record 0 occupied,
  *      records 1-4 empty — so the captures prove the real path and nothing about the
- *      other 31 occupancy patterns. Those are the crafted cases below.
+ *      other 31 occupancy patterns. Those are the crafted cases below. Both sides run the
+ *      real object body (advanceFire on the candidate, frozen loc_3202 on the oracle),
+ *      memory-equivalent by advanceFire's own gate.
  *
- *   2. CRAFTED (occupancy, all 32 patterns). On a real attract base, with ROM 0x3202
- *      replaced by a STUB that bumps a marker byte in the record whose pointer it finds
- *      in OBJ_ITER_PTR and then returns through the guest stack exactly as the frozen
- *      0x3202 does. The stub makes every call observable in RAM, so a missing, extra, or
- *      wrong-record call shows as a diff. This covers advanceLiveFires's own iteration; it says
- *      NOTHING about 0x3202's behaviour (test 1 and test 4 run the real one).
+ *   2. CRAFTED (occupancy, all 32 patterns). On a real attract base, STUB-FREE: both sides
+ *      run the real object body, and equivalence proves advanceLiveFires visits the same
+ *      records the oracle does. Non-vacuity comes from a DELEGATING counter over the
+ *      ORACLE's sweep — a 0x3202 override that records the record base and then delegates to
+ *      the frozen loc_3202 — asserting the call landed on exactly the occupied records and
+ *      the sweep ran its five iterations. (The retired marker stub gave the same
+ *      observability by REPLACING the body; the counter gives it without displacing it.)
  *
- *   3. CRAFTED (callee steering). The same harness with a stub that, when handed record
- *      0, adds an extra stride to OBJ_ITER_PTR and an extra count to the sweep index —
- *      i.e. a callee rewriting the two cells the loop re-reads. The test asserts the
- *      sweep was really steered (a record skipped and the pass cut short), so an
- *      implementation holding either value in a local diverges here.
+ *   3. CRAFTED (callee steering) — RETIRED as a real-candidate arm. It stubbed 0x3202 to
+ *      steer OBJ_ITER_PTR / the sweep index mid-pass; the dissolved candidate bypasses the
+ *      stub, so that steer can no longer be injected into it. The property — both cells are
+ *      re-read from memory each iteration — is still gated by the occupancy arm (the real
+ *      advanceFire moves OBJ_ITER_PTR, so a pointer held in a local diverges in RAM) and by
+ *      the TEETH "local-index" twin, which keeps the seam call and still routes through the
+ *      steering stub. See the note at its old position.
  *
  *   4. LIVE (whole-machine). The candidate is wired at 0x31B1 for a 3000-frame attract
  *      run and every frame's state dump is compared against the all-oracle baseline,
@@ -76,6 +86,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_31b1 as oracle } from "../../translated/loc_31b1.js";
+import { loc_3202 } from "../../translated/loc_3202.js";
 import { advanceLiveFires } from "../advanceLiveFires.js";
 import { armAlternateFireModeAtHighDifficulty } from "../armAlternateFireModeAtHighDifficulty.js";
 import { OBJ_ARRAY_64, OBJ_ACTIVE, OBJ_ITER_PTR, STACK_SCRATCH } from "../names.js";
@@ -122,15 +133,19 @@ function runOracle(entry) {
   return { m: c, ret };
 }
 
-/** The candidate plus the one terminal `ret` the idiomatic layer models as a JS return. */
+/** The candidate, called as a plain JS function. */
 function runCandidate(entry, fn) {
   const c = entry.clone();
   const ret = fn(c);
-  c.ret(0);
   return { m: c, ret };
 }
 
-/** RAM − STACK_SCRATCH, return value, pc and SP. */
+/**
+ * RAM − STACK_SCRATCH and the return value. The dissolved advanceLiveFires is SP-neutral (it
+ * DIRECT-calls advanceFire and owns no guest-stack bracket), so pc and SP are no longer compared —
+ * the oracle's live bracket and terminal `ret` are the guest machine's, not the rewrite's, and land
+ * in the excluded STACK_SCRATCH. (The whole-game SP tests confirm the conversion is SP-correct.)
+ */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
@@ -138,8 +153,6 @@ function contractDiffs(entry, fn) {
   const ram = firstRamDiff(o.m, c.m);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   if (o.ret !== c.ret) diffs.push(`return oracle=${String(o.ret)} cand=${String(c.ret)}`);
-  if (o.m.pc !== c.m.pc) diffs.push(`pc oracle=${hx(o.m.pc)} cand=${hx(c.m.pc)}`);
-  if (o.m.regs.sp !== c.m.regs.sp) diffs.push(`SP oracle=${hx(o.m.regs.sp)} cand=${hx(c.m.regs.sp)}`);
   return diffs;
 }
 
@@ -154,13 +167,20 @@ function attractBase(frames = 180) {
 }
 
 /**
- * A machine carrying `base`'s state but with ROM 0x3202 replaced by `stub`, so the
- * crafted sweeps observe advanceLiveFires's iteration without depending on the real object state
- * machine. Built by construction (not clone) because the override map is a constructor
- * option; clone() reruns the constructor, so clones keep the stub.
+ * A machine carrying `base`'s state, optionally with one ROM address overridden. Built by
+ * construction (not clone) because the override map is a constructor option; clone() reruns the
+ * constructor, so clones keep the override.
+ *
+ * ONE-LEVEL-DEEPER DISSOLUTION, load-bearing here: advanceLiveFires now DIRECT-calls advanceFire
+ * (ROM 0x3202) rather than `m.call(0x3202)`, so a stub installed at 0x3202 is bypassed by the
+ * candidate and can no longer stand in for the object body. The crafted equivalence therefore runs
+ * both sides on the REAL body — advanceFire on the candidate, the frozen loc_3202 on the oracle,
+ * which are memory-equivalent — and proves the call happened with a DELEGATING counter (below). A
+ * stub still stands in only where the caller keeps the seam: the TEETH twins, which are written
+ * `m.call(0x3202)` and so still route through it.
  */
-function withObjectStub(base, stub) {
-  const e = new Machine(ROM, { overrides: new Map([[OBJECT_CALL, stub]]) });
+function rehost(base, override = null) {
+  const e = new Machine(ROM, override ? { overrides: new Map([override]) } : {});
   e.mem.workRam.set(base.mem.workRam);
   e.mem.spriteRam.set(base.mem.spriteRam);
   e.mem.videoRam.set(base.mem.videoRam);
@@ -175,6 +195,12 @@ function withObjectStub(base, stub) {
   e.maxCycles = Infinity;
   return e;
 }
+
+/** A machine that runs the REAL frozen object body but records the record base each call lands on,
+ *  so the ORACLE's own sweep proves the crafted occupancy drove the call on the right records. */
+const withObjectStub = (base, stub) => rehost(base, [OBJECT_CALL, stub]);
+const withObjectCounter = (base, sink) =>
+  rehost(base, [OBJECT_CALL, (mm) => { sink.push(mm.mem.read16(OBJ_ITER_PTR)); return loc_3202(mm); }]);
 
 /** Seed a crafted entry: an occupancy pattern, cleared markers, poisoned loop cells. */
 function seedEntry(e, pattern) {
@@ -211,8 +237,6 @@ function steeringStub(mm) {
   }
   mm.ret(0);
 }
-
-const markersOf = (m) => Array.from({ length: OBJECT_COUNT }, (_, i) => m.mem.read8(recordAddr(i) + MARKER));
 
 // -- 1. CAPTURED --------------------------------------------------------------
 
@@ -257,36 +281,35 @@ test("CRAFTED (occupancy): all 32 occupancy patterns match the oracle", () => {
   const base = attractBase();
   let calls = 0;
   for (let pattern = 0; pattern < 32; pattern++) {
-    const entry = seedEntry(withObjectStub(base, markerStub), pattern);
-    const diffs = contractDiffs(entry, advanceLiveFires);
+    // Stub-free: both sides run the real object body (advanceFire on the candidate, loc_3202 on the
+    // oracle), which the CAPTURED arm and advanceFire's own gate prove memory-equivalent.
+    const diffs = contractDiffs(seedEntry(rehost(base), pattern), advanceLiveFires);
     assert.equal(diffs.length, 0, `pattern ${pattern}: ${diffs.join("; ")}`);
 
-    // Non-vacuity: the stub fired exactly once per occupied record, in place.
-    const o = runOracle(entry).m;
-    const expected = Array.from({ length: OBJECT_COUNT }, (_, i) => (pattern >> i) & 1);
-    assert.deepEqual(markersOf(o), expected, `pattern ${pattern}: the oracle called 0x3202 on the wrong records`);
-    assert.equal(o.mem.read16(OBJ_ITER_PTR), recordAddr(OBJECT_COUNT - 1), "the sweep must end on the last record");
-    assert.equal(o.mem.read8(SWEEP_INDEX), OBJECT_COUNT, "the sweep index must end at the record count");
-    calls += expected.reduce((a, b) => a + b, 0);
+    // Non-vacuity, via a delegating counter over the ORACLE's own sweep: the call landed on exactly
+    // the occupied records, in order, and the sweep ran the full five iterations.
+    const advanced = [];
+    const probe = runOracle(seedEntry(withObjectCounter(base, advanced), pattern)).m;
+    const expected = [];
+    for (let i = 0; i < OBJECT_COUNT; i++) if ((pattern >> i) & 1) expected.push(recordAddr(i));
+    assert.deepEqual(advanced, expected, `pattern ${pattern}: the oracle called 0x3202 on the wrong records`);
+    assert.equal(probe.mem.read16(OBJ_ITER_PTR), recordAddr(OBJECT_COUNT - 1), "the sweep must end on the last record");
+    assert.equal(probe.mem.read8(SWEEP_INDEX), OBJECT_COUNT, "the sweep index must end at the record count");
+    calls += expected.length;
   }
-  assert.equal(calls, 80, `expected 80 stub calls across the 32 patterns, saw ${calls}`);
-  console.log(`  CRAFTED/occupancy: 32 patterns — identical; ${calls} object calls exercised`);
+  assert.equal(calls, 80, `expected 80 object calls across the 32 patterns, saw ${calls}`);
+  console.log(`  CRAFTED/occupancy: 32 patterns — identical; ${calls} object calls exercised (delegating counter)`);
 });
 
-// -- 3. CRAFTED (callee steering) ---------------------------------------------
-
-test("CRAFTED (steering): a callee that rewrites the pointer and the index steers the sweep identically", () => {
-  const base = attractBase();
-  const entry = seedEntry(withObjectStub(base, steeringStub), 0x1f); // every record occupied
-  const diffs = contractDiffs(entry, advanceLiveFires);
-  assert.equal(diffs.length, 0, `steering: ${diffs.join("; ")}`);
-
-  // Non-vacuity: the steer must have actually skipped a record and cut the pass short.
-  const o = runOracle(entry).m;
-  assert.deepEqual(markersOf(o), [1, 0, 1, 1, 1], "the steer should skip record 1");
-  assert.equal(o.mem.read8(SWEEP_INDEX), OBJECT_COUNT, "the index still lands on the record count");
-  console.log(`  CRAFTED/steering: markers ${markersOf(o).join(",")} — the steered sweep is reproduced`);
-});
+// -- 3. CRAFTED (callee steering) — RETIRED as a real-candidate arm ------------
+//
+// The steering equivalence arm forced a callee to rewrite OBJ_ITER_PTR and SWEEP_INDEX mid-sweep by
+// STUBBING 0x3202. The dissolved advanceLiveFires DIRECT-calls advanceFire, so the stub is bypassed
+// and this synthetic steer can no longer be injected into the candidate. The property it guarded —
+// the loop re-reads both cells from memory each iteration — is still gated two ways: the occupancy
+// arm above catches a pointer held in a local (the real advanceFire moves OBJ_ITER_PTR, so the
+// "local-pointer" and "post-increment" twins below diverge in RAM), and the TEETH "local-index"
+// twin, still written `m.call(0x3202)`, still routes through the steering stub and is caught there.
 
 // -- 4. LIVE (whole-machine attract) ------------------------------------------
 

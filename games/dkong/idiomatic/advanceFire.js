@@ -28,7 +28,6 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import {
-  FIRE_STATE_MACHINE_RETURN,
   FIRE_Y_OFFSET_TABLE,
   OBJ_INSERT_REQUESTED,
   OBJ_ITER_PTR,
@@ -43,6 +42,7 @@ import { loc_32d6 } from "./loc_32d6.js";
 import { tickFireTimerAndRerollDirection } from "./tickFireTimerAndRerollDirection.js";
 import { walkFireOneStep } from "./walkFireOneStep.js";
 import { settleFireOnGirderSlope } from "./settleFireOnGirderSlope.js";
+import { driveFireLadderClimb } from "./driveFireLadderClimb.js";
 import { loc_33e7 } from "./loc_33e7.js";
 
 // Record fields with no shared name; kept as local offsets.
@@ -64,9 +64,6 @@ const X_HIGH_EDGE = 240;
 
 // High/low split: bit 7 of (state - 4), so 4..131 are high and 0..3 with 132..255 are low.
 const isHighState = (state) => (u8(state - 4) & 0x80) === 0;
-
-// The return bracket the heading/collision state machine consumes; pushed by hand because two of
-// that routine's callees can return by unwinding PAST it, straight back to here.
 
 /**
  * @param {object} m  the machine. The record pointer arrives in memory, not a register.
@@ -153,11 +150,10 @@ export function advanceFire(m) {
     }
   }
 
-  // The heading/collision state machine, dispatched by address. Two of its callees return by
-  // unwinding past it to this exact point, so the call bracket is pushed by hand and execution
-  // continues here whether it finished or bailed.
-  m.push16(FIRE_STATE_MACHINE_RETURN);
-  m.call(0x333d);
+  // The heading/collision state machine: two of its callees used to unwind PAST this point; the
+  // idiomatic form absorbs that as plain JS early returns, so its finished and bailed cases both
+  // arrive here (no signal, guest stack net-zero) and fall into the movement step.
+  driveFireLadderClimb(m);
 
   stepMovement();
 }

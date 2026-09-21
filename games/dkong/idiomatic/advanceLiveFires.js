@@ -12,9 +12,9 @@
  */
 
 import { u8, u16 } from "../../../core/int.js";
+import { advanceFire } from "./advanceFire.js";
 import {
   FIRE_SWEEP_INDEX,
-  LIVE_FIRE_ADVANCE_RETURN,
   OBJ_ACTIVE,
   OBJ_ARRAY_64,
   OBJ_ITER_PTR,
@@ -39,8 +39,7 @@ export function advanceLiveFires(m) {
     mem16[OBJ_ITER_PTR] = record;
 
     if (mem8[record + OBJ_ACTIVE] !== 0) {
-      m.push16(LIVE_FIRE_ADVANCE_RETURN);
-      m.call(0x3202);
+      advanceFire(m);
     }
 
     const visited = u8(mem8[FIRE_SWEEP_INDEX] + 1);

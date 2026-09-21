@@ -11,7 +11,7 @@
  */
 
 import { gateFireUpdateByDifficulty } from "./gateFireUpdateByDifficulty.js";
-import { RESUME_AFTER_STATE_WALK } from "./names.js";
+import { advanceLiveFires } from "./advanceLiveFires.js";
 import { spawnRequestedFireAndRecolorLiveFires } from "./spawnRequestedFireAndRecolorLiveFires.js";
 import { publishFireSprites } from "./publishFireSprites.js";
 
@@ -21,9 +21,7 @@ export function updateFires(m) {
 
   if (!spawnRequestedFireAndRecolorLiveFires(m)) return;
 
-  // The state walk returns through its own `ret`, so the bracket that `ret` pops is pushed here.
-  m.push16(RESUME_AFTER_STATE_WALK);
-  m.call(0x31b1);
+  advanceLiveFires(m);
 
   publishFireSprites(m);
 }

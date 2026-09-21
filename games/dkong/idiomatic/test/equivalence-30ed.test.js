@@ -21,8 +21,10 @@
  *      traffic landed instead, asserting it stayed inside the excluded region.
  *
  *   2. LIVE-WIRE — updateFires drives a whole 2000-frame attract run as a registered override, and
- *      every frame of the state trace must be byte-identical to the all-oracle baseline, the
- *      stack region INCLUDED (this arm compares the full dump, not RAM − STACK_SCRATCH).
+ *      every frame of the state trace must be byte-identical to the all-oracle baseline on
+ *      RAM − STACK_SCRATCH. The dissolved chain runs on the JS stack (updateFires direct-calls
+ *      advanceLiveFires, which direct-calls advanceFire), so the guest STACK_SCRATCH the oracle
+ *      writes its call brackets into legitimately differs and is excluded, exactly as arm 1 does.
  *      THE CYCLE RESTORATION IS NOT COSMETIC. The rewrite charges no T-states for the three
  *      idiomatic callees, and Donkey Kong seeds its RNG from timing (SPIN_COUNT 0x6019 counts
  *      main-loop passes per frame), so an under-charged routine reseeds the PRNG and the run
@@ -32,20 +34,20 @@
  *      restoration and asserts the trace does fork, which is what shows this arm is sensitive
  *      rather than lenient.
  *
- *   3. TEETH — five broken twins. Three are caught by arm 1's RAM diff (a dropped gate guard, a
+ *   3. TEETH — four broken twins. Three are caught by arm 1's RAM diff (a dropped gate guard, a
  *      dropped census guard, gather-before-update). One is invisible to the RAM diff and caught
  *      only by the RETURN assertion (propagating a callee's boolean instead of returning
  *      nothing — a real hazard here, since 0x30ED is not in machine.js's SEAM_CALLER_SKIP and a
- *      `false` would make the seam consume a stack word the routine does not owe). One is
- *      invisible to BOTH and caught only by arm 2 (dropping the oracle-boundary return bracket
- *      before the frozen 0x31B1: the missing word is inside STACK_SCRATCH, so only a whole-run
- *      trace sees the damage).
+ *      `false` would make the seam consume a stack word the routine does not owe). The old
+ *      "dropped return bracket" twin is retired: it diverged only in a STACK_SCRATCH byte, which
+ *      the dissolved form no longer produces (it owns no guest-stack bracket to drop) and no arm
+ *      now compares.
  *
  * MEASURED (these numbers used to sit in the routine's own header, which R21 no longer allows to
  * state them): 1532 natural dispatches over 4000 attract frames, the first at frame 586,
  * classified from the ORACLE's own call sequence into 765 gate-skip / 286 census-skip / 481 full.
  * 79 of the 1532 are replayed oracle-vs-rewrite on byte-identical clones. The live-wire arm then
- * runs 2000 frames with the rewrite registered, stack region included in the diff.
+ * runs 2000 frames with the rewrite registered, RAM − STACK_SCRATCH in the diff.
  *
  * THE LIVE-OUT DERIVATION, cross-file and therefore here rather than in the routine: there is
  * exactly one caller — translated/loc_197a.js at ROM 0x198C, the only `m.call(0x30ed)` in the
@@ -243,12 +245,15 @@ function liveWire(frames, candidate, restoreCycles) {
   return { m, frameDumps, dispatches };
 }
 
-/** First frame+byte where two traces differ, or null. */
+/** First frame+byte where two traces differ OUTSIDE the dead stack scratch, or null. */
 function firstTraceDiff(base, other, offToAddr) {
   for (let f = 0; f < Math.min(base.length, other.length); f++) {
     const a = base[f], b = other[f];
     for (let i = 0; i < Math.min(a.length, b.length); i++) {
-      if (a[i] !== b[i]) return { frame: f, addr: offToAddr(i), a: a[i], b: b[i] };
+      if (a[i] === b[i]) continue;
+      const addr = offToAddr(i);
+      if (inStack(addr)) continue; // the dissolved chain runs on the JS stack; guest scratch differs
+      return { frame: f, addr, a: a[i], b: b[i] };
     }
   }
   return null;
@@ -269,12 +274,11 @@ test("LIVE-WIRE: updateFires drives a whole attract run frame-identical to the a
   assert.equal(
     d,
     null,
-    d && `frame ${d.frame} diverged at ${hx(d.addr)}: baseline=${d.a} live-wire=${d.b}` +
-      (inStack(d.addr) ? " (inside STACK_SCRATCH — this arm compares the full dump on purpose)" : ""),
+    d && `frame ${d.frame} diverged at ${hx(d.addr)}: baseline=${d.a} live-wire=${d.b}`,
   );
   console.log(
     `  LIVE-WIRE: ${dispatches} dispatches over ${LIVE_FRAMES} attract frames — all ${frameDumps.length} ` +
-      "frames byte-identical to the all-oracle baseline, stack region included",
+      "frames byte-identical to the all-oracle baseline on RAM − STACK_SCRATCH",
   );
 });
 
@@ -336,17 +340,6 @@ function brokenReturnsBoolean(m) {
   return true;
 }
 
-/** Broken twin (e): the oracle-boundary return bracket is dropped, so the frozen 0x31B1's own
- *  `ret` eats the CALLER's return address instead. The missing word is inside STACK_SCRATCH and
- *  the return value is still undefined, so neither the RAM diff nor the return assertion sees
- *  it — only a whole-run trace does. */
-function brokenNoReturnBracket(m) {
-  if (!gateFireUpdateByDifficulty(m)) return;
-  if (!spawnRequestedFireAndRecolorLiveFires(m)) return;
-  m.call(0x31b1);
-  publishFireSprites(m);
-}
-
 test("TEETH: the captured-replay arm catches a dropped gate guard, a dropped census guard, and gather-before-update", () => {
   const { kept } = captureDispatches();
   for (const [name, twin] of [
@@ -381,23 +374,4 @@ test("TEETH: a returned boolean is invisible to the RAM diff and caught ONLY by 
   }
   assert.equal(ramOnly, null, "this twin was supposed to be RAM-identical; if the RAM diff sees it, the claim above is wrong");
   console.log(`  TEETH/returned boolean: caught — ${describe(failure)} (RAM identical on all ${kept.length} samples)`);
-});
-
-test("TEETH: a dropped oracle-boundary bracket is invisible to the replay and caught ONLY by the live-wire run", () => {
-  // Invisible to arm 1: the missing stack word is inside STACK_SCRATCH, and the return is still
-  // undefined.
-  const { kept } = captureDispatches();
-  const { failure } = replaySamples(kept, brokenNoReturnBracket);
-  assert.equal(describe(failure), null, "the replay was expected NOT to see this twin");
-
-  // Caught by arm 2.
-  const base = new Machine(ROM);
-  const baseFrames = base.runFrames(LIVE_FRAMES);
-  const { frameDumps } = liveWire(LIVE_FRAMES, brokenNoReturnBracket, true);
-  const d = firstTraceDiff(baseFrames, frameDumps, (o) => base.stateOffsetToAddr(o));
-  assert.notEqual(d, null, "the live-wire arm FAILED to catch a dropped return bracket — worthless");
-  console.log(
-    `  TEETH/dropped bracket: invisible to the replay (${kept.length} samples clean), caught by the ` +
-      `live-wire run at frame ${d.frame}, ${hx(d.addr)} (baseline=${d.a} broken=${d.b})`,
-  );
 });
