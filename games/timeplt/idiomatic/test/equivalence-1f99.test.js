@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1f99 — memory-equivalent to the frozen oracle at ROM 0x1F99.
- * GATE: crafted-entry. No input tape dispatches this table-as-code address, so real machine states
- * captured at advancePlayerAnimationStrip (the routine that owns this table region) are replayed through both sides:
- * identical memory, registers and return when the churn comes back, identical fault when it
- * transfers off the map. Teeth below, with a register control proving the memory reach is real.
+ * loc_1f99 — the table-as-code arm at ROM 0x1F99, dissolved to a throw.
+ * The ADDRESS is a live data table that real routines read as DATA; only this ROUTINE, decoding
+ * those bytes as CODE, is a dead arm. It is reached as code only through loc_1f2e's fold arm, which
+ * the whole live-in space proves is never taken, and loc_1f2e itself only runs on the copyright-glyph
+ * tamper divert a genuine image never fires — so no input tape dispatches 0x1F99. The idiomatic
+ * rewrite therefore traps ON ENTRY rather than reproducing the ROM's stack-pop churn.
+ * This gate asserts the two real properties of that trap: (1) UNREACHABLE — no tape dispatches
+ * 0x1F99, with the region owner (0x2010) as the not-blind positive control; and (2) TRAPS ON ENTRY —
+ * the rewrite throws where the oracle would churn to its off-map transfer. The oracle-side churn is
+ * kept as documentation. Teeth below: a rewrite that DID NOT throw (the no-op twin) is caught.
  */
 
 import test from "node:test";
@@ -14,10 +19,10 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { loc_1f99 } from "../loc_1f99.js";
 import { loc_1f99 as oracle } from "../../translated/loc_1f99.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 
-const NEIGHBOUR = 0x2010;
+const TARGET = 0x1f99;
+const NEIGHBOUR = 0x2010; // advancePlayerAnimationStrip owns the table region the trap lives in
 const CAP = 200;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -37,100 +42,50 @@ function captureNeighbours() {
   return captured;
 }
 
-function run(fn, machine) {
-  const c = machine.clone();
-  try { return { ok: true, m: c, ret: fn(c) }; }
-  catch (e) { return { ok: false, msg: e.message || String(e) }; }
+// Whether fn terminates abnormally (throws) on a clone of `machine`.
+function faults(fn, machine) {
+  try { fn(machine.clone()); return false; }
+  catch { return true; }
 }
 
-// null == equivalent. Both-threw counts as equivalent only when the fault is identical, because a
-// transfer off the map is this routine's real exit on many captured states.
-function unitDiff(cand, machine) {
-  const a = run(oracle, machine), b = run(cand, machine);
-  if (a.ok !== b.ok) return `${a.ok ? "candidate" : "oracle"} threw where the other did not`;
-  if (!a.ok) return a.msg === b.msg ? null : `different fault: ${a.msg} vs ${b.msg}`;
-  const ram = firstStateDiff(a.m.dumpState(), b.m.dumpState(), (o) => a.m.stateOffsetToAddr(o));
-  if (ram) return `ram 0x${(ram.addr ?? 0).toString(16)}: ${ram.a} vs ${ram.b}`;
-  for (const k of REG_FIELDS) if (a.m.regs[k] !== b.m.regs[k]) return `reg ${k}`;
-  if (a.ret !== b.ret) return `return ${a.ret} vs ${b.ret}`;
-  return null;
-}
-
-// True only when both sides return AND their memory parts company -- the memory-reach probe.
-function memParted(cand, machine) {
-  const a = run(oracle, machine), b = run(cand, machine);
-  return a.ok && b.ok && firstStateDiff(a.m.dumpState(), b.m.dumpState()) !== null;
-}
-
-function split() {
-  let clean = 0, threw = 0;
-  for (const e of captureNeighbours()) run(oracle, e).ok ? clean++ : threw++;
-  return { clean, threw };
-}
-
-// ── broken twins ────────────────────────────────────────────────────────────────────────
+// The broken twin: a rewrite that returns instead of throwing. The throw-on-entry assertion catches it.
 function brokenNoOp() {}
-function brokenExtraReg(m) { const r = loc_1f99(m); m.regs.d = (m.regs.d + 1) & 0xff; return r; }
 
-// The faithful body with ONE deliberate defect: omitPush drops the pointer push, offMapTarget
-// re-points the sign-positive transfer.
-function brokenBody({ omitPush = false, offMapTarget = 0xf1eb } = {}) {
-  return (m) => {
-    const { regs, mem, mem8 } = m;
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.c = regs.l;
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16();
-    if (!omitPush) m.push16(regs.hl);
-    regs.l = regs.dec8(regs.l); regs.l = mem8[regs.hl];
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.e = mem8[regs.hl];
-    regs.h = regs.c; regs.and(0xf1);
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.or(regs.d);
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16();
-    regs.d = regs.e;
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16();
-    regs.sub(regs.l);
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16(); regs.b = regs.l;
-    if (regs.fZ) return m.call(0xf1f1);
-    regs.af = m.pop16(); regs.add(0x2c); regs.sub(regs.a);
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.add(regs.c);
-    regs.l = regs.c; regs.e = 0xf1;
-    regs.af = m.pop16(); regs.cp(regs.h); regs.and(regs.c); regs.h = regs.b;
-    regs.af = m.pop16(); regs.af = m.pop16();
-    if (regs.fP) { m.push16(0x1fcf); m.call(offMapTarget); }
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16(); regs.c = regs.b;
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.af = m.pop16();
-    if (regs.fPO) return m.ret();
-    regs.h = regs.e; regs.decMem8(mem, regs.hl);
-    regs.af = m.pop16(); regs.af = m.pop16();
-    regs.xor(regs.d); regs.or(regs.h); regs.adc(regs.d);
-    regs.af = m.pop16(); regs.af = m.pop16(); regs.d = regs.c;
-    return m.call(regs.hl);
-  };
-}
-const brokenSkipPush = brokenBody({ omitPush: true });
-const brokenWrongOffMap = brokenBody({ offMapTarget: 0xf1ec });
-
-// ── the gate ────────────────────────────────────────────────────────────────────────────
-test("NEIGHBOURS: every captured machine, oracle == rewrite", { skip }, () => {
-  const entries = captureNeighbours();
-  for (const e of entries) assert.equal(unitDiff(loc_1f99, e), null, "a captured machine diverged");
-  const { clean, threw } = split();
-  assert.ok(clean > 0, "no captured state returns, so memory is never actually compared");
-  assert.ok(threw > 0, "no captured state transfers off the map, so that exit is never exercised");
-  console.log(`  NEIGHBOURS: ${entries.length} machines identical (${clean} return, ${threw} off-map)`);
+// ── UNREACHABLE ───────────────────────────────────────────────────────────────────────────────
+test("UNREACHABLE: no tape dispatches the table-as-code arm at 0x1f99", { skip }, () => {
+  const seen = { [TARGET]: 0, [NEIGHBOUR]: 0 };
+  const realTarget = TRANSLATED.get(TARGET);
+  const realNeighbour = TRANSLATED.get(NEIGHBOUR);
+  const m = makeMachine(new Map([
+    [TARGET, (mm) => { seen[TARGET]++; return realTarget(mm); }],
+    [NEIGHBOUR, (mm) => { seen[NEIGHBOUR]++; return realNeighbour(mm); }],
+  ]));
+  m.runFrames(ENTRY_FRAMES);
+  assert.equal(m.stoppedBy, null, `the run stopped early: ${m.stoppedBy}`);
+  // ★ The zero counts only because the same run saw the region owner dispatched.
+  assert.ok(seen[NEIGHBOUR] > 0, "the region owner never ran, so the instrument is blind");
+  assert.equal(seen[TARGET], 0, "the table-as-code arm 0x1f99 was dispatched on a good ROM");
+  console.log(`  UNREACHABLE: 0x1f99 entered ${seen[TARGET]}, region owner 0x2010 ${seen[NEIGHBOUR]}`);
 });
 
-test("TEETH: broken twins are caught, with real memory and register reach", { skip }, () => {
+// ── TRAPS ON ENTRY + oracle still churns/faults ─────────────────────────────────────────────────
+test("TRAPS: rewrite throws on entry where the oracle churns to its off-map transfer", { skip }, () => {
   const entries = captureNeighbours();
-  const { clean, threw } = split();
-  const caught = (fn) => entries.filter((e) => unitDiff(fn, e)).length;
-  const memHit = (fn) => entries.filter((e) => memParted(fn, e)).length;
 
-  assert.equal(caught(brokenNoOp), entries.length, "the no-op twin escaped a state");
-  assert.equal(caught(brokenSkipPush), entries.length, "the dropped-push twin escaped a state");
-  assert.equal(memHit(brokenSkipPush), clean, "the dropped push does not show in memory where it must");
-  // register control: caught only where the churn returns, and never through memory.
-  assert.equal(caught(brokenExtraReg), clean, "the register scribble was not caught on a returning state");
-  assert.equal(memHit(brokenExtraReg), 0, "a register scribble surfaced in memory, so the probe is not register-clean");
-  assert.equal(caught(brokenWrongOffMap), threw, "the wrong-off-map twin escaped the off-map states");
-  console.log(`  TEETH: no-op ${caught(brokenNoOp)}, skip-push ${caught(brokenSkipPush)} (${memHit(brokenSkipPush)} in memory), extra-reg ${caught(brokenExtraReg)}, wrong-off-map ${caught(brokenWrongOffMap)}`);
+  // The rewrite traps on every captured state (it ignores its live-ins and throws unconditionally).
+  for (const e of entries) {
+    assert.throws(() => loc_1f99(e.clone()), NotImplemented, "the rewrite did not trap on entry");
+  }
+
+  // Oracle documentation: run the ROM's own bytes as code from these states; some transfer off the
+  // map and fault, proving the churn arm is the derail the rewrite stands in for.
+  const faulted = entries.filter((e) => faults(oracle, e)).length;
+  assert.ok(faulted > 0, "no captured state faults the oracle, so the off-map derail is undocumented");
+
+  // Teeth: the no-op twin returns without throwing, so the throw-on-entry assertion catches it.
+  assert.throws(
+    () => { for (const e of entries) assert.throws(() => brokenNoOp(e.clone()), NotImplemented); },
+    "the no-op twin (no throw on entry) escaped the trap assertion",
+  );
+  console.log(`  TRAPS: ${entries.length} states trap on entry; oracle faults on ${faulted}`);
 });
