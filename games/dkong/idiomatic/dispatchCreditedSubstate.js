@@ -1,29 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * dispatchCreditedSubstate — run the current step of the credited game (the stretch after a
- * coin is accepted, before play begins), vectoring through a 2-entry table of code addresses
- * indexed by the sub-state.
+ * coin is accepted, before play begins): hand the frame to the handler for the sub-state.
  *
  * LIVE-OUT: memory-only — whatever the dispatched step writes.
  */
 
-import { u16 } from "../../../core/int.js";
-import {
-  CREDITED_SUBSTATE_TABLE,
-  GAME_SUBSTATE,
-} from "./names.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
+import { GAME_SUBSTATE } from "./names.js";
+import { NotImplemented } from "../../../boards/dkong/io.js";
+import { enterCreditScreen } from "./enterCreditScreen.js";
+import { commitGameStart } from "./commitGameStart.js";
 
-const DISPATCH_TABLE_08B6 = "0x08B6 (0x600A, 2-entry)";
+const HANDLERS = [
+  enterCreditScreen, // sub-state 0 — wipe the playfield, set up the credit / start-select screen
+  commitGameStart, // sub-state 1 — idle wait-for-start, then commit the game when start is pressed
+];
 
 export function dispatchCreditedSubstate(m) {
-  const { mem8 } = m;
+  const handler = HANDLERS[m.mem8[GAME_SUBSTATE]];
+  if (handler) return handler(m);
 
-  const substate = mem8[GAME_SUBSTATE];
-
-  // 8-bit offset double: index 0x80 wraps back to 0, matching the guest.
-  const entry = u16(CREDITED_SUBSTATE_TABLE + ((substate * 2) & 0xff));
-  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
-
-  loc_00ca(m, target, DISPATCH_TABLE_08B6);
+  throw new NotImplemented(
+    `dispatchCreditedSubstate: GAME_SUBSTATE ${m.mem8[GAME_SUBSTATE]} has no credited-state handler (only 0 and 1 occur).`,
+  );
 }
