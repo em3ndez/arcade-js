@@ -36,8 +36,8 @@ export function loc_17b6(m) {
 
   // Colour and step chain across the two column fills — the second continues the descend
   // (value 0x10 -> 0x0d) at the same stride the first used.
-  fillDescendingColumn(m, COLOR_COLUMN_A_TOP, 0x10, 0x0020);
-  fillDescendingColumn(m, COLOR_COLUMN_B_TOP, 0x0d, 0x0020);
+  fillDescendingColumn(m, COLOR_COLUMN_A_TOP, 0x10, 32);
+  fillDescendingColumn(m, COLOR_COLUMN_B_TOP, 0x0d, 32);
 
   for (const [tileDest, segTable] of RENDER_ITEMS) {
     fillTileBlock(m, tileDest);

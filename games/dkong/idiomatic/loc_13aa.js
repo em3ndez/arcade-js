@@ -7,15 +7,13 @@
  * LIVE-OUT: memory-only, plus the flip-screen I/O latch.
  */
 
-import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER, ACTIVE_PLAYER_INDEX } from "./names.js";
-
-const FLIP_SCREEN_LATCH = 0x7d82; // output pin, not work RAM; seam masks to bit 0
+import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, FLIPSCREEN } from "./names.js";
 
 export function loc_13aa(m) {
   const { mem8 } = m;
 
   // Mirror the cabinet-orientation DIP into the flip-screen latch (both device-routed).
-  mem8[FLIP_SCREEN_LATCH] = mem8[DIP_UPRIGHT];
+  mem8[FLIPSCREEN] = mem8[DIP_UPRIGHT];
 
   mem8[GAME_SUBSTATE] = 0;
 

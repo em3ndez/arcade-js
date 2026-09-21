@@ -9,12 +9,9 @@
  * flip-screen latch, a board output rather than memory.
  */
 
-import { GAME_SUBSTATE, DIP_UPRIGHT, ACTIVE_PLAYER_INDEX } from "./names.js";
+import { GAME_SUBSTATE, DIP_UPRIGHT, ACTIVE_PLAYER_INDEX, FLIPSCREEN } from "./names.js";
 import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js";
 import { silenceSound } from "./silenceSound.js";
-
-// Flip-screen control latch — a board hardware register, not work RAM.
-const FLIPSCREEN = 0x7d82;
 
 export function configureFlipScreenAndSelectSubstate(m) {
   const { mem8 } = m;

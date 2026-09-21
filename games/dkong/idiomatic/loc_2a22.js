@@ -15,7 +15,7 @@ export function loc_2a22(m) {
   const { regs } = m;
 
   regs.b = 0x06; // record / loop count
-  regs.de = 0x0010; // record stride
+  regs.de = 16; // record stride
   regs.ix = OBJ_ARRAY_66; // record base
   findCollidingObject(m);
 }

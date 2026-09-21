@@ -7,10 +7,7 @@
  * is a board output rather than work RAM.
  */
 
-import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, GAME_SUBSTATE } from "./names.js";
-
-// The flip-screen control latch — a board hardware register, not work RAM.
-const FLIPSCREEN = 0x7d82;
+import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, GAME_SUBSTATE, FLIPSCREEN } from "./names.js";
 
 export function selectPlayer1Context(m) {
   const { mem8 } = m;

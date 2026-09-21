@@ -13,11 +13,8 @@
  * the flip-screen latch, a board output.
  */
 
-import { DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE } from "./names.js";
+import { DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE, FLIPSCREEN } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
-
-// Flip-screen control latch — board hardware, not work RAM.
-const FLIPSCREEN = 0x7d82;
 
 export function configureFlipScreenAndComposeScreen(m, a = m.regs.a) {
   const { mem8 } = m;

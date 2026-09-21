@@ -23,7 +23,7 @@ const nibbleSwap = (v) => (((v << 4) | (v >> 4)) & 0xff);
 
 // Add `c` into ten stride-4 bytes from `hl`; staged in the register file, which addStrided reads.
 function strideAddTen(m, hl, c) {
-  addStrided(m, c, 0x0004, 0x0a, hl);
+  addStrided(m, c, 4, 0x0a, hl);
 }
 
 export function loc_0b68(m) {

@@ -14,5 +14,5 @@ export function findHammerOverlappingMario(m) {
   // The six values are register-bridge inputs to the search; the writes ride the return so they
   // persist for the search while the routine's shape stays void.
   // prettier-ignore
-  return void (m.regs.iy = MARIO_ACTIVE, m.regs.c = m.mem8[MARIO_Y], m.regs.hl = 0x0408, m.regs.b = 0x02, m.regs.de = 0x0010, m.regs.ix = OBJ_PAIR_6680, findCollidingObject(m));
+  return void (m.regs.iy = MARIO_ACTIVE, m.regs.c = m.mem8[MARIO_Y], m.regs.hl = 0x0408, m.regs.b = 0x02, m.regs.de = 16, m.regs.ix = OBJ_PAIR_6680, findCollidingObject(m));
 }

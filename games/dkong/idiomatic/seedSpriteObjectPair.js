@@ -29,5 +29,5 @@ export function seedSpriteObjectPair(m, src = m.regs.hl) {
   mem8[u16(objBase + 0x10 + OBJ_ACTIVE)] = 0x01;
 
   // Step 4 — gather each record into a consecutive 4-byte hardware sprite record.
-  gatherSpriteRecords(m, 0x0010, 0x02, HAMMER_OBJ1_SPRITE_RECORD & 0xff00, HAMMER_OBJ1_SPRITE_RECORD & 0xff, objBase);
+  gatherSpriteRecords(m, 16, 0x02, HAMMER_OBJ1_SPRITE_RECORD & 0xff00, HAMMER_OBJ1_SPRITE_RECORD & 0xff, objBase);
 }

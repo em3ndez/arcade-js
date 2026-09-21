@@ -7,14 +7,11 @@
  * LIVE-OUT: memory-only — the caller consumes no register or flag this leaves.
  */
 
-import { GAME_STATE, ATTRACT, GAME_SUBSTATE } from "./names.js";
-
-// Flip-screen latch — a write-only board control output (video orientation), NOT work RAM.
-const FLIPSCREEN_LATCH = 0x7d82;
+import { GAME_STATE, ATTRACT, GAME_SUBSTATE, FLIPSCREEN } from "./names.js";
 
 export function enterAttractMode(m) {
   const { mem8 } = m;
-  mem8[FLIPSCREEN_LATCH] = 1; // board output (write-only) — not in the RAM dump
+  mem8[FLIPSCREEN] = 1;
   mem8[GAME_STATE] = 1;
   mem8[ATTRACT] = 1;
   mem8[GAME_SUBSTATE] = 0;

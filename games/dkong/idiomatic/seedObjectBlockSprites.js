@@ -19,5 +19,5 @@ export function seedObjectBlockSprites(m) {
   replicateGroupStrided(m, OBJ_ARRAY_65_TEMPLATE);
 
   // base / dest / per-record stride ride the return so the frozen gather reads them off the bridge.
-  return [regs.ix = OBJ_ARRAY_65, regs.hl = ACTOR_SPRITES, regs.de = 0x0010, gatherSpriteRecords(m, 0x0010, 0x0a)];
+  return [regs.ix = OBJ_ARRAY_65, regs.hl = ACTOR_SPRITES, regs.de = 16, gatherSpriteRecords(m, 16, 0x0a)];
 }

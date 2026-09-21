@@ -17,15 +17,13 @@ import {
   BOARD,
   GAME_SUBSTATE,
   P1_SCORE,
+  FLIPSCREEN,
 } from "./names.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 import { drawLivesAndLevel } from "./drawLivesAndLevel.js";
 import { decodeDipSwitches } from "./decodeDipSwitches.js";
 import { draw1UpLabel } from "./draw1UpLabel.js";
 import { enqueueTask } from "./enqueueTask.js";
-
-// Flip-screen control latch — board hardware, write-only, not readable by the processor.
-const FLIPSCREEN = 0x7d82;
 
 const SCORE_TEMPLATE_ROM = 0x01ba;
 const SCORE_TEMPLATE_LEN = 9;

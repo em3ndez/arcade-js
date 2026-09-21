@@ -10,5 +10,5 @@ import { stageAwardPopupAtHitObject } from "./stageAwardPopupAtHitObject.js";
 export function stageAward800Popup(m) {
   // Message re-seat rides the return: enqueueTask reads d/e off the bridge, set before the
   // tail-jump; 0x7f is the sprite code forwarded as the feeder's b param.
-  return (m.regs.de = 0x0008, stageAwardPopupAtHitObject(m, 0x7f));
+  return (m.regs.de = 8, stageAwardPopupAtHitObject(m, 0x7f));
 }

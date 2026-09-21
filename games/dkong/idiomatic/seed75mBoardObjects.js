@@ -54,7 +54,7 @@ export function seed75mBoardObjects(m) {
   const de3 = OBJ_ARRAY_66 + 0x07;
   replicateGroupStrided(m, OBJ_ARRAY_66_TEMPLATE, 0x0c, de3 & 0xff00, 0x06, de3 & 0xff); // 6 records, record stride 0x10
 
-  gatherSpriteRecords(m, 0x0010, 0x06, OBJ_66_SPRITES & 0xff00, OBJ_66_SPRITES & 0xff, OBJ_ARRAY_66); // 6 records off the object-record base
+  gatherSpriteRecords(m, 16, 0x06, OBJ_66_SPRITES & 0xff00, OBJ_66_SPRITES & 0xff, OBJ_ARRAY_66); // 6 records off the object-record base
 
   blockCopy(mem8, OBJECT_COLLISION_SPRITES, COLLISION_SPRITES_TEMPLATE_75M, 0x0c);
 

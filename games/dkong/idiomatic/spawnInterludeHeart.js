@@ -30,7 +30,7 @@ export function spawnInterludeHeart(m) {
 
   mem8[BLINK_SPRITE_CODE] = 0x13;
 
-  fillDescendingColumn(m, BLINK_COLOR_COLUMN_TOP, 0x10, 0x0020);
+  fillDescendingColumn(m, BLINK_COLOR_COLUMN_TOP, 0x10, 32);
 
   mem8[SND_PRIORITY] = 0x07;
   mem8[SND_PRIORITY_FRAMES] = 0x03;

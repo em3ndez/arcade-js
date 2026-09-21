@@ -53,7 +53,7 @@ export function seed50mBoardObjects(m) {
   // dest OBJ_ARRAY_65A0+7 — the +7 splits across a page boundary; 6 records, stride 0x0c
   replicateGroupStrided(m, OBJ_ARRAY_65A0_TEMPLATE, 0x0c, OBJ_ARRAY_65A0 & 0xff00, 0x06, (OBJ_ARRAY_65A0 + 0x07) & 0xff);
 
-  gatherSpriteRecords(m, 0x0010, 0x06, OBJ_65A0_SPRITES & 0xff00, OBJ_65A0_SPRITES & 0xff, OBJ_ARRAY_65A0);
+  gatherSpriteRecords(m, 16, 0x06, OBJ_65A0_SPRITES & 0xff00, OBJ_65A0_SPRITES & 0xff, OBJ_ARRAY_65A0);
 
   loc_11fa(m, OBJ_RECORD_66A0_TEMPLATE_50M);
 
