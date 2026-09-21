@@ -48,16 +48,15 @@ export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
     mem8[SEG_SUBTILE1] = x & 0x07;
 
     // Second point's y, and the segment height — the ABSOLUTE difference of the two y values.
-    // The step callee converts the second point itself, reading its y from H (kept here) and the first
-    // x from C (its c-param default); it also walks DE on to the next record, so bridge the
-    // pointer through the register and read it back afterwards.
+    // The step callee converts the second point itself: it reads that y from H (kept in the
+    // register, since its frozen converter takes H and nothing hands it over as a param), takes the
+    // first x and the record cursor as arguments, and walks DE on to the next record — which comes
+    // back through the register, as the step has no return path for it.
     de = u16(de + 1);
     const y2 = mem8[de];
     regs.h = y2;
-    regs.c = x;
 
-    regs.de = de;
-    loc_0dd3(m, Math.abs(y2 - y) & 0xff);
+    loc_0dd3(m, Math.abs(y2 - y) & 0xff, x, de);
     de = regs.de;
   }
 }

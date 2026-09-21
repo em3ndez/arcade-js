@@ -18,13 +18,14 @@ import {
   SPRITE_ATTR, SPRITE_CODE, SPRITE_X, SPRITE_Y,
 } from "./names.js";
 
-export function publishBarrelSprite(m) {
+export function publishBarrelSprite(m, record = m.regs.ix) {
   const { regs, mem8 } = m;
 
   regs.exx();
 
-  const record = regs.ix;
-  const page = regs.h * 256; // the cursor's high byte never moves
+  // h/l are read post-exx (the bank swap brings in the loop's cursor); they cannot be
+  // params, which would evaluate pre-exx. ix is exx-invariant, so its param default is safe.
+  const page = regs.h * 256;
   const cursor = regs.l;
 
   // Each store lands on the cursor's page, so a cursor near the top wraps rather than crossing.

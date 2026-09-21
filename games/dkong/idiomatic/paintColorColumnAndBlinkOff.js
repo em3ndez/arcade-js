@@ -15,11 +15,7 @@ import { blinkSpritePairOff } from "./blinkSpritePairOff.js";
 const COLOR_COLUMN_TOP = COLOR_COLUMN_B_TOP;
 
 export function paintColorColumnAndBlinkOff(m) {
-  const { regs } = m;
-
-  // Preset the descending colour-column fill: the value, and the cell to start at.
-  regs.a = 0xef;
-
-  fillDescendingColumn(m, COLOR_COLUMN_TOP);
+  // Descending colour-column fill: start value 0xEF at COLOR_COLUMN_TOP.
+  fillDescendingColumn(m, COLOR_COLUMN_TOP, 0xef);
   blinkSpritePairOff(m);
 }

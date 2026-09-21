@@ -18,21 +18,20 @@ import { completeBoardWhenMarioReachesRescueRow } from "./completeBoardWhenMario
 import { loc_1e6d } from "./loc_1e6d.js";
 
 export function checkBoardWonByType(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const board = mem8[BOARD];
 
   if ((board & 0x04) !== 0) return completeRivetBoardWhenCleared(m);
 
   const marioY = mem8[MARIO_Y];
-  regs.a = marioY;
 
-  if ((board & 0x01) !== 0) return completeBoardWhenMarioReachesRescueRow(m);
+  if ((board & 0x01) !== 0) return completeBoardWhenMarioReachesRescueRow(m, marioY);
 
   // Below the line (larger Y): nothing changes this frame.
   if (marioY >= 0x51) return true;
 
-  regs.a = mem8[MARIO_X];
-  regs.rla();
-  return loc_1e6d(m);
+  // Mario's X high bit is the facing flag the tail reads.
+  const marioX = mem8[MARIO_X];
+  return loc_1e6d(m, (marioX & 0x80) !== 0);
 }

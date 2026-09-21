@@ -35,13 +35,18 @@ const LDIR_BYTES = 0x0c; // step 3: twelve bytes into the collision-sprite recor
 export function seed100mBoardObjects(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = OBJ_ARRAY_64_TEMPLATE_100M; // source group, re-read every pass
-  regs.de = (OBJ_ARRAY_64 + OBJ_SPRITE_CODE); // destination record base
-  regs.bc = 0x051c; // five records; the stride argument is four short of the record stride
-  replicateGroupStrided(m);
+  // Broadcast the source group into five strided records (source re-read every pass; dest base
+  // OBJ_ARRAY_64+7, in-page start +7, stride four short of the record stride).
+  replicateGroupStrided(
+    m,
+    OBJ_ARRAY_64_TEMPLATE_100M,
+    0x1c,
+    (OBJ_ARRAY_64 + OBJ_SPRITE_CODE) & 0xff00,
+    0x05,
+    (OBJ_ARRAY_64 + OBJ_SPRITE_CODE) & 0xff,
+  );
 
-  regs.hl = OBJ_PAIR_6680_POSITION_TABLE_100M;
-  seedSpriteObjectPair(m);
+  seedSpriteObjectPair(m, OBJ_PAIR_6680_POSITION_TABLE_100M);
 
   let src = COLLISION_SPRITES_TEMPLATE_100M;
   let dst = OBJECT_COLLISION_SPRITES;
@@ -51,19 +56,29 @@ export function seed100mBoardObjects(m) {
     dst = u16(dst + 1);
   }
 
-  regs.hl = OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA; // the position table, laid down just after the routine body
-  regs.de = FIRE_RECORDS_100M_X; // destination: the first record's +3
-  regs.bc = 0x021e; // two records
-  copyBytePairsStrided(m);
+  // Scatter the position table (byte pairs) into +3/+5 of the two extra records (two records).
+  copyBytePairsStrided(m, OBJ_ARRAY_64_POSITION_TABLE_100M_EXTRA, FIRE_RECORDS_100M_X, 0x1e, 0x02);
 
-  regs.hl = OBJ_ARRAY_64_TEMPLATE_100M_EXTRA; // the appearance group
-  regs.de = FIRE_RECORDS_100M_CODE; // destination: the first record's +7
-  regs.bc = 0x021c; // two records
-  replicateGroupStrided(m);
+  // Broadcast the appearance group into +7..+a of the same two records.
+  replicateGroupStrided(
+    m,
+    OBJ_ARRAY_64_TEMPLATE_100M_EXTRA,
+    0x1c,
+    FIRE_RECORDS_100M_CODE & 0xff00,
+    0x02,
+    FIRE_RECORDS_100M_CODE & 0xff,
+  );
 
   const fireBase = FIRE_RECORDS_100M;
   mem8[u16(fireBase + 0x00)] = 0x01;
   mem8[u16(fireBase + 0x20)] = 0x01; // the second record, one stride on
-  // base / dest / count / stride ride the return so the frozen gather reads them off the bridge.
-  return [regs.ix = fireBase, regs.hl = M100_FIRE_SPRITE_PAIR, regs.b = 0x02, regs.de = 0x0020, gatherSpriteRecords(m)];
+  // Gather two permuting hardware sprite records (base fireBase, dest M100_FIRE_SPRITE_PAIR, count 2,
+  // stride 32). The gather leaves A/B/L/IX byte-faithful, no manual write.
+  gatherSpriteRecords(m, 32, 0x02, M100_FIRE_SPRITE_PAIR & 0xff00, M100_FIRE_SPRITE_PAIR & 0xff, fireBase);
+
+  // Terminal register live-outs the memory-equivalence gate compares: C/D/E/H reloaded here (A/B/L/IX
+  // already left by the gather; H-only, since the gather leaves L, so writing HL would clobber L).
+  regs.c = 0x1c;
+  regs.de = 32;
+  regs.h = (M100_FIRE_SPRITE_PAIR >> 8) & 0xff;
 }

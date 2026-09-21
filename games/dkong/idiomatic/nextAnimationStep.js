@@ -56,8 +56,8 @@ export function nextAnimationStepFromRegisters(m, input = m.regs.a, bIn = m.regs
     return [m.regs.b = r.b, m.regs.c = r.c, m.regs.d = input, m.regs.a = r.a];
   }
 
-  // next == 3: `res 2,d` is a flagless value op (`input & ~0x04`); `dec d` is the deep exit's final
-  // flag-setter, so it stays a machine op while b/c/a ride the return.
-  regs.d = regs.dec8(input & ~0x04);
-  return [m.regs.b = r.b, m.regs.c = r.c, m.regs.a = r.a];
+  // next == 3: `res 2,d` is a flagless value op (`input & ~0x04`); `dec d` stays a machine op —
+  // its Z/S are the deep exit's return flags — while b/c/d/a ride the return.
+  const dVal = regs.dec8(input & ~0x04);
+  return [m.regs.b = r.b, m.regs.c = r.c, m.regs.d = dVal, m.regs.a = r.a];
 }
