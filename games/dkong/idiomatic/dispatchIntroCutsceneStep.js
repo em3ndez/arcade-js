@@ -1,26 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchIntroCutsceneStep — vector the opening Kong-climb cutscene to its current step handler,
- * read from an 8-entry inline jump table of little-endian target addresses.
+ * dispatchIntroCutsceneStep — run the current step of the opening Kong-climb cutscene: hand the
+ * frame to the handler for the step held in INTRO_STEP, a direct HANDLERS lookup by the selector.
  *
  * LIVE-OUT: memory-only — the step handler's writes.
  */
 
-import { u16 } from "../../../core/int.js";
 import { INTRO_STEP } from "./names.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
+import { NotImplemented } from "../../../boards/dkong/io.js";
+import { setupIntroCutsceneStep } from "./setupIntroCutsceneStep.js";
+import { runIntroClimbStep } from "./runIntroClimbStep.js";
+import { animateIntroClimbStep } from "./animateIntroClimbStep.js";
+import { advanceSequenceStepWhenTimerExpires } from "./advanceSequenceStepWhenTimerExpires.js";
+import { loc_0b06 } from "./loc_0b06.js";
+import { loc_0b68 } from "./loc_0b68.js";
+import { runIntroRoarStep } from "./runIntroRoarStep.js";
 
-const INTRO_STEP_TABLE = 0x0a7a;
-const DISPATCH_TABLE_0A7A = "0x0A7A (0x6385 sequence)";
+const HANDLERS = [
+  setupIntroCutsceneStep, // step 0 — set up the cutscene
+  runIntroClimbStep, // step 1 — Kong's climb
+  animateIntroClimbStep, // step 2 — climb animation
+  advanceSequenceStepWhenTimerExpires, // step 3 — gated tick, advance on expiry
+  loc_0b06, // step 4 — reseed for the next phase
+  advanceSequenceStepWhenTimerExpires, // step 5 — gated tick (same handler as step 3)
+  loc_0b68, // step 6 — scroll the sprite block, place board bands
+  runIntroRoarStep, // step 7 — the roar
+];
 
 export function dispatchIntroCutsceneStep(m) {
-  const { mem8 } = m;
+  const handler = HANDLERS[m.mem8[INTRO_STEP]];
+  if (handler) return handler(m);
 
-  const step = mem8[INTRO_STEP];
-
-  // Doubling into the table offset is an 8-bit result: base + (2*step & 0xff), not base + 2*step.
-  const entry = u16(INTRO_STEP_TABLE + ((step * 2) & 0xff));
-  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
-
-  loc_00ca(m, target, DISPATCH_TABLE_0A7A);
+  throw new NotImplemented(
+    `dispatchIntroCutsceneStep: INTRO_STEP ${m.mem8[INTRO_STEP]} has no handler.`,
+  );
 }

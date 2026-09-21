@@ -1,34 +1,32 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for dispatchIntroCutsceneStep (ROM 0x0A76) — the opening Kong-climb
- * cutscene's per-frame step dispatcher: `ld a,(0x6385)` (INTRO_STEP) then vector through
- * the 8-entry inline jump table at ROM 0x0A7A.
+ * cutscene's per-frame step dispatcher. The routine is now DISSOLVED: it selects a handler
+ * directly by INTRO_STEP (0x6385) — `HANDLERS[step](m)`, step 0 -> setupIntroCutsceneStep …
+ * 7 -> runIntroRoarStep (steps 3 and 5 share advanceSequenceStepWhenTimerExpires) — with no
+ * ROM jump table, no computed target address, and no `loc_00ca`/`m.overrides` seam. The
+ * retired table-math / stub-sweep / 8-bit-wrap TEETH tests are inexpressible against this
+ * form and are gone.
  *
- * loc_0a76 is NOT reached in plain attract (verified: 0 dispatches over 2000 attract
- * frames) — it fires only once a game is credited and started, while in-game sub-state 7
- * (the opening cutscene) is active. And it is not a leaf: it dispatches a step handler
- * that writes memory and drives the cutscene. So it is validated by MEMORY-equivalence
- * against the frozen oracle (RAM − STACK_SCRATCH, pc, SP), never the full register file
- * and never cycles, with a FRESH clone per case:
+ * loc_0a76 is NOT reached in plain attract (verified: 0 dispatches over 2000 attract frames);
+ * it fires only once a game is credited and started, while the opening cutscene plays. It is
+ * not a leaf — it dispatches a step handler that writes memory and drives the cutscene. So it
+ * is validated by MEMORY-equivalence against the frozen oracle: RAM − STACK_SCRATCH, never SP,
+ * never pc, never the full register file, never cycles. The dissolved form deliberately does
+ * not seat a guest-stack return, so SP/pc legitimately differ from the oracle and are outside
+ * the compare. Two arms:
  *
- *   1. REALISM (captured driven dispatches) — drive a coin+start into a credited game so
- *      GAME_STATE reaches 3 and the opening cutscene (sub-state 7) plays, hook 0x0a76, and
- *      clone the machine at each real dispatch. For each, run the ORACLE on one clone and
- *      dispatchIntroCutsceneStep on another and prove RAM(−stack) + pc + SP identical — the
- *      FULL oracle step handler runs on BOTH sides, so a wrong target OR a live
- *      register/flag handoff the folded-away trampoline would have supplied surfaces as
- *      divergent memory. The run naturally reaches all 8 cutscene steps (0..7).
+ *   1. REALISM (captured driven dispatches) — drive a coin+start into a credited game so the
+ *      opening cutscene plays, hook 0x0a76, and clone the machine at each real dispatch. For
+ *      each, run the ORACLE on one clone and dispatchIntroCutsceneStep on another and prove
+ *      RAM(−stack) identical — the FULL oracle step handler runs on BOTH sides, so a wrong
+ *      handler mapping or a dropped write surfaces as divergent RAM. The run naturally reaches
+ *      all 8 cutscene steps (0..7).
  *
- *   2. CRAFTED (exhaustive selector sweep) — the table indices the driven run never
- *      reaches (INTRO_STEP only ever holds 0..7 in play). On a real captured cutscene
- *      state, poke INTRO_STEP (0x6385) to every byte 0..255 identically on both sides and
- *      route ANY computed target to an IDENTICAL catch-all stub (so the handler never
- *      runs), then compare the target the dispatcher handed the stub + SP. This
- *      exhaustively pins the `0x0A7A + (2*sel & 0xff)` 8-bit-wrap table math, including the
- *      wrap region sel >= 0x80.
- *
- *   3. TEETH — a twin that forms the offset as a full 16-bit `2*sel` (skipping the 8-bit
- *      `add a,a` wrap) MUST be caught by the selector sweep at sel >= 0x80.
+ *   2. MAPPING TOOTH — a broken twin whose HANDLERS array has two slots swapped (steps 1 and
+ *      2 — the climb vs. the climb-animation handlers). The REALISM cross-check must CATCH it:
+ *      RAM diverges on at least one real captured step. This pins the HANDLERS ordering; a
+ *      wrong slot mapping would be caught here.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-0a76.test.js
  */
@@ -39,7 +37,13 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0a76 as oracle } from "../../translated/loc_0a76.js";
 import { dispatchIntroCutsceneStep } from "../dispatchIntroCutsceneStep.js";
-import { loc_00ca } from "../../translated/loc_00ca.js";
+import { setupIntroCutsceneStep } from "../setupIntroCutsceneStep.js";
+import { runIntroClimbStep } from "../runIntroClimbStep.js";
+import { animateIntroClimbStep } from "../animateIntroClimbStep.js";
+import { advanceSequenceStepWhenTimerExpires } from "../advanceSequenceStepWhenTimerExpires.js";
+import { loc_0b06 } from "../loc_0b06.js";
+import { loc_0b68 } from "../loc_0b68.js";
+import { runIntroRoarStep } from "../runIntroRoarStep.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../names.js";
 
@@ -52,13 +56,11 @@ const test = ROM_PRESENT
 
 const TARGET = 0x0a76;
 const INTRO_STEP = 0x6385;
-const INTRO_STEP_TABLE = 0x0a7a;
-const DISPATCH_TABLE_0A7A = "0x0A7A (0x6385 sequence)";
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// A coin+start tape (as in the 0x06fe dispatcher test): coin on IN2 bit7 at frame 10,
-// start1 on IN2 bit2 at frame 30. This credits + starts a game so GAME_STATE reaches 3,
-// the opening cutscene (sub-state 7) plays, and loc_0a76 dispatches per frame while it runs.
+// A coin+start tape (as in the 0x06fe dispatcher test): coin on IN2 bit7 at frame 10, start1
+// on IN2 bit2 at frame 30. This credits + starts a game so GAME_STATE reaches 3, the opening
+// cutscene plays, and loc_0a76 dispatches per frame while it runs.
 const COIN_START_TAPE = [
   { port: 0x7d00, bits: 0x80, frame: 10, dur: 6 }, // coin  (IN2 bit7)
   { port: 0x7d00, bits: 0x04, frame: 30, dur: 6 }, // start (IN2 bit2)
@@ -77,14 +79,12 @@ function firstRamDiffExStack(a, b, offToAddr) {
   return null;
 }
 
-// -- 1. REALISM (captured driven dispatches) ----------------------------------
-
 /**
- * Drive a coin+start game and clone the machine at each real 0x0a76 dispatch, keeping up
- * to `perStep` clones per distinct INTRO_STEP value (so one dominant step cannot crowd out
- * the variety). The wrapper clones the entry state, then runs the oracle so the host game
- * proceeds undisturbed. Capturing is gated off after the host run so the isolated replays
- * below (whose handlers dispatch further steps) cannot pollute it.
+ * Drive a coin+start game and clone the machine at each real 0x0a76 dispatch, keeping up to
+ * `perStep` clones per distinct INTRO_STEP value (so one dominant step cannot crowd out the
+ * variety). The wrapper clones the entry state, then runs the oracle so the host game proceeds
+ * undisturbed. Capturing is gated off after the host run so the isolated replays below (whose
+ * handlers dispatch further steps) cannot pollute it.
  */
 function captureDrivenDispatches(perStep, maxFrames) {
   const caps = [];
@@ -105,7 +105,9 @@ function captureDrivenDispatches(perStep, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured cutscene 0x0a76 dispatches — RAM(−stack) + pc + SP match", () => {
+// -- 1. REALISM (captured driven dispatches) ----------------------------------
+
+test("REALISM: real captured cutscene 0x0a76 dispatches — RAM(−stack) matches oracle", () => {
   const caps = captureDrivenDispatches(6, 1500);
   assert.ok(caps.length >= 1, "expected at least one real 0x0a76 dispatch during the opening cutscene");
 
@@ -125,99 +127,56 @@ test("REALISM: real captured cutscene 0x0a76 dispatches — RAM(−stack) + pc +
       ramDiff && `RAM diverged at ${hx(ramDiff.addr)}: oracle=${ramDiff.a} cand=${ramDiff.b} ` +
         `(INTRO_STEP ${hx(cap.mem.read8(INTRO_STEP))})`,
     );
-    assert.equal(b.regs.sp, a.regs.sp, `SP diverged: oracle=${hx(a.regs.sp)} cand=${hx(b.regs.sp)}`);
-    assert.equal(b.pc, a.pc, `pc diverged: oracle=${hx(a.pc)} cand=${hx(b.pc)}`);
     compared++;
   }
   assert.ok(seen.size >= 5, `expected several distinct cutscene steps, saw ${seen.size}`);
   console.log(
     `  REALISM: ${compared} real dispatches over ${seen.size} distinct steps ` +
-      `{${[...seen].sort((x, y) => x - y).map(hx).join(", ")}} — RAM(−stack)+pc+SP identical`,
+      `{${[...seen].sort((x, y) => x - y).map(hx).join(", ")}} — RAM(−stack) identical to the oracle`,
   );
 });
 
-// -- 2. CRAFTED (exhaustive selector sweep) -----------------------------------
+// -- 2. MAPPING TOOTH ---------------------------------------------------------
 
-// A catch-all override object (duck-typed like the Machine's overrides Map) that routes
-// ANY computed target to `stub`, so the dispatched arm never runs and we can read the
-// target the dispatcher formed (from the get() key; loc_00ca checks
-// `overrides.has(target)` before any target branch, so both oracle and candidate reach it).
-function stubOverrides(rec) {
-  const SENTINEL = 0x5a;
-  return {
-    has: () => true,
-    get: (target) => (mm) => { rec.push({ target, sp: mm.regs.sp }); return SENTINEL; },
-  };
+// Broken twin: the correct HANDLERS array with steps 1 and 2 swapped (runIntroClimbStep and
+// animateIntroClimbStep). A wrong slot ordering. The REALISM cross-check must catch it on the
+// real captured steps.
+function brokenSwappedDispatch(m) {
+  const WRONG = [
+    setupIntroCutsceneStep,
+    animateIntroClimbStep, // step 1 <- step 2's handler (SWAPPED)
+    runIntroClimbStep, // step 2 <- step 1's handler (SWAPPED)
+    advanceSequenceStepWhenTimerExpires,
+    loc_0b06,
+    advanceSequenceStepWhenTimerExpires,
+    loc_0b68,
+    runIntroRoarStep,
+  ];
+  const handler = WRONG[m.mem8[INTRO_STEP]];
+  return handler(m);
 }
 
-// A base cutscene state to poke selectors onto (a real captured 0x0a76 entry).
-function craftedBase() {
-  const caps = captureDrivenDispatches(1, 400);
-  assert.ok(caps.length >= 1, "expected a real cutscene 0x0a76 state to craft from");
-  return caps[0];
-}
+test("MAPPING TOOTH: the swapped-slot twin is CAUGHT by the realism cross-check", () => {
+  const caps = captureDrivenDispatches(6, 1500);
+  assert.ok(caps.length >= 1, "expected a real 0x0a76 dispatch to test the mapping against");
 
-// Run oracle and candidate on identically-poked clones for one selector; return the
-// { target, sp } each handed the stub.
-function runCraftedSelector(base, candidate, sel) {
-  const mA = base.clone();
-  const mB = base.clone();
-  mA.mem.write8(INTRO_STEP, sel);
-  mB.mem.write8(INTRO_STEP, sel);
-  const recA = [], recB = [];
-  mA.overrides = stubOverrides(recA);
-  mB.overrides = stubOverrides(recB);
-  oracle(mA);
-  candidate(mB);
-  return { recA, recB };
-}
-
-test("CRAFTED: dispatchIntroCutsceneStep == oracle over all 256 selectors (0x0A7A table)", () => {
-  const base = craftedBase();
-  let count = 0;
-  let mismatch = null;
-  for (let sel = 0; sel < 256 && !mismatch; sel++) {
-    const { recA, recB } = runCraftedSelector(base, dispatchIntroCutsceneStep, sel);
-    count++;
-    if (recA.length !== 1 || recB.length !== 1) {
-      mismatch = { sel, why: `dispatch fired ${recA.length}/${recB.length} times (want 1/1)` };
-    } else if (recA[0].target !== recB[0].target) {
-      mismatch = { sel, why: `target ${hx(recA[0].target)}/${hx(recB[0].target)}` };
-    } else if (recA[0].sp !== recB[0].sp) {
-      mismatch = { sel, why: `SP ${hx(recA[0].sp)}/${hx(recB[0].sp)}` };
-    }
+  let caught = 0;
+  let example = null;
+  const seen = new Set();
+  for (const cap of caps) {
+    const s = cap.mem.read8(INTRO_STEP);
+    seen.add(s);
+    const a = cap.clone(); // oracle (correct mapping)
+    const b = cap.clone(); // broken twin (swapped mapping)
+    oracle(a);
+    brokenSwappedDispatch(b);
+    const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
+    if (ramDiff) { caught++; if (!example) example = { step: s, ramDiff }; }
   }
-  assert.equal(mismatch, null, mismatch && `mismatch at sel=${hx(mismatch.sel)}: ${mismatch.why}`);
-  assert.equal(count, 256, "must have swept all 256 selectors");
-  console.log(`  CRAFTED: ${count} selectors — dispatched target + SP identical to the oracle`);
-});
-
-// -- 3. TEETH -----------------------------------------------------------------
-
-/**
- * Broken twin: forms the table offset as a FULL 16-bit `2*sel` instead of the hardware's
- * 8-bit `add a,a` (`2*sel & 0xff`). It agrees with the oracle for every selector < 0x80
- * and diverges from 0x80 up, so only a sweep across the wrap catches it.
- */
-function brokenDispatch(m) {
-  const { mem } = m;
-  const step = mem.read8(INTRO_STEP);
-  const entry = (INTRO_STEP_TABLE + 2 * step) & 0xffff; // BUG: no 8-bit wrap on the *2
-  const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-  // Dispatch the (wrong) target through the SAME seam the routine uses, so the catch-all
-  // stub sees it.
-  loc_00ca(m, target, DISPATCH_TABLE_0A7A);
-}
-
-test("TEETH: the 16-bit-offset twin (no 8-bit wrap) is CAUGHT by the selector sweep", () => {
-  const base = craftedBase();
-  let caughtAt = null;
-  for (let sel = 0; sel < 256 && caughtAt === null; sel++) {
-    const { recA, recB } = runCraftedSelector(base, brokenDispatch, sel);
-    if (recA.length !== 1 || recB.length !== 1 || recA[0].target !== recB[0].target) {
-      caughtAt = sel;
-    }
-  }
-  assert.notEqual(caughtAt, null, "the sweep FAILED to catch the missing 8-bit offset wrap — it is worthless");
-  console.log(`  TEETH: caught the 16-bit-offset twin at sel=${hx(caughtAt)}`);
+  assert.ok(caught >= 1, "the realism cross-check FAILED to catch the swapped-slot twin — the mapping is untested");
+  console.log(
+    `  MAPPING TOOTH: caught the swapped-slot twin on ${caught} of ${caps.length} real dispatches ` +
+      `(steps seen {${[...seen].sort((x, y) => x - y).map(hx).join(", ")}}); e.g. step ${hx(example.step)} ` +
+      `diverges at ${hx(example.ramDiff.addr)} (oracle=${example.ramDiff.a} broken=${example.ramDiff.b})`,
+  );
 });
