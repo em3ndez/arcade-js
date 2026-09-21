@@ -10,6 +10,7 @@
  */
 
 import { publishBarrelSprite } from "./publishBarrelSprite.js";
+import { retireBarrelIntoOilDrum } from "./retireBarrelIntoOilDrum.js";
 import { loc_215f } from "./loc_215f.js";
 import { u8 } from "../../../core/int.js";
 import {
@@ -59,8 +60,7 @@ export function advanceRollingBarrel(m, slopeStep = m.regs.b, record = m.regs.ix
   advanceBarrelSpriteOrientation(m);
 
   // On its own last arm the gate discards this return address and carries the walk on itself.
-  m.push16(BARREL_ROLL_GATE_RETURN);
-  if (!m.call(0x24b4)) return;
+  if (!retireBarrelIntoOilDrum(m)) return;
 
   // Re-read X: the gate writes that field itself, though only on the arm that never comes back.
   const xNow = mem8[record + OBJ_X];

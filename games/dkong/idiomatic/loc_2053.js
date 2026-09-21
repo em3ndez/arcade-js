@@ -14,6 +14,7 @@
  */
 
 import { publishBarrelSprite } from "./publishBarrelSprite.js";
+import { retireBarrelIntoOilDrum } from "./retireBarrelIntoOilDrum.js";
 import { u8 } from "../../../core/int.js";
 import { OBJ_X } from "./names.js";
 import { stepBallisticMotion } from "./stepBallisticMotion.js";
@@ -41,8 +42,7 @@ export function loc_2053(m, record = m.regs.ix,) {
   if (u8(mem8[record + OBJ_X] + RETIRE_MARGIN) < 2 * RETIRE_MARGIN) return m.call(0x2079);
 
   // Bounds gate; it splices past this routine, so its answer gates everything below.
-  m.push16(0x206b);
-  if (!m.call(0x24b4)) return;
+  if (!retireBarrelIntoOilDrum(m)) return;
 
   advanceBarrelSpriteOrientation(m, record, (mem8[record + OBJ_VELOCITY_X_HI] & 1) * 4);
 

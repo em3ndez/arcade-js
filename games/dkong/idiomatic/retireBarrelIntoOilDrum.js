@@ -13,6 +13,7 @@
  * LIVE-OUT: the protocol value, and nothing else.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import {
   BARREL_DIFFICULTY_LATCH,
   FIXED_HAZARD_PHASE,
@@ -58,11 +59,8 @@ export function retireBarrelIntoOilDrum(m, ix = m.regs.ix) {
   mem8[record + OBJ_X] = 0;
   mem8[IMPACT_SOUND] = SOUND_FRAMES;
 
-  // Pull the caller's return address off the stack: control is not going back there.
-  m.regs.hl = m.pop16();
-
   if (mem8[BARREL_DIFFICULTY_LATCH] === 0) mem8[BARREL_DIFFICULTY_LATCH] = 1;
 
-  m.call(0x21ba);
+  publishBarrelSprite(m);
   return false;
 }

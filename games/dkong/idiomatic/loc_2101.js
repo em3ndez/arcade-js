@@ -1,4 +1,5 @@
 import { retireBarrelAtEndOfRange } from "./retireBarrelAtEndOfRange.js";
+import { retireBarrelIntoOilDrum } from "./retireBarrelIntoOilDrum.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * loc_2101 — offer an object to the bottom-of-screen retirement check, then run the left-edge
@@ -11,9 +12,7 @@ import { retireBarrelAtEndOfRange } from "./retireBarrelAtEndOfRange.js";
  */
 
 export function loc_2101(m) {
-  m.push16(0x2104);
-
-  if (!m.call(0x24b4)) return undefined;
+  if (!retireBarrelIntoOilDrum(m)) return undefined;
 
   return retireBarrelAtEndOfRange(m);
 }

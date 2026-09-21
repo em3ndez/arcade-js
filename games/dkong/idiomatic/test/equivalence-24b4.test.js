@@ -24,10 +24,10 @@
  *      Credited play and boards 2-4 are NOT covered — the object walk this belongs to runs only
  *      on 25m.
  *
- *      A retirement replay is not one routine's worth of work. The rewrite is installed in the
- *      replaying machine's registry, and the shared tail re-enters this address for the rest of
- *      the ten-record walk, so one replay drives every later slot through the implementation
- *      under test against the oracle doing the same.
+ *      Each replay isolates ONE dispatch: the candidate is called directly on a fresh
+ *      override-free machine, so when the shared tail re-enters 0x24B4 for later slots those
+ *      re-entries run the ORACLE on both sides and the diff reflects only the outermost record.
+ *      Every real dispatch is replayed, so the whole walk is covered across the run.
  *
  *   2. EQUAL (crafted), five arms for the five things attract cannot produce, each ONE poke on
  *      a real capture with everything else left alone, and each proved non-vacuous by counting
@@ -43,20 +43,13 @@
  *                                   (Whether the ROM can produce a 2 there is NOT claimed; the
  *                                   arm pins the comparison, not reachability.)
  *
- *   3. THE CONTRACT IS THE FULL DUMP — work/sprite/video RAM with STACK_SCRATCH INCLUDED — plus
- *      pc, SP and the returned protocol value. The stack region is deliberately NOT excluded:
- *      the rewrite keeps every stack move the oracle makes (the retirement arm's pop, and the
- *      hand-off into the still-frozen tail), so the guest stack legitimately agrees and
- *      comparing it is free teeth. The test asserts that including it is not vacuous by
- *      counting the crafted retirements that actually write inside it.
- *
- *      pc and SP hold on the RETURN arms too, and that is a fact about the harness worth
- *      stating: the candidate is invoked through the machine's OWN call-bracket seam
- *      (`routines.get(TARGET)`, i.e. the seamWrap installed at construction), which is what
- *      go-live uses, so the `ret` the rewrite models as a JS `return` is closed exactly as it
- *      will be in the shipped configuration. A dedicated assertion proves that seam actually
- *      fires rather than assuming it, and a second one proves that installing an override at
- *      this address does not perturb the ORACLE side.
+ *   3. THE CONTRACT IS work/sprite/video RAM MINUS STACK_SCRATCH plus the returned protocol
+ *      value. The candidate is the DISSOLVED rewrite: it is called as a plain JS function (never
+ *      installed through the call-bracket seam) and hands the record to the shared tail with a
+ *      direct call, touching none of the guest stack. The oracle still splices through the guest
+ *      stack (its retirement arm pops the caller's return), so SP, pc and the dead scratch below
+ *      SP legitimately differ between the two — they are the guest machine's, not the rewrite's,
+ *      and are excluded from the diff rather than compared.
  *
  *   4. LIVE (measured). The rewrite is wired live at 0x24B4 for a 1200-frame CYCLE-FREE attract
  *      run and every frame is diffed against the all-oracle baseline. That baseline is the right
@@ -65,21 +58,21 @@
  *      is the routine under test. The arm counts its own dispatches and asserts the count, so it
  *      cannot pass by never running.
  *
- *   5. TEETH — nine broken twins, and the test asserts WHICH half catches each. Four of them
- *      escape every one of the 1154 natural captures and are caught only by a crafted arm; both
- *      halves are asserted for each, which is the whole reason those arms exist:
+ *   5. TEETH — broken twins, and the test asserts WHICH half catches each. Five escape every one
+ *      of the natural captures and are caught only by a crafted arm; both halves are asserted for
+ *      each, which is the whole reason those arms exist:
  *        Y threshold one row low   -> escapes natural, caught by (b)
  *        Y threshold one row high  -> escapes natural, caught by (c)
  *        band low edge dropped     -> escapes natural, caught by (a)
  *        phase write unconditional -> escapes natural, caught by (d)
  *        one-shot latch dropped    -> escapes natural, caught by (e)
- *      and four are caught naturally, each by a different half of the contract:
+ *      and three are caught naturally, each by a named half of the contract:
  *        band high edge off by one -> RAM, on the single OBJ_X == 42 dispatch
  *        column blank dropped      -> RAM
  *        wrong protocol value      -> the RETURN comparison and nothing else
- *        leaked return bracket     -> pc and nothing else (RAM, SP and the return all agree),
- *                                     which is what proves the stack half of the contract is
- *                                     wired rather than decorative
+ *      The old "leaked return bracket" twin is retired: it diverged only in pc, which the
+ *      dissolved form no longer produces (it owns no guest-stack bracket) and the contract no
+ *      longer compares.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-24b4.test.js
  */
@@ -125,14 +118,16 @@ const RECORD_BASES = 5; // OBJ_ARRAY_67 records 0..4, the ones attract's walk re
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// -- rehosting: a fresh, override-free machine carrying exactly one handler ------
+// -- rehosting: a fresh, override-free machine carrying `src`'s state --------------
 
 /**
- * Copy a machine's state into a FRESH Machine that carries `fn` at 0x24B4 and nothing else.
+ * Copy a machine's state into a FRESH Machine with no overrides (the oracle and the dissolved
+ * candidate both run directly on it — the oracle as a plain call, the candidate as a JS import).
  *
  * Not `clone()`: clone rebuilds from `this.assets`, so it would carry the capturing hook and
- * every replay would re-enter it. A fresh Machine also runs the constructor's override wiring,
- * which is what puts the real call-bracket seam around `fn` — see the header, point 3.
+ * every replay would re-enter it. `fn` stays as an optional override for completeness, but the
+ * sweep passes null: no seam is installed, so the frozen tail the oracle splices into resolves
+ * to its ORACLE routine, matching the frozen tail the candidate calls.
  */
 function rehost(src, fn) {
   const c = new Machine(ROM, fn ? { overrides: new Map([[TARGET, fn]]) } : {});
@@ -187,13 +182,6 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
   // A crafted arm is worthless if it changes nothing; count the dispatches on which it moves the
   // ORACLE's own result, so non-vacuity is a measurement rather than an assumption.
   let prepChangedOracle = 0;
-  // Non-vacuity of INCLUDING the stack scratch in the diff: how many replays actually wrote there.
-  let stackScratchWritten = 0;
-  // Proof that the candidate really goes through the machine's call-bracket seam: on a return arm
-  // the rewrite touches no stack at all, so SP can only have advanced past the caller's return
-  // address, and pc can only hold it, if the seam's `ret` fired.
-  let seamClosedBracket = 0;
-  let returnArms = 0;
 
   const tally = (map, k) => map.set(k, (map.get(k) ?? 0) + 1);
 
@@ -201,47 +189,38 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
     dispatches++;
     if (firstFrame === null) firstFrame = mm.frames.length;
     tally(bases, mm.regs.ix);
-    const spEntry = mm.regs.sp;
-    const callerReturn = mm.mem.read16(spEntry);
 
-    const a = rehost(mm, oracle); // nested dispatches during the walk stay oracle on this side
-    const b = rehost(mm, candidate); // ...and stay the candidate on this one
+    // The dissolved rewrite is a DIRECT JS call (oracle runs the guest-stack path): it owns no guest
+    // stack, so SP/pc aren't compared — the contract is RAM−STACK_SCRATCH + the returned protocol value.
+    const a = rehost(mm, null); // oracle, run directly (still splices through the guest stack)
+    const b = rehost(mm, null); // candidate, called directly
     if (prep) { prep(a); prep(b); }
     const arm = armOf(a);
     tally(arms, arm);
 
     let oracleValue, oracleDump;
-    const entryDump = a.dumpState();
     try {
-      oracleValue = a.routines.get(TARGET)(a);
+      oracleValue = oracle(a);
       oracleDump = a.dumpState();
     } catch (err) {
       // The oracle faulting on a crafted state is a defect in the ARM, not in the candidate.
       throw new Error(`the oracle threw on dispatch #${dispatches} (${arm}): ${err.message}`);
     }
-    for (let i = 0; i < entryDump.length; i++) {
-      if (entryDump[i] === oracleDump[i]) continue;
-      const addr = a.stateOffsetToAddr(i);
-      if (addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi) { stackScratchWritten++; break; }
-    }
 
     let breach = null;
     try {
-      const candidateValue = b.routines.get(TARGET)(b);
+      const candidateValue = candidate(b);
       const candidateDump = b.dumpState();
       for (let i = 0; i < oracleDump.length; i++) {
         if (oracleDump[i] === candidateDump[i]) continue;
-        breach = { kind: "RAM", addr: a.stateOffsetToAddr(i), a: oracleDump[i], b: candidateDump[i] };
+        const addr = a.stateOffsetToAddr(i);
+        // The oracle's splice pops the guest stack; the rewrite does not — dead scratch, excluded.
+        if (addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi) continue;
+        breach = { kind: "RAM", addr, a: oracleDump[i], b: candidateDump[i] };
         break;
       }
-      if (!breach && a.pc !== b.pc) breach = { kind: "pc", addr: null, a: hx(a.pc), b: hx(b.pc) };
-      if (!breach && a.regs.sp !== b.regs.sp) breach = { kind: "SP", addr: null, a: hx(a.regs.sp), b: hx(b.regs.sp) };
       if (!breach && oracleValue !== candidateValue) {
         breach = { kind: "return", addr: null, a: String(oracleValue), b: String(candidateValue) };
-      }
-      if (arm.startsWith("ret") && candidateValue === true) {
-        returnArms++;
-        if (b.regs.sp === ((spEntry + 2) & 0xffff) && b.pc === callerReturn) seamClosedBracket++;
       }
     } catch (err) {
       // A twin handed a state it should never have accepted can walk off the end of a ROM table
@@ -252,8 +231,8 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
     if (prep) {
       // Same entry, same oracle, WITHOUT the craft: if the result is identical the craft did
       // nothing on this dispatch.
-      const plain = rehost(mm, oracle);
-      plain.routines.get(TARGET)(plain);
+      const plain = rehost(mm, null);
+      oracle(plain);
       const p = plain.dumpState();
       for (let i = 0; i < p.length; i++) if (p[i] !== oracleDump[i]) { prepChangedOracle++; break; }
     }
@@ -263,10 +242,7 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
   }]]) });
   host.runFrames(frames);
 
-  return {
-    dispatches, breaches, arms, bases, firstFrame,
-    prepChangedOracle, stackScratchWritten, seamClosedBracket, returnArms,
-  };
+  return { dispatches, breaches, arms, bases, firstFrame, prepChangedOracle };
 }
 
 const describe = (b) =>
@@ -338,66 +314,7 @@ test("EQUAL: retireBarrelIntoOilDrum matches the oracle on every one of the real
   console.log(
     `  EQUAL: all ${NATURAL.dispatches} real 0x24B4 dispatches in ${ATTRACT_FRAMES} attract frames replayed inline ` +
       `(first at frame ${NATURAL.firstFrame}); ${NATURAL.bases.size} record bases; arms: ${census}; ` +
-      "full state dump INCLUDING STACK_SCRATCH, plus pc, SP and the returned protocol value",
-  );
-});
-
-// -- 2. The harness itself -----------------------------------------------------
-
-test("HARNESS: the candidate really goes through the machine's call-bracket seam", () => {
-  assert.equal(NATURAL.returnArms, NATURAL_ARMS["ret above the bottom"] + NATURAL_ARMS["ret past the band"],
-    "the return-arm count does not match the arm census");
-  assert.equal(
-    NATURAL.seamClosedBracket, NATURAL.returnArms,
-    `the seam closed the caller's bracket on only ${NATURAL.seamClosedBracket} of ${NATURAL.returnArms} return arms — ` +
-      "the rewrite touches no stack itself, so without the seam this gate would be comparing a leaked frame",
-  );
-  console.log(
-    `  HARNESS: on all ${NATURAL.returnArms} return arms the candidate came back with SP past the caller's return ` +
-      "address and pc holding it — the seam's ret fired, exactly as it will at go-live",
-  );
-});
-
-test("HARNESS: installing an override at 0x24B4 does not perturb the ORACLE side", () => {
-  // The oracle side is rehosted WITH an override installed (which installs the seam). If that
-  // changed anything the oracle does, every comparison above would be against a moved reference.
-  let checked = 0;
-  let mismatches = 0;
-  const host = new Machine(ROM, { overrides: new Map([[TARGET, (mm) => {
-    checked++;
-    const withSeam = rehost(mm, oracle);
-    const bare = rehost(mm, null);
-    withSeam.routines.get(TARGET)(withSeam);
-    oracle(bare);
-    const p = withSeam.dumpState();
-    const q = bare.dumpState();
-    let same = withSeam.pc === bare.pc && withSeam.regs.sp === bare.regs.sp;
-    for (let i = 0; same && i < p.length; i++) if (p[i] !== q[i]) same = false;
-    if (!same) mismatches++;
-    return oracle(mm);
-  }]]) });
-  host.runFrames(ATTRACT_FRAMES);
-  assert.equal(checked, CAPTURED_DISPATCHES, "the control run did not see the expected dispatch count");
-  assert.equal(mismatches, 0, `${mismatches} of ${checked} oracle replays differ with the seam installed`);
-  console.log(`  HARNESS: ${checked} oracle replays identical with and without an override installed at 0x24B4`);
-});
-
-test("CONTRACT: including STACK_SCRATCH in the diff is not vacuous", () => {
-  // The exclusion sibling gates apply is deliberately NOT applied here (the rewrite keeps the
-  // oracle's stack moves). That is only worth anything if replays write there at all.
-  const written = CRAFTED.retireBaseKind.stackScratchWritten;
-  assert.ok(
-    written > 0,
-    `no crafted retirement wrote inside STACK_SCRATCH ${hx(STACK_SCRATCH.lo)}-${hx(STACK_SCRATCH.hi)}, ` +
-      "so including it in the diff proves nothing",
-  );
-  assert.equal(
-    NATURAL.stackScratchWritten, NATURAL_ARMS.retire,
-    "only the retirement arm should reach code that writes the stack scratch",
-  );
-  console.log(
-    `  CONTRACT: ${written} of ${CRAFTED.retireBaseKind.dispatches} crafted retirements write inside ` +
-      `STACK_SCRATCH ${hx(STACK_SCRATCH.lo)}-${hx(STACK_SCRATCH.hi)}, and it is compared rather than excluded`,
+      "full state dump MINUS STACK_SCRATCH, plus the returned protocol value",
   );
 });
 
@@ -477,9 +394,8 @@ const NATURAL_TWINS = [
   ["band high edge off by one", (m) => twinBody(m, { high: (x) => x > BAND_HI }), "RAM", 1],
   ["column blank dropped", (m) => twinBody(m, { blankColumn: false }), "RAM", 1],
   ["wrong protocol value", (m) => { retireBarrelIntoOilDrum(m); return true; }, "return", 1],
-  // An extra pop on the return arms: RAM, SP and the return value all still agree, so pc is the
-  // only thing in the contract that can see it.
-  ["leaked return bracket", (m) => { const r = retireBarrelIntoOilDrum(m); if (r === true) m.pop16(); return r; }, "pc", 1153],
+  // The old "leaked return bracket" twin (seam-only, catchable only through pc/SP) is gone: the
+  // dissolved rewrite has no guest-stack bracket to leak and the contract no longer compares SP/pc.
 ];
 
 for (const [name, twin, kind, expected] of NATURAL_TWINS) {
@@ -536,12 +452,15 @@ test("LIVE: wired live for a whole attract run, the rewrite leaves the same trac
     const b = live.frames[f];
     for (let i = 0; i < a.length; i++) {
       if (a[i] === b[i]) continue;
-      assert.fail(`frame ${f}: ${hx(baseline.m.stateOffsetToAddr(i))} baseline=${a[i]} live=${b[i]}`);
+      const addr = baseline.m.stateOffsetToAddr(i);
+      // Dead guest scratch below SP legitimately differs; excluded here as everywhere else.
+      if (addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi) continue;
+      assert.fail(`frame ${f}: ${hx(addr)} baseline=${a[i]} live=${b[i]}`);
     }
   }
   console.log(
-    `  LIVE: ${baseline.frames.length} cycle-free attract frames byte-identical with 0x24B4 wired live ` +
-      `(${dispatches} dispatches) — the registers and flags the rewrite drops are read back by nobody ` +
-      "attract reaches",
+    `  LIVE: ${baseline.frames.length} cycle-free attract frames byte-identical (minus STACK_SCRATCH) with ` +
+      `0x24B4 wired live (${dispatches} dispatches) — the registers and flags the rewrite drops are read ` +
+      "back by nobody attract reaches",
   );
 });

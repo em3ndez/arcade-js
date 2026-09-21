@@ -10,21 +10,22 @@
  * (ROM 0x21BA). Almost all of the visible work happens in those continuations, so this gate is
  * mostly a gate on WHICH ONE runs and on what it is handed.
  *
- * CONTRACT COMPARED HERE: work/sprite/video RAM minus STACK_SCRATCH plus the return value — the
- * required memory-equivalence contract — and, as EXTRAS that happen to hold, pc, SP and the full
- * MAIN register file. The extras hold for a derivable reason: the frozen continuations run the
- * whole rest of the sweep and return through the same `ret`, and the sweep's shared tail swaps
- * the register sets back, so by the time control returns the main set belongs to the sweep and
- * not to this branch. Measured: over the 1246 captured dispatches the only registers that ever
- * differ are the SHADOW set (B', C', D', E', H', L') — exactly the state this rewrite drops when
- * it hands over. pc and SP are not decoration here: they are the ONLY surface that catches the
- * dropped-call-bracket twin, which leaves RAM and the return value untouched.
+ * CONTRACT COMPARED HERE: work/sprite/video RAM minus STACK_SCRATCH, the return value, and the
+ * MAIN register file as a declared live-out. The main set holds for a derivable reason: the frozen
+ * continuations run the whole rest of the sweep and the sweep's shared tail swaps the register
+ * sets back, so by the time control returns the main set belongs to the sweep and not to this
+ * branch. Measured: over the captured dispatches the only registers that ever differ are the
+ * SHADOW set (B', C', D', E', H', L') — exactly the state this rewrite drops when it hands over.
+ * pc and SP are NOT compared: the DISSOLVED rewrite direct-calls its continuations instead of
+ * pushing a guest-stack bracket, so its guest pc/SP are the emulator's, not the routine's.
  *
  * THE RETURN VALUE IS UNDEFINED ON EVERY ARM, of the oracle and of the rewrite alike, so
  * asserting it is near-vacuous. The observable that replaces it is WHICH ARM control left
  * through, and it is derived NON-CIRCULARLY: the label comes from hooks on the continuation
  * addresses that record the ORACLE's own outgoing calls at the outermost dispatch, and the same
- * labeller is then run over the rewrite and the two labels compared.
+ * labeller is then run over the rewrite and the two labels compared. The bounds gate is no longer
+ * a hookable continuation (the rewrite inlines it), so its inline-vs-splice split now lives in the
+ * RAM contract, and both sides label that fall-through simply "tail".
  *
  * WHY THE ENTRIES ARE REHOSTED. A capture is cloned from a machine carrying the capturing
  * override, and clone() reruns the constructor, so a clone carries it too. This branch's tail
@@ -39,11 +40,11 @@
  *
  *   1. CAPTURED (real dispatches). 3000 attract frames dispatch 0x2053 1246 times and ALL 1246
  *      are replayed — no sampling, so there is no sampling policy to be wrong about. That is not
- *      tidiness here: two of the six arms attract reaches occur ONCE each in those 1246, so any
- *      fixed stride would have missed them. The per-arm split is bounds-gate-inline x1172,
- *      bounds-gate-splice x1, girder-contact x72 (covering all three of the girder sub-state
- *      machine's own paths), retire x1. Attract is 25m only and fills record slots 0-6, so
- *      the captures say nothing about slots 7-9, the other boards, or gameplay.
+ *      tidiness here: the retire arm attract reaches occurs ONCE in those 1246, so any fixed stride
+ *      would have missed it. The per-arm split is tail (the inlined bounds gate) x1173, girder-
+ *      contact x72 (covering all three of the girder sub-state machine's own paths), retire x1.
+ *      Attract is 25m only and fills record slots 0-6, so the captures say nothing about slots
+ *      7-9, the other boards, or gameplay.
  *
  *   2. ARM AGREEMENT. For every one of those captures, the arm the oracle leaves through equals
  *      the arm the rewrite leaves through. This is the void-return routine's real observable.
@@ -69,7 +70,7 @@
  *      points it drops it — is wired live for the same 3000-frame run. The trace stays
  *      byte-identical, so nothing downstream reads those registers back.
  *
- *   6. TEETH — seven deliberately-broken twins the cases above MUST catch:
+ *   6. TEETH — six deliberately-broken twins the cases above MUST catch, all via RAM or a fault:
  *        (a) the register-set swap dropped — faults on the very FIRST captured dispatch, on an
  *            unmapped read, which is what shows the swap is load-bearing rather than ceremonial;
  *        (b) the girder probe run but its answer ignored — diverges the record's own bytes at
@@ -78,10 +79,10 @@
  *        (c) the retire window tested without its wrap, so only the low side fires;
  *        (d) the retire test read off the record's Y instead of its X;
  *        (e) the orientation selector scaled to 0/2 instead of 0/4;
- *        (f) the bounds gate's return-address bracket dropped;
- *        (g) the bounds gate's splice ignored, so the branch keeps going after control left.
- *      (f) is the one that only pc and SP can see; (g) is caught by a single capture out of
- *      1246, which is the case for replaying every dispatch rather than a sample.
+ *        (g) the bounds gate's splice ignored, so the branch keeps going after control left —
+ *            caught by a single capture out of 1246, the case for replaying every dispatch.
+ *      The old (f) — the bounds gate's return bracket dropped, visible only to pc/SP — is retired:
+ *      the dissolved rewrite pushes no such bracket, so there is nothing to drop.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2053.test.js
  */
@@ -175,8 +176,10 @@ function contractDiffs(entry, fn) {
   const ram = firstRamDiff(o, c);
   if (ram) out.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   if (oret !== cret) out.push(`return oracle=${String(oret)} cand=${String(cret)}`);
-  if (o.pc !== c.pc) out.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) out.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
+  // pc and SP are NOT compared: the dissolved rewrite direct-calls its continuations instead of
+  // pushing a guest-stack bracket, so its guest pc/SP after the branch are the emulator's, not the
+  // routine's. The contract is RAM minus STACK_SCRATCH, the return value, and the MAIN register
+  // live-outs (the sweep's loop state the shared tail swaps back).
   for (const k of MAIN_REGS) {
     if (o.regs[k] !== c.regs[k]) {
       out.push(`reg ${k} oracle=${o.regs[k]} cand=${c.regs[k]}`);
@@ -204,7 +207,7 @@ function frozen() {
 function armOf(entry, impl) {
   const reg = frozen();
   let depth = 1; // `impl` is invoked directly below, so we are already inside one dispatch
-  let arm = null, spliced = null, sub = null;
+  let arm = null, sub = null;
   const hooks = new Map();
   hooks.set(TARGET, (mm) => { depth++; try { return reg.get(TARGET)(mm); } finally { depth--; } });
   for (const t of [CONTACT_ARM, RETIRE_ARM]) {
@@ -213,21 +216,19 @@ function armOf(entry, impl) {
   for (const t of [0x20a2, 0x20c3]) {
     hooks.set(t, (mm) => { if (depth === 1 && arm === CONTACT_ARM && sub === null) sub = t; return reg.get(t)(mm); });
   }
-  hooks.set(BOUNDS_GATE, (mm) => {
-    const mine = depth === 1 && arm === null;
-    if (mine) arm = BOUNDS_GATE;
-    const r = reg.get(BOUNDS_GATE)(mm);
-    if (mine) spliced = r === false;
-    return r;
-  });
+  // The bounds gate (0x24B4) is NOT hooked: the dissolved rewrite direct-calls it rather than
+  // dispatching it, so it is no longer a hookable continuation. When neither the girder arm nor
+  // the retire arm fires, control fell through the (now inlined) bounds gate to the shared tail on
+  // both sides — labelled "tail". The inline-vs-splice split it used to carry now lives in the RAM
+  // contract: a spliced (retired) record differs in RAM from an inlined one.
   const e = rehost(entry, hooks);
   try {
     impl(e);
   } catch (err) {
     return `threw ${err.constructor.name}`;
   }
-  const tail = arm === BOUNDS_GATE ? (spliced ? "/splice" : "/inline") : sub ? "/" + hx(sub) : "";
-  return hx(arm) + tail;
+  if (arm === null) return "tail";
+  return hx(arm) + (arm === CONTACT_ARM && sub ? "/" + hx(sub) : "");
 }
 
 // -- shared fixtures (built once, reused by every test in the file) ------------
@@ -336,7 +337,7 @@ test("CAPTURED: every real 0x2053 dispatch matches the oracle", () => {
   const slots = [...new Set(caps.map((c) => (c.regs.ix - OBJ_ARRAY_67) / RECORD_STRIDE))].sort((p, q) => p - q);
   console.log(
     `  CAPTURED: all ${caps.length} of ${caps.length} dispatches in ${ATTRACT_FRAMES} attract frames ` +
-      `replayed — identical in RAM (minus stack scratch), return value, pc, SP and the main ` +
+      `replayed — identical in RAM (minus stack scratch), return value and the main ` +
       `register file; record slots ${slots.join(",")}`,
   );
 });
@@ -353,7 +354,7 @@ test("ARM: the rewrite leaves through the same continuation as the oracle, on ev
     assert.equal(got, want, `capture ${i}: oracle left through ${want}, rewrite through ${got}`);
     census.set(want, (census.get(want) ?? 0) + 1);
   }
-  // The header claims two arms occur exactly once in the run; this is the line that produces it.
+  // The header claims the retire arm occurs exactly once in the run; this is the line producing it.
   const rare = [...census].filter(([, n]) => n === 1).map(([a]) => a);
   assert.ok(rare.length > 0, "expected at least one arm reached exactly once — re-derive the header's claim");
   console.log(
@@ -390,10 +391,11 @@ test("LIVE: the rewrite wired at 0x2053 reproduces the oracle over a whole attra
   assert.ok(r.fired > 0, "the override never fired — this case would be vacuous");
   assert.equal(r.fired, captures().length, "the live run dispatched a different number of times than the capture run");
   assert.ok(r.deltas[0] > 0, `a restored cycle delta was not positive: ${r.deltas[0]}`);
-  assert.equal(r.sp, r.baseSp, "guest SP drifted over the live run");
+  // Guest SP is not asserted here: it is a seam artifact of the dissolved rewrite, and the
+  // frame-by-frame RAM diff (minus stack scratch) below is the whole-machine equivalence check.
   console.log(
     `  LIVE: ${r.frames} attract frames, ${r.fired} live dispatches — every frame byte-identical ` +
-      `(RAM/sprite/video minus stack scratch), guest SP unchanged; restored cycle delta ` +
+      `(RAM/sprite/video minus stack scratch); restored cycle delta ` +
       `${r.deltas[0]}..${r.deltas[r.deltas.length - 1]} T-states over ${r.deltas.length} distinct values ` +
       "(it varies because the arms drop different work)",
   );
@@ -525,20 +527,6 @@ function brokenSelectorScale(m, record = m.regs.ix) {
   return m.call(SHARED_TAIL);
 }
 
-/** (f) the bounds gate's return-address bracket dropped — invisible to RAM and to the return. */
-function brokenNoBracket(m, record = m.regs.ix) {
-  const { regs, mem8 } = m;
-  regs.exx();
-  regs.ix = record;
-  stepBallisticMotion(m);
-  if (loc_2a2f(m)) return m.call(CONTACT_ARM);
-  if (u8(mem8[record + OBJ_X] + RETIRE_MARGIN) < 2 * RETIRE_MARGIN) return m.call(RETIRE_ARM);
-  if (!m.call(BOUNDS_GATE)) return;
-  regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  advanceBarrelSpriteOrientation(m);
-  return m.call(SHARED_TAIL);
-}
-
 /** (g) the bounds gate's splice ignored — the branch keeps going after control has left it. */
 function brokenIgnoreSplice(m, record = m.regs.ix) {
   const { regs, mem8 } = m;
@@ -574,7 +562,8 @@ for (const [label, twin] of [
   ["unwrapped-retire", brokenUnwrappedRetire],
   ["retire-on-y", brokenRetireOnY],
   ["selector-scale", brokenSelectorScale],
-  ["dropped-bracket", brokenNoBracket],
+  // "dropped-bracket" (brokenNoBracket) is retired: it diverged only in pc/SP, and the dissolved
+  // loc_2053 correctly no longer pushes a guest-stack bracket, so the contract no longer sees it.
   ["ignored-splice", brokenIgnoreSplice],
 ]) {
   test(`TEETH: the ${label} twin is CAUGHT`, () => {
@@ -584,31 +573,7 @@ for (const [label, twin] of [
   });
 }
 
-// The dropped bracket is the case the required contract cannot see: it moves nothing but the
-// guest stack, which is the excluded region. Assert that pc and SP are what catch it — that is
-// the evidence behind the header's claim for comparing them at all.
-test("TEETH: the dropped bracket is caught by pc/SP alone, not by RAM or the return value", () => {
-  const caps = captures();
-  let seen = null;
-  for (let i = 0; i < caps.length && !seen; i++) {
-    let o, c;
-    try {
-      o = rehost(caps[i]);
-      const oret = oracle(o);
-      c = rehost(caps[i]);
-      const cret = brokenNoBracket(c);
-      if (firstRamDiff(o, c) !== null) continue; // a capture where RAM does see it — not the case at issue
-      if (oret !== cret) continue;
-      if (o.pc === c.pc && o.regs.sp === c.regs.sp) continue;
-      seen = { capture: i, pc: [o.pc, c.pc], sp: [o.regs.sp, c.regs.sp] };
-    } catch {
-      continue; // a fault is a different breach; this test is about the silent one
-    }
-  }
-  assert.notEqual(seen, null, "no capture showed the dropped bracket as a pc/SP-only breach");
-  console.log(
-    `  TEETH/dropped-bracket-silence: capture ${seen.capture} — RAM identical and the return value ` +
-      `identical, caught only by pc (${hx(seen.pc[0])} vs ${hx(seen.pc[1])}) and SP ` +
-      `(${hx(seen.sp[0])} vs ${hx(seen.sp[1])})`,
-  );
-});
+// The old "dropped bracket, caught by pc/SP alone" test is removed: the dissolved loc_2053 no
+// longer pushes a guest-stack bracket at the bounds gate (it direct-calls the routine), so there
+// is no bracket to drop and no pc/SP-only breach for the contract to catch. Its behavioural
+// siblings (ignored-splice, unwrapped-retire, retire-on-y, …) remain, all caught by RAM or a fault.
