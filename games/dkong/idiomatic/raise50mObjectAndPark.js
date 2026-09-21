@@ -10,13 +10,14 @@
  * the park the two reset bytes.
  */
 
+import { page } from "../../../core/int.js";
 import { publish50mObjectYToSprite } from "./publish50mObjectYToSprite.js";
 
 export function raise50mObjectAndPark(m, recordBase) {
   const { mem8 } = m;
 
   // Field N, kept on the record's own page (the pointer walk steps only the low byte).
-  const field = (n) => (recordBase & 0xff00) | ((recordBase + n) & 0xff);
+  const field = (n) => page(recordBase) | ((recordBase + n) & 0xff);
 
   const countdown = (mem8[field(4)] - 1) & 0xff;
   mem8[field(4)] = countdown;

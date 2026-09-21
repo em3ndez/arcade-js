@@ -12,7 +12,7 @@
  * cells, the three collection flags, and whatever the follow-up writes.
  */
 
-import { u16 } from "../../../core/int.js";
+import { u16, page } from "../../../core/int.js";
 import {
   EDGE_RIVET_ARMED,
   EFFECT_SELECT,
@@ -75,11 +75,11 @@ export function collectEdgeRivet(m) {
   const vaddr = u16(TILEMAP_BASE + base + 5 * row);
 
   // low byte wraps inside the page rather than carrying
-  const page = vaddr & 0xff00;
+  const pg = page(vaddr);
   const lo = vaddr & 0xff;
   mem8[vaddr] = BLANK_TILE;
-  mem8[page | ((lo - 1) & 0xff)] = BLANK_TILE;
-  mem8[page | ((lo + 1) & 0xff)] = BLANK_TILE;
+  mem8[pg | ((lo - 1) & 0xff)] = BLANK_TILE;
+  mem8[pg | ((lo + 1) & 0xff)] = BLANK_TILE;
 
   mem8[EFFECT_STATE] = 0x01;
   mem8[EFFECT_SELECT] = 0x01;

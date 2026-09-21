@@ -9,13 +9,14 @@
  * LIVE-OUT: memory-only — the tail and the two written ring bytes.
  */
 
+import { page } from "../../../core/int.js";
 import { TASK_TAIL, TASK_RING } from "./names.js";
 
-const PAGE = TASK_RING & 0xff00;
+const PAGE = page(TASK_RING);
 const RING_BASE = TASK_RING & 0xff; // low byte of the first slot, and the wrap floor
 
 export function enqueueTask(m, d = m.regs.d, e = m.regs.e) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const tail = mem8[TASK_TAIL];
   const slot = PAGE | tail;

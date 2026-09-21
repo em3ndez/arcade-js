@@ -12,7 +12,7 @@
  * LIVE-OUT: memory-only.
  */
 
-import { u16 } from "../../../core/int.js";
+import { u16, page } from "../../../core/int.js";
 import {
   OBJ_ARRAY_64,
   OBJ_ACTIVE,
@@ -29,23 +29,23 @@ const OBJECT_STRIDE = 0x20;
 export function publishFireSprites(m) {
   const { mem8 } = m;
 
-  const srcPage = OBJ_ARRAY_64 & 0xff00; // the source never leaves this page
+  const srcPage = page(OBJ_ARRAY_64); // the source never leaves this page
   let objLo = OBJ_ARRAY_64 & 0xff;
   let dst = FIRE_SPRITES;
 
   for (let i = 0; i < OBJECT_COUNT; i++) {
     if (mem8[srcPage | ((objLo + OBJ_ACTIVE) & 0xff)] !== 0) {
       mem8[dst] = mem8[srcPage | ((objLo + OBJ_X) & 0xff)];
-      dst = (dst & 0xff00) | ((dst + 1) & 0xff);
+      dst = page(dst) | ((dst + 1) & 0xff);
       mem8[dst] = mem8[srcPage | ((objLo + OBJ_SPRITE_CODE) & 0xff)];
-      dst = (dst & 0xff00) | ((dst + 1) & 0xff);
+      dst = page(dst) | ((dst + 1) & 0xff);
       mem8[dst] = mem8[srcPage | ((objLo + OBJ_SPRITE_ATTR) & 0xff)];
-      dst = (dst & 0xff00) | ((dst + 1) & 0xff);
+      dst = page(dst) | ((dst + 1) & 0xff);
       mem8[dst] = mem8[srcPage | ((objLo + OBJ_Y) & 0xff)];
       dst = u16(dst + 1); // next record — this step can carry
     } else {
       // Empty: consume a record without copying; low-byte-only advance, no carry.
-      dst = (dst & 0xff00) | ((dst + 4) & 0xff);
+      dst = page(dst) | ((dst + 4) & 0xff);
     }
 
     objLo = (objLo + OBJECT_STRIDE) & 0xff;

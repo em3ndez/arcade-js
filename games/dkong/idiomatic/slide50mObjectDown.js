@@ -9,6 +9,7 @@
  * +4 a per-tick timer. LIVE-OUT: memory-only.
  */
 
+import { page } from "../../../core/int.js";
 import {
   CLIMB_CENTERING_PHASE,
   MARIO_Y,
@@ -25,11 +26,11 @@ const CENTRING_BAND = 104;
 // Shared climb-centring toggle; file-local because no reader settles its meaning.
 
 export function slide50mObjectDown(m, recordBase) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Address of record field N, kept on the record's own page (the pointer walk steps only the
   // low byte, so a field address never crosses a page boundary).
-  const field = (n) => (recordBase & 0xff00) | ((recordBase + n) & 0xff);
+  const field = (n) => page(recordBase) | ((recordBase + n) & 0xff);
 
   const timer = (mem8[field(4)] - 1) & 0xff;
   mem8[field(4)] = timer;

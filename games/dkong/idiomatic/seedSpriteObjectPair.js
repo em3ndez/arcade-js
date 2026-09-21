@@ -7,7 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 
-import { u16 } from "../../../core/int.js";
+import { u16, page } from "../../../core/int.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
@@ -21,7 +21,7 @@ export function seedSpriteObjectPair(m, src = m.regs.hl) {
 
   // Step 2 — stamp the shared appearance template into both records' code/attribute fields.
   const codeDest = OBJ_PAIR_6680 + OBJ_SPRITE_CODE;
-  replicateGroupStrided(m, 0x3e08, 0x0c, codeDest & 0xff00, 0x02, codeDest & 0xff);
+  replicateGroupStrided(m, 0x3e08, 0x0c, page(codeDest), 0x02, codeDest & 0xff);
 
   // Step 3 — mark both records active.
   const objBase = OBJ_PAIR_6680;
@@ -29,5 +29,5 @@ export function seedSpriteObjectPair(m, src = m.regs.hl) {
   mem8[u16(objBase + 0x10 + OBJ_ACTIVE)] = 0x01;
 
   // Step 4 — gather each record into a consecutive 4-byte hardware sprite record.
-  gatherSpriteRecords(m, 16, 0x02, HAMMER_OBJ1_SPRITE_RECORD & 0xff00, HAMMER_OBJ1_SPRITE_RECORD & 0xff, objBase);
+  gatherSpriteRecords(m, 16, 0x02, page(HAMMER_OBJ1_SPRITE_RECORD), HAMMER_OBJ1_SPRITE_RECORD & 0xff, objBase);
 }

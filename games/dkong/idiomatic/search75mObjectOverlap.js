@@ -25,15 +25,13 @@ export function search75mObjectOverlap(m) {
   const tolHigh = bounds >> 8;
 
   // Sweep 1: a hit takes the search's caller-skip return, unwinding past this routine, so sweep 2
-  // never runs and OBJ_SEARCH_COUNT stays at this count. B is seated for the search's djnz.
+  // never runs and OBJ_SEARCH_COUNT stays at this count.
   mem8[OBJ_SEARCH_COUNT] = SWEEP1_COUNT;
-  regs.b = SWEEP1_COUNT;
   // prettier-ignore
-  if (!findCollidingObject(m, OBJ_ARRAY_64, undefined, tolLow, undefined, tolHigh, SWEEP1_STRIDE)) return (regs.hl = bounds, regs.de = SWEEP1_STRIDE, regs.ix = OBJ_ARRAY_64, true);
+  if (!findCollidingObject(m, OBJ_ARRAY_64, undefined, tolLow, undefined, tolHigh, SWEEP1_STRIDE, SWEEP1_COUNT)) return (regs.hl = bounds, regs.de = SWEEP1_STRIDE, regs.ix = OBJ_ARRAY_64, true);
 
   // Sweep 2: reached only when sweep 1 found nothing.
   mem8[OBJ_SEARCH_COUNT] = SWEEP2_COUNT;
-  regs.b = SWEEP2_COUNT;
-  findCollidingObject(m, OBJ_ARRAY_65, undefined, tolLow, undefined, tolHigh, SWEEP2_STRIDE);
+  findCollidingObject(m, OBJ_ARRAY_65, undefined, tolLow, undefined, tolHigh, SWEEP2_STRIDE, SWEEP2_COUNT);
   return (regs.hl = bounds, regs.de = SWEEP2_STRIDE, regs.ix = OBJ_ARRAY_65, true);
 }

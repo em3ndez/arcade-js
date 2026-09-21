@@ -5,6 +5,7 @@
  *
  * LIVE-OUT: memory-only — those seven zeroed bytes.
  */
+import { page } from "../../../core/int.js";
 import { MARIO_SPRITE_RECORD } from "./names.js";
 import { clearStridedBytes } from "./clearStridedBytes.js";
 
@@ -14,5 +15,5 @@ export function loc_30db(m) {
   mem8[MARIO_SPRITE_RECORD] = 0x00;
 
   // Six more records four bytes apart, starting two slots past Mario's.
-  clearStridedBytes(m, (MARIO_SPRITE_RECORD & 0xff00) | 0x58, 0x06);
+  clearStridedBytes(m, page(MARIO_SPRITE_RECORD) | 0x58, 6);
 }

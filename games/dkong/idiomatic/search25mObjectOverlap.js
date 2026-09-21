@@ -27,21 +27,18 @@ export function search25mObjectOverlap(m) {
   const tolLow = bounds & 0xff;
   const tolHigh = bounds >> 8;
 
-  // Sweep 1 — barrel array, 10 records, 32-byte stride. B is seated for the search's djnz.
+  // Sweep 1 — barrel array, 10 records, 32-byte stride. The count is the search's record budget.
   mem8[OBJ_SEARCH_COUNT] = SWEEP1_COUNT;
-  regs.b = SWEEP1_COUNT;
   // prettier-ignore
-  if (!findCollidingObject(m, OBJ_ARRAY_67, undefined, tolLow, undefined, tolHigh, RECORD_STRIDE)) return (regs.hl = bounds, regs.de = RECORD_STRIDE, regs.ix = OBJ_ARRAY_67, true);
+  if (!findCollidingObject(m, OBJ_ARRAY_67, undefined, tolLow, undefined, tolHigh, RECORD_STRIDE, SWEEP1_COUNT)) return (regs.hl = bounds, regs.de = RECORD_STRIDE, regs.ix = OBJ_ARRAY_67, true);
 
   // Sweep 2 — five-record array, same stride.
   mem8[OBJ_SEARCH_COUNT] = SWEEP2_COUNT;
-  regs.b = SWEEP2_COUNT;
   // prettier-ignore
-  if (!findCollidingObject(m, OBJ_ARRAY_64, undefined, tolLow, undefined, tolHigh, RECORD_STRIDE)) return (regs.hl = bounds, regs.de = RECORD_STRIDE, regs.ix = OBJ_ARRAY_64, true);
+  if (!findCollidingObject(m, OBJ_ARRAY_64, undefined, tolLow, undefined, tolHigh, RECORD_STRIDE, SWEEP2_COUNT)) return (regs.hl = bounds, regs.de = RECORD_STRIDE, regs.ix = OBJ_ARRAY_64, true);
 
   // Sweep 3 — single record, stride zero.
   mem8[OBJ_SEARCH_COUNT] = SWEEP3_COUNT;
-  regs.b = SWEEP3_COUNT;
-  findCollidingObject(m, OBJ_RECORD_66A0, undefined, tolLow, undefined, tolHigh, 0);
+  findCollidingObject(m, OBJ_RECORD_66A0, undefined, tolLow, undefined, tolHigh, 0, SWEEP3_COUNT);
   return (regs.hl = bounds, regs.de = 0, regs.ix = OBJ_RECORD_66A0, true);
 }

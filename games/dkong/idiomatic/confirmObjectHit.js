@@ -10,14 +10,15 @@
  *
  * LIVE-OUT: memory-only — the three effect-subsystem flag cells.
  */
+import { page } from "../../../core/int.js";
 import { MARIO_Y, EFFECT_STATE, EFFECT_SELECT, EFFECT_PARAM_PTR } from "./names.js";
 
 export function confirmObjectHit(m, record = m.regs.hl) {
   const { mem8, mem16 } = m;
 
-  const page = record & 0xff00;
+  const pg = page(record);
   const base = record & 0xff;
-  const recByte = (off) => mem8[page | ((base + off) & 0xff)];
+  const recByte = (off) => mem8[pg | ((base + off) & 0xff)];
 
   if (mem8[MARIO_Y] !== recByte(3)) return;
   if (recByte(1) & 0x08) return;

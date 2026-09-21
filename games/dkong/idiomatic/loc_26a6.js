@@ -7,12 +7,14 @@
  *
  * LIVE-OUT: memory — the two counters — plus the P+4 result, which the caller reads back.
  */
+import { page } from "../../../core/int.js";
+
 export function loc_26a6(m, hl = m.regs.hl, l = m.regs.l, de = m.regs.de) {
   const { regs, mem8 } = m;
 
-  const page = hl & 0xff00;
-  const p = page | ((l + 1) & 0xff);
-  const p4 = page | ((l + 5) & 0xff);
+  const base = page(hl);
+  const p = base | ((l + 1) & 0xff);
+  const p4 = base | ((l + 5) & 0xff);
 
   const countUpAtP = (mem8[de] & 0x80) === 0;
 

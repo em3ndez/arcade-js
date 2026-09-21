@@ -6,6 +6,7 @@
  * LIVE-OUT: memory-only — the task ring, the cleared first byte of the parameter block, and
  * whatever the sprite stamp writes.
  */
+import { page } from "../../../core/int.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { stampScorePopupSprite } from "./stampScorePopupSprite.js";
 import { EFFECT_PARAM_PTR } from "./names.js";
@@ -20,5 +21,5 @@ export function stageAwardPopupAtHitObject(m, b = m.regs.b) {
   const a = mem8[block];
   mem8[block] = 0x00;
 
-  stampScorePopupSprite(m, a, b, mem8[(block & 0xff00) | ((block + 3) & 0xff)]);
+  stampScorePopupSprite(m, a, b, mem8[page(block) | ((block + 3) & 0xff)]);
 }

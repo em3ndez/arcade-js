@@ -10,7 +10,7 @@
  * copies they produce inside the sprite buffer.
  */
 
-import { u16 } from "../../../core/int.js";
+import { page, u16 } from "../../../core/int.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
@@ -40,7 +40,7 @@ export function seed75mBoardObjects(m) {
   const { mem8 } = m;
 
   const de1 = OBJ_ARRAY_64 + 0x07; // dest: +7 of the first fire record
-  replicateGroupStrided(m, OBJ_ARRAY_64_TEMPLATE, 0x1c, de1 & 0xff00, 0x05, de1 & 0xff); // 5 records, record stride 0x20
+  replicateGroupStrided(m, OBJ_ARRAY_64_TEMPLATE, 0x1c, page(de1), 0x05, de1 & 0xff); // 5 records, record stride 0x20
 
   seedObjectBlockSprites(m);
 
@@ -52,9 +52,9 @@ export function seed75mBoardObjects(m) {
   copyBytePairsStrided(m, OBJ_ARRAY_66_POSITION_TABLE, de2, 0x0e, 0x06); // 6 pairs, record stride 0x10
 
   const de3 = OBJ_ARRAY_66 + 0x07;
-  replicateGroupStrided(m, OBJ_ARRAY_66_TEMPLATE, 0x0c, de3 & 0xff00, 0x06, de3 & 0xff); // 6 records, record stride 0x10
+  replicateGroupStrided(m, OBJ_ARRAY_66_TEMPLATE, 0x0c, page(de3), 0x06, de3 & 0xff); // 6 records, record stride 0x10
 
-  gatherSpriteRecords(m, 16, 0x06, OBJ_66_SPRITES & 0xff00, OBJ_66_SPRITES & 0xff, OBJ_ARRAY_66); // 6 records off the object-record base
+  gatherSpriteRecords(m, 16, 0x06, page(OBJ_66_SPRITES), OBJ_66_SPRITES & 0xff, OBJ_ARRAY_66); // 6 records off the object-record base
 
   blockCopy(mem8, OBJECT_COLLISION_SPRITES, COLLISION_SPRITES_TEMPLATE_75M, 0x0c);
 

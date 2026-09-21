@@ -6,18 +6,20 @@
  * LIVE-OUT: memory (the B bytes, each 0x00) + A = final low byte (L + 4*B) & 0xFF,
  * HL = the page carrying it (high byte preserved), B = 0. Flags not reproduced.
  */
+import { page } from "../../../core/int.js";
+
 export function clearStridedBytes(m, hl = m.regs.hl, b = m.regs.b) {
   const { regs, mem8 } = m;
 
-  const page = hl & 0xff00;
+  const pageBase = page(hl);
   let lo = hl & 0xff;
   const count = b === 0 ? 256 : b; // B == 0 means 256 passes, not zero
 
   for (let i = 0; i < count; i++) {
-    mem8[page | lo] = 0x00;
+    mem8[pageBase | lo] = 0x00;
     lo = (lo + 4) & 0xff; // low byte only, wraps within the page
   }
 
   // LIVE-OUT bridge (A, HL, B) rides the return; no flags reproduced.
-  return [regs.a = lo, regs.hl = page | lo, regs.b = 0];
+  return [regs.a = lo, regs.hl = pageBase | lo, regs.b = 0];
 }

@@ -12,6 +12,7 @@
  * band) — a caller that compares a register would mis-branch on a stale A otherwise.
  */
 
+import { page } from "../../../core/int.js";
 import { OBJ_ITER_PTR } from "./names.js";
 import { tileAddrForPixel } from "./tileAddrForPixel.js";
 
@@ -26,10 +27,10 @@ export function turnFireAtGroundEdge(m) {
   const { regs, mem8, mem16 } = m;
 
   const rec = mem16[OBJ_ITER_PTR];
-  const page = rec & 0xff00;
+  const recPage = page(rec);
 
-  const workingX = mem8[page | ((rec + REC_WORKING_X) & 0xff)];
-  const groundY = mem8[page | ((rec + REC_WORKING_Y) & 0xff)] + GROUND_PROBE_DROP;
+  const workingX = mem8[recPage | ((rec + REC_WORKING_X) & 0xff)];
+  const groundY = mem8[recPage | ((rec + REC_WORKING_Y) & 0xff)] + GROUND_PROBE_DROP;
 
   const tile = mem8[tileAddrForPixel(workingX, groundY)];
 

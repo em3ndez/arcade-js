@@ -10,7 +10,7 @@
  * sprite records. It returns into a caller that reloads every register.
  */
 
-import { u16 } from "../../../core/int.js";
+import { page, u16 } from "../../../core/int.js";
 import {
   FIRE_RECORDS_100M,
   FIRE_RECORDS_100M_CODE,
@@ -41,7 +41,7 @@ export function seed100mBoardObjects(m) {
     m,
     OBJ_ARRAY_64_TEMPLATE_100M,
     0x1c,
-    (OBJ_ARRAY_64 + OBJ_SPRITE_CODE) & 0xff00,
+    page(OBJ_ARRAY_64 + OBJ_SPRITE_CODE),
     0x05,
     (OBJ_ARRAY_64 + OBJ_SPRITE_CODE) & 0xff,
   );
@@ -64,7 +64,7 @@ export function seed100mBoardObjects(m) {
     m,
     OBJ_ARRAY_64_TEMPLATE_100M_EXTRA,
     0x1c,
-    FIRE_RECORDS_100M_CODE & 0xff00,
+    page(FIRE_RECORDS_100M_CODE),
     0x02,
     FIRE_RECORDS_100M_CODE & 0xff,
   );
@@ -74,11 +74,11 @@ export function seed100mBoardObjects(m) {
   mem8[u16(fireBase + 0x20)] = 0x01; // the second record, one stride on
   // Gather two permuting hardware sprite records (base fireBase, dest M100_FIRE_SPRITE_PAIR, count 2,
   // stride 32). The gather leaves A/B/L/IX byte-faithful, no manual write.
-  gatherSpriteRecords(m, 32, 0x02, M100_FIRE_SPRITE_PAIR & 0xff00, M100_FIRE_SPRITE_PAIR & 0xff, fireBase);
+  gatherSpriteRecords(m, 32, 0x02, page(M100_FIRE_SPRITE_PAIR), M100_FIRE_SPRITE_PAIR & 0xff, fireBase);
 
   // Terminal register live-outs the memory-equivalence gate compares: C/D/E/H reloaded here (A/B/L/IX
   // already left by the gather; H-only, since the gather leaves L, so writing HL would clobber L).
-  regs.c = 0x1c;
-  regs.de = 32;
-  regs.h = (M100_FIRE_SPRITE_PAIR >> 8) & 0xff;
+  return void (
+    (regs.c = 0x1c), (regs.de = 32), (regs.h = (M100_FIRE_SPRITE_PAIR >> 8) & 0xff)
+  );
 }

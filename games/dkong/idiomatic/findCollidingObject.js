@@ -15,11 +15,13 @@
 import { u16 } from "../../../core/int.js";
 import { OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
 
-export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.l, iy = m.regs.iy, h = m.regs.h, de = m.regs.de) {
+export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.l, iy = m.regs.iy, h = m.regs.h, de = m.regs.de, count = m.regs.b) {
   const { regs, mem8 } = m;
 
   // Walk a local copy of the base so the caller's own base register is preserved.
   let rec = ix;
+  // Records left to scan; its running value is the count-minus-index residue left in B on exit.
+  let remaining = count;
 
   for (;;) {
     let hit = false;
@@ -47,14 +49,14 @@ export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.
       hit = true;
     }
 
-    if (hit) {
-      return (m.regs.a = 0x01, false); // FALSE = a hit was found (caller-skip)
-    }
+    // FALSE = a hit was found (caller-skip); B carries the count-minus-index residue the handler reads.
+    if (hit) return (m.regs.b = remaining, m.regs.a = 0x01, false);
 
     rec = u16(rec + de);
-    if (regs.djnz() === 0) break; // decrement the count (live-out B) and stop when exhausted
+    remaining = (remaining - 1) & 0xff; // one record consumed; drains into B on exit
+    if (remaining === 0) break;
   }
 
   regs.xor(regs.a);
-  return true; // TRUE = list exhausted, no hit
+  return (m.regs.b = 0, true); // TRUE = list exhausted, no hit; B drained to 0
 }

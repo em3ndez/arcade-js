@@ -9,7 +9,7 @@
  * LIVE-OUT: the stamped video-RAM tile cells plus the record cursor, advanced past this record.
  */
 
-import { u16 } from "../../../core/int.js";
+import { u16, page } from "../../../core/int.js";
 import { SEG_SUBTILE2, SEG_ADDR2, SEG_KIND } from "./names.js";
 
 export function drawSegmentEndCap(m, de = m.regs.de) {
@@ -17,17 +17,17 @@ export function drawSegmentEndCap(m, de = m.regs.de) {
 
   const remainder = mem8[SEG_SUBTILE2];
   const ptr = mem16[SEG_ADDR2];
-  const page = ptr & 0xff00; // neighbour steps wrap within this page
+  const pageBase = page(ptr); // neighbour steps wrap within this page
   const col = ptr & 0xff;
 
   mem8[ptr] = (remainder + 0xd0);
 
   if (mem8[SEG_KIND] === 0x01) {
-    mem8[page | ((col - 1) & 0xff)] = 0xc0;
+    mem8[pageBase | ((col - 1) & 0xff)] = 0xc0;
   }
 
   if (remainder !== 0) {
-    mem8[page | ((col + 1) & 0xff)] = (remainder + 0xe0);
+    mem8[pageBase | ((col + 1) & 0xff)] = (remainder + 0xe0);
   }
 
   return (m.regs.de = u16(de + 1));
