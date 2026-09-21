@@ -15,7 +15,6 @@
  * the name stays neutral, and "ahead" is the +32 memory-row offset, not a screen direction.
  */
 
-import { F_Z } from "../../../core/cpu/z80.js";
 import {
   PROBE_CELL_PTR,
   PROBE_NEXT_TILE_TABLE,
@@ -36,7 +35,7 @@ function rowContains(mem8, base, key) {
 }
 
 export function probeRowAheadTilePair(m) {
-  const { mem8, mem16, regs } = m;
+  const { mem8, mem16 } = m;
 
   const phase = mem8[SUBTILE_PHASE];
   // Advance the tilemap pointer one row and stash it at SAVED_CELL_PTR for the reload below.
@@ -55,7 +54,6 @@ export function probeRowAheadTilePair(m) {
     );
   }
 
-  // Report the match through the flag the caller tests, and as the boolean return.
-  regs.f = matched ? regs.f | F_Z : regs.f & ~F_Z;
+  // Report the match as the found/not-found boolean the caller branches on.
   return matched;
 }

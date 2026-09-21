@@ -5,12 +5,13 @@
  * row index at 0x808d, stashing the one-row-back cursor at 0x8134 and reporting a match
  * through the zero flag.
  *
- * The routine WRITES one 16-bit RAM word (0x8134) and its consumed result is the ZERO
- * FLAG (the tile-probe dispatcher stepEnemyMover branches `if (regs.fZ)` immediately after every
- * one of its six calls, and reads no other register), so the contract is
- * RAM + pc + SP + the zero flag. The idiomatic routine models the return as a plain JS
- * return, so each contract check does one m.ret() on the candidate clone AFTER the call to
- * line pc + SP up with the oracle (which rets internally).
+ * The routine WRITES one 16-bit RAM word (0x8134) and its consumed result is the
+ * found/not-found answer, which the idiomatic routine now RETURNS as a boolean (the tile-probe
+ * dispatcher stepEnemyMover consumes each probe's boolean directly and reads no register).
+ * The frozen oracle still leaves that answer in its Z flag, so the contract is RAM + pc + SP +
+ * (the candidate's BOOLEAN RETURN equals the oracle's Z). The idiomatic routine models the
+ * return as a plain JS return, so each contract check does one m.ret() on the candidate clone
+ * AFTER the call to line pc + SP up with the oracle (which rets internally).
  *
  * Attract reaches it from the gameplay demo (first dispatch ~frame 1600), and there the row
  * index is always a multiple of 32 and only the first-table-miss and second-table-search
@@ -20,14 +21,14 @@
  *   0. IDENTITY — run the unit gate with both arms = the oracle; EQUAL proves the harness
  *      wiring (construct-with-override -> host run -> capture -> clone -> diff) reaches 0x33da.
  *   1. EQUAL (real dispatches) — for every captured attract dispatch, run oracle vs probeRowBackTilePair
- *      on fresh clones and confirm identical RAM + pc + SP + zero flag. Proves nothing outside
- *      0x8134 is touched and the flag matches on the real input distribution.
+ *      on fresh clones and confirm identical RAM + pc + SP + (boolean return == oracle Z). Proves
+ *      nothing outside 0x8134 is touched and the answer matches on the real input distribution.
  *   2. EQUAL (crafted + exhaustive) — a crafted index-0 hit (the short-circuit path), plus
  *      exhaustive sweeps of the first key (all 256), the second key on a path that reaches the
  *      second table (all 256), and the row index (all 256) — every case identical to the oracle.
- *   3. TEETH — a twin that skips the second table (reports the first match unconditionally) is
- *      CAUGHT on a crafted second-table-miss entry and across the key2 sweep; a twin that stashes
- *      the wrong cursor is CAUGHT on RAM.
+ *   3. TEETH — a twin that skips the second table (reports the first match unconditionally)
+ *      returns a boolean CAUGHT (diverges from the oracle Z) on a crafted second-table-miss entry
+ *      and across the key2 sweep; a twin that stashes the wrong cursor is CAUGHT on RAM.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-33da.test.js
  */
@@ -71,14 +72,15 @@ function firstRamDiff(a, b) {
 
 /**
  * Compare a candidate against the oracle over the full contract for one entry:
- * RAM + pc + SP + the zero flag (the declared live-out). The oracle rets internally;
- * the candidate's return is modelled with one m.ret() so pc + SP line up.
+ * RAM + pc + SP + (the candidate's boolean return == the oracle's Z, the declared live-out).
+ * The oracle rets internally; the candidate's return is modelled with one m.ret() so pc + SP
+ * line up.
  */
 function contractDiffs(entry, fn) {
   const o = entry.clone();
   oracle(o);
   const c = entry.clone();
-  fn(c);
+  const ret = fn(c);
   c.ret();
 
   const diffs = [];
@@ -86,8 +88,8 @@ function contractDiffs(entry, fn) {
   if (ram) diffs.push(`RAM@${hx(ram.addr ?? ram.offset)} oracle=${ram.a} cand=${ram.b}`);
   if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
   if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
-  if ((o.regs.f & F_Z) !== (c.regs.f & F_Z))
-    diffs.push(`zero-flag oracle=${(o.regs.f & F_Z) !== 0} cand=${(c.regs.f & F_Z) !== 0}`);
+  const oracleZ = (o.regs.f & F_Z) !== 0;
+  if (ret !== oracleZ) diffs.push(`bool oracleZ=${oracleZ} cand=${ret}`);
   return diffs;
 }
 
@@ -144,24 +146,24 @@ function tableAProbe(index) {
 
 // -- twins for the teeth ------------------------------------------------------
 
-/** Skips the second table: reports the FIRST match unconditionally. Wrong whenever the
- *  second search would have missed on a path that reaches it. */
+/** Skips the second table: RETURNS the FIRST match unconditionally. Its boolean is wrong
+ *  whenever the second search would have missed on a path that reaches it. */
 function twinSkipTableB(m) {
-  const { regs, mem } = m;
+  const { mem } = m;
   const rowBack = (mem.read16(PROBE_CELL) - 32) & 0xffff;
   mem.write16(SAVED_CELL, rowBack);
   const index = mem.read8(SUBTILE_PHASE);
   const base = TABLE_A + ((index + 32) & 0xff);
   let matched = false;
   for (let i = 0; i < 32; i++) if (mem.read8(base + i) === mem.read8(rowBack)) { matched = true; break; }
-  regs.f = matched ? regs.f | F_Z : regs.f & ~F_Z; // BUG: never consults table B
-  return matched;
+  return matched; // BUG: never consults table B
 }
 
-/** Stashes the wrong cursor (does not step one row back). Correct flag, wrong RAM@0x8134. */
+/** Stashes the wrong cursor (does not step one row back). Correct boolean, wrong RAM@0x8134. */
 function twinWrongStash(m) {
-  probeRowBackTilePair(m); // correct zero flag + correct stash
+  const matched = probeRowBackTilePair(m); // correct boolean + correct stash
   m.mem.write16(SAVED_CELL, m.mem.read16(PROBE_CELL)); // BUG: overwrite the stash with the un-stepped cursor
+  return matched;
 }
 
 // -- 0. IDENTITY --------------------------------------------------------------
@@ -241,8 +243,8 @@ test("TEETH: a table-B-skipping twin and a wrong-stash twin are CAUGHT", () => {
   const seed = captureDispatches(1, MAXF)[0];
   assert.ok(seed, "need a real capture to seed the teeth check");
 
-  // A crafted path-C entry whose SECOND search misses: oracle reports no-match (zero clear),
-  // the skip-table-B twin reports the first match (zero set) -> the flag contract must catch it.
+  // A crafted path-C entry whose SECOND search misses: oracle reports no-match (Z clear),
+  // the skip-table-B twin returns the first match (true) -> the boolean contract must catch it.
   const p32 = tableAProbe(32);
   const missKey2 = (() => {
     const base = TABLE_B + ((32 - 32) & 0xff);
@@ -257,7 +259,10 @@ test("TEETH: a table-B-skipping twin and a wrong-stash twin are CAUGHT", () => {
   const entryC = craft(seed, 32, p32.present, missKey2);
   assert.equal(classify(entryC), "C-second-search", "teeth craft must reach the second search");
   const skipDiffs = contractDiffs(entryC, twinSkipTableB);
-  assert.ok(skipDiffs.length > 0, "the skip-table-B twin ESCAPED on a second-miss entry — the flag teeth are worthless");
+  assert.ok(
+    skipDiffs.some((d) => d.startsWith("bool")),
+    `the skip-table-B twin's boolean return did NOT diverge from the oracle Z (diffs: ${skipDiffs.join("; ") || "none"}) — the teeth are worthless`,
+  );
 
   // And it must be caught somewhere across the exhaustive key2 sweep too.
   let caughtInSweep = 0;

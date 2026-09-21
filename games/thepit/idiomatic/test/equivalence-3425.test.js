@@ -4,13 +4,14 @@
  * tile-table probe used by the object move/collision driver stepEnemyMover.
  *
  * WHAT THE ROUTINE OUTPUTS. It writes exactly one memory byte-pair — the advanced
- * tilemap pointer at 0x8134 — and hands its caller a MATCH RESULT. stepEnemyMover is still
- * the frozen oracle and consumes that result as the Z flag (`call 0x3425` then a
- * branch-if-matched), so the declared LIVE-OUT is memory (0x8134) PLUS the Z flag —
- * NOT the full register file. Comparing the whole register file (as the shared
- * unitEquivalence does) would false-fail an honest rewrite on the oracle's dead
- * residual registers, so this gate diffs the memory dump via firstStateDiff and the
- * Z flag explicitly, and nothing else. (The oracle's `ret` pops the stack and moves
+ * tilemap pointer at 0x8134 — and hands its caller a MATCH RESULT, which the idiomatic
+ * routine now RETURNS as a boolean. The idiomatic override stepEnemyMover consumes that
+ * boolean directly; the frozen oracle still leaves the same answer in its Z flag. So the
+ * declared LIVE-OUT is memory (0x8134) PLUS that found/not-found answer — NOT the full
+ * register file. Comparing the whole register file (as the shared unitEquivalence does)
+ * would false-fail an honest rewrite on the oracle's dead residual registers, so this gate
+ * diffs the memory dump via firstStateDiff and compares the idiomatic's BOOLEAN RETURN
+ * against the oracle's Z, and nothing else. (The oracle's `ret` pops the stack and moves
  * SP/pc; those are the modelled-return plumbing the direct-call layer drops, so they
  * are not compared — the pop reads memory but writes none, so the memory dump stays
  * clean.)
@@ -26,17 +27,19 @@
  *
  * SIX checks:
  *   1. EQUAL (real dispatches) — every captured 0x3425 entry replayed oracle vs
- *      idiomatic; memory + Z identical, and the real states show Z both ways.
+ *      idiomatic; memory identical + the idiomatic return matches the oracle Z, and the
+ *      real states show both answers.
  *   2. EQUAL (crafted grid) — a broad sweep of phase/pointer/tile combinations, incl.
- *      the byte-wrap edges of the phase; memory + Z identical.
+ *      the byte-wrap edges of the phase; memory identical + return matches oracle Z.
  *   3. PATH COVERAGE — three constructed entries drive the three exits and confirm
- *      the oracle's Z matches the hand-derived expectation AND the idiomatic agrees.
+ *      the oracle's Z matches the hand-derived expectation AND the idiomatic return agrees.
  *   4. NON-VACUOUS — pre-set 0x8134/0x8135 to a sentinel; both arms overwrite them
  *      to the advanced pointer and agree (a no-op twin could not pass).
  *   5. TEETH A — a twin that stores the pointer WITHOUT the one-row advance is caught
  *      at 0x8134 by the memory diff.
  *   6. TEETH B — a twin with the canonical second-row logic bug (shift the phase the
- *      wrong way) is caught by the Z-flag check on a ROM-derived path-3 entry.
+ *      wrong way) returns a boolean CAUGHT (diverges from the oracle Z) on a ROM-derived
+ *      path-3 entry.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-3425.test.js
  */
@@ -119,7 +122,8 @@ function withProbe(base, { phase, ptr = PTR_BASE, key1, key2 }) {
   return e;
 }
 
-/** Run oracle and a candidate on independent clones; diff memory + the Z flag. */
+/** Run oracle and a candidate on independent clones; diff memory + compare the candidate's
+ *  boolean return against the oracle's Z (the true live-out). */
 function probeDiff(entry, fn) {
   const a = entry.clone(); // oracle
   const b = entry.clone(); // candidate
@@ -128,12 +132,11 @@ function probeDiff(entry, fn) {
   return {
     ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
     oracleZ: a.regs.fZ,
-    fnZ: b.regs.fZ,
-    zEqual: a.regs.fZ === b.regs.fZ,
+    fnRet,
+    zEqual: a.regs.fZ === fnRet, // candidate's found/not-found answer vs the oracle's Z
     savedOracle: a.mem.read16(SAVED),
     savedFn: b.mem.read16(SAVED),
     oracleRet,
-    fnRet,
   };
 }
 
@@ -146,8 +149,8 @@ test("EQUAL (real dispatches): idiomatic == oracle over captured 0x3425 entries"
   for (const e of entries) {
     const r = probeDiff(e, idiomatic);
     assert.equal(r.ram, null, r.ram && `real dispatch: RAM diff at ${hx(r.ram.addr ?? 0)} (oracle=${r.ram.a} idiomatic=${r.ram.b})`);
-    assert.equal(r.zEqual, true, `real dispatch: Z diverged (oracle=${r.oracleZ} idiomatic=${r.fnZ})`);
-    assert.equal(r.fnRet, r.oracleZ, "real dispatch: idiomatic's boolean return must equal its Z flag");
+    assert.equal(r.zEqual, true, `real dispatch: idiomatic return diverged from oracle Z (oracle=${r.oracleZ} idiomatic=${r.fnRet})`);
+    assert.equal(r.fnRet, r.oracleZ, "real dispatch: idiomatic's boolean return must equal the oracle's Z");
     if (r.oracleZ) sawZ = true; else sawNotZ = true;
   }
   assert.ok(sawZ && sawNotZ, "real dispatches should exercise Z both set and clear");
@@ -172,9 +175,9 @@ test("EQUAL (crafted grid): idiomatic == oracle in memory + Z across phases/tile
           null,
           r.ram && `phase=${hx(phase)} k1=${hx(key1)} k2=${hx(key2)}: RAM diff at ${hx(r.ram.addr ?? 0)} (oracle=${r.ram.a} idiomatic=${r.ram.b})`,
         );
-        assert.equal(r.zEqual, true, `phase=${hx(phase)} k1=${hx(key1)} k2=${hx(key2)}: Z diverged (oracle=${r.oracleZ} idiomatic=${r.fnZ})`);
+        assert.equal(r.zEqual, true, `phase=${hx(phase)} k1=${hx(key1)} k2=${hx(key2)}: idiomatic return diverged from oracle Z (oracle=${r.oracleZ} idiomatic=${r.fnRet})`);
         assert.equal(r.savedFn, CELL, `phase=${hx(phase)}: advanced pointer must land at ${hx(SAVED)} = ${hx(CELL)}`);
-        assert.equal(r.fnRet, r.oracleZ, `phase=${hx(phase)}: idiomatic's boolean return must equal its Z flag`);
+        assert.equal(r.fnRet, r.oracleZ, `phase=${hx(phase)}: idiomatic's boolean return must equal the oracle's Z`);
         n++;
       }
     }
@@ -237,10 +240,11 @@ test("NON-VACUOUS: 0x8134/0x8135 pre-set to a sentinel are overwritten by both a
 
 // -- 5. TEETH A: a wrong pointer write is caught in memory ---------------------
 
-/** Broken twin: stores the pointer WITHOUT the one-row advance. */
+/** Broken twin: stores the pointer WITHOUT the one-row advance. Correct boolean, wrong RAM. */
 function brokenPointer(m) {
-  idiomatic(m);
+  const matched = idiomatic(m);
   m.mem.write16(SAVED, m.mem.read16(PTR)); // BUG: should be pointer + 32
+  return matched;
 }
 
 test("TEETH A: a pointer stored without the one-row advance is CAUGHT at 0x8134", () => {
@@ -258,9 +262,9 @@ test("TEETH A: a pointer stored without the one-row advance is CAUGHT at 0x8134"
 
 /** Broken twin: the canonical logic bug — the second row is selected by shifting the
  *  phase the WRONG way (add instead of subtract), so a nonzero-phase probe scans the
- *  wrong second row and its match result flips. */
+ *  wrong second row and its returned match flips. */
 function brokenSecondRow(m) {
-  const { mem, regs } = m;
+  const { mem } = m;
   const phase = mem.read8(PHASE);
   const cell = (mem.read16(PTR) + ROW_LEN) & 0xffff;
   mem.write16(SAVED, cell);
@@ -272,7 +276,6 @@ function brokenSecondRow(m) {
     const k2 = mem.read8((cell + 1) & 0xffff);
     for (let i = 0; i < ROW_LEN; i++) if (mem.read8((bad + i) & 0xffff) === k2) { matched = true; break; }
   }
-  regs.f = matched ? regs.f | 0x40 : regs.f & ~0x40;
   return matched;
 }
 
@@ -297,15 +300,15 @@ test("TEETH B: the second-row phase-shift bug is CAUGHT by the match flag", () =
 
   const rBug = probeDiff(entry, brokenSecondRow);
   assert.equal(rBug.oracleZ, true, "on the discriminator the correct second row matches (oracle Z set)");
-  assert.equal(rBug.fnZ, false, "the bug scans the wrong second row and misses (twin Z clear)");
-  assert.equal(rBug.zEqual, false, "the gate FAILED to catch the second-row phase-shift bug — it proves nothing");
+  assert.equal(rBug.fnRet, false, "the bug scans the wrong second row and misses (twin returns false)");
+  assert.equal(rBug.zEqual, false, "the gate FAILED to catch the second-row phase-shift bug via the boolean return — it proves nothing");
 
   // and the real routine is still EQUAL (memory + Z) on that same entry
   const rGood = probeDiff(entry, idiomatic);
   assert.equal(rGood.ram, null, "idiomatic memory must match the oracle on the discriminator");
   assert.equal(rGood.zEqual, true, "idiomatic Z must match the oracle on the discriminator");
   console.log(
-    `  TEETH B: second-row bug caught via Z on phase=${hx(disc.phase)} ` +
-      `key2=${hx(disc.key2)} (oracle Z=${rBug.oracleZ}, bug Z=${rBug.fnZ})`,
+    `  TEETH B: second-row bug caught via the boolean return on phase=${hx(disc.phase)} ` +
+      `key2=${hx(disc.key2)} (oracle Z=${rBug.oracleZ}, bug return=${rBug.fnRet})`,
   );
 });

@@ -23,7 +23,6 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { F_Z } from "../../../core/cpu/z80.js";
 import { ENEMY_WORK_STATE, ENEMY_WORK_X, ENEMY_WORK_Y, ENEMY_ACTION_TIMER, LOCKED_COLUMN, ENEMY_WORK_DIR, PROBE_CELL_PTR, SUBTILE_PHASE, ENEMY_WORK_SPRITE, PLAYER_FACING, PLAYER_Y, PLAYER_X, REACTION_OBJ_X, REACTION_OBJ_Y, DIG_COLLISION_STATE, ENEMY1_X, ENEMY_WORK_TARGET_COL, LASER_STATE, VIDEO_RAM_BASE } from "./names.js";
 import { tickObjectDwellThenTransition } from "./tickObjectDwellThenTransition.js";
 import { advanceDormantMover } from "./advanceDormantMover.js";
@@ -172,10 +171,9 @@ function decodePositionAndSteer(m) {
   return steerColumnOther(m, direction);
 }
 
-/** nextTileInProbeRow reports its tile-match only through the zero flag; wrap it to a boolean. */
+/** Alias into the steer chains, which consume each probe's found/not-found boolean. */
 function probeRowAhead(m) {
-  nextTileInProbeRow(m);
-  return (m.regs.f & F_Z) !== 0;
+  return nextTileInProbeRow(m);
 }
 
 /** The gated steer arms only run their probe chain when the mover sits on an 8-pixel

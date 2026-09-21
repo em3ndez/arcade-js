@@ -7,11 +7,10 @@
  * cell, stashes that cell at SAVED_CELL_PTR, and searches table A's phase row (chosen by
  * SUBTILE_PHASE) for the neighbouring tile: a miss reports "no match"; a hit at phase 0 reports
  * "match" at once; otherwise it searches table B's phase row for the following tile and reports
- * whether THAT matched. It writes only SAVED_CELL_PTR and leaves the answer in the zero flag (F_Z)
- * for the caller. The name stays neutral — this variant's table semantics are not grounded enough
- * to name without over-claiming.
+ * whether THAT matched. It writes only SAVED_CELL_PTR and returns the found/not-found boolean
+ * the caller branches on. The name stays neutral — this variant's table semantics are not grounded
+ * enough to name without over-claiming.
  */
-import { F_Z } from "../../../core/cpu/z80.js";
 import {
   PROBE_CELL_PTR,
   PROBE_NEXT_TILE_TABLE,
@@ -24,7 +23,7 @@ import { u16 } from "../../../core/int.js";
 // Bases of the two phase-keyed probe tables' rows.
 
 export function probeRowBackTilePair(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   // Look one tilemap row back from the probe cell, and stash it (a later step reloads the pointer).
   const oneRowBack = u16(mem16[PROBE_CELL_PTR] - 32);
@@ -43,8 +42,6 @@ export function probeRowBackTilePair(m) {
     matched = romRowHas(m, PROBE_NEXT_TILE_TABLE + ((phase - 32) & 0xff), followingTile);
   }
 
-  // Report the result: the zero flag for the caller to branch on, and a return.
-  regs.f = matched ? regs.f | F_Z : regs.f & ~F_Z;
   return matched;
 }
 
