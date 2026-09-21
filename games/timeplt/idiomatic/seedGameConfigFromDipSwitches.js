@@ -16,7 +16,7 @@ const FOLDS_TO = 0x06;
 const ALL_ONES = 0xff;
 
 export function seedGameConfigFromDipSwitches(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   mem8[HIGH_SCORE_HI] = mem8[DEFAULT_HIGH_SCORE_HI];
   mem8[KILL_QUOTA] = mem8[DEFAULT_KILL_QUOTA];
   mem8[COINAGE_SETTINGS] = u8(~mem8[DSW0_PORT]);
@@ -24,7 +24,6 @@ export function seedGameConfigFromDipSwitches(m) {
 
   const bank1 = u8(~mem8[DSW1_PORT]);
   const lives = (bank1 & 0x03) + LIVES_BASE;
-  regs.a = lives === FOLDS_TO ? ALL_ONES : lives;
-  regs.c = bank1;
-  return unpackTheFirstThreeSwitchSettings(m);
+  const whole = lives === FOLDS_TO ? ALL_ONES : lives;
+  return unpackTheFirstThreeSwitchSettings(m, whole, bank1);
 }

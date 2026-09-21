@@ -13,15 +13,15 @@ import { COMMAND_RING, WATCHDOG_RESET } from "./names.js";
 const FILL_BYTES = 64;
 
 export function initColdStartRamThenSeedConfig(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   for (let i = 0; i < FILL_BYTES; i++) mem8[COMMAND_RING + i] = 0xff;
 
-  seedRandomRegister(m);
-  mem8[WATCHDOG_RESET] = regs.a;
+  const seed = seedRandomRegister(m);
+  mem8[WATCHDOG_RESET] = seed;
   loadDefaultHighScores(m);
-  mem8[WATCHDOG_RESET] = regs.a;
+  mem8[WATCHDOG_RESET] = seed;
   emptyBothDeferredCellLists(m);
-  mem8[WATCHDOG_RESET] = regs.a;
+  mem8[WATCHDOG_RESET] = seed;
 
   return seedGameConfigFromDipSwitches(m);
 }

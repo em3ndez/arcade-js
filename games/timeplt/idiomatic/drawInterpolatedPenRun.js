@@ -37,12 +37,13 @@ export function drawInterpolatedPenRun(m) {
   mem8[PEN_ROUTE_LEG] = mem8[PEN_ROUTE_LEG] + 1;
   const word = fetchTableWord(m, mem8[PEN_ROUTE_LEG], PEN_ROUTE_TABLE);
 
+  const rowInt = word & 0xff;
   mem8[PEN_ROW_POS] = 0;
-  mem8[PEN_ROW_POS + 1] = word & 0xff;
+  mem8[PEN_ROW_POS + 1] = rowInt;
   mem8[PEN_COLUMN_POS] = 0;
   mem8[PEN_COLUMN_POS + 1] = word >> 8;
 
-  regs.a = word & 0xff; // sets the Z-flag live-out callers branch on
-  regs.and(regs.a);
+  regs.a = rowInt; // sets the Z-flag live-out callers branch on
+  regs.and(rowInt);
   m.ret(10);
 }

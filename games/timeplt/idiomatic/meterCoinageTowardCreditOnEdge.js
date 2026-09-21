@@ -28,7 +28,6 @@ export function meterCoinageTowardCreditOnEdge(m) {
   mem8[COIN_SLOT_2_ACCUMULATOR] = stepped;
   if (mem8[COIN_SLOT_2_RATIO] >= stepped) return; // stop once the high byte has caught up
 
-  regs.c = mem8[COIN_SLOT_2_RATIO];
   mem8[COIN_SLOT_2_ACCUMULATOR] = (stepped - ((mem8[COIN_SLOT_2_RATIO] & 0xf0) + STEP));
-  return awardCoinCreditThenPulseCoinCounter(m);
+  return awardCoinCreditThenPulseCoinCounter(m, mem8[COIN_SLOT_2_RATIO]);
 }

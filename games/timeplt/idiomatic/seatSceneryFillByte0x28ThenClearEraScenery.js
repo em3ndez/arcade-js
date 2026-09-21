@@ -6,6 +6,5 @@ import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenR
 const FILL_BYTE = 40;
 
 export function seatSceneryFillByte0x28ThenClearEraScenery(m) {
-  m.regs.a = FILL_BYTE;
-  return clearSceneryEntriesThenRunEraScenery(m);
+  return (m.regs.a = FILL_BYTE, clearSceneryEntriesThenRunEraScenery(m));
 }

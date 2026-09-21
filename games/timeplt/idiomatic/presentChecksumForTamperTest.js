@@ -8,8 +8,6 @@ import { u16 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
 
 export function presentChecksumForTamperTest(m, hl = m.regs.hl, de = m.regs.de, b = m.regs.b) {
-  const { regs } = m;
   offsetAddress(m, u16(hl + de));
-  regs.a = b;
-  return regs.a;
+  return (m.regs.a = b);
 }

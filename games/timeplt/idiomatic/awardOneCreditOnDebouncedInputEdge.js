@@ -12,12 +12,11 @@ const LOW3 = 0x07;
 const ONE_CREDIT = 0x01;
 
 export function awardOneCreditOnDebouncedInputEdge(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const bit = (mem8[IN0_MIRROR] >> INPUT_BIT) & 1;
   const history = ((mem8[SERVICE_CREDIT_DEBOUNCE] << 1) | bit) & 0xff;
   mem8[SERVICE_CREDIT_DEBOUNCE] = history;
   if ((history & LOW3) !== EDGE) return;
   requestCoinSound(m);
-  regs.c = ONE_CREDIT;
-  return awardCoinCreditThenPulseCoinCounter(m);
+  return (m.regs.c = ONE_CREDIT, awardCoinCreditThenPulseCoinCounter(m));
 }

@@ -16,9 +16,7 @@ const READOUTS = [
 export function paintFiveLabelledNumericReadouts(m) {
   const { regs } = m;
   for (const { source, cursor, pen } of READOUTS) {
-    regs.hl = source;
-    regs.de = cursor;
     regs.c = pen;
-    paintLabelledNumericReadoutColumn(m);
+    paintLabelledNumericReadoutColumn(m, source, cursor, pen);
   }
 }

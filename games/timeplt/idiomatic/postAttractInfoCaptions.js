@@ -7,13 +7,13 @@ import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { BONUS_LIFE_SETTING, CREDIT_COUNT, stampCopyrightStrip_ADDR } from "./names.js";
 
 export function postAttractInfoCaptions(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   // each frozen callee pops a parked slot; the dissolved advanceSequenceSubStep calls take no return.
   const call = (addr) => { m.push16(0); m.call(addr); };
   call(stampCopyrightStrip_ADDR);
   call(0x0b39);
 
-  const post = (code) => { regs.de = (1 << 8) | code; call(0x0038); };
+  const post = (code) => { return (m.regs.de = (1 << 8) | code, call(0x0038)); };
   post(0x01);
   post(0x14);
   post(0x15);

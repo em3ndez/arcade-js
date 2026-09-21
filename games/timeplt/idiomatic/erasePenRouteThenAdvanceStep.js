@@ -22,7 +22,7 @@ export function erasePenRouteThenAdvanceStep(m) {
   for (let i = 0; i < CHECKED_BYTES; i++) total = u8(total + mem8[u16(ATTRACT_CHECKSUM_BLOCK_BASE + i)]);
   regs.a = total;
   regs.sub(GENUINE_TOTAL);
-  if (regs.fNZ) return loc_08fa(m);
+  if (total !== GENUINE_TOTAL) return loc_08fa(m);
 
   const penColourWasSet = mem8[PEN_COLOUR] === PEN_COLOUR_VALUE;
   mem8[PEN_COLOUR] = PEN_COLOUR_VALUE;
