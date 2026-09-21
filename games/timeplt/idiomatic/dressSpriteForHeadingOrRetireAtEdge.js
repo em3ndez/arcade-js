@@ -47,9 +47,11 @@ export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.re
     if (seed !== SETTLED) {
       const counter = u8(mem8[record + WIND_DOWN] + 1);
       mem8[record + WIND_DOWN] = counter;
-      regs.c = counter;
-      if (counter & CLOSED_OUT) return restartAnimationCounterThenDressFlutterSprite(m);
+      if (counter & CLOSED_OUT) return (regs.c = counter, restartAnimationCounterThenDressFlutterSprite(m));
       if (u8(seed + 2) < counter) mem8[record + WIND_DOWN] = CLOSED_OUT;
+      mem8[entry + COLOUR_LO] = FLUTTER_CODE;
+      mem8[entry + COLOUR_HI] = FLUTTER_CODE;
+      return (regs.c = counter, dressSpriteFlutterShapesByFrameTickBit(m));
     }
     mem8[entry + COLOUR_LO] = FLUTTER_CODE;
     mem8[entry + COLOUR_HI] = FLUTTER_CODE;

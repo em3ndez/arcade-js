@@ -18,7 +18,7 @@ const COMMAND = 4;
 const PAST_THE_LAST_STEP = 15;
 
 export function postNextParachutistBonus(m, record = m.regs.ix) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   mem8[record + COUNTDOWN] = mem8[record + COUNTDOWN] - 1;
   const step = mem8[record + STEP];
@@ -28,7 +28,5 @@ export function postNextParachutistBonus(m, record = m.regs.ix) {
   if (step < STEPS) {
     argument = mem8[offsetAddress(m, PARACHUTIST_BONUS_ARG_TABLE, step)];
   }
-  regs.d = COMMAND;
-  regs.e = argument;
-  postCommand(m, COMMAND, argument);
+  return (m.regs.d = COMMAND, m.regs.e = argument, void postCommand(m, COMMAND, argument));
 }

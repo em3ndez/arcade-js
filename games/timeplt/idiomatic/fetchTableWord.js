@@ -13,7 +13,5 @@ export function fetchTableWord(m, a = m.regs.a, table = m.regs.hl) {
   const { regs, mem16 } = m;
   const entryAddress = offsetAddress(m, table, u8(a + a));
   const word = mem16[entryAddress];
-  regs.de = word;
-  regs.hl = entryAddress + 2;
-  return word;
+  return (regs.de = word, regs.hl = entryAddress + 2, word);
 }

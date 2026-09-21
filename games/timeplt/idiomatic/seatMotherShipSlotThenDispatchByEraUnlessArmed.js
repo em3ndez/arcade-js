@@ -10,7 +10,5 @@ import { MOTHER_SHIP_ARMED, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE } from "./names
 
 export function seatMotherShipSlotThenDispatchByEraUnlessArmed(m) {
   if (m.mem8[MOTHER_SHIP_ARMED] !== 0) return;
-  m.regs.ix = MOTHER_SHIP_STATE;
-  m.regs.iy = MOTHER_SHIP_ENTRY;
-  return dispatchSeatedSlotByEraIndex(m);
+  return (m.regs.ix = MOTHER_SHIP_STATE, m.regs.iy = MOTHER_SHIP_ENTRY, dispatchSeatedSlotByEraIndex(m));
 }

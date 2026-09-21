@@ -9,7 +9,5 @@ import { fetchTableWord } from "./fetchTableWord.js";
 export function dispatchInlineWordTableIndexedByA(m) {
   const { regs } = m;
   const arm = fetchTableWord(m, undefined, m.pop16());
-  regs.de = regs.hl;
-  regs.hl = arm;
-  return m.call(arm);
+  return (regs.de = regs.hl, regs.hl = arm, m.call(arm));
 }

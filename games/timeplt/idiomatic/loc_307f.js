@@ -15,6 +15,5 @@ export function loc_307f(m, hl = m.regs.hl, e = m.regs.e) {
 
   fetchTableWord(m);
   regs.incMem8(mem, regs.hl);
-  regs.af = m.pop16();
-  return placeDiagonallyAbuttingTile(m);
+  return (regs.af = m.pop16(), placeDiagonallyAbuttingTile(m));
 }

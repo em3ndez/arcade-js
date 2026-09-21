@@ -11,8 +11,5 @@ const PEN_COLOUR = 16;
 
 export function paintCreditCountPanel(m) {
   const { regs } = m;
-  regs.c = PEN_COLOUR;
-  regs.de = CREDIT_COUNT_READOUT_CELL;
-  regs.hl = CREDIT_COUNT;
-  paintTwoUnsuppressedDigitsFromByte(m);
+  return (regs.c = PEN_COLOUR, regs.de = CREDIT_COUNT_READOUT_CELL, regs.hl = CREDIT_COUNT), void paintTwoUnsuppressedDigitsFromByte(m);
 }

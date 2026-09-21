@@ -29,12 +29,12 @@ export function driveEnemyWaveForLifePhase(m) {
   if (mem8[ROUND_TRANSITION_HOLD] !== 0) return;
   if (mem8[ERA_INDEX] === BOSS_ERA) return spawnEnemyWaveIntoFreeSlots(m);
 
-  regs.hl = LIFE_TICKS_LOW; // the phase tails all read the byte here
   const phase = mem8[LIFE_TICKS_MID] & 0x0f;
-  if (phase === 7) return stopFiveSlotAnimations(m);
-  if (phase < 7) return gateTheFreeSlotSearchAndPickItsRun(m);
-  if (phase < 9) return spawnEnemyCraftWhenBandUnderTwo(m);
-  if (mem8[LIFE_TICKS_LOW] !== 0) return;
+  // the phase tails all read the byte at HL
+  if (phase === 7) return (regs.hl = LIFE_TICKS_LOW, stopFiveSlotAnimations(m));
+  if (phase < 7) return (regs.hl = LIFE_TICKS_LOW, gateTheFreeSlotSearchAndPickItsRun(m));
+  if (phase < 9) return (regs.hl = LIFE_TICKS_LOW, spawnEnemyCraftWhenBandUnderTwo(m));
+  if (mem8[LIFE_TICKS_LOW] !== 0) return void (regs.hl = LIFE_TICKS_LOW);
 
   const parityBit = drawRandomByte(m) & 1;
   mem8[WAVE_SPAWN_BUSY_FLAG] = 0xff;

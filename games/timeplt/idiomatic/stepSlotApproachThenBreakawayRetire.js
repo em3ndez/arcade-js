@@ -24,9 +24,7 @@ export function stepSlotApproachThenBreakawayRetire(m, ix = m.regs.ix, bc = m.re
     loc_58b6(m);
     animateFixedShapeCycleAtHalfRate(m);
     const reached = hasReachedRetireLine(m);
-    regs.bc = held;
-    if (reached) retireSlot(m);
-    return closeOneTurnOfTheSlotSweep(m);
+    return (regs.bc = held, reached && retireSlot(m), closeOneTurnOfTheSlotSweep(m));
   }
 
   mem8[countdown] = (mem8[countdown] - 1);

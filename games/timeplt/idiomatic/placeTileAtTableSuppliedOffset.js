@@ -11,11 +11,11 @@ const ENTRY_STRIDE = 2;
 const SECOND_AXIS_OFFSET = 49;
 
 export function placeTileAtTableSuppliedOffset(m, iy = m.regs.iy, hl = m.regs.hl, c = m.regs.c, b = m.regs.b) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   const nextEntry = iy + ENTRY_STRIDE;
 
-  regs.a = mem8[hl] + c;
+  const sum = mem8[hl] + c;
   mem8[nextEntry + SECOND_AXIS_OFFSET] = b;
-  mem8[nextEntry] = regs.a;
-  advanceToNextSlot(m);
+  mem8[nextEntry] = sum;
+  return (m.regs.a = sum, void advanceToNextSlot(m));
 }

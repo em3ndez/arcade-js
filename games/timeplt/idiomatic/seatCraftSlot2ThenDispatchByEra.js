@@ -7,7 +7,5 @@ import { CRAFT_ENTRY_SLOT2, CRAFT_RECORD_SLOT2 } from "./names.js";
 
 export function seatCraftSlot2ThenDispatchByEra(m) {
   const { regs } = m;
-  regs.ix = CRAFT_RECORD_SLOT2;
-  regs.iy = CRAFT_ENTRY_SLOT2;
-  return dispatchSeatedSlotByEraIndex(m);
+  return (regs.ix = CRAFT_RECORD_SLOT2, regs.iy = CRAFT_ENTRY_SLOT2, dispatchSeatedSlotByEraIndex(m));
 }

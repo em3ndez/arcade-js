@@ -3,7 +3,7 @@
  * sprite, retire it once it drifts onto a retire line. Re-aiming is rationed by the object's phase byte (only on
  * frames whose low nibble matches), spreading a crowd's cost over sixteen frames; turn/move/dress run every frame.
  * The aim point read is ENEMY_STANDOFF_AIM_MAIN, one of six that move together (ONE not THE, neither only nor fixed).
- * The caller's counter pair is restored before the retire test. LIVE-OUT: memory + the two object pointers and counter (unchanged). */
+ * The caller's counter pair is restored onto the return. LIVE-OUT: memory + the two object pointers and counter (unchanged). */
 
 import { u16 } from "../../../core/int.js";
 import { ENEMY_STANDOFF_AIM_MAIN, FRAME_TICK } from "./names.js";
@@ -29,7 +29,6 @@ export function chaseOneAimPointAndRetireAtTheLine(m, held = m.regs.bc, object =
   loc_58aa(m);
   dressSpriteShapeAndAttributeForHeadingSector(m);
 
-  regs.bc = held;
-  if (!hasReachedRetireLine(m)) return;
-  retireSlot(m);
+  if (!hasReachedRetireLine(m)) return void (regs.bc = held);
+  return (regs.bc = held, void retireSlot(m));
 }

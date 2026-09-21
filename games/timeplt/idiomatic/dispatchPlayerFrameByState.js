@@ -25,7 +25,6 @@ export function dispatchPlayerFrameByState(m) {
   if (mem8[PLAY_ACTIVE] === 0) return flyDemoShipByScript(m);
 
   const stick = readPlayerControls(m) & 0x0f;
-  regs.a = stick;
-  if (stick !== 0) return turnShipTowardTargetHeading(m);
-  return scrollWorldAtTheEraPace(m);
+  if (stick !== 0) return (regs.a = stick, turnShipTowardTargetHeading(m));
+  return (regs.a = stick, scrollWorldAtTheEraPace(m));
 }

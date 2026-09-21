@@ -55,12 +55,11 @@ const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors 
 
 export function stepMotherShip(m) {
   const { regs, mem8 } = m;
-  regs.ix = MOTHER_SHIP_STATE;
-  regs.iy = MOTHER_SHIP_ENTRY;
   const state = mem8[u16(MOTHER_SHIP_STATE + STATE)];
-  if (state === 0x00) return loc_43f0_4535(m); // idle
-  if (u8(state + 1) !== 0x00) return loc_43f0_4540(m, u8(state + 1)); // mid-phase (C = phase + 1)
-  return loc_43f0_4403(m); // live
+  // set the record/sprite pair on the dispatch so each callee reads regs.ix/iy by default
+  if (state === 0x00) return (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4535(m)); // idle
+  if (u8(state + 1) !== 0x00) return (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4540(m, u8(state + 1))); // mid-phase (C = phase + 1)
+  return (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4403(m)); // live
 }
 
 export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {

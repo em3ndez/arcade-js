@@ -17,13 +17,14 @@ export function serviceEra0BallisticObjectBank(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] !== 0) return;
 
-  regs.ix = ERA_OBJECT_RECORD_SLOT0;
-  regs.iy = ERA_OBJECT_ENTRY_SLOT0;
-  regs.b = BANK_SLOTS;
-
+  // The bank cursors + slot count are inputs the servicing routines read; the marker probe below is a
+  // constant-address read that does not depend on them, so each write rides its own return unchanged.
   const marker = mem8[ERA_OBJECT_RECORD_SLOT0];
-  if (marker === EMPTY) return advanceSlotThenSweepObjectBankByHead(m);
-  if (marker !== BALLISTIC) return sweepObjectSlotBankServicingFirstSlot(m);
-  flyAlongBallisticArc(m);
-  return advanceSlotThenSweepObjectBankByHead(m);
+  if (marker === EMPTY) {
+    return (regs.ix = ERA_OBJECT_RECORD_SLOT0, regs.iy = ERA_OBJECT_ENTRY_SLOT0, regs.b = BANK_SLOTS, advanceSlotThenSweepObjectBankByHead(m));
+  }
+  if (marker !== BALLISTIC) {
+    return (regs.ix = ERA_OBJECT_RECORD_SLOT0, regs.iy = ERA_OBJECT_ENTRY_SLOT0, regs.b = BANK_SLOTS, sweepObjectSlotBankServicingFirstSlot(m));
+  }
+  return (regs.ix = ERA_OBJECT_RECORD_SLOT0, regs.iy = ERA_OBJECT_ENTRY_SLOT0, regs.b = BANK_SLOTS, flyAlongBallisticArc(m), advanceSlotThenSweepObjectBankByHead(m));
 }

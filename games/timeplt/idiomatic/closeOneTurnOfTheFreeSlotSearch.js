@@ -9,8 +9,8 @@ const ENTRY_STRIDE = 2;
 
 export function closeOneTurnOfTheFreeSlotSearch(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs } = m;
-  regs.ix = ix - RECORD_STRIDE;
-  regs.iy = iy - ENTRY_STRIDE;
-  regs.b = regs.b - 1;
-  if (regs.b !== 0) return spawnEnemyIntoFreeSlotElseStepSearch(m);
+  const nextB = regs.b - 1;
+  if (nextB !== 0)
+    return (regs.ix = ix - RECORD_STRIDE, regs.iy = iy - ENTRY_STRIDE, regs.b = nextB, spawnEnemyIntoFreeSlotElseStepSearch(m));
+  return void (regs.ix = ix - RECORD_STRIDE, regs.iy = iy - ENTRY_STRIDE, regs.b = nextB);
 }

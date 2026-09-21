@@ -36,11 +36,13 @@ export function spawnAtEdgeAhead(m, record = m.regs.ix, entry = m.regs.iy) {
   if (delay !== 0) return;
 
   const sector = u8(mem8[PLAYER_HEADING] + STEPS_PER_SECTOR / 2) >> 4;
+  const entryAddr = u16(EDGE_SPAWN_COORD_TABLE + sector * PAIR_WIDTH);
   mem8[u16(entry + SECOND_COORDINATE)] = fetchTableByte(m, EDGE_SPAWN_COORD_TABLE, sector * PAIR_WIDTH);
-  regs.hl = u16(regs.hl + 1);
-  regs.a = mem8[regs.hl];
-  mem8[u16(entry + FIRST_COORDINATE)] = regs.a;
+  const cursor = u16(entryAddr + 1);
+  const second = mem8[cursor];
+  mem8[u16(entry + FIRST_COORDINATE)] = second;
 
   for (const [field, value] of RESET_FIELDS) mem8[u16(record + field)] = value;
   mem8[u16(record + STATE)] = LIVE;
+  return void (regs.hl = cursor, regs.a = second);
 }

@@ -19,7 +19,6 @@ export function petWatchdogThroughStartupDelayThenStartMachine(m, value = m.regs
   const { regs, mem, mem8 } = m;
 
   mem.write8(WATCHDOG_RESET, value, STORE_TO_A_FIXED_ADDRESS);
-  regs.hl = SEQUENCE_DELAY;
   mem8[SEQUENCE_DELAY] = PASSES;
 
   for (let pass = PASSES; pass > 0; pass--) {
@@ -28,11 +27,9 @@ export function petWatchdogThroughStartupDelayThenStartMachine(m, value = m.regs
     }
     mem8[SEQUENCE_DELAY] = pass - 1;
   }
-  regs.bc = 0;
 
   regs.xor(value);
   sendSoundCommand(m);
 
-  regs.a = mem8[NMI_ENABLE_BYTE];
-  return enableInterruptAndEnterForegroundLoop(m);
+  return (regs.hl = SEQUENCE_DELAY, regs.bc = 0, regs.a = mem8[NMI_ENABLE_BYTE], enableInterruptAndEnterForegroundLoop(m));
 }

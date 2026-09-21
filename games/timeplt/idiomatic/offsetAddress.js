@@ -10,7 +10,5 @@ import { u8, u16 } from "../../../core/int.js";
 export function offsetAddress(m, base = m.regs.hl, offset = m.regs.a) {
   const { regs } = m;
   const moved = u16(base + offset);
-  regs.hl = moved;
-  regs.a = u8(moved);
-  return moved;
+  return (regs.hl = moved, regs.a = u8(moved), moved);
 }

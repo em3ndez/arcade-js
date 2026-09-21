@@ -17,8 +17,6 @@ export function gateTheFreeSlotSearchAndPickItsRun(m, hl = m.regs.hl) {
 
   const cleared = mem8[KILLS_REMAINING] === 0;
   const run = cleared ? CLEARED_RUN : OWED_RUN;
-  regs.b = cleared ? CLEARED_RUN.slots : mem8[ROUND_CRAFT_COUNT];
-  regs.ix = run.records;
-  regs.iy = run.entries;
-  return spawnEnemyIntoFreeSlotElseStepSearch(m);
+  const slotCount = cleared ? CLEARED_RUN.slots : mem8[ROUND_CRAFT_COUNT];
+  return (regs.b = slotCount), (regs.ix = run.records), (regs.iy = run.entries), spawnEnemyIntoFreeSlotElseStepSearch(m);
 }

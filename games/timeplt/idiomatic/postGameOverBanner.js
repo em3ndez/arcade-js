@@ -21,21 +21,16 @@ const SECOND_COMMAND = 10;
 const SECOND_ARGUMENT = 11;
 
 export function postGameOverBanner(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[PLAY_ACTIVE] === 0) {
     restartAttractSequence(m);
     return;
   }
 
-  regs.d = FIRST_COMMAND;
-  regs.e = FIRST_ARGUMENT + (mem8[ACTIVE_PLAYER] === 0 ? 0 : 1);
-  postCommand(m);
-
-  regs.d = SECOND_COMMAND;
-  regs.e = SECOND_ARGUMENT;
-  postCommand(m);
+  postCommand(m, FIRST_COMMAND, FIRST_ARGUMENT + (mem8[ACTIVE_PLAYER] === 0 ? 0 : 1));
+  postCommand(m, SECOND_COMMAND, SECOND_ARGUMENT);
 
   mem8[SEQUENCE_DELAY] = TIMER_RELOAD;
-  advanceSequenceSubStep(m);
+  return (m.regs.d = SECOND_COMMAND, m.regs.e = SECOND_ARGUMENT, void advanceSequenceSubStep(m));
 }

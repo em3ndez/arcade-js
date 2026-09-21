@@ -50,7 +50,7 @@ export function launchAttackerIntoFreeSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
     if (across < window) return;
   }
 
-  regs.c = mem8[ix + 0x02];
-  if (mem8[ERA_INDEX] === 0) return setTheLaunchFacingInsideOneAimWindow(m);
-  return commissionStagedAttackerByEra(m);
+  const facing = mem8[ix + 0x02];
+  if (mem8[ERA_INDEX] === 0) return (regs.c = facing, setTheLaunchFacingInsideOneAimWindow(m));
+  return (regs.c = facing, commissionStagedAttackerByEra(m));
 }

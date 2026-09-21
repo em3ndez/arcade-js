@@ -34,18 +34,12 @@ export function runAllCollisionSweepsThisFrame(m) {
     regs.h = 13;
     destroyTargetsReachedByFixedAttacker(m);
 
-    regs.b = 1;
-    regs.l = 8;
-    regs.h = 17;
-    return markObjectsTouchingPlayer(m);
+    return (regs.b = 1, regs.l = 8, regs.h = 17, markObjectsTouchingPlayer(m));
   }
 
   destroySlotsAndPlayerOnContact(m, regs.de, regs.iy, 7, 7, 15);
 
   destroyTargetsReachedByFixedAttacker(m, regs.de, regs.iy, 3, 6, 13);
 
-  regs.b = 1;
-  regs.l = 8;
-  regs.h = 17;
-  return markObjectsTouchingPlayer(m);
+  return (regs.b = 1, regs.l = 8, regs.h = 17, markObjectsTouchingPlayer(m));
 }

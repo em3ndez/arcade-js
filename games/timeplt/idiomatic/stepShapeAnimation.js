@@ -24,11 +24,9 @@ export function stepShapeAnimation(m, record = m.regs.ix) {
 
   const step = remaining - 1;
   mem8[record + STEP_TIMER] = step;
-  regs.c = step;
 
   fetchTableWord(m, mem8[record + RUN_SELECTOR], SHAPE_RUN_POINTER_TABLE);
   regs.exDeHl();
 
-  regs.a = step;
-  mem8[record + SHAPE_BYTE] = fetchTableByte(m);
+  return void (regs.c = step, regs.a = step, mem8[record + SHAPE_BYTE] = fetchTableByte(m));
 }

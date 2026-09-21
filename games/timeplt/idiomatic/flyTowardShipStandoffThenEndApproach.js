@@ -38,6 +38,5 @@ export function flyTowardShipStandoffThenEndApproach(m, bc = m.regs.bc, ix = m.r
   loc_58b6(m);
   animateFixedShapeCycleAtHalfRate(m);
 
-  regs.bc = held;
-  return hasReachedRetireLine(m);
+  return (regs.bc = held), hasReachedRetireLine(m);
 }

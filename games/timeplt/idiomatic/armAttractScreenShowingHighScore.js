@@ -42,5 +42,5 @@ export function armAttractScreenShowingHighScore(m) {
   mem8[SEQUENCE_SUBSTEP] = 2;
   if (mem8[FREE_PLAY] === 0) return;
 
-  regs.de = 0x010d; postCommand(m);
+  return (regs.de = 0x010d, postCommand(m));
 }

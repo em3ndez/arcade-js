@@ -9,8 +9,5 @@ const SLOTS_IN_THE_PASS = 5;
 
 export function loc_3793(m) {
   const { regs } = m;
-  regs.b = SLOTS_IN_THE_PASS;
-  regs.ix = CRAFT_RECORD_SLOT4;
-  regs.iy = CRAFT_ENTRY_SLOT4;
-  return spawnEnemyIntoFreeSlotElseStepSearch(m);
+  return (regs.b = SLOTS_IN_THE_PASS, regs.ix = CRAFT_RECORD_SLOT4, regs.iy = CRAFT_ENTRY_SLOT4, spawnEnemyIntoFreeSlotElseStepSearch(m));
 }

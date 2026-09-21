@@ -7,7 +7,5 @@ import { CRAFT_ENTRY_SLOT6, CRAFT_RECORD_SLOT6, MOTHER_SHIP_ARMED } from "./name
 
 export function seatCraftSlot6ThenDispatchByEraUnlessArmed(m) {
   if (m.mem8[MOTHER_SHIP_ARMED] !== 0) return;
-  m.regs.ix = CRAFT_RECORD_SLOT6;
-  m.regs.iy = CRAFT_ENTRY_SLOT6;
-  return dispatchSeatedSlotByEraIndex(m);
+  return (m.regs.ix = CRAFT_RECORD_SLOT6, m.regs.iy = CRAFT_ENTRY_SLOT6, dispatchSeatedSlotByEraIndex(m));
 }

@@ -6,7 +6,5 @@ import { CRAFT_ENTRY_SLOT4, CRAFT_RECORD_SLOT4 } from "./names.js";
 
 
 export function seatCraftSlot4ThenDispatchByEra(m) {
-  m.regs.ix = CRAFT_RECORD_SLOT4;
-  m.regs.iy = CRAFT_ENTRY_SLOT4;
-  return dispatchSeatedSlotByEraIndex(m);
+  return (m.regs.ix = CRAFT_RECORD_SLOT4, m.regs.iy = CRAFT_ENTRY_SLOT4, dispatchSeatedSlotByEraIndex(m));
 }

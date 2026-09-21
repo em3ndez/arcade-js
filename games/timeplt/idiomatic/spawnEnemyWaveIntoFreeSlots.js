@@ -17,7 +17,7 @@ const DEFAULT_COUNT = 5;
 const STATUS_VALUE = 0xe4;
 
 export function spawnEnemyWaveIntoFreeSlots(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const configuredCount = mem8[ROUND_CRAFT_COUNT];
   const count = mem8[MOTHER_SHIP_ARMED] === 0 ? configuredCount : DEFAULT_COUNT;
 
@@ -27,8 +27,9 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
   let remaining = count;
   do {
     if (mem8[slot] === 0) {
-      const shapeIndex = fetchTableByte(m, ENEMY_SPAWN_RECORD_TABLE, drawRandomByte(m) & 0xfc);
-      const record = regs.hl;
+      const pick = drawRandomByte(m) & 0xfc;
+      const shapeIndex = fetchTableByte(m, ENEMY_SPAWN_RECORD_TABLE, pick);
+      const record = u16(ENEMY_SPAWN_RECORD_TABLE + pick);
       mem8[entry + 0x31] = shapeIndex;
       mem8[entry] = mem8[record + 1];
       const slotField = mem8[record + 2];

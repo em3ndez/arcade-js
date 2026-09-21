@@ -20,7 +20,5 @@ export function unpackTheFirstThreeSwitchSettings(m, whole = m.regs.a, packed = 
   mem8[STARTING_LIVES] = whole;
   for (const { cell, bit } of SINGLE_BIT_CELLS) mem8[cell] = (packed >> bit) & 1;
   const unspent = u8((packed >> LAST_BIT_SPENT) | (packed << (BITS_IN_A_BYTE - LAST_BIT_SPENT)));
-  regs.a = unspent;
-  regs.c = unspent;
-  return finishBootSelfTestAndColdStart(m);
+  return (regs.a = unspent, regs.c = unspent, finishBootSelfTestAndColdStart(m));
 }

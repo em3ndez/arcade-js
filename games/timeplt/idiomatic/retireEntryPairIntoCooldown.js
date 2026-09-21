@@ -15,11 +15,11 @@ const RECORD_CODE = 95;
 
 export function retireEntryPairIntoCooldown(m, record = m.regs.ix, entry = m.regs.iy) {
   const { regs, mem8 } = m;
-  regs.a = 0;
   mem8[record] = 0;
   mem8[entry] = 0;
   mem8[entry + NEXT_ENTRY] = 0;
   mem8[entry + SECOND_AXIS] = 0;
   mem8[entry + SECOND_AXIS + NEXT_ENTRY] = 0;
   mem8[record + RECORD_BYTE] = RECORD_CODE;
+  return void (regs.a = 0);
 }
