@@ -16,5 +16,5 @@ export function awardTenPoints(m) {
   requestSound16(m);
 
   // Hand the +10 increment (packed decimal) to the shared score adder, which returns to us.
-  return addScore(m, 0x0010);
+  return addScore(m, 0x10);
 }

@@ -35,7 +35,7 @@ export function applyDipSwitches(m) {
 
   // Low two bits select coins-per-credit costs, packed low/high; both set = free play (0).
   let coinsPerCreditWord;
-  if ((dsw & 0x03) === 0x03) coinsPerCreditWord = 0x0000;
+  if ((dsw & 0x03) === 0x03) coinsPerCreditWord = 0;
   else if (dsw & 0x01) coinsPerCreditWord = COINAGE_WORD_A2_B3;
   else if (dsw & 0x02) coinsPerCreditWord = COINAGE_WORD_A2_B4;
   else coinsPerCreditWord = COINAGE_WORD_A1_B2;

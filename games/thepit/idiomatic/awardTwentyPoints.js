@@ -16,5 +16,5 @@ export function awardTwentyPoints(m) {
 
   // Hand +20 to the shared adder: it scores the active player and repaints the digits.
   // The increment is packed decimal — its low byte codes the decimal "20".
-  return addScore(m, 0x0020);
+  return addScore(m, 0x20);
 }
