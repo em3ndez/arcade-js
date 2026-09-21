@@ -39,8 +39,7 @@ export function redrawScoreHud(m) {
   for (const player of [1, 2]) {
     mem8[ACTIVE_PLAYER] = player;
     loadPlayerState(m); // copy this player's saved state into the shared display slot
-    drawScoreDigits(m); // repaint the four digits; hands the score-column base back in ix
-    const columnBase = m.regs.ix;
+    const columnBase = drawScoreDigits(m); // repaint the four digits; returns the score-column base
     mem8[columnBase - ROW] = 0; // blank the cell one row above the score
     mem8[columnBase - 2 * ROW] = 0; // and the cell two rows above
   }

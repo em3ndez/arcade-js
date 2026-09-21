@@ -7,8 +7,8 @@
  * routine ticks the countdown CHAMBER_CREATURE_ANIM_PHASE. While it runs, an off-beat frame
  * jumps to the publish continuation and an on-beat frame (every fourth) runs the position-step
  * body. When it expires the routine reloads it to eight, flips CHAMBER_CREATURE_FRAME to its
- * other tile (a strict two-state toggle), and hands the chosen tile to the commit continuation
- * through the machine register it reads. All three are tail jumps, so each delegation is an exit.
+ * other tile (a strict two-state toggle), and hands the chosen tile to the commit continuation.
+ * All three are tail jumps, so each delegation is an exit.
  */
 
 import { setChamberCreatureFrame } from "./setChamberCreatureFrame.js";
@@ -38,8 +38,8 @@ export function advanceChamberCreatureAnimation(m) {
   // Countdown expired: reload it and flip the tile to its other code.
   mem8[CHAMBER_CREATURE_ANIM_PHASE] = 8;
   const tile = mem8[CHAMBER_CREATURE_FRAME];
-  m.regs.a = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
+  const chosenTile = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
 
   // Hand the chosen tile to the commit continuation; this is the routine's exit.
-  return setChamberCreatureFrame(m);
+  return setChamberCreatureFrame(m, chosenTile);
 }

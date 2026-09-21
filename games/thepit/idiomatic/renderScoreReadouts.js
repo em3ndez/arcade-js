@@ -2,12 +2,10 @@
 /**
  * renderScoreReadouts — lay the three score-readout numbers into their on-screen display cells.
  *
- * The game keeps three numeric readouts side by side (the score / high-score display). Each has
- * a small source record in work RAM — a 3-tile label block then the readout's two-byte value —
- * and the three records sit back to back. This paints all three: the label tiles are copied
- * verbatim into the display cell, then the value is moved into the shared staging slot the digit
- * unpacker reads and the unpacker splits it into digit cells right after the label. Callers seed
- * the records first, then hand off here to draw them.
+ * Three numeric readouts sit side by side (score / high-score); each source record is a 3-tile
+ * label block then a two-byte value, the three back to back. Per readout: copy the label tiles
+ * verbatim, then stage the value in the shared slot the digit unpacker reads and let it fill the
+ * digit cells after the label. Callers seed the records first, then hand off here.
  */
 
 import { unpackScoreDigits } from "./unpackScoreDigits.js";
@@ -27,7 +25,7 @@ const DIGIT_DEST_BASE = SCORE_READOUT_DEST + LABEL_TILES;
 const DEST_STRIDE = 9;
 
 export function renderScoreReadouts(m) {
-  const { mem8, mem16, regs } = m;
+  const { mem8, mem16 } = m;
 
   for (let readout = 0; readout < READOUT_COUNT; readout++) {
     const source = SOURCE_BASE + readout * SOURCE_STRIDE;
@@ -40,7 +38,6 @@ export function renderScoreReadouts(m) {
     // Stage this readout's value where the digit unpacker reads it, hand it the
     // digit-cell base, and let it fill the digits.
     mem16[SCORE_DISPLAY_LOW] = mem16[source + LABEL_TILES];
-    regs.hl = digitDest;
-    unpackScoreDigits(m);
+    unpackScoreDigits(m, digitDest);
   }
 }
