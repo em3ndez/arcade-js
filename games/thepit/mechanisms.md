@@ -118,12 +118,12 @@ off by the laser routine each frame.
   copies `0x8000`/`0x801c`/`0x812c` cross-checked; any mismatch → reset `0x01a4`),
 - drains **one** sound-ring slot: reads `ring[0x801f]`, and writes it to the hardware sound latch
   `SOUND_CMD_LATCH 0xb800` **only if bit 7 is set** (`bit 7,a`/`jr z` skips it) — see §2.14,
-- LDIRs the 0x20-byte sprite-staging block `0x8220 → 0x9840` (sprite RAM),
+- LDIRs the 0x20-byte sprite-staging block `SPRITE_STAGING_BASE 0x8220 → SPRITE_RAM_BASE 0x9840` (sprite RAM),
 - runs **TWO independent /60 dividers**:
   - `0x8007 → 0x8010` — the **live** one: decrements `0x8007` each frame, and on the 60→0 rollover
     **increments `PLAY_PHASE_COUNTER 0x8010`** and reloads `0x8007=0x3c`.
-  - `0x8006 → 0x800f` — an **undocumented, vestigial** second divider: it ticks `0x8006` and on
-    rollover decrements a per-second counter `0x800f` — but **no *consumer* reads `0x800f`** in this
+  - `0x8006 → loc_800f 0x800f` — an **undocumented, vestigial** second divider: it ticks `0x8006` and on
+    rollover decrements a per-second counter `loc_800f 0x800f` — but **no *consumer* reads `0x800f`** in this
     ROM rev (the consumer was removed). Its own divider read-modify-writes it each rollover, so it is
     **not write-only** — it is simply **dead**. `[code]`
 - debounces the two input ports (IN1 `COIN_START_PORT 0xa800 → 0x8015`, IN0 `JOYSTICK_INPUT_PORT 0xa000 → 0x8018`, each latched only on
@@ -304,11 +304,11 @@ overlap case WAS held for ~1476 frames with `0x8080=1` and **zero** life loss).
   bytes: `HAZARD_STATE 0x80aa`, `HAZARD_TYPE 0x80ab`, lifetime `0x80b1`. `[code]`
 - **★ Rock vs arrow: SAME SHAPE, DIFFERENT COLOUR (render split corrected).** The hazard's 4-byte
   sprite record `0x8228`–`0x822b` is composed by `loc_2bd3`:
-  `0x8228 = HAZARD_X 0x80a9 − bias`; `0x8229 (sprite CODE/SHAPE) = HAZARD_STATE 0x80aa`;
-  `0x822a (COLOUR/attr) = HAZARD_TYPE 0x80ab`; `0x822b (Y) = HAZARD_Y 0x80ac + bias`.
+  `0x8228 = HAZARD_X 0x80a9 − bias`; `HAZARD_SPRITE_CODE 0x8229 (sprite CODE/SHAPE) = HAZARD_STATE 0x80aa`;
+  `HAZARD_SPRITE_ATTR 0x822a (COLOUR/attr) = HAZARD_TYPE 0x80ab`; `0x822b (Y) = HAZARD_Y 0x80ac + bias`.
   So the **SHAPE** comes from `HAZARD_STATE 0x80aa` (`0x10` falling → the down-arrow sprite) and the
   **COLOUR** from `HAZARD_TYPE 0x80ab` (`0x06` rock palette / `0x07` arrow palette). `boards/thepit/
-  video.js` decodes sprite byte+2 (`0x822a`) as `color = (spr[+2]&7)`, confirming `0x822a` is the
+  video.js` decodes sprite byte+2 (`HAZARD_SPRITE_ATTR 0x822a`) as `color = (spr[+2]&7)`, confirming `0x822a` is the
   colour byte — so rock and arrow **fall as the same shape, drawn in a different colour**. `[code]`
   (This corrects the prior claim that `0x80ab` was written to a *tile* byte and "the type IS the glyph
   drawn"; `loc_2bd3` writes `0x80ab` into byte+2, the colour byte.)
@@ -338,7 +338,7 @@ the two-death-trigger enumeration (§2.5) touches neither death site on the eros
 mountain-gone routes to the level-**ADVANCE** path. `[seen]`/`[code]`
 
 - **Erosion** `loc_241c` (main-loop step 4) + seed `loc_23e8`: `[seen]`/`[code]`
-  - `loc_23e8` sets erosion pointer `MOUNTAIN_ERODE_PTR 0x8065 = 0x9104` and countdown
+  - `loc_23e8` sets erosion pointer `MOUNTAIN_ERODE_PTR 0x8065 = MOUNTAIN_ERODE_VRAM_HEAD 0x9104` and countdown
     `MOUNTAIN_ERODE_TIMER 0x8067 = diffBase(0x804f) − 4×level(0x8028)` — **erosion runs faster every
     level**.
   - `loc_241c` bails until phase `0x8010 ≥ 0x0a`, then each expiry walks the pointer down the mountain
@@ -514,7 +514,7 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
 - **Game-over gate:** working lives `0x802b` → 0 (per-player mirror via `loc_4632` → `0x802c`/`0x802d`,
   §2.5).
 - **`loc_4d3a`** inserts the candidate score (`0x8034:0x8031`, big-endian) into the descending
-  three-entry high-score table (5-byte records: 3 initials + 16-bit value at `0x8039`/`0x803e`/`0x8043`
+  three-entry high-score table (5-byte records: 3 initials + 16-bit value at `HIGH_SCORE_TABLE 0x8039`/`HIGH_SCORE_RANK2_ENTRY 0x803e`/`HIGH_SCORE_RANK3_ENTRY 0x8043`
   — value slots `0x803c`/`0x8041`/`0x8046`), shifting lower ranks (value + initials) down, stamping the
   freed initials `0xFF`, and setting the **landed rank `0x8048`** (1/2/3, or 0 = no placement). The
   default table is all-zero, so any score places. `[seen]`/`[code]`
@@ -532,10 +532,10 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
   pair and walk both down-column. The display is rotated: **ROT270 is the correct
   upright player view** (ROT90 comes out upside-down). Digging, carving, jewel-blanking, hazard-
   painting, erosion (`0x31`), the ZONK glyph, and the set-piece bake all write here. `[seen]`/`[code]`
-- **Sprite records (8 slots, 4 bytes each; `0x8220`–`0x823f`, LDIR'd to sprite RAM `0x9840` by the
+- **Sprite records (8 slots, 4 bytes each; `SPRITE_STAGING_BASE 0x8220`–`ENEMY3_TWIN_SPRITE_Y 0x823f`, LDIR'd to sprite RAM `SPRITE_RAM_BASE 0x9840` by the
   NMI):** `[seen]`/`[code]`
-  - slot 0 `0x8220` player · slot 1 `0x8224` reaction/laser · **slot 2 `0x8228` falling-hazard**
-    (§2.6) · **slot 3 `0x822c` chamber creature** (§2.8) · slot 4 `0x8230` enemy 1 · slot 5 `0x8234`
+  - slot 0 `0x8220` player (attr `OBJECT_SPRITE_ATTR 0x8222`) · slot 1 `0x8224` reaction/laser · **slot 2 `0x8228` falling-hazard**
+    (§2.6) · **slot 3 `0x822c` chamber creature** (§2.8) · slot 4 `OBJ1_SPRITE_X 0x8230` enemy 1 · slot 5 `0x8234`
     enemy 2 · slot 6 `0x8238` enemy-3 body · slot 7 `0x823c` enemy-3 twin.
   - `boards/thepit/video.js` decodes each record: byte0 → screen position, byte1 → `code&0x3f` +
     flipX(0x40)/flipY(0x80), **byte2 → `color = (byte2 & 7)*4` + priority bit3**, byte3 → the other
@@ -543,8 +543,8 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
     `0x8068`, byte3 = work-X `0x806b`; dig-mode moves the player DOWN while work-X increases → work-X =
     screen-vertical). `[seen]` (grounding-2 Z-8).
 - **★ Cocktail / flip — the real value is `0x02`, not `0x40`.** The 180° flip is the hardware LS259
-  flipscreen: `loc_4b55` computes `flipBit = ((activePlayer 0x8002 − 1) & cocktailDSW_bit5 0x8052) ^
-  flipDSW_bit4 0x8050`, writes it to **LS259 `0xb006` (b6 = flipX + input-mux) and `0xb007` (b7 =
+  flipscreen: `loc_4b55` computes `flipBit = ((activePlayer 0x8002 − 1) & cocktailDSW_bit5 loc_8052 0x8052) ^
+  flipDSW_bit4 loc_8050 0x8050`, writes it to **LS259 `FLIP_SCREEN_X_LATCH 0xb006` (b6 = flipX + input-mux) and `FLIP_SCREEN_Y_LATCH 0xb007` (b7 =
   flipY)**, and sets **`SPRITE_COORD_BIAS 0x8051 = flipBit << 1`.** So the true cocktail value of
   `0x8051` is **`0x02`** — a +2 sprite-Y nudge folded into every sprite record's screen-VERTICAL byte
   (byte3) plus the player's byte0 — NOT the flip itself, and NOT the arbitrary `0x40` a prior round

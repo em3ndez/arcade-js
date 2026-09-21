@@ -13,6 +13,7 @@ import {
   MOUNTAIN_ERODE_PTR,
   MOUNTAIN_ERODE_SOUND_MARKER_TILE,
   MOUNTAIN_ERODE_TIMER,
+  MOUNTAIN_ERODE_VRAM_HEAD,
   STEP_TIMER_BASE,
   loc_90c4,
   loc_90e4,
@@ -21,7 +22,7 @@ export function seedMountainErosion(m) {
   const { mem8, mem16 } = m;
 
   // 1. Seed the tilemap write pointer for later tilemap walks.
-  mem16[MOUNTAIN_ERODE_PTR] = 0x9104;
+  mem16[MOUNTAIN_ERODE_PTR] = MOUNTAIN_ERODE_VRAM_HEAD;
 
   // 2. Countdown = gameplay parameter minus four per unit of the counter (wraps in a byte).
   mem8[MOUNTAIN_ERODE_TIMER] = mem8[STEP_TIMER_BASE] - 4 * mem8[LEVEL];

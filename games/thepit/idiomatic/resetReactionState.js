@@ -9,7 +9,7 @@
  */
 
 import { seedDigObjectBlock } from "./seedDigObjectBlock.js";
-import { REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_ATTR, REACTION_PERIOD, LASER_STATE } from "./names.js";
+import { REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_ATTR, REACTION_PERIOD, LASER_STATE, loc_809c } from "./names.js";
 
 export function resetReactionState(m) {
   const { mem8 } = m;
@@ -24,7 +24,7 @@ export function resetReactionState(m) {
   mem8[REACTION_OBJ_X] = 0;
   mem8[REACTION_OBJ_ATTR] = 3;
   mem8[REACTION_OBJ_Y] = 0;
-  mem8[0x809c] = 1;
+  mem8[loc_809c] = 1;
 
   // Tail hand-off into the seeding chain; its return goes to our caller.
   return seedDigObjectBlock(m);

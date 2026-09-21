@@ -18,10 +18,14 @@ import {
   COINAGE_WORD_A2_B4,
   COINS_PER_CREDIT_A,
   DSW_PORT,
+  FLIP_SCREEN_X_LATCH,
+  FLIP_SCREEN_Y_LATCH,
   LOOP_DELAY_BASE,
   SPRITE_COORD_BIAS,
   STARTING_MEN,
   STEP_TIMER_BASE,
+  loc_8050,
+  loc_8052,
 } from "./names.js";
 import { showColourTestScreen } from "./showColourTestScreen.js";
 
@@ -42,14 +46,14 @@ export function applyDipSwitches(m) {
 
   const flipInvert = (dsw & 0x10) ? 1 : 0; // inverts the base screen orientation
   const flipFollowsPlayer = (dsw & 0x20) ? 1 : 0; // cocktail: flip tracks the active player
-  mem8[0x8050] = flipInvert;
-  mem8[0x8052] = flipFollowsPlayer;
+  mem8[loc_8050] = flipInvert;
+  mem8[loc_8052] = flipFollowsPlayer;
 
   // Flip for whoever is playing now (cocktail flips for player 2, the invert dip toggles it).
   const activePlayer = mem8[ACTIVE_PLAYER];
   const flipScreen = ((activePlayer - 1) & flipFollowsPlayer) ^ flipInvert;
-  mem8[0xb006] = flipScreen; // only the low bit is latched
-  mem8[0xb007] = flipScreen;
+  mem8[FLIP_SCREEN_X_LATCH] = flipScreen; // only the low bit is latched
+  mem8[FLIP_SCREEN_Y_LATCH] = flipScreen;
   mem8[SPRITE_COORD_BIAS] = flipScreen << 1; // pixel bias matching the flip (0 upright)
 
   mem8[STARTING_MEN] = (dsw & 0x40) ? 4 : 3;

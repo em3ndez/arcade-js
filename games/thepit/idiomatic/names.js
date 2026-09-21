@@ -626,6 +626,12 @@ export const TREASURE_COLLECTED = 0x8078;
  *  by runHighScoreInitialsEntry. [seen]
  */
 export const HIGH_SCORE_TABLE = 0x8039;
+/** HIGH_SCORE_RANK2_ENTRY (0x803e) — second-rank record of the descending 3-entry high-score table
+ *  (HIGH_SCORE_TABLE + 5); 5-byte record = 3 initials + 16-bit score; this is the record's first byte. [code] */
+export const HIGH_SCORE_RANK2_ENTRY = 0x803e;
+/** HIGH_SCORE_RANK3_ENTRY (0x8043) — third-rank record of the high-score table (HIGH_SCORE_TABLE + 10);
+ *  5-byte record = 3 initials + 16-bit score; record's first byte. [code] */
+export const HIGH_SCORE_RANK3_ENTRY = 0x8043;
 
 // ── Object phase/step + mover direction ──
 /**
@@ -713,6 +719,21 @@ export const ENEMY3_TWIN_ATTR = 0x811d;
  *  Grounded, A+B converged. [seen]
  */
 export const SPRITE_STAGING_BASE = 0x8220;
+/** OBJECT_SPRITE_ATTR (0x8222) — slot-0 sprite-staging attribute byte (SPRITE_STAGING_BASE+2) for the
+ *  tracked/player object: palette bits0-2 + priority bit3, copied from PLAYER_SPRITE_ATTR. [code] */
+export const OBJECT_SPRITE_ATTR = 0x8222;
+/** HAZARD_SPRITE_CODE (0x8229) — slot-2 (dig/hazard) sprite-staging record byte +1: the sprite CODE
+ *  selecting the drawn shape of the falling-hazard / dig object, copied from HAZARD_STATE. [code] */
+export const HAZARD_SPRITE_CODE = 0x8229;
+/** HAZARD_SPRITE_ATTR (0x822a) — slot-2 (dig/hazard) sprite-staging record byte +2: low 3 bits pick the
+ *  palette (6=rock, 7=arrow), copied from HAZARD_TYPE. [code] */
+export const HAZARD_SPRITE_ATTR = 0x822a;
+/** OBJ1_SPRITE_X (0x8230) — object-1 sprite-staging record byte 0 (SPRITE_STAGING_BASE+16, slot 4): staged X,
+ *  copied each frame from ENEMY1_X by updateEnemy1, then LDIR'd to sprite RAM by the NMI. [seen] */
+export const OBJ1_SPRITE_X = 0x8230;
+/** OBJ1_SPRITE_CODE (0x8231) — object-1 sprite-staging record byte 1 (slot 4 +1): sprite code + orientation,
+ *  copied from ENEMY1_SPRITE by updateEnemy1. [seen] */
+export const OBJ1_SPRITE_CODE = 0x8231;
 /**
  *  LOOP_COUNTER (0x800a) — Memory-resident down-counter seeded to an iteration count then
  *  decremented to 0 to repeat a loop body; grounded identically across setup-repeat
@@ -724,13 +745,37 @@ export const LOOP_COUNTER = 0x800a;
 // proposer≠confirmer over the whole 169-routine layer; write-only/dead/mixed-role cells left hex.
 // The 2026-07-31 centralization pass revisited the still-hex set: the player-record backups are now
 // NAMED (PLAYER1_LEVEL_BACKUP/PLAYER1_MEN_BACKUP/PLAYER2_MEN_BACKUP — the [working,P1,P2] record is
-// fully pinned by save/load and the backups are read at round boundaries). Deliberately KEPT hex,
-// with no const (each has no reader / no earned role — naming would invent one):
-//   0x800f  once-per-second counter fed by SECONDS_PRESCALER but only ever decremented, never read.
-//   0x801d, 0x812d  write-only GAME_STATE shadows (nothing reads them; unlike the watchdog-read
-//                   credit mirror). 0x8050, 0x8052  write-only cocktail flip-DIP shadows.
-//   0x8070, 0x809c  write-only bytes seeded to a constant 1 with no consumer.
-//   0x80be  write-only mirror of the staged dig target column (0x80b6), never read back.
+// fully pinned by save/load and the backups are read at round boundaries). The write-only / dead /
+// undetermined cells below now carry a loc_<addr> PLACEHOLDER const (allowlisted in names-debt.txt) so
+// the idiomatic layer references them by symbol without inventing a role — each has no reader / no earned
+// name. Promote to a descriptive name only if a consumer is ever found.
+/** loc_800f (0x800f) — write-only once-per-second down-counter (SECONDS_PRESCALER rollover decrements it);
+ *  no consumer reads it; vestigial. [guess] (placeholder; names-debt) */
+export const loc_800f = 0x800f;
+/** loc_801d (0x801d) — write-only shadow of the coin-slot id, written alongside GAME_STATE and loc_812d
+ *  by bankCreditAndStart; never read. [guess] (placeholder; names-debt) */
+export const loc_801d = 0x801d;
+/** loc_812d (0x812d) — write-only shadow of the coin-slot id, written alongside GAME_STATE and loc_801d
+ *  by bankCreditAndStart; never read. [guess] (placeholder; names-debt) */
+export const loc_812d = 0x812d;
+/** loc_8050 (0x8050) — write-only shadow of the decoded cocktail flip-invert DIP bit (dsw&0x10); flip
+ *  decode uses a local, not this cell. [guess] (placeholder; names-debt) */
+export const loc_8050 = 0x8050;
+/** loc_8052 (0x8052) — write-only shadow of the decoded cocktail flip-follows-player DIP bit (dsw&0x20);
+ *  never read. [guess] (placeholder; names-debt) */
+export const loc_8052 = 0x8052;
+/** loc_8070 (0x8070) — write-only byte in the object start-state seed block, stamped to 1 at round
+ *  (re)init; no reader, role undetermined. [guess] (placeholder; names-debt) */
+export const loc_8070 = 0x8070;
+/** loc_809c (0x809c) — write-only byte set to 1 in the round-start reaction-state reset; no reader, role
+ *  undetermined. [guess] (placeholder; names-debt) */
+export const loc_809c = 0x809c;
+/** loc_80be (0x80be) — write-only mirror of the staged dig-target column (STAGED_TARGET_X), written by
+ *  commitDigEntity; never read. [guess] (placeholder; names-debt) */
+export const loc_80be = 0x80be;
+/** loc_87ff (0x87ff) — highest byte of the 0x8000-0x87FF work-RAM window, directly below colour RAM
+ *  (0x8800); unused boundary cell (no reads/writes). [guess] (placeholder; names-debt) */
+export const loc_87ff = 0x87ff;
 
 /** CREDIT_COUNT (0x8000) — the credit counter: banked from the coin lines (clamp 9), spent on start;
  *  the corruption-watchdog anchor (serviceVblankNmi cold-boots if the mirrors disagree); rearmMachineAndBranchOnCredits
@@ -806,8 +851,17 @@ export const DROP_QUEUE = 0x80c3;
 export const SCORE_READOUT_STRIP = 0x8280;
 /** ENEMY3_SPRITE_SLOT (0x8238) — sprite-staging slot 6 (SPRITE_STAGING_BASE+24), the actor body's record. [seen] */
 export const ENEMY3_SPRITE_SLOT = 0x8238;
+/** ENEMY3_SPRITE_ATTR (0x823a) — byte 2 (color+priority) of the ENEMY3 actor sprite-staging record
+ *  (ENEMY3_SPRITE_SLOT 0x8238, slot 6), copied from ENEMY3_ATTR by stageActorSpriteRecords. [seen] */
+export const ENEMY3_SPRITE_ATTR = 0x823a;
 /** ENEMY3_TWIN_SPRITE_SLOT (0x823c) — sprite-staging slot 7 (SPRITE_STAGING_BASE+28), the twin's record. [seen] */
 export const ENEMY3_TWIN_SPRITE_SLOT = 0x823c;
+/** ENEMY3_TWIN_SPRITE_ATTR (0x823e) — byte 2 (color+priority) of the ENEMY3 twin sprite-staging record
+ *  (ENEMY3_TWIN_SPRITE_SLOT 0x823c, slot 7), copied from ENEMY3_TWIN_ATTR; mirror of ENEMY3_SPRITE_ATTR. [code] */
+export const ENEMY3_TWIN_SPRITE_ATTR = 0x823e;
+/** ENEMY3_TWIN_SPRITE_Y (0x823f) — byte 3 (Y) of the ENEMY3 twin's 4-byte sprite-staging record
+ *  (ENEMY3_TWIN_SPRITE_SLOT 0x823c); last byte of the sprite-staging wipe block. [code] */
+export const ENEMY3_TWIN_SPRITE_Y = 0x823f;
 
 // ── Centralized 2026-07-31: cells previously referenced by raw hex or by a LOCAL const
 //    inside one routine, promoted to the single registry (proposer≠confirmer: two blind
@@ -914,6 +968,15 @@ export const CHAMBER_CREATURE_SPRITE = 0x822c;
  *  (0x8283/0x828c/0x8295): a 3-byte header copied from a ROM template + 4 digit cells (at +3) +
  *  2 blanks. [seen] */
 export const SCORE_READOUT_DEST = 0x8283;
+/** SCORE_READOUT_DEST_2 (0x828c) — base of the second of three 9-byte on-screen numeric-readout display
+ *  records (SCORE_READOUT_DEST + 9): 3 label tiles + 4 digit cells + 2 blanks. [seen] */
+export const SCORE_READOUT_DEST_2 = 0x828c;
+/** SCORE_READOUT_DEST_3 (0x8295) — base of the third of three 9-byte numeric-readout display records
+ *  (SCORE_READOUT_DEST + 18): 3 label tiles + 4 digit cells + 2 blanks; occupies 0x8295-0x829d. [seen] */
+export const SCORE_READOUT_DEST_3 = 0x8295;
+/** RIGHT_EDGE_TILE_STRIP_END (0x829d) — last (highest-address) cell of the 28-byte right-edge tile strip
+ *  (0x8282-0x829d) drawn by drawRightEdgeColumn; also the final trailing blank of SCORE_READOUT_DEST_3. [code] */
+export const RIGHT_EDGE_TILE_STRIP_END = 0x829d;
 /** Initial stack pointer = top of work RAM (0x8000-0x83ff); every boot / state-entry routine re-
  *  seats SP here, discarding the caller's frame. [code] */
 export const STACK_TOP = 0x83ff;
@@ -1103,6 +1166,9 @@ export const VIDEO_RAM_LAST_CELL = 0x93ff;
 export const VIDEO_RAM_END_EXCLUSIVE = 0x9400;
 /** ATTR_SCROLL_RAM_BASE (0x9800) — VRAM structural base of the attribute / column-scroll RAM region (0x9800-0x983F, one byte per column), which is also the base of the whole contiguous … [code] */
 export const ATTR_SCROLL_RAM_BASE = 0x9800;
+/** SPRITE_RAM_BASE (0x9840) — base of hardware sprite RAM (0x9840-0x985F = 8 sprites x 4 bytes); the
+ *  per-frame NMI LDIRs the SPRITE_STAGING_BASE staging buffer into this region every vblank. [seen] */
+export const SPRITE_RAM_BASE = 0x9840;
 /** JOYSTICK_INPUT_PORT (0xa000) — MMIO input port IN0 (read): 8-way joystick + dig/fire. Read once in serviceVblankNmi.debounceInputs as `mem8[0xa000] // joystick/dig port`. Board io.r… [code] */
 export const JOYSTICK_INPUT_PORT = 0xa000;
 /** COIN_START_PORT (0xa800) — MMIO input port IN1 (read): coin + start switches, ACTIVE HIGH (idle 0x00, a press sets its bit). Read in serviceVblankNmi.debounceInputs as `mem8[0xa… [code] */
@@ -1113,6 +1179,12 @@ export const SOUND_ENABLE_LATCH = 0xb003;
 export const DSW_PORT = 0xb000;
 /** NMI_MASK_LATCH (0xb000) — LS259 control-latch bit0 (WRITE side of 0xB000): 1 arms / 0 masks the vblank NMI. [code] */
 export const NMI_MASK_LATCH = 0xb000;
+/** FLIP_SCREEN_X_LATCH (0xb006) — LS259 mainlatch line 6 (WRITE side of 0xB006): horizontal screen flip
+ *  (flipX) + sprite mux; applyDipSwitches writes the decoded cocktail flip bit (low bit latched). [code] */
+export const FLIP_SCREEN_X_LATCH = 0xb006;
+/** FLIP_SCREEN_Y_LATCH (0xb007) — LS259 mainlatch line 7 (WRITE side of 0xB007): vertical screen flip
+ *  (flipY); applyDipSwitches writes the decoded cocktail flip bit (low bit latched). [seen] */
+export const FLIP_SCREEN_Y_LATCH = 0xb007;
 /** WATCHDOG_KICK (0xb800) — Watchdog reset (READ side of 0xB800): reading it kicks the watchdog. [code] */
 export const WATCHDOG_KICK = 0xb800;
 /** SOUND_CMD_LATCH (0xb800) — Sound-command latch (WRITE side of 0xB800): the byte handed to the audio Z80. [code] */
@@ -1125,6 +1197,10 @@ export const loc_895f = 0x895f;
 export const loc_90c4 = 0x90c4;
 /** loc_90e4 (0x90e4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion checks it for the 0xfe marker then stamps 0xae as the mountain-erosion head cell; spaw… [guess] (placeholder; names-debt) */
 export const loc_90e4 = 0x90e4;
+/** MOUNTAIN_ERODE_VRAM_HEAD (0x9104) — head (top) tilemap cell of the mountain column the Zonker erodes
+ *  (VIDEO_RAM_BASE + row8*32 + col4); seedMountainErosion seeds the erosion pointer here, erodeMountain
+ *  walks +0x20 down-column. [code] */
+export const MOUNTAIN_ERODE_VRAM_HEAD = 0x9104;
 
 // ═══ ROUTINE LABELS ═══════════════════════════════════════════════════════════
 // Address → { name, role, cert } for every named main-CPU routine (ROM 0x0000-0x4FFF).
