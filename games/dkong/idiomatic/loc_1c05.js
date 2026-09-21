@@ -16,15 +16,13 @@
  *     EFFECT_SELECT, EFFECT_STATE and ITEM_COLLECTED, then takes the airborne tail with 1 (marking
  *     the collision path).
  *
- * THE LAST BLOCK IS NOT DEAD CODE: the trigger frame's overlap search and its nonzero-severity
- * latch both run in an ordinary attract demo.
+ * THE LAST BLOCK IS NOT DEAD CODE — the trigger overlap search + its nonzero-severity latch run in attract.
  *
  * LIVE-OUT: memory, plus the return value propagated out of whichever tail it takes.
  */
 
 import { u8 } from "../../../core/int.js";
 import {
-  AIRBORNE_PROBE_RETURN,
   EFFECT_SELECT,
   EFFECT_STATE,
   ITEM_COLLECTED,
@@ -33,6 +31,7 @@ import {
 } from "./names.js";
 import { loc_1c33 } from "./loc_1c33.js";
 import { loc_1c3a } from "./loc_1c3a.js";
+import { loc_2b1c } from "./loc_2b1c.js";
 import { markFatalFallByHeight } from "./markFatalFallByHeight.js";
 import { searchPlayerObjectOverlap } from "./searchPlayerObjectOverlap.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
@@ -45,8 +44,7 @@ const LAND_CHECK_TRIGGER_FRAME = 20;
 export function loc_1c05(m) {
   const { regs, mem8 } = m;
 
-  m.push16(AIRBORNE_PROBE_RETURN);
-  m.call(0x2b1c);
+  loc_2b1c(m);
   const probeVerdict = regs.a;
 
   // The landing-settle tail reads the DECREMENTED verdict as its landing flag.

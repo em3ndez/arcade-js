@@ -16,32 +16,35 @@
  *      printed by the run. Credited gameplay, the other three boards in PLAY, and two-player
  *      are NOT covered by this part; boards 2/3/4 are reached only by the crafted arm below.
  *
- *   2. EQUAL (crafted). The descent probe at ROM 0x2B1C is the frozen oracle on BOTH sides, so
- *      a crafted arm replaces it with an identical stub on each side (applied to every fresh
- *      clone — Machine.clone() rebuilds `routines` from assets, so a stub left on the entry
- *      machine would not survive and the sweep would be vacuous). That pins the verdict
- *      predicate EXACTLY rather than sampling it: all 256 verdict values are swept, twice —
- *      once with an object counter that ticks to zero (the landing) and once with one that does
- *      not (a combination attract never produces). The stub is proved LIVE by asserting the
- *      landing it selects is observable. A second crafted arm drives the trigger frame on
- *      boards 2, 3 and 4, whose overlap-search arms attract never dispatches from here.
+ *   2. DISSOLVED-FORM NOTE. loc_1c05 was dissolved: `m.push16(0x1c08); m.call(0x2b1c)` became a
+ *      direct `loc_2b1c(m)` call (and the overlap search's bracket likewise fell away). A stub
+ *      installed at ROM 0x2B1C is therefore BYPASSED by the candidate, which no longer dispatches
+ *      through the seam. The old crafted arm that swept all 256 synthetic verdict bytes through such
+ *      a stub is RETIRED — the real loc_2b1c produces only real verdicts, so the sweep cannot run
+ *      stub-free — and is backstopped by the REALISM arm and the TEETH verdict twin (see its note).
  *
- *   3. TEETH — five broken twins, each of which the suite MUST catch:
+ *   3. EQUAL (crafted, STUB-FREE). One crafted arm survives, made stub-free: a real trigger-frame
+ *      capture (the one attract takes down the overlap tail) is driven on boards 2, 3 and 4, whose
+ *      per-board overlap arms attract never dispatches from here. Both sides run the real descent
+ *      probe and the real overlap search; equivalence proves the candidate drives each board's arm
+ *      as the oracle does, and a delegating counter over the oracle's own run confirms each board
+ *      reached the 0x2853 search (non-vacuity).
+ *
+ *   4. TEETH — five broken twins, each of which the suite MUST catch:
  *      (a) verdict predicate off by one (0 selects the landing tail, not 1).
  *      (b) trigger frame off by one (21 instead of 20).
  *      (c) dropped land-check arm.
  *      (d) dropped ITEM_COLLECTED latch.
  *      (e) inverted severity test.
  *
- * CONTRACT. RAM MINUS STACK_SCRATCH [0x6BE0,0x6C00), plus pc, SP and the propagated return
- * value. The oracle's two call brackets (the descent probe's and the overlap search's) land in
- * that dead stack region — measured: on 18 of the 360 real dispatches the ONLY difference
- * between oracle and candidate is inside it, which the test asserts, so the exclusion is
- * load-bearing rather than decorative. The candidate performs ONE m.ret() after running,
- * modelling the single terminal `ret` at the end of the oracle's tail chain; every arm nets
- * exactly one caller-return, so pc and SP line up and are compared. The result register is NOT
- * part of the contract and is deliberately not asserted — it differs on every dispatch, which
- * is the measurement behind the routine's memory-only live-out.
+ * CONTRACT. RAM MINUS STACK_SCRATCH [0x6BE0,0x6C00), plus the propagated return value. The oracle's
+ * two call brackets (the descent probe's and the overlap search's) land in that dead stack region,
+ * and the REALISM arm asserts at least one real dispatch differs ONLY inside it, so the exclusion is
+ * load-bearing rather than decorative. The dissolved candidate opens no guest bracket of its own —
+ * it calls loc_2b1c and every tail directly — so pc and SP are NOT part of this contract (they were
+ * compared only under the old seam form, which owned a live bracket); the whole-game SP tests guard
+ * SP-correctness. The result register is likewise not asserted — it differs on every dispatch, the
+ * measurement behind the routine's memory-only live-out.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1c05.test.js
  */
@@ -51,6 +54,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1c05 as oracle } from "../../translated/loc_1c05.js";
+import { loc_2853 } from "../../translated/loc_2853.js";
 import { loc_1c05 } from "../loc_1c05.js";
 import { loc_1c33 } from "../loc_1c33.js";
 import { loc_1c3a } from "../loc_1c3a.js";
@@ -65,7 +69,6 @@ import {
   EFFECT_SELECT,
   EFFECT_STATE,
   ITEM_COLLECTED,
-  MARIO_AIRBORNE,
   MARIO_AIR_FRAMES,
   MARIO_AIR_LANDCHECK,
 } from "../names.js";
@@ -78,7 +81,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1c05;
-const DESCENT_PROBE = 0x2b1c;
+const DESCENT_PROBE = 0x2b1c; // still the frozen oracle; the TEETH twins keep the `m.call` seam to it
+const OVERLAP_SEARCH = 0x2853; // the per-board overlap-search trampoline the trigger frame dispatches
 const ATTRACT_FRAMES = 6000;
 const LAND_CHECK_TRIGGER_FRAME = 20;
 
@@ -126,30 +130,32 @@ function runOracle(entry, prep) {
 }
 
 /**
- * Run a candidate on a fresh clone, then model the single terminal `ret` that ends the
- * oracle's tail chain with one m.ret() (the idiomatic routine replaces the Z80 stack with the
- * JS call stack). Every arm nets exactly one caller-return, so this is one ret on all of them.
+ * Run a candidate on a fresh clone. The dissolved loc_1c05 calls loc_2b1c and every tail DIRECTLY
+ * and opens no guest-stack bracket of its own, so there is no terminal `ret` to model and pc/SP are
+ * not part of the contract (the whole-game SP tests guard SP-correctness).
  */
 function runCandidate(entry, fn, prep) {
   const c = entry.clone();
   // Shipping model: the overlap arms run idiomatic (they return via JS, opening no guest bracket), so
-  // the candidate's stack matches the live game rather than the capture's oracle-arm mixed world.
+  // the candidate's dispatch matches the live game rather than the capture's oracle-arm mixed world.
   for (const addr of OVERLAP_ARMS) c.routines.set(addr, SHIP.get(addr));
   if (prep) prep(c);
   const value = fn(c);
-  c.ret();
   return { c, value };
 }
 
-/** Full contract diff: RAM − STACK_SCRATCH, pc, SP, and the propagated return value. */
+/**
+ * Contract diff: RAM − STACK_SCRATCH and the propagated return value. pc and SP are seam artifacts of
+ * the oracle's guest-stack splice (its two call brackets land in the excluded STACK_SCRATCH) and the
+ * dissolved candidate owns no bracket, so they are NOT compared — the whole-game SP tests are what
+ * guard SP-correctness now.
+ */
 function contractDiffs(entry, fn, prep) {
   const o = runOracle(entry, prep);
   const k = runCandidate(entry, fn, prep);
   const diffs = [];
   const ram = firstRamDiff(o.c, k.c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.c.pc !== k.c.pc) diffs.push(`pc oracle=${hx(o.c.pc)} cand=${hx(k.c.pc)}`);
-  if (o.c.regs.sp !== k.c.regs.sp) diffs.push(`SP oracle=${hx(o.c.regs.sp)} cand=${hx(k.c.regs.sp)}`);
   if (o.value !== k.value) diffs.push(`return oracle=${String(o.value)} cand=${String(k.value)}`);
   return diffs;
 }
@@ -255,64 +261,56 @@ test("REALISM: real captured 0x1C05 attract dispatches — loc_1c05 matches the 
     `chain counts over all captures: ${perChain}; ${stackOnly} replays differed ONLY in STACK_SCRATCH`);
 });
 
-// -- 2. EQUAL (crafted) --------------------------------------------------------
+// -- 2. EQUAL (crafted, all 256 verdicts) — RETIRED as a real-candidate arm ----
+//
+// This arm swept all 256 descent-probe verdict bytes and both object-counter arms by STUBBING the
+// descent probe at 0x2B1C (`regs.a = verdict; regs.b = counter`) on both sides. The dissolved
+// loc_1c05 no longer does `m.push16(0x1c08); m.call(0x2b1c)` — it calls loc_2b1c DIRECTLY — so a stub
+// installed at 0x2B1C is BYPASSED by the candidate and its synthetic verdicts can no longer be
+// injected into it. The real loc_2b1c yields only the verdicts real descent physics produces, so the
+// 256-value sweep cannot be reproduced stub-free.
+//
+// The property it guarded — verdict 1 selects the landing-settle tail, every other value does not —
+// is backstopped two ways: the REALISM arm exercises the verdicts the real probe actually produces
+// (all four tails, the landing included, fire in a plain attract run and are asserted present), and
+// the TEETH "verdict predicate off by one" twin, still written `m.call(0x2b1c)`, keeps the seam and
+// is caught on a real landing capture.
 
-/**
- * Replace the still-frozen descent probe with an identical stub on BOTH sides, so the verdict
- * byte and object counter it hands back can be driven directly. The stub consumes the stacked
- * continuation exactly as the real probe's two exits do.
- */
-const probeStub = (verdict, counter) => (m) => {
-  m.routines.set(DESCENT_PROBE, (mm) => {
-    mm.regs.a = verdict;
-    mm.regs.b = counter;
-    mm.ret();
-  });
-};
+// -- 3. EQUAL (crafted): boards 2/3/4 — STUB-FREE ------------------------------
 
-test("EQUAL (crafted): all 256 descent-probe verdicts, both counter arms, match the oracle", () => {
-  const caps = captureAttractDispatches(3000);
-  const trigger = caps.find(
-    (c) => c.mem.read8(MARIO_AIR_FRAMES) === LAND_CHECK_TRIGGER_FRAME && c.mem.read8(MARIO_AIR_LANDCHECK) === 0,
-  );
-  assert.ok(trigger, "expected a real trigger-frame capture to craft from");
-
-  // The stub is LIVE, not inert: verdict 1 with a counter that ticks to zero must reach the
-  // landing settle, which clears MARIO_AIRBORNE; verdict 0 must not.
-  const landed = runOracle(trigger, probeStub(1, 1)).c;
-  const notLanded = runOracle(trigger, probeStub(0, 0)).c;
-  assert.equal(trigger.mem.read8(MARIO_AIRBORNE), 1, "the crafted base must be airborne");
-  assert.equal(landed.mem.read8(MARIO_AIRBORNE), 0, "verdict 1 + counter 1 must settle the landing");
-  assert.equal(notLanded.mem.read8(MARIO_AIRBORNE), 1, "verdict 0 must not settle a landing");
-
-  for (const counter of [1, 3]) {
-    for (let verdict = 0; verdict < 256; verdict++) {
-      const diffs = contractDiffs(trigger, loc_1c05, probeStub(verdict, counter));
-      assert.equal(diffs.length, 0, `verdict ${verdict}, counter ${counter}: ${diffs.join("; ")}`);
-    }
-  }
-  console.log("  EQUAL/crafted: 512 probe verdict×counter combinations identical (counter 3 — a still-airborne " +
-    "nonzero verdict — is a combination attract never produces)");
-});
-
-test("EQUAL (crafted): the trigger frame on boards 2, 3 and 4 matches the oracle", () => {
-  const caps = captureAttractDispatches(3000);
-  const trigger = caps.find(
-    (c) => c.mem.read8(MARIO_AIR_FRAMES) === LAND_CHECK_TRIGGER_FRAME && c.mem.read8(MARIO_AIR_LANDCHECK) === 0,
-  );
-  assert.ok(trigger, "expected a real trigger-frame capture to craft from");
+test("EQUAL (crafted): the trigger frame on boards 2, 3 and 4 matches the oracle — stub-free", () => {
+  const caps = captureAttractDispatches();
+  const chains = caps.map(tailChain);
+  const idx = chains.findIndex((t) => t.startsWith("overlap"));
+  assert.ok(idx >= 0, "attract never took the overlap tail — no real trigger frame to craft from");
+  const trigger = caps[idx]; // a real trigger frame (air==20, landcheck==0, natural non-landing verdict)
 
   for (const board of [2, 3, 4]) {
-    const prep = (m) => { probeStub(0, 0)(m); m.mem.write8(BOARD, board); };
-    const diffs = contractDiffs(trigger, loc_1c05, prep);
+    const setBoard = (m) => m.mem.write8(BOARD, board);
+
+    // STUB-FREE: both sides run the real descent probe (loc_2b1c) and the real per-board overlap
+    // search; equivalence proves the dissolved candidate drives board `board`'s overlap arm exactly
+    // as the oracle does. (There is no 0x2B1C stub to bypass — the candidate calls loc_2b1c directly.)
+    const diffs = contractDiffs(trigger, loc_1c05, setBoard);
     assert.equal(diffs.length, 0, `board ${board}: ${diffs.join("; ")}`);
+
+    // Non-vacuity, via a delegating counter over the ORACLE's own run: prove the trigger frame really
+    // armed the fall-height test and dispatched THIS board's overlap search (0x2853), rather than
+    // taking an earlier tail. The 0x2853 override records the board, then delegates to the frozen
+    // loc_2853 so the run stays faithful.
+    const reached = [];
+    const probe = runOracle(trigger, (m) => {
+      setBoard(m);
+      m.routines.set(OVERLAP_SEARCH, (mm) => { reached.push(board); return loc_2853(mm); });
+    }).c;
+    assert.ok(reached.length > 0, `board ${board}: the oracle never dispatched the overlap search`);
+    assert.equal(probe.mem.read8(MARIO_AIR_LANDCHECK), 1, `board ${board}: the trigger frame must arm the fall-height test`);
   }
-  console.log("  EQUAL/crafted: boards 2/3/4 drive their own overlap-search arms identically " +
-    "(each returned severity 0 on this crafted state, so the latch block is covered by the real " +
-    "attract dispatches above, not by this arm)");
+  console.log("  EQUAL/crafted: boards 2/3/4 drive their own overlap-search arms identically (stub-free; " +
+    "a delegating counter confirms each board reached the 0x2853 search)");
 });
 
-// -- 3. TEETH ------------------------------------------------------------------
+// -- 4. TEETH ------------------------------------------------------------------
 
 /** Broken twin (a): the verdict predicate off by one — 0 selects the landing tail. */
 function brokenVerdictPredicate(m) {
