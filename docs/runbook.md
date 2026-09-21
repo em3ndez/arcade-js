@@ -336,6 +336,14 @@ feeds the next batch's targets.
   files a commit adds (N) and holds them to the shared floor while routines remain to decompile (R = the
   game's `loc_` routine files minus the idiomatic modules present); a genuinely small final cluster clears
   with the `--reason` waiver.
+- **The legacy-RETROFIT campaign (reducing cruft by MODIFYING existing modules) has its own MODIFY floor
+  in the same gate (Karl 2026-09-21: "find ways to make sure you don't keep forgetting to fan-out").** The
+  ADD floor is inert for a modify-only commit, so nothing used to stop dribbling tiny per-category waves. Now
+  a pure-modify idiomatic commit for a game whose layer still carries broad cruft must touch **≥20 modules**
+  (`MOD_FLOOR`), or record the `--reason` waiver; it relaxes only near true 0 (≤15 dirty modules). **Scope the
+  WHOLE reducible pool before firing — `python3 tools/batch_size_gate.py plan --game <g>` reports how many
+  modules still carry cruft across ALL categories — then fan regi+addr+m.call+m.push in ONE workflow, one
+  commit; never one category at a time.**
 - Per routine ship all **four**: module + `equivalence-<addr>.test.js` + `ROUTINES` entry + green gate.
   **Done only when DISPATCHED** — `resolveAllIdiomatic` walks `ROUTINES`, so a module no entry names is
   never overridden. Done requires that **no routine runs as the frozen oracle in the live game**: every

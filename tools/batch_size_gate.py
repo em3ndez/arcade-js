@@ -13,6 +13,16 @@ the §3 translation pass AND idiomatic module files for the §4 idiomatic pass -
 commit that adds too few of them WHILE more remain to do. BOTH passes share one FLOOR (Karl
 2026-08-20: the two passes are the same size).
 
+It ALSO holds the legacy-RETROFIT campaign to a MODIFY floor (Karl 2026-09-21: "find ways to make
+sure you don't keep forgetting to fan-out"). The ADD floor is INERT for retrofit commits, which
+MODIFY existing idiomatic modules (regi/addr/m.call/m.push reduction) rather than add new ones --
+so nothing stopped the dribble of tiny per-category waves that should have been ONE mega-fan. A
+pure-modify idiomatic commit for a game whose layer still carries broad cruft must touch >= MOD_FLOOR
+modules, or record a single-use waiver. A game that ALSO adds modules is governed by the ADD floor
+instead (no double-jeopardy on a big decompile fan). The pool proxy (idiomatic_dirty_count) counts
+modules matching a cruft regex; it OVER-counts (exempt bridges/comment hex) in the SAFE direction --
+the floor relaxes only near true 0, where the frozen layer and its bridges are gone.
+
 * N (translate) = status-A files matching ``games/<game>/translated/loc_<hex>.js`` (the ``test/``
   subdir excluded). N (idiomatic) = status-A files matching ``games/<game>/idiomatic/<name>.js``
   (names.js and the ``test/`` subdir excluded).
@@ -81,6 +91,15 @@ import time
 FLOOR = 40  # minimum routines a fresh batch must add while the frontier is open. BOTH passes share
             # this floor (Karl 2026-08-20: the translation and idiomatic passes are the same size).
 
+# The MODIFY floor (Karl 2026-09-21: "find ways to make sure you don't keep forgetting to fan-out").
+# The ADD floor above is INERT for the legacy-RETROFIT campaign, whose commits MODIFY existing
+# idiomatic modules (regi/addr/call/push reduction) rather than add new ones — so nothing stopped the
+# dribble of tiny per-category waves (10 files, then 3, then 17) that should have been ONE mega-fan.
+# This floor holds a pure-modify idiomatic retrofit commit to a minimum module count WHILE the game's
+# idiomatic layer still carries widespread cruft, forcing the whole reducible pool into one fan.
+MOD_FLOOR = 20   # min idiomatic MODULES a pure-modify retrofit commit must touch while cruft is broad
+DIRTY_FLOOR = 15 # once <= this many idiomatic modules still carry cruft, small finishing batches pass
+
 # games/<game>/translated/loc_<hex>.js  (NOT under a test/ subdir)
 LOC_RE = re.compile(r"^games/([^/]+)/translated/loc_([0-9a-fA-F]+)\.js$")
 # games/<game>/idiomatic/<name>.js  (a routine MODULE; names.js and the test/ subdir are NOT modules)
@@ -91,6 +110,13 @@ CALL_RE = re.compile(r"m\.call\(0x([0-9a-fA-F]+)\)")
 # `\b` after the 4 hex excludes helper splits `loc_<parent>_<addr>` (never address-owners); anchored
 # to line-start so a commented/quoted "export function loc_XXXX" cannot be miscredited as coverage.
 EXPORT_RE = re.compile(r"^\s*export function loc_([0-9a-fA-F]{4})\b", re.M)
+# A file "still carries cruft" if it holds any idiomatic_gate category: a register ref, an m.call,
+# an m.push, a 4-hex-digit raw address, or the low-level mem API. This OVER-counts (an exempt
+# param-default `= m.regs.X` or a hex in a comment matches) — the SAFE direction: it keeps the
+# MODIFY floor active longer, and only relaxes near true 0 (where the frozen layer + its bridges are
+# gone). It is a coarse "is there still broad work here" proxy, deliberately NOT idiomatic_gate's
+# exact count (kept decoupled + selftestable without a real game tree).
+CRUFT_RE = re.compile(r"\bregs\.|\bm\.regs\.|\bm\.call\(|\bm\.push|0x[0-9a-fA-F]{4}\b|\bmem\.(?:read|write)(?:8|16)\(")
 
 
 class GitError(RuntimeError):
@@ -217,6 +243,58 @@ def classify(n_added, r_remaining, floor=FLOOR):
     )
 
 
+def modified_idiomatic_modules():
+    """{game: count} for idiomatic MODULE files with git status M (modified, not added/deleted) in the
+    staged set. names.js and the test/ subdir are NOT modules (IDIOM_RE rejects test/)."""
+    out = git(["diff", "--cached", "--name-status", "--no-renames"])
+    mod = {}
+    for line in out.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        status, path = parts[0], parts[-1]
+        if not status.startswith("M"):  # only MODIFIED modules count for the retrofit floor
+            continue
+        m = IDIOM_RE.match(path)
+        if m and m.group(2) != "names":
+            mod[m.group(1)] = mod.get(m.group(1), 0) + 1
+    return mod
+
+
+def idiomatic_dirty_count(game):
+    """How many of the game's idiomatic MODULE files (from the INDEX) still match CRUFT_RE — a coarse
+    'is there still broad reducible work here' proxy. Reads the working-tree contents (fast; at commit
+    time they equal the staged batch for staged files). A read error counts the file as dirty (safe:
+    keeps the floor active). A game with no idiomatic dir reads 0 and the floor is inert for it."""
+    dirty = 0
+    for rel in git(["ls-files", f"games/{game}/idiomatic/*.js"]).split():
+        m = IDIOM_RE.match(rel)
+        if not m or m.group(2) == "names":
+            continue
+        try:
+            text = open(os.path.join(REPO, rel), encoding="utf-8", errors="replace").read()
+        except OSError:
+            dirty += 1
+            continue
+        if CRUFT_RE.search(text):
+            dirty += 1
+    return dirty
+
+
+def classify_mod(n_mod, dirty, floor=MOD_FLOOR, dirty_floor=DIRTY_FLOOR):
+    """Pure rule for the retrofit MODIFY floor (selftested). Returns (ok, reason)."""
+    if n_mod == 0:
+        return True, "inert (no idiomatic modules modified)"
+    if n_mod >= floor:
+        return True, f"retrofit batch OK: {n_mod} modules modified (floor {floor})"
+    if dirty <= dirty_floor:
+        return True, f"finishing retrofit: {n_mod} modified and only {dirty} module(s) still carry cruft"
+    return False, (
+        f"retrofit batch too small: {n_mod} module(s) modified, floor is {floor}, and {dirty} "
+        f"idiomatic module(s) still carry cruft — fan the WHOLE reducible pool, don't dribble one category"
+    )
+
+
 def waiver_path(did):
     return os.path.join(WAIVERS, did + ".json")
 
@@ -228,9 +306,10 @@ def cmd_id(_a):
 
 def cmd_check(_a):
     added_t = added_routine_files()      # §3 translation: loc_<addr>.js files
-    added_i = added_idiomatic_modules()  # §4 idiomatic: module files
-    if not added_t and not added_i:
-        return 0  # inert: no fresh routine/module files in this commit
+    added_i = added_idiomatic_modules()  # §4 idiomatic: module files ADDED
+    mod_i = modified_idiomatic_modules() # legacy-retrofit: idiomatic modules MODIFIED
+    if not added_t and not added_i and not mod_i:
+        return 0  # inert: no fresh routine/module files and no idiomatic modules modified
     did = diff_id(staged_diff())
     problems = []
     for game, addrs in sorted(added_t.items()):
@@ -243,6 +322,14 @@ def cmd_check(_a):
         ok, reason = classify(len(mods), r)
         if not ok:
             problems.append((f"{game} (idiomatic)", reason))
+    # The MODIFY floor governs a PURE-modify retrofit commit; a game that also ADDS modules is already
+    # held to the ADD floor above, so it is skipped here (no double-jeopardy on a big decompile fan).
+    for game, n_mod in sorted(mod_i.items()):
+        if game in added_i:
+            continue
+        ok, reason = classify_mod(n_mod, idiomatic_dirty_count(game))
+        if not ok:
+            problems.append((f"{game} (idiomatic-retrofit)", reason))
     if not problems:
         return 0
     # A single-use waiver bound to this exact staged diff clears the block.
@@ -259,9 +346,11 @@ def cmd_check(_a):
     msg = "; ".join(f"{g}: {why}" for g, why in problems)
     sys.stderr.write(
         "\nCOMMIT BLOCKED — batch_size_gate: " + msg + ".\n"
-        f"  Fan wider — BOTH passes share a floor of {FLOOR} routines/batch (docs/runbook.md sections 3\n"
-        "  and 4: ~15 agents x 3-4). For a genuine small ADD (a mis-merged routine, or a grounding-heavy\n"
-        "  finishing cluster), record a single-use waiver:\n"
+        f"  Fan wider — a fresh decompile ADD-batch shares a floor of {FLOOR} routines (runbook 3/4:\n"
+        f"  ~15 agents x 3-4); a legacy-retrofit MODIFY-batch has a floor of {MOD_FLOOR} modules while\n"
+        "  cruft is broad — enumerate the WHOLE reducible pool (regi+addr+call+push) and fan it in ONE\n"
+        "  workflow, don't dribble one category at a time. For a genuine small ADD (a mis-merged routine)\n"
+        "  or an unavoidably-small retrofit cluster, record a single-use waiver with the reason on file:\n"
         f'    python3 tools/batch_size_gate.py waive --reason "<why>"\n'
         "  Do NOT --no-verify around this.\n\n"
     )
@@ -284,6 +373,12 @@ def cmd_plan(args):
         oki, reasoni = classify(len(mods), ri)
         print(f"{args.game}: {len(mods)} idiomatic module(s) staged-added; {ri} routine(s) still awaiting "
               f"a module.\n  idiomatic -> {'OK' if oki else 'TOO SMALL'}: {reasoni}")
+    # Retrofit pool: the whole reducible surface to fan in ONE workflow (don't dribble a category).
+    dirty = idiomatic_dirty_count(args.game)
+    n_mod = modified_idiomatic_modules().get(args.game, 0)
+    okm, reasonm = classify_mod(n_mod, dirty)
+    print(f"{args.game}: {n_mod} idiomatic module(s) staged-modified; {dirty} module(s) still carry cruft.\n"
+          f"  retrofit -> {'OK' if okm else 'TOO SMALL'}: {reasonm}")
     return 0
 
 
@@ -336,6 +431,13 @@ def cmd_selftest(_a):
     _case("pure: big passes (over)", lambda: classify(56, 40)[0], True, failures)
     _case("pure: small+closed passes", lambda: classify(8, 0)[0], True, failures)
     _case("pure: floor boundary (39 open) BLOCKS", lambda: classify(39, 1)[0], False, failures)
+
+    # 1b) MODIFY-floor pure rule (the retrofit anti-dribble).
+    _case("pure-mod: inert", lambda: classify_mod(0, 999)[0], True, failures)
+    _case("pure-mod: small+dirty BLOCKS", lambda: classify_mod(3, 74)[0], False, failures)
+    _case("pure-mod: big passes", lambda: classify_mod(20, 74)[0], True, failures)
+    _case("pure-mod: small+near-done passes", lambda: classify_mod(3, 15)[0], True, failures)
+    _case("pure-mod: floor boundary (19, dirty) BLOCKS", lambda: classify_mod(19, 16)[0], False, failures)
 
     # 2) End-to-end against a throwaway repo (file detection + R plumbing + waiver + inert).
     tmp = tempfile.mkdtemp(prefix="batchsize-selftest-")
@@ -406,6 +508,39 @@ def cmd_selftest(_a):
         open(os.path.join(idir, "bazLeaf.js"), "w").write("export function bazLeaf(m){}\n")
         subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
         _case("e2e: idiomatic finishing batch (frontier closed) passes", lambda: cmd_check(None), 0, failures)
+
+        # (g) MODIFY-floor: game r with 20 idiomatic modules that carry cruft (regs.), all committed.
+        rdir = os.path.join(tmp, "games", "r", "idiomatic")
+        os.makedirs(os.path.join(rdir, "test"))
+        for k in range(20):
+            open(os.path.join(rdir, f"mod{k}.js"), "w").write(f"export function mod{k}(m){{ m.regs.a = {k}; }}\n")
+        open(os.path.join(rdir, "names.js"), "w").write("export const ROUTINES = {};\n")
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", tmp, "commit", "-qm", "game r base"], check=True, capture_output=True)
+
+        # (g1) MODIFY 3 of them while 20 still carry cruft -> small retrofit batch BLOCKS
+        for k in range(3):
+            open(os.path.join(rdir, f"mod{k}.js"), "w").write(f"export function mod{k}(m){{ return {k}; }}\n")
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        _case("e2e: small retrofit modify batch + broad cruft BLOCKS", lambda: cmd_check(None), 1, failures)
+
+        # (g2) same staged diff + waiver -> PASS
+        didm = diff_id(staged_diff())
+        json.dump({"diff_id": didm, "reason": "selftest-mod"}, open(waiver_path(didm), "w"))
+        _case("e2e: retrofit waiver clears the block", lambda: cmd_check(None), 0, failures)
+        os.remove(waiver_path(didm))
+
+        # (g3) POSITIVE CONTROL for the near-done relax: a game with only a few dirty modules lets a
+        # small modify pass. Game q: 4 cruft modules committed; modify 1 -> dirty(4) <= DIRTY_FLOOR -> PASS.
+        qdir = os.path.join(tmp, "games", "q", "idiomatic")
+        os.makedirs(os.path.join(qdir, "test"))
+        for k in range(4):
+            open(os.path.join(qdir, f"q{k}.js"), "w").write(f"export function q{k}(m){{ m.regs.a = {k}; }}\n")
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", tmp, "commit", "-qm", "game q base"], check=True, capture_output=True)
+        open(os.path.join(qdir, "q0.js"), "w").write("export function q0(m){ return 0; }\n")
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        _case("e2e: near-done small retrofit passes (dirty <= floor)", lambda: cmd_check(None), 0, failures)
     finally:
         REPO, WAIVERS = saved
         shutil.rmtree(tmp, ignore_errors=True)
