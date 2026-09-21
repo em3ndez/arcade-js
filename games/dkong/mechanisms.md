@@ -433,7 +433,7 @@ stride-0x20 arrays and alias the *next* record on the stride-0x10 ones.
 `publishBarrelSprite` stages the barrels (§8), `publishFireSprites` gathers the five fire records
 into 0x69D0, `update50mMovingObjects` refreshes the six 50m sprites at `OBJ_65A0_SPRITES`,
 `update75mActorObjects` mirrors into `ACTOR_SPRITES`, `writeMarioSpriteRecord` refreshes Mario's.
-`blitSpritesViaDma` then programs the i8257 (ch0 src 0x6900, ch1 dst 0x7000, count 0x180) once per
+`blitSpritesViaDma` then programs the i8257 (ch0 src `SPRITE_BUFFER` (0x6900), ch1 dst `SPRITE_RAM_BASE` (0x7000), count 0x180) once per
 vblank. `[code]` `[seen]` (the sprite-record ↔ source-cell identities were checked byte-exact
 against MAME)
 

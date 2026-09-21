@@ -8,8 +8,9 @@
  */
 
 import { fillTileRowPair } from "./fillTileRowPair.js";
+import { loc_760d, loc_770d } from "./names.js";
 
 export function stamp75mBoardTiles(m) {
-  fillTileRowPair(m, 0x770d);
-  fillTileRowPair(m, 0x760d);
+  fillTileRowPair(m, loc_770d);
+  fillTileRowPair(m, loc_760d);
 }

@@ -13,6 +13,8 @@ import {
   LEVEL_UNITS_CELL,
   LIVES,
   RESERVE_LIVES_MARKER_BASE,
+  LEVEL_HUD_FURNITURE_A,
+  LEVEL_HUD_FURNITURE_B,
 } from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 
@@ -22,8 +24,8 @@ const TILE_BLANK = 0x10;
 const TILE_MARKER = 0xff;
 
 const FURNITURE = [
-  [0x7503, 0x1c],
-  [0x74e3, 0x34],
+  [LEVEL_HUD_FURNITURE_B, 0x1c],
+  [LEVEL_HUD_FURNITURE_A, 0x34],
 ];
 
 const LEVEL_MAX = 0x63; // 99 decimal

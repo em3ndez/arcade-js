@@ -18,11 +18,13 @@ import {
   NMI_ENABLE,
   PALETTE_BANK_BIT0,
   PALETTE_BANK_BIT1,
+  STACK_TOP,
+  SPRITE_RAM_BASE,
 } from "./names.js";
 
 const WORK_PAGE_HI = 0x7000; // full 4 KB page; top ~1 KB over-runs into unmapped discard
 
-const SPRITE_RAM_LO = 0x7000;
+const SPRITE_RAM_LO = SPRITE_RAM_BASE;
 const SPRITE_RAM_HI = 0x7400;
 
 const VIDEO_RAM_LO = 0x7400;
@@ -51,5 +53,5 @@ export function clearRamAndInitHardware(m) {
   mem8[PALETTE_BANK_BIT1] = 0;
   mem8[FLIPSCREEN] = 1;
 
-  return (m.regs.sp = 0x6c00, silenceSound(m), (mem8[NMI_ENABLE] = 1));
+  return (m.regs.sp = STACK_TOP, silenceSound(m), (mem8[NMI_ENABLE] = 1));
 }

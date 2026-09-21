@@ -10,6 +10,7 @@
  * second pass runs with.
  */
 import { u16 } from "../../../core/int.js";
+import { COINAGE_DIGIT_TENS_CARRY_CELL, TITLE_FIXED_DIGIT_PAIR_LEFT_CELL } from "./names.js";
 
 export function writeDigitPairWithCarry(m, e = m.regs.e, d = m.regs.d, hl = m.regs.hl) {
   const { mem8 } = m;
@@ -20,9 +21,9 @@ export function writeDigitPairWithCarry(m, e = m.regs.e, d = m.regs.d, hl = m.re
 
   if (d === 0x0a) {
     mem8[secondCell] = 0x00; // ones digit
-    mem8[0x758e] = 0x01; //    tens digit
+    mem8[COINAGE_DIGIT_TENS_CARRY_CELL] = 0x01; //    tens digit
   }
 
   // hand-off to the second pass (frozen caller reads de/hl back)
-  return [m.regs.de = 0x0201, m.regs.hl = 0x768c];
+  return [m.regs.de = 0x0201, m.regs.hl = TITLE_FIXED_DIGIT_PAIR_LEFT_CELL];
 }

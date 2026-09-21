@@ -8,10 +8,11 @@
  * colour counter are read-only register live-ins, passed straight through to the callees.
  */
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
+import { COLOR_COLUMN_B_TOP } from "./names.js";
 import { blinkSpritePairOff } from "./blinkSpritePairOff.js";
 
 // Top of the colour-RAM column this arm repaints; the fill steps down by the live-in stride.
-const COLOR_COLUMN_TOP = 0x7583;
+const COLOR_COLUMN_TOP = COLOR_COLUMN_B_TOP;
 
 export function paintColorColumnAndBlinkOff(m) {
   const { regs } = m;

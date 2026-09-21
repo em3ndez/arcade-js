@@ -10,6 +10,8 @@ import { copyByteDisplaced } from "./copyByteDisplaced.js";
 import {
   INTRO_SCROLL_INDEX,
   VRAM_ROW_STEP_UP,
+  INTRO_CLIMB_SCROLL_COL_A_BASE,
+  INTRO_CLIMB_SCROLL_COL_B_BASE,
 } from "./names.js";
 
 
@@ -19,8 +21,8 @@ export function scrollClimbGraphicStep(m) {
   const bc = mem8[INTRO_SCROLL_INDEX];
   const de = VRAM_ROW_STEP_UP; // set once, reused by both copies
 
-  copyByteDisplaced(m, 0x7600, bc, de);
-  copyByteDisplaced(m, 0x75c0, bc, de);
+  copyByteDisplaced(m, INTRO_CLIMB_SCROLL_COL_A_BASE, bc, de);
+  copyByteDisplaced(m, INTRO_CLIMB_SCROLL_COL_B_BASE, bc, de);
 
   mem8[INTRO_SCROLL_INDEX] = (mem8[INTRO_SCROLL_INDEX] - 1);
 }

@@ -7,7 +7,7 @@
  * LIVE-OUT: memory-only — the music shadow plus the field's video cells.
  */
 
-import { SND_BGM } from "./names.js";
+import { SND_BGM, BONUS_READOUT_FRAME_CELL, BONUS_READOUT_LEADING_CELL } from "./names.js";
 import { stampTwoDigitField } from "./stampTwoDigitField.js";
 
 export function renderBonusDisplay(m, a = m.regs.a) {
@@ -23,8 +23,8 @@ export function renderBonusDisplay(m, a = m.regs.a) {
   }
 
   mem8[SND_BGM] = 0x03;
-  mem8[0x7486] = 0x70;
-  mem8[0x74a6] = 0x70;
+  mem8[BONUS_READOUT_FRAME_CELL] = 0x70;
+  mem8[BONUS_READOUT_LEADING_CELL] = 0x70;
 
   stampTwoDigitField(m, 0x10, 0x70 + unitsDigit);
 }

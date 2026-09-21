@@ -13,6 +13,7 @@ import { expandBcdDigits } from "./expandBcdDigits.js";
 import {
   BCD_RENDER_BYTE_COUNT,
   VRAM_ROW_STEP_UP,
+  HIGH_SCORE_DISPLAY_CELL,
 } from "./names.js";
 
 
@@ -20,7 +21,7 @@ export function renderBcdColumnFixedCell(m, enteredAt057C = false) {
   const { regs } = m;
 
   if (!enteredAt057C) {
-    regs.ix = 0x7641; // the fixed destination cell (skipped on the second entry)
+    regs.ix = HIGH_SCORE_DISPLAY_CELL; // the fixed destination cell (skipped on the second entry)
   }
   regs.exDeHl(); // source pointer arrives in a register; drop what it displaces
   regs.de = VRAM_ROW_STEP_UP;

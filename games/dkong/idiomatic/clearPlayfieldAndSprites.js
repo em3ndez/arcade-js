@@ -11,6 +11,8 @@ import { u16 } from "../../../core/int.js";
 import {
   PLAYFIELD_TOP,
   SPRITE_BUFFER,
+  PLAYFIELD_SIDE_COL_BASE,
+  PLAYFIELD_SIDE_BLANK_COL_B,
 } from "./names.js";
 
 const PLAYFIELD_ROWS = 32;
@@ -18,7 +20,7 @@ const PLAYFIELD_COLS = 28;
 const ROW_STRIDE = 0x20;
 const BLANK_TILE = 0x10;
 
-const SIDE_COL_BASES = [0x7522, 0x7523];
+const SIDE_COL_BASES = [PLAYFIELD_SIDE_COL_BASE, PLAYFIELD_SIDE_BLANK_COL_B];
 const SIDE_COL_CELLS = 0x0e;
 
 const SPRITE_BUFFER_BYTES = 0x180;

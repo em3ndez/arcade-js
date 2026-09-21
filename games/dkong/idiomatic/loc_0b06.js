@@ -29,6 +29,8 @@ import {
   SPRITE_BUFFER,
   SPRITE_OBJ_BLOCK,
   SUBSTATE_TIMER,
+  loc_748a,
+  loc_74aa,
 } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addStrided } from "./addStrided.js";
@@ -42,8 +44,8 @@ const PROP_TEMPLATE = 0x385c;
 const OBJ_BLOCK_BYTES = 0x28; // loadSpriteObjectBlock copies this many, advancing its source
 const OBJ_COLUMN_STRIDE = 4; // one sprite-object record
 const OBJ_COLUMN_COUNT = 0x0a; // ten records — the fixed sprite-object column shape
-const VIDEO_CELL_A = 0x74aa;
-const VIDEO_CELL_B = 0x748a;
+const VIDEO_CELL_A = loc_74aa;
+const VIDEO_CELL_B = loc_748a;
 
 export function loc_0b06(m) {
   const { mem8, mem16 } = m;

@@ -9,13 +9,14 @@
 import {
   COLOR_COLUMN_A_TOP,
   MARIO_X,
+  COLOR_COLUMN_B_TOP,
 } from "./names.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
 import { blinkSpritePairByX } from "./blinkSpritePairByX.js";
 import { paintColorColumnAndBlinkOff } from "./paintColorColumnAndBlinkOff.js";
 import { blinkSpritePairOn } from "./blinkSpritePairOn.js";
 
-const COLUMN_B_TOP = 0x7583;
+const COLUMN_B_TOP = COLOR_COLUMN_B_TOP;
 
 const BASE_COLOR = 16; //        the first column's run start; the second column resumes it
 const BRIGHT_BAND_COLOR = 223; // the brighter band the left-half arm repaints column A with

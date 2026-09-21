@@ -1257,6 +1257,130 @@ export const loc_6970 = 0x6970;
 /** loc_69fc (0x69fc) — 4-byte sprite-shadow record in SPRITE_BUFFER seeded from a fixed ROM template on both 25m (0x3e00) and 50m (0x3e04) board setup; on-screen role not es [guess] (placeholder; names-debt) */
 export const loc_69fc = 0x69fc;
 
+// --- naming-hoist batch 2 (2026-09-20): grounded cells (2-derive + ground-confirmed) ---
+/** P2_SAVED_LEVEL (0x6049) — Player 2's saved LEVEL field (offset +1 of P2_CONTEXT 0x6048's 8-byte block: LIVES,LEVEL,SEQPTR_lo,SEQPTR_hi,...). ldir-restored to the live LEVEL 0x6229 at ROM [code] */
+export const P2_SAVED_LEVEL = 0x6049;
+/** SND_TRIGGER_7 (0x6087) — 8th (index 7) per-latch-bit sound-trigger countdown, top element of SND_TRIGGER[8] at 0x6080-0x6087 (ls259.6h bit 7). Per-NMI sub_00e0 (ROM 0x00E0) decrements i [code] */
+export const SND_TRIGGER_7 = 0x6087;
+/** BOARD_OBJ_RECORD_1 (0x6288) — Base (+0 = 4-way state selector) of the SECOND 50m board-object record; the stride-8 pair at 0x6280(rec0)/0x6288(rec1) that dispatch50mObjectState (sub_2207) pi [code] */
+export const BOARD_OBJ_RECORD_1 = 0x6288;
+/** RIVET_PRESENT_7 (0x6299) — 8th (index 7) per-rivet present flag (1=still there), top element of RIVET_PRESENT[8] at 0x6292-0x6299 on the 100m rivet board. ROM 0x1A7B indexes 0x6292+b, tes [code] */
+export const RIVET_PRESENT_7 = 0x6299;
+/** CLIMB_FIGURE_WALK_PTR_HI (0x63a9) — High byte of the 16-bit CLIMB_FIGURE_WALK_PTR word (0x63a8): VRAM write pointer for the climbing figures on the 'HOW HIGH' bonus screen (buildHowHighScreen), se [code] */
+export const CLIMB_FIGURE_WALK_PTR_HI = 0x63a9;
+/** OBJ_ARRAY_64_REC0_X (0x6403) — X (horizontal position) field of record 0 in the 0x6400 stride-0x20 hazard-object array (OBJ_ARRAY_64 + OBJ_X offset 0x03). Live horizontal sweep updated by the [seen] */
+export const OBJ_ARRAY_64_REC0_X = 0x6403;
+/** OBJ_ARRAY_64_REC0_Y (0x6405) — Y (vertical position) field of record 0 in the 0x6400 stride-0x20 hazard-object array (OBJ_ARRAY_64 + OBJ_Y offset 0x05). Live vertical sweep updated by the mov [seen] */
+export const OBJ_ARRAY_64_REC0_Y = 0x6405;
+/** FIRE0_SPRITE_CODE (0x6407) — OBJ_SPRITE_CODE field (+7) of fire slot 0 in OBJ_ARRAY_64 (THE FIRES, stride 0x20): sprite tile-code, copied to HW sprite +1 by gatherSpriteRecords [code] */
+export const FIRE0_SPRITE_CODE = 0x6407;
+/** FIRE0_SPRITE_ATTR (0x6408) — OBJ_SPRITE_ATTR field (+8) of fire slot 0 in OBJ_ARRAY_64: sprite attribute/colour, copied to HW sprite +2; hammer A/B is the causal control [code] */
+export const FIRE0_SPRITE_ATTR = 0x6408;
+/** FIRE0_STATE (0x640d) — OBJ_STATE field (+0x0d) of fire slot 0 in OBJ_ARRAY_64: per-object movement/collision state-machine selector; entry_333d writes {0,4,8}, full live enum {0,1,2,4 [code] */
+export const FIRE0_STATE = 0x640d;
+/** FIRE1_ACTIVE (0x6420) — OBJ_ACTIVE field (+0) of fire slot 1 in OBJ_ARRAY_64 (record-1 base = 0x6400+0x20): bit0 = active/live slot; scanned by spawn/collision sweeps [code] */
+export const FIRE1_ACTIVE = 0x6420;
+/** HAMMER0_IN_PLAY (0x6681) — In-play flag (OBJ_PAIR_6680 + HAMMER_IN_PLAY, +0x01) of the FIRST hammer object record; marks that Mario has grabbed hammer 0. Set by latchHammerTouch (ROM 0x29 [code] */
+export const HAMMER0_IN_PLAY = 0x6681;
+/** HAMMER_OBJ2_BASE (0x6690) — Base (OBJ_ACTIVE, +0) byte of the SECOND hammer object record -- OBJ_PAIR_6680 record 1 (0x6680 + 0x10). Built by seedSpriteObjectPair (ROM 0x11A6) which sets a [seen] */
+export const HAMMER_OBJ2_BASE = 0x6690;
+/** HAMMER_B_IN_PLAY (0x6691) — In-play flag (+0x01) of the SECOND hammer record (OBJ_PAIR_6680's 0x6690 record); marks that Mario grabbed hammer B. Set by latchHammerTouch (ROM 0x296F), clear [code] */
+export const HAMMER_B_IN_PLAY = 0x6691;
+/** BARREL_0_X (0x6703) — X coordinate (OBJ_X, +3) of barrel record 0 in OBJ_ARRAY_67 ('THE BARRELS', base 0x6700, board-1 only); horizontal position of the first rolling barrel. [seen] */
+export const BARREL_0_X = 0x6703;
+/** BARREL_0_Y (0x6705) — Y coordinate (OBJ_Y, +5) of barrel record 0 in OBJ_ARRAY_67 ('THE BARRELS'); vertical position of the first rolling barrel. [seen] */
+export const BARREL_0_Y = 0x6705;
+/** BARREL_0_SPRITE_CODE (0x6707) — Sprite tile code (OBJ_SPRITE_CODE, +7) of barrel record 0 in OBJ_ARRAY_67 ('THE BARRELS'); barrel animation-frame tile, copied by gatherSpriteRecords to sprite [seen] */
+export const BARREL_0_SPRITE_CODE = 0x6707;
+/** BARREL_1_ACTIVE (0x6720) — OBJ_ACTIVE (+0) active-flag byte at the base of barrel record 1 in OBJ_ARRAY_67 (THE BARRELS, stride 0x20); active enum {0,1,2}, board-1 only [seen] */
+export const BARREL_1_ACTIVE = 0x6720;
+/** BARREL_2_ACTIVE (0x6740) — OBJ_ACTIVE (+0) active-flag byte at the base of barrel record 2 in OBJ_ARRAY_67 (THE BARRELS, stride 0x20); active enum {0,1,2}, board-1 only [seen] */
+export const BARREL_2_ACTIVE = 0x6740;
+/** BARREL_3_ACTIVE (0x6760) — OBJ_ACTIVE (+0) active-flag byte at the base of barrel record 3 in OBJ_ARRAY_67 (THE BARRELS, stride 0x20); active enum, board-1 only [code] */
+export const BARREL_3_ACTIVE = 0x6760;
+/** BARREL_4_ACTIVE (0x6780) — OBJ_ACTIVE (+0) active-flag byte at the base of barrel record 4 in OBJ_ARRAY_67 (THE BARRELS, stride 0x20); active enum, board-1 only [code] */
+export const BARREL_4_ACTIVE = 0x6780;
+/** BLINK_SPRITE0_CODE (0x6901) — Code byte of sprite-shadow record 0 (SPRITE_BUFFER 0x6900 +1) — the first of the rivet board's decorative blink sprite pair; blinkSpritePairOn/Off set/clear bit [code] */
+export const BLINK_SPRITE0_CODE = 0x6901;
+/** STACK_TOP (0x6c00) — Initial stack pointer / top of the guest stack (STACK_SCRATCH.hi); clearRamAndInitHardware sets SP=0x6c00 at boot and the stack grows downward into STACK_SCRATC [code] */
+export const STACK_TOP = 0x6c00;
+/** SPRITE_RAM_BASE (0x7000) — Base of the 1KB hardware sprite RAM (0x7000-0x73FF); i8257 DMA destination for the 0x6900 sprite shadow buffer every vblank; zero-cleared at boot/board setup. [seen] */
+export const SPRITE_RAM_BASE = 0x7000;
+/** BONUS_READOUT_FRAME_CELL (0x7486) — Middle cell of column 1 in the 6x3 bonus-readout tile frame (base BONUS_READOUT_TILE_BASE 0x7465, column stride 0x20); renderBonusDisplay stamps a fixed frame t [code] */
+export const BONUS_READOUT_FRAME_CELL = 0x7486;
+/** BONUS_READOUT_LEADING_CELL (0x74a6) — A higher-order (leading) cell of the on-screen BONUS readout VRAM column, blanked (tile 0x70) by renderBonusDisplay's leading-zero-suppression path; sits in the [code] */
+export const BONUS_READOUT_LEADING_CELL = 0x74a6;
+/** FIXED_DECOR_TILE_HI (0x74af) — Higher-address cell of a fixed two-tile decorative glyph stamped into the tilemap (tile 0x9f); pairs with 0x748f (tile 0x9e). Constant tilemap furniture, not a [seen] */
+export const FIXED_DECOR_TILE_HI = 0x74af;
+/** LEVEL_HUD_FURNITURE_A (0x74e3) — Fixed furniture tile (0x34) in the lives/level HUD column, drawn by drawLivesAndLevel below the level digits (same column as LEVEL_UNITS_CELL 0x74a3 / LEVEL_TEN [code] */
+export const LEVEL_HUD_FURNITURE_A = 0x74e3;
+/** LEVEL_HUD_FURNITURE_B (0x7503) — Fixed furniture tile (0x1c) in the lives/level HUD column, drawn by drawLivesAndLevel; pairs with 0x74e3 in the FURNITURE table. Static furniture, not a variabl [seen] */
+export const LEVEL_HUD_FURNITURE_B = 0x7503;
+/** PLAYFIELD_SIDE_COL_BASE (0x7522) — Top cell of the 14-cell left tilemap side-column strip blanked during playfield clear (steps +0x20 for 0x0e cells); pairs with 0x7523. Cleared to BLANK_TILE 0x1 [code] */
+export const PLAYFIELD_SIDE_COL_BASE = 0x7522;
+/** COLOR_COLUMN_B_TOP (0x7583) — Top cell of decorative colour-cycle column B (VRAM tilemap 0x7400+; row 12, stride 0x20), painted as the continuation of column A (COLOR_COLUMN_A_TOP 0x7623) in [code] */
+export const COLOR_COLUMN_B_TOP = 0x7583;
+/** COINAGE_1P_DIGIT_CELL (0x756c) — VRAM tilemap cell displaying the coins-needed-for-1P digit on the attract/title score screen; composeAttractTitleScreen writes it via writeDigitPairWithCarry fr [code] */
+export const COINAGE_1P_DIGIT_CELL = 0x756c;
+/** RIVET_BAND_ROW_BASE_B (0x7547) — Fixed VRAM tilemap row base (row 10, col 7) stamped with the two-tile band motif during 100m-rivet (board 4) setup; second of the two row bases fed to stampTwoT [code] */
+export const RIVET_BAND_ROW_BASE_B = 0x7547;
+/** PLAYFIELD_SIDE_BLANK_COL_B (0x7523) — Base cell (row 9, col 3, adjacent to SCORE_VRAM_COLUMN_P2 0x7521) of the second of two 14-cell vertical side-column runs that clearPlayfieldAndSprites blanks (t [code] */
+export const PLAYFIELD_SIDE_BLANK_COL_B = 0x7523;
+/** COINAGE_DIGIT_TENS_CARRY_CELL (0x758e) — Fixed VRAM tile that receives the tens digit '1' when the attract/title coinage digit-pair's right value carries to 10 (writeDigitPairWithCarry's value==0x0a ar [code] */
+export const COINAGE_DIGIT_TENS_CARRY_CELL = 0x758e;
+/** INTRO_CLIMB_SCROLL_COL_B_BASE (0x75c0) — Base VRAM/tilemap cell of the second column scrolled up one row per step by scrollClimbGraphicStep in the opening Kong-climb intro cutscene (copyByteDisplaced b [code] */
+export const INTRO_CLIMB_SCROLL_COL_B_BASE = 0x75c0;
+/** BLINK_COLOR_COLUMN_MID (0x75e4) — Middle cell of the shared 3-cell descending colour-cycle VRAM column (top BLINK_COLOR_COLUMN_TOP=0x75c4, stride 0x20 -> 0x75c4/0x75e4/0x7604) filled by the blin [seen] */
+export const BLINK_COLOR_COLUMN_MID = 0x75e4;
+/** INTRO_CLIMB_SCROLL_COL_A_BASE (0x7600) — Base VRAM/tilemap cell of the first column scrolled up one row per step by scrollClimbGraphicStep in the opening Kong-climb intro cutscene (copyByteDisplaced ba [code] */
+export const INTRO_CLIMB_SCROLL_COL_A_BASE = 0x7600;
+/** BLINK_COLOR_COLUMN_BOTTOM (0x7604) — Bottom cell of the shared 3-cell descending colour-cycle VRAM column (0x75c4/0x75e4/0x7604, stride 0x20); painted by the colour-cycle blink driver's leave-as-is [seen] */
+export const BLINK_COLOR_COLUMN_BOTTOM = 0x7604;
+/** HIGH_SCORE_DISPLAY_CELL (0x7641) — Fixed VRAM column-anchor cell where drawHighScore renders the 6-digit packed-BCD high score (six digits climbing the column). [code] */
+export const HIGH_SCORE_DISPLAY_CELL = 0x7641;
+/** RIVET_BOARD_BAND_BASE (0x7687) — Fixed tilemap row base (one of two, other=0x7547) for the 100m rivet-board (board 4) two-band decorative tile motif: 4 cells of tile 0xFD, a 28-cell gap, then 4 [code] */
+export const RIVET_BOARD_BAND_BASE = 0x7687;
+/** TITLE_FIXED_DIGIT_PAIR_LEFT_CELL (0x768c) — VRAM tilemap cell holding the left/ones digit tile of the attract title screen's fixed "1 2" two-cell field (partner "2" tile at 0x768e); written by writeDigitP [seen] */
+export const TITLE_FIXED_DIGIT_PAIR_LEFT_CELL = 0x768c;
+/** HOW_HIGH_TILE_BLOCK_TOPLEFT_3 (0x76d0) — Top-left VRAM cell of the 3rd of four 5x14 (70-tile) blank-tile blocks loc_17b6 stamps with tile 0x10 (fillTileBlock) then overdraws with girder/ladder segment [code] */
+export const HOW_HIGH_TILE_BLOCK_TOPLEFT_3 = 0x76d0;
+/** HOW_HIGH_TILE_BLOCK_TOPLEFT_2 (0x76d5) — Top-left VRAM cell of the 2nd of four 5x14 (70-tile) blank-tile blocks loc_17b6 stamps with tile 0x10 (fillTileBlock) then overdraws with girder/ladder segment [seen] */
+export const HOW_HIGH_TILE_BLOCK_TOPLEFT_2 = 0x76d5;
+/** HOWHIGH_GIRDER_BLOCK0_VRAM (0x76da) — Top-left VRAM tilemap cell of the first of four 5x14 blank-tile (0x10) blocks the how-high/25m-intro board render clears before drawing girder/ladder segments o [code] */
+export const HOWHIGH_GIRDER_BLOCK0_VRAM = 0x76da;
+/** M50_TILE_MOTIF_LEFT_VRAM (0x776c) — VRAM tilemap cell stamped with tile 0x10 as the left half of the 50m conveyor board's fixed two-cell motif; only written on board 2 (50m), gated off otherwise. [code] */
+export const M50_TILE_MOTIF_LEFT_VRAM = 0x776c;
+/** TILEMAP_VRAM_LAST (0x77ff) — Final byte (offset 0x3FF) of the 0x7400-0x77FF tilemap/video RAM; boot RAM-clear fill (loc_0266, 0x0281-0x028f) sets it to blank tile 0x10 and the display-list [seen] */
+export const TILEMAP_VRAM_LAST = 0x77ff;
+/** SOUND_TRIGGER_LATCH_7 (0x7d07) — Bit-7 (8th) address of the ls259.6h sound-trigger latch (0x7d00-0x7d07, one bit per address); driven from shadow countdown counter 0x6087 by the sound-driver ti [seen] */
+export const SOUND_TRIGGER_LATCH_7 = 0x7d07;
+/** HOW_HIGH_TILE_BLOCK_4_ANCHOR (0x76cb) — Role is correct and code-readable: 0x76cb is the fillTileBlock destination anchor of the 4th of four 5x14 (70-tile) blank-tile blocks in loc [code] */
+export const HOW_HIGH_TILE_BLOCK_4_ANCHOR = 0x76cb;
+/** loc_6439 (0x6439) — loc_31dd (frozen oracle, ROM 0x31DD) confidently writes constant 0x02 to 0x6439 (+0x6479) gated on 0x6380>=3 signed AND sub_31f6()==1 — code (placeholder; names-debt) */
+export const loc_6439 = 0x6439;
+/** loc_6479 (0x6479) — Only writer is armAlternateFireModeAtHighDifficulty (0x31dd): mem8[OBJ_ARRAY_64+0x79]=2, i.e. field +0x19 of OBJ_ARRAY_64 record 3 (base 0x6 (placeholder; names-debt) */
+export const loc_6479 = 0x6479;
+/** loc_6840 (0x6840) — Geometry checks out: OBJ_ARRAY_67=0x6700, stride 0x20 x10 records occupy 0x6700..0x683F, so 0x6840 is the first byte past the barrel array. (placeholder; names-debt) */
+export const loc_6840 = 0x6840;
+/** loc_6be0 (0x6be0) — Role CONFIRMED and grounded. 0x6be0 = STACK_SCRATCH.lo (names.js:1756); manifest.js:171 documents SP inits at 0x6C00 and the region [0x6BE0, (placeholder; names-debt) */
+export const loc_6be0 = 0x6be0;
+/** loc_748a (0x748a) — 0x748a lies inside dkong's fixed video-RAM region (boards/dkong/hardware.json: "video" base 0x7400 size 0x400 -> 0x7400-0x77FF; offset 0x8a= (placeholder; names-debt) */
+export const loc_748a = 0x748a;
+/** loc_748c (0x748c) — Confidently readable as a VRAM tilemap byte (0x7400-0x77FF range, boards/dkong/memory.js + hardware.json) written the constant BLANK_TILE 0x (placeholder; names-debt) */
+export const loc_748c = 0x748c;
+/** loc_748e (0x748e) — 0x748e is a video-RAM tilemap cell (0x7400-0x7800 = VIDEO_RAM per clearRamAndInitHardware.js). Sole idiomatic writer stamp50mBoardTiles.js s (placeholder; names-debt) */
+export const loc_748e = 0x748e;
+/** loc_748f (0x748f) — 0x748f is confirmed tilemap VRAM (boards/dkong/hardware.json + memory.js: video RAM 0x7400-0x77FF). Sole writer is idiomatic/stampFixedTileP (placeholder; names-debt) */
+export const loc_748f = 0x748f;
+/** loc_74aa (0x74aa) — CONFIRMS proposal. 0x74aa is offset 0xAA within dkong tilemap VRAM 0x7400-0x77FF (hardware.json: 1024B/32x32) — fixed hardware role = a char (placeholder; names-debt) */
+export const loc_74aa = 0x74aa;
+/** loc_760d (0x760d) — 0x760d is a shared tilemap VRAM cell (video RAM 0x7400-0x77FF per boards/dkong/hardware.json:26; offset 0x20d = row16/col13, and 0x770d = ro (placeholder; names-debt) */
+export const loc_760d = 0x760d;
+/** loc_770d (0x770d) — Role core is faithful and code-readable: idiomatic stamp75mBoardTiles->fillTileRowPair matches oracle loc_0d27/loc_0d30 (17x tile 0xFD then (placeholder; names-debt) */
+export const loc_770d = 0x770d;
+/** loc_776e (0x776e) — 0x776e is in the DK VRAM tilemap range 0x7400-0x77FF (boards/dkong/memory.js:53-54). Only games/dkong/idiomatic/stamp50mBoardTiles.js touche (placeholder; names-debt) */
+export const loc_776e = 0x776e;
+
 
 // --- ROM local-const hoist batch (2026-09-19) ---
 /** RESUME_AFTER_STATE_WALK (0x30f6) — return PC after the effect-state-walk dispatch (updateFires coroutine resume). */

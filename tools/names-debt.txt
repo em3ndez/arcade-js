@@ -576,6 +576,20 @@ dkong 0x6393
 dkong 0x6944
 dkong 0x6970
 dkong 0x69fc
+# dkong naming-hoist batch 2 (2026-09-20): grounded cells with no settled descriptive name yet
+# (role confirmed; promote to a descriptive export on a name).
+dkong 0x6439
+dkong 0x6479
+dkong 0x6840
+dkong 0x6be0
+dkong 0x748a
+dkong 0x748c
+dkong 0x748e
+dkong 0x748f
+dkong 0x74aa
+dkong 0x760d
+dkong 0x770d
+dkong 0x776e
 thepit 0x800f
 thepit 0x801d
 thepit 0x812d

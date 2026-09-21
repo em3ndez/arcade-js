@@ -14,6 +14,7 @@ import {
   PALETTE_BANK_BIT1,
   SUBSTATE_TIMER,
   TWO_PLAYER_GAME,
+  COINAGE_1P_DIGIT_CELL,
 } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { enqueueTaskBatch } from "./enqueueTaskBatch.js";
@@ -28,7 +29,7 @@ const DRAW_STRING = 0x03;
 const TITLE_STRING_A = 0x1b;
 const TITLE_STRING_B = 0x1c;
 
-const COINAGE_DIGIT_CELL = 0x756c;
+const COINAGE_DIGIT_CELL = COINAGE_1P_DIGIT_CELL;
 
 export function composeAttractTitleScreen(m) {
   const { mem8, mem16 } = m;

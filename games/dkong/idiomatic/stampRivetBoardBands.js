@@ -6,9 +6,10 @@
  */
 
 import { stampTwoTileBands } from "./stampTwoTileBands.js";
+import { RIVET_BOARD_BAND_BASE, RIVET_BAND_ROW_BASE_B } from "./names.js";
 
 // The two tilemap row bases, stamped in this order.
-const ROW_BASES = [0x7687, 0x7547];
+const ROW_BASES = [RIVET_BOARD_BAND_BASE, RIVET_BAND_ROW_BASE_B];
 
 export function stampRivetBoardBands(m) {
   for (const base of ROW_BASES) {
