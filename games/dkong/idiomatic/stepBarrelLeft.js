@@ -10,8 +10,8 @@
  */
 
 import { OBJ_X } from "./names.js";
+import { advanceRollingBarrel } from "./advanceRollingBarrel.js";
 
-const SHARED_TAIL = 0x1ff6;
 const SLOPE_STEP_SELECTOR = 255;
 const ORIENTATION_DIRECTION = 4;
 
@@ -22,6 +22,6 @@ export function stepBarrelLeft(m, objBase = m.regs.ix) {
 
   mem8[objBase + OBJ_X] = mem8[objBase + OBJ_X] - 1;
 
-  // The b/c writes ride the return so the register bridge survives the shared-tail call (off the gate).
-  return (regs.b = SLOPE_STEP_SELECTOR, regs.c = ORIENTATION_DIRECTION, m.call(SHARED_TAIL));
+  // The b/c writes ride the return so the register bridge survives into the shared tail (off the gate).
+  return (regs.b = SLOPE_STEP_SELECTOR, regs.c = ORIENTATION_DIRECTION, advanceRollingBarrel(m));
 }

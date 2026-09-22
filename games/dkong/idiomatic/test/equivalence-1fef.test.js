@@ -1,71 +1,53 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stepBarrelLeft — memory-equivalent to the frozen oracle at ROM 0x1FEF: the object-sweep arm
- * that decrements one object's X and hands the shared tail at ROM 0x1FF6 its two direction
- * constants.
- * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 3000-frame attract
- *        run is replayed with the real tail in place — no sampling — plus an exhaustive
- *        crafted sweep of all 256 X values against a recording stub with both register banks
- *        poisoned. Credited gameplay is NOT covered by any case here.
+ * Equivalence gate for stepBarrelLeft (ROM 0x1FEF) — the −X arm of the barrel walk: swap the
+ * register file to its alternate bank, stage the two direction constants the shared roll tail
+ * consumes (slope-step selector 255, orientation direction 4), and decrement this barrel's X.
  *
- * The routine is four steps with no branches: swap the register file to its alternate
- * bank, load the slope-step selector, load the orientation direction code, decrement the
- * record's X field — then fall into ROM 0x1FF6, which is still the frozen oracle and does
- * everything observable downstream. So there are two different things to prove, and this
- * file proves them separately:
+ * DISSOLVED FORM. stepBarrelLeft no longer reaches the shared tail through m.call(0x1FF6): it
+ * direct-calls the idiomatic advanceRollingBarrel, which is the dissolved body of ROM 0x1FF6.
+ * The whole fragment above the still-frozen object-walk step at ROM 0x1F83 therefore runs
+ * cycle-free, and there is no observable "handoff" event to record any more — the two direction
+ * constants and the decrement are proven by the finished work of the whole chain, run on both
+ * sides, not by intercepting the boundary.
  *
- *   • THE HANDOFF is the whole of what this routine does. Test 2 stubs ROM 0x1FF6 and
- *     compares the handoff itself, field by field, over every possible X.
- *   • THE END-TO-END EFFECT is produced by the frozen tail running on that handoff.
- *     Test 1 replays real dispatches with the real tail in place.
+ * WHAT THIS GATE COVERS, stated before the assertions rather than implied by them:
  *
- * CONTRACT COMPARED: work/sprite/video RAM minus STACK_SCRATCH, the return value, and —
- * as EXTRAS beyond the required contract — pc and SP. Both extras are available here
- * because the frozen tail maintains them for both sides: it overwrites pc with its own
- * stepping, and its chain ends in the sweep's own return, so by the time control comes
- * back SP has landed two bytes higher either way. The candidate needs no stand-in `ret`.
- *
- * WHAT EACH TEST ACTUALLY COVERS — read this before trusting a green run:
- *
- *   1. CAPTURED (real dispatches, real tail). 0x1FEF is dispatched 1967 times in a
- *      3000-frame attract run, across the 7 records of OBJ_ARRAY_67 that attract makes
- *      live. ALL of them are replayed — no sampling, so shape coverage is total by
- *      construction rather than by a sampling rule. The 22 distinct entry shapes that
- *      appear (record base × the branch class the decremented X puts the tail into) are
- *      counted and reported so the run says how varied the replayed set actually was.
- *
- *   2. CRAFTED (exhaustive handoff). On a real captured base with ROM 0x1FF6 replaced by
- *      a recording stub, and with BOTH register banks poisoned to distinct known values
- *      so a missing bank swap cannot hide. All 256 values of the X field are swept and
- *      the handoff is compared field by field: the twelve bank registers, A, IX, SP, and
- *      the X byte in memory. The condition flags are recorded but DELIBERATELY EXCLUDED
- *      from the comparison — dropping them is this rewrite's declared live-out, and test
- *      5 is what measures that they are dead. The oracle's own cycle cost is measured on
- *      every one of the 256 and asserted constant; that constant is what test 4 restores.
- *
- *   3. TEETH — four deliberately-broken twins that test 2's sweep MUST catch:
- *        (a) the bank swap dropped;
- *        (b) X incremented instead of decremented (this is the twin arm at ROM 0x1FE5);
- *        (c) the two constants swapped for the twin arm's pair;
- *        (d) the X write dropped.
- *
- *   4. LIVE (whole-machine attract). The candidate is wired at 0x1FEF for a 3000-frame
- *      attract run and every frame's state dump is compared against the all-oracle
- *      baseline, minus STACK_SCRATCH. THE ORACLE'S CYCLE COST IS RESTORED AT THE HANDOFF:
- *      cycle-free code under-charges, which shifts the vblank NMI and diverges for
- *      reasons that have nothing to do with this routine. The oracle spreads its 37
- *      T-states across three instructions, the last 23 of them after the X write; the
- *      restoration charges all 37 at the ROM 0x1FF6 boundary, which is where the oracle
- *      FINISHES charging them, so the write is on the same side of the whole 37 as the
- *      oracle's largest share and the run comes out byte-identical. Attract only;
- *      gameplay is NOT covered.
- *
- *   5. LIVE-OUT. The only thing the candidate drops is the condition flags the memory
- *      decrement defines. They are scrambled at the ROM 0x1FF6 handoff on every dispatch
- *      across the same 3000-frame attract run and the trace stays byte-identical, so the
- *      tail really does redefine them before any read. THIS MEASUREMENT IS A SUPERSET:
- *      0x1FF6 is also entered from the twin arm at ROM 0x1FE5, whose flags get scrambled
- *      too, so it proves slightly more than this routine needs.
+ *   - REAL CAPTURES, ALL OF THEM. A 3000-frame attract run dispatches 0x1FEF 1967 times across
+ *     the 7 records of the object sweep that attract makes live. All 1967 are replayed — no
+ *     sampling — and the distinct entry shapes (record base × the branch class the decremented X
+ *     puts the tail into) are counted and reported so the run says how varied the set was.
+ *   - CRAFTED. The captures present a narrow X per record; the crafted arm re-seeds the X field
+ *     across all 256 values on a real captured base, keeping that capture's real register banks and
+ *     stack so the whole frozen chain below stays well-defined. Each of the four teeth below is
+ *     caught by this sweep.
+ *   - HOW MUCH RUNS PER CASE. stepBarrelLeft falls into the shared tail, whose chain re-glues the
+ *     barrel to the girder, refreshes its sprite, routes it through the sweep's remaining slots and
+ *     returns. Every case runs that WHOLE chain on both sides before anything is compared: the
+ *     comparison is of the sweep's finished work, not of one decrement.
+ *   - WHAT IS COMPARED — the memory-equivalence contract for the DISSOLVED form: RAM EXCLUDING the
+ *     STACK_SCRATCH window {0x6be0,0x6c00}, the final guest SP, and the forwarded return value. The
+ *     cycle-free rewrite cannot maintain pc, so pc and the rest of the register file are dropped
+ *     with the frozen call bracket that used to make them comparable; the frozen chain below still
+ *     rejoins the walk at the same guest SP, so final SP is kept and stays load-bearing (a stray
+ *     push in the rewrite lands in the excluded window yet still moves SP). Cycles are NOT compared
+ *     per case: the rewrite is cycle-free by design; the live case restores the fragment's true
+ *     cost so the vblank NMI lands where the oracle puts it.
+ *   - RE-ENTRANCY, handled explicitly. The chain below re-enters 0x1FEF (the sweep reaches a later
+ *     slot in the same frame), so the capturing hook keeps firing during replay. It is frozen
+ *     before any replay, and the hook stays installed but DELEGATES TO THE ORACLE, so nested
+ *     dispatches are oracle on both sides and only the outer dispatch is under test.
+ *   - LIVE-WIRED. The rewrite is wired at 0x1FEF for a whole 3000-frame attract run and every frame
+ *     is diffed against the all-oracle baseline. The dissolved fragment's oracle cost is measured
+ *     per dispatch and charged at the frozen walk step; without it the cycle-free code under-charges
+ *     and forks the run on the spin counter for reasons unrelated to this routine.
+ *   - LIVE-OUT. The only thing the candidate drops is the condition flags the memory decrement
+ *     defines. They are scrambled at the ROM 0x1FF6 boundary on every entry across the same attract
+ *     run and the trace stays byte-identical, so the tail redefines them before any read. This is a
+ *     superset: 0x1FF6 is also entered from the twin arm at ROM 0x1FE5, whose flags get scrambled
+ *     too.
+ *   - WHAT IS NOT COVERED. Attract only, and attract is 25m only. Credited gameplay entry to this
+ *     address is untested.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1fef.test.js
  */
@@ -88,23 +70,30 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1fef;
-const SHARED_TAIL = 0x1ff6; // the frozen tail this routine falls into
+const SHARED_TAIL = 0x1ff6; // the tail this arm feeds; still frozen, entered by the twin arm too
 const ATTRACT_FRAMES = 3000;
 
-// The alternate-bank constants this arm loads, and the twin arm's pair (ROM 0x1FE5).
+// The boundary where the frozen chain resumes: the object-walk step at ROM 0x1F83, reached through
+// advanceRollingBarrel's still-live m.call. stepBarrelLeft direct-calls advanceRollingBarrel, so the
+// whole fragment above 0x1F83 runs cycle-free; 0x1F83 and below stay frozen and charge their own
+// T-states.
+const WALK_STEP = 0x1f83;
+
+// The alternate-bank constants this arm loads, and the twin arm's pair (ROM 0x1FE5), for the teeth.
 const SLOPE_STEP_SELECTOR = 255;
 const ORIENTATION_DIRECTION = 4;
 const TWIN_SLOPE_STEP_SELECTOR = 1;
 const TWIN_ORIENTATION_DIRECTION = 0;
 
-// The routine's own T-state cost: bank swap, constant load, memory decrement. Straight
-// line, so it is a constant — test 2 measures it on all 256 inputs and asserts this value.
-const OWN_CYCLES = 37;
+// Attract's first 0x1FEF dispatch lands around frame 760, so a base for the crafted sweep needs a
+// run at least that long.
+const CRAFT_BASE_FRAMES = 900;
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
+const hb = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
-/** First RAM byte that differs, skipping the dead STACK_SCRATCH region. */
+/** First RAM byte that differs OUTSIDE the excluded STACK_SCRATCH window. */
 function firstRamDiff(a, b) {
   const da = a.dumpState(), db = b.dumpState();
   const n = Math.min(da.length, db.length);
@@ -118,24 +107,49 @@ function firstRamDiff(a, b) {
 }
 
 /**
- * RAM − STACK_SCRATCH, return value, pc and SP, on two byte-identical clones of `entry`.
- * The candidate needs no stand-in `ret`: the frozen tail performs the routine's return.
+ * Run the oracle and a candidate on two fresh, byte-identical clones of one entry and report the
+ * first contract breach: RAM − STACK_SCRATCH, final guest SP, and the forwarded return. A FAULT is
+ * a RESULT, not a crash: a broken twin (or a crafted X the game never produces) can walk the frozen
+ * chain into unmapped memory, and a gate that dies instead of reporting proves nothing. Two
+ * identical faults are not a difference.
  */
-function contractDiffs(entry, fn) {
-  const o = entry.clone(); const oret = oracle(o);
-  const c = entry.clone(); const cret = fn(c);
-  const diffs = [];
-  const ram = firstRamDiff(o, c);
-  if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (oret !== cret) diffs.push(`return oracle=${String(oret)} cand=${String(cret)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
-  return diffs;
+function runPair(entry, candidate) {
+  const a = entry.clone(), b = entry.clone();
+  let retA, retB, faultA = null, faultB = null;
+  try { retA = oracle(a); } catch (e) { faultA = String(e.message); }
+  try { retB = candidate(b); } catch (e) { faultB = String(e.message); }
+
+  if (faultA !== faultB) return { kind: "fault", detail: `oracle=${faultA} candidate=${faultB}` };
+  if (faultA !== null) return null;
+
+  const ram = firstRamDiff(a, b);
+  if (ram) return { kind: "ram", detail: `${hx(ram.addr)} oracle=${hb(ram.a)} candidate=${hb(ram.b)}`, addr: ram.addr };
+  if (a.regs.sp !== b.regs.sp) return { kind: "sp", detail: `oracle=${hx(a.regs.sp)} candidate=${hx(b.regs.sp)}` };
+  if (retA !== retB) return { kind: "return", detail: `oracle=${retA} candidate=${retB}` };
+  return null;
 }
 
+/** Replay a list of entry states; return the first case that breaches, or null. */
+function sweep(entries, candidate) {
+  for (const [i, e] of entries.entries()) {
+    const breach = runPair(e, candidate);
+    if (breach) return { i, base: e.regs.ix, ...breach };
+  }
+  return null;
+}
+
+/** How many of the entries breach — the teeth report quotes it, so "caught" is not just "once". */
+function breachCount(entries, candidate) {
+  let n = 0;
+  for (const e of entries) if (runPair(e, candidate)) n += 1;
+  return n;
+}
+
+const describe = (b) => b && `case ${b.i} (base ${hx(b.base)}): ${b.kind} — ${b.detail}`;
+
 /**
- * The entry shape: which object record, and which branch class the DECREMENTED X puts
- * the frozen tail into (its low-three-bits gate, then its two range comparisons).
+ * The entry shape: which object record, and which branch class the DECREMENTED X puts the frozen
+ * tail into (its low-three-bits gate, then its two range comparisons).
  */
 function shapeOf(m) {
   const x = (m.mem.read8(m.regs.ix + OBJ_X) - 1) & 0xff;
@@ -143,18 +157,16 @@ function shapeOf(m) {
   return `${hx(m.regs.ix)}/${cls}`;
 }
 
-/**
- * Every real 0x1FEF dispatch in an attract run, captured as machine clones.
- *
- * THE `capturing` LATCH IS LOAD-BEARING. 0x1FEF re-enters ITSELF: its tail chain reaches
- * the sweep's advance step, which dispatches the next live record straight back through
- * ROM 0x1F93. A capture is a clone, and a clone carries the source's override map, so
- * without the latch every replay would append fresh "captures" to the list being iterated
- * and the reported count would be an artefact of the replay rather than a measurement of
- * attract. The latch closes once the attract run is over; nested re-entries during a
- * replay still route through the override, which delegates to the oracle — that is the
- * callee-is-oracle isolation the unit gate wants, and it is identical on both sides.
- */
+// ---------------------------------------------------------------------------
+// Capture: every real dispatch in an attract run, cloned at the instant of entry.
+//
+// THE `capturing` LATCH IS LOAD-BEARING. 0x1FEF re-enters ITSELF: its tail chain reaches the
+// sweep's advance step, which dispatches the next live record straight back through the object
+// loop. A capture is a clone, and a clone carries the source's override map, so without the latch
+// every replay would append fresh "captures" to the list being iterated and the reported count
+// would be an artefact of the replay. The latch closes once the attract run is over; nested
+// re-entries during a replay still route through the override, which delegates to the oracle.
+// ---------------------------------------------------------------------------
 function captureDispatches(frames) {
   const caps = [];
   let capturing = true;
@@ -169,22 +181,82 @@ function captureDispatches(frames) {
   return caps;
 }
 
-// Attract's first 0x1FEF dispatch lands around frame 760, so a base for the crafted
-// sweeps needs a run at least that long.
-const CRAFT_BASE_FRAMES = 900;
+// A FRESH, override-free Machine carrying the source machine's observable state. Machine.clone()
+// would rerun the constructor with the live override installed and re-enter this routine through
+// its own tail chain; a fresh machine dispatches purely through the oracle registry, so pricing the
+// oracle here is hermetic.
+function rehost(m) {
+  const c = new Machine(ROM);
+  c.mem.workRam.set(m.mem.workRam);
+  c.mem.spriteRam.set(m.mem.spriteRam);
+  c.mem.videoRam.set(m.mem.videoRam);
+  c.mem.discardedWrites = m.mem.discardedWrites;
+  c.regs.copyFrom(m.regs);
+  c.io.loadStateFrom(m.io);
+  c.cycles = m.cycles;
+  c.pc = m.pc;
+  c.pcKnown = m.pcKnown;
+  c.frame = m.frame;
+  c.nmiCount = m.nmiCount;
+  c.booted = m.booted;
+  c.nextBoundary = Infinity;
+  c.nextNmi = Infinity;
+  c.maxFrames = Infinity;
+  c.maxCycles = Infinity;
+  return c;
+}
 
-// -- 1. CAPTURED --------------------------------------------------------------
+// What the ORACLE spends on the fragment this rewrite replaces cycle-free: stepBarrelLeft's own
+// decrement plus the dissolved advanceRollingBarrel chain, up to — but NOT including — the frozen
+// m.call(0x1F83). Measured on a rehosted machine with that boundary stubbed to zero cost, so the
+// price is exactly the fragment and not the frozen subtree past it (which the live run charges for
+// itself when its own JS chain reaches the same frozen call).
+function priceDissolved(m) {
+  const probe = rehost(m);
+  probe.routines.set(WALK_STEP, () => 0);
+  const before = probe.cycles;
+  oracle(probe);
+  return probe.cycles - before;
+}
 
-test("CAPTURED: every real 0x1FEF dispatch matches the oracle", () => {
+// ---------------------------------------------------------------------------
+// Crafted entries: a real captured base with the X field re-seeded across all 256 values, keeping
+// that capture's real register banks and stack so the whole frozen chain below stays well-defined.
+// ---------------------------------------------------------------------------
+function craftedEntries(base) {
+  const out = [];
+  for (let x = 0; x < 256; x++) {
+    const e = base.clone();
+    e.mem.write8(e.regs.ix + OBJ_X, x & 0xff);
+    out.push(e);
+  }
+  return out;
+}
+
+// ===========================================================================
+// 1. EQUAL on every real dispatch
+// ===========================================================================
+
+test("CAPTURED: every real 0x1FEF dispatch == oracle over RAM − STACK_SCRATCH, final SP and return", () => {
   const caps = captureDispatches(ATTRACT_FRAMES);
   assert.ok(caps.length > 0, "no 0x1FEF dispatch was captured — this case would be vacuous");
+  const before = caps.length;
 
   const shapes = new Set();
   for (let i = 0; i < caps.length; i++) {
     shapes.add(shapeOf(caps[i]));
-    const diffs = contractDiffs(caps[i], stepBarrelLeft);
-    assert.equal(diffs.length, 0, `capture ${i} (shape ${shapeOf(caps[i])}): ${diffs.join("; ")}`);
+    const breach = runPair(caps[i], stepBarrelLeft);
+    assert.equal(breach, null, breach && `capture ${i} (shape ${shapeOf(caps[i])}): ${breach.kind} — ${breach.detail}`);
   }
+  assert.equal(caps.length, before, "the capture list grew during replay — the count above is not what was replayed");
+
+  // Non-vacuity: the routine must actually decrement the record's X on a real entry.
+  const e = caps[0];
+  const after = e.clone();
+  const x0 = after.mem.read8(after.regs.ix + OBJ_X);
+  stepBarrelLeft(after);
+  assert.equal(after.mem.read8(e.regs.ix + OBJ_X), (x0 - 1) & 0xff, "the record's X field was not decremented");
+
   const records = new Set([...shapes].map((s) => s.split("/")[0]));
   console.log(
     `  CAPTURED: all ${caps.length} of ${caps.length} dispatches in ${ATTRACT_FRAMES} attract frames replayed ` +
@@ -192,134 +264,34 @@ test("CAPTURED: every real 0x1FEF dispatch matches the oracle", () => {
   );
 });
 
-// -- 2. CRAFTED (exhaustive handoff) ------------------------------------------
+// ===========================================================================
+// 2. EQUAL on crafted entries (X swept over all 256 values)
+// ===========================================================================
 
-// The handoff fields. `f` is recorded but not compared — see the header.
-const BANK_FIELDS = ["b", "c", "d", "e", "h", "l", "b_", "c_", "d_", "e_", "h_", "l_"];
-const HANDOFF_FIELDS = [...BANK_FIELDS, "a", "ix", "sp"];
-
-/**
- * A machine carrying `base`'s state with ROM 0x1FF6 replaced by `stub`. Built by
- * construction (not clone) because the override map is a constructor option.
- * The state comes from a REAL captured dispatch, so the guest stack holds real return
- * addresses and the stub's `ret` has something to pop.
- */
-function withTailStub(base, stub) {
-  const e = new Machine(ROM, { overrides: new Map([[SHARED_TAIL, stub]]) });
-  e.mem.workRam.set(base.mem.workRam);
-  e.mem.spriteRam.set(base.mem.spriteRam);
-  e.mem.videoRam.set(base.mem.videoRam);
-  e.regs.copyFrom(base.regs);
-  e.io.loadStateFrom(base.io);
-  e.cycles = base.cycles;
-  e.pc = base.pc;
-  e.pcKnown = base.pcKnown;
-  e.nextNmi = Infinity;
-  e.nextBoundary = Infinity;
-  e.maxFrames = Infinity;
-  e.maxCycles = Infinity;
-  return e;
-}
-
-/**
- * Poison both register banks with distinct known values, so a dropped bank swap shows
- * up in the handoff instead of being masked by two banks that happened to agree. Then
- * write the X field under test.
- */
-function seedEntry(e, x) {
-  const { regs } = e;
-  regs.b = 0x11; regs.c = 0x22; regs.d = 0x33; regs.e = 0x44; regs.h = 0x55; regs.l = 0x66;
-  regs.b_ = 0x99; regs.c_ = 0xaa; regs.d_ = 0xbb; regs.e_ = 0xcc; regs.h_ = 0xdd; regs.l_ = 0xee;
-  regs.a = 0x77;
-  regs.f = 0x00;
-  e.mem.write8(regs.ix + OBJ_X, x & 0xff);
-  return e;
-}
-
-/** Records the machine state at the ROM 0x1FF6 boundary, then returns as the tail does. */
-function makeRecorder(sink) {
-  return (mm) => {
-    const rec = { x: mm.mem.read8(mm.regs.ix + OBJ_X), f: mm.regs.f };
-    for (const k of HANDOFF_FIELDS) rec[k] = mm.regs[k];
-    sink.push(rec);
-    mm.ret(0);
-  };
-}
-
-/** Run oracle and candidate over all 256 X values; return the first mismatch or null. */
-function handoffSweep(base, fn) {
-  for (let x = 0; x < 256; x++) {
-    const oSink = [], cSink = [];
-    const o = seedEntry(withTailStub(base, makeRecorder(oSink)), x);
-    const c = seedEntry(withTailStub(base, makeRecorder(cSink)), x);
-    const oret = oracle(o);
-    const cret = fn(c);
-
-    if (oSink.length !== cSink.length) {
-      return { x, why: `tail entered ${oSink.length}x by the oracle, ${cSink.length}x by the candidate` };
-    }
-    const bad = HANDOFF_FIELDS.filter((k) => oSink[0][k] !== cSink[0][k]);
-    if (oSink[0].x !== cSink[0].x) bad.push("X-in-memory");
-    if (bad.length) {
-      const show = bad.map((k) => {
-        const a = k === "X-in-memory" ? oSink[0].x : oSink[0][k];
-        const b = k === "X-in-memory" ? cSink[0].x : cSink[0][k];
-        return `${k} oracle=${a} cand=${b}`;
-      });
-      return { x, why: show.join(", ") };
-    }
-    const ram = firstRamDiff(o, c);
-    if (ram) return { x, why: `RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}` };
-    if (oret !== cret) return { x, why: `return oracle=${String(oret)} cand=${String(cret)}` };
-  }
-  return null;
-}
-
-test("CRAFTED (exhaustive): the ROM 0x1FF6 handoff matches the oracle for all 256 X values", () => {
+test("CRAFTED: stepBarrelLeft == oracle over the whole chain for all 256 X values on a real base", () => {
   const base = captureDispatches(CRAFT_BASE_FRAMES)[0];
   assert.ok(base, "no capture to build the crafted base from");
+  const entries = craftedEntries(base);
+  assert.equal(entries.length, 256);
 
-  const mismatch = handoffSweep(base, stepBarrelLeft);
-  assert.equal(mismatch, null, mismatch && `X=${mismatch.x}: ${mismatch.why}`);
+  const bad = sweep(entries, stepBarrelLeft);
+  assert.equal(bad, null, describe(bad));
 
-  // Non-vacuity: the handoff really carries the swap, both constants and the decrement.
-  const sink = [];
-  const e = seedEntry(withTailStub(base, makeRecorder(sink)), 0x40);
-  oracle(e);
-  assert.equal(sink.length, 1, "the tail must be entered exactly once");
-  assert.equal(sink[0].b, SLOPE_STEP_SELECTOR, "the slope-step selector must reach the tail");
-  assert.equal(sink[0].c, ORIENTATION_DIRECTION, "the orientation direction must reach the tail");
-  assert.equal(sink[0].x, 0x3f, "the X field must arrive decremented");
-  assert.equal(sink[0].d, 0xbb, "the bank swap must have brought the alternate D through");
-  assert.equal(sink[0].h, 0xdd, "the bank swap must have brought the alternate H through");
-
-  // The routine's own cycle cost, MEASURED on every input rather than assumed — this is
-  // the constant the live case restores. The candidate is cycle-free by design.
-  let oracleCost = new Set(), candCost = new Set();
-  for (let x = 0; x < 256; x++) {
-    const o = seedEntry(withTailStub(base, () => {}), x);
-    const so = o.cycles; oracle(o); oracleCost.add(o.cycles - so);
-    const c = seedEntry(withTailStub(base, () => {}), x);
-    const sc = c.cycles; stepBarrelLeft(c); candCost.add(c.cycles - sc);
-  }
-  assert.deepEqual([...oracleCost], [OWN_CYCLES], `the oracle's own cost must be the constant ${OWN_CYCLES}`);
-  assert.deepEqual([...candCost], [0], "the candidate must be cycle-free");
-
-  // The flags ARE different at the handoff — that is the declared live-out, measured
-  // separately in test 5. Assert the difference exists so the exclusion is not silent.
-  const oSink = [], cSink = [];
-  oracle(seedEntry(withTailStub(base, makeRecorder(oSink)), 0x40));
-  stepBarrelLeft(seedEntry(withTailStub(base, makeRecorder(cSink)), 0x40));
-  assert.notEqual(oSink[0].f, cSink[0].f, "the flags are expected to differ at the handoff");
+  // Non-vacuity: on a mid-playfield X the chain really runs and decrements the field.
+  const probe = entries[0x40].clone();
+  const x0 = probe.mem.read8(probe.regs.ix + OBJ_X);
+  stepBarrelLeft(probe);
+  assert.equal(probe.mem.read8(entries[0x40].regs.ix + OBJ_X), (x0 - 1) & 0xff, "X was not decremented");
 
   console.log(
-    `  CRAFTED/handoff: 256 X values — the 12 bank registers, A, IX, SP and the X byte identical; ` +
-      `oracle cost constant at ${OWN_CYCLES} T-states, candidate 0; flags differ (${oSink[0].f} vs ${cSink[0].f}) ` +
-      "and are excluded by contract",
+    `  CRAFTED: 256 X values on base ${hx(base.regs.ix)} — whole frozen chain on both sides, ` +
+      "RAM − STACK_SCRATCH, final SP and return identical",
   );
 });
 
-// -- 3. TEETH -----------------------------------------------------------------
+// ===========================================================================
+// 3. TEETH — four broken twins, each the real routine with one behaviour removed
+// ===========================================================================
 
 /** BUG (a): the alternate bank is never selected. */
 function brokenNoBankSwap(m, objBase = m.regs.ix) {
@@ -359,49 +331,49 @@ function brokenNoWrite(m) {
   return m.call(SHARED_TAIL);
 }
 
-for (const [label, twin] of [
+const TWINS = [
   ["no-bank-swap", brokenNoBankSwap],
   ["increment", brokenIncrement],
   ["twin-constants", brokenTwinConstants],
   ["no-write", brokenNoWrite],
-]) {
-  test(`TEETH: the ${label} twin is CAUGHT`, () => {
-    const base = captureDispatches(CRAFT_BASE_FRAMES)[0];
-    // Sanity: the real routine passes the same sweep, so a caught twin is a real signal.
-    assert.equal(handoffSweep(base, stepBarrelLeft), null, "the correct routine must pass the sweep");
-    const mm = handoffSweep(base, twin);
-    assert.notEqual(mm, null, `the crafted sweep FAILED to catch the ${label} twin — it is worthless`);
-    console.log(`  TEETH/${label}: caught at X=${mm.x} — ${mm.why}`);
-  });
-}
+];
 
-// -- 4. LIVE (whole-machine attract) ------------------------------------------
+test("TEETH: each of the four broken twins is caught by the crafted sweep", () => {
+  const base = captureDispatches(CRAFT_BASE_FRAMES)[0];
+  const entries = craftedEntries(base);
+
+  // Sanity: the correct routine passes the sweep, so a caught twin is a real defect signal and not
+  // a suite that reds everything.
+  assert.equal(sweep(entries, stepBarrelLeft), null, "the correct routine must pass the crafted sweep");
+
+  const lines = [];
+  for (const [label, twin] of TWINS) {
+    const caught = sweep(entries, twin);
+    assert.notEqual(caught, null, `the crafted sweep FAILED to catch the ${label} twin — it is worthless`);
+    lines.push(`${label}: caught on ${breachCount(entries, twin)}/${entries.length} (${caught.kind} ${caught.detail})`);
+  }
+  console.log("  TEETH:\n    " + lines.join("\n    "));
+});
+
+// ===========================================================================
+// 4. LIVE (whole-machine attract)
+// ===========================================================================
 
 test("LIVE: the candidate wired at 0x1FEF reproduces the oracle over a whole attract run", () => {
   const baseline = new Machine(ROM);
   const baseFrames = baseline.runFrames(ATTRACT_FRAMES);
   assert.equal(baseline.stoppedBy, null, `baseline run stopped early: ${baseline.stoppedBy}`);
 
+  // Restore the dissolved fragment's true oracle cost, measured per dispatch and charged at the
+  // frozen walk step. Cycle-free code charges none, which shifts the vblank NMI and forks the run.
   let fired = 0;
-  let owed = 0;
-  const live = new Map([
-    [TARGET, (mm) => { fired++; owed = OWN_CYCLES; return stepBarrelLeft(mm); }],
-    // Restore the oracle's cycle cost AT THE HANDOFF — where the oracle finishes charging
-    // it, after the X write. Cycle-free code under-charges, which shifts the vblank NMI
-    // and diverges for reasons unrelated to this rewrite. pc is restored with it because
-    // the cycle-free rewrite does not maintain it and the NMI pushes it.
-    [SHARED_TAIL, (mm) => {
-      if (owed > 0) {
-        const n = owed;
-        owed = 0;
-        mm.pc = SHARED_TAIL;
-        mm.pcKnown = true;
-        mm.tick(n);
-      }
-      return tailOracle(mm);
-    }],
-  ]);
-  const cand = new Machine(ROM, { overrides: live });
+  const wired = new Map([[TARGET, (mm) => {
+    fired += 1;
+    const owed = priceDissolved(mm);
+    if (owed) mm.step(WALK_STEP, owed);
+    return stepBarrelLeft(mm);
+  }]]);
+  const cand = new Machine(ROM, { overrides: wired });
   const candFrames = cand.runFrames(ATTRACT_FRAMES);
   assert.equal(cand.stoppedBy, null, `candidate run stopped early: ${cand.stoppedBy}`);
   assert.ok(fired > 0, "the override never fired — this case would be vacuous");
@@ -423,19 +395,21 @@ test("LIVE: the candidate wired at 0x1FEF reproduces the oracle over a whole att
   );
 });
 
-// -- 5. LIVE-OUT (the dropped flags really are dead) --------------------------
+// ===========================================================================
+// 5. LIVE-OUT (the dropped flags really are dead)
+// ===========================================================================
 
-test("LIVE-OUT: scrambling the flags at the ROM 0x1FF6 handoff changes nothing over a whole attract run", () => {
+test("LIVE-OUT: scrambling the flags at the ROM 0x1FF6 boundary changes nothing over a whole attract run", () => {
   const baseline = new Machine(ROM);
   const baseFrames = baseline.runFrames(ATTRACT_FRAMES);
   assert.equal(baseline.stoppedBy, null, `baseline run stopped early: ${baseline.stoppedBy}`);
 
-  // The candidate defines no flags, so what must be dead is whatever the oracle left at
-  // the handoff. Scramble them right there. This also covers the twin arm at ROM 0x1FE5,
-  // which enters the same tail — a superset of what this routine needs.
+  // The candidate defines no flags, so what must be dead is whatever the oracle left at the
+  // boundary. Scramble them right there. This also covers the twin arm at ROM 0x1FE5, which enters
+  // the same tail — a superset of what this routine needs.
   let fired = 0;
   const poison = new Map([[SHARED_TAIL, (mm) => {
-    fired++;
+    fired += 1;
     mm.regs.f = 0xa5;
     return tailOracle(mm);
   }]]);
@@ -454,7 +428,7 @@ test("LIVE-OUT: scrambling the flags at the ROM 0x1FF6 handoff changes nothing o
     }
   }
   console.log(
-    `  LIVE-OUT: flags scrambled at every one of ${fired} handoffs into ROM 0x1FF6 — ` +
+    `  LIVE-OUT: flags scrambled at every one of ${fired} boundaries into ROM 0x1FF6 — ` +
       `${baseFrames.length} attract frames still byte-identical, so the tail redefines them before any read`,
   );
 });
