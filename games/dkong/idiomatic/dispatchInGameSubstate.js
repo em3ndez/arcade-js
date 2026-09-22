@@ -8,10 +8,9 @@
  */
 
 import { u16 } from "../../../core/int.js";
-import { GAME_SUBSTATE } from "./names.js";
+import { GAME_SUBSTATE, IN_GAME_SUBSTATE_TABLE } from "./names.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
-const SUBSTATE_TABLE = 0x0702;
 const DISPATCH_TABLE_0702 = "0x0702 (0x600A game sub-state)";
 
 export function dispatchInGameSubstate(m) {
@@ -20,7 +19,7 @@ export function dispatchInGameSubstate(m) {
   const substate = mem8[GAME_SUBSTATE];
 
   // Doubling into the table offset is an 8-bit result: base + (2*substate & 0xff).
-  const entry = u16(SUBSTATE_TABLE + ((substate * 2) & 0xff));
+  const entry = u16(IN_GAME_SUBSTATE_TABLE + ((substate * 2) & 0xff));
   const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
 
   loc_00ca(m, target, DISPATCH_TABLE_0702);

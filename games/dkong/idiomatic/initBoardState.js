@@ -21,6 +21,7 @@ import {
   BONUS_TICK,
   MARIO_ACTIVE,
   BOARD_OBJ_SCRATCH,
+  BOARD_OBJ_SCRATCH_TEMPLATE_ROM,
   TOP_SPRITES,
   MARIO_STATE_CLEAR_END,
   BOARD_STATE_CLEAR_END,
@@ -41,7 +42,7 @@ export function initBoardState(m) {
   for (let a = MARIO_ACTIVE; a <= MARIO_STATE_CLEAR_END; a++) mem8[a] = 0x00;
   for (let a = BOARD_OBJ_SCRATCH; a < BOARD_STATE_CLEAR_END; a++) mem8[a] = 0x00;
 
-  for (let i = 0; i < 0x40; i++) mem8[BOARD_OBJ_SCRATCH + i] = mem8[0x3d9c + i];
+  for (let i = 0; i < 0x40; i++) mem8[BOARD_OBJ_SCRATCH + i] = mem8[BOARD_OBJ_SCRATCH_TEMPLATE_ROM + i];
 
   let bonus = (mem8[LEVEL] * 10 + 0x28) & 0xff;
   if (bonus > 0x50) bonus = 0x50;

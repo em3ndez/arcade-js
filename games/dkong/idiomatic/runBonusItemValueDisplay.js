@@ -27,6 +27,7 @@ import {
   BONUS_ITEM_VALUE_ONES_CELL,
   BONUS_ITEM_VALUE_TENS_CELL,
   BONUS_ITEM_VIDEO_PTR,
+  BONUS_DIGIT_TEMPLATE_ROM,
   GAME_SUBSTATE,
   P1_INPUT,
   PALETTE_BANK_BIT0,
@@ -153,7 +154,7 @@ export function runBonusItemValueDisplay(m) {
     source = u16(mem16[BONUS_ITEM_SLOT_PTR] + 3);
   } else {
     mem8[BONUS_ITEM_SPRITE_TOGGLE] = 0x01;
-    source = 0x01bf; // canned digit template
+    source = BONUS_DIGIT_TEMPLATE_ROM;
   }
   const iy = mem16[BONUS_ITEM_SLOT_PTR];
   const dest = mem8[u16(iy + 4)] | (mem8[u16(iy + 5)] << 8);

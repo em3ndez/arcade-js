@@ -17,6 +17,7 @@ import {
   BOARD,
   GAME_SUBSTATE,
   P1_SCORE,
+  P1_SCORE_TEMPLATE_ROM,
   FLIPSCREEN,
 } from "./names.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
@@ -25,7 +26,6 @@ import { decodeDipSwitches } from "./decodeDipSwitches.js";
 import { draw1UpLabel } from "./draw1UpLabel.js";
 import { enqueueTask } from "./enqueueTask.js";
 
-const SCORE_TEMPLATE_ROM = 0x01ba;
 const SCORE_TEMPLATE_LEN = 9;
 
 const OPENING_TASKS = [
@@ -40,7 +40,7 @@ export function powerOnInit(m) {
   clearPlayfieldAndSprites(m);
 
   for (let i = 0; i < SCORE_TEMPLATE_LEN; i++) {
-    mem8[P1_SCORE + i] = mem8[SCORE_TEMPLATE_ROM + i];
+    mem8[P1_SCORE + i] = mem8[P1_SCORE_TEMPLATE_ROM + i];
   }
 
   // The 1 is the lives count the repaint reads, so pass it through explicitly.

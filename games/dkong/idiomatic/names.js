@@ -942,6 +942,10 @@ export const START_TASK_P2 = 0x0101;
 export const RIVET_COL_BASE_RIGHT = 0x012b;
 /** SPRITE_DMA_SETUP_BLOCK (0x0138) — ROM address of the 9-byte i8257 sprite-DMA setup block handed to blitSpritesViaDma each vblank to blit the sprite shadow buffer. [seen] */
 export const SPRITE_DMA_SETUP_BLOCK = 0x0138;
+/** P1_SCORE_TEMPLATE_ROM (0x01ba) — ROM 9-byte initial score-display template, copied into P1_SCORE by powerOnInit. [code] */
+export const P1_SCORE_TEMPLATE_ROM = 0x01ba;
+/** BONUS_DIGIT_TEMPLATE_ROM (0x01bf) — ROM canned digit template fed to renderBcdColumn by runBonusItemValueDisplay for the bonus readout. [code] */
+export const BONUS_DIGIT_TEMPLATE_ROM = 0x01bf;
 /** RIVET_COL_BASE_LEFT (0x02cb) — Tilemap column-base offset added to VRAM 0x7400 (+5*row) to erase a left-half 100m rivet cell triplet; selected when the slot's low bit is clear. NOT … [code] */
 export const RIVET_COL_BASE_LEFT = 0x02cb;
 /** BCD_RENDER_BYTE_COUNT (0x0304) — BC register immediate (NOT a data address) for the packed-BCD column renderer: B=3 source bytes -> six digits, C=0x04 a dead low-byte marker. Same val… [code] */
@@ -960,6 +964,8 @@ export const BOARD_OPENING_TASK = 0x0501;
 export const OVERLAP_THRESHOLDS_NEUTRAL = 0x0508;
 /** CREDITED_SUBSTATE_TABLE (0x08b6) — ROM address of the credited-game-state 2-entry dispatch table of 16-bit code addresses, indexed by GAME_SUBSTATE (0x600A) doubled with 8-bit wrap. [seen] */
 export const CREDITED_SUBSTATE_TABLE = 0x08b6;
+/** IN_GAME_SUBSTATE_TABLE (0x0702) — ROM base of the 29-entry in-game sub-state rst-0x28 jump table, indexed base + (2*substate & 0xff) by dispatchInGameSubstate. [code] */
+export const IN_GAME_SUBSTATE_TABLE = 0x0702;
 /** PLAYER_CONTEXT_TEMPLATE (0x095e) — ROM address of the 7-byte player-context init template copied verbatim into bytes 1-7 of each player's context record at game start (byte 0 = starting… [seen] */
 export const PLAYER_CONTEXT_TEMPLATE = 0x095e;
 /** RIVET_TILE_DEST_TABLE (0x0d17) — ROM address of the 8-entry little-endian pointer table of VRAM destination cells stamped with the fixed rivet tile pair (0xB8 then 0xB7) during 100m r… [code] */
@@ -998,6 +1004,8 @@ export const STRING_DESCRIPTOR_PTR_TABLE = 0x364b;
 export const INTRO_SETUP_LAYOUT_TABLE = 0x380d;
 /** BONUS_DISPLAY_TILE_FRAME (0x384a) — ROM source of the bonus-readout's 18-byte tile frame (6 columns x 3 cells, column stride 0x20) block-copied into video RAM starting at 0x7465 by loc_0… [seen] */
 export const BONUS_DISPLAY_TILE_FRAME = 0x384a;
+/** INTRO_WALK_TABLE_A_ROM (0x38b4) — ROM intro-walk table A (Kong-climb cutscene); setupIntroCutsceneStep seeds it into INTRO_WALK_PTR_A. A-side sibling of INTRO_WALK_TABLE_B_ROM. [code] */
+export const INTRO_WALK_TABLE_A_ROM = 0x38b4;
 /** SPRITE_BASE_FIGURE_ROM (0x385c) — ROM ten-record "base figure" sprite-object template; stamped into SPRITE_OBJ_BLOCK then X-shifted +0x44 by the recapture/animation routines. [code] */
 export const SPRITE_BASE_FIGURE_ROM = 0x385c;
 /** SPRITE_OBJECT_BLOCK_TEMPLATE (0x388c) — ROM base of the fixed 40-byte (0x28 = ten 4-byte records) sprite-object block template reloaded into SPRITE_OBJ_BLOCK via loadSpriteObjectBlock; same … [code] */
@@ -1016,6 +1024,14 @@ export const SPRITE_ANIM_FIGURE_A_ROM = 0x39cf;
 export const SPRITE_ANIM_FIGURE_B_ROM = 0x39f7;
 /** BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME (0x3a1f) — ROM base of this board-advance interlude step's ten-record (40-byte) sprite-object frame, copied over SPRITE_OBJ_BLOCK by loc_186f when SUBSTATE_TIMER… [code] */
 export const BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME = 0x3a1f;
+/** HOWHIGH_GIRDER_BLOCK0_SEG_ROM (0x3a47) — ROM girder/ladder layout-segment table for how-high tile block 0 (paired with HOWHIGH_GIRDER_BLOCK0_VRAM). [code] */
+export const HOWHIGH_GIRDER_BLOCK0_SEG_ROM = 0x3a47;
+/** HOWHIGH_TILE_BLOCK2_SEG_ROM (0x3a4d) — ROM layout-segment table for how-high tile block 2. [code] */
+export const HOWHIGH_TILE_BLOCK2_SEG_ROM = 0x3a4d;
+/** HOWHIGH_TILE_BLOCK3_SEG_ROM (0x3a53) — ROM layout-segment table for how-high tile block 3. [code] */
+export const HOWHIGH_TILE_BLOCK3_SEG_ROM = 0x3a53;
+/** HOWHIGH_TILE_BLOCK4_SEG_ROM (0x3a59) — ROM layout-segment table for how-high tile block 4. [code] */
+export const HOWHIGH_TILE_BLOCK4_SEG_ROM = 0x3a59;
 /** INTERLUDE_LAYOUT_SEGMENT_TABLE (0x3a5f) — ROM board-layout line-segment table for the between-boards interlude scene; loc_1880 hands it to drawBoardLayout (via regs.de) on the single frame the… [code] */
 export const INTERLUDE_LAYOUT_SEGMENT_TABLE = 0x3a5f;
 /** BOARD_SEQ_RESTART_L5_ROM (0x3a73) — ROM head of the L5+ board-order group; on the 0x7F terminator BOARD_SEQ_PTR reloads here so levels 5+ repeat forever. [code] */
@@ -1042,6 +1058,8 @@ export const BOARD_LAYOUT_TABLE_RIVET = 0x3c8b;
 export const HOW_HIGH_CLIMB_FIGURE_TABLE = 0x3cf0;
 /** ANIM_TILE_FILL_TABLE (0x3d08) — ROM [count, dest_lo, dest_hi] VRAM tile-fill span table (zero-count terminated) walked by loc_07cb's timed-animation substate to fill tile 0xb0 across… [seen] */
 export const ANIM_TILE_FILL_TABLE = 0x3d08;
+/** BOARD_OBJ_SCRATCH_TEMPLATE_ROM (0x3d9c) — ROM 0x40-byte source of the per-board object-scratch initializer, copied into BOARD_OBJ_SCRATCH (0x6280) by initBoardState. [code] */
+export const BOARD_OBJ_SCRATCH_TEMPLATE_ROM = 0x3d9c;
 /** BOARD_OVERLAP_DISPATCH_TABLE (0x3e8d) — 6-entry inline jump table (base 0x3e8d, immediately after the loc_3e88 dispatch code) indexed by BOARD, vectoring to each board's object-overlap colli… [seen] */
 export const BOARD_OVERLAP_DISPATCH_TABLE = 0x3e8d;
 /** BOARD_RECORD_CHECKSUM_ROM (0x3f0c) — ROM base of 6 program bytes summed mod 256 (seed 0x5e) by loadBoardObjectRecords; sum==0 vs nonzero selects the OBJ_PARAM_TABLE1 (second group) base p… [seen] */
@@ -1437,6 +1455,8 @@ export const OBJ_RECORD_66A0_TEMPLATE_50M = 0x3dfa;
 export const SPRITE_69FC_TEMPLATE_25M = 0x3e00;
 /** SPRITE_69FC_TEMPLATE_50M (0x3e04) — 50m template block-copied into loc_69fc. [code] */
 export const SPRITE_69FC_TEMPLATE_50M = 0x3e04;
+/** OBJ_APPEARANCE_TEMPLATE_ROM (0x3e08) — ROM 0x0c-byte shared sprite code/attribute appearance template stamped into both object records by seedSpriteObjectPair. [code] */
+export const OBJ_APPEARANCE_TEMPLATE_ROM = 0x3e08;
 /** OBJ_PAIR_6680_POSITION_TABLE_25M (0x3e0c) — 25m X/Y table scattered into OBJ_PAIR_6680. [code] */
 export const OBJ_PAIR_6680_POSITION_TABLE_25M = 0x3e0c;
 /** OBJ_PAIR_6680_POSITION_TABLE_50M (0x3e10) — 50m X/Y table scattered into OBJ_PAIR_6680. [code] */

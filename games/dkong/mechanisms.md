@@ -202,7 +202,7 @@ get *there*" question resolves to one of them. All four tables read directly out
 | level | selector | table | arms |
 |---|---|---|---|
 | top | `GAME_STATE` | ROM 0x00CA | 4 words: `0x01C3` power-on, `0x073C` attract, `0x08B2` credited, `0x06FE` in-game |
-| in-game | `GAME_SUBSTATE` | ROM 0x0702 | 24 words for indices 0x00–0x17, of which index 0x09 is `0x0000`, so 23 live handlers; padded with five more zero words |
+| in-game | `GAME_SUBSTATE` | `IN_GAME_SUBSTATE_TABLE` (0x0702) | 24 words for indices 0x00–0x17, of which index 0x09 is `0x0000`, so 23 live handlers; padded with five more zero words |
 | attract | `GAME_SUBSTATE` | ROM 0x0748 | 8 words: `0779` composeAttractTitleScreen, `0763` restartAttractDemoAt25m, `123C` seedMarioActorRecord, `1977` runAttractDemoFrame, `127C` runDeathAnimationSubstate, `07C3` clearScreenAndAdvanceSubstate, `07CB` loc_07cb, `084B` clearSubstateWhenTimerExpires |
 | within a state | a per-machine step byte | various | `INTRO_STEP` → ROM 0x0A7A; `BOARD_ADVANCE_STEP` → ROM 0x1623 / 0x1637 / 0x1648 |
 
@@ -234,7 +234,7 @@ transitions were observed live)
   watches for 1P/2P; `commitGameStart` spends the credit(s), seeds the player context records,
   wipes the screen and moves to state 3. `TWO_PLAYER_GAME` is written **exactly once**, here, as
   the high byte of one 16-bit store. `[code]`
-- **3 — in-game.** `dispatchInGameSubstate` vectors `GAME_SUBSTATE` through ROM 0x0702. The
+- **3 — in-game.** `dispatchInGameSubstate` vectors `GAME_SUBSTATE` through `IN_GAME_SUBSTATE_TABLE` (0x0702). The
   indices that matter: `0x07` opening Kong-climb cutscene, `0x08` "HOW HIGH CAN YOU GET?", `0x0A`
   board build, `0x0B` spawn Mario, `0x0C` **gameplay** (→ ROM 0x197A), `0x0D` the death-animation
   router (→ ROM 0x127C), `0x0E` player-1 life loss, `0x14` player-screen / fall-back-to-attract,
@@ -301,7 +301,7 @@ the per-board setup arm; each arm selects its layout table and background tune a
 shared tail that runs `initBoardState` and the layout renderer. `[code]`
 
 `initBoardState` is the common reset: zero the player/motion block and the whole object + sprite
-span, copy a 0x40-byte board-object template from ROM 0x3D9C over the head of it, compute the bonus
+span, copy a 0x40-byte board-object template from `BOARD_OBJ_SCRATCH_TEMPLATE_ROM` (0x3D9C) over the head of it, compute the bonus
 values (§11), stamp two constant hit-box bytes, seed three decorative top sprites on every board
 except 100m, and dispatch to the per-board object seeding (`seed25mBoardObjects` …
 `seed100mBoardObjects`). `[code]`
