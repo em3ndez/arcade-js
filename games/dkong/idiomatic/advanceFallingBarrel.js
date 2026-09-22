@@ -12,6 +12,8 @@ import { retireBarrelAtEndOfRange } from "./retireBarrelAtEndOfRange.js";
 import { u8 } from "../../../core/int.js";
 import { loc_2a2f } from "./loc_2a2f.js"; // the girder/slope probe
 import { stepBallisticMotion } from "./stepBallisticMotion.js";
+import { loc_2118 } from "./loc_2118.js";
+import { loc_2101 } from "./loc_2101.js";
 
 // OBJ_Y at the barrel's last registered contact
 const OBJ_CONTACT_Y = 25;
@@ -29,6 +31,6 @@ export function advanceFallingBarrel(m, record = m.regs.ix) {
   const lastContactY = mem8[record + OBJ_CONTACT_Y];
   if (u8(objectY - CONTACT_REARM_DISTANCE) < lastContactY) return retireBarrelAtEndOfRange(m);
 
-  if (loc_2a2f(m)) return m.call(0x2118);
-  return m.call(0x2101);
+  if (loc_2a2f(m)) return loc_2118(m);
+  return loc_2101(m);
 }
