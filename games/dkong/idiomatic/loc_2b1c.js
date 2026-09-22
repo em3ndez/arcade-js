@@ -18,9 +18,7 @@ import { MARIO_ACTIVE } from "./names.js";
 export function loc_2b1c(m) {
   const { regs } = m;
 
-  regs.ix = MARIO_ACTIVE;
-
-  const { skip, verdict } = probeMarioDescentLanding(m);
+  const { skip, verdict } = probeMarioDescentLanding(m, MARIO_ACTIVE);
   if (!skip) return verdict;
 
   loc_29af(m);

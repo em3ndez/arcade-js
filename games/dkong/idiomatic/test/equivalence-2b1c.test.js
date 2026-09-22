@@ -37,8 +37,8 @@
  *      the intended path was taken.
  *
  *   3. TEETH — six deliberately-broken twins, each MUST be caught:
- *      (a) no-object-pointer   — never sets the object pointer, so the classifier tail reads the
- *          poisoned pointer's +5 field instead of Mario's Y.
+ *      (a) wrong-object-pointer — threads a pointer that is NOT Mario's context block, so the
+ *          classifier tail reads the wrong record's +5 field instead of Mario's Y.
  *      (b) no-unwind-propagate — runs the follow-up and the result pair even on the probe's unwind.
  *      (c) inverted-unwind     — returns early on the NORMAL result and continues on the unwind.
  *      (d) no-followup         — never calls 0x29AF.
@@ -403,10 +403,11 @@ test("CRAFTED: loc_2b1c == oracle on RAM + both result bytes + return across all
 // The twins consume probeMarioDescentLanding's { skip, verdict } return and return the descent
 // verdict, exactly as the real loc_2b1c does — each carries one injected defect.
 
-/** (a) no-object-pointer — never points the probe at Mario's context block. */
-function brokenNoObjectPointer(m) {
+/** (a) wrong-object-pointer — threads a pointer that is NOT Mario's context block, so the
+ *  classifier tail reads the wrong record's +5 field instead of Mario's Y. */
+function brokenWrongObjectPointer(m) {
   const { regs } = m;
-  const { skip, verdict } = probeMarioDescentLanding(m); // BUG: the pointer load is missing
+  const { skip, verdict } = probeMarioDescentLanding(m, IX_POISON); // BUG: wrong pointer threaded
   if (!skip) return verdict;
   m.call(FOLLOWUP);
   regs.a = 0;
@@ -482,7 +483,7 @@ function firstCatch(candidate) {
 
 test("TEETH: all six broken twins are CAUGHT", () => {
   const twins = [
-    ["no-object-pointer", brokenNoObjectPointer, "the object-pointer load is untested"],
+    ["wrong-object-pointer", brokenWrongObjectPointer, "the threaded object pointer is untested"],
     ["no-unwind-propagate", brokenNoUnwindPropagate, "the probe's caller-skip propagation is untested"],
     ["inverted-unwind", brokenInvertedUnwind, "the polarity of the caller-skip test is untested"],
     ["no-followup", brokenNoFollowup, "the 0x29AF follow-up call is untested"],

@@ -23,13 +23,13 @@ const BOARD_25M = 1;
 const PROBE_OFFSET = 7;
 const SNAP_REACH = 4;
 
-export function probeMarioDescentLanding(m) {
+export function probeMarioDescentLanding(m, ix = m.regs.ix) {
   const { mem8 } = m;
 
-  if (mem8[BOARD] !== BOARD_25M) return loc_2b53(m);
+  if (mem8[BOARD] !== BOARD_25M) return loc_2b53(m, ix);
 
   const probeHl = (mem8[MARIO_X] << 8) | u8(mem8[MARIO_Y] + PROBE_OFFSET);
-  const probe = probeTileForLanding(m, probeHl);
+  const probe = probeTileForLanding(m, probeHl, ix);
   if (probe.skip === false) return { skip: false, verdict: probe.a };
 
   if (probe.a === 0) return { skip: loc_2b51(m), verdict: 0 };

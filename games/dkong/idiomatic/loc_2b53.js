@@ -19,19 +19,19 @@ import { probeTileForLanding } from "./probeTileForLanding.js";
 import { loc_2b7a } from "./loc_2b7a.js";
 import { MARIO_X, MARIO_Y } from "./names.js";
 
-export function loc_2b53(m) {
+export function loc_2b53(m, ix = m.regs.ix) {
   const { mem8 } = m;
 
   // First probe: high = X-3, low = Y+7.
   const first = (u8(mem8[MARIO_X] - 3) << 8) | u8(mem8[MARIO_Y] + 7);
-  const p1 = probeTileForLanding(m, first);
+  const p1 = probeTileForLanding(m, first, ix);
   if (p1.skip === false) return { skip: false, verdict: p1.a };
 
   if (p1.a === 2) return { skip: loc_2b7a(m), verdict: 1 };
 
   // Second probe: X+4, Y+7 (a reject left the first point intact, so its low byte == first's).
   const second = (u8(((first >> 8) & 0xff) + 7) << 8) | u8(first & 0xff);
-  const p2 = probeTileForLanding(m, second);
+  const p2 = probeTileForLanding(m, second, ix);
   if (p2.skip === false) return { skip: false, verdict: p2.a };
 
   if (p2.a === 0) return { skip: true, verdict: 0 };
