@@ -7,8 +7,7 @@
  *
  * Entered only by a tail jump from the airborne paths, with this frame's ballistic step already
  * committed. It writes nothing itself except on the trigger frame.
- *   - Descent probe first: verdict 1 goes to the landing-settle tail (ticks the object counter,
- *     settles when it reaches zero).
+ *   - Descent probe first: verdict 1 -> landing-settle tail (ticks the object counter, settles at zero).
  *   - Otherwise, while MARIO_AIR_LANDCHECK is armed, re-run the fall-height test.
  *   - Otherwise an ordinary airborne frame, carrying MARIO_AIR_FRAMES minus the trigger frame.
  *   - On the one frame where MARIO_AIR_FRAMES equals the trigger, arm MARIO_AIR_LANDCHECK and run
@@ -59,8 +58,7 @@ export function loc_1c05(m) {
 
   // Trigger frame: arm the fall-height test, then run the overlap search once.
   mem8[MARIO_AIR_LANDCHECK] = 1;
-  searchPlayerObjectOverlap(m);
-  const severity = regs.a;
+  const severity = searchPlayerObjectOverlap(m);
 
   if (severity === 0) return writeMarioSpriteRecord(m);
 

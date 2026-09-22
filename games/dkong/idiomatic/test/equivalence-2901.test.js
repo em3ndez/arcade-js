@@ -10,13 +10,10 @@
  * memory store plus the search result findCollidingObject leaves in the registers (the result byte and
  * the count-minus-index residue the found-handler reads back).
  *
- * The oracle models the Z80 stack: it pops the pushed tolerances, brackets the search with a
- * call/return, and — because the search takes a caller-skip return on a hit — both outcomes
- * land back at the dispatch site with the same pc + SP. search100mObjectOverlap models no call/return
- * bracket (a direct call to findCollidingObject), so the harness lines the two up: after search100mObjectOverlap it
- * performs the single terminal return the ROM nets on either path, so pc + SP match and the
- * bytes the oracle's dissolved bracket leaves behind sit in the dead STACK_SCRATCH region,
- * which the memory compare excludes.
+ * The dissolved arm takes the reference point/tolerances as arguments and RETURNS
+ * { overlap, residue, stride, base } — the same four values the oracle leaves in A/B/E/IX. It does
+ * no guest-stack ops, so pc/SP are seam artifacts and are not compared; the memory compare excludes
+ * the dead STACK_SCRATCH region the oracle's dissolved bracket writes.
  *
  * 0x2901 is NEVER dispatched during attract (its dispatch-table arm is reached only through
  * the untranslated 0x3E88 dispatcher), so there are no real captured dispatches — the gate
@@ -25,8 +22,8 @@
  *   1. EQUAL (crafted) — a hit at the first record, a hit at a later record (the
  *      count-minus-index recovery), an exhausted scan, and two cases with different
  *      stack-passed tolerances that flip the hit decision (proving the tolerance
- *      marshalling is live). Every case: RAM (minus STACK_SCRATCH), pc, SP and the live
- *      register file identical to the oracle.
+ *      marshalling is live). Every case: RAM (minus STACK_SCRATCH) and the returned tuple
+ *      identical to the oracle.
  *
  *   2. TEETH — two broken twins the same suite MUST catch: one that stores the wrong object
  *      count (caught in RAM at OBJ_SEARCH_COUNT) and one that scans the wrong record count
@@ -75,15 +72,17 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-// The registers the search leaves live (result byte in A, count-minus-index residue in B),
-// plus the tolerances in H/L, the untouched reference/stride/base registers.
-// F is EXCLUDED: the outgoing flag byte is DEAD on every exit -- findCollidingObject's axis-2 is
-// now plain JS (no Z80 ALU op), and every consumer re-derives its branch from A or B (loc_2808
-// `and a`; loc_2954 `ld a,b`/`and a`); the wrapper only `ret`/`ld b` after the call.
-const REG_NAMES = ["a", "b", "c", "h", "l", "de", "ix", "iy"];
-function regDiffs(o, c) {
+// The dissolved arm returns { overlap, residue, stride, base } — the same four values the oracle
+// leaves in A (result byte), B (count-minus-index residue), E (winning stride low byte) and IX
+// (winning array base). pc/SP and the rest of the register file are NOT compared: the arm does no
+// guest-stack ops (no pop, no ret), so those are seam artifacts, and the whole-game SP tests guard
+// SP-correctness now.
+function tupleDiffs(o, tuple) {
   const out = [];
-  for (const n of REG_NAMES) if (o.regs[n] !== c.regs[n]) out.push(`reg ${n} oracle=${hx(o.regs[n])} cand=${hx(c.regs[n])}`);
+  if (tuple.overlap !== o.regs.a) out.push(`overlap oracle=${hx(o.regs.a)} cand=${hx(tuple.overlap)}`);
+  if (tuple.residue !== o.regs.b) out.push(`residue oracle=${hx(o.regs.b)} cand=${hx(tuple.residue)}`);
+  if ((tuple.stride & 0xff) !== (o.regs.e & 0xff)) out.push(`stride oracle=${hx(o.regs.e)} cand=${hx(tuple.stride)}`);
+  if (tuple.base !== o.regs.ix) out.push(`base oracle=${hx(o.regs.ix)} cand=${hx(tuple.base)}`);
   return out;
 }
 
@@ -94,29 +93,24 @@ function runOracle(entry) {
   return c;
 }
 
-/**
- * Run the candidate on a fresh clone, then model the single terminal return the ROM nets on
- * either outcome (both the hit and the exhausted path unwind to the dispatch site), so pc + SP
- * line up with the oracle. The candidate recovers the pushed tolerances itself (that stack read
- * is a genuine dispatcher boundary), so only the one dissolved call/return remains to model.
- */
-function runCandidate(entry, fn) {
-  const c = entry.clone();
-  fn(c);
-  c.ret();
-  return c;
+// The search inputs the dispatcher hands the arm: reference pointer/coordinate in IY/C, and the
+// tolerance word the dispatcher pushed (recovered off the stack top, where the oracle's `pop hl`
+// finds it). Crafted entries carry them directly; real captures derive them from the machine.
+function searchArgs(entry) {
+  if (entry._args) return entry._args;
+  const sp = entry.regs.sp;
+  return { iy: entry.regs.iy, c: entry.regs.c, bounds: entry.mem.read8(sp) | (entry.mem.read8((sp + 1) & 0xffff) << 8) };
 }
 
-/** Full contract diff: RAM − STACK_SCRATCH, pc, SP, and the live register file. */
+/** Full contract diff: RAM − STACK_SCRATCH, plus the returned { overlap, residue, stride, base }. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
-  const c = runCandidate(entry, fn);
+  const c = entry.clone();
+  const tuple = fn(c, searchArgs(entry));
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
-  diffs.push(...regDiffs(o, c));
+  diffs.push(...tupleDiffs(o, tuple));
   return diffs;
 }
 
@@ -161,6 +155,8 @@ function craft(base, { records, bounds = 0x0407, cRef, iyRef }) {
     const rec = rows[i];
     for (let off = 0; off < rec.length; off++) m.mem.write8((rbase + off) & 0xffff, rec[off] & 0xff);
   }
+  // The search inputs the dispatcher hands the idiomatic arm (reference point + tolerance word).
+  m._args = { iy: IY_BASE, c: cRef & 0xff, bounds };
   return m;
 }
 
@@ -251,27 +247,21 @@ test("EQUAL (crafted): the stack-passed tolerances flip the decision and both ma
 // -- 2. TEETH -----------------------------------------------------------------
 
 /** Broken twin (a): stores the wrong object count (6 instead of 7). */
-function brokenCount(m) {
-  const { regs, mem } = m;
-  regs.hl = m.pop16();
-  mem.write8(OBJ_SEARCH_COUNT, 6); // BUG: wrong count
-  regs.b = 7;
-  regs.de = RECORD_STRIDE;
-  regs.ix = OBJ_ARRAY_64;
-  findCollidingObject(m);
-  return true;
+function brokenCount(m, { iy, c, bounds }) {
+  const { mem8 } = m;
+  const tolLow = bounds & 0xff, tolHigh = bounds >> 8;
+  mem8[OBJ_SEARCH_COUNT] = 6; // BUG: wrong count
+  const r = findCollidingObject(m, OBJ_ARRAY_64, c, tolLow, iy, tolHigh, RECORD_STRIDE, 7);
+  return { overlap: r.a, residue: r.b, stride: RECORD_STRIDE, base: OBJ_ARRAY_64 };
 }
 
 /** Broken twin (b): scans the wrong record count (6 instead of 7), corrupting the residue. */
-function brokenScanCount(m) {
-  const { regs, mem } = m;
-  regs.hl = m.pop16();
-  mem.write8(OBJ_SEARCH_COUNT, 7);
-  regs.b = 6; // BUG: scans 6 records -> count-minus-index residue is off
-  regs.de = RECORD_STRIDE;
-  regs.ix = OBJ_ARRAY_64;
-  findCollidingObject(m);
-  return true;
+function brokenScanCount(m, { iy, c, bounds }) {
+  const { mem8 } = m;
+  const tolLow = bounds & 0xff, tolHigh = bounds >> 8;
+  mem8[OBJ_SEARCH_COUNT] = 7;
+  const r = findCollidingObject(m, OBJ_ARRAY_64, c, tolLow, iy, tolHigh, RECORD_STRIDE, 6); // BUG: scans 6 records
+  return { overlap: r.a, residue: r.b, stride: RECORD_STRIDE, base: OBJ_ARRAY_64 };
 }
 
 test("TEETH: the wrong-count-store twin and the wrong-scan-count twin are CAUGHT", () => {
@@ -288,8 +278,8 @@ test("TEETH: the wrong-count-store twin and the wrong-scan-count twin are CAUGHT
   // (b) wrong scan count: correct RAM, but the residue register B diverges on a hit.
   const scanDiffs = contractDiffs(hitEntry, brokenScanCount);
   assert.ok(scanDiffs.length > 0, "the wrong-scan-count twin escaped — the register check is worthless");
-  assert.ok(scanDiffs.some((d) => d.startsWith("reg b ")),
-    `expected the residue diff in register b, got ${scanDiffs.join("; ")}`);
+  assert.ok(scanDiffs.some((d) => d.startsWith("residue ")),
+    `expected the residue diff in the returned tuple, got ${scanDiffs.join("; ")}`);
 
-  console.log(`  TEETH: wrong-count-store caught (${countDiffs[0]}); wrong-scan-count caught (${scanDiffs.find((d) => d.startsWith("reg b "))})`);
+  console.log(`  TEETH: wrong-count-store caught (${countDiffs[0]}); wrong-scan-count caught (${scanDiffs.find((d) => d.startsWith("residue "))})`);
 });

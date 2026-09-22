@@ -5,16 +5,17 @@
  * handler, and on an overlap record where it was found.
  *
  * recordHammerHitOnObject is NOT a leaf: it dispatches the full board collision handler (through the
- * idiomatic dispatchBoardCollision, ROM 0x286F, whose still-oracle handler sweeps object
- * records and does an inc-sp/inc-sp/ret caller-skip on a hit). So it is validated by
- * MEMORY-equivalence against the frozen oracle — RAM − STACK_SCRATCH, pc, SP — with a
- * FRESH clone per case and the FULL oracle handler running on BOTH sides. Two things:
+ * idiomatic dispatchBoardCollision, which selects the board arm and returns a JS tuple). So it is
+ * validated by MEMORY-equivalence against the frozen oracle — RAM − STACK_SCRATCH — with a
+ * FRESH clone per case and the FULL oracle handler running on the oracle side. Two things:
  *   - live-out is memory-only: the caller (loc_197a) issues its next call without reading
- *     any register this routine leaves, so no register is in the contract; pc/SP still are,
- *     because the routine keeps the oracle's terminal returns and the handler-boundary push.
- *   - the RAM diff EXCLUDES STACK_SCRATCH: dispatchBoardCollision folds away the rst-0x28
- *     trampoline's `push 0x2874`, so the oracle leaves the table-base word in the dead stack
- *     region where the candidate does not. Every LIVE cell (the four record-write targets in
+ *     any register this routine leaves, so no register is in the contract; pc/SP are NOT compared
+ *     either — the dissolved chain does no guest-stack ops (no push16, no m.ret), so the candidate
+ *     leaves the caller return where the oracle's terminal returns consume it. Whole-game SP tests
+ *     guard SP-correctness now.
+ *   - the RAM diff EXCLUDES STACK_SCRATCH: the oracle still runs the frozen rst-0x28 trampoline
+ *     and its handler, leaving the table-base word and folded returns in the dead stack region
+ *     where the candidate does not. Every LIVE cell (the four record-write targets in
  *     0x635x, OBJ_SEARCH_COUNT, the object arrays) is kept, and the teeth prove the exclusion
  *     hides nothing by catching real-cell corruption.
  *
@@ -64,7 +65,6 @@ const REC1_FLAG = OBJ_PAIR_6680 + 0x10 + 1;   // 0x6691 — record 1 active flag
 // The record-write targets: 0x6350 hit marker (hex), COLLIDED_OBJECT_BASE (0x6351) + its high byte
 // 0x6352 (hex), COLLIDED_OBJECT_STRIDE (0x6353), COLLIDED_OBJECT_INDEX (0x6354).
 const RECORD_CELLS = [0x6350, COLLIDED_OBJECT_BASE, 0x6352, COLLIDED_OBJECT_STRIDE, COLLIDED_OBJECT_INDEX];
-const HANDLER_RETURN = 0x283e; // the folded call's return marker
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -95,17 +95,16 @@ function stackDiffCount(a, b) {
   return c;
 }
 
-// Contract diff: RAM − STACK_SCRATCH, pc, SP. Live-out is memory-only, so no register is
-// compared. Both the oracle and the candidate keep their own terminal returns, so pc/SP
-// line up without any extra ret in the harness.
+// Contract diff: RAM − STACK_SCRATCH. Live-out is memory-only, so no register is compared.
+// pc/SP are NOT compared: the dissolved handler chain returns a JS tuple and does no guest-stack
+// ops, so the candidate leaves the caller return on the stack where the oracle's terminal returns
+// consume it — a seam artifact, not a live-out. The whole-game SP tests guard SP-correctness now.
 function contractDiffs(entry, fn) {
   const a = entry.clone(); oracle(a);
   const b = entry.clone(); fn(b);
   const diffs = [];
   const ram = firstRamDiff(a, b);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (a.pc !== b.pc) diffs.push(`pc oracle=${hx(a.pc)} cand=${hx(b.pc)}`);
-  if (a.regs.sp !== b.regs.sp) diffs.push(`SP oracle=${hx(a.regs.sp)} cand=${hx(b.regs.sp)}`);
   return diffs;
 }
 
@@ -178,54 +177,45 @@ test("EQUAL (captured): recordHammerHitOnObject == oracle on every real attract 
 
 // -- 3. TEETH -----------------------------------------------------------------
 
-/** Broken twin (a): stores the raw array count instead of count − remaining (the hit index). */
+/** The hitbox the head hands the collision handler, from the in-play record's tolerance bytes. */
+function hitbox(mem, recordPtr) {
+  return (mem.read8(recordPtr + 9) << 8) | mem.read8(recordPtr + 10);
+}
+
+/** Broken twin (a): stores the raw array count instead of count − residue (the hit index). */
 function brokenNoIndexSub(m) {
-  const { regs, mem } = m;
+  const { mem } = m;
   let recordPtr = OBJ_PAIR_6680;
   let active = false;
   for (let i = 0; i < 2; i++) {
     if ((mem.read8(recordPtr + 1) & 0x01) !== 0) { active = true; break; }
     recordPtr += 0x10;
   }
-  if (!active) { m.ret(); return; }
-  regs.iy = recordPtr;
-  regs.c = mem.read8(recordPtr + 5);
-  regs.h = mem.read8(recordPtr + 9);
-  regs.l = mem.read8(recordPtr + 10);
-  m.push16(HANDLER_RETURN);
-  dispatchBoardCollision(m);
-  const overlap = regs.a;
-  if (overlap === 0) { m.ret(); return; }
+  if (!active) return;
+  const { overlap, stride, base } = dispatchBoardCollision(m, { iy: recordPtr, c: mem.read8(recordPtr + 5), bounds: hitbox(mem, recordPtr) });
+  if (overlap === 0) return;
   mem.write8(0x6350, overlap);
-  mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT)); // BUG: no `- regs.b`
-  mem.write8(COLLIDED_OBJECT_STRIDE, regs.e);
-  mem.write16(COLLIDED_OBJECT_BASE, regs.ix);
-  m.ret();
+  mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT)); // BUG: no `- residue`
+  mem.write8(COLLIDED_OBJECT_STRIDE, stride);
+  mem.write16(COLLIDED_OBJECT_BASE, base);
 }
 
 /** Broken twin (b): stores the wrong array base (off by one). */
 function brokenWrongBase(m) {
-  const { regs, mem } = m;
+  const { mem } = m;
   let recordPtr = OBJ_PAIR_6680;
   let active = false;
   for (let i = 0; i < 2; i++) {
     if ((mem.read8(recordPtr + 1) & 0x01) !== 0) { active = true; break; }
     recordPtr += 0x10;
   }
-  if (!active) { m.ret(); return; }
-  regs.iy = recordPtr;
-  regs.c = mem.read8(recordPtr + 5);
-  regs.h = mem.read8(recordPtr + 9);
-  regs.l = mem.read8(recordPtr + 10);
-  m.push16(HANDLER_RETURN);
-  dispatchBoardCollision(m);
-  const overlap = regs.a;
-  if (overlap === 0) { m.ret(); return; }
+  if (!active) return;
+  const { overlap, residue, stride, base } = dispatchBoardCollision(m, { iy: recordPtr, c: mem.read8(recordPtr + 5), bounds: hitbox(mem, recordPtr) });
+  if (overlap === 0) return;
   mem.write8(0x6350, overlap);
-  mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT) - regs.b);
-  mem.write8(COLLIDED_OBJECT_STRIDE, regs.e);
-  mem.write16(COLLIDED_OBJECT_BASE, (regs.ix + 1) & 0xffff); // BUG: wrong base
-  m.ret();
+  mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT) - residue);
+  mem.write8(COLLIDED_OBJECT_STRIDE, stride);
+  mem.write16(COLLIDED_OBJECT_BASE, (base + 1) & 0xffff); // BUG: wrong base
 }
 
 test("TEETH: the dropped-index-subtraction and wrong-base twins are CAUGHT at live cells", () => {

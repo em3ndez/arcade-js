@@ -18,15 +18,10 @@ import { dispatchBoardCollision } from "./dispatchBoardCollision.js";
 // Packed hitbox: high byte = 4 (half-width), low byte = 7 (half-height). Not an address.
 
 export function killMarioOnObjectCollision(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  // iy/c are register arguments the frozen collision handler reads directly.
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem8[MARIO_Y];
-  dispatchBoardCollision(m, MARIO_HITBOX);
+  const { overlap } = dispatchBoardCollision(m, { iy: MARIO_ACTIVE, c: mem8[MARIO_Y], bounds: MARIO_HITBOX });
+  if (overlap === 0) return;
 
-  const collided = regs.a; // the handler's collision result
-  if (collided === 0) return;
-
-  mem8[MARIO_ACTIVE] = collided - 1;
+  mem8[MARIO_ACTIVE] = overlap - 1;
 }

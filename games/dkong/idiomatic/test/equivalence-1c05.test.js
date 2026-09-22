@@ -324,9 +324,7 @@ function brokenVerdictPredicate(m) {
   const framesToTrigger = u8(mem8[MARIO_AIR_FRAMES] - LAND_CHECK_TRIGGER_FRAME);
   if (framesToTrigger !== 0) { regs.a = framesToTrigger; return loc_1c33(m); }
   mem8[MARIO_AIR_LANDCHECK] = 1;
-  m.push16(0x1c23);
-  searchPlayerObjectOverlap(m);
-  const severity = regs.a;
+  const severity = searchPlayerObjectOverlap(m);
   if (severity === 0) return writeMarioSpriteRecord(m);
   mem8[EFFECT_SELECT] = severity;
   mem8[EFFECT_STATE] = 1;
@@ -347,9 +345,7 @@ function brokenTriggerFrame(m) {
   const framesToTrigger = u8(mem8[MARIO_AIR_FRAMES] - 21); // BUG: the trigger frame is 20
   if (framesToTrigger !== 0) { regs.a = framesToTrigger; return loc_1c33(m); }
   mem8[MARIO_AIR_LANDCHECK] = 1;
-  m.push16(0x1c23);
-  searchPlayerObjectOverlap(m);
-  const severity = regs.a;
+  const severity = searchPlayerObjectOverlap(m);
   if (severity === 0) return writeMarioSpriteRecord(m);
   mem8[EFFECT_SELECT] = severity;
   mem8[EFFECT_STATE] = 1;
@@ -370,9 +366,7 @@ function brokenNoLandCheckArm(m) {
   const framesToTrigger = u8(mem8[MARIO_AIR_FRAMES] - LAND_CHECK_TRIGGER_FRAME);
   if (framesToTrigger !== 0) { regs.a = framesToTrigger; return loc_1c33(m); }
   // BUG: MARIO_AIR_LANDCHECK never armed
-  m.push16(0x1c23);
-  searchPlayerObjectOverlap(m);
-  const severity = regs.a;
+  const severity = searchPlayerObjectOverlap(m);
   if (severity === 0) return writeMarioSpriteRecord(m);
   mem8[EFFECT_SELECT] = severity;
   mem8[EFFECT_STATE] = 1;
@@ -393,9 +387,7 @@ function brokenNoItemLatch(m) {
   const framesToTrigger = u8(mem8[MARIO_AIR_FRAMES] - LAND_CHECK_TRIGGER_FRAME);
   if (framesToTrigger !== 0) { regs.a = framesToTrigger; return loc_1c33(m); }
   mem8[MARIO_AIR_LANDCHECK] = 1;
-  m.push16(0x1c23);
-  searchPlayerObjectOverlap(m);
-  const severity = regs.a;
+  const severity = searchPlayerObjectOverlap(m);
   if (severity === 0) return writeMarioSpriteRecord(m);
   mem8[EFFECT_SELECT] = severity;
   mem8[EFFECT_STATE] = 1;
@@ -416,9 +408,7 @@ function brokenInvertedSeverity(m) {
   const framesToTrigger = u8(mem8[MARIO_AIR_FRAMES] - LAND_CHECK_TRIGGER_FRAME);
   if (framesToTrigger !== 0) { regs.a = framesToTrigger; return loc_1c33(m); }
   mem8[MARIO_AIR_LANDCHECK] = 1;
-  m.push16(0x1c23);
-  searchPlayerObjectOverlap(m);
-  const severity = regs.a;
+  const severity = searchPlayerObjectOverlap(m);
   if (severity !== 0) return writeMarioSpriteRecord(m); // BUG: inverted
   mem8[EFFECT_SELECT] = severity;
   mem8[EFFECT_STATE] = 1;

@@ -4,10 +4,10 @@
  * near Mario and grade the total into a unary mask — 0 / 1 / 2 / 3-or-more overlaps become
  * 0 / 1 / 3 / 7 (that many low bits set), which the caller walks one bit at a time to pick effect
  * setters. Scans OBJ_ARRAY_67 (10 records) then OBJ_ARRAY_64 (5) at a 32-byte stride, sharing one
- * counter so the code grades the total across both.
+ * counter so the code grades the total across both. The probe point (iy/c) and per-axis tolerances
+ * (bounds) arrive as arguments.
  *
- * LIVE-OUT: OVERLAP_COUNT in memory, plus the graded code, both returned and left in A for the
- * caller chain.
+ * LIVE-OUT: OVERLAP_COUNT in memory; the graded code is returned as { overlap }.
  */
 
 import { OVERLAP_COUNT, OBJ_ARRAY_67, OBJ_ARRAY_64 } from "./names.js";
@@ -17,19 +17,16 @@ const GROUP1_RECORDS = 10;
 const GROUP2_RECORDS = 5;
 const RECORD_STRIDE = 32;
 
-export function loc_3e99(m, iyBase = m.regs.iy, cProbe = m.regs.c) {
+export function loc_3e99(m, { iy, c, bounds }) {
   const { mem8 } = m;
-
-  // Bounds word stacked across the trampoline: low byte = vertical, high byte = horizontal tolerance.
-  const bounds = m.pop16();
   const verticalTolerance = bounds & 0xff;
   const horizontalTolerance = bounds >> 8;
 
   mem8[OVERLAP_COUNT] = 0; // both scans accumulate into this
 
   const probe = {
-    probeBase: iyBase, // Mario's record
-    probeA: cProbe, // vertical coordinate: MARIO_Y a dozen pixels lower
+    probeBase: iy, // Mario's record
+    probeA: c, // vertical coordinate: MARIO_Y a dozen pixels lower
     stride: RECORD_STRIDE,
     threshA: verticalTolerance,
     threshB: horizontalTolerance,
@@ -44,5 +41,5 @@ export function loc_3e99(m, iyBase = m.regs.iy, cProbe = m.regs.c) {
   else if (overlaps < 3) code = 3;
   else code = 7;
 
-  return (m.regs.a = code);
+  return { overlap: code };
 }

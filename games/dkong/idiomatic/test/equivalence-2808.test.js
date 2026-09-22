@@ -6,18 +6,17 @@
  * result − 1 (= 0) into MARIO_ACTIVE, marking him dead; on a miss (result 0) do nothing.
  *
  * This is NOT a leaf — it runs a full collision handler that sweeps object records — so it
- * is validated by MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH, pc,
- * SP), never the full register file and never cycles, with a FRESH clone per case. The
+ * is validated by MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH),
+ * never the full register file and never cycles, with a FRESH clone per case. The
  * result byte (A) and the search's IX are DEAD after the routine — the caller (loc_197a,
  * 0x19b6) issues its next collision call without reading them — so they are excluded from
  * the contract; the memory-observable effect is MARIO_ACTIVE alone.
  *
- * The oracle brackets the handler in a `call 0x286f` / `ret` pair; this routine drops that
- * bracket and calls dispatchBoardCollision directly. It still lands pc + SP on the oracle's:
- * the handler's own `ret` (or entry_2913's caller-skip on a hit) consumes the caller's
- * return address (0x19b6) directly, since this routine pushes nothing of its own. The only
- * residue is dead stack scratch (the oracle's pushed 0x2816 / table base / hitbox word),
- * which the RAM diff excludes via STACK_SCRATCH.
+ * The dissolved handler chain returns a JS tuple and does NO guest-stack ops, so pc/SP are
+ * NOT compared: the candidate leaves the caller return on the stack where the oracle's tail
+ * dispatch consumes it (SP diverges by exactly that word). That is a seam artifact, not a
+ * live-out; the whole-game SP tests guard SP-correctness now. Any residue the oracle leaves
+ * in dead stack scratch is excluded by the RAM diff via STACK_SCRATCH.
  *
  *   1. REACHABILITY — 0x2808 is dispatched during attract (the per-frame cascade calls it).
  *
@@ -93,8 +92,11 @@ function firstRamDiffExStack(a, b, offToAddr) {
   return null;
 }
 
-// Full contract diff: RAM − STACK_SCRATCH, pc, SP. Live-out is memory-only (MARIO_ACTIVE);
-// the result byte A and the search's IX are dead after the routine, so they are not compared.
+// Contract diff: RAM − STACK_SCRATCH. Live-out is memory-only (MARIO_ACTIVE); the result byte A
+// and the search's IX are dead after the routine, so they are not compared. pc/SP are NOT compared:
+// the dissolved handler chain does no guest-stack ops, so the candidate leaves the caller return on
+// the stack while the oracle's tail-dispatch consumes it — a seam artifact, not a live-out. The
+// whole-game SP tests guard SP-correctness now.
 function contractDiffs(entry, fn) {
   const a = entry.clone(); // oracle
   const b = entry.clone(); // candidate
@@ -103,8 +105,6 @@ function contractDiffs(entry, fn) {
   const diffs = [];
   const ram = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (a.pc !== b.pc) diffs.push(`pc oracle=${hx(a.pc)} cand=${hx(b.pc)}`);
-  if (a.regs.sp !== b.regs.sp) diffs.push(`SP oracle=${hx(a.regs.sp)} cand=${hx(b.regs.sp)}`);
   return diffs;
 }
 
@@ -181,7 +181,7 @@ test("REACHABILITY: 0x2808 is dispatched during attract", () => {
 
 // -- 2. REALISM (captured attract dispatches) ---------------------------------
 
-test("REALISM: real captured attract 0x2808 dispatches — RAM(−stack) + pc + SP match", () => {
+test("REALISM: real captured attract 0x2808 dispatches — RAM(−stack) matches", () => {
   const caps = captureAttract(200, 1500);
   assert.ok(caps.length >= 1, "expected at least one real 0x2808 dispatch during attract");
 
@@ -219,34 +219,25 @@ test("EQUAL (crafted): the hit and clean-miss arms both match the oracle", () =>
 
 /** Broken twin (a): writes the raw result instead of result − 1 (no `dec a`). */
 function brokenNoDec(m) {
-  const { regs, mem } = m;
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem.read8(MARIO_Y);
-  regs.hl = 0x0407;
-  dispatchBoardCollision(m);
-  if (regs.a === 0) return;
-  mem.write8(MARIO_ACTIVE, regs.a); // BUG: should be regs.a - 1
+  const { mem } = m;
+  const { overlap } = dispatchBoardCollision(m, { iy: MARIO_ACTIVE, c: mem.read8(MARIO_Y), bounds: 0x0407 });
+  if (overlap === 0) return;
+  mem.write8(MARIO_ACTIVE, overlap); // BUG: should be overlap - 1
 }
 
 /** Broken twin (b): drops the zero gate, so a miss writes 0 − 1 = 0xff. */
 function brokenAlwaysWrite(m) {
-  const { regs, mem } = m;
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem.read8(MARIO_Y);
-  regs.hl = 0x0407;
-  dispatchBoardCollision(m);
-  mem.write8(MARIO_ACTIVE, regs.a - 1); // BUG: no `if (regs.a === 0) return`
+  const { mem } = m;
+  const { overlap } = dispatchBoardCollision(m, { iy: MARIO_ACTIVE, c: mem.read8(MARIO_Y), bounds: 0x0407 });
+  mem.write8(MARIO_ACTIVE, overlap - 1); // BUG: no `if (overlap === 0) return`
 }
 
 /** Broken twin (c): feeds Mario's X where the box compare wants his Y. */
 function brokenWrongCoord(m) {
-  const { regs, mem } = m;
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem.read8(MARIO_X); // BUG: should be MARIO_Y
-  regs.hl = 0x0407;
-  dispatchBoardCollision(m);
-  if (regs.a === 0) return;
-  mem.write8(MARIO_ACTIVE, regs.a - 1);
+  const { mem } = m;
+  const { overlap } = dispatchBoardCollision(m, { iy: MARIO_ACTIVE, c: mem.read8(MARIO_X), bounds: 0x0407 }); // BUG: X, not MARIO_Y
+  if (overlap === 0) return;
+  mem.write8(MARIO_ACTIVE, overlap - 1);
 }
 
 test("TEETH: the no-dec, always-write, and wrong-coordinate twins are all CAUGHT", () => {

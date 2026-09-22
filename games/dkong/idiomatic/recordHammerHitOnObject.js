@@ -15,7 +15,6 @@ import {
   COLLIDED_OBJECT_BASE,
   COLLIDED_OBJECT_INDEX,
   COLLIDED_OBJECT_STRIDE,
-  HAMMER_HIT_HANDLER_RETURN,
   HAMMER_IN_PLAY,
   HIT_EFFECT_LATCH,
   OBJ_HIT_EXTENT_X,
@@ -28,11 +27,8 @@ import { dispatchBoardCollision } from "./dispatchBoardCollision.js";
 
 const RECORD_STRIDE = 0x10;
 
-// The push is load-bearing: the handler unwinds by popping this word, and without it it pops
-// the wrong one and unwinds two bytes off.
-
 export function recordHammerHitOnObject(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   let recordPtr = OBJ_PAIR_6680;
   let active = false;
@@ -40,24 +36,18 @@ export function recordHammerHitOnObject(m) {
     if ((mem8[recordPtr + HAMMER_IN_PLAY] & 0x01) !== 0) { active = true; break; }
     recordPtr += RECORD_STRIDE;
   }
-  if (!active) { m.ret(); return; }
+  if (!active) return;
 
-  regs.iy = recordPtr;
-  regs.c = mem8[recordPtr + OBJ_Y];
-  regs.h = mem8[recordPtr + OBJ_HIT_EXTENT_X]; // X base tolerance
-  regs.l = mem8[recordPtr + OBJ_HIT_EXTENT_Y]; // Y base tolerance
+  const { overlap, residue, stride, base } = dispatchBoardCollision(m, {
+    iy: recordPtr,
+    c: mem8[recordPtr + OBJ_Y],
+    bounds: (mem8[recordPtr + OBJ_HIT_EXTENT_X] << 8) | mem8[recordPtr + OBJ_HIT_EXTENT_Y],
+  });
+  if (overlap === 0) return;
 
-  m.push16(HAMMER_HIT_HANDLER_RETURN);
-  dispatchBoardCollision(m);
-
-  const overlap = regs.a;
-  if (overlap === 0) { m.ret(); return; }
-
-  // Always nonzero here; writing it suspends gameplay from the next frame until the effect
-  // sequence's teardown clears it.
+  // Writing the hit marker suspends gameplay from the next frame until the effect sequence clears it.
   mem8[HIT_EFFECT_LATCH] = overlap;
-  mem8[COLLIDED_OBJECT_INDEX] = mem8[OBJ_SEARCH_COUNT] - regs.b;
-  mem8[COLLIDED_OBJECT_STRIDE] = regs.e;
-  mem16[COLLIDED_OBJECT_BASE] = regs.ix;
-  m.ret();
+  mem8[COLLIDED_OBJECT_INDEX] = mem8[OBJ_SEARCH_COUNT] - residue;
+  mem8[COLLIDED_OBJECT_STRIDE] = stride;
+  mem16[COLLIDED_OBJECT_BASE] = base;
 }

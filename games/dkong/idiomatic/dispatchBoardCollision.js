@@ -1,33 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchBoardCollision — vector a collision test to the current board's handler, reading
- * BOARD and going through a six-entry jump table (1=25m, 2=50m, 3=75m, 4=100m; 0 and 5 are
- * null guards). The staged position in HL is pushed FIRST so it sits below the dispatch frame
- * and survives to the handler, which recovers it with a pop.
- *
- * LIVE-OUT: memory, the stack pointer, and the handler's two result registers.
+ * dispatchBoardCollision — vector a collision test to the current board's handler, selecting the arm
+ * by BOARD (1=25m, 2=50m, 3=75m, 4=100m; other values are the never-reached reset-vector guards).
+ * The reference point (iy/c) and per-axis tolerance word (bounds) are handed straight to the arm,
+ * whose search outcome { overlap, residue, stride, base } is returned to the caller.
  */
 
-import { u16 } from "../../../core/int.js";
 import {
   BOARD,
-  BOARD_COLLISION_TABLE,
 } from "./names.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
+import { search25mObjectOverlap } from "./search25mObjectOverlap.js";
+import { search50mObjectOverlap } from "./search50mObjectOverlap.js";
+import { search75mObjectOverlap } from "./search75mObjectOverlap.js";
+import { search100mObjectOverlap } from "./search100mObjectOverlap.js";
 
-const DISPATCH_TABLE_2874 = "0x2874 (0x6227 collision dispatch)";
+export const COLLISION_HANDLERS = {
+  1: search25mObjectOverlap,
+  2: search50mObjectOverlap,
+  3: search75mObjectOverlap,
+  4: search100mObjectOverlap,
+};
 
-export function dispatchBoardCollision(m, hl = m.regs.hl) {
-  const { mem8 } = m;
-
-  const board = mem8[BOARD];
-
-  // Pushed FIRST, below the dispatch frame, so the handler's opening pop recovers it.
-  m.push16(hl);
-
-  // 8-bit offset double: board 128 wraps back to 0.
-  const entry = u16(BOARD_COLLISION_TABLE + ((board * 2) & 0xff));
-  const target = mem8[entry] | (mem8[u16(entry + 1)] << 8);
-
-  loc_00ca(m, target, DISPATCH_TABLE_2874);
+export function dispatchBoardCollision(m, { iy, c, bounds }) {
+  const handler = COLLISION_HANDLERS[m.mem8[BOARD]];
+  if (!handler) throw new Error(`dispatchBoardCollision: no collision arm for board ${m.mem8[BOARD]}`);
+  return handler(m, { iy, c, bounds });
 }

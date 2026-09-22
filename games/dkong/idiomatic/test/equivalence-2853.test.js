@@ -5,35 +5,21 @@
  * dispatch to the current board's overlap-search arm, returning the severity code the
  * caller consumes.
  *
- * 0x2853 IS dispatched during attract, but only sparsely (a handful of times per thousand
- * frames, when the demo player is in the relevant movement sub-state), so captured
- * dispatches alone under-cover the input space. The routine's whole observable behaviour
- * factors into three register set-ups — the object base (IY = 0x6200), the search bound
- * (C = MARIO_Y + 12), and the threshold word (HL = neutral/directed by the input's two
- * direction bits) — all consumed by the still-translated search arm the dispatch reaches.
- * On the 25m board that arm counts active-object overlaps into OVERLAP_COUNT (0x6060) and
- * returns a 0/1/3/7 severity code in the result register; the bound and thresholds move
- * the count, so a wrong set-up is observable there.
+ * Attract dispatches 0x2853 only sparsely, so captured states under-cover the input space. The
+ * behaviour factors into three set-ups — object base (IY=0x6200), search bound (C=MARIO_Y+12),
+ * threshold word (HL, directed by the input's two direction bits) — consumed by the search arm;
+ * on 25m that arm counts overlaps into OVERLAP_COUNT (0x6060) and returns a 0/1/3/7 severity.
  *
- * The dispatch is a genuine TAIL call: the arm's own `ret` returns straight to 0x2853's
- * caller. The frozen oracle brackets it with `call 0x3e88` (pushing 0x286E) + a terminal
- * `ret`; loc_2853 drops that bracket and lets the arm return directly, so BOTH sides land
- * on the caller-return address with the same pc + SP and the oracle's pushed 0x286E lives
- * only in the dead STACK_SCRATCH the contract excludes. No extra m.ret() is modelled — the
- * dispatch already balances the stack on both sides.
+ * The dissolved routine returns the severity by JS value and opens no guest-stack bracket, so it is
+ * validated by RAM − STACK_SCRATCH plus that returned severity vs the oracle's A. pc/SP are seam
+ * artifacts (oracle `call 0x3e88` / terminal `ret`) and are not compared.
  *
- *   1. REALISM (captured) — hook 0x2853 in a real attract run, clone at each true dispatch,
- *      and confirm loc_2853 == oracle (RAM − STACK_SCRATCH, pc, SP, result register) on
- *      every real state, spanning the count-0 and count>0 arms attract actually produces.
- *
- *   2. EQUAL (crafted) — on a real attract-base machine, sweep representative player Y over
- *      both direction arms through the live 25m overlap counter, and route the dispatch
- *      through the other boards' arms (2/3/4), matching the oracle on every one.
- *
- *   3. EQUAL (boundary) — three single-object entries, each with one active object placed at
- *      the overlap boundary, so the counted result depends on exactly one of the three set-
- *      ups. Confirms loc_2853 == oracle AND that the oracle counts the expected object
- *      (the premise the teeth rely on).
+ *   1. REALISM (captured) — hook 0x2853 in attract, clone at each true dispatch, confirm == oracle
+ *      (RAM − STACK_SCRATCH, returned severity) across the count-0 and count>0 arms.
+ *   2. EQUAL (crafted) — sweep player Y over both direction arms through the live 25m counter, and
+ *      route through the other boards' arms (2/3/4), matching the oracle.
+ *   3. EQUAL (boundary) — three single-object entries at the overlap boundary, each depending on
+ *      exactly one set-up; confirms == oracle AND that the oracle counts the expected object.
  *
  *   4. TEETH — three broken twins, each MUST be caught at OVERLAP_COUNT:
  *      (a) wrong Y offset (MARIO_Y + 13) — shifts the search bound, flips the boundary object.
@@ -96,29 +82,28 @@ function runOracle(entry) {
 }
 
 /**
- * Run a candidate on a fresh clone. NO extra m.ret(): the tail dispatch's arm returns
- * directly to the caller, so pc + SP already line up with the oracle on both sides.
+ * Run a candidate on a fresh clone. The dissolved routine returns the severity code by JS value and
+ * opens no guest-stack bracket, so pc/SP are not modelled.
  */
 function runCandidate(entry, fn) {
   const c = entry.clone();
   c.nextNmi = Infinity; c.nextBoundary = Infinity;
-  fn(c);
-  return c;
+  const returned = fn(c);
+  return { c, returned };
 }
 
 /**
- * Full contract diff: RAM − STACK_SCRATCH, pc, SP, and the result register (the severity
- * code the caller reads back right after the dispatch — the routine's live-out).
+ * Full contract diff: RAM − STACK_SCRATCH, and the severity code (the oracle leaves it in A; the
+ * dissolved routine returns it). pc/SP are NOT compared — the dissolved dispatch does no guest-stack
+ * ops, so they are seam artifacts; the whole-game SP tests guard SP-correctness now.
  */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
-  const c = runCandidate(entry, fn);
+  const { c, returned } = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
-  if (o.regs.a !== c.regs.a) diffs.push(`A oracle=${o.regs.a} cand=${c.regs.a}`);
+  if (returned !== o.regs.a) diffs.push(`severity oracle=${o.regs.a} cand=${returned}`);
   return diffs;
 }
 
@@ -259,29 +244,23 @@ test("EQUAL (boundary): loc_2853 == oracle with the expected boundary-object cou
 
 /** Twin (a): wrong Y offset — the search bound is off by one. */
 function twinBadYOffset(m) {
-  const { regs, mem } = m;
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem.read8(MARIO_Y) + 13; // BUG: should be + 12
-  regs.hl = (mem.read8(P1_INPUT) & 0x03) === 0 ? 0x0508 : 0x1308;
-  return dispatchBoardOverlapSearch(m);
+  const { mem } = m;
+  const bounds = (mem.read8(P1_INPUT) & 0x03) === 0 ? 0x0508 : 0x1308;
+  return dispatchBoardOverlapSearch(m, { iy: MARIO_ACTIVE, c: mem.read8(MARIO_Y) + 13, bounds }); // BUG: + 13, should be + 12
 }
 
 /** Twin (b): inverted threshold select — picks the wrong threshold word for the input. */
 function twinInvertedThresholds(m) {
-  const { regs, mem } = m;
-  regs.iy = MARIO_ACTIVE;
-  regs.c = mem.read8(MARIO_Y) + 12;
-  regs.hl = (mem.read8(P1_INPUT) & 0x03) === 0 ? 0x1308 : 0x0508; // BUG: arms swapped
-  return dispatchBoardOverlapSearch(m);
+  const { mem } = m;
+  const bounds = (mem.read8(P1_INPUT) & 0x03) === 0 ? 0x1308 : 0x0508; // BUG: arms swapped
+  return dispatchBoardOverlapSearch(m, { iy: MARIO_ACTIVE, c: mem.read8(MARIO_Y) + 12, bounds });
 }
 
 /** Twin (c): wrong object base — the arm walks/reads the wrong record block. */
 function twinWrongBase(m) {
-  const { regs, mem } = m;
-  regs.iy = 0x6300; // BUG: should be MARIO_ACTIVE (0x6200)
-  regs.c = mem.read8(MARIO_Y) + 12;
-  regs.hl = (mem.read8(P1_INPUT) & 0x03) === 0 ? 0x0508 : 0x1308;
-  return dispatchBoardOverlapSearch(m);
+  const { mem } = m;
+  const bounds = (mem.read8(P1_INPUT) & 0x03) === 0 ? 0x0508 : 0x1308;
+  return dispatchBoardOverlapSearch(m, { iy: 0x6300, c: mem.read8(MARIO_Y) + 12, bounds }); // BUG: iy should be MARIO_ACTIVE
 }
 
 test("TEETH: the wrong-offset, inverted-threshold, and wrong-base twins are all CAUGHT", () => {

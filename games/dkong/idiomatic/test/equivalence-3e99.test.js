@@ -37,13 +37,11 @@
  * `call`/`jp` anywhere targets it. Its only callee, 0x3EC3, is a flat counted loop containing no
  * call at all. The 0x3E99 → 0x3EC3 subtree is depth 1 and acyclic.
  *
- * CONTRACT. The oracle models the Z80 stack: it pops the dispatcher's bounds word, brackets each
- * scan with a call/return, and finishes with an ordinary `ret`. The candidate pops the same word
- * (a genuine data hand-off) but direct-calls its callee and returns in JS, so the harness performs
- * the ONE terminal return the ROM nets, lining pc + SP up. The bytes the oracle's dissolved
- * brackets leave behind land in the dead STACK_SCRATCH region, which the memory compare excludes.
- * Compared: RAM − STACK_SCRATCH, pc, SP, and the overlap code (the oracle leaves it in A; the
- * candidate must leave the same value in A *and* return it).
+ * CONTRACT. The dissolved arm takes the probe point/tolerances as arguments and returns { overlap }
+ * by JS value with no guest-stack ops. Compared: RAM − STACK_SCRATCH and the overlap code (the
+ * oracle leaves it in A; the candidate returns it). pc/SP are seam artifacts of the oracle's
+ * per-scan call/return brackets and are not compared; the bytes those brackets leave behind land in
+ * the dead STACK_SCRATCH region, which the memory compare excludes.
  *
  * The oracle's residual B / DE / IX / HL are NOT compared, and that is a claim about the ROM, not
  * a convenience: this routine's `ret` lands at 0x286E, whose `ret` lands at 0x1C23, and 0x1C23's
@@ -120,32 +118,34 @@ function runOracle(entry) {
   return c;
 }
 
+// The probe point (iy/c) and tolerance word (bounds) the dispatcher hands the arm. Crafted entries
+// carry them directly; real captures derive them from the machine (bounds off the stack top, where
+// the oracle's pop finds it).
+function searchArgs(entry) {
+  if (entry._args) return entry._args;
+  const sp = entry.regs.sp;
+  return { iy: entry.regs.iy, c: entry.regs.c, bounds: entry.mem.read8(sp) | (entry.mem.read8((sp + 1) & 0xffff) << 8) };
+}
+
 /**
- * Run the candidate on a fresh clone, then perform the single terminal return the ROM nets (the
- * candidate lifts the bounds word itself — a genuine dispatcher hand-off — so only the one
- * dissolved call/return bracket is left to model). Returns the machine plus the value the
- * candidate handed back.
+ * Run the candidate on a fresh clone. The dissolved arm returns { overlap } by JS value and does no
+ * guest-stack ops, so there is no terminal return to model. Returns the machine plus the code.
  */
 function runCandidate(entry, fn) {
   const c = entry.clone();
-  const returned = fn(c);
-  c.ret();
+  const returned = fn(c, searchArgs(entry)).overlap;
   return { c, returned };
 }
 
-/** Full contract diff: RAM − STACK_SCRATCH, pc, SP, and the overlap code (A + return value). */
+/** Full contract diff: RAM − STACK_SCRATCH, and the overlap code (the oracle leaves it in A; the
+ * candidate returns it). pc/SP are NOT compared — the dissolved arm does no guest-stack ops. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const { c, returned } = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
-  if (o.regs.a !== c.regs.a) diffs.push(`code(A) oracle=${o.regs.a} cand=${c.regs.a}`);
-  if (returned !== undefined && returned !== o.regs.a) {
-    diffs.push(`code(returned) oracle=${o.regs.a} cand=${returned}`);
-  }
+  if (returned !== o.regs.a) diffs.push(`code(returned) oracle=${o.regs.a} cand=${returned}`);
   return diffs;
 }
 
@@ -204,6 +204,8 @@ function craft(base, { bounds = WIDE_BOUNDS, probeY, probeX, start = 0, group1 =
   clearArrays(m);
   for (const { index, ...rec } of group1) putRecord(m, OBJ_ARRAY_67, index, rec);
   for (const { index, ...rec } of group2) putRecord(m, OBJ_ARRAY_64, index, rec);
+  // The probe point + tolerance word the dispatcher hands the idiomatic arm.
+  m._args = { iy: PROBE_BASE, c: probeY & 0xff, bounds };
   return m;
 }
 
@@ -374,10 +376,10 @@ function scan(m, objectBase, count, probe) {
   countObjectOverlaps(m, { ...probe, objectBase, count });
 }
 
-function probeOf(m, bounds) {
+function probeOf(iy, c, bounds) {
   return {
-    probeBase: m.regs.iy,
-    probeA: m.regs.c,
+    probeBase: iy,
+    probeA: c,
     stride: RECORD_STRIDE,
     threshA: bounds & 0xff,
     threshB: bounds >> 8,
@@ -385,31 +387,26 @@ function probeOf(m, bounds) {
 }
 
 /** Twin (a): never clears the shared counter. */
-function brokenNoClear(m) {
-  const probe = probeOf(m, m.pop16());
+function brokenNoClear(m, { iy, c, bounds }) {
+  const probe = probeOf(iy, c, bounds);
   scan(m, OBJ_ARRAY_67, GROUP1_RECORDS, probe);
   scan(m, OBJ_ARRAY_64, GROUP2_RECORDS, probe);
-  const code = grade(m.mem.read8(OVERLAP_COUNT));
-  m.regs.a = code;
-  return code;
+  return { overlap: grade(m.mem.read8(OVERLAP_COUNT)) };
 }
 
 /** Twin (b): scans only the first array. */
-function brokenSingleGroup(m) {
-  const probe = probeOf(m, m.pop16());
+function brokenSingleGroup(m, { iy, c, bounds }) {
+  const probe = probeOf(iy, c, bounds);
   m.mem.write8(OVERLAP_COUNT, 0);
   scan(m, OBJ_ARRAY_67, GROUP1_RECORDS, probe);
-  const code = grade(m.mem.read8(OVERLAP_COUNT));
-  m.regs.a = code;
-  return code;
+  return { overlap: grade(m.mem.read8(OVERLAP_COUNT)) };
 }
 
 /** Twin (c): reads the bounds word's two tolerance bytes the wrong way round. */
-function brokenSwappedBounds(m) {
-  const bounds = m.pop16();
+function brokenSwappedBounds(m, { iy, c, bounds }) {
   const probe = {
-    probeBase: m.regs.iy,
-    probeA: m.regs.c,
+    probeBase: iy,
+    probeA: c,
     stride: RECORD_STRIDE,
     threshA: bounds >> 8,
     threshB: bounds & 0xff,
@@ -417,32 +414,27 @@ function brokenSwappedBounds(m) {
   m.mem.write8(OVERLAP_COUNT, 0);
   scan(m, OBJ_ARRAY_67, GROUP1_RECORDS, probe);
   scan(m, OBJ_ARRAY_64, GROUP2_RECORDS, probe);
-  const code = grade(m.mem.read8(OVERLAP_COUNT));
-  m.regs.a = code;
-  return code;
+  return { overlap: grade(m.mem.read8(OVERLAP_COUNT)) };
 }
 
 /** Twin (d): scans 9 first-array records instead of 10. */
-function brokenShortFirstScan(m) {
-  const probe = probeOf(m, m.pop16());
+function brokenShortFirstScan(m, { iy, c, bounds }) {
+  const probe = probeOf(iy, c, bounds);
   m.mem.write8(OVERLAP_COUNT, 0);
   scan(m, OBJ_ARRAY_67, GROUP1_RECORDS - 1, probe);
   scan(m, OBJ_ARRAY_64, GROUP2_RECORDS, probe);
-  const code = grade(m.mem.read8(OVERLAP_COUNT));
-  m.regs.a = code;
-  return code;
+  return { overlap: grade(m.mem.read8(OVERLAP_COUNT)) };
 }
 
 /** Twin (e): grades a total of 2 as 7 instead of 3 — RAM stays IDENTICAL. */
-function brokenLadder(m) {
-  const probe = probeOf(m, m.pop16());
+function brokenLadder(m, { iy, c, bounds }) {
+  const probe = probeOf(iy, c, bounds);
   m.mem.write8(OVERLAP_COUNT, 0);
   scan(m, OBJ_ARRAY_67, GROUP1_RECORDS, probe);
   scan(m, OBJ_ARRAY_64, GROUP2_RECORDS, probe);
   const total = m.mem.read8(OVERLAP_COUNT);
   const code = total === 0 ? 0 : total === 1 ? 1 : 7; // BUG: the exactly-2 step is gone
-  m.regs.a = code;
-  return code;
+  return { overlap: code };
 }
 
 test("TEETH: five broken twins are CAUGHT — four in RAM, the ladder twin only in the live-out", () => {

@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchBoardOverlapSearch — vector to the current board's object-overlap collision arm through
- * this routine's own 6-entry inline jump table, indexed by BOARD (25m counts overlaps; boards 0/5
- * are reset-vector guards). The selected arm's value passes straight back to the caller.
- *
- * The caller's bounds word is handed to the arm through the STACK, not a register: the trampoline
- * clobbers the register pair recovering its table base, so the word is stacked below the base and
- * the arm lifts it back off — dropping it feeds the arm a garbage bounds word.
- *
- * LIVE-OUT: whatever the arm wrote to memory, plus the arm's returned value and the collision code
- * and record pointer it leaves in registers.
+ * dispatchBoardOverlapSearch — vector to the current board's object-overlap arm, selecting by BOARD
+ * (1=25m overlap counter, 2=50m, 3=75m, 4=100m; other values are the never-reached reset-vector
+ * guards). The probe point (iy/c) and per-axis tolerance word (bounds) are handed to the arm; the
+ * arm's severity code is returned to the caller.
  */
 
 import {
   BOARD,
-  BOARD_OVERLAP_DISPATCH_TABLE,
 } from "./names.js";
-import { dispatchInlineJumpTable } from "./dispatchInlineJumpTable.js";
+import { loc_3e99 } from "./loc_3e99.js";
+import { search50mObjectOverlap } from "./search50mObjectOverlap.js";
+import { search75mObjectOverlap } from "./search75mObjectOverlap.js";
+import { search100mObjectOverlap } from "./search100mObjectOverlap.js";
 
-const DISPATCH_SITE = "0x3E8D (loc_3e88 dispatch)";
+export const OVERLAP_HANDLERS = {
+  1: loc_3e99,
+  2: search50mObjectOverlap,
+  3: search75mObjectOverlap,
+  4: search100mObjectOverlap,
+};
 
-export function dispatchBoardOverlapSearch(m, hl = m.regs.hl) {
-  const { mem8 } = m;
-
-  // The caller's bounds word, below the table base; the arm lifts it back off the stack.
-  return (m.regs.a = mem8[BOARD], m.push16(hl), m.push16(BOARD_OVERLAP_DISPATCH_TABLE), dispatchInlineJumpTable(m, DISPATCH_SITE));
+export function dispatchBoardOverlapSearch(m, { iy, c, bounds }) {
+  const handler = OVERLAP_HANDLERS[m.mem8[BOARD]];
+  if (!handler) throw new Error(`dispatchBoardOverlapSearch: no overlap arm for board ${m.mem8[BOARD]}`);
+  return handler(m, { iy, c, bounds }).overlap;
 }

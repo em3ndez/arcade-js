@@ -12,13 +12,10 @@
  * takes findCollidingObject's caller-skip return, so sweep 2 never runs and OBJ_SEARCH_COUNT is left at
  * 5, not overwritten with 10.
  *
- * The oracle models the Z80 stack: it pops the pushed tolerances, brackets each search with a
- * call/return, and — because a hit takes a caller-skip return — every path (sweep-1 hit,
- * sweep-2 hit, both exhausted) lands back at the dispatch site with the same net pc + SP.
- * search75mObjectOverlap models no call/return bracket (direct calls to findCollidingObject), so the harness lines the
- * two up: after search75mObjectOverlap it performs the single terminal return the ROM nets on every path,
- * so pc + SP match and the bytes the oracle's dissolved bracket leaves behind sit in the dead
- * STACK_SCRATCH region, which the memory compare excludes.
+ * The dissolved arm takes the reference point/tolerances as arguments and RETURNS
+ * { overlap, residue, stride, base } — the same four values the oracle leaves in A/B/E/IX. It does
+ * no guest-stack ops, so pc/SP are seam artifacts and are not compared; the memory compare excludes
+ * the dead STACK_SCRATCH region the oracle's dissolved bracket writes.
  *
  * 0x28e0 is NEVER dispatched during attract (its board-3 arm is reached only through the
  * untranslated 0x286B -> 0x3E88 overlap-search caller), so there are no real captured
@@ -29,7 +26,7 @@
  *      sweep-1-exhaust -> sweep-2 hit at the first record and at record 3 (the
  *      count-minus-index recovery), sweep-1-exhaust -> sweep-2 exhausted, and a stack-passed
  *      tolerance flip that decides sweep 1 (proving the tolerance marshalling is live). Every
- *      case: RAM (minus STACK_SCRATCH), pc, SP and the live register file identical to the
+ *      case: RAM (minus STACK_SCRATCH) and the returned tuple identical to the
  *      oracle, and the sweep-1-hit case additionally asserts sweep 2 stayed untouched.
  *
  *   2. TEETH — three broken twins the same suite MUST catch: one that drops the short-circuit
@@ -83,15 +80,17 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-// The registers the search leaves live (result byte in A, count-minus-index residue in B),
-// plus the tolerances in H/L, the untouched reference/stride/base registers.
-// F is EXCLUDED: the outgoing flag byte is DEAD on every exit -- findCollidingObject's axis-2 is
-// now plain JS (no Z80 ALU op), and every consumer re-derives its branch from A or B (loc_2808
-// `and a`; loc_2954 `ld a,b`/`and a`); the wrapper only `ret`/`ld b` after the call.
-const REG_NAMES = ["a", "b", "c", "h", "l", "de", "ix", "iy"];
-function regDiffs(o, c) {
+// The dissolved arm returns { overlap, residue, stride, base } — the same four values the oracle
+// leaves in A (result byte), B (count-minus-index residue), E (winning stride low byte) and IX
+// (winning array base). pc/SP and the rest of the register file are NOT compared: the arm does no
+// guest-stack ops (no pop, no ret), so those are seam artifacts, and the whole-game SP tests guard
+// SP-correctness now.
+function tupleDiffs(o, tuple) {
   const out = [];
-  for (const n of REG_NAMES) if (o.regs[n] !== c.regs[n]) out.push(`reg ${n} oracle=${hx(o.regs[n])} cand=${hx(c.regs[n])}`);
+  if (tuple.overlap !== o.regs.a) out.push(`overlap oracle=${hx(o.regs.a)} cand=${hx(tuple.overlap)}`);
+  if (tuple.residue !== o.regs.b) out.push(`residue oracle=${hx(o.regs.b)} cand=${hx(tuple.residue)}`);
+  if ((tuple.stride & 0xff) !== (o.regs.e & 0xff)) out.push(`stride oracle=${hx(o.regs.e)} cand=${hx(tuple.stride)}`);
+  if (tuple.base !== o.regs.ix) out.push(`base oracle=${hx(o.regs.ix)} cand=${hx(tuple.base)}`);
   return out;
 }
 
@@ -102,30 +101,24 @@ function runOracle(entry) {
   return c;
 }
 
-/**
- * Run the candidate on a fresh clone, then model the single terminal return the ROM nets on
- * every outcome (sweep-1 hit, sweep-2 hit, and both-exhausted all unwind to the dispatch site
- * with the same net SP), so pc + SP line up with the oracle. The candidate recovers the pushed
- * tolerances itself (a genuine dispatcher-boundary stack read), so only the one dissolved
- * call/return remains to model.
- */
-function runCandidate(entry, fn) {
-  const c = entry.clone();
-  fn(c);
-  c.ret();
-  return c;
+// The search inputs the dispatcher hands the arm: reference pointer/coordinate in IY/C, and the
+// tolerance word the dispatcher pushed (recovered off the stack top, where the oracle's `pop hl`
+// finds it). Crafted entries carry them directly; real captures derive them from the machine.
+function searchArgs(entry) {
+  if (entry._args) return entry._args;
+  const sp = entry.regs.sp;
+  return { iy: entry.regs.iy, c: entry.regs.c, bounds: entry.mem.read8(sp) | (entry.mem.read8((sp + 1) & 0xffff) << 8) };
 }
 
-/** Full contract diff: RAM − STACK_SCRATCH, pc, SP, and the live register file. */
+/** Full contract diff: RAM − STACK_SCRATCH, plus the returned { overlap, residue, stride, base }. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
-  const c = runCandidate(entry, fn);
+  const c = entry.clone();
+  const tuple = fn(c, searchArgs(entry));
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
-  diffs.push(...regDiffs(o, c));
+  diffs.push(...tupleDiffs(o, tuple));
   return diffs;
 }
 
@@ -177,6 +170,8 @@ function craft(base, { s1 = [], s2 = [], bounds = 0x0407, cRef, iyRef }) {
   m.mem.write8((IY_BASE + 3) & 0xffff, iyRef & 0xff);
   stampArray(m, OBJ_ARRAY_64, SWEEP1_STRIDE, SWEEP1_COUNT, s1);
   stampArray(m, OBJ_ARRAY_65, SWEEP2_STRIDE, SWEEP2_COUNT, s2);
+  // The search inputs the dispatcher hands the idiomatic arm (reference point + tolerance word).
+  m._args = { iy: IY_BASE, c: cRef & 0xff, bounds };
   return m;
 }
 
@@ -286,55 +281,39 @@ test("EQUAL (crafted): the stack-passed tolerances flip sweep 1 and both match t
 // -- 2. TEETH -----------------------------------------------------------------
 
 /** Broken twin (a): drops the short-circuit — always runs sweep 2, even after a sweep-1 hit. */
-function brokenNoShortCircuit(m) {
-  const { regs, mem } = m;
-  regs.hl = m.pop16();
-  mem.write8(OBJ_SEARCH_COUNT, SWEEP1_COUNT);
-  regs.b = SWEEP1_COUNT;
-  regs.de = SWEEP1_STRIDE;
-  regs.ix = OBJ_ARRAY_64;
-  findCollidingObject(m); // BUG: return value ignored -> sweep 2 always follows
-  mem.write8(OBJ_SEARCH_COUNT, SWEEP2_COUNT);
-  regs.b = SWEEP2_COUNT;
-  regs.de = SWEEP2_STRIDE;
-  regs.ix = OBJ_ARRAY_65;
-  findCollidingObject(m);
-  return true;
+function brokenNoShortCircuit(m, { iy, c, bounds }) {
+  const { mem8 } = m;
+  const tolLow = bounds & 0xff, tolHigh = bounds >> 8;
+  mem8[OBJ_SEARCH_COUNT] = SWEEP1_COUNT;
+  let r = findCollidingObject(m, OBJ_ARRAY_64, c, tolLow, iy, tolHigh, SWEEP1_STRIDE, SWEEP1_COUNT); // BUG: hit ignored
+  mem8[OBJ_SEARCH_COUNT] = SWEEP2_COUNT;
+  r = findCollidingObject(m, OBJ_ARRAY_65, c, tolLow, iy, tolHigh, SWEEP2_STRIDE, SWEEP2_COUNT);
+  return { overlap: r.a, residue: r.b, stride: SWEEP2_STRIDE, base: OBJ_ARRAY_65 };
 }
 
 /** Broken twin (b): stores the wrong sweep-2 object count (9 instead of 10). */
-function brokenWrongCount(m) {
-  const { regs, mem } = m;
-  regs.hl = m.pop16();
-  mem.write8(OBJ_SEARCH_COUNT, SWEEP1_COUNT);
-  regs.b = SWEEP1_COUNT;
-  regs.de = SWEEP1_STRIDE;
-  regs.ix = OBJ_ARRAY_64;
-  if (!findCollidingObject(m)) return true;
-  mem.write8(OBJ_SEARCH_COUNT, SWEEP2_COUNT - 1); // BUG: wrong count stored
-  regs.b = SWEEP2_COUNT;
-  regs.de = SWEEP2_STRIDE;
-  regs.ix = OBJ_ARRAY_65;
-  findCollidingObject(m);
-  return true;
+function brokenWrongCount(m, { iy, c, bounds }) {
+  const { mem8 } = m;
+  const tolLow = bounds & 0xff, tolHigh = bounds >> 8;
+  mem8[OBJ_SEARCH_COUNT] = SWEEP1_COUNT;
+  let r = findCollidingObject(m, OBJ_ARRAY_64, c, tolLow, iy, tolHigh, SWEEP1_STRIDE, SWEEP1_COUNT);
+  if (r.hit) return { overlap: r.a, residue: r.b, stride: SWEEP1_STRIDE, base: OBJ_ARRAY_64 };
+  mem8[OBJ_SEARCH_COUNT] = SWEEP2_COUNT - 1; // BUG: wrong count stored
+  r = findCollidingObject(m, OBJ_ARRAY_65, c, tolLow, iy, tolHigh, SWEEP2_STRIDE, SWEEP2_COUNT);
+  return { overlap: r.a, residue: r.b, stride: SWEEP2_STRIDE, base: OBJ_ARRAY_65 };
 }
 
 /** Broken twin (c): scans the wrong sweep-2 record count (9 instead of 10), corrupting the
  *  count-minus-index residue on a sweep-2 hit. */
-function brokenWrongScanCount(m) {
-  const { regs, mem } = m;
-  regs.hl = m.pop16();
-  mem.write8(OBJ_SEARCH_COUNT, SWEEP1_COUNT);
-  regs.b = SWEEP1_COUNT;
-  regs.de = SWEEP1_STRIDE;
-  regs.ix = OBJ_ARRAY_64;
-  if (!findCollidingObject(m)) return true;
-  mem.write8(OBJ_SEARCH_COUNT, SWEEP2_COUNT);
-  regs.b = SWEEP2_COUNT - 1; // BUG: scans one fewer record -> residue is off
-  regs.de = SWEEP2_STRIDE;
-  regs.ix = OBJ_ARRAY_65;
-  findCollidingObject(m);
-  return true;
+function brokenWrongScanCount(m, { iy, c, bounds }) {
+  const { mem8 } = m;
+  const tolLow = bounds & 0xff, tolHigh = bounds >> 8;
+  mem8[OBJ_SEARCH_COUNT] = SWEEP1_COUNT;
+  let r = findCollidingObject(m, OBJ_ARRAY_64, c, tolLow, iy, tolHigh, SWEEP1_STRIDE, SWEEP1_COUNT);
+  if (r.hit) return { overlap: r.a, residue: r.b, stride: SWEEP1_STRIDE, base: OBJ_ARRAY_64 };
+  mem8[OBJ_SEARCH_COUNT] = SWEEP2_COUNT;
+  r = findCollidingObject(m, OBJ_ARRAY_65, c, tolLow, iy, tolHigh, SWEEP2_STRIDE, SWEEP2_COUNT - 1); // BUG: one fewer record
+  return { overlap: r.a, residue: r.b, stride: SWEEP2_STRIDE, base: OBJ_ARRAY_65 };
 }
 
 test("TEETH: the dropped-short-circuit, wrong-count-store, and wrong-scan-count twins are CAUGHT", () => {
@@ -364,8 +343,8 @@ test("TEETH: the dropped-short-circuit, wrong-count-store, and wrong-scan-count 
   ] });
   const scanDiffs = contractDiffs(s2LaterHit, brokenWrongScanCount);
   assert.ok(scanDiffs.length > 0, "the wrong-scan-count twin escaped — the register check is worthless");
-  assert.ok(scanDiffs.some((d) => d.startsWith("reg b ")),
-    `expected the residue diff in register b, got ${scanDiffs.join("; ")}`);
+  assert.ok(scanDiffs.some((d) => d.startsWith("residue ")),
+    `expected the residue diff in the returned tuple, got ${scanDiffs.join("; ")}`);
 
-  console.log(`  TEETH: dropped-short-circuit caught (${scDiffs.find((d) => d.startsWith(`RAM@${hx(OBJ_SEARCH_COUNT)}`))}); wrong-count-store caught (${countDiffs.find((d) => d.startsWith(`RAM@${hx(OBJ_SEARCH_COUNT)}`))}); wrong-scan-count caught (${scanDiffs.find((d) => d.startsWith("reg b "))})`);
+  console.log(`  TEETH: dropped-short-circuit caught (${scDiffs.find((d) => d.startsWith(`RAM@${hx(OBJ_SEARCH_COUNT)}`))}); wrong-count-store caught (${countDiffs.find((d) => d.startsWith(`RAM@${hx(OBJ_SEARCH_COUNT)}`))}); wrong-scan-count caught (${scanDiffs.find((d) => d.startsWith("residue "))})`);
 });
