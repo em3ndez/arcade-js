@@ -10,6 +10,8 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { MARIO_Y, OBJ_Y } from "./names.js";
+import { loc_20c3 } from "./loc_20c3.js";
+import { loc_20b5 } from "./loc_20b5.js";
 
 // +0x15 is the per-record kind index (only zero vs non-zero is drawn here); CLEARANCE is the
 // distance in pixels the object must rest below Mario for the turn to be skipped.
@@ -20,11 +22,11 @@ export function loc_20a2(m, record = m.regs.ix) {
   const { mem8 } = m;
   const at = (offset) => u16(record + offset);
 
-  if (mem8[at(OBJ_KIND)] !== 0) return m.call(0x20b5);
+  if (mem8[at(OBJ_KIND)] !== 0) return loc_20b5(m);
 
   // The subtraction is a byte, so an object near the top of the screen wraps past every Mario
   // position and lands on the no-turn arm too.
-  if (u8(mem8[at(OBJ_Y)] - CLEARANCE_BELOW_MARIO) >= mem8[MARIO_Y]) return m.call(0x20c3);
+  if (u8(mem8[at(OBJ_Y)] - CLEARANCE_BELOW_MARIO) >= mem8[MARIO_Y]) return loc_20c3(m);
 
-  return m.call(0x20b5);
+  return loc_20b5(m);
 }
