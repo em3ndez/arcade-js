@@ -9,6 +9,8 @@
  * further record bytes) and the tail's own result, forwarded unchanged.
  */
 
+import { loc_2038 } from "./loc_2038.js";
+
 const STEP_LEFT_HI = 0xff;
 const STEP_LEFT_LO = 0xa0;
 
@@ -19,5 +21,5 @@ export function loc_202f(m, record = m.regs.ix) {
   mem8[record + 0x11] = STEP_LEFT_LO;
 
   // The tail stores this zero into four more record bytes; the write rides the return into it.
-  return (regs.a = 0, m.call(0x2038));
+  return (regs.a = 0, loc_2038(m));
 }

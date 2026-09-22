@@ -27,14 +27,17 @@
  *     the WHOLE frozen chain below it — the sprite copy at ROM 0x21BA, the sweep advance at ROM
  *     0x1F8D, and the rest of that frame's ten-slot sweep — on both sides before anything is
  *     compared. The comparison is of the sweep's finished work, not of seven stores.
- *   - WHAT IS COMPARED, and it is more than the memory-equivalence minimum. The FULL state dump
- *     INCLUDING STACK_SCRATCH, plus pc, SP, all nineteen register fields, and the forwarded return
- *     value. That is legitimate here and is not the general contract: this rewrite keeps the
- *     oracle's call bracket exactly as the oracle has it (a tail jump, so there is no return
- *     address pushed beside it) and performs no stack operation of its own, and its seven stores
- *     touch no register and no flag — so the stack residue, the program counter and the whole
- *     register file are the frozen tail's, identically on both sides. Asserting them is extra
- *     teeth, not a false contract. Cycles are NOT compared: the rewrite is cycle-free by design.
+ *   - WHAT IS COMPARED — the memory-equivalence contract for the DISSOLVED form: RAM EXCLUDING the
+ *     STACK_SCRATCH window {0x6be0,0x6c00}, the final guest SP, and the forwarded return value.
+ *     loc_2038 no longer reaches its tail through m.call(0x21ba): it direct-calls the idiomatic
+ *     publishBarrelSprite, which direct-calls loc_1f8d, down to the still-frozen m.call(0x1f83).
+ *     The frozen oracle jp-tails to the same boundary at the same SP (a jp pushes nothing), so the
+ *     two runs happen to write the same bytes even inside STACK_SCRATCH — but that is a fact about
+ *     this particular chain, not a contract to assert, so the window is excluded and the final SP
+ *     is compared instead (a stray push in the rewrite lands in the excluded window yet still moves
+ *     SP, so that check stays load-bearing). pc and the rest of the register file are dropped with
+ *     the frozen bracket that used to justify them. Cycles are NOT compared: the rewrite is
+ *     cycle-free by design.
  *   - RE-ENTRANCY, handled explicitly. The chain below re-enters 0x2038 (the sweep reaches a later
  *     slot in the same frame), so the capturing hook keeps firing during replay. Left alone the
  *     capture list grows underneath the loop — measured here at 42 -> 44. It is frozen before any
@@ -59,7 +62,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2038 as oracle } from "../../translated/loc_2038.js";
 import { loc_2038 } from "../loc_2038.js";
 import { Machine } from "../../machine.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -91,13 +94,11 @@ const WRITES = [
   [ARM_SELECT, 8],
 ];
 
-// The oracle's own instruction stream: seven 19-cycle indexed stores and a 10-cycle jump, 143
-// T-states in total. Restored inside the live wiring so the vblank interrupt lands where it did.
-const ORACLE_STEPS = [
-  [0x203c, 19], [0x2040, 19], [0x2043, 19], [0x2046, 19],
-  [0x2049, 19], [0x204c, 19], [0x2050, 19], [0x21ba, 10],
-];
-const ORACLE_COST = ORACLE_STEPS.reduce((n, [, c]) => n + c, 0);
+// The boundary where the frozen chain resumes: loc_1f8d's still-live m.call(0x1f83) back into the
+// object-walk step. loc_2038 is now DISSOLVED — it direct-calls publishBarrelSprite, which
+// direct-calls loc_1f8d — so its whole fragment above 0x1f83 runs cycle-free; 0x1f83 and below
+// stay frozen and charge their own T-states.
+const WALK_STEP = 0x1f83;
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const hb = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
@@ -133,13 +134,18 @@ function captures() {
 // Comparison
 // ---------------------------------------------------------------------------
 
-/** First differing byte of the FULL state dump (STACK_SCRATCH included — see the header). */
+/** First differing state byte OUTSIDE the excluded STACK_SCRATCH window (the memory-equivalence
+ * contract — see the header). The frozen side and the dissolved side reach loc_1f8d's live
+ * m.call(0x1f83) with the same guest SP, so they write the same bytes into that window; excluding
+ * it is belt-and-braces against any bracket residue, and the final SP is compared separately. */
 function firstRamDiff(a, b) {
   const da = a.dumpState(), db = b.dumpState();
   const n = Math.min(da.length, db.length);
   for (let i = 0; i < n; i++) {
     if (da[i] === db[i]) continue;
-    return { addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] };
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi) continue;
+    return { addr, a: da[i], b: db[i] };
   }
   return null;
 }
@@ -162,9 +168,10 @@ function runPair(entry, candidate) {
   const ram = firstRamDiff(a, b);
   if (ram) return { kind: "ram", detail: `${hx(ram.addr)} oracle=${hb(ram.a)} candidate=${hb(ram.b)}`, addr: ram.addr };
 
-  const reg = REG_FIELDS.find((k) => a.regs[k] !== b.regs[k]);
-  if (reg) return { kind: "register", detail: `${reg} oracle=${hx(a.regs[reg])} candidate=${hx(b.regs[reg])}` };
-  if (a.pc !== b.pc) return { kind: "pc", detail: `oracle=${hx(a.pc)} candidate=${hx(b.pc)}` };
+  // Final guest SP is KEPT (a stray push in the dissolved form lands in the excluded window but
+  // still moves SP, so this stays load-bearing); pc and the rest of the register file are dropped
+  // with the frozen call bracket that used to make them comparable.
+  if (a.regs.sp !== b.regs.sp) return { kind: "sp", detail: `oracle=${hx(a.regs.sp)} candidate=${hx(b.regs.sp)}` };
   if (retA !== retB) return { kind: "return", detail: `oracle=${retA} candidate=${retB}` };
   return null;
 }
@@ -186,6 +193,46 @@ function breachCount(entries, candidate) {
 }
 
 const describe = (b) => b && `case ${b.i} (base ${hx(b.base)}, A=${hb(b.acc)}): ${b.kind} — ${b.detail}`;
+
+// A FRESH, override-free Machine carrying the source machine's observable state. Machine.clone()
+// would rerun the constructor with the live override installed and re-enter this routine through
+// its own tail chain; a fresh machine dispatches purely through the oracle registry, so pricing
+// the oracle here is hermetic.
+function rehost(m) {
+  const c = new Machine(ROM);
+  c.mem.workRam.set(m.mem.workRam);
+  c.mem.spriteRam.set(m.mem.spriteRam);
+  c.mem.videoRam.set(m.mem.videoRam);
+  c.mem.discardedWrites = m.mem.discardedWrites;
+  c.regs.copyFrom(m.regs);
+  c.io.loadStateFrom(m.io);
+  c.cycles = m.cycles;
+  c.pc = m.pc;
+  c.pcKnown = m.pcKnown;
+  c.frame = m.frame;
+  c.nmiCount = m.nmiCount;
+  c.booted = m.booted;
+  c.nextBoundary = Infinity;
+  c.nextNmi = Infinity;
+  c.maxFrames = Infinity;
+  c.maxCycles = Infinity;
+  return c;
+}
+
+// What the ORACLE spends on the fragment this rewrite replaces cycle-free: loc_2038's seven stores,
+// the dissolved sprite tail and loc_1f8d, up to — but NOT including — the frozen m.call(0x1f83).
+// Measured on a rehosted machine with that boundary stubbed to zero cost, so the price is exactly
+// the fragment and not the frozen subtree past it (which the live run charges for itself when its
+// own JS chain reaches the same frozen call). This replaces the old fixed 143-cycle charge, which
+// modelled the pre-dissolution jp-tail into 0x21BA and left the dissolved 0x21BA/0x1F8D fragment
+// uncharged, forking the run on the spin counter (and dropping the dispatch count 42 -> 34).
+function priceDissolved(m) {
+  const probe = rehost(m);
+  probe.routines.set(WALK_STEP, () => 0);
+  const before = probe.cycles;
+  oracle(probe);
+  return probe.cycles - before;
+}
 
 // ---------------------------------------------------------------------------
 // Crafted entries: a REAL capture with the seven written bytes poisoned and the accumulator
@@ -247,7 +294,7 @@ test("REACHABILITY: 0x2038 is dispatched in attract across every record base the
 // 1. EQUAL on every real dispatch
 // ===========================================================================
 
-test("EQUAL (all real captures): loc_2038 == oracle over the full dump, registers, pc and return", () => {
+test("EQUAL (all real captures): loc_2038 == oracle over RAM − STACK_SCRATCH, final SP and return", () => {
   const caps = captures();
   const before = caps.length;
   const bad = sweep(caps, loc_2038);
@@ -360,15 +407,16 @@ test("LIVE-OUT (measured): the rewrite wired live keeps a whole attract run byte
     return { frames, addrOf: (o) => m.stateOffsetToAddr(o) };
   };
 
-  // The oracle charges 143 T-states across ROM 0x2038-0x2052 (seven indexed stores at 19, then a
-  // 10-cycle jump). Cycle-free code charges none, which shifts the vblank interrupt and forks the
-  // run on the spin counter a few hundred frames later for reasons that have nothing to do with
-  // this routine. The charge is replayed as the oracle's own steps, so the program counter also
-  // arrives at the tail where the oracle leaves it.
+  // loc_2038 is cycle-free and, dissolved, so is the whole 0x21BA/0x1F8D fragment below it.
+  // Cycle-free code charges none, which shifts the vblank interrupt and forks the run on the spin
+  // counter a few hundred frames later for reasons that have nothing to do with this routine.
+  // Restore the fragment's true oracle cost, measured per dispatch and charged at the frozen
+  // walk-step boundary, then compare.
   let dispatches = 0;
   const wired = (mm) => {
     dispatches += 1;
-    for (const [pc, cycles] of ORACLE_STEPS) mm.step(pc, cycles);
+    const owed = priceDissolved(mm);
+    if (owed) mm.step(WALK_STEP, owed);
     return loc_2038(mm);
   };
 
@@ -397,7 +445,7 @@ test("LIVE-OUT (measured): the rewrite wired live keeps a whole attract run byte
 
   console.log(
     `  LIVE-OUT: ${ATTRACT_FRAMES} live frames, ${dispatches} real dispatches wired, ` +
-      `${ORACLE_COST} T-states/call restored — every frame byte-identical to the all-oracle ` +
-      "baseline, STACK_SCRATCH included",
+      "fragment cost restored per dispatch at the walk-step boundary — every frame byte-identical " +
+      "to the all-oracle baseline",
   );
 });

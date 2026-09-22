@@ -121,6 +121,52 @@ const describe = (mm) =>
     ? `case ${mm.i}: RAM diverges at ${hx(mm.ram.addr ?? 0)} (${mm.ram.a}->${mm.ram.b})`
     : `case ${mm.i}: return value diverges (${mm.ret[0]} vs ${mm.ret[1]})`);
 
+// The boundary where the frozen chain resumes: loc_1f8d's still-live m.call(0x1f83) back into the
+// object-walk step. loc_202f is now DISSOLVED — it direct-calls loc_2038, which direct-calls
+// publishBarrelSprite, which direct-calls loc_1f8d — so the whole fragment above 0x1f83 runs
+// cycle-free. Everything at or below 0x1f83 is still frozen and charges its own T-states.
+const WALK_STEP = 0x1f83;
+
+// A FRESH, override-free Machine carrying the source machine's observable state. Machine.clone()
+// would rerun the constructor with the live override installed and re-enter the routine through
+// its own tail chain; a fresh machine dispatches purely through the oracle registry, so pricing
+// the oracle here is hermetic.
+function rehost(m) {
+  const c = new Machine(ROM);
+  c.mem.workRam.set(m.mem.workRam);
+  c.mem.spriteRam.set(m.mem.spriteRam);
+  c.mem.videoRam.set(m.mem.videoRam);
+  c.mem.discardedWrites = m.mem.discardedWrites;
+  c.regs.copyFrom(m.regs);
+  c.io.loadStateFrom(m.io);
+  c.cycles = m.cycles;
+  c.pc = m.pc;
+  c.pcKnown = m.pcKnown;
+  c.frame = m.frame;
+  c.nmiCount = m.nmiCount;
+  c.booted = m.booted;
+  c.nextBoundary = Infinity;
+  c.nextNmi = Infinity;
+  c.maxFrames = Infinity;
+  c.maxCycles = Infinity;
+  return c;
+}
+
+// What the ORACLE spends on the fragment this rewrite replaces cycle-free: loc_202f's head, the
+// dissolved loc_2038, the sprite tail and loc_1f8d, up to — but NOT including — the frozen
+// m.call(0x1f83). Measured on a rehosted machine with that boundary stubbed to zero cost, so the
+// price is exactly the fragment and not the frozen subtree past it (which the live run charges for
+// itself when its own JS chain reaches the same frozen call). This replaces the old fixed 42-cycle
+// charge, which only covered ROM 0x202F-0x2037 and left the dissolved 0x2038/0x21BA/0x1F8D
+// fragment uncharged, forking the run on the spin counter.
+function priceDissolved(m) {
+  const probe = rehost(m);
+  probe.routines.set(WALK_STEP, () => 0);
+  const before = probe.cycles;
+  oracle(probe);
+  return probe.cycles - before;
+}
+
 // A crafted entry: a real captured machine with a synthetic stack (one plausible caller return
 // at the top of work RAM) and the three input bytes attract barely varies re-seeded.
 function crafted(base, { stepHi, stepLo, acc }) {
@@ -250,15 +296,16 @@ test("LIVE-OUT (measured): the rewrite wired live keeps a whole attract run iden
     return { frames, addrOf: (o) => m.stateOffsetToAddr(o) };
   };
 
-  // The oracle charges 42 T-states across ROM 0x202F-0x2037 (4 + 19 + 19). Cycle-free code
-  // charges none, which shifts the vblank interrupt and forks the run on the spin counter a few
-  // hundred frames later — nothing to do with this routine. Restore the charge, then compare.
+  // loc_202f is cycle-free and, dissolved, so is the whole 0x2038/0x21BA/0x1F8D fragment below it.
+  // Cycle-free code charges nothing, which shifts the vblank interrupt and forks the run on the
+  // spin counter a few hundred frames later — nothing to do with this routine. Restore the
+  // fragment's true oracle cost, measured per dispatch and charged at the frozen walk-step
+  // boundary, then compare.
   let dispatches = 0;
   const wired = (mm) => {
     dispatches += 1;
-    mm.step(0x2030, 4);
-    mm.step(0x2034, 19);
-    mm.step(0x2038, 19);
+    const owed = priceDissolved(mm);
+    if (owed) mm.step(WALK_STEP, owed);
     return loc_202f(mm);
   };
 

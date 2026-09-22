@@ -10,6 +10,8 @@
  * the selector's cleared bits pick the ballistic (falling) arm.
  */
 
+import { publishBarrelSprite } from "./publishBarrelSprite.js";
+
 // Record fields. None has a shared registry name; offsets this high are in-record only.
 const ARM_SELECT = 2;
 const X_FRACTION = 4;
@@ -21,7 +23,6 @@ const AIRBORNE_FRAMES = 20;
 
 const INITIAL_VY = -16; // signed 16-bit, 1/256-pixel units
 const FALLING_ARM = 8;
-const SPRITE_TAIL = 0x21ba;
 
 // resetValue: blanked into the four counter/fraction fields (0 in play). record: a bridge param
 // the shared tail also reads via m.regs.ix — leave it defaulted or the hand-off desyncs.
@@ -39,5 +40,5 @@ export function loc_2038(m, resetValue = m.regs.a, record = m.regs.ix) {
 
   mem8[record + ARM_SELECT] = FALLING_ARM;
 
-  return m.call(SPRITE_TAIL);
+  return publishBarrelSprite(m);
 }
