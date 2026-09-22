@@ -362,13 +362,14 @@ test("CRAFTED: loc_2b1c == oracle on RAM + both result bytes + return across all
     assert.equal(dispatched.includes(FOLLOWUP), followup, `${name}: oracle follow-up reached?`);
     assert.ok(check(o), `${name}: oracle did not take the expected path (post-condition failed)`);
 
-    // Equivalence: candidate identical to the oracle over the contract, and it reaches the
-    // follow-up exactly when the oracle does.
+    // Equivalence: candidate identical to the oracle over the contract. The idiomatic reaches the
+    // follow-up by a DIRECT call to loc_29af (the m.call seam is dissolved), so it never dispatches
+    // 0x29AF through the registry — its reach is proven by RAM equivalence on the board-3 hit exits
+    // and by the no-followup teeth, not by an m.call record.
     const diffs = contractDiffs(entry, loc_2b1c);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
     const cand = run(entry, loc_2b1c);
     assert.equal(cand.ret, undefined, `${name}: idiomatic return should be undefined`);
-    assert.equal(cand.dispatched.includes(FOLLOWUP), followup, `${name}: idiomatic follow-up reached?`);
 
     // The paths that touch nothing must write no work RAM at all.
     if (quiet) {
