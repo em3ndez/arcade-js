@@ -5,8 +5,10 @@
  * zeroed result pair.
  *
  * THE CONTRACT: RAM minus STACK_SCRATCH, plus the two result bytes loc_1c05 reads back (`dec a`,
- * then `dec b` on the arm that takes), plus the return value (always undefined — loc_2b1c is not
- * itself a caller-skip). pc and SP are NOT compared. The idiomatic routine models no stack, and on
+ * then `dec b` on the arm that takes), plus the return value — the idiomatic loc_2b1c now RETURNS
+ * the descent verdict (equal to the first result byte A) that loc_1c05 formerly read from A; the
+ * frozen oracle still returns undefined, so the candidate return is checked against the oracle's A.
+ * pc and SP are NOT compared. The idiomatic routine models no stack, and on
  * 0x29AF's two skip exits the ORACLE's own pc/SP are wrong by construction: 0x29AF discards its
  * return address and returns a level further up, `translated/loc_2b1c.js` ignores that and returns
  * again, so the oracle pops one word too many and lands at whatever the extra word held (0x03A6 on
@@ -144,7 +146,9 @@ function contractDiffs(entry, fn) {
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=0x${(ram.a & 0xff).toString(16)} cand=0x${(ram.b & 0xff).toString(16)}`);
   if (o.regs.a !== c.regs.a) diffs.push(`first result byte oracle=0x${(o.regs.a & 0xff).toString(16)} cand=0x${(c.regs.a & 0xff).toString(16)}`);
   if (o.regs.b !== c.regs.b) diffs.push(`second result byte oracle=0x${(o.regs.b & 0xff).toString(16)} cand=0x${(c.regs.b & 0xff).toString(16)}`);
-  if (oret !== ret) diffs.push(`return oracle=${String(oret)} cand=${String(ret)}`);
+  // The candidate now RETURNS the descent verdict; it must equal the value the oracle leaves in A
+  // (the byte loc_1c05 formerly read back). The frozen oracle itself still returns undefined.
+  if (ret !== o.regs.a) diffs.push(`return (verdict) oracle-A=0x${(o.regs.a & 0xff).toString(16)} cand=${String(ret)}`);
   return diffs;
 }
 
@@ -369,7 +373,7 @@ test("CRAFTED: loc_2b1c == oracle on RAM + both result bytes + return across all
     const diffs = contractDiffs(entry, loc_2b1c);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
     const cand = run(entry, loc_2b1c);
-    assert.equal(cand.ret, undefined, `${name}: idiomatic return should be undefined`);
+    assert.equal(cand.ret, a, `${name}: idiomatic return should be the descent verdict ${a}`);
 
     // The paths that touch nothing must write no work RAM at all.
     if (quiet) {
@@ -396,61 +400,75 @@ test("CRAFTED: loc_2b1c == oracle on RAM + both result bytes + return across all
 
 // -- 3. TEETH -----------------------------------------------------------------
 
+// The twins consume probeMarioDescentLanding's { skip, verdict } return and return the descent
+// verdict, exactly as the real loc_2b1c does — each carries one injected defect.
+
 /** (a) no-object-pointer — never points the probe at Mario's context block. */
 function brokenNoObjectPointer(m) {
   const { regs } = m;
-  if (!probeMarioDescentLanding(m)) return; // BUG: the pointer load is missing
+  const { skip, verdict } = probeMarioDescentLanding(m); // BUG: the pointer load is missing
+  if (!skip) return verdict;
   m.call(FOLLOWUP);
   regs.a = 0;
   regs.b = 0;
+  return 0;
 }
 
 /** (b) no-unwind-propagate — runs the follow-up and the result pair even on the probe's unwind. */
 function brokenNoUnwindPropagate(m) {
   const { regs } = m;
   regs.ix = OBJECT_BASE;
-  probeMarioDescentLanding(m); // BUG: no `if (!...) return`
+  probeMarioDescentLanding(m); // BUG: no `if (!skip) return verdict`
   m.call(FOLLOWUP);
   regs.a = 0;
   regs.b = 0;
+  return 0;
 }
 
 /** (c) inverted-unwind — returns early on the normal result and continues on the unwind. */
 function brokenInvertedUnwind(m) {
   const { regs } = m;
   regs.ix = OBJECT_BASE;
-  if (probeMarioDescentLanding(m)) return; // BUG: polarity inverted
+  const { skip, verdict } = probeMarioDescentLanding(m);
+  if (skip) return verdict; // BUG: polarity inverted
   m.call(FOLLOWUP);
   regs.a = 0;
   regs.b = 0;
+  return 0;
 }
 
 /** (d) no-followup — never calls the object-collision follow-up. */
 function brokenNoFollowup(m) {
   const { regs } = m;
   regs.ix = OBJECT_BASE;
-  if (!probeMarioDescentLanding(m)) return;
+  const { skip, verdict } = probeMarioDescentLanding(m);
+  if (!skip) return verdict;
   // BUG: the 0x29AF call is missing
   regs.a = 0;
   regs.b = 0;
+  return 0;
 }
 
 /** (e) drop-first-result — omits the first result byte. */
 function brokenDropFirstResult(m) {
   const { regs } = m;
   regs.ix = OBJECT_BASE;
-  if (!probeMarioDescentLanding(m)) return;
+  const { skip, verdict } = probeMarioDescentLanding(m);
+  if (!skip) return verdict;
   m.call(FOLLOWUP);
   regs.b = 0; // BUG: the first result byte is never written
+  return 0;
 }
 
 /** (f) drop-second-result — omits the second result byte. */
 function brokenDropSecondResult(m) {
   const { regs } = m;
   regs.ix = OBJECT_BASE;
-  if (!probeMarioDescentLanding(m)) return;
+  const { skip, verdict } = probeMarioDescentLanding(m);
+  if (!skip) return verdict;
   m.call(FOLLOWUP);
   regs.a = 0; // BUG: the second result byte is never written
+  return 0;
 }
 
 /** First crafted case (by name) where `candidate` diverges from the oracle, or null. */

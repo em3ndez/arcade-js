@@ -50,7 +50,7 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de, y = m.re
   // because real kinds are small.
   const kind = mem8[SEG_KIND];
   if ((((kind - 0x02) & 0xff) & 0x80) === 0) {
-    return void (m.regs.de = de, drawGirderSpan(m));
+    return (m.regs.de = de, drawGirderSpan(m));
   }
 
   // Kinds 0 and 1: fold the second point's sub-tile x into the run before the span fill.
@@ -70,6 +70,6 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de, y = m.re
   }
 
   // The ladder drawer reads HL (and L = its low byte) as its write cursor — handed in as an
-  // argument; the record cursor rides the tail on the register file for its far-cap step.
-  return void (m.regs.de = de, drawLadder(m, hl));
+  // argument; it returns DE advanced past the record's far cap.
+  return (m.regs.de = de, drawLadder(m, hl));
 }

@@ -18,10 +18,9 @@ export function drawCappedTileColumn(m, de = m.regs.de) {
 
   const kind = mem8[SEG_KIND];
 
-  // Kind 4+ is not ours: the uniform filler advances the record pointer itself.
+  // Kind 4+ is not ours: the uniform filler advances the record pointer and returns it.
   if (kind !== 0x03) {
-    fillTileColumn(m);
-    return;
+    return fillTileColumn(m);
   }
 
   let addr = mem16[SEG_ADDR1];

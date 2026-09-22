@@ -10,15 +10,15 @@
  * MARIO_Y and unwound the whole collision walk — its false return, which this routine
  * propagates); the "over a snap column" code 2 (hand off to loc_2b7a, the horizontal
  * X-snap tail); or code 0, no surface here (fall through). Both probes code 0 -> normal
- * return. The routine returns true on the normal return and false for the two-frame
- * caller-skip unwind (`if (loc_2b53(m) === false) return false;`).
+ * return. The routine returns { skip, verdict }: skip is the caller-skip (true on the normal
+ * return, false for the two-frame unwind); verdict is the descent value formerly left in A.
  *
  * STACK MODEL. In the oracle, loc_2b53 pushes each `call 0x2b9b` return and either `ret`s
  * once on the normal path (0x2B70 ret z) or is unwound two frames up by probeTileForLanding's own
  * landed-double-skip (entry_2be1 pop x2 + ret) / loc_2b7a's pop hl + ret. The idiomatic
- * routine models no stack (a boolean return + direct calls), so runCandidate replays the
- * net stack op the oracle nets on each path: on the false (unwind) paths one discarded
- * pop + one ret (SP += 4, pc -> two frames up); on the true (normal) path one ret
+ * routine models no stack (direct calls, a { skip, verdict } return), so runCandidate replays the
+ * net stack op the oracle nets on each path, keyed on skip: on the false (unwind) paths one
+ * discarded pop + one ret (SP += 4, pc -> two frames up); on the true (normal) path one ret
  * (SP += 2, pc -> the caller). The dissolved push/pop churn lives in STACK_SCRATCH,
  * excluded by the memory-equivalence contract; every live cell is kept.
  *
@@ -26,8 +26,8 @@
  *      each probe point poked (reject 0x00 / surface 0xB0) and the descent inputs set to
  *      reach: first-probe landed, first-probe snap, both-reject normal return,
  *      second-probe landed, second-probe snap. Each asserts RAM (minus STACK_SCRATCH) +
- *      pc + SP + the result code identical to the oracle, that the idiomatic return
- *      boolean matches, and (non-vacuity) that the oracle really took the expected path
+ *      pc + SP + the result code identical to the oracle, that the idiomatic skip and the
+ *      threaded verdict match, and (non-vacuity) that the oracle really took the expected path
  *      (MARIO_Y snapped on a landing / MARIO_X committed on a snap / nothing written on
  *      the normal return).
  *
@@ -75,6 +75,12 @@ const POISON_A = 0xaa;    // entry accumulator; overwritten by the first probe's
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
+
+// loc_2b53 now returns { skip, verdict } (skip = the old caller-skip boolean; verdict = the value
+// the airborne handler branches on, formerly left in A). The frozen oracle and the broken twins
+// still return the bare boolean — read either shape uniformly.
+const skipOf = (r) => (r && typeof r === "object") ? r.skip : r;
+const verdictOf = (r) => (r && typeof r === "object") ? r.verdict : undefined;
 
 // tileAddrForPixel (ROM 0x2FF0), replicated to poke the tile cell under a probe point.
 const tileAddr = (y, x) => (0x7400 + (((~y) & 0xff) >> 3) * 32 + ((x >> 3) & 0x1f)) & 0xffff;
@@ -125,7 +131,7 @@ function runOracle(entry) {
 function runCandidate(entry, fn) {
   const c = entry.clone();
   const ret = fn(c);
-  if (ret === false) {
+  if (skipOf(ret) === false) {
     c.pop16(); // discard loc_2b53's own return (the unwind's first pop)
     c.ret();   // net return two frames up
   } else {
@@ -196,15 +202,15 @@ function craftEntry({ tile1, tile2, prevY, vxHi = 0x01 }) {
 
 // The five terminal paths, each pinned by an oracle post-condition (non-vacuity).
 const CASES = [
-  { name: "first-probe landed",  opts: { tile1: 0xb0, tile2: 0x00, prevY: 0x00 }, ret: false,
+  { name: "first-probe landed",  opts: { tile1: 0xb0, tile2: 0x00, prevY: 0x00 }, ret: false, verdict: 1,
     check: (o) => o.mem.read8(MARIO_Y) === LANDED_Y && o.mem.read8(MARIO_X) === X },
-  { name: "first-probe snap",    opts: { tile1: 0xb0, tile2: 0x00, prevY: 0x40 }, ret: false,
+  { name: "first-probe snap",    opts: { tile1: 0xb0, tile2: 0x00, prevY: 0x40 }, ret: false, verdict: 1,
     check: (o) => o.mem.read8(MARIO_X) === SNAPPED_X && o.mem.read8(MARIO_Y) === Y },
-  { name: "both-reject normal",  opts: { tile1: 0x00, tile2: 0x00, prevY: 0x00 }, ret: true,
+  { name: "both-reject normal",  opts: { tile1: 0x00, tile2: 0x00, prevY: 0x00 }, ret: true, verdict: 0,
     check: (o) => o.mem.read8(MARIO_Y) === Y && o.mem.read8(MARIO_X) === X },
-  { name: "second-probe landed", opts: { tile1: 0x00, tile2: 0xb0, prevY: 0x00 }, ret: false,
+  { name: "second-probe landed", opts: { tile1: 0x00, tile2: 0xb0, prevY: 0x00 }, ret: false, verdict: 1,
     check: (o) => o.mem.read8(MARIO_Y) === LANDED_Y },
-  { name: "second-probe snap",   opts: { tile1: 0x00, tile2: 0xb0, prevY: 0x40 }, ret: false,
+  { name: "second-probe snap",   opts: { tile1: 0x00, tile2: 0xb0, prevY: 0x40 }, ret: false, verdict: 1,
     check: (o) => o.mem.read8(MARIO_X) === SNAPPED_X },
 ];
 
@@ -213,7 +219,7 @@ const CASES = [
 test("EQUAL: loc_2b53 == oracle on RAM+pc+SP+A across all five terminal paths", () => {
   assert.notEqual(ADDR1, ADDR2, "the two probe cells must be distinct so tile1/tile2 are independent");
 
-  for (const { name, opts, ret, check } of CASES) {
+  for (const { name, opts, ret, verdict, check } of CASES) {
     const entry = craftEntry(opts);
 
     // Non-vacuity: the oracle really took the expected path.
@@ -221,10 +227,14 @@ test("EQUAL: loc_2b53 == oracle on RAM+pc+SP+A across all five terminal paths", 
     assert.equal(oret, ret, `${name}: oracle return should be ${ret}`);
     assert.ok(check(o), `${name}: oracle did not take the expected path (post-condition failed)`);
 
-    // Equivalence: candidate identical to the oracle over the contract, same boolean.
+    // Equivalence: candidate identical to the oracle over the contract, same caller-skip, and the
+    // threaded verdict equal to the oracle's first result byte (the value formerly read from A).
     const diffs = contractDiffs(entry, loc_2b53);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
-    assert.equal(runCandidate(entry, loc_2b53).ret, ret, `${name}: idiomatic return should be ${ret}`);
+    const cand = runCandidate(entry, loc_2b53);
+    assert.equal(skipOf(cand.ret), ret, `${name}: idiomatic caller-skip should be ${ret}`);
+    assert.equal(verdictOf(cand.ret), verdict, `${name}: idiomatic verdict should be ${verdict}`);
+    assert.equal(verdictOf(cand.ret), o.regs.a, `${name}: verdict must equal the oracle's first result byte`);
 
     // The normal-return path writes NO non-stack RAM; the unwind paths write exactly one
     // live cell (MARIO_Y on a landing, or MARIO_X + the sprite X on a snap).

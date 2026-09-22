@@ -24,6 +24,7 @@ export function drawLadder(m, hl = m.regs.hl) {
     mem8[page + col] = 0xc0;
   }
 
-  drawSegmentEndCap(m); // reads no register; the cursor stays valid across it
-  return (m.regs.hl = page + col);
+  // The end cap reads no register (cursor stays valid) and returns DE advanced past the record.
+  const de = drawSegmentEndCap(m);
+  return (m.regs.hl = page + col, de);
 }

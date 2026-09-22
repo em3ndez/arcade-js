@@ -5,8 +5,10 @@
  * (its false return) propagates the unwind; code 2 (over a snap column) hands off to the X-snap
  * tail arm; code 0 falls through to the next probe, or returns normally after the second.
  *
- * RETURN CONTRACT (caller-skip): true on the normal return (no surface under either probe), false
- * to signal the two-frame unwind that aborts the collision walk.
+ * RETURN CONTRACT: `{ skip, verdict }`. `skip` is the caller-skip — true on the normal return (no
+ * surface under either probe), false to signal the two-frame unwind that aborts the collision walk.
+ * `verdict` is the descent value the airborne handler branches on (formerly left in A): 1 where the
+ * probe landed/snapped Mario, 0 otherwise. The register file still carries the same result bytes.
  *
  * LIVE-OUT: memory (Mario's Y snapped on a landing; Mario's X and the sprite-record X on an
  * X-snap), the probe's result code (left on the register file by the probe), and the skip boolean.
@@ -23,16 +25,15 @@ export function loc_2b53(m) {
   // First probe: high = X-3, low = Y+7.
   const first = (u8(mem8[MARIO_X] - 3) << 8) | u8(mem8[MARIO_Y] + 7);
   const p1 = probeTileForLanding(m, first);
-  if (p1.skip === false) return false;
+  if (p1.skip === false) return { skip: false, verdict: p1.a };
 
-  if (p1.a === 2) return loc_2b7a(m);
+  if (p1.a === 2) return { skip: loc_2b7a(m), verdict: 1 };
 
-  // Second probe: a reject leaves the first point intact — high X-3, low Y+7 — so its bytes are
-  // exactly `first`'s; the new high byte is +7 (X+4).
+  // Second probe: X+4, Y+7 (a reject left the first point intact, so its low byte == first's).
   const second = (u8(((first >> 8) & 0xff) + 7) << 8) | u8(first & 0xff);
   const p2 = probeTileForLanding(m, second);
-  if (p2.skip === false) return false;
+  if (p2.skip === false) return { skip: false, verdict: p2.a };
 
-  if (p2.a === 0) return true;
-  return loc_2b7a(m);
+  if (p2.a === 0) return { skip: true, verdict: 0 };
+  return { skip: loc_2b7a(m), verdict: 1 };
 }

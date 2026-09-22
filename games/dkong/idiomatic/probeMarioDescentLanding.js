@@ -4,8 +4,9 @@
  * off 25m (BOARD != 1) delegate the whole probe to the two-point form; on 25m run a single-point
  * probe that snaps Mario onto the tile surface under him when he is within three pixels of it.
  *
- * Return (caller-skip): true = normal return; false = the two-frame collision-walk unwind. Only
- * the off-25m arm can return true.
+ * Return `{ skip, verdict }`: skip is the caller-skip (true = normal return, false = the two-frame
+ * collision-walk unwind; only the off-25m arm can return true). verdict is the descent value the
+ * airborne handler branches on (formerly left in A) — 1 where Mario landed/snapped, else 0.
  *
  * LIVE-OUT: MARIO_Y on the snap arm; the two result bytes the consumer reads back; and the
  * caller-skip boolean.
@@ -29,14 +30,15 @@ export function probeMarioDescentLanding(m) {
 
   const probeHl = (mem8[MARIO_X] << 8) | u8(mem8[MARIO_Y] + PROBE_OFFSET);
   const probe = probeTileForLanding(m, probeHl);
-  if (probe.skip === false) return false;
+  if (probe.skip === false) return { skip: false, verdict: probe.a };
 
-  if (probe.a === 0) return loc_2b51(m);
+  if (probe.a === 0) return { skip: loc_2b51(m), verdict: 0 };
 
   const probeCoord = probe.e;
   const surfaceBoundary = probe.c;
-  if (u8(probeCoord - surfaceBoundary) >= SNAP_REACH) return loc_2b74(m);
+  if (u8(probeCoord - surfaceBoundary) >= SNAP_REACH) return { skip: loc_2b74(m), verdict: 0 };
 
   mem8[MARIO_Y] = surfaceBoundary - PROBE_OFFSET;
-  return (m.regs.a = 1, m.regs.b = 1, loc_2b51(m)); // keep the two result bytes on the register file
+  // keep the two result bytes on the register file; the snap's verdict is 1
+  return (m.regs.a = 1, m.regs.b = 1, { skip: loc_2b51(m), verdict: 1 });
 }

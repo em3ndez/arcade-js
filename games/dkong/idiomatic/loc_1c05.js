@@ -41,10 +41,9 @@ const LAND_CHECK_TRIGGER_FRAME = 20;
 // (returns via JS, not a guest ret), so a pushed continuation would orphan -- SP -2 at a barrel-jump.
 
 export function loc_1c05(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  loc_2b1c(m);
-  const probeVerdict = regs.a;
+  const probeVerdict = loc_2b1c(m);
 
   // The DECREMENTED verdict passes through as the landing flag arg, not a regs.a seat.
   if (probeVerdict === 1) return loc_1c3a(m, undefined, u8(probeVerdict - 1));

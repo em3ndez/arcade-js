@@ -130,14 +130,20 @@ function runOracle(entry) {
 }
 
 /** Run a candidate on a fresh clone, then replay the net stack op the oracle nets on the path the
- *  candidate took (the idiomatic routine uses the JS call stack and returns a boolean; it never
+ *  candidate took, keyed on the caller-skip (the idiomatic routine uses the JS call stack; it never
  *  touches pc/SP itself):
- *    - false (unwind): one discarded pop + one return -> SP += 4, pc two frames up.
- *    - true  (normal): one return                     -> SP += 2, pc to the caller. */
+ *    - skip false (unwind): one discarded pop + one return -> SP += 4, pc two frames up.
+ *    - skip true  (normal): one return                     -> SP += 2, pc to the caller. */
+// probeMarioDescentLanding (and loc_2b53) now return { skip, verdict } (skip = the old caller-skip
+// boolean; verdict = the value the airborne handler branches on, formerly left in A). The frozen
+// oracle and the broken twins still return the bare boolean — read either shape uniformly.
+const skipOf = (r) => (r && typeof r === "object") ? r.skip : r;
+const verdictOf = (r) => (r && typeof r === "object") ? r.verdict : undefined;
+
 function runCandidate(entry, fn) {
   const c = entry.clone();
   const ret = fn(c);
-  if (ret === false) {
+  if (skipOf(ret) === false) {
     c.pop16(); // discard probeMarioDescentLanding's own return (the unwind's first pop)
     c.ret();   // net return two frames up
   } else {
@@ -329,6 +335,9 @@ test("CAPTURED: probeMarioDescentLanding == oracle on RAM+pc+SP+A+B across real 
     entry.nextBoundary = Infinity;
     const diffs = contractDiffs(entry, probeMarioDescentLanding);
     assert.equal(diffs.length, 0, diffs.join("; "));
+    // The threaded verdict must equal the value the oracle leaves in A.
+    assert.equal(verdictOf(runCandidate(entry, probeMarioDescentLanding).ret), runOracle(entry).c.regs.a,
+      "captured verdict must equal the oracle's first result byte");
     const path = classify(entry);
     tally[path] = (tally[path] || 0) + 1;
   }
@@ -361,10 +370,14 @@ test("CRAFTED: probeMarioDescentLanding == oracle on RAM+pc+SP+A+B across all se
     assert.equal(o.regs.b, b, `${name}: oracle second result byte`);
     assert.ok(check(o), `${name}: oracle did not take the expected path (post-condition failed)`);
 
-    // Equivalence: candidate identical to the oracle over the contract, same boolean.
+    // Equivalence: candidate identical to the oracle over the contract, same caller-skip, and the
+    // threaded verdict equal to the oracle's first result byte (the value formerly read from A).
     const diffs = contractDiffs(entry, probeMarioDescentLanding);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
-    assert.equal(runCandidate(entry, probeMarioDescentLanding).ret, ret, `${name}: idiomatic return should be ${ret}`);
+    const cand = runCandidate(entry, probeMarioDescentLanding);
+    assert.equal(skipOf(cand.ret), ret, `${name}: idiomatic caller-skip should be ${ret}`);
+    assert.equal(verdictOf(cand.ret), a, `${name}: idiomatic verdict should be ${a}`);
+    assert.equal(verdictOf(cand.ret), o.regs.a, `${name}: verdict must equal the oracle's first result byte`);
 
     // The normal return writes NO non-stack RAM at all.
     if (ret === true) {

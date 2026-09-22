@@ -14,7 +14,7 @@ import { loc_0dd3 } from "./loc_0dd3.js";
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js";
 
 export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   for (;;) {
     const kind = mem8[de];
@@ -39,11 +39,10 @@ export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
 
     // Second point's y, and the segment height — the ABSOLUTE difference of the two y values. The
     // step callee converts the second point, takes the first x and record cursor as arguments, and
-    // walks DE on to the next record — which comes back through the register (no return path for it).
+    // returns DE advanced to the next record.
     de = u16(de + 1);
     const y2 = mem8[de];
 
-    loc_0dd3(m, Math.abs(y2 - y) & 0xff, x, de, y2);
-    de = regs.de;
+    de = loc_0dd3(m, Math.abs(y2 - y) & 0xff, x, de, y2);
   }
 }
