@@ -17,14 +17,11 @@ import {
 } from "./names.js";
 
 
-export function renderBcdColumnFixedCell(m, enteredAt057C = false) {
-  const { regs } = m;
-
+export function renderBcdColumnFixedCell(m, enteredAt057C = false, src = m.regs.de) {
   // Fixed entry hard-wires its destination cell; the shared entry keeps the caller's column.
   const dest = enteredAt057C ? undefined : HIGH_SCORE_DISPLAY_CELL;
-  regs.exDeHl(); // source pointer arrives in a register; drop what it displaces
 
-  // Source HL defaults from the exDeHl; the DE stride rides the return (a live-out the leaf does
-  // not re-seat); the byte count B is the high byte of BCD_RENDER_BYTE_COUNT.
-  return expandBcdDigits(m, undefined, BCD_RENDER_BYTE_COUNT >> 8, dest, regs.de = VRAM_ROW_STEP_UP);
+  // The source pointer arrives in DE (src); the DE stride rides the return (a live-out the leaf
+  // does not re-seat); the byte count B is the high byte of BCD_RENDER_BYTE_COUNT.
+  return expandBcdDigits(m, src, BCD_RENDER_BYTE_COUNT >> 8, dest, m.regs.de = VRAM_ROW_STEP_UP);
 }

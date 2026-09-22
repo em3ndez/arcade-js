@@ -9,21 +9,20 @@
  * writes.
  */
 
+import { bcdSubByte } from "../../../core/bcd.js";
 import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED } from "./names.js";
 import { renderBonusDisplay } from "./renderBonusDisplay.js";
 
-export function stepBonusDisplayDown(m) {
-  const { regs, mem8 } = m;
+export function stepBonusDisplayDown(m, aIn = m.regs.a) {
+  const { mem8 } = m;
 
-  regs.sub(0x01);
-
-  if (regs.a === 0) {
+  // Latch the bottomed-out marker on the plain (pre-adjust) subtract reaching zero (held 01).
+  if (((aIn - 1) & 0xff) === 0) {
     mem8[BONUS_DISPLAY_ZEROED] = 0x01;
   }
 
-  // daa reads the flags the sub left; only the plain store may sit between them.
-  regs.daa();
-
-  mem8[BONUS_DISPLAY] = regs.a;
-  renderBonusDisplay(m);
+  // Packed-BCD decrement (dec then daa, borrow clear): 00 wraps to 99.
+  const value = bcdSubByte(aIn, 1).value;
+  mem8[BONUS_DISPLAY] = value;
+  return (m.regs.a = value, renderBonusDisplay(m, value));
 }
