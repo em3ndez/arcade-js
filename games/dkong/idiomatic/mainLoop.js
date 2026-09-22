@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { FRAME, FRAME_SEEN, SPIN_COUNT, TASK_HEAD } from "./names.js";
+import { FRAME, FRAME_SEEN, SPIN_COUNT, TASK_HEAD, WORK_RAM_BASE } from "./names.js";
 //
 // mainLoop — Donkey Kong's task-scheduler main loop, written as a GENERATOR so a host can drive
 // it one vblank at a time. Each pass reads the current task byte and tests bit 7: clear dispatches
@@ -10,24 +10,23 @@ import { FRAME, FRAME_SEEN, SPIN_COUNT, TASK_HEAD } from "./names.js";
 // yielding at the top would let the vblank land before the per-frame work runs, so the first frame
 // would come out one step behind.
 
-import { loc_02e3 } from "../translated/loc_02e3.js";
+import { loc_02e3 } from "./loc_02e3.js";
 import { rampDifficulty } from "./rampDifficulty.js";
 import { awardBonusLifeAtThreshold } from "./awardBonusLifeAtThreshold.js";
 import { animateFixedHazardAndReleaseFire } from "./animateFixedHazardAndReleaseFire.js";
 import { redrawPlayerUpIndicator } from "./redrawPlayerUpIndicator.js";
 
 export function* mainLoop(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   for (;;) {
-    regs.h = 0x60;
-    regs.a = mem8[TASK_HEAD];
-    regs.l = regs.a;
-    regs.a = mem8[regs.hl];
-    regs.add(regs.a);
+    // The task ring lives in the work-RAM page; the head cell holds the current slot's low byte.
+    const slot = WORK_RAM_BASE | mem8[TASK_HEAD];
+    const taskByte = mem8[slot];
 
-    if (regs.fNC) {
-      loc_02e3(m);
+    // Bit 7 clear dispatches the queued task; the handler indexes its table by the doubled byte.
+    if ((taskByte & 0x80) === 0) {
+      loc_02e3(m, slot, (taskByte << 1) & 0xff);
       yield;
       continue;
     }

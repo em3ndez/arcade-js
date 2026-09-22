@@ -16,14 +16,7 @@ import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js";
 export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
   const { regs, mem8, mem16 } = m;
 
-  // Now that the conversion leaf and the per-segment step are direct idiomatic calls, neither
-  // moves the guest stack; sp is pinned back to this base each iteration to absorb any residual
-  // seam movement. A stack seam, not logic, and not a live-out.
-  const spBase = sp;
-
   for (;;) {
-    regs.sp = spBase;
-
     const kind = mem8[de];
     mem8[SEG_KIND] = kind;
     if (kind === 0xaa) return;
@@ -44,16 +37,13 @@ export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
     mem8[SEG_SUBTILE_Y1] = y & 0x07;
     mem8[SEG_SUBTILE1] = x & 0x07;
 
-    // Second point's y, and the segment height — the ABSOLUTE difference of the two y values.
-    // The step callee converts the second point itself: it reads that y from H (kept in the
-    // register, since its frozen converter takes H and nothing hands it over as a param), takes the
-    // first x and the record cursor as arguments, and walks DE on to the next record — which comes
-    // back through the register, as the step has no return path for it.
+    // Second point's y, and the segment height — the ABSOLUTE difference of the two y values. The
+    // step callee converts the second point, takes the first x and record cursor as arguments, and
+    // walks DE on to the next record — which comes back through the register (no return path for it).
     de = u16(de + 1);
     const y2 = mem8[de];
-    regs.h = y2;
 
-    loc_0dd3(m, Math.abs(y2 - y) & 0xff, x, de);
+    loc_0dd3(m, Math.abs(y2 - y) & 0xff, x, de, y2);
     de = regs.de;
   }
 }
