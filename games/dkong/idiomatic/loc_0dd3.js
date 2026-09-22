@@ -11,10 +11,9 @@
  * reads as the next record's address.
  */
 
-// Imported in its guest-stack-consuming address-layer form on purpose: not interchangeable with
-// a direct call, which would leave the guest stack one word off.
+// The seam entry marshals the register file to the pure (y, x) leaf.
 import { u16 } from "../../../core/int.js";
-import { loc_2ff0 } from "../translated/loc_2ff0.js";
+import { tileAddrForPixelFromRegisters } from "./tileAddrForPixel.js";
 import { drawGirderSpan } from "./drawGirderSpan.js";
 import { drawLadder } from "./drawLadder.js";
 
@@ -38,13 +37,13 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de) {
   // Second point's x: run = difference of the two x values, sub-tile = its low 3 bits.
   de = u16(de + 1);
   const x2 = mem8[de];
-  m.regs.l = x2; // L is the frozen converter's x input
+  m.regs.l = x2; // L is the seam entry's x input
   mem8[SEG_RUN] = (x2 - c);
   mem8[SEG_SUBTILE2] = x2 & 0x07;
 
   // Convert the second point to a tile address (the record pointer is safe in the `de` local).
-  loc_2ff0(m);
-  mem16[SEG_ADDR2] = m.regs.hl; // the frozen converter returns the address in HL
+  tileAddrForPixelFromRegisters(m);
+  mem16[SEG_ADDR2] = m.regs.hl; // the seam entry returns the address in HL
 
   // Hand the record cursor to the drawers, which read regs.de and step it to the next record.
   m.regs.de = de;

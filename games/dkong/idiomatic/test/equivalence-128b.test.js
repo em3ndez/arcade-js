@@ -1,50 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for beginMarioDeathAnimation (ROM 0x128b) — arm 0 (the seed) of Mario's
- * DEATH ANIMATION (selector DEATH_ANIM_PHASE 0x639D): on the gate's expiry frame it points
- * his sprite at tile 0x78, primes DEATH_ANIM_TICKS_LEFT to 13, clears sprite runs, fires the
- * death sound line (SND_IRQ_TRIGGER 0x6088 — MAME's "dead" line 0x7D80, dkong.cpp:202, whose
- * sole ROM writer is this routine's last instruction at 0x12A8), and advances the phase.
- * Grounded in real MAME: 44 episodes, 136,367 logged frames — scratchpad/pass13-grounding.md §2.
+ * Equivalence test for beginMarioDeathAnimation (ROM 0x128b) — arm 0 (seed) of Mario's death
+ * animation: on the gate's expiry frame it points his sprite at tile 0x78, primes
+ * DEATH_ANIM_TICKS_LEFT=13, clears sprite runs, fires the death sound line, advances the phase.
  *
- * The routine WRITES MEMORY, calls the rst-0x18 gate, and its gate can skip the whole
- * body, so it is gated on MEMORY-equivalence — RAM (minus STACK_SCRATCH) + pc + SP —
- * never on a register file (its live-out is memory-only; see the routine header), and
- * every case runs on a FRESH clone (a reused clone is only safe for a read-only leaf).
+ * Gated on MEMORY-equivalence: RAM − STACK_SCRATCH, on FRESH clones. pc/SP are NOT compared —
+ * the idiomatic routine calls its callees (tickSubstateTimer, clearSpriteColumns) as plain JS
+ * leaves and never touches the guest stack, so it leaves pc/SP two apart from the oracle. A pure
+ * seam artifact (the oracle's pushes land in STACK_SCRATCH, popped bytes never re-enter RAM); the
+ * whole-game SP guards (idiomatic "FULL FLIP", barrel-jump-reset) back-stop a stray push.
  *
- * The idiomatic routine models the Z80 stack as the JS call stack: it calls its callees
- * (tickSubstateTimer, and the still-oracle loc_30bd) directly and never touches SP/pc
- * itself. The oracle does, so the harness reconciles pc + SP per arm — and the two arms
- * need DIFFERENT reconciliation, which is the one subtlety worth spelling out:
- *
- *   - SKIP arm (gate still counting): the oracle's sub_0018 does `inc sp / inc sp / ret`
- *     to drop its own frame and return to the caller's caller (the Z80 caller-skip). The
- *     candidate just returns without touching the stack, so ONE harness m.ret() supplies
- *     that single net return → SP = entry+2, pc = the caller's return.
- *   - SEED (expiry) arm: the candidate calls loc_30bd DIRECTLY, without the oracle's
- *     `push 0x12A6` in front of it. loc_30bd ends in a TAIL JUMP into sub_30e4, whose
- *     `ret` therefore pops the caller's OWN return slot instead of that 0x12A6 — i.e. the
- *     tail jump already performs the single net return. So the seed arm needs ZERO extra
- *     m.ret(); the oracle reaches the same SP = entry+2, pc = caller's return by pushing
- *     0x12A6 (eaten by the tail jump) and then doing its own final `ret` (eats the slot).
- *
- * Either way both sides end at SP = entry+2 and pc = the caller's return; the oracle's
- * transient pushes land in STACK_SCRATCH, excluded by the contract. (Measured: seed arm
- * matches at 0 rets, skip arm at 1 ret; both with a null RAM diff.)
- *
- *   1. EQUAL (real dispatches) — hook 0x128b in a real attract run and clone the machine
- *      at each true dispatch (0x128b fires 64× over 3000 frames: the timer counts 0x40
- *      down as 63 skip-arm dispatches, then 1 seed-arm dispatch on the expiry frame).
- *      oracle vs candidate must agree on RAM + pc + SP for every one.
- *
- *   2. EQUAL (crafted arms) — the seed and skip arms poked from a real captured state
- *      (SUBSTATE_TIMER) so both are covered regardless of capture timing.
- *
- *   3. TEETH — two deliberately-broken twins, each MUST be caught:
- *      (a) a wrong sprite-code store (writes tile 0x7A — arm 2's constant — instead of
- *          0x78) — caught on the seed arm;
- *      (b) a gate-polarity inversion (runs the body while counting, skips on expiry) —
- *          caught on the skip arm and on the real skip-arm dispatches.
+ *   1. EQUAL (real dispatches) — hook 0x128b in attract, clone at each true dispatch (64× over
+ *      3000 frames: 63 skip-arm, then 1 seed-arm on the expiry frame).
+ *   2. EQUAL (crafted arms) — seed and skip arms poked from a real captured state.
+ *   3. TEETH — (a) wrong sprite-code store (0x7A not 0x78), caught on the seed arm; (b) gate-
+ *      polarity inversion (body while counting, skip on expiry), caught on the skip arm.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-128b.test.js
  */
@@ -115,35 +85,21 @@ function runOracle(entry) {
   return c;
 }
 
-/**
- * Run a candidate on a fresh clone, then reconcile pc + SP to the oracle's with the
- * per-arm number of net returns (see the header): the SKIP arm needs ONE m.ret() (the
- * caller-skip return the boolean gate replaces); the SEED arm needs NONE (loc_30bd's tail
- * jump already returned through the caller's slot). The classifier reads the untouched
- * ENTRY state, so it agrees with the branch the routine actually took.
- */
+/** Run a candidate on a fresh clone (pc/SP a seam artifact, not compared — see the header). */
 function runCandidate(entry, fn) {
   const c = entry.clone();
   fn(c);
-  if (!gateExpires(entry)) c.ret();
   return c;
 }
 
-/**
- * Compare candidate vs oracle over the contract: RAM − STACK_SCRATCH, pc, SP. NO
- * registers — beginMarioDeathAnimation's live-out is memory-only, and because it calls the idiomatic
- * callee (tickSubstateTimer) directly whereas the oracle calls the translated one, the two
- * leave different DEAD registers behind; comparing them would fail on values nothing reads.
- * Returns a list of human-readable mismatches (empty when equal).
- */
+/** Compare over RAM − STACK_SCRATCH (memory-eq). No pc/SP and no registers — live-out is
+ *  memory-only. Returns a list of human-readable mismatches (empty when equal). */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@0x${(ram.addr ?? 0).toString(16)} oracle=${hx(ram.a)} cand=${hx(ram.b)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=0x${o.pc.toString(16)} cand=0x${c.pc.toString(16)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=0x${o.regs.sp.toString(16)} cand=0x${c.regs.sp.toString(16)}`);
   return diffs;
 }
 

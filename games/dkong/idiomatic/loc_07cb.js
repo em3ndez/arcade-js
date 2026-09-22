@@ -24,8 +24,7 @@ import {
 import { enqueueTask } from "./enqueueTask.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
-// Guest-stack-consuming lift form on purpose: not interchangeable with a direct call.
-import { loc_3f24 } from "../translated/loc_3f24.js";
+import { stampFixedTilePair } from "./stampFixedTilePair.js";
 
 const ARM_FRAMES = 0x60;
 const SEED_PATTERN = 0x5f;
@@ -83,7 +82,7 @@ export function loc_07cb(m) {
   enqueueTask(m, 0x03, 0x1f);
 
   loadSpriteObjectBlock(m, SPRITE_TEMPLATE);
-  loc_3f24(m);
+  stampFixedTilePair(m);
 
   addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, 0x44);
   addToSpriteObjectColumn(m, u16(SPRITE_OBJ_BLOCK + 3), 0x78);

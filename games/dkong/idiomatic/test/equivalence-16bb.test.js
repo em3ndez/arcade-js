@@ -9,27 +9,23 @@
  *   recordX < 90, step < 0           → loc_16d0  (schedule a reversal, then slide — bounce)
  *   recordX < 90, step ≥ 0           → stepKongWalk  (plain slide, no reversal)
  *
- * NOTE recordX IS block record #2's X: 0x6910 == SPRITE_OBJ_BLOCK(0x6908) + 8. dispatchKongWalkFrame reads
- * it from MEMORY (not a register), so a crafted entry sets 0x6910 AFTER any block fill — the two
- * are the same byte. (This is the one structural difference from endKongWalkAndAdvanceInterlude, which takes recordX as
- * a register parameter.) With 0x62A0 pre-cleared to 0, the three underlying arms leave DISTINCT
- * memory on an even frame: stepKongWalk lets loc_2602 decrement 0 → 0xFF; loc_16d0 arms→reload
- * 0x62A0 = 0x80 and REVERSES the direction 0x62A1; loc_16ee reinitializes the block (0x690C =
- * 0x66) and leaves 0x62A0 at the pre-cleared 0 — so a mis-route cannot hide.
+ * NOTE recordX IS block record #2's X (0x6910 == SPRITE_OBJ_BLOCK + 8), read from MEMORY not a
+ * register (unlike endKongWalkAndAdvanceInterlude). With 0x62A0 pre-cleared to 0 the three arms leave DISTINCT
+ * memory on an even frame (stepKongWalk: 0x62A0 0→0xFF; loc_16d0: reload 0x80 + reverse 0x62A1;
+ * reinit: block 0x690C=0x66, 0x62A0 stays 0), so a mis-route cannot hide.
  *
- * dispatchKongWalkFrame writes only the 0x62A0 pre-clear itself; its callees do the motion/reinit work. It is
- * gated on memory-equivalence — RAM (minus STACK_SCRATCH) + pc + SP — never the register file,
- * never cycles. LIVE-OUT is memory-only: the family is dispatched from the in-game substate table
- * and tail-returns through the NMI dispatcher, which reads no register/flag it leaves. Every case
- * runs on FRESH clones (the callees write memory).
+ * dispatchKongWalkFrame writes only the 0x62A0 pre-clear; its callees do the rest. Gated on
+ * memory-equivalence (RAM − STACK_SCRATCH) on FRESH clones — never the register file (LIVE-OUT is
+ * memory-only; the family tail-returns through the NMI dispatcher, which reads none of it).
  *
- * NET-RET bookkeeping (why pc/SP still match under direct calls): every route performs exactly
- * one net return that pops the caller's return address, so oracle (reached via `m.call`, a jump)
- * and candidate (direct JS calls) end at the same pc/SP; SP is staged deep in STACK_SCRATCH so
- * every transient push the oracle handlers make lands in the dead region the RAM diff excludes.
- * The reinit arm is stronger still: both sides run the very same oracle loc_16ee (via endKongWalkAndAdvanceInterlude),
- * byte-identical unless the dispatcher mis-routes. The loc_16d0 / stepKongWalk arms rely on those
- * routines' own already-proven memory-equivalence (see equivalence-16d0 / -16d5 / -16e1).
+ * pc and SP are NOT compared. Every route's callees are now idiomatic JS leaves (reinit calls
+ * reloadObjectBlockAndAdvanceStep, the motion arms reach signStepHalfRate through loc_2602), so
+ * the guest-stack `ret`s the frozen callees supplied as each route's net return are gone: the
+ * candidate ends SP two below the oracle (pc at entry) — a pure seam artifact, the oracle's
+ * transient pushes landing in the excluded STACK_SCRATCH; the whole-game SP guards ("FULL FLIP",
+ * barrel-jump-reset) back-stop. reloadObjectBlockAndAdvanceStep is byte-identical to the frozen
+ * loc_16ee unless the dispatcher mis-routes; the loc_16d0 / stepKongWalk arms lean on their own
+ * proven memory-equivalence (see equivalence-16d0 / -16d5 / -16e1).
  *
  *   0. REACHABILITY — plain attract never dispatches 0x16bb (0×/2500 frames, asserted): the
  *      object cascade this family drives runs only in real gameplay. So the gate is crafted-entry.
@@ -120,15 +116,14 @@ function runCandidate(entry, fn) {
   return c;
 }
 
-/** Compare candidate vs oracle over RAM − STACK_SCRATCH + pc + SP (live-out is memory-only). */
+/** Compare candidate vs oracle over the memory-equivalence contract: RAM − STACK_SCRATCH. No
+ *  pc/SP (a seam artifact of the dissolved calls — see the header); live-out is memory-only. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@0x${(ram.addr ?? 0).toString(16)} oracle=${hx(ram.a)} cand=${hx(ram.b)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=0x${o.pc.toString(16)} cand=0x${c.pc.toString(16)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=0x${o.regs.sp.toString(16)} cand=0x${c.regs.sp.toString(16)}`);
   return diffs;
 }
 

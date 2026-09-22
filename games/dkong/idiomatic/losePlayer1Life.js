@@ -14,7 +14,7 @@ import { u16 } from "../../../core/int.js";
 import { silenceSound } from "./silenceSound.js";
 import { loc_13ca } from "./loc_13ca.js";
 import { enqueueTask } from "./enqueueTask.js";
-import { loc_1826 } from "../translated/loc_1826.js";
+import { fillTileBlock } from "./fillTileBlock.js";
 import {
   GAMEOVER_BANNER_TOPLEFT_1P,
   GAME_SUBSTATE,
@@ -67,7 +67,7 @@ export function losePlayer1Life(m) {
     bannerTop = u16(GAMEOVER_BANNER_TOPLEFT_1P - 1);
   }
   regs.hl = bannerTop;
-  loc_1826(m); // fills 70 tiles from there
+  fillTileBlock(m); // fills 70 tiles from there
 
   enqueueTask(m, 0x03, 0x00);
   mem8[SUBSTATE_TIMER] = GAMEOVER_WAIT;

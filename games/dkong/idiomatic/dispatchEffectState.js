@@ -9,14 +9,12 @@ import { EFFECT_STATE } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { effectStateIdle } from "./effectStateIdle.js";
 import { armScorePopupAndSelectAward } from "./armScorePopupAndSelectAward.js";
-// State-2 handler kept in address-layer form: it consumes a guest-stack word a direct call would
-// not, and nothing here can prove the swap safe.
-import { loc_1e4a } from "../translated/loc_1e4a.js";
+import { tickDispatcherCountdown } from "./tickDispatcherCountdown.js";
 
 const HANDLERS = [
   effectStateIdle, // state 0 — idle
   armScorePopupAndSelectAward, // state 1 — arm, spawn, advance to 2
-  loc_1e4a, // state 2 — count down, tear down on expiry
+  tickDispatcherCountdown, // state 2 — count down, tear down on expiry
 ];
 
 export function dispatchEffectState(m) {

@@ -16,7 +16,7 @@ import {
   DEATH_ANIM_TICKS_LEFT,
 } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
-import { loc_30bd } from "../translated/loc_30bd.js";
+import { clearSpriteColumns } from "./clearSpriteColumns.js";
 
 const SPRITE_CODE = MARIO_SPRITE_RECORD + 1;
 
@@ -33,7 +33,7 @@ export function beginMarioDeathAnimation(m) {
   mem8[DEATH_ANIM_TICKS_LEFT] = 0x0d;
   mem8[SUBSTATE_TIMER] = 0x08;
 
-  loc_30bd(m);
+  clearSpriteColumns(m);
 
   mem8[SND_IRQ_TRIGGER] = 0x03;
 }

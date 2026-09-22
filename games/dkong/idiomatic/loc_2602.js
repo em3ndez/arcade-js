@@ -13,7 +13,7 @@
 import { FRAME, M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP_DIR, M50_OBJ1_STEP, M50_OBJ1_SPRITE_PAIR_BASE } from "./names.js";
 import { reverseStepDirection } from "./reverseStepDirection.js";
 import { loc_26a6 } from "./loc_26a6.js";
-import { loc_26e9 } from "../translated/loc_26e9.js";
+import { signStepHalfRate } from "./signStepHalfRate.js";
 
 export function loc_2602(m) {
   const { regs, mem8 } = m;
@@ -30,7 +30,7 @@ export function loc_2602(m) {
 
   // Every frame: republish the direction through the odd-frame sign helper as this object's step.
   regs.hl = M50_OBJ1_STEP_DIR;
-  loc_26e9(m);
+  signStepHalfRate(m);
   mem8[M50_OBJ1_STEP] = regs.a;
 
   // Every 32nd frame: advance the mirrored sprite-animation counter pair.

@@ -15,9 +15,7 @@ import {
   PALETTE_BANK_BIT1,
 } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
-// Imported in faithful-translation form ON PURPOSE: this tail is a fall-through, so the
-// painter's own return must return from here — the idiomatic twin would swallow it.
-import { loc_09ee } from "../translated/loc_09ee.js";
+import { draw2UpLabel } from "./draw2UpLabel.js";
 
 
 export function armTwoPlayerBoardSetup(m) {
@@ -31,5 +29,5 @@ export function armTwoPlayerBoardSetup(m) {
 
   mem8[GAME_SUBSTATE] = 0x05;
 
-  return loc_09ee(m);
+  return draw2UpLabel(m);
 }

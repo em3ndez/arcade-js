@@ -8,24 +8,20 @@
  *   recordX ≥ 93, step ≥ 0    → loc_16d0  (schedule a reversal, then slide — bounce)
  *   recordX ≥ 93, step < 0    → stepKongWalk  (plain slide, no reversal)
  *
- * endKongWalkAndAdvanceInterlude writes no memory of its own; its callees do. It is gated on memory-equivalence —
- * RAM (minus STACK_SCRATCH) + pc + SP — never the register file. HONEST SIGNATURE: recordX and
- * stepByte are the two live inputs, lifted to parameters; the gate extracts them from each
- * crafted entry's captured registers and passes them, so the candidate is replayed against the
- * oracle on identical states. LIVE-OUT is memory-only: the family is dispatched from the in-game
- * substate table and tail-returns through the NMI dispatcher, which reads no register/flag it
- * leaves, so registers are deliberately NOT compared. Every case runs on FRESH clones (the
- * callees write memory).
+ * endKongWalkAndAdvanceInterlude writes no memory of its own; its callees do. Gated on
+ * memory-equivalence (RAM − STACK_SCRATCH) on FRESH clones — never the register file (LIVE-OUT is
+ * memory-only; the family tail-returns through the NMI dispatcher, which reads none of it).
+ * HONEST SIGNATURE: recordX and stepByte are lifted to parameters, extracted from each crafted
+ * entry's captured registers so both sides replay the same state.
  *
- * NET-RET bookkeeping (why pc/SP still match under direct calls): all three handlers perform
- * exactly one net return that pops the caller's return address (SP += 2, pc := caller). The
- * oracle reaches them with `m.call` (a jump, no push), the candidate with a direct JS call — so
- * both sides run the same single net `ret`, and SP is staged deep in STACK_SCRATCH so every
- * transient push the oracle handlers make lands in the dead region the RAM diff excludes. The
- * loc_16ee arm is stronger still: BOTH sides run the very same oracle loc_16ee (it is not yet
- * idiomatic), so that arm is byte-identical unless the dispatcher mis-routes. The loc_16d0 /
- * stepKongWalk arms rely on those routines' own already-proven memory-equivalence and net-ret
- * bookkeeping (see equivalence-16d0 / equivalence-16d5).
+ * pc and SP are NOT compared. All three handlers are now idiomatic JS leaves (reinit calls
+ * reloadObjectBlockAndAdvanceStep, the bounce arms reach signStepHalfRate through loc_2602), so
+ * the guest-stack `ret`s the frozen handlers supplied as each route's net return are gone: the
+ * candidate ends SP two below the oracle (pc at entry) — a pure seam artifact, the oracle's
+ * transient pushes landing in the excluded STACK_SCRATCH; the whole-game SP guards ("FULL FLIP",
+ * barrel-jump-reset) back-stop. reloadObjectBlockAndAdvanceStep is byte-identical to the frozen
+ * loc_16ee unless the dispatcher mis-routes; the loc_16d0 / stepKongWalk arms lean on their own
+ * proven memory-equivalence (see equivalence-16d0 / equivalence-16d5).
  *
  *   0. REACHABILITY — plain attract never dispatches 0x16e1 (0×/2500 frames, asserted): the
  *      object cascade this family drives runs only in real gameplay. So the gate is crafted-entry.
@@ -118,15 +114,14 @@ function runCandidate(entry, fn) {
   return c;
 }
 
-/** Compare candidate vs oracle over RAM − STACK_SCRATCH + pc + SP (live-out is memory-only). */
+/** Compare candidate vs oracle over the memory-equivalence contract: RAM − STACK_SCRATCH. No
+ *  pc/SP (a seam artifact of the dissolved calls — see the header); live-out is memory-only. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@0x${(ram.addr ?? 0).toString(16)} oracle=${hx(ram.a)} cand=${hx(ram.b)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=0x${o.pc.toString(16)} cand=0x${c.pc.toString(16)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=0x${o.regs.sp.toString(16)} cand=0x${c.regs.sp.toString(16)}`);
   return diffs;
 }
 

@@ -7,18 +7,18 @@
  * motion tick (advance object #1, shift the 10-record sprite-object block one step along X).
  *
  * loc_16d0 WRITES MEMORY and CALLS a sub-routine (stepKongWalk, and through it loc_2602 / addStrided),
- * so it is gated on memory-equivalence — RAM (minus STACK_SCRATCH) + pc + SP — never the register
- * file. LIVE-OUT is memory-only: the family is dispatched from the in-game substate table and
+ * so it is gated on memory-equivalence — RAM (minus STACK_SCRATCH) — never the register file.
+ * LIVE-OUT is memory-only: the family is dispatched from the in-game substate table and
  * tail-returns through the NMI dispatcher, which reads no register/flag it leaves (A/B/C/DE/HL are
  * dead ABI), so they are deliberately NOT compared. Every case runs on FRESH clones (writes memory).
  *
- * NET-RET bookkeeping (why pc/SP still match under pure direct calls): the oracle loc_16d0 tail
- * `call 0x16d5`s the oracle stepKongWalk, whose own net `ret` pops the caller's return address (SP += 2,
- * pc := caller). The idiomatic path calls the idiomatic stepKongWalk, whose single net return is
- * supplied by the still-oracle sub_26e9's `m.ret()` (documented in equivalence-16d5) — same SP += 2,
- * same popped pc. loc_16d0 itself pushes/pops nothing. So both sides end SP += 2 with pc = the
- * caller's return address, and every transient push lands inside STACK_SCRATCH, which the RAM diff
- * excludes. SP is staged deep in STACK_SCRATCH for exactly that reason.
+ * pc and SP are NOT compared. Through stepKongWalk, loc_2602 now calls the idiomatic
+ * signStepHalfRate (0x26E9) as a plain JS leaf, so the guest-stack `ret` the frozen sub_26e9 used
+ * to supply as the family's single net return is gone (documented in equivalence-16d5): the
+ * idiomatic path pushes/pops nothing and ends SP two below the oracle (pc likewise at entry). A
+ * pure seam artifact — every transient oracle push lands inside STACK_SCRATCH, which the RAM diff
+ * excludes, and the whole-game SP guards (idiomatic.test.js "FULL FLIP", barrel-jump-reset)
+ * back-stop any stray push. SP is staged deep in STACK_SCRATCH for exactly that reason.
  *
  *   0. REACHABILITY — plain attract never dispatches 0x16d0 (0×/2500 frames, asserted): the
  *      sub_25f2 object cascade the family drives runs only in real gameplay. So the gate is
@@ -97,23 +97,22 @@ function runOracle(entry) {
   return c;
 }
 
-/** Run a candidate on a fresh clone. The idiomatic stepKongWalk's net return is supplied by the
- *  still-oracle sub_26e9's `m.ret()` (see equivalence-16d5), so SP/pc land as the oracle's do. */
+/** Run a candidate on a fresh clone. The idiomatic path touches the guest stack nowhere, so pc/SP
+ *  are a seam artifact (see the header) and are neither reconciled nor compared. */
 function runCandidate(entry, fn) {
   const c = entry.clone();
   fn(c);
   return c;
 }
 
-/** Compare candidate vs oracle over RAM − STACK_SCRATCH + pc + SP (live-out is memory-only). */
+/** Compare candidate vs oracle over the memory-equivalence contract: RAM − STACK_SCRATCH. No
+ *  pc/SP (a seam artifact of the dissolved calls — see the header); live-out is memory-only. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@0x${(ram.addr ?? 0).toString(16)} oracle=${hx(ram.a)} cand=${hx(ram.b)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=0x${o.pc.toString(16)} cand=0x${c.pc.toString(16)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=0x${o.regs.sp.toString(16)} cand=0x${c.regs.sp.toString(16)}`);
   return diffs;
 }
 

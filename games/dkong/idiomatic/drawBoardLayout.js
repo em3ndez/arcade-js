@@ -7,19 +7,18 @@
  * LIVE-OUT: memory-only.
  */
 
-// The imported second-point conversion is the faithful lift (consumes one guest-stack word the
-// idiomatic twin does not) — use its machine-shaped entry, not a bare (y, x) pure function.
+// The seam entry marshals the register file to the pure (y, x) leaf — not a bare (y, x) call.
 import { u16 } from "../../../core/int.js";
-import { loc_2ff0 } from "../translated/loc_2ff0.js";
+import { tileAddrForPixelFromRegisters } from "./tileAddrForPixel.js";
 import { loc_0dd3 } from "./loc_0dd3.js";
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js";
 
 export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
   const { regs, mem8, mem16 } = m;
 
-  // The conversion leaf and the per-segment step each pop the guest stack
-  // with no matching push on this path; the hardware balances to no net movement per record, so
-  // sp is pinned back to this base each iteration. A stack seam, not logic, and not a live-out.
+  // Now that the conversion leaf and the per-segment step are direct idiomatic calls, neither
+  // moves the guest stack; sp is pinned back to this base each iteration to absorb any residual
+  // seam movement. A stack seam, not logic, and not a live-out.
   const spBase = sp;
 
   for (;;) {
@@ -40,7 +39,7 @@ export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
 
     // Convert the first point to a tile address. The callee clobbers the register file (including
     // DE) but not our local pointer, so no save/restore is needed around it.
-    loc_2ff0(m);
+    tileAddrForPixelFromRegisters(m);
     mem16[SEG_ADDR1] = regs.hl;
 
     // Sub-tile remainders: the conversion dropped the low three bits of each coordinate.

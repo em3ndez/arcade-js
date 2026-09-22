@@ -13,7 +13,7 @@
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 import { addStrided } from "./addStrided.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
-import { loc_1826 } from "../translated/loc_1826.js";
+import { fillTileBlock } from "./fillTileBlock.js";
 import {
   ANIM_PACE_COUNTER,
   BOARD_ADVANCE_STEP,
@@ -58,7 +58,7 @@ export function loc_1880(m) {
   mem8[CUTSCENE_SPRITE_RECORD_2 + 3] = 0xd8;
 
   regs.hl = INTERLUDE_TILE_BLOCK_TOPLEFT; // the fill start, read live-in by the fill
-  loc_1826(m);
+  fillTileBlock(m);
 
   drawBoardLayout(m, undefined, INTERLUDE_LAYOUT_SEGMENT_TABLE); // the table base, read live-in by the draw
 

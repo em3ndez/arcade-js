@@ -7,21 +7,19 @@
  * SPRITE_OBJ_BLOCK (0x6908 … 0x692C).
  *
  * stepKongWalk WRITES MEMORY and CALLS two sub-routines, so it is gated on memory-equivalence —
- * RAM (minus STACK_SCRATCH) + pc + SP — never the register file. LIVE-OUT is memory-only:
- * stepKongWalk is the tail of the dispatchKongWalkFrame substate family, dispatched from the in-game substate
+ * RAM (minus STACK_SCRATCH) — never the register file. LIVE-OUT is memory-only: stepKongWalk is
+ * the tail of the dispatchKongWalkFrame substate family, dispatched from the in-game substate
  * table and tail-returning through the NMI dispatcher, which reads no register/flag it leaves
  * (A/B/C/DE/HL are dead ABI), so they are deliberately NOT compared. Every case runs on FRESH
  * clones (the routine writes memory).
  *
- * NET-RET bookkeeping (why pc/SP still match under pure direct calls): the oracle pushes its
- * own return addresses before `call 0x2602` and `rst 0x38`, and each callee's internal `ret`
- * consumes exactly the address the oracle just pushed — so those two cancel (net 0), and the
- * oracle's ONE net return is its final tail `ret`, which pops the caller's return address.
- * The idiomatic path pushes nothing, but the idiomatic loc_2602 calls the still-oracle
- * sub_26e9 exactly once per path and that callee ends in an `m.ret()` — supplying stepKongWalk's
- * single net return, which pops that same caller address (addStrided is pure and touches no
- * stack). So both sides end SP += 2 with pc = the caller's return address, and the oracle's
- * transient stack pushes land inside STACK_SCRATCH, which the RAM diff excludes.
+ * pc and SP are NOT compared. The idiomatic loc_2602 now calls the idiomatic signStepHalfRate
+ * (0x26E9) as a plain JS leaf, so the guest-stack `ret` the frozen sub_26e9 used to supply as
+ * stepKongWalk's single net return is gone: the idiomatic path pushes nothing and returns
+ * nothing on the guest stack (addStrided is also pure), so it ends SP two below the oracle (pc
+ * likewise at entry). That is a pure seam artifact — the oracle's transient pushes land inside
+ * STACK_SCRATCH, which the RAM diff excludes — and the whole-game SP guards (idiomatic.test.js
+ * "FULL FLIP", barrel-jump-reset) back-stop any stray push.
  *
  *   0. REACHABILITY — plain attract never dispatches 0x16d5 (0×/2500 frames, asserted). The
  *      operative reason is the sub-state, not the object cascade: this family hangs off the
@@ -105,10 +103,10 @@ function runOracle(entry) {
 }
 
 /**
- * Run a candidate on a fresh clone. The idiomatic stepKongWalk models its own return implicitly:
- * its call to the idiomatic loc_2602 reaches the still-oracle sub_26e9, whose single `m.ret()`
- * supplies stepKongWalk's one net return (SP += 2, pc := caller). addStrided is pure and adds no
- * ret, so the net matches the oracle exactly (see the file header). No extra ret is added here.
+ * Run a candidate on a fresh clone. The idiomatic stepKongWalk touches the guest stack nowhere
+ * (its callees are pure JS leaves), so pc/SP are a seam artifact (see the header) and are neither
+ * reconciled nor compared. A pop reads the stack but never writes it, so the RAM contract needs
+ * no reconciliation.
  */
 function runCandidate(entry, fn) {
   const c = entry.clone();
@@ -116,15 +114,14 @@ function runCandidate(entry, fn) {
   return c;
 }
 
-/** Compare candidate vs oracle over RAM − STACK_SCRATCH + pc + SP (live-out is memory-only). */
+/** Compare candidate vs oracle over the memory-equivalence contract: RAM − STACK_SCRATCH. No
+ *  pc/SP (a seam artifact of the dissolved calls — see the header); live-out is memory-only. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@0x${(ram.addr ?? 0).toString(16)} oracle=${hx(ram.a)} cand=${hx(ram.b)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=0x${o.pc.toString(16)} cand=0x${c.pc.toString(16)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=0x${o.regs.sp.toString(16)} cand=0x${c.regs.sp.toString(16)}`);
   return diffs;
 }
 

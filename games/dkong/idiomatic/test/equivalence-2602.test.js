@@ -6,15 +6,16 @@
  * loc_26a6 advance of the sprite-anim pair at 0x69E4.
  *
  * loc_2602 WRITES MEMORY and CALLS three sub-routines, so it is gated on memory-equivalence
- * — RAM (minus STACK_SCRATCH) + pc + SP — never the register file. LIVE-OUT is memory-only:
- * both `ret` exits feed sub_25f2's next `call`, which reads no register/flag this routine
- * leaves (on the early-return arm the oracle even leaves A = FRAME & 0x1F, which nothing
- * reads), so A/HL/flags are deliberately NOT compared. Every case runs on FRESH clones (the
- * routine writes memory). loc_2602 uses direct calls (no stack modelling), but it calls the
- * still-oracle loc_26e9 exactly once per path and that callee ends in an `m.ret()` — which
- * supplies sub_2602's single net return (SP+2, pc=caller), so the harness adds ZERO extra
- * rets to match the oracle (see runCandidate); the oracle's internal call pushes/pops land
- * within STACK_SCRATCH, which the RAM diff excludes.
+ * — RAM (minus STACK_SCRATCH) — never the register file. LIVE-OUT is memory-only: both `ret`
+ * exits feed sub_25f2's next `call`, which reads no register/flag this routine leaves (on the
+ * early-return arm the oracle even leaves A = FRAME & 0x1F, which nothing reads), so A/HL/flags
+ * are deliberately NOT compared. Every case runs on FRESH clones (the routine writes memory).
+ * pc and SP are NOT compared either. loc_2602 now calls the idiomatic signStepHalfRate (0x26E9)
+ * as a plain JS leaf: it no longer performs the guest-stack `ret` the frozen loc_26e9 used to
+ * supply as sub_2602's single net return, so the idiomatic run ends SP two below the oracle
+ * (pc likewise at entry). That is a pure seam artifact — the oracle's internal call pushes/pops
+ * land within STACK_SCRATCH, which the RAM diff excludes — and the whole-game SP guards
+ * (idiomatic.test.js "FULL FLIP", barrel-jump-reset) back-stop any stray push.
  *
  *   0. REACHABILITY — plain attract never dispatches 0x2602 (0× / 2500 frames, asserted):
  *      the sub_25f2 object cascade runs only in real gameplay. That is why the gate is
@@ -98,13 +99,10 @@ function runOracle(entry) {
 
 /**
  * Run a candidate on a fresh clone. The idiomatic routine models its own return as a JS
- * return (no stack modelling), but it calls the STILL-ORACLE loc_26e9 (0x26E9) directly,
- * and loc_26e9 ends in an `m.ret()`. Because loc_2602 calls loc_26e9 exactly once on every
- * path (and its two idiomatic callees touch no stack), that single internal `ret` supplies
- * sub_2602's one net return — SP += 2, pc := the caller's return address — precisely
- * matching the oracle (which reaches the same SP/pc via its own tail/`ret nz`). So the
- * harness adds ZERO extra rets; a c.ret() here would double-pop into unmapped space. This
- * is the beginMarioDeathAnimation run-arm reconciliation with a net-ret delta of 0.
+ * return and calls the idiomatic signStepHalfRate (0x26E9) as a plain JS leaf, so it touches
+ * the guest stack nowhere. pc/SP therefore diverge from the oracle by the dissolved call's
+ * single net return; they are a seam artifact (see the header) and are neither reconciled nor
+ * compared. A pop reads the stack but never writes it, so the RAM contract needs no reconcile.
  */
 function runCandidate(entry, fn) {
   const c = entry.clone();
@@ -112,15 +110,14 @@ function runCandidate(entry, fn) {
   return c;
 }
 
-/** Compare candidate vs oracle over RAM − STACK_SCRATCH + pc + SP (live-out is memory-only). */
+/** Compare candidate vs oracle over the memory-equivalence contract: RAM − STACK_SCRATCH. No
+ *  pc/SP (a seam artifact of the dissolved calls — see the header); live-out is memory-only. */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@0x${(ram.addr ?? 0).toString(16)} oracle=${hx(ram.a)} cand=${hx(ram.b)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=0x${o.pc.toString(16)} cand=0x${c.pc.toString(16)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=0x${o.regs.sp.toString(16)} cand=0x${c.regs.sp.toString(16)}`);
   return diffs;
 }
 

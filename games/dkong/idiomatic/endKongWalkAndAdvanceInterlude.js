@@ -15,11 +15,11 @@
 
 import { loc_16d0 } from "./loc_16d0.js";
 import { stepKongWalk } from "./stepKongWalk.js";
-import { loc_16ee } from "../translated/loc_16ee.js";
+import { reloadObjectBlockAndAdvanceStep } from "./reloadObjectBlockAndAdvanceStep.js";
 
 export function endKongWalkAndAdvanceInterlude(m, recordX, stepByte) {
   if (recordX < 93) {
-    loc_16ee(m);
+    reloadObjectBlockAndAdvanceStep(m);
     return;
   }
 
