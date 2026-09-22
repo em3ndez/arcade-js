@@ -984,7 +984,7 @@ save/restore were observed live)
 **The effect machine** turns a hit or a pickup into a visible beat. `EFFECT_STATE` is a 4-way
 router; state 1 (`armScorePopupAndSelectAward`) unconditionally arms `EFFECT_TIMER` to 0x40,
 advances to state 2, then tail-jumps to one of the award setters chosen by the *first set bit* of
-`EFFECT_SELECT`. A nested three-step sequence (`EFFECT_SEQ_STATE` with inner/outer counters) flashes
+`EFFECT_SELECT`, each converging on `awardScorePopup` to stamp the floating score glyph over Mario. A nested three-step sequence (`EFFECT_SEQ_STATE` with inner/outer counters) flashes
 and animates the effect sprite and re-arms the parent machine when it finishes. While
 `runHitEffectInsteadOfPlay`'s latch is set, the whole gameplay update is replaced by one effect
 beat — **an effect literally suspends play**, and it is the only thing that can abandon the frame

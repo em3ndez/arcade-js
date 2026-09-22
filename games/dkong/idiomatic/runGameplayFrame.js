@@ -4,8 +4,9 @@
 // sub-state if Mario went inactive. Memory-only; returns void on every arm -- a boolean would make
 // the call seam treat this as caller-skip-capable and drop a stack word it does not owe.
 
-import { MARIO_ACTIVE, SND_TRIGGER, RESUME_AFTER_OBJECT_DISPATCH, GAMEPLAY_RESUME_AFTER_EFFECT } from "./names.js";
+import { MARIO_ACTIVE, SND_TRIGGER, RESUME_AFTER_OBJECT_DISPATCH } from "./names.js";
 
+import { dispatchEffectState } from "./dispatchEffectState.js";
 import { runHitEffectInsteadOfPlay } from "./runHitEffectInsteadOfPlay.js";
 import { dispatchMarioMovement } from "./dispatchMarioMovement.js";
 import { driveBarrelRelease } from "./driveBarrelRelease.js";
@@ -30,18 +31,14 @@ import { dispatchBonusExpiredStep } from "./dispatchBonusExpiredStep.js";
 import { tickTimedBoardBonus } from "./tickTimedBoardBonus.js";
 import { silenceSound } from "./silenceSound.js";
 import { advanceSubstateAndArmTimer } from "./advanceSubstateAndArmTimer.js";
-const EFFECT_STATE_MACHINE = 0x1dbd; // + RESUME below: the bracket the effect handlers' `ret` pops
 const DEATH_SOUND_TRIGGER = SND_TRIGGER + 2; // held 3 frames, the count every writer of this array uses
 const TRIGGER_FRAMES = 3;
 
 export function runGameplayFrame(m) {
   const { mem8 } = m;
 
-  // Dispatch the effect-sprite state machine by address, as the object-slot walk below is: its
-  // arm/countdown handlers return through a guest `ret`, so the bracket that `ret` pops is pushed
-  // here (a plain call left it popping a live interrupt-frame word -- the "jump over a barrel" reset).
-  m.push16(GAMEPLAY_RESUME_AFTER_EFFECT);
-  m.call(EFFECT_STATE_MACHINE);
+  // The effect-sprite state machine, now fully idiomatic: a direct call, no guest-stack bracket.
+  dispatchEffectState(m);
 
   if (!runHitEffectInsteadOfPlay(m)) return; // an effect is playing: the frame belongs to it
 

@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Regression: jumping OVER a barrel reset Donkey Kong. Clearing a barrel latches the jump-over
-// award tier (EFFECT_SELECT bit0, EFFECT_STATE=1); the next frame's state-1 handler tail-jumps into
-// translated loc_1e28, whose guest `ret` (ROM 0x1E49) needs the effect state machine's call bracket.
-// The idiomatic callers had dissolved it to a plain call, so that `ret` popped a live NMI-frame
-// word: +2 guest-SP, SP walked into 0x6C00, "unmapped read" -> reboot to attract. The fix restores
-// `m.push16(RET); m.call(0x1dbd)` at the three callers. The pinned-attract SP gate missed it (its
-// demo never jumps a barrel); the UNPINNED demo does, at frame 3355 (test 1).
+// award tier (EFFECT_SELECT bit0, EFFECT_STATE=1); the next frame's state-1 handler tailed into
+// translated loc_1e28, whose guest `ret` (ROM 0x1E49) popped a stack word. With the effect machine
+// dispatched by a plain call (no bracket) that `ret` took a live NMI-frame word: +2 guest-SP, SP
+// walked into 0x6C00, "unmapped read" -> reboot to attract. RESOLVED by the ATOMIC sp-trampoline
+// dissolution: the state-1 tail is now the fully-idiomatic awardScorePopup (no guest `ret`) and the
+// three callers call dispatchEffectState directly (no push bracket), so the effect path is guest-SP
+// net-0 on every arm. This test guards that balance: the pinned-attract SP gate missed the original
+// crash (its demo never jumps a barrel); the UNPINNED demo does, at frame 3355 (test 1).
 
 import nodeTest from "node:test";
 import assert from "node:assert/strict";

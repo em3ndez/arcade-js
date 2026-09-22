@@ -1419,16 +1419,10 @@ export const loc_776e = 0x776e;
 // --- ROM local-const hoist batch (2026-09-19) ---
 /** RESUME_AFTER_STATE_WALK (0x30f6) — return PC after the effect-state-walk dispatch (updateFires coroutine resume). */
 export const RESUME_AFTER_STATE_WALK = 0x30f6;
-/** DEATH_RESUME_AFTER_EFFECT (0x127f) — return PC after the effect dispatch in the death-animation substate. */
-export const DEATH_RESUME_AFTER_EFFECT = 0x127f;
 /** RESUME_AFTER_OBJECT_DISPATCH (0x1986) — return PC after the object dispatch in runGameplayFrame. */
 export const RESUME_AFTER_OBJECT_DISPATCH = 0x1986;
-/** GAMEPLAY_RESUME_AFTER_EFFECT (0x197d) — return PC after the effect dispatch in runGameplayFrame. */
-export const GAMEPLAY_RESUME_AFTER_EFFECT = 0x197d;
 /** BAND_TABLE (0x38dc) — ROM table of per-band values read by loc_0b68. [code] */
 export const BAND_TABLE = 0x38dc;
-/** RIVET_RESUME_AFTER_EFFECT (0x1644) — return PC after the effect dispatch in the rivet-board interlude. */
-export const RIVET_RESUME_AFTER_EFFECT = 0x1644;
 /** ATTRACT_SCRIPT_TABLE (0x21d1) — ROM attract-demo input script table. [code] */
 export const ATTRACT_SCRIPT_TABLE = 0x21d1;
 /** ANIM_STRING_START (0x39cc) — ROM base of the animation string emitted by loc_2d83. [code] */

@@ -1,27 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for pickAwardTierByObjectCount (ROM 0x3E70) — the sub_1dbd effect-sprite setter that
- * picks one of three (DE, B) parameter pairs from A's two low bits and tail-jumps into
- * the record-stamp loc_1e28.
+ * picks one of three (DE, B) parameter pairs from A's two low bits and tail-calls the
+ * record-stamp routine.
  *
- * pickAwardTierByObjectCount WRITES memory (through its loc_1e28 tail: the task ring via sub_309f, the
+ * pickAwardTierByObjectCount WRITES memory (through its tail: the task ring via enqueueTask, the
  * sprite record 0x6A30..0x6A33, the gated sound 0x6085) and is NOT a leaf, so it is gated
  * by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its own body is a
- * pure priority encoder on A; every downstream branch lives in loc_1e28 and is IDENTICAL
- * on both sides (both call the same frozen oracle tail). Because it delegates the tail to
- * the still-oracle loc_1e28 (which re-derives A and the flags the dropped `rra` would have
- * set), a correct rewrite is byte-identical to the oracle on ALL of RAM, SP and pc — not
- * merely RAM − STACK_SCRATCH. Attract only ever reaches arm 1 (A=0x00), so arms 2/3 are
+ * pure priority encoder on A; every downstream branch lives in the tail and is IDENTICAL
+ * on both sides. DISSOLVED FORM (sp-trampoline): the tail is now the idiomatic awardScorePopup
+ * (memory-eq to the frozen loc_1e28 oracle) — a plain JS call that models NEITHER the guest
+ * stack nor the guest `ret`. So the contract is game-visible RAM − STACK_SCRATCH, NOT the old
+ * RAM+SP+pc: the oracle's tail-`ret` moves SP/pc by the dead return-word, the idiomatic tail
+ * does not, and that divergence is confined to the dead STACK_SCRATCH region (see the
+ * loc_1e28 ret dissolution). Attract only ever reaches arm 1 (A=0x00), so arms 2/3 are
  * covered with crafted A values:
  *
  *   1. REALISM (real captured dispatch) — attract dispatches 0x3e70 on 25m (BOARD 1) with
  *      A=0x00 (arm 1). Run the ORACLE on one clone and idiomatic pickAwardTierByObjectCount on another and
- *      confirm every game-visible byte, SP and pc match. (STACK_SCRATCH is excluded from
- *      the RAM compare on principle, but here it too matches — the tail push/pop is shared.)
+ *      confirm every game-visible byte matches (residual confined to the dead STACK_SCRATCH,
+ *      where the oracle's tail push/ret leaves a word the dissolved idiomatic tail does not).
  *
  *   2. ARM SELECTION (exhaustive crafted) — on a real 0x3e70 entry, poke A to EVERY byte
  *      0..255 identically on both sides (freeing the ring slot so the enqueue is observable)
- *      and compare RAM − STACK_SCRATCH + SP + pc. This is the whole input domain of the
+ *      and compare RAM − STACK_SCRATCH. This is the whole input domain of the
  *      encoder: A is the only input that changes its behaviour. It pins all three arms
  *      (0x6A31 = B ∈ {0x7B,0x7D,0x7F}; the enqueued E ∈ {1,3,5}) and crafts arms 2 and 3
  *      attract never reaches. Both arm-distinguishing channels (the record byte and the
@@ -60,10 +62,11 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
 /**
- * First game-visible discrepancy between two machines across the memory-equivalence
- * contract: RAM (minus the dead STACK_SCRATCH region) + SP + pc. Returns { addr, a, b }
- * of the first difference (addr = "SP"/"pc" for a register field) or null, plus the count
- * of tolerated stack-scratch byte diffs.
+ * First game-visible discrepancy between two machines: RAM minus the dead STACK_SCRATCH
+ * region. Returns { addr, a, b } of the first difference or null, plus the count of tolerated
+ * stack-scratch byte diffs. SP/pc are NOT compared — they are the dropped guest-stack model:
+ * the oracle's tail-`ret` moves them, the dissolved idiomatic tail does not, and neither is
+ * consumed by the caller (the rst-0x28 return is the JS call stack now).
  */
 function contractDiff(a, b) {
   const da = a.dumpState(), db = b.dumpState();
@@ -75,8 +78,6 @@ function contractDiff(a, b) {
     if (inStack(addr)) { stackDiffs++; continue; }
     if (!bad) bad = { addr: hx(addr), a: da[i], b: db[i] };
   }
-  if (!bad && a.regs.sp !== b.regs.sp) bad = { addr: "SP", a: a.regs.sp, b: b.regs.sp };
-  if (!bad && a.pc !== b.pc) bad = { addr: "pc", a: a.pc, b: b.pc };
   return { bad, stackDiffs };
 }
 
@@ -141,22 +142,22 @@ function sweepA(base, candidate) {
 
 // -- 1. REALISM (real captured dispatch) --------------------------------------
 
-test("REALISM: real captured 25m 0x3e70 dispatch — game-visible RAM + SP + pc identical", () => {
+test("REALISM: real captured 25m 0x3e70 dispatch — game-visible RAM identical to the oracle", () => {
   const caps = captureDispatches(8, 6000);
   assert.ok(caps.length >= 1, "expected at least one real 0x3e70 dispatch during 25m attract");
 
   for (const entry of caps) {
     assert.equal(entry.mem.read8(BOARD), 1, "attract dispatches 0x3e70 on 25m (BOARD==1)");
-    const { bad, stackDiffs } = replay(entry, idiomatic);
+    const { bad } = replay(entry, idiomatic);
     assert.equal(
       bad,
       null,
       bad && `contract diff at ${bad.addr} (oracle=${bad.a} idiomatic=${bad.b}) on A=${hx(entry.regs.a)}`,
     );
-    // Delegating the tail to the frozen oracle means even STACK_SCRATCH matches here.
-    assert.equal(stackDiffs, 0, "the shared oracle tail pushes identically — no stack diff expected");
+    // The dissolved idiomatic tail models no guest stack, so the oracle's tail push/ret leaves
+    // a return-word residue in the dead STACK_SCRATCH — tolerated by the contract, never game-visible.
   }
-  console.log(`  REALISM: ${caps.length} real 25m dispatch(es) — RAM + SP + pc identical to the oracle`);
+  console.log(`  REALISM: ${caps.length} real 25m dispatch(es) — game-visible RAM identical to the oracle`);
 });
 
 // -- 2. ARM SELECTION (exhaustive crafted) ------------------------------------
@@ -173,7 +174,7 @@ test("ARM SELECTION (exhaustive): pickAwardTierByObjectCount == oracle over all 
   assert.equal(count, 256, "must have swept all 256 A values");
   assert.ok(arms[0x7b] > 0 && arms[0x7d] > 0 && arms[0x7f] > 0,
     `sweep must exercise all three arms (7B=${arms[0x7b]} 7D=${arms[0x7d]} 7F=${arms[0x7f]})`);
-  console.log(`  ARM/exhaustive: 256 A values — RAM + SP + pc identical ` +
+  console.log(`  ARM/exhaustive: 256 A values — game-visible RAM identical ` +
     `(arm1/0x7B=${arms[0x7b]} arm2/0x7D=${arms[0x7d]} arm3/0x7F=${arms[0x7f]})`);
 });
 
