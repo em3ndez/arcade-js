@@ -16,15 +16,13 @@ import { u16 } from "../../../core/int.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import {
   ATTRACT,
+  IN2_PORT,
   NMI_ENABLE,
   SPRITE_DMA_SETUP_BLOCK,
 } from "./names.js";
 import { blitSpritesViaDma } from "./blitSpritesViaDma.js";
 import { readControls } from "./readControls.js";
 import { perFrame } from "./perFrame.js";
-
-// Board control ports (io side, NOT work RAM).
-const IN2_WATCHDOG = 0x7d00; // read kicks the watchdog; bit 0 = SERVICE switch
 
 export function serviceVblankNmi(m, sp = m.regs.sp) {
   const { mem8 } = m;
@@ -33,7 +31,7 @@ export function serviceVblankNmi(m, sp = m.regs.sp) {
   mem8[NMI_ENABLE] = 0;
 
   // Kick the watchdog (the read is the kick) and reject the SERVICE switch.
-  if (mem8[IN2_WATCHDOG] & 0x01) {
+  if (mem8[IN2_PORT] & 0x01) {
     throw new NotImplemented(
       "SERVICE switch held: jp 0x4000 at ROM 0x0077 -- out-of-policy input, " +
         "no diagnostic ROM exists on this romset",

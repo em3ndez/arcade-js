@@ -8,13 +8,9 @@
  * selector is 0 there — faithful. LIVE-OUT: memory, plus the returned selector byte.
  */
 
-import { CREDITS, FRAME } from "./names.js";
+import { CREDITS, FRAME, IN2_PORT } from "./names.js";
 import { drawStringVertical } from "./drawStringVertical.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js";
-
-// Coin/start input port: bit2 = START1 (0x04), bit3 = START2 (0x08). Reading it kicks the
-// watchdog — a board input latch, not work RAM.
-const IN2 = 0x7d00;
 
 export function readStartButtonSelector(m) {
   const { regs, mem8 } = m;
@@ -34,5 +30,5 @@ export function readStartButtonSelector(m) {
     mask = 0; // the redraw clobbers the working mask, so the AND yields 0 on draw frames
   }
 
-  return (regs.a = mem8[IN2] & mask); // port read kicks the watchdog
+  return (regs.a = mem8[IN2_PORT] & mask); // port read kicks the watchdog
 }

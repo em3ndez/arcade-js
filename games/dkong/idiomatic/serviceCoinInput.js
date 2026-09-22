@@ -16,10 +16,10 @@ import {
   DIP_COINS_PER_CREDIT,
   DIP_CREDITS_PER_COIN,
   GAME_STATE,
+  IN2_PORT,
   SND_TRIGGER,
 } from "./names.js";
 
-const IN2_PORT = 0x7d00; // reading it also re-kicks the watchdog
 const COIN1_BIT = 0x80;
 const GAME_RUNNING = 0x03;
 const COIN_CHIME = SND_TRIGGER + 3;

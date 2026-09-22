@@ -15,11 +15,10 @@ import {
   DIP_CREDITS_PER_COIN,
   DIP_LIVES,
   DIP_UPRIGHT,
+  DSW0_PORT,
   OPTION_TABLE_BASE,
   OPTION_TABLE_ROM,
 } from "./names.js";
-
-const DSW0 = 0x7d80; // board port, not work RAM
 
 const BONUS_LIFE_BCD = [0x07, 0x10, 0x15, 0x20];
 
@@ -27,7 +26,7 @@ const OPTION_TABLE_LEN = 0xaa;
 
 export function decodeDipSwitches(m) {
   const { mem8 } = m;
-  const dsw0 = mem8[DSW0];
+  const dsw0 = mem8[DSW0_PORT];
 
   mem8[DIP_LIVES] = (dsw0 & 0x03) + 0x03;
 

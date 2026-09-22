@@ -21,11 +21,11 @@ import {
   STACK_TOP,
   SPRITE_RAM_BASE,
   TILEMAP_BASE,
+  DMA_CH0_ADDR,
 } from "./names.js";
 
 const SPRITE_RAM_LO = SPRITE_RAM_BASE;
 
-const VIDEO_RAM_HI = 0x7800;
 const BLANK_TILE = 0x10; // blank glyph, not zero
 
 const TASK_RING_SLOTS = 0x40;
@@ -39,7 +39,8 @@ export function clearRamAndInitHardware(m) {
 
   for (let a = SPRITE_RAM_LO; a < TILEMAP_BASE; a++) mem8[a] = 0;
 
-  for (let a = TILEMAP_BASE; a < VIDEO_RAM_HI; a++) mem8[a] = BLANK_TILE;
+  // Tilemap runs up to where the DMA registers begin.
+  for (let a = TILEMAP_BASE; a < DMA_CH0_ADDR; a++) mem8[a] = BLANK_TILE;
 
   for (let i = 0; i < TASK_RING_SLOTS; i++) mem8[TASK_RING + i] = SLOT_FREE;
   mem8[TASK_TAIL] = QUEUE_EMPTY;

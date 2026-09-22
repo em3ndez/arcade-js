@@ -171,8 +171,8 @@ from observation): ROM `0x0000–0x3FFF`; work RAM `0x6000–0x6BFF` (note the b
 `0x6C00–0x6FFF` is *not* RAM and a touch there throws); sprite RAM `0x7000–0x73FF`; tilemap RAM
 `0x7400–0x77FF`; the i8257 DMA at `0x7800–0x780F`; the I/O strip at `0x7C00–0x7D87`. Three
 modelling rules that layer exists to enforce: a read and a write at one address are *different
-devices* (`0x7C00` reads IN0 and writes the sound-tune latch); a read is not necessarily pure
-(reading `0x7D00` kicks the watchdog, which is how the dog is fed — once per vblank, as an
+devices* (IN0_PORT `0x7C00` reads IN0 and writes the SOUND_TUNE_LATCH); a read is not necessarily
+pure (reading IN2_PORT `0x7D00` kicks the watchdog, which is how the dog is fed — once per vblank, as an
 interrupt side effect); and unmapped access throws loudly. The I/O strip also carries the LS259
 output-latch bits `FLIPSCREEN` (`0x7D82`) and `SPRITE_BANK` (`0x7D83`), cleared/set alongside
 `NMI_ENABLE` and the palette-bank bits at power-on. `[code]`

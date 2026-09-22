@@ -1190,6 +1190,12 @@ export const DMA_CH1_COUNT = 0x7803;
 export const DMA_MODE = 0x7808;
 /** IN1_PORT (0x7c80) — Hardware input port IN1 (read): player-2 joystick/button port, read only in cocktail mode when ACTIVE_PLAYER_INDEX is nonzero. Sibling of IN0=0x7c00 (… [code] */
 export const IN1_PORT = 0x7c80;
+/** IN0_PORT (0x7c00) — Hardware input port IN0 (read): player-1 joystick + jump button. Read device at the same address as the write-side SOUND_TUNE_LATCH (read and write are different devices). [code] */
+export const IN0_PORT = 0x7c00;
+/** IN2_PORT (0x7d00) — Hardware input port IN2 (read): coin (bit7) + START1/START2 (bits2/3); the read also kicks the watchdog (dkong_in2_r). Read device at the SOUND_TRIGGER_LATCH write address. [code] */
+export const IN2_PORT = 0x7d00;
+/** DSW0_PORT (0x7d80) — Hardware DIP-switch bank DSW0 (read); the driver map comment mislabels it DSW1 but the MAME port tag is DSW0. Read device at the SOUND_IRQ write address. [code] */
+export const DSW0_PORT = 0x7d80;
 /** SOUND_TUNE_LATCH (0x7c00) — single sound-command latch (board output, routed to the sound CPU); written once to select/silence a tune. [seen] */
 export const SOUND_TUNE_LATCH = 0x7c00;
 /** SOUND_TRIGGER_LATCH (0x7d00) — 8-bit addressable sound-trigger latch (0x7d00-0x7d07, one address per bit, data on bit 0); silenceSound clears all eight. [seen] */
