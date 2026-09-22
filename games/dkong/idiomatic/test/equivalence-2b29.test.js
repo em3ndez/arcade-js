@@ -313,9 +313,10 @@ function classify(entry) {
   c.nextBoundary = Infinity;
   if (c.mem.read8(BOARD) !== 1) return "off-25m";
   c.regs.hl = (c.mem.read8(MARIO_X) << 8) | u8(c.mem.read8(MARIO_Y) + 7);
-  if (probeTileForLanding(c) === false) return "classifier-landed";
-  if (c.regs.a === 0) return "no-surface";
-  return u8(c.regs.e - c.regs.c) >= 4 ? "too-far" : "snap";
+  const probe = probeTileForLanding(c);
+  if (probe.skip === false) return "classifier-landed";
+  if (probe.a === 0) return "no-surface";
+  return u8(probe.e - probe.c) >= 4 ? "too-far" : "snap";
 }
 
 test("CAPTURED: probeMarioDescentLanding == oracle on RAM+pc+SP+A+B across real attract dispatches", () => {
@@ -385,10 +386,10 @@ function brokenNoUnwindPropagate(m) {
   const { regs, mem } = m;
   if (mem.read8(BOARD) !== 1) return loc_2b53(m);
   regs.hl = (mem.read8(MARIO_X) << 8) | u8(mem.read8(MARIO_Y) + 7);
-  probeTileForLanding(m); // BUG: no `if (=== false) return false`
-  if (regs.a === 0) return loc_2b51(m);
-  if (u8(regs.e - regs.c) >= 4) return loc_2b74(m);
-  mem.write8(MARIO_Y, regs.c - 7);
+  const probe = probeTileForLanding(m); // BUG: no `if (probe.skip === false) return false`
+  if (probe.a === 0) return loc_2b51(m);
+  if (u8(probe.e - probe.c) >= 4) return loc_2b74(m);
+  mem.write8(MARIO_Y, probe.c - 7);
   regs.a = 1;
   regs.b = 1;
   return loc_2b51(m);
@@ -399,10 +400,11 @@ function brokenSnapOffset(m) {
   const { regs, mem } = m;
   if (mem.read8(BOARD) !== 1) return loc_2b53(m);
   regs.hl = (mem.read8(MARIO_X) << 8) | u8(mem.read8(MARIO_Y) + 7);
-  if (probeTileForLanding(m) === false) return false;
-  if (regs.a === 0) return loc_2b51(m);
-  if (u8(regs.e - regs.c) >= 4) return loc_2b74(m);
-  mem.write8(MARIO_Y, regs.c - 6); // BUG: should be - 7
+  const probe = probeTileForLanding(m);
+  if (probe.skip === false) return false;
+  if (probe.a === 0) return loc_2b51(m);
+  if (u8(probe.e - probe.c) >= 4) return loc_2b74(m);
+  mem.write8(MARIO_Y, probe.c - 6); // BUG: should be - 7
   regs.a = 1;
   regs.b = 1;
   return loc_2b51(m);
@@ -413,10 +415,11 @@ function brokenDropSecondResult(m) {
   const { regs, mem } = m;
   if (mem.read8(BOARD) !== 1) return loc_2b53(m);
   regs.hl = (mem.read8(MARIO_X) << 8) | u8(mem.read8(MARIO_Y) + 7);
-  if (probeTileForLanding(m) === false) return false;
-  if (regs.a === 0) return loc_2b51(m);
-  if (u8(regs.e - regs.c) >= 4) return loc_2b74(m);
-  mem.write8(MARIO_Y, regs.c - 7);
+  const probe = probeTileForLanding(m);
+  if (probe.skip === false) return false;
+  if (probe.a === 0) return loc_2b51(m);
+  if (u8(probe.e - probe.c) >= 4) return loc_2b74(m);
+  mem.write8(MARIO_Y, probe.c - 7);
   regs.a = 1; // BUG: the second result byte is never written
   return loc_2b51(m);
 }
@@ -426,10 +429,11 @@ function brokenReachThreshold(m) {
   const { regs, mem } = m;
   if (mem.read8(BOARD) !== 1) return loc_2b53(m);
   regs.hl = (mem.read8(MARIO_X) << 8) | u8(mem.read8(MARIO_Y) + 7);
-  if (probeTileForLanding(m) === false) return false;
-  if (regs.a === 0) return loc_2b51(m);
-  if (u8(regs.e - regs.c) > 4) return loc_2b74(m); // BUG: should be >=
-  mem.write8(MARIO_Y, regs.c - 7);
+  const probe = probeTileForLanding(m);
+  if (probe.skip === false) return false;
+  if (probe.a === 0) return loc_2b51(m);
+  if (u8(probe.e - probe.c) > 4) return loc_2b74(m); // BUG: should be >=
+  mem.write8(MARIO_Y, probe.c - 7);
   regs.a = 1;
   regs.b = 1;
   return loc_2b51(m);
@@ -440,10 +444,11 @@ function brokenBoardTest(m) {
   const { regs, mem } = m;
   if (mem.read8(BOARD) !== 2) return loc_2b53(m); // BUG: should be !== 1
   regs.hl = (mem.read8(MARIO_X) << 8) | u8(mem.read8(MARIO_Y) + 7);
-  if (probeTileForLanding(m) === false) return false;
-  if (regs.a === 0) return loc_2b51(m);
-  if (u8(regs.e - regs.c) >= 4) return loc_2b74(m);
-  mem.write8(MARIO_Y, regs.c - 7);
+  const probe = probeTileForLanding(m);
+  if (probe.skip === false) return false;
+  if (probe.a === 0) return loc_2b51(m);
+  if (u8(probe.e - probe.c) >= 4) return loc_2b74(m);
+  mem.write8(MARIO_Y, probe.c - 7);
   regs.a = 1;
   regs.b = 1;
   return loc_2b51(m);

@@ -4,7 +4,8 @@
  * surface; on a hit, snap him onto it and abort the collision probe walk.
  *
  * LIVE-OUT: MARIO_Y on the at-or-below arm; the result code (2 = airborne, 1 = landed) and
- * its twin; and the caller-skip boolean, where false is the two-frame unwind.
+ * its twin, returned in `{ skip, a, b }` AND return-assigned to A/B; skip false is the
+ * two-frame unwind.
  */
 
 import { u8, u16 } from "../../../core/int.js";
@@ -16,11 +17,11 @@ export function resolveAirborneTileLanding(m, boundary = m.regs.c, ix = m.regs.i
   const objectY = mem8[u16(ix + 5)];
   const probe = u8(mem8[MARIO_AIR_PREV_Y] - objectY + e);
 
-  // Result code + twin ride the return as register writes; the boolean is the caller-skip.
+  // Result code + twin ride the return object AND the register writes; skip is the caller-skip.
   if (probe > boundary) {
-    return (regs.a = 2, regs.b = 0, true);
+    return (regs.a = 2, regs.b = 0, { skip: true, a: 2, b: 0 });
   }
 
   mem8[MARIO_Y] = boundary - 7;
-  return (regs.a = 1, regs.b = 1, false);
+  return (regs.a = 1, regs.b = 1, { skip: false, a: 1, b: 1 });
 }

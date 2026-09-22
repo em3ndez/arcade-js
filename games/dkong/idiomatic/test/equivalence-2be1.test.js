@@ -130,7 +130,10 @@ function runCandidate(entry, fn) {
   const c = entry.clone();
   c.nextNmi = Infinity;
   c.nextBoundary = Infinity;
-  const normal = fn(c);
+  const ret = fn(c);
+  // Caller-skip signal: resolveAirborneTileLanding returns { skip, ... }; the broken twins below
+  // still return a bare boolean. Read skip from either shape (the contract diff is unchanged).
+  const normal = ret && typeof ret === "object" ? ret.skip : ret;
   if (normal) {
     c.ret();
   } else {

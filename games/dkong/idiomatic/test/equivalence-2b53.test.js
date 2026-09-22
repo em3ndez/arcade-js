@@ -242,10 +242,10 @@ test("EQUAL: loc_2b53 == oracle on RAM+pc+SP+A across all five terminal paths", 
 function brokenSecondProbeNoOffset(m) {
   const { regs } = m;
   regs.hl = (u8(m.mem.read8(MARIO_X) - 3) << 8) | u8(m.mem.read8(MARIO_Y) + 7);
-  if (probeTileForLanding(m) === false) return false;
+  if (probeTileForLanding(m).skip === false) return false;
   if (regs.a === 2) return loc_2b7a(m);
   regs.hl = (u8(regs.d) << 8) | u8(regs.e); // BUG: no +7 on the high byte
-  if (probeTileForLanding(m) === false) return false;
+  if (probeTileForLanding(m).skip === false) return false;
   if (regs.a === 0) return true;
   return loc_2b7a(m);
 }
@@ -257,7 +257,7 @@ function brokenFirstNoPropagate(m) {
   probeTileForLanding(m); // BUG: no `if (=== false) return false`
   if (regs.a === 2) return loc_2b7a(m);
   regs.hl = (u8(regs.d + 7) << 8) | u8(regs.e);
-  if (probeTileForLanding(m) === false) return false;
+  if (probeTileForLanding(m).skip === false) return false;
   if (regs.a === 0) return true;
   return loc_2b7a(m);
 }
@@ -266,10 +266,10 @@ function brokenFirstNoPropagate(m) {
 function brokenInvertSnapTest(m) {
   const { regs } = m;
   regs.hl = (u8(m.mem.read8(MARIO_X) - 3) << 8) | u8(m.mem.read8(MARIO_Y) + 7);
-  if (probeTileForLanding(m) === false) return false;
+  if (probeTileForLanding(m).skip === false) return false;
   if (regs.a === 0) return loc_2b7a(m); // BUG: should be === 2
   regs.hl = (u8(regs.d + 7) << 8) | u8(regs.e);
-  if (probeTileForLanding(m) === false) return false;
+  if (probeTileForLanding(m).skip === false) return false;
   if (regs.a === 0) return true;
   return loc_2b7a(m);
 }

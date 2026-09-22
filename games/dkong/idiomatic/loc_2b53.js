@@ -22,15 +22,17 @@ export function loc_2b53(m) {
 
   // First probe: high = X-3, low = Y+7.
   const first = (u8(mem8[MARIO_X] - 3) << 8) | u8(mem8[MARIO_Y] + 7);
-  if (probeTileForLanding(m, first) === false) return false;
+  const p1 = probeTileForLanding(m, first);
+  if (p1.skip === false) return false;
 
-  if (m.regs.a === 2) return loc_2b7a(m);
+  if (p1.a === 2) return loc_2b7a(m);
 
   // Second probe: a reject leaves the first point intact — high X-3, low Y+7 — so its bytes are
   // exactly `first`'s; the new high byte is +7 (X+4).
   const second = (u8(((first >> 8) & 0xff) + 7) << 8) | u8(first & 0xff);
-  if (probeTileForLanding(m, second) === false) return false;
+  const p2 = probeTileForLanding(m, second);
+  if (p2.skip === false) return false;
 
-  if (m.regs.a === 0) return true;
+  if (p2.a === 0) return true;
   return loc_2b7a(m);
 }
