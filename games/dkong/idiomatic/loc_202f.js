@@ -14,12 +14,12 @@ import { loc_2038 } from "./loc_2038.js";
 const STEP_LEFT_HI = 0xff;
 const STEP_LEFT_LO = 0xa0;
 
-export function loc_202f(m, record = m.regs.ix) {
+export function loc_202f(m, cur, record = m.regs.ix) {
   const { regs, mem8 } = m;
 
   mem8[record + 0x10] = STEP_LEFT_HI;
   mem8[record + 0x11] = STEP_LEFT_LO;
 
   // The tail stores this zero into four more record bytes; the write rides the return into it.
-  return (regs.a = 0, loc_2038(m));
+  return (regs.a = 0, loc_2038(m, cur));
 }

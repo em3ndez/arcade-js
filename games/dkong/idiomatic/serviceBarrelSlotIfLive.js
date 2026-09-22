@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * serviceBarrelSlotIfLive — the barrel walk's per-slot gate: hand a live record to the motion
- * dispatch, or step the staging cursor's low byte past three of the four bytes this slot leaves
- * alone (the fourth is the shared between-slots step, so the cursor lands on a record boundary).
+ * dispatch, or leave a dead slot untouched (the walk advances its cursor either way).
  * ⚠ The test is equality with 1, NOT a bit test: a record holding 2 is skipped like one holding 0.
- * LIVE-OUT: the staging cursor's low byte plus the propagated return; carry passes through.
+ * The record pointer rides the return into the index register the motion arms and their frozen
+ * probe helpers read it back from; the staging cursor is threaded as the value `cur`.
  */
 
 import { advanceBarrelMotion } from "./advanceBarrelMotion.js";
 import { OBJ_ACTIVE } from "./names.js";
 
-export function serviceBarrelSlotIfLive(m, record = m.regs.ix, cursorLow = m.regs.l) {
-  const { regs, mem8 } = m;
+export function serviceBarrelSlotIfLive(m, cur, record) {
+  const { mem8 } = m;
 
-  if (mem8[record + OBJ_ACTIVE] === 1) return advanceBarrelMotion(m);
+  if (mem8[record + OBJ_ACTIVE] !== 1) return; // dead slot: nothing to publish, the walk advances
 
-  // Low byte only, so the cursor never leaves its page; the write rides the return, then dispatch.
-  return [regs.l = cursorLow + 3, m.call(0x1f8d)][1];
+  return (m.regs.ix = record, advanceBarrelMotion(m, cur));
 }

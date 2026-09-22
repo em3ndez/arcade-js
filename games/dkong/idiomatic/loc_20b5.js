@@ -19,14 +19,14 @@ const STEP_FRACTION = 17;
 const LEFTWARD_ONE_PIXEL_WHOLE = 255;
 const LEFTWARD_ONE_PIXEL_FRACTION = 0;
 
-export function loc_20b5(m, ix = m.regs.ix) {
+export function loc_20b5(m, cur, ix = m.regs.ix) {
   const { mem8 } = m;
   const at = (offset) => u16(ix + offset);
 
-  if (mem8[at(STEP_WHOLE)] !== 0) return loc_20e1(m);
+  if (mem8[at(STEP_WHOLE)] !== 0) return loc_20e1(m, cur);
 
   mem8[at(STEP_FRACTION)] = LEFTWARD_ONE_PIXEL_FRACTION;
   mem8[at(STEP_WHOLE)] = LEFTWARD_ONE_PIXEL_WHOLE;
 
-  return loc_20c3(m);
+  return loc_20c3(m, cur);
 }

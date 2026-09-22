@@ -14,12 +14,19 @@ const GIRDER_BOARD = 1; // the BOARD value that runs the walk (25m)
 const OBJECT_SLOTS = 10; // records in OBJ_ARRAY_67
 const RECORD_STRIDE = 32;
 
+const SPRITE_PAGE = ACTOR_SPRITES & ~0xff; // the fixed sprite-buffer page for the sweep (low byte cleared)
+const SPRITE_CURSOR = ACTOR_SPRITES & 0xff; // the low-byte staging cursor, +4 per slot
+
 export function update25mBarrels(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[BOARD] !== GIRDER_BOARD) return;
 
-  // The walk reads its four working values from registers rather than as arguments; seed them on
-  // the tail-call return so the writes still land (left-to-right) before serviceBarrelSlotIfLive.
-  return (regs.ix = OBJ_ARRAY_67), (regs.hl = ACTOR_SPRITES), (regs.de = RECORD_STRIDE), (regs.b = OBJECT_SLOTS), serviceBarrelSlotIfLive(m);
+  // Walk the ten barrel slots, servicing each and advancing the record pointer one stride and the
+  // sprite cursor four bytes per iteration. The staging cursor is a plain JS value the walk owns.
+  let cursor = SPRITE_CURSOR;
+  let record = OBJ_ARRAY_67;
+  for (let count = OBJECT_SLOTS; count; count--, cursor = (cursor + 4) & 0xff, record += RECORD_STRIDE) {
+    serviceBarrelSlotIfLive(m, { page: SPRITE_PAGE, cursor }, record);
+  }
 }

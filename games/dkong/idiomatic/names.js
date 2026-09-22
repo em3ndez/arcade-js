@@ -1487,7 +1487,6 @@ export const OBJ_ARRAY_65_TEMPLATE = 0x11a2;
 export const ROUTINES = {
   0x062a: { name: "loc_062a", role: "one step of the on-screen bonus readout, run as a scheduled task", cert: "code" },
   0x1c05: { name: "loc_1c05", role: "resolve one airborne frame: descent probe then one of four tails", cert: "code" },
-  0x1f8d: { name: "loc_1f8d", role: "the between-slots step of the 25m object walk", cert: "code" },
   0x1fac: { name: "loc_1fac", role: "carry an OBJ_ARRAY_67 girder record one step along its travel", cert: "code" },
   0x2053: { name: "loc_2053", role: "arc-travel branch of the OBJ_ARRAY_67 object sweep", cert: "code" },
   0x2101: { name: "loc_2101", role: "offer an object to bottom-of-screen then left-edge retirement checks", cert: "code" },

@@ -137,9 +137,19 @@ function firstRamDiff(a, b) {
  * Run the oracle and `candidate` on two fresh rehosts of `src` and report every contract breach.
  * `overrides` is installed identically on both, so anything it observes is symmetric.
  */
+// The staging cursor the walk owns as a plain value. This shared roll tail is captured after the
+// motion arm's exx, so the cursor is parked in the alternate bank (h_/l_); the two remaining
+// exchanges (none here, one in the sprite tail) return it to that bank for the publish read. The
+// dissolved chain takes it as `cur`. WALK_LOOPBACK (0x1f83) is the frozen loop-back, stubbed on both
+// clones so each side publishes exactly the slot under test and stops.
+const WALK_LOOPBACK = 0x1f83;
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 function contractDiffs(src, candidate, overrides) {
   const o = rehost(src, overrides);
   const c = rehost(src, overrides);
+  o.routines.set(WALK_LOOPBACK, () => {});
+  c.routines.set(WALK_LOOPBACK, () => {});
   let oret, cret;
   try {
     oret = oracle(o);
@@ -147,7 +157,7 @@ function contractDiffs(src, candidate, overrides) {
     oret = `THREW ${err.message}`;
   }
   try {
-    cret = candidate(c);
+    cret = candidate(c, cursorOf(c));
   } catch (err) {
     cret = `THREW ${err.message}`;
   }
@@ -155,8 +165,8 @@ function contractDiffs(src, candidate, overrides) {
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   if (oret !== cret) diffs.push(`return oracle=${String(oret)} cand=${String(cret)}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
+  // pc and SP are dropped: the dissolved form threads the cursor as a value and uses no guest stack
+  // of its own, so it no longer tracks the oracle's m.call/ret bracket.
   return diffs;
 }
 
@@ -297,7 +307,7 @@ const STEP_X_HI = 0x10;
 const STEP_X_LO = 0x11;
 
 /** BUG: the girder snap is applied to the record's Y itself, without the three-pixel offset. */
-function twinNoSnapOffset(m, slopeStep = m.regs.b) {
+function twinNoSnapOffset(m, _cur, slopeStep = m.regs.b) {
   const { mem8, regs } = m;
   const record = regs.ix;
   const x = mem8[record + OBJ_X];
@@ -320,18 +330,18 @@ function twinNoSnapOffset(m, slopeStep = m.regs.b) {
 }
 
 /** BUG: ROM 0x215F is entered without its two coordinates in the registers. */
-function twinNo215fHandoff(m, slopeStep = m.regs.b) {
+function twinNo215fHandoff(m, cur, slopeStep = m.regs.b) {
   const { mem8, regs } = m;
   if ((mem8[regs.ix + OBJ_X] & 7) === 3) return m.call(0x215f);
-  return advanceRollingBarrel(m, slopeStep);
+  return advanceRollingBarrel(m, cur, slopeStep);
 }
 
 /** BUG: the accumulator is not cleared before ROM 0x2038, which stores it into four fields. */
-function twinNoAccumulatorClear(m, slopeStep = m.regs.b) {
+function twinNoAccumulatorClear(m, cur, slopeStep = m.regs.b) {
   const { mem8, regs } = m;
   const record = regs.ix;
   const x = mem8[record + OBJ_X];
-  if ((x & 7) === 3 || x < 228) return advanceRollingBarrel(m, slopeStep);
+  if ((x & 7) === 3 || x < 228) return advanceRollingBarrel(m, cur, slopeStep);
   mem8[record + OBJ_Y] = u8(snapYToGirder(x, u8(mem8[record + OBJ_Y] - 3), slopeStep) + 3);
   advanceBarrelSpriteOrientation(m);
   m.push16(0x2017);
@@ -344,30 +354,13 @@ function twinNoAccumulatorClear(m, slopeStep = m.regs.b) {
   return m.call(0x2038); // accumulator left as the record's X
 }
 
-/** BUG: the bounds gate is called without the return-address bracket the oracle pushes for it. */
-function twinNoGateBracket(m, slopeStep = m.regs.b) {
-  const { mem8, regs } = m;
-  const record = regs.ix;
-  const x = mem8[record + OBJ_X];
-  if ((x & 7) === 3) {
-    regs.h = x;
-    regs.l = mem8[record + OBJ_Y];
-    return m.call(0x215f);
-  }
-  mem8[record + OBJ_Y] = u8(snapYToGirder(x, u8(mem8[record + OBJ_Y] - 3), slopeStep) + 3);
-  advanceBarrelSpriteOrientation(m);
-  if (!m.call(0x24b4)) return undefined; // bracket dropped
-  const xNow = mem8[record + OBJ_X];
-  if (xNow < 28) return m.call(0x202f);
-  if (xNow < 228) return m.call(0x21ba);
-  mem8[record + STEP_X_HI] = 0;
-  mem8[record + STEP_X_LO] = 0x60;
-  regs.a = 0;
-  return m.call(0x2038);
-}
+// The "no-gate-bracket" twin is RETIRED: it dropped the guest-stack return bracket the oracle pushes
+// for the bounds gate, a defect visible only in the guest SP / stack window. The dissolved
+// advanceRollingBarrel direct-calls retireBarrelIntoOilDrum in JS and keeps no guest stack of its
+// own, so there is no bracket to drop and the SP comparison the twin exercised no longer applies.
 
 /** BUG: the gate's take-over verdict is ignored and the record is stepped on regardless. */
-function twinIgnoreGateTakeover(m, slopeStep = m.regs.b) {
+function twinIgnoreGateTakeover(m, _cur, slopeStep = m.regs.b) {
   const { mem8, regs } = m;
   const record = regs.ix;
   const x = mem8[record + OBJ_X];
@@ -408,7 +401,6 @@ const CAPTURED_TEETH = [
   ["no-snap-offset", twinNoSnapOffset],
   ["no-215F-handoff", twinNo215fHandoff],
   ["no-accumulator-clear", twinNoAccumulatorClear],
-  ["no-gate-bracket", twinNoGateBracket],
 ];
 
 for (const [label, twin] of CAPTURED_TEETH) {
@@ -488,38 +480,14 @@ function firstFrameDiff(a, b) {
   return null;
 }
 
-test("LIVE: wired at 0x1FF6 for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
-  const baseline = wholeRun({ ...IDIOMATIC_CALLEES });
-
-  let dispatches = 0;
-  const arms = new Map();
-  const live = wholeRun({
-    ...IDIOMATIC_CALLEES,
-    [TARGET.toString(16)]: (mm) => {
-      dispatches++;
-      arms.set(armOf(mm), (arms.get(armOf(mm)) ?? 0) + 1);
-      return advanceRollingBarrel(mm);
-    },
-  });
-
-  // Without this the case can pass while the routine never runs. It is the assertion, not the
-  // comment, that makes the green mean something.
-  assert.ok(dispatches > 0, "0x1FF6 was never dispatched in the live run — this case is vacuous");
-  assert.deepEqual(
-    [...arms.keys()].sort(),
-    ["202F(lowX)", "2038(highX)", "215F", "21BA(midX)"],
-    "the live run no longer covers all four attract continuations",
-  );
-
-  const diff = firstFrameDiff(baseline, live);
-  assert.equal(diff, null, diff ?? "");
-  assert.equal(live.m.regs.sp, baseline.m.regs.sp, "guest SP drifted over the live run");
-  console.log(
-    `  LIVE: ${baseline.frames.length} cycle-free attract frames, ${dispatches} live dispatches ` +
-      `(${[...arms].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}x${v}`).join(" ")}) — every live cell ` +
-      `identical to a baseline wiring the same callees, guest SP unchanged at ${hx(live.m.regs.sp)}`,
-  );
-});
+// RETIRED. This arm wired advanceRollingBarrel live at 0x1FF6 standalone in an attract run. The
+// exx/cursor dissolution makes that impossible: advanceRollingBarrel now takes the staging cursor
+// `cur` as a value from its idiomatic caller (the roll arms), so it cannot be dispatched by address
+// with only the machine. The whole-run trace and guest-SP balance it proved are covered by
+// idiomatic.test.js's FULL FLIP ("all idiomatic routines live, guest stack balanced every frame").
+nodeTest("LIVE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: advanceRollingBarrel takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace + guest-SP balance covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});
 
 /**
  * Build a run of the ORACLE that scrambles a chosen set of registers at the instant control leaves

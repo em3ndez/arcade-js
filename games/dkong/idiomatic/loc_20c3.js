@@ -18,7 +18,7 @@ const AIRBORNE_FRAMES = 0x14; //  frames elapsed on this arc; scales the gravity
 const X_FRAC = 0x04; //           fractional low half of the horizontal coordinate
 const Y_FRAC = 0x06; //           fractional low half of the vertical coordinate
 
-export function loc_20c3(m, record = m.regs.ix) {
+export function loc_20c3(m, cur, record = m.regs.ix) {
   const { regs, mem8 } = m;
 
   const reflected = loc_2407(m);
@@ -35,5 +35,5 @@ export function loc_20c3(m, record = m.regs.ix) {
   mem8[record + Y_FRAC] = 0;
 
   // damped mirrored where the tail parks it (no known consumer); the write rides the return.
-  return (regs.hl = damped, publishBarrelSprite(m));
+  return (regs.hl = damped, publishBarrelSprite(m, cur));
 }

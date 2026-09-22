@@ -18,7 +18,7 @@ const PARAM_TABLE_COLUMN = 21;
 // How much higher than the record's row field the vertical discriminator sits.
 const DISCRIMINATOR_OFFSET = 5;
 
-export function loc_215f(m, searchKey = m.regs.h, rowField = m.regs.l) {
+export function loc_215f(m, cur, searchKey = m.regs.h, rowField = m.regs.l) {
   const { regs } = m;
 
   // The grader and its own lookup take their inputs in registers, so stage them there.
@@ -27,5 +27,5 @@ export function loc_215f(m, searchKey = m.regs.h, rowField = m.regs.l) {
   regs.bc = PARAM_TABLE_COLUMN;
   startBarrelDescentAtLadder(m);
 
-  return publishBarrelSprite(m);
+  return publishBarrelSprite(m, cur);
 }

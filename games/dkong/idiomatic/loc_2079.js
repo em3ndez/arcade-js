@@ -12,9 +12,9 @@
 import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { OBJ_ACTIVE, OBJ_X } from "./names.js";
 
-export function loc_2079(m, recordBase = m.regs.ix) {
+export function loc_2079(m, cur, recordBase = m.regs.ix) {
   const { mem8 } = m;
   mem8[recordBase + OBJ_ACTIVE] = 0;
   mem8[recordBase + OBJ_X] = 0;
-  return publishBarrelSprite(m);
+  return publishBarrelSprite(m, cur);
 }

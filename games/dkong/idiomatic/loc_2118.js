@@ -15,10 +15,10 @@ import { OBJ_SPRITE_CODE, OBJ_Y } from "./names.js";
 
 const Y_SPLIT = 224;
 
-export function loc_2118(m, record = m.regs.ix) {
+export function loc_2118(m, cur, record = m.regs.ix) {
   const { mem8 } = m;
 
-  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m, cur);
 
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
@@ -29,5 +29,5 @@ export function loc_2118(m, record = m.regs.ix) {
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
 
-  return (m.regs.a = 0, loc_2153(m));
+  return (m.regs.a = 0, loc_2153(m, cur));
 }

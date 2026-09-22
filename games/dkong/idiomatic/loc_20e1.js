@@ -17,7 +17,7 @@ const VELOCITY_X_FRACTION = 0x11;
 const RIGHTWARD_ONE_PIXEL_WHOLE = 1;
 const RIGHTWARD_ONE_PIXEL_FRACTION = 0;
 
-export function loc_20e1(m, record = m.regs.ix) {
+export function loc_20e1(m, cur, record = m.regs.ix) {
   const { mem8 } = m;
   const at = (offset) => u16(record + offset);
 
@@ -25,5 +25,5 @@ export function loc_20e1(m, record = m.regs.ix) {
   mem8[at(VELOCITY_X_FRACTION)] = RIGHTWARD_ONE_PIXEL_FRACTION;
 
   // On into the shared tail, which rebuilds the vertical half of the launch from the same record.
-  return loc_20c3(m);
+  return loc_20c3(m, cur);
 }

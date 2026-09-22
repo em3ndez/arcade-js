@@ -17,13 +17,13 @@ const X_LIMIT = 16;
 // Tolerance for an X that has already wrapped past zero, so a run-down barrel still counts retired.
 const WRAP_MARGIN = 8;
 
-export function retireBarrelAtEndOfRange(m, ix = m.regs.ix) {
+export function retireBarrelAtEndOfRange(m, cur, ix = m.regs.ix) {
   const { mem8 } = m;
   const record = ix;
 
-  if (u8(mem8[record + OBJ_X] + WRAP_MARGIN) >= X_LIMIT) return advanceBarrelTileAnimation(m);
+  if (u8(mem8[record + OBJ_X] + WRAP_MARGIN) >= X_LIMIT) return advanceBarrelTileAnimation(m, cur);
 
   mem8[record + OBJ_ACTIVE] = 0;
   mem8[record + OBJ_X] = 0;
-  return publishBarrelSprite(m);
+  return publishBarrelSprite(m, cur);
 }

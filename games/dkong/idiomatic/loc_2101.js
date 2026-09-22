@@ -11,8 +11,8 @@ import { retireBarrelIntoOilDrum } from "./retireBarrelIntoOilDrum.js";
  * routine must get right. The object record stays in ix; both checks read it off the machine.
  */
 
-export function loc_2101(m) {
-  if (!retireBarrelIntoOilDrum(m)) return undefined;
+export function loc_2101(m, cur) {
+  if (!retireBarrelIntoOilDrum(m, cur)) return undefined;
 
-  return retireBarrelAtEndOfRange(m);
+  return retireBarrelAtEndOfRange(m, cur);
 }

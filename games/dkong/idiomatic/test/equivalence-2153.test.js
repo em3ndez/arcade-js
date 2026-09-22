@@ -47,19 +47,14 @@
  *                                 SEAM_CALLER_SKIP makes the seam consume a stack word the
  *                                 routine does not owe.
  *
- * COVERAGE THIS DOES NOT CLAIM: attract only, plus pokes on top of attract state. No credited
- * game, no board other than 25m, and no OBJ_ARRAY_67 record past the second — attract reaches
- * none of those. The RETURN assertion is real but has never been observed distinguishing a
- * REACHED state: the frozen tail returns undefined on every state this run produces, so twin
- * (d) is what gives that assertion its teeth, not the captures.
+ * COVERAGE THIS DOES NOT CLAIM: attract only, plus pokes on attract state — no credited game, no
+ * board other than 25m, no OBJ_ARRAY_67 record past the second. The RETURN assertion never
+ * distinguishes a REACHED state (the frozen tail returns undefined here), so twin (d) gives it teeth.
  *
- * Isolated replays use clone(), whose frame machinery is neutralised (nextNmi / nextBoundary =
- * Infinity), so an m.step inside the oracle cannot trip a live NMI whose handler would write RAM
- * and masquerade as an oracle side effect.
- *
- * The two callers are hooked with their own FROZEN oracles, delegating unchanged — they are a
- * label on each capture, not a substitution, so the capture run is the oracle's own run. Both
- * are still frozen, which is also why loc_2153 reaches its tail through the address registry.
+ * Isolated replays use clone() with frame machinery neutralised (nextNmi / nextBoundary = Infinity),
+ * so an oracle m.step cannot trip a live NMI that masquerades as a side effect. The two callers are
+ * hooked with their own FROZEN oracles, delegating unchanged — a label on each capture, not a
+ * substitution; both stay frozen, so loc_2153 reaches its tail through the registry.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2153.test.js
  */
@@ -101,6 +96,15 @@ const Y_INT = 5; // NOT written — twin (b) clobbers it instead of Y_FRAC
 const hx = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops. The dissolved idiomatic chain returns after one slot
+// (publishBarrelSprite no longer loops back), so the oracle is cut to the same one slot.
+const WALK_LOOPBACK = 0x1f83;
+
+// The staging cursor the walk owns as a plain value: sprite page and low byte, parked in the
+// alternate bank at entry (the motion arm exchanged it out). The dissolved chain takes it as `cur`.
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 // -- the memory-equivalence contract ------------------------------------------
 
 /** First RAM byte that differs between two machines, skipping the dead STACK_SCRATCH region. */
@@ -127,8 +131,10 @@ function firstRamDiff(a, b) {
 function contractDiffs(entry, fn) {
   const a = entry.clone();
   const b = entry.clone();
+  a.routines.set(WALK_LOOPBACK, () => {});
+  b.routines.set(WALK_LOOPBACK, () => {});
   const retA = oracle(a);
-  const retB = fn(b);
+  const retB = fn(b, cursorOf(b));
 
   const diffs = [];
   const ram = firstRamDiff(a, b);
@@ -272,97 +278,16 @@ test("EQUAL (crafted): all 256 stored values match the oracle on every entry sha
     "identical to the oracle, and the value reached all three fields on every one");
 });
 
-// -- 3. LIVE-WIRE -------------------------------------------------------------
+// -- 3. LIVE-WIRE (retired) ---------------------------------------------------
 
-/**
- * Run `frames` of attract with loc_2153 wired live at 0x2153.
- *
- * `restoreCycles` charges the T-states the oracle would have spent on this dispatch, measured by
- * running the oracle on a throwaway clone of the entry state. The clone's own override map is
- * reverted to the oracle at this address first, so a chain that came back round to 0x2153 would
- * measure against pure oracle rather than nesting probes (measured: it does not, but the
- * measurement is what makes that safe to rely on). The probe is a CLOCK only — every byte the
- * run produces comes from the rewrite.
- */
-function liveWire(frames, candidate, restoreCycles) {
-  let dispatches = 0;
-  const fn = (mm) => {
-    dispatches++;
-    const c0 = mm.cycles;
-    let cost = 0;
-    if (restoreCycles) {
-      const probe = mm.clone();
-      probe.routines.set(TARGET, oracle);
-      probe.overrides.set(TARGET, oracle);
-      oracle(probe);
-      cost = probe.cycles - c0;
-    }
-    const r = candidate(mm);
-    // tick(), not step(): the tail chain has already left the ROM program counter where the
-    // oracle would have, and step() would overwrite it.
-    if (restoreCycles) mm.tick(cost - (mm.cycles - c0));
-    return r;
-  };
-  const m = new Machine(ROM, { overrides: new Map([[TARGET, fn]]) });
-  const frameDumps = m.runFrames(frames);
-  return { m, frameDumps, dispatches };
-}
-
-/** First frame+byte where two traces differ, or null. `exStack` applies the RAM − STACK_SCRATCH contract. */
-function firstTraceDiff(base, other, offToAddr, exStack) {
-  for (let f = 0; f < Math.min(base.length, other.length); f++) {
-    const a = base[f], b = other[f];
-    for (let i = 0; i < Math.min(a.length, b.length); i++) {
-      if (a[i] === b[i]) continue;
-      const addr = offToAddr(i);
-      if (exStack && inStack(addr)) continue;
-      return { frame: f, addr, a: a[i], b: b[i] };
-    }
-  }
-  return null;
-}
-
-test("LIVE-WIRE: loc_2153 drives a whole attract run identical to the all-oracle baseline", () => {
-  const base = new Machine(ROM);
-  const baseFrames = base.runFrames(LIVE_FRAMES);
-  assert.equal(base.stoppedBy ?? null, null, `baseline run stopped early: ${base.stoppedBy}`);
-  assert.equal(baseFrames.length, LIVE_FRAMES, "baseline did not reach every frame");
-
-  const { m, frameDumps, dispatches } = liveWire(LIVE_FRAMES, loc_2153, true);
-  assert.equal(m.stoppedBy ?? null, null, `live-wire run stopped early: ${m.stoppedBy}`);
-  assert.equal(frameDumps.length, LIVE_FRAMES, "live-wire run did not reach every frame");
-  assert.ok(dispatches > 0, "the override must actually have been dispatched, or this arm is vacuous");
-
-  const off = (o) => base.stateOffsetToAddr(o);
-
-  // The contract, the same one arm 1 uses.
-  const contract = firstTraceDiff(baseFrames, frameDumps, off, true);
-  assert.equal(contract, null, contract &&
-    `frame ${contract.frame} diverged at ${hx(contract.addr)}: baseline=${contract.a} live-wire=${contract.b}`);
-
-  // And, because this rewrite has no stack traffic of its own to lose, the stack region too.
-  const full = firstTraceDiff(baseFrames, frameDumps, off, false);
-  assert.equal(full, null, full &&
-    `frame ${full.frame} diverged inside STACK_SCRATCH at ${hx(full.addr)}: ` +
-    `baseline=${full.a} live-wire=${full.b}`);
-
-  console.log(`  LIVE-WIRE: ${dispatches} dispatches over ${LIVE_FRAMES} attract frames — all ` +
-    `${frameDumps.length} frames identical to the all-oracle baseline on RAM − STACK_SCRATCH, ` +
-    "and on the full dump as well");
-});
-
-test("LIVE-WIRE CONTROL: without the cycle restoration the same wiring DOES fork", () => {
-  const base = new Machine(ROM);
-  const baseFrames = base.runFrames(LIVE_FRAMES);
-  const { frameDumps } = liveWire(LIVE_FRAMES, loc_2153, false);
-  const off = (o) => base.stateOffsetToAddr(o);
-  const d = firstTraceDiff(baseFrames, frameDumps, off, true);
-  assert.notEqual(d, null,
-    "the un-restored run matched the baseline on the contract, so the live-wire arm cannot be " +
-    "distinguishing anything");
-  console.log(`  CONTROL: un-restored cycles fork the trace at frame ${d.frame}, ${hx(d.addr)} ` +
-    `(baseline=${d.a} candidate=${d.b}) — the timing-seeded PRNG, not the rewrite`);
-});
+// RETIRED (both arms). These wired loc_2153 live at 0x2153 standalone in an otherwise-frozen
+// attract run. The exx/cursor dissolution makes that impossible: loc_2153 now takes the staging
+// cursor `cur` as a value from its idiomatic caller (loc_2118 / loc_2146), so it cannot be
+// dispatched by address with only the machine. The whole-run trace they proved is covered by
+// idiomatic.test.js's FULL FLIP, which runs the dissolved chain end to end with the cursor threaded.
+nodeTest("LIVE-WIRE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: loc_2153 takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});
 
 // -- 4. TEETH -----------------------------------------------------------------
 

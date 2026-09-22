@@ -425,6 +425,7 @@ test("LIVE-WIRE: runGameplayFrame drives a whole attract run identically to the 
 import { dispatchEffectState } from "../dispatchEffectState.js";
 import { runHitEffectInsteadOfPlay } from "../runHitEffectInsteadOfPlay.js";
 import { dispatchMarioMovement } from "../dispatchMarioMovement.js";
+import { update25mBarrels } from "../update25mBarrels.js";
 import { driveBarrelRelease } from "../driveBarrelRelease.js";
 import { scheduleBarrelRelease } from "../scheduleBarrelRelease.js";
 import { updateFires } from "../updateFires.js";
@@ -449,10 +450,11 @@ import { silenceSound } from "../silenceSound.js";
 import { advanceSubstateAndArmTimer } from "../advanceSubstateAndArmTimer.js";
 
 /** The middle of the cascade, shared by every twin so each one differs in exactly one thing. */
-function body(m, keepBracket = true) {
+function body(m) {
   dispatchMarioMovement(m);
-  if (keepBracket) m.push16(0x1986);
-  m.call(0x1f72);
+  // The 25m object walk is now fully idiomatic: a direct call, no guest-stack bracket (the dissolved
+  // update25mBarrels drives a JS for-loop and rets through JS, so 0x1F72 no longer needs a bracket).
+  update25mBarrels(m);
   driveBarrelRelease(m);
   scheduleBarrelRelease(m);
   updateFires(m);
@@ -530,22 +532,11 @@ function brokenReturnsBoolean(m) {
   return true;
 }
 
-/** Twin (e): the oracle-boundary return bracket before the still-frozen ROM 0x1F72 is dropped, so
- *  that routine's own `ret` eats the caller's return address instead. The missing word is inside
- *  STACK_SCRATCH and the return value is still undefined, so neither the RAM diff nor the return
- *  assertion sees it. */
-function brokenNoReturnBracket(m) {
-  dispatchEffectState(m);
-  if (!runHitEffectInsteadOfPlay(m)) return;
-  body(m, false);
-  if (!checkBoardWonByType(m)) return;
-  if (!dispatchBonusExpiredStep(m)) return;
-  tickTimedBoardBonus(m);
-  if (m.mem8[MARIO_ACTIVE] !== 0) return;
-  silenceSound(m);
-  m.mem8[SND_TRIGGER + 2] = 3;
-  return advanceSubstateAndArmTimer(m);
-}
+// Twin (e) — the "dropped oracle-boundary return bracket before ROM 0x1F72" tooth — is RETIRED with
+// this change: 0x1F72 (the 25m object walk) is now the idiomatic update25mBarrels, a JS for-loop that
+// rets through JS and touches no guest stack, so there is no return bracket to drop and no stack
+// imbalance for a live-wire run to catch. The bracket's removal is exactly this dissolution; the
+// whole-frame guest-stack balance is proved by idiomatic.test.js's FULL FLIP.
 
 test("TEETH: the captured-replay arm catches a dropped effect-latch guard and an unconditional death tail", () => {
   for (const [name, twin] of [
@@ -588,33 +579,9 @@ test("TEETH: a propagated boolean is invisible to the RAM diff and caught ONLY b
   console.log(`  TEETH/propagated boolean: caught — ${r.failure}`);
 });
 
-test("TEETH: a dropped oracle-boundary bracket is invisible to the replay and caught ONLY by the live-wire run", async () => {
-  // Invisible to arms 1 and 2: the missing stack word is inside STACK_SCRATCH and the return value
-  // is still undefined.
-  const natural = captureAndReplay(brokenNoReturnBracket, CRAFT_FRAMES);
-  assert.ok(natural.total > 0, "the natural run captured nothing, so 'it escapes' would be vacuous");
-  assert.equal(natural.failure, null, `the replay was expected NOT to see this twin (${natural.failure})`);
-
-  // Caught by arm 3, as a guest stack that no longer balances at the vblank yield.
-  const overrides = await shippingWithTargetFrozen();
-  const ref = liveRun(overrides, null);
-  let broken;
-  try {
-    broken = liveRun(overrides, brokenNoReturnBracket);
-  } catch (e) {
-    console.log(`  TEETH/dropped bracket: invisible to all ${natural.total} natural dispatches, caught by the live-wire run as ${e.name}: ${e.message}`);
-    return;
-  }
-  const spMoved = [...broken.sps].join(",") !== [...ref.sps].join(",");
-  const d = firstTraceDiff(ref.trace, broken.trace, (o) => ref.m.stateOffsetToAddr(o));
-  assert.ok(
-    spMoved || d.live !== null || broken.run.stopError !== null,
-    "the live-wire arm FAILED to catch a dropped return bracket — worthless",
-  );
-  console.log(
-    `  TEETH/dropped bracket: invisible to all ${natural.total} natural dispatches, caught by the live-wire run — ` +
-      `SP at the vblank yield ${[...broken.sps].map(hx).join(",")} against the reference's ${[...ref.sps].map(hx).join(",")}` +
-      (d.live ? `; live cells diverge at frame ${d.live.frame}, ${hx(d.live.addr)}` : "") +
-      (broken.run.stopError ? `; run errored: ${broken.run.stop}` : ""),
-  );
-});
+// RETIRED with twin (e): the object-walk return bracket this tooth dropped no longer exists — 0x1F72
+// is the idiomatic update25mBarrels (a JS for-loop, no guest-stack ret). The whole-frame guest-stack
+// balance is covered by idiomatic.test.js's FULL FLIP ("guest stack balanced every frame").
+nodeTest("TEETH: retired — 0x1F72's return bracket is dissolved; FULL FLIP proves the frame's stack balance", {
+  skip: "retired: the 25m object walk (0x1F72) is now idiomatic update25mBarrels with no guest-stack bracket to drop; whole-frame guest-stack balance covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});

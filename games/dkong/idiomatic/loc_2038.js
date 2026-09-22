@@ -26,7 +26,7 @@ const FALLING_ARM = 8;
 
 // resetValue: blanked into the four counter/fraction fields (0 in play). record: a bridge param
 // the shared tail also reads via m.regs.ix — leave it defaulted or the hand-off desyncs.
-export function loc_2038(m, resetValue = m.regs.a, record = m.regs.ix) {
+export function loc_2038(m, cur, resetValue = m.regs.a, record = m.regs.ix) {
   const { mem8 } = m;
 
   // Launch downhill: with this velocity negative the motion never turns over.
@@ -40,5 +40,5 @@ export function loc_2038(m, resetValue = m.regs.a, record = m.regs.ix) {
 
   mem8[record + ARM_SELECT] = FALLING_ARM;
 
-  return publishBarrelSprite(m);
+  return publishBarrelSprite(m, cur);
 }

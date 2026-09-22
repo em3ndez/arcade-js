@@ -96,6 +96,15 @@ const VELOCITY_ARMS = [
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops. The dissolved idiomatic chain returns after one slot
+// (publishBarrelSprite no longer loops back), so the oracle is cut to the same one slot.
+const WALK_LOOPBACK = 0x1f83;
+
+// The staging cursor the walk owns as a plain value: sprite page and low byte, parked in the
+// alternate bank at entry (the motion arm exchanged it out). The dissolved chain takes it as `cur`.
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 // -- diff plumbing ------------------------------------------------------------
 
 /** First RAM byte that differs, skipping the dead STACK_SCRATCH region. */
@@ -126,8 +135,10 @@ function firstAnyRamDiff(a, b) {
 function contractDiffs(entry, fn, prep) {
   const a = entry.clone(), b = entry.clone();
   if (prep) { prep(a); prep(b); }
+  a.routines.set(WALK_LOOPBACK, () => {});
+  b.routines.set(WALK_LOOPBACK, () => {});
   const oracleReturn = oracle(a);
-  const candidateReturn = fn(b);
+  const candidateReturn = fn(b, cursorOf(b));
 
   const diffs = [];
   const ram = firstRamDiff(a, b);
@@ -141,8 +152,10 @@ function contractDiffs(entry, fn, prep) {
 /** True when oracle and candidate differ ONLY inside STACK_SCRATCH on this entry. */
 function differsOnlyInStack(entry, fn) {
   const a = entry.clone(), b = entry.clone();
+  a.routines.set(WALK_LOOPBACK, () => {});
+  b.routines.set(WALK_LOOPBACK, () => {});
   oracle(a);
-  fn(b);
+  fn(b, cursorOf(b));
   const any = firstAnyRamDiff(a, b);
   return any !== null && inStack(any.addr);
 }

@@ -16,15 +16,15 @@ import { loc_2053 } from "./loc_2053.js";
 const BRANCH_SELECT = 1; // tested for equality with 1, and outranks the mode bits
 const BRANCH_MODE_BITS = 2; // low three bits, lowest first, first set bit wins
 
-export function advanceBarrelMotion(m, record = m.regs.ix) {
+export function advanceBarrelMotion(m, cur, record = m.regs.ix) {
   const { mem8 } = m;
 
-  if (mem8[record + BRANCH_SELECT] === 1) return advanceFallingBarrel(m);
+  if (mem8[record + BRANCH_SELECT] === 1) return advanceFallingBarrel(m, cur);
 
   const mode = mem8[record + BRANCH_MODE_BITS];
-  if (mode & 1) return loc_1fac(m);
-  if (mode & 2) return stepBarrelRight(m);
-  if (mode & 4) return stepBarrelLeft(m);
+  if (mode & 1) return loc_1fac(m, cur);
+  if (mode & 2) return stepBarrelRight(m, cur);
+  if (mode & 4) return stepBarrelLeft(m, cur);
 
-  return loc_2053(m);
+  return loc_2053(m, cur);
 }

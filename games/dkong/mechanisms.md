@@ -787,18 +787,14 @@ corroboration that cannot fail is not corroboration. The identity that *is* refu
 cascade's entry and the barrel walk that can abandon a frame is the effect-latch gate's caller-skip.
 `[seen]`
 
-### 8.8 Two names deliberately withheld
+### 8.8 The walk is a real JS loop
 
-`loc_1f8d`, the between-slots step, stays address-named. It reads no memory and writes no memory;
-every value it produces — the staging cursor, the record pointer, the slot count — is consumed by
-the next iteration of the loop it is part of, so tracing its output terminates *inside* the loop.
-It branches on the iteration counter where its twin `serviceBarrelSlotIfLive` branches on game
-state, and that is the line: a registry entry named after a `for` header would tell the next reader
-there is a mechanism here. When this cluster collapses into a real JS loop it should be absorbed
-and deleted, not renamed. `[code]`
-
-ROM 0x1F72 is `update25mBarrels`, registered and wired. It is the machine's only entry and carries
-its board gate; the name was promoted on the evidence in this section.
+`update25mBarrels` (ROM 0x1F72) owns the ten-slot sweep as a plain JS `for` loop: it holds the
+sprite-staging cursor, the record pointer and the slot count as locals and passes the cursor to
+`serviceBarrelSlotIfLive` per slot. The former between-slots step (its `inc l` / `add ix,de` / `djnz`)
+is the loop header itself and no longer a routine; the shadow-bank register hand-off that once
+carried the cursor across each handler is gone — the arms and the shared sprite tail take the cursor
+as an explicit value. `[code]`
 
 ---
 
@@ -1312,7 +1308,6 @@ to-do is the enumeration in §1 (no bare-hex reads left, 12 uncentralized local 
     it.
 15. **Names deliberately held at `loc_`, each for a stated reason.** Recorded here because a hold
     that lives only in one file header is a hold nobody else can see:
-    - **`loc_1f8d`** — the barrel walk's `for` header (§8.8).
     - **`loc_3110` / `loc_311b` / `loc_3126` / `loc_3131`.** One family behind one dispatcher
       (`gateFireUpdateByDifficulty`), differing only in mask and compare value. Renaming one of
       four leaves the family reading as three anonymous throttles beside one named one, so: **rename
@@ -1414,7 +1409,7 @@ are lifted but not yet wired.
 - **25m barrel release** — `scheduleBarrelRelease` · `driveBarrelRelease` · `loc_2c41` · `armBarrelRelease` ·
   `markNextBarrelAsAltKind` · `releaseBarrelIntoFreeSlot` · `loc_2ce6` · `stampReleasedBarrelKind` ·
   `advanceBarrelRelease` · `stepBarrelAlongReleasePath` · `activateReleasedBarrel`
-- **25m barrel machine** (§8) — `update25mBarrels` (the walk head) · `serviceBarrelSlotIfLive` · `loc_1f8d` ·
+- **25m barrel machine** (§8) — `update25mBarrels` (the walk head) · `serviceBarrelSlotIfLive` ·
   `advanceBarrelMotion` · `stepBarrelRight` · `stepBarrelLeft` · `advanceRollingBarrel` ·
   `loc_1fac` · `advanceBarrelTileAnimation` · `loc_202f` · `loc_2038` · `loc_2053` · `loc_2079` · `loc_2083` ·
   `loc_20a2` · `loc_20b5` · `loc_20c3` · `loc_20e1` · `advanceFallingBarrel` · `loc_2101` · `retireBarrelAtEndOfRange` ·

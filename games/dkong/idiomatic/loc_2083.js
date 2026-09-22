@@ -24,7 +24,7 @@ const RIGHTWARD_ONE_PIXEL = 1;
 const SELECT_WALK_RIGHT = 2;
 const SELECT_WALK_LEFT = 4;
 
-export function loc_2083(m, ix = m.regs.ix) {
+export function loc_2083(m, cur, ix = m.regs.ix) {
   const { mem8 } = m;
   const at = (offset) => u16(ix + offset);
 
@@ -32,11 +32,11 @@ export function loc_2083(m, ix = m.regs.ix) {
   const step = u8(mem8[at(SUBSTATE)] + 1);
   mem8[at(SUBSTATE)] = step;
 
-  if (step === 1) return loc_20a2(m);
-  if (step === 2) return loc_20c3(m);
+  if (step === 1) return loc_20a2(m, cur);
+  if (step === 2) return loc_20c3(m, cur);
 
   mem8[at(ARM_SELECT)] =
     mem8[at(STEP_WHOLE)] === RIGHTWARD_ONE_PIXEL ? SELECT_WALK_RIGHT : SELECT_WALK_LEFT;
 
-  return publishBarrelSprite(m);
+  return publishBarrelSprite(m, cur);
 }

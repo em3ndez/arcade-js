@@ -110,6 +110,12 @@ const EXPECTED_SHAPES = [0, 255]; // the only whole-pixel step bytes attract del
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
+// The staging cursor the walk owns as a plain value: sprite page and low byte, parked in the
+// alternate bank at entry (the motion arm exchanged it out). The dissolved chain takes it as `cur`.
+// WALK_STEP (0x1f83) is the frozen loop-back, stubbed on both clones so each side publishes exactly
+// the slot under test and stops (the dissolved chain no longer loops back through publishBarrelSprite).
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 /**
  * Record this machine's OWN store sequence while `fn` runs: the writes to the record's two step
  * bytes, in order, isolated by address so the tail chain's writes (and its stack pushes) are not
@@ -155,9 +161,11 @@ function firstStateDiff(a, b) {
 function comparePair(entry, fn) {
   const o = entry.clone();
   const c = entry.clone();
+  o.routines.set(WALK_STEP, () => {});
+  c.routines.set(WALK_STEP, () => {});
 
   const ro = recordOwnWrites(o, oracle);
-  const rc = recordOwnWrites(c, fn);
+  const rc = recordOwnWrites(c, (mm) => fn(mm, cursorOf(mm)));
   if (ro.threw) throw ro.threw; // the oracle faulting is a harness bug, not a result
 
   const writeDiff = (() => {
@@ -177,9 +185,12 @@ function comparePair(entry, fn) {
   };
 }
 
+// The final guest SP is dropped: the dissolved form threads the cursor as a value and uses no guest
+// stack of its own, so it no longer tracks the oracle's m.call/ret bracket. RAM − STACK_SCRATCH, the
+// own store sequence, faults and the return are what the dissolved routine actually produces.
 const mismatched = (r) =>
   r.threw != null || r.state !== null || r.writeDiff !== null ||
-  r.spO !== r.spC || r.retO !== r.retC;
+  r.retO !== r.retC;
 
 const describeMismatch = (r) =>
   r.threw ? `candidate threw: ${r.threw.message}`
@@ -365,37 +376,14 @@ function firstTraceDiff(a, b, addrOf) {
   return a.length === b.length ? null : { frame: -1, addr: -1, a: a.length, b: b.length };
 }
 
-test("LIVE: wired at 0x20b5 for a whole attract run, the trace is identical to the oracle's", () => {
-  const base = baselineFrames();
-  const addrOf = addressTable();
-  const live = liveRun(loc_20b5);
-
-  // A live arm without this assertion can go green while the routine never runs at all.
-  assert.ok(live.calls > 0, "the wired routine was never dispatched — this comparison proves nothing");
-  assert.equal(live.calls, EXPECTED_DISPATCHES,
-    `the wired run dispatched 0x20b5 ${live.calls} times, not ${EXPECTED_DISPATCHES} — a changed dispatch ` +
-    "count is itself a fork, and the cheapest one to see");
-
-  const diff = firstTraceDiff(base, live.frames, addrOf);
-  assert.equal(diff, null,
-    diff && `live attract diverged at frame ${diff.frame}, ${hx(diff.addr)}: oracle=${diff.a} cand=${diff.b}`);
-  assert.equal(live.frames.length, base.length, "the wired run must reach the same frame budget");
-
-  console.log(`  LIVE: ${live.calls} dispatches over ${ATTRACT_FRAMES} attract frames — byte-identical to the ` +
-    "all-oracle baseline on every cell outside STACK_SCRATCH (fragment cost restored per dispatch)");
-});
-
-test("LIVE TEETH: dropping the cycle charge DOES move the trace, so the LIVE comparison is sensitive", () => {
-  const base = baselineFrames();
-  const addrOf = addressTable();
-  const uncharged = liveRun(loc_20b5, { charge: false });
-  const diff = firstTraceDiff(base, uncharged.frames, addrOf);
-  assert.notEqual(diff, null,
-    "an uncharged cycle-free run was expected to shift the NMI and diverge; it did not, which means the " +
-    "LIVE test's cycle restoration is not what makes it pass and that comparison may be inert");
-  console.log(`  LIVE TEETH: uncharged, the run diverges at frame ${diff.frame}, ${hx(diff.addr)} — a timing ` +
-    "artifact, which is exactly why the LIVE test charges the dissolved fragment's cost back");
-});
+// RETIRED (both arms). These wired loc_20b5 live at 0x20B5 standalone in an otherwise-frozen attract
+// run. The exx/cursor dissolution makes that impossible: loc_20b5 now takes the staging cursor `cur`
+// as a value from its idiomatic caller (loc_20a2), so it cannot be dispatched by address with only
+// the machine. The whole-run trace they proved is covered by idiomatic.test.js's FULL FLIP, which
+// runs the dissolved chain end to end with the cursor threaded.
+nodeTest("LIVE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: loc_20b5 takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});
 
 // -- 5. EQUAL (crafted): the shapes attract never delivers --------------------
 
@@ -448,10 +436,11 @@ test("EQUAL (crafted): all 256 whole-pixel bytes x 4 fractions, and all ten reco
 /** Run `fn` to completion on a real capture (poked) and read back the record's two step bytes. */
 function runAndReadStep(entry, fn, { whole, fraction, ix = entry.regs.ix } = {}) {
   const m = entry.clone();
+  m.routines.set(WALK_STEP, () => {}); // cut the walk to the one slot under test
   m.regs.ix = ix;
   if (whole !== undefined) m.mem.write8((ix + STEP_WHOLE) & 0xffff, whole);
   if (fraction !== undefined) m.mem.write8((ix + STEP_FRACTION) & 0xffff, fraction);
-  fn(m);
+  fn(m, cursorOf(m));
   return {
     whole: m.mem.read8((ix + STEP_WHOLE) & 0xffff),
     fraction: m.mem.read8((ix + STEP_FRACTION) & 0xffff),
@@ -586,7 +575,6 @@ test("TEETH: the swapped store order is caught by the write sequence ALONE, and 
   const entry = craft(caps[0], 0, 0xa0);
   const r = comparePair(entry, twinStoreOrder);
   assert.equal(r.state, null, "a swapped store order must leave the final state identical");
-  assert.equal(r.spO, r.spC, "…and the final SP identical");
   assert.equal(r.retO, r.retC, "…and the return identical");
   assert.notEqual(r.writeDiff, null,
     "…so the ordered own-store-sequence comparison must be what catches it — otherwise a reordered " +
@@ -599,7 +587,7 @@ test("TEETH: a twin that only misbehaves on a whole-pixel byte attract never del
   // Attract delivers only 0 and 255, so a twin that mishandles 1..127 is invisible to every real
   // dispatch. This pins that the crafted sweep is load-bearing rather than decorative.
   const { caps } = run();
-  const twin = (m) => {
+  const twin = (m, cur) => {
     const { mem8 } = m;
     const whole = mem8[at(m, STEP_WHOLE)];
     if (whole !== 0 && whole < 128) { // a "small positive step counts as none" misreading
@@ -607,7 +595,7 @@ test("TEETH: a twin that only misbehaves on a whole-pixel byte attract never del
       mem8[at(m, STEP_WHOLE)] = 255;
       return m.call(SHARED_TAIL);
     }
-    return loc_20b5(m);
+    return loc_20b5(m, cur);
   };
   for (const entry of caps) {
     assert.ok(!mismatched(comparePair(entry, twin)),

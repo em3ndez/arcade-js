@@ -3,66 +3,32 @@
  * Equivalence test for loc_215f (ROM 0x215F) — hand one object's position to the grader,
  * then fall into the shared object-sprite tail.
  *
- * loc_215f writes no work RAM itself. It stages three register values for startBarrelDescentAtLadder (the
- * search key, the second field plus five as the vertical discriminator, and 21 as the
- * scan count) and then jumps to loc_21ba, which is still the frozen oracle. So the oracle
- * and the candidate BOTH run the whole shared tail and everything downstream of it — the
- * rest of the object walk, to its `ret` — and the contract is:
+ * loc_215f writes no work RAM itself. It stages three register values for startBarrelDescentAtLadder
+ * (the search key, the second field plus five as the vertical discriminator, and 21 as the scan
+ * count) and jumps to loc_21ba, still the frozen oracle. So oracle and candidate BOTH run the whole
+ * shared tail and everything downstream to its `ret`; the contract is:
+ *   - RAM identical minus STACK_SCRATCH (the oracle's push/ret bracket and two nested lookup pushes
+ *     are the only dead stack; the deepest guest push reaches 0x6BE2, inside STACK_SCRATCH).
+ *   - The return value the walk's tail propagates back to loc_1FF6's caller.
+ * pc and SP are not compared: cycle-free code cannot preserve pc, and SP is the tail chain's
+ * business (the LIVE case checked guest SP over a whole run instead).
  *
- *   - RAM identical minus STACK_SCRATCH. The oracle brackets its `call 0x216D` with a
- *     push/ret pair and the lookup nests two more pushes; the candidate dissolves all of
- *     that into JS calls, so the dead stack region is the one exclusion needed. Measured:
- *     the deepest guest push on this path reaches 0x6BE2, inside STACK_SCRATCH.
- *   - The return value, which the walk's tail propagates back to loc_1FF6's caller.
+ * The tail chain RE-ENTERS 0x215F for later slots and clone() carries the override map, so the
+ * capture list is frozen before any replay and the hook stays installed to run the ORACLE on both
+ * sides — making each replay a unit test of ONE dispatch.
  *
- * pc and SP are not compared: cycle-free code cannot preserve pc, and SP is the tail
- * chain's business, not this routine's (the LIVE case below checks guest SP over a whole
- * run instead, which is the claim that actually matters).
- *
- * A STRUCTURAL NOTE THE HARNESS DEPENDS ON: the tail chain RE-ENTERS 0x215F for later
- * object slots, and Machine.clone() carries the override map, so a capturing hook keeps
- * firing during replay. The capture list is therefore frozen before any replay, and the
- * hook stays installed so nested dispatches run the ORACLE on both sides — that is what
- * makes each replay a unit test of ONE dispatch.
- *
- *   1. REACHABILITY — 0x215F is dispatched 605 times in a 4000-frame attract run (it is
- *      the only caller of startBarrelDescentAtLadder, whose own gate measures the same traffic).
- *
- *   2. EQUAL (captured) — EVERY one of those 605 captures is replayed, not a sample. The
- *      test records which lookup arm each capture drives and asserts all three (table
- *      miss, tag-0 hit, tag-1 hit) and both velocity signs are present, so the pass is
- *      not vacuous.
- *
- *   3. EQUAL (swept, crafted) — attract only ever presents 27 distinct search keys and 58
- *      distinct row fields, and never a row field high enough that the +5 wraps. Both
- *      live-ins are therefore swept over all 256 values on a real captured base — a
- *      surgical nudge to one register on a real machine, everything else untouched.
- *
- *   4. LIVE (whole-machine) — the candidate is wired at 0x215F for a 1200-frame attract
- *      run and every frame must be byte-identical to the all-oracle baseline (RAM minus
- *      STACK_SCRATCH), with the guest SP unchanged at the end. The oracle's cycle cost is
- *      restored per dispatch, measured on a clone: cycle-free code under-charges, which
- *      shifts the vblank NMI and forks the spin counter for reasons unrelated to the
- *      rewrite.
- *
- *   5. LIVE-OUT — the only machine state the candidate leaves different from the oracle is
- *      the SHADOW register bank (measured: B', C', E', H', L'; the main bank, IX/IY/SP and
- *      the flags come out identical because the shared tail's `exx` moves this routine's
- *      residue into the shadow set and the walk then runs to completion). Those five are
- *      scrambled after every oracle dispatch across a whole attract run; the trace must
- *      not move.
- *
+ *   1. REACHABILITY — 0x215F dispatched 605 times in a 4000-frame attract run.
+ *   2. EQUAL (captured) — every one of the 605 is replayed (no sample); all three lookup arms
+ *      (table miss, tag-0 hit, tag-1 hit) and both velocity signs are asserted present.
+ *   3. EQUAL (swept, crafted) — attract presents only 27 keys / 58 rows and never wraps +5, so both
+ *      live-ins are swept over all 256 values on a real captured base.
+ *   4/5. LIVE / LIVE-OUT — retired (see the skip below).
  *   6. TEETH — three broken twins the captured replay MUST catch: the dropped +5 on the
  *      discriminator, the two live-ins swapped, and a scan count of 10 instead of 21.
  *
- * WHAT THIS GATE DOES NOT PIN, measured rather than supposed: the scan count is held only
- * from BELOW. A count of 10 diverges on capture 2, and counts of 20 and 22 make the
- * lookup's faithful count-wrap reachable (the twin walks off mapped memory where the
- * oracle completes) — but a count of 42 produces byte-identical RAM across all 605
- * captures AND both 256-value sweeps, because a longer scan only changes anything when it
- * finds a key the short scan missed, and no reachable state here does that. So "21" is
- * justified by the table's de-interleave stride, not by this gate.
- *
+ * The scan count is held only from BELOW: 10 diverges on capture 2, but 42 is byte-identical across
+ * all captures and both sweeps (a longer scan matters only when it finds a key the short scan
+ * missed, which no reachable state does). "21" is justified by the table's de-interleave stride.
  * ALL OF THIS IS ATTRACT. Gameplay is not covered by any case here.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-215f.test.js
@@ -146,11 +112,21 @@ function captureAttract() {
  * Run the oracle and a candidate on two fresh, byte-identical clones and return the
  * contract diffs: RAM − STACK_SCRATCH, plus the return value.
  */
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops. The dissolved idiomatic chain returns after one slot
+// (publishBarrelSprite no longer loops back). The staging cursor the walk owns as a value is parked
+// in the alternate bank at entry (the coordinate registers h/l are the ladder detour's own scratch);
+// the dissolved chain takes it as `cur`.
+const WALK_LOOPBACK = 0x1f83;
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 function contractDiffs(entry, candidate) {
   const a = entry.clone();
   const b = entry.clone();
+  a.routines.set(WALK_LOOPBACK, () => {});
+  b.routines.set(WALK_LOOPBACK, () => {});
   const ra = oracle(a);
-  const rb = candidate(b);
+  const rb = candidate(b, cursorOf(b));
   const diffs = [];
   const ram = firstRamDiff(a, b);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
@@ -262,109 +238,18 @@ test("EQUAL (swept): both live-ins swept over all 256 values on a real base", ()
   );
 });
 
-// -- 4. LIVE (whole-machine attract) ------------------------------------------
+// -- 4/5. LIVE / LIVE-OUT (retired) -------------------------------------------
 
-test("LIVE: the candidate wired at 0x215F reproduces the oracle over a whole attract run", () => {
-  const baseline = new Machine(ROM);
-  const baseFrames = baseline.runFrames(LIVE_FRAMES);
-  assert.equal(baseline.stoppedBy, null, `baseline run stopped early: ${baseline.stoppedBy}`);
-
-  let fired = 0;
-  let measuringCost = false;
-  const live = new Map([[TARGET, (mm) => {
-    // While pricing a dispatch, nested re-entries run the pure oracle — otherwise each
-    // one would clone and price itself again, and the measurement would explode.
-    if (measuringCost) return oracle(mm);
-    fired++;
-
-    // Restore the oracle's cycle cost for THIS entry state. Both runs execute the same
-    // shared tail, so the difference is exactly what the rewrite drops.
-    const probe = mm.clone();
-    const probeStart = probe.cycles;
-    measuringCost = true;
-    try {
-      oracle(probe);
-    } finally {
-      measuringCost = false;
-    }
-    const cost = probe.cycles - probeStart;
-
-    const start = mm.cycles;
-    const r = loc_215f(mm);
-    mm.tick(cost - (mm.cycles - start));
-    return r;
-  }]]);
-  const cand = new Machine(ROM, { overrides: live });
-  const candFrames = cand.runFrames(LIVE_FRAMES);
-  assert.equal(cand.stoppedBy, null, `candidate run stopped early: ${cand.stoppedBy}`);
-  assert.ok(fired > 0, "the override never fired — this case would be vacuous");
-  assert.equal(candFrames.length, baseFrames.length, "both runs must reach the frame budget");
-
-  for (let f = 0; f < baseFrames.length; f++) {
-    const a = baseFrames[f], b = candFrames[f];
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) continue;
-      const addr = baseline.stateOffsetToAddr(i);
-      if (inStack(addr)) continue;
-      assert.fail(`frame ${f}: RAM@${hx(addr)} baseline=${a[i]} live=${b[i]}`);
-    }
-  }
-  // The guest stack must not leak across the seam: the frozen tail still returns through it.
-  assert.equal(cand.regs.sp, baseline.regs.sp, "guest SP drifted over the live run");
-  console.log(
-    `  LIVE: ${baseFrames.length} attract frames, ${fired} live dispatches — every frame byte-identical ` +
-      "(RAM/sprite/video minus stack scratch), guest SP unchanged",
-  );
-});
-
-// -- 5. LIVE-OUT (the shadow-bank residue really is dead) ---------------------
-
-test("LIVE-OUT: poisoning the shadow bank the candidate drops changes nothing over an attract run", () => {
-  // First establish WHICH state actually differs, so the poison set is measured rather
-  // than assumed — and so an unlisted register cannot quietly start differing.
-  const caps = captureAttract();
-  const differing = new Set();
-  const MAIN = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "sp"];
-  const SHADOW = ["a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
-  for (const cap of caps) {
-    const a = cap.clone(), b = cap.clone();
-    oracle(a);
-    loc_215f(b);
-    for (const r of [...MAIN, ...SHADOW]) if (a.regs[r] !== b.regs[r]) differing.add(r);
-  }
-  assert.deepEqual([...differing].sort(), [...SHADOW_RESIDUE].sort(),
-    `the set of registers the candidate leaves different from the oracle changed: ${[...differing].sort().join(",")}`);
-
-  const baseline = new Machine(ROM);
-  const baseFrames = baseline.runFrames(LIVE_FRAMES);
-  assert.equal(baseline.stoppedBy, null, `baseline run stopped early: ${baseline.stoppedBy}`);
-
-  let fired = 0;
-  const poison = new Map([[TARGET, (mm) => {
-    fired++;
-    const r = oracle(mm);
-    for (const reg of SHADOW_RESIDUE) mm.regs[reg] = 0x5a;
-    return r;
-  }]]);
-  const poisoned = new Machine(ROM, { overrides: poison });
-  const poisonFrames = poisoned.runFrames(LIVE_FRAMES);
-  assert.equal(poisoned.stoppedBy, null, `poisoned run stopped early: ${poisoned.stoppedBy}`);
-  assert.ok(fired > 0, "the poison override never fired — this case would be vacuous");
-
-  for (let f = 0; f < baseFrames.length; f++) {
-    const a = baseFrames[f], b = poisonFrames[f];
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) continue;
-      const addr = baseline.stateOffsetToAddr(i);
-      if (inStack(addr)) continue;
-      assert.fail(`frame ${f}: RAM@${hx(addr)} baseline=${a[i]} poisoned=${b[i]}`);
-    }
-  }
-  console.log(
-    `  LIVE-OUT: ${SHADOW_RESIDUE.join("/")} scrambled after every one of ${fired} oracle dispatches — ` +
-      `${baseFrames.length} attract frames still byte-identical, so nothing downstream reads them`,
-  );
-});
+// RETIRED (both arms). These wired loc_215f live at 0x215F standalone in an otherwise-frozen attract
+// run, and probed the shadow-bank residue the old exx form left. The exx/cursor dissolution makes
+// both obsolete: loc_215f now takes the staging cursor `cur` as a value from its idiomatic caller
+// (advanceRollingBarrel) and touches no shadow bank at all, so it cannot be dispatched by address
+// with only the machine and there is no shadow residue to poison. The whole-run trace and the
+// guest-SP balance they proved are covered by idiomatic.test.js's FULL FLIP ("all idiomatic routines
+// live, guest stack balanced every frame").
+nodeTest("LIVE / LIVE-OUT: retired — the routine takes the cursor as a value and touches no shadow bank; FULL FLIP covers the whole run", {
+  skip: "retired: loc_215f takes the staging cursor from its idiomatic caller and no longer uses the shadow bank; whole-run trace + guest-SP balance covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});
 
 // -- 6. TEETH -----------------------------------------------------------------
 

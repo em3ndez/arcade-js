@@ -4,75 +4,35 @@
  * object-retirement gate: an object whose OBJ_Y has reached 232 with its OBJ_X inside the 32..41
  * band is retired (slot freed, column blanked, impact sound asserted, two mode latches armed) and
  * handed to the shared object-sprite tail WITHOUT returning to the caller; anything else returns
- * untouched.
- * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 1200-frame attract
- *        run is replayed inline — no sampling, which is load-bearing here because the band's
- *        high edge and the retirement arm get one natural dispatch each. Five crafted arms
- *        cover what attract never produces. Credited play and boards 2-4 are NOT covered: the
- *        walk this belongs to runs only on 25m.
+ * untouched. ATTRACT ONLY — credited play and boards 2-4 are NOT covered (this walk runs on 25m).
  *
- * WHAT THIS GATE ACTUALLY COVERS, stated plainly:
- *
- *   1. EQUAL (captured, ATTRACT ONLY). A plain 1200-frame attract run dispatches 0x24B4 1154
- *      times, the first at frame 613, across the five OBJ_ARRAY_67 record bases this run reaches
- *      (a longer run reaches more; that is a fact about the budget, not about the routine).
- *      EVERY ONE is replayed inline at the dispatch — no sampling, nothing held in memory. That
- *      is load-bearing rather than tidy: attract's ENTIRE natural coverage of the band's high
- *      edge is one dispatch (the single OBJ_X == 42 at the bottom) and of the retirement arm is
- *      one dispatch. A stride-of-20 sample would have tested neither, and two of the twins below
- *      are caught by exactly those single dispatches.
- *      Credited play and boards 2-4 are NOT covered — the object walk this belongs to runs only
- *      on 25m.
- *
- *      Each replay isolates ONE dispatch: the candidate is called directly on a fresh
- *      override-free machine, so when the shared tail re-enters 0x24B4 for later slots those
- *      re-entries run the ORACLE on both sides and the diff reflects only the outermost record.
- *      Every real dispatch is replayed, so the whole walk is covered across the run.
- *
- *   2. EQUAL (crafted), five arms for the five things attract cannot produce, each ONE poke on
- *      a real capture with everything else left alone, and each proved non-vacuous by counting
- *      the dispatches on which the craft moves the ORACLE's own result:
- *        (a) bandBelow            — at the bottom with OBJ_X below the band (attract: never).
- *        (b) edgeJustAbove        — one row short of the threshold, inside the band.
- *        (c) edgeAtThreshold      — exactly at the threshold, inside the band.
- *        (d) retireBaseKind       — a retirement of a record whose kind field is 0 (attract's
- *                                   one natural retirement has kind 1), so the phase write is
- *                                   skipped.
- *        (e) retireAlreadyLatched — a retirement with the one-shot latch already holding 2, so
- *                                   the latch write is skipped AND its exact value must survive.
- *                                   (Whether the ROM can produce a 2 there is NOT claimed; the
- *                                   arm pins the comparison, not reachability.)
- *
- *   3. THE CONTRACT IS work/sprite/video RAM MINUS STACK_SCRATCH plus the returned protocol
- *      value. The candidate is the DISSOLVED rewrite: it is called as a plain JS function (never
- *      installed through the call-bracket seam) and hands the record to the shared tail with a
- *      direct call, touching none of the guest stack. The oracle still splices through the guest
- *      stack (its retirement arm pops the caller's return), so SP, pc and the dead scratch below
- *      SP legitimately differ between the two — they are the guest machine's, not the rewrite's,
- *      and are excluded from the diff rather than compared.
- *
- *   4. LIVE (measured). The rewrite is wired live at 0x24B4 for a 1200-frame CYCLE-FREE attract
- *      run and every frame is diffed against the all-oracle baseline. That baseline is the right
- *      control because this rewrite calls no idiomatic callee — its one hand-off is into a
- *      still-frozen routine through the registry — so the only difference between the two runs
- *      is the routine under test. The arm counts its own dispatches and asserts the count, so it
- *      cannot pass by never running.
- *
- *   5. TEETH — broken twins, and the test asserts WHICH half catches each. Five escape every one
- *      of the natural captures and are caught only by a crafted arm; both halves are asserted for
- *      each, which is the whole reason those arms exist:
- *        Y threshold one row low   -> escapes natural, caught by (b)
- *        Y threshold one row high  -> escapes natural, caught by (c)
- *        band low edge dropped     -> escapes natural, caught by (a)
- *        phase write unconditional -> escapes natural, caught by (d)
- *        one-shot latch dropped    -> escapes natural, caught by (e)
- *      and three are caught naturally, each by a named half of the contract:
- *        band high edge off by one -> RAM, on the single OBJ_X == 42 dispatch
- *        column blank dropped      -> RAM
- *        wrong protocol value      -> the RETURN comparison and nothing else
- *      The old "leaked return bracket" twin is retired: it diverged only in pc, which the
- *      dissolved form no longer produces (it owns no guest-stack bracket) and the contract no
- *      longer compares.
+ * What this gate covers:
+ *   1. EQUAL (captured): a 1200-frame attract run dispatches 0x24B4 1154 times (first at frame 613)
+ *      across five OBJ_ARRAY_67 record bases. EVERY dispatch is replayed inline — no sampling, which
+ *      is load-bearing: attract's entire coverage of the band's high edge (one OBJ_X == 42) and of
+ *      the retirement arm is one dispatch each, and two twins are caught by exactly those. Each
+ *      replay isolates ONE dispatch (candidate called on a fresh override-free machine; re-entries
+ *      run the ORACLE on both sides).
+ *   2. EQUAL (crafted): five arms for what attract cannot produce, each ONE poke on a real capture,
+ *      each proved non-vacuous by counting the dispatches on which the craft moves the oracle:
+ *        (a) bandBelow — bottom with OBJ_X below the band.
+ *        (b) edgeJustAbove — one row short of the threshold, inside the band.
+ *        (c) edgeAtThreshold — exactly at the threshold, inside the band.
+ *        (d) retireBaseKind — retirement of a kind-0 record (attract's one retirement is kind 1), so
+ *            the phase write is skipped.
+ *        (e) retireAlreadyLatched — latch already holding 2, so the latch write is skipped and its
+ *            value must survive (reachability not claimed; the arm pins the comparison).
+ *   3. CONTRACT: work/sprite/video RAM MINUS STACK_SCRATCH plus the returned protocol value. The
+ *      dissolved candidate is a plain JS call owning no guest stack; the oracle still splices through
+ *      it (its retire arm pops the caller's return), so SP, pc and dead scratch below SP legitimately
+ *      differ and are excluded.
+ *   4. LIVE — retired (see the skip below).
+ *   5. TEETH — the test asserts WHICH half catches each. Five escape natural and are caught by a
+ *      crafted arm (Y threshold low->b, Y threshold high->c, band low edge dropped->a, phase write
+ *      unconditional->d, one-shot latch dropped->e); three are caught naturally (band high edge off
+ *      by one -> RAM on the single OBJ_X == 42; column blank dropped -> RAM; wrong protocol value ->
+ *      the RETURN comparison). The old "leaked return bracket" twin is retired (pc-only, no longer
+ *      produced or compared).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-24b4.test.js
  */
@@ -96,6 +56,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x24b4;
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops (the dissolved chain no longer loops back through the tail).
+const WALK_LOOPBACK = 0x1f83;
 const ATTRACT_FRAMES = 1200;
 
 // The routine's own constants, restated here so a twin that changes one is compared against a
@@ -194,9 +157,16 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
     // stack, so SP/pc aren't compared — the contract is RAM−STACK_SCRATCH + the returned protocol value.
     const a = rehost(mm, null); // oracle, run directly (still splices through the guest stack)
     const b = rehost(mm, null); // candidate, called directly
+    // Cut the walk to the one slot under test: the dissolved chain publishes one slot and returns (no
+    // loop-back), so the oracle is stubbed at the loop-back to match.
+    a.routines.set(WALK_LOOPBACK, () => {});
+    b.routines.set(WALK_LOOPBACK, () => {});
     if (prep) { prep(a); prep(b); }
     const arm = armOf(a);
     tally(arms, arm);
+    // The staging cursor arrives as a value, parked in the alternate bank at entry; reconstruct it
+    // AFTER the craft.
+    const cur = { page: b.regs.h_ * 256, cursor: b.regs.l_ };
 
     let oracleValue, oracleDump;
     try {
@@ -209,7 +179,7 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
 
     let breach = null;
     try {
-      const candidateValue = candidate(b);
+      const candidateValue = candidate(b, cur);
       const candidateDump = b.dumpState();
       for (let i = 0; i < oracleDump.length; i++) {
         if (oracleDump[i] === candidateDump[i]) continue;
@@ -393,7 +363,7 @@ for (const [name, twin, craft, kind] of CRAFTED_ONLY_TWINS) {
 const NATURAL_TWINS = [
   ["band high edge off by one", (m) => twinBody(m, { high: (x) => x > BAND_HI }), "RAM", 1],
   ["column blank dropped", (m) => twinBody(m, { blankColumn: false }), "RAM", 1],
-  ["wrong protocol value", (m) => { retireBarrelIntoOilDrum(m); return true; }, "return", 1],
+  ["wrong protocol value", (m, cur) => { retireBarrelIntoOilDrum(m, cur); return true; }, "return", 1],
   // The old "leaked return bracket" twin (seam-only, catchable only through pc/SP) is gone: the
   // dissolved rewrite has no guest-stack bracket to leak and the contract no longer compares SP/pc.
 ];
@@ -431,36 +401,11 @@ function runFramesCycleFree(overrides) {
   return { m, frames, result };
 }
 
-test("LIVE: wired live for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
-  const baseline = runFramesCycleFree(null);
-  let dispatches = 0;
-  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return retireBarrelIntoOilDrum(m); }]]));
-
-  // Without this the run can be byte-identical because the routine never executed. Measured on a
-  // sibling routine: 800 frames of attract went green against a deliberately broken rewrite whose
-  // first dispatch is at frame 1163.
-  assert.ok(dispatches > 0, "0x24B4 was never dispatched in the live run — the arm proves nothing");
-  assert.equal(dispatches, LIVE_DISPATCHES,
-    `the live run dispatched 0x24B4 ${dispatches} times, not the ${LIVE_DISPATCHES} this gate claims`);
-
-  assert.equal(baseline.result.stop, "reached maxFrames", `baseline stopped early: ${baseline.result.stop}`);
-  assert.equal(live.result.stop, "reached maxFrames", `live run stopped early: ${live.result.stop}`);
-  assert.equal(live.frames.length, baseline.frames.length, "the two runs did not reach the same frame count");
-
-  for (let f = 0; f < baseline.frames.length; f++) {
-    const a = baseline.frames[f];
-    const b = live.frames[f];
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) continue;
-      const addr = baseline.m.stateOffsetToAddr(i);
-      // Dead guest scratch below SP legitimately differs; excluded here as everywhere else.
-      if (addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi) continue;
-      assert.fail(`frame ${f}: ${hx(addr)} baseline=${a[i]} live=${b[i]}`);
-    }
-  }
-  console.log(
-    `  LIVE: ${baseline.frames.length} cycle-free attract frames byte-identical (minus STACK_SCRATCH) with ` +
-      `0x24B4 wired live (${dispatches} dispatches) — the registers and flags the rewrite drops are read ` +
-      "back by nobody attract reaches",
-  );
-});
+// RETIRED. This arm wired retireBarrelIntoOilDrum live at 0x24B4 standalone. The exx/cursor
+// dissolution makes that impossible: on its retire arm the routine publishes a sprite, so it now
+// takes the staging cursor `cur` as a value from its idiomatic caller (advanceRollingBarrel /
+// loc_2053 / loc_2101) and cannot be dispatched by address with only the machine. The whole-run
+// trace it proved is covered by idiomatic.test.js's FULL FLIP.
+nodeTest("LIVE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: retireBarrelIntoOilDrum publishes on its retire arm and takes the staging cursor from its idiomatic caller; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});

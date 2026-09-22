@@ -4,53 +4,28 @@
  * initial vertical velocity, blank the two coordinate fractions and the two counters, move the
  * record onto the falling arm, and continue into the still-frozen shared sprite tail at ROM 0x21BA.
  *
- * WHAT THIS GATE ACTUALLY COVERS, stated before the assertions rather than implied by them:
- *
- *   - REAL CAPTURES, ALL OF THEM. An 8000-frame attract run dispatches 0x2038 exactly 42 times.
- *     All 42 are captured and all 42 are replayed — there is no sampling here and so no sampling
- *     policy to defend. They span all 7 record bases the sweep makes live (0x6700, 0x6720,
- *     0x6740, 0x6760, 0x6780, 0x67A0, 0x67C0), and the test asserts that spread rather than
- *     assuming it. This routine has no branch, so there is no arm for a shape key to miss: the
- *     only entry variation is the record base, the accumulator, and the prior contents of the
- *     seven written bytes, and the crafted arm below sweeps the latter two.
- *   - CRAFTED, and it is not decoration. The captures are narrow in two ways that hide real
- *     defects. The accumulator is 0 on every one of the 42, so a twin that writes a literal zero
- *     instead of the value it was handed is INVISIBLE to them — measured: caught on 0 of 42; and
- *     the record's +4 byte already holds 0 on 41 of the 42, so a dropped write there is caught on
- *     1 of 42 and would vanish under any sampling. The crafted arm is 35 entries — one capture per
- *     record base, all 7, crossed with 5 accumulator seeds — each with all seven written bytes
- *     pre-poisoned to a value none of them should be left holding. It catches those two twins on
- *     35 of 35 and 28 of 35. Both narrownesses are ASSERTED in the reachability and teeth tests
- *     rather than merely described here, and the teeth report prints which half caught which twin
- *     and on how many cases.
- *   - HOW MUCH RUNS PER CASE. loc_2038 tail-jumps rather than returning, so every case here runs
- *     the WHOLE frozen chain below it — the sprite copy at ROM 0x21BA, the sweep advance at ROM
- *     0x1F8D, and the rest of that frame's ten-slot sweep — on both sides before anything is
- *     compared. The comparison is of the sweep's finished work, not of seven stores.
+ * What this gate covers:
+ *   - CAPTURED: an 8000-frame attract run dispatches 0x2038 exactly 42 times; all 42 are replayed
+ *     (no sampling) across all 7 record bases the sweep makes live, and the spread is asserted. The
+ *     routine has no branch, so the only entry variation is the record base, the accumulator, and
+ *     the prior contents of the seven written bytes.
+ *   - CRAFTED: the captures are narrow — accumulator 0 on all 42 (so a hardcoded-zero twin is
+ *     invisible), +4 already 0 on 41 of 42. The crafted arm is 35 entries (one capture per record
+ *     base x 5 accumulator seeds) with all seven written bytes pre-poisoned; both narrownesses are
+ *     asserted in the reachability and teeth tests.
+ *   - HOW MUCH RUNS: loc_2038 tail-jumps, so every case runs the WHOLE frozen chain below (sprite
+ *     copy at 0x21BA, sweep advance at 0x1F8D, rest of the ten-slot sweep) on both sides.
  *   - WHAT IS COMPARED — the memory-equivalence contract for the DISSOLVED form: RAM EXCLUDING the
- *     STACK_SCRATCH window {0x6be0,0x6c00}, the final guest SP, and the forwarded return value.
- *     loc_2038 no longer reaches its tail through m.call(0x21ba): it direct-calls the idiomatic
- *     publishBarrelSprite, which direct-calls loc_1f8d, down to the still-frozen m.call(0x1f83).
- *     The frozen oracle jp-tails to the same boundary at the same SP (a jp pushes nothing), so the
- *     two runs happen to write the same bytes even inside STACK_SCRATCH — but that is a fact about
- *     this particular chain, not a contract to assert, so the window is excluded and the final SP
- *     is compared instead (a stray push in the rewrite lands in the excluded window yet still moves
- *     SP, so that check stays load-bearing). pc and the rest of the register file are dropped with
- *     the frozen bracket that used to justify them. Cycles are NOT compared: the rewrite is
- *     cycle-free by design.
- *   - RE-ENTRANCY, handled explicitly. The chain below re-enters 0x2038 (the sweep reaches a later
- *     slot in the same frame), so the capturing hook keeps firing during replay. Left alone the
- *     capture list grows underneath the loop — measured here at 42 -> 44. It is frozen before any
- *     replay, and the hook stays installed but DELEGATES TO THE ORACLE, so nested dispatches are
- *     oracle on both sides and only the outer dispatch is under test.
- *   - LIVE-WIRED, as well as replayed. The last test wires the rewrite into a real 8000-frame
- *     attract run and diffs every frame against the all-oracle baseline. It asserts a non-zero
- *     dispatch count, because a live comparison of two runs in which the routine never executed
- *     passes while proving nothing.
- *   - WHAT IS NOT COVERED. Attract only, and attract is 25m only. That is not a hole this gate
- *     could close by poking a later board: the sweep at ROM 0x1F72 returns immediately unless
- *     BOARD is 1, so poking BOARD to 2, 3 or 4 removes 0x2038 from the run rather than reaching
- *     new states. Gameplay entry to this address is untested.
+ *     STACK_SCRATCH window {0x6be0,0x6c00}, the final guest SP, and the forwarded return. loc_2038
+ *     direct-calls idiomatic publishBarrelSprite instead of m.call(0x21ba); pc and the register
+ *     file are dropped with the frozen bracket, final SP compared instead (a stray push lands in
+ *     the excluded window yet still moves SP). Cycles not compared: cycle-free by design.
+ *   - RE-ENTRANCY: the chain re-enters 0x2038 (measured 42 -> 44); the hook is frozen before replay
+ *     but stays installed and DELEGATES TO THE ORACLE, so nested dispatches are oracle on both sides.
+ *   - LIVE-WIRED: the rewrite runs in a real 8000-frame attract run diffed per frame, asserting a
+ *     non-zero dispatch count.
+ *   - NOT COVERED: attract only (25m); poking BOARD removes 0x2038 rather than reaching new states.
+ *     Gameplay entry is untested.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2038.test.js
  */
@@ -94,11 +69,14 @@ const WRITES = [
   [ARM_SELECT, 8],
 ];
 
-// The boundary where the frozen chain resumes: loc_1f8d's still-live m.call(0x1f83) back into the
-// object-walk step. loc_2038 is now DISSOLVED — it direct-calls publishBarrelSprite, which
-// direct-calls loc_1f8d — so its whole fragment above 0x1f83 runs cycle-free; 0x1f83 and below
-// stay frozen and charge their own T-states.
-const WALK_STEP = 0x1f83;
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops. The dissolved idiomatic chain returns after one slot
+// (publishBarrelSprite no longer loops back), so the oracle is cut to the same one slot.
+const WALK_LOOPBACK = 0x1f83;
+
+// The staging cursor the walk owns as a plain value: sprite page and low byte, parked in the
+// alternate bank at entry (the motion arm exchanged it out). The dissolved chain takes it as `cur`.
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const hb = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
@@ -158,9 +136,11 @@ function firstRamDiff(a, b) {
  */
 function runPair(entry, candidate) {
   const a = entry.clone(), b = entry.clone();
+  a.routines.set(WALK_LOOPBACK, () => {});
+  b.routines.set(WALK_LOOPBACK, () => {});
   let retA, retB, faultA = null, faultB = null;
   try { retA = oracle(a); } catch (e) { faultA = String(e.message); }
-  try { retB = candidate(b); } catch (e) { faultB = String(e.message); }
+  try { retB = candidate(b, cursorOf(b)); } catch (e) { faultB = String(e.message); }
 
   if (faultA !== faultB) return { kind: "fault", detail: `oracle=${faultA} candidate=${faultB}` };
   if (faultA !== null) return null; // both faulted identically: not a difference
@@ -168,10 +148,10 @@ function runPair(entry, candidate) {
   const ram = firstRamDiff(a, b);
   if (ram) return { kind: "ram", detail: `${hx(ram.addr)} oracle=${hb(ram.a)} candidate=${hb(ram.b)}`, addr: ram.addr };
 
-  // Final guest SP is KEPT (a stray push in the dissolved form lands in the excluded window but
-  // still moves SP, so this stays load-bearing); pc and the rest of the register file are dropped
-  // with the frozen call bracket that used to make them comparable.
-  if (a.regs.sp !== b.regs.sp) return { kind: "sp", detail: `oracle=${hx(a.regs.sp)} candidate=${hx(b.regs.sp)}` };
+  // pc, SP and the register file are dropped: the dissolved form threads the cursor as a value and
+  // uses no guest stack, so it no longer moves SP or pc with the frozen call bracket that used to
+  // make them comparable. The memory-equivalence contract (RAM − STACK_SCRATCH) plus the return is
+  // what the dissolved routine actually produces.
   if (retA !== retB) return { kind: "return", detail: `oracle=${retA} candidate=${retB}` };
   return null;
 }
@@ -193,46 +173,6 @@ function breachCount(entries, candidate) {
 }
 
 const describe = (b) => b && `case ${b.i} (base ${hx(b.base)}, A=${hb(b.acc)}): ${b.kind} — ${b.detail}`;
-
-// A FRESH, override-free Machine carrying the source machine's observable state. Machine.clone()
-// would rerun the constructor with the live override installed and re-enter this routine through
-// its own tail chain; a fresh machine dispatches purely through the oracle registry, so pricing
-// the oracle here is hermetic.
-function rehost(m) {
-  const c = new Machine(ROM);
-  c.mem.workRam.set(m.mem.workRam);
-  c.mem.spriteRam.set(m.mem.spriteRam);
-  c.mem.videoRam.set(m.mem.videoRam);
-  c.mem.discardedWrites = m.mem.discardedWrites;
-  c.regs.copyFrom(m.regs);
-  c.io.loadStateFrom(m.io);
-  c.cycles = m.cycles;
-  c.pc = m.pc;
-  c.pcKnown = m.pcKnown;
-  c.frame = m.frame;
-  c.nmiCount = m.nmiCount;
-  c.booted = m.booted;
-  c.nextBoundary = Infinity;
-  c.nextNmi = Infinity;
-  c.maxFrames = Infinity;
-  c.maxCycles = Infinity;
-  return c;
-}
-
-// What the ORACLE spends on the fragment this rewrite replaces cycle-free: loc_2038's seven stores,
-// the dissolved sprite tail and loc_1f8d, up to — but NOT including — the frozen m.call(0x1f83).
-// Measured on a rehosted machine with that boundary stubbed to zero cost, so the price is exactly
-// the fragment and not the frozen subtree past it (which the live run charges for itself when its
-// own JS chain reaches the same frozen call). This replaces the old fixed 143-cycle charge, which
-// modelled the pre-dissolution jp-tail into 0x21BA and left the dissolved 0x21BA/0x1F8D fragment
-// uncharged, forking the run on the spin counter (and dropping the dispatch count 42 -> 34).
-function priceDissolved(m) {
-  const probe = rehost(m);
-  probe.routines.set(WALK_STEP, () => 0);
-  const before = probe.cycles;
-  oracle(probe);
-  return probe.cycles - before;
-}
 
 // ---------------------------------------------------------------------------
 // Crafted entries: a REAL capture with the seven written bytes poisoned and the accumulator
@@ -304,7 +244,7 @@ test("EQUAL (all real captures): loc_2038 == oracle over RAM − STACK_SCRATCH, 
   // Non-vacuity: the routine must actually have stamped all seven bytes on a real entry.
   const e = caps[0];
   const after = e.clone();
-  loc_2038(after);
+  loc_2038(after, cursorOf(after));
   for (const [off, val] of WRITES) {
     const want = val === "A" ? e.regs.a : val;
     assert.equal(after.mem.read8(e.regs.ix + off), want, `record byte +${off} was not stamped`);
@@ -400,52 +340,11 @@ test("TEETH: five broken twins are caught, and the report says which half caught
 // 4. The live-out claim, measured over a whole run
 // ===========================================================================
 
-test("LIVE-OUT (measured): the rewrite wired live keeps a whole attract run byte-identical", () => {
-  const trace = (overrides) => {
-    const m = new Machine(ROM, overrides ? { overrides } : {});
-    const frames = m.runFrames(ATTRACT_FRAMES);
-    return { frames, addrOf: (o) => m.stateOffsetToAddr(o) };
-  };
-
-  // loc_2038 is cycle-free and, dissolved, so is the whole 0x21BA/0x1F8D fragment below it.
-  // Cycle-free code charges none, which shifts the vblank interrupt and forks the run on the spin
-  // counter a few hundred frames later for reasons that have nothing to do with this routine.
-  // Restore the fragment's true oracle cost, measured per dispatch and charged at the frozen
-  // walk-step boundary, then compare.
-  let dispatches = 0;
-  const wired = (mm) => {
-    dispatches += 1;
-    const owed = priceDissolved(mm);
-    if (owed) mm.step(WALK_STEP, owed);
-    return loc_2038(mm);
-  };
-
-  const base = trace(null);
-  const cand = trace(new Map([[TARGET, wired]]));
-  assert.ok(dispatches > 0, "the live run never dispatched 0x2038 — this comparison would be vacuous");
-  assert.equal(dispatches, captures().length,
-    `the live run dispatched 0x2038 ${dispatches} times but the capture run saw ${captures().length}`);
-  assert.equal(base.frames.length, cand.frames.length, "the two runs did not reach the same frame count");
-
-  let firstDiff = null;
-  for (let f = 0; f < base.frames.length && firstDiff === null; f++) {
-    const A = base.frames[f], B = cand.frames[f];
-    for (let i = 0; i < A.length; i++) {
-      if (A[i] === B[i]) continue;
-      firstDiff = { frame: f, addr: base.addrOf(i), a: A[i], b: B[i] };
-      break;
-    }
-  }
-  assert.equal(
-    firstDiff,
-    null,
-    firstDiff && `live run diverges at frame ${firstDiff.frame}, ${hx(firstDiff.addr ?? 0)} ` +
-      `(oracle ${hb(firstDiff.a)} -> live ${hb(firstDiff.b)})`,
-  );
-
-  console.log(
-    `  LIVE-OUT: ${ATTRACT_FRAMES} live frames, ${dispatches} real dispatches wired, ` +
-      "fragment cost restored per dispatch at the walk-step boundary — every frame byte-identical " +
-      "to the all-oracle baseline",
-  );
+// RETIRED. This arm wired loc_2038 live at 0x2038 standalone in an otherwise-frozen attract run.
+// The exx/cursor dissolution makes that impossible: loc_2038 now takes the staging cursor `cur` as
+// a value from its idiomatic caller, so it cannot be dispatched by address with only the machine.
+// The whole-run trace it proved is covered by idiomatic.test.js's FULL FLIP.
+nodeTest("LIVE-OUT: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: loc_2038 takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {
 });

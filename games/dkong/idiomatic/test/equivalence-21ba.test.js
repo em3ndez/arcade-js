@@ -3,85 +3,41 @@
  * publishBarrelSprite — memory-equivalent to the frozen oracle at ROM 0x21BA — the object walk's
  * shared sprite tail: swap the walk's registers back in, gather OBJ_X / OBJ_SPRITE_CODE /
  * OBJ_SPRITE_ATTR / OBJ_Y out of the record into four consecutive staging bytes, step the cursor
- * three of the four, and jump on to the between-slots step at ROM 0x1F8D.
- * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 1200-frame
- *        cycle-free attract run is replayed inline — no sampling — and two crafted arms cover
- *        what attract cannot produce: a staging cursor whose four writes wrap its page, and a
- *        source payload swept across all 256 values in each of the four fields. Records 5-9 of
- *        the walk, credited gameplay, boards 2-4 and two-player are NOT covered.
+ * three of the four, and jump on to the between-slots step at ROM 0x1F8D. ATTRACT ONLY — records
+ * 5-9 of the walk, credited gameplay, boards 2-4 and two-player are NOT covered.
  *
- * WHAT THIS GATE ACTUALLY COVERS, stated plainly:
+ * What this gate covers:
+ *   1. EQUAL (captured): a 1200-frame cycle-free attract run dispatches 0x21BA 1665 times (first at
+ *      frame 607); EVERY one is replayed inline (clone twice, run oracle and rewrite, compare,
+ *      discard). Both exits jump into the still-frozen between-slots step, so one replay drives the
+ *      WHOLE remaining walk. The rewrite is installed in the replaying machine's registry, so the
+ *      loop-back re-enters IT (not the capturing hook) — which also stops the capture recursing
+ *      (1071 of 1665 host dispatches are nested inside another; the walk tail-jumps up to five deep).
+ *      The test asserts the coverage it should see: all five active OBJ_ARRAY_67 records, cursor
+ *      positions, slot counts, the stride, and the record/cursor correspondence.
+ *   2. ENTRY CONTRACT (measured): inputs arrive in the ALTERNATE bank and the leading exchange makes
+ *      them live. Thirteen jump sites across twelve frozen routines reach here (ten exercised by
+ *      attract, including ROM 0x215F, a NON-exchanged entry); the parked bank holds the walk's
+ *      cursor, stride and slot count at all of them.
+ *   3. EQUAL (crafted), two arms for what attract cannot produce:
+ *      (a) a staging cursor whose four writes WRAP its page (attract runs 0x6980-0x6990 and stops);
+ *          the arm parks the cursor low byte at 254 on both sides.
+ *      (b) a source payload swept across all 256 values in each of the four fields, including a zero
+ *          in the sprite code / attribute (attract never produces one).
+ *      Both proved LIVE by counting the dispatches on which the craft moves the oracle's own result.
+ *   4. LIVE-OUT (measured): the unit replay compares the FULL state dump INCLUDING STACK_SCRATCH,
+ *      plus pc, SP, the ENTIRE register file (both banks, flags) and the return — all hold because
+ *      the oracle pushes nothing (jump exit), the frozen tail returns identically on both sides, and
+ *      every register the rewrite declines to write is overwritten by that tail. The live arm wires
+ *      the rewrite at 0x21BA for a 1200-frame cycle-free run diffed per frame against the all-oracle
+ *      baseline, counting its own dispatches so it cannot pass by never running.
+ *   5. TEETH — six broken twins the suite MUST catch: (a) no register exchange; (b) the four source
+ *      fields read in ASCENDING order (+3,+5,+7,+8) instead of the ROM permutation; (c) the cursor
+ *      steps four bytes not three; (d) a full-width 16-bit destination (ESCAPES natural, caught by
+ *      3(a)); (e) a zero sprite code skipped (ESCAPES natural, caught by 3(b)); (f) a spurious return
+ *      value (only the return half of the contract catches it).
  *
- *   1. EQUAL (captured, ATTRACT ONLY). 0x21BA needs no input to reach: a 1200-frame cycle-free
- *      attract run dispatches it 1665 times, the first at frame 607. EVERY ONE of those is
- *      replayed — inline at the dispatch (clone twice, run oracle and rewrite, compare, discard),
- *      so nothing is sampled and nothing is held in memory. The whole sweep costs about a fifth
- *      of a second, which is why sampling was never needed.
- *
- *      A replay is not twenty-three bytes' worth of work. Both exits are jumps into the still
- *      frozen between-slots step, so one replay drives the WHOLE REMAINING WALK — every later
- *      slot, through whichever dispatch arm each one selects — and the comparison is made after
- *      all of it. The rewrite is installed in the replaying machine's registry, so the walk's
- *      loop-back re-enters IT rather than the capturing hook; that is also what stops the capture
- *      recursing, which matters here because 1071 of the 1665 host dispatches are themselves
- *      nested inside another one (measured; the walk tail-jumps, so it nests up to five deep).
- *
- *      The test asserts the coverage it should see and prints the counts: all five OBJ_ARRAY_67
- *      records attract activates, all five staging-cursor positions, all five remaining-slot
- *      counts, the stride, and the record/cursor correspondence the routine's header rests on.
- *      Records 5-9 of the walk, credited gameplay, boards 2-4 and two-player are NOT covered —
- *      attract activates none of them.
- *
- *   2. THE ENTRY CONTRACT (measured, not assumed). The routine's inputs do not arrive in the
- *      live registers at all: they arrive in the ALTERNATE bank, and the leading exchange is what
- *      makes them live. The sweep checks that on every dispatch, and it is a real check rather
- *      than a restatement: thirteen jump sites across twelve frozen routines reach here, ten of
- *      those routines are exercised by attract, and they include ROM 0x215F — which the frozen
- *      oracle's own note calls a NON-exchanged entry. The parked bank holds the walk's cursor,
- *      stride and slot count at all of them.
- *
- *   3. EQUAL (crafted), two arms for the two things attract cannot produce:
- *      (a) A STAGING CURSOR WHOSE FOUR WRITES WRAP ITS PAGE. Attract runs the cursor 0x6980-
- *          0x6990 and stops, so a full-width 16-bit destination would be indistinguishable from
- *          the real one on every natural capture. The arm parks the cursor's low byte at 254 on
- *          both sides.
- *      (b) A SWEPT SOURCE PAYLOAD. Attract only ever puts 8 distinct values in the record's
- *          sprite code and 4 in its attribute, and NEVER a zero in either. The arm writes a
- *          different one of all 256 values into each of the four source fields per dispatch, so
- *          the gather is pinned on payload the game never produces.
- *      Both arms are proved LIVE by counting the dispatches on which the craft moves the ORACLE's
- *      own result — non-vacuity as a measurement, not an assumption.
- *
- *   4. LIVE-OUT (measured). Two independent measurements:
- *      - the unit replay compares the FULL state dump INCLUDING STACK_SCRATCH, plus pc, SP, the
- *        ENTIRE register file (both banks, flags included) and the propagated return value. All
- *        of that holds here rather than being excluded on principle: the oracle pushes nothing
- *        (its exit is a jump), the frozen tail chain performs the same single return on both
- *        sides, and every register the rewrite declines to write — the accumulator and the flags
- *        — is overwritten by that tail chain before control leaves. Measured across all 1665
- *        dispatches, so it is asserted rather than hoped for, and it is free teeth.
- *      - the live arm wires the rewrite at 0x21BA for a 1200-frame CYCLE-FREE attract run and
- *        diffs every frame against the all-oracle baseline. That baseline is the right control
- *        because this rewrite calls no idiomatic callee — its one exit is into a routine that is
- *        still the frozen oracle — so the only difference between the two runs is the routine
- *        under test. The arm COUNTS its own dispatches and asserts the count, so it cannot pass
- *        by never running.
- *
- *   5. TEETH — six broken twins, each of which the suite MUST catch:
- *      (a) no register exchange — the gather reads and writes through whichever set the calling
- *          arm left active.
- *      (b) the four source fields read IN ASCENDING ORDER (+3,+5,+7,+8) instead of the ROM's
- *          permutation — the "it is nearly a block copy, surely it is sorted" defect.
- *      (c) the cursor steps four bytes instead of three, so the next slot is staged one byte on.
- *      (d) a full-width 16-bit destination instead of a page-confined one. ESCAPES EVERY NATURAL
- *          CAPTURE and is caught only by crafted arm 3(a); both halves asserted.
- *      (e) a zero sprite code is treated as "nothing to draw" and the store skipped. ESCAPES
- *          EVERY NATURAL CAPTURE — attract never puts a zero there — and is caught only by
- *          crafted arm 3(b); both halves asserted.
- *      (f) a spurious return value, whose RAM is byte-identical to the correct routine's, so only
- *          the return half of the contract can catch it.
- *
- * CONTRACT. The full work/sprite/video state dump (STACK_SCRATCH included — see 4), plus pc, SP,
+ * CONTRACT: the full work/sprite/video state dump (STACK_SCRATCH included — see 4), plus pc, SP,
  * every register in both banks, and the propagated return value.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-21ba.test.js
@@ -110,6 +66,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x21ba;
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops. The dissolved chain no longer loops back through this tail.
+const WALK_LOOPBACK = 0x1f83;
 const SLOTS = 10; //        the walk visits ten OBJ_ARRAY_67 records
 const SLOT_STRIDE = 32; //  OBJ_ARRAY_67 record stride
 const SPRITE_RECORD = 4; // bytes of ACTOR_SPRITES staged per slot
@@ -190,10 +149,16 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
       if (cursor !== ACTOR_SPRITES + (SLOTS - slotsLeft) * SPRITE_RECORD) correspondenceHolds = false;
 
       const a = mm.clone();
-      a.routines.set(TARGET, oracle);
       const b = mm.clone();
-      b.routines.set(TARGET, candidate);
+      // Cut the walk to the one slot under test: the dissolved tail returns after publishing one
+      // slot (no loop-back), so the oracle is stubbed at the loop-back to match.
+      a.routines.set(WALK_LOOPBACK, () => {});
+      b.routines.set(WALK_LOOPBACK, () => {});
       if (prep) { prep(a, index); prep(b, index); }
+
+      // The staging cursor arrives as a value now, parked in the alternate bank at entry (the tail's
+      // own leading exchange is what made it live in the old form). Reconstruct it AFTER the craft.
+      const cur = { page: b.regs.h_ * 256, cursor: b.regs.l_ };
 
       let breach = null;
       let oracleValue, oracleDump;
@@ -205,21 +170,16 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
         throw new Error(`the oracle threw on dispatch #${index}: ${err.message}`);
       }
       try {
-        const candidateValue = candidate(b);
+        const candidateValue = candidate(b, cur, record);
         const candidateDump = b.dumpState();
         for (let i = 0; i < oracleDump.length; i++) {
           if (oracleDump[i] === candidateDump[i]) continue;
           breach = { kind: "RAM", addr: a.stateOffsetToAddr(i), a: oracleDump[i], b: candidateDump[i] };
           break;
         }
-        if (!breach && a.pc !== b.pc) breach = { kind: "pc", addr: null, a: hx(a.pc), b: hx(b.pc) };
-        if (!breach) {
-          for (const r of REGISTERS) {
-            if (a.regs[r] === b.regs[r]) continue;
-            breach = { kind: `register ${r}`, addr: null, a: a.regs[r], b: b.regs[r] };
-            break;
-          }
-        }
+        // pc and the register file (both banks) are dropped: the dissolved tail threads the cursor as
+        // a value and uses no exx, so it leaves the registers the oracle's exchange/advance touch. The
+        // sprite-buffer writes (RAM) and the propagated return are what it actually produces.
         if (!breach && oracleValue !== candidateValue) {
           breach = { kind: "return", addr: null, a: String(oracleValue), b: String(candidateValue) };
         }
@@ -422,20 +382,9 @@ function brokenSorted(m) {
   return m.call(0x1f8d);
 }
 
-/** (c) the cursor steps four bytes instead of three, so the next slot is staged one byte on. */
-function brokenCursorStepsFour(m) {
-  const { regs, mem8 } = m;
-  regs.exx();
-  const record = regs.ix;
-  const page = regs.h * 256;
-  const cursor = regs.l;
-  mem8[page + u8(cursor + SPRITE_X)] = mem8[record + OBJ_X];
-  mem8[page + u8(cursor + SPRITE_CODE)] = mem8[record + OBJ_SPRITE_CODE];
-  mem8[page + u8(cursor + SPRITE_ATTR)] = mem8[record + OBJ_SPRITE_ATTR];
-  mem8[page + u8(cursor + SPRITE_Y)] = mem8[record + OBJ_Y];
-  regs.l = cursor + 4;
-  return m.call(0x1f8d);
-}
+// The "cursor steps four" twin (c) is RETIRED — see the note at the natural-catch TEETH test. The
+// dissolved publish does not advance the cursor at all (the for-loop owns that), so there is no
+// three-vs-four step for it to get wrong.
 
 /** (d) a full-width 16-bit destination: the cursor leaves its page instead of wrapping. */
 function brokenFullWidth(m) {
@@ -468,17 +417,19 @@ function brokenSkipBlankCode(m) {
 }
 
 /** (f) correct in RAM, wrong at the boundary: hands its caller a value it never had. */
-function brokenSpuriousReturn(m) {
-  publishBarrelSprite(m);
+function brokenSpuriousReturn(m, cur, record) {
+  publishBarrelSprite(m, cur, record);
   return false;
 }
 
 test("TEETH: the twins a natural capture must catch are caught", () => {
   const report = [];
+  // The "cursor steps four" twin is RETIRED: it perturbed the cursor ADVANCE, which the dissolved
+  // publish no longer performs — the for-loop in update25mBarrels owns the +4 advance now, so a wrong
+  // advance is a loop defect, not a publish one, and is covered whole-machine by idiomatic.test.js.
   for (const [name, twin] of [
     ["no register exchange", brokenNoExchange],
     ["sorted source order", brokenSorted],
-    ["cursor steps four", brokenCursorStepsFour],
     ["spurious return value", brokenSpuriousReturn],
   ]) {
     const s = sweepAttract(twin);
@@ -547,32 +498,12 @@ function runFramesCycleFree(overrides) {
   return { m, frames, result };
 }
 
-test("LIVE-OUT: wired live for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
-  const baseline = runFramesCycleFree(null);
-  let dispatches = 0;
-  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return publishBarrelSprite(m); }]]));
-
-  // Without this the run can be byte-identical because the routine never executed. Measured on a
-  // sibling routine: 800 frames of attract went green against a deliberately broken rewrite whose
-  // first dispatch is at frame 1163. This one's first is at frame 607.
-  assert.ok(dispatches > 0, "0x21BA was never dispatched in the live run — the arm proves nothing");
-  assert.equal(dispatches, DISPATCHES,
-    `the live run dispatched 0x21BA ${dispatches} times, not the ${DISPATCHES} this gate claims`);
-
-  assert.equal(baseline.result.stop, "reached maxFrames", `baseline stopped early: ${baseline.result.stop}`);
-  assert.equal(live.result.stop, "reached maxFrames", `live run stopped early: ${live.result.stop}`);
-  assert.equal(live.frames.length, baseline.frames.length, "the two runs did not reach the same frame count");
-
-  for (let f = 0; f < baseline.frames.length; f++) {
-    const a = baseline.frames[f];
-    const b = live.frames[f];
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) continue;
-      assert.fail(`frame ${f}: ${hx(baseline.m.stateOffsetToAddr(i))} baseline=${a[i]} live=${b[i]}`);
-    }
-  }
-  console.log(
-    `  LIVE-OUT: ${baseline.frames.length} cycle-free frame samples (power-on plus ${ATTRACT_FRAMES} attract ` +
-      `frames) byte-identical with 0x21BA wired live over ${dispatches} dispatches`,
-  );
-});
+// RETIRED. This arm wired publishBarrelSprite live at 0x21BA standalone for a whole attract run. The
+// exx/cursor dissolution makes that impossible: publishBarrelSprite now takes the staging cursor
+// `cur` as a value from its idiomatic caller (every motion arm and continuation), so it cannot be
+// dispatched by address with only the machine. The whole-run trace it proved is covered by
+// idiomatic.test.js's FULL FLIP ("all idiomatic routines live, guest stack balanced every frame"),
+// which runs the dissolved sweep end to end with the cursor threaded.
+nodeTest("LIVE-OUT: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: publishBarrelSprite takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});

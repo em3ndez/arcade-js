@@ -18,15 +18,15 @@ import { loc_20b5 } from "./loc_20b5.js";
 const OBJ_KIND = 0x15;
 const CLEARANCE_BELOW_MARIO = 22;
 
-export function loc_20a2(m, record = m.regs.ix) {
+export function loc_20a2(m, cur, record = m.regs.ix) {
   const { mem8 } = m;
   const at = (offset) => u16(record + offset);
 
-  if (mem8[at(OBJ_KIND)] !== 0) return loc_20b5(m);
+  if (mem8[at(OBJ_KIND)] !== 0) return loc_20b5(m, cur);
 
   // The subtraction is a byte, so an object near the top of the screen wraps past every Mario
   // position and lands on the no-turn arm too.
-  if (u8(mem8[at(OBJ_Y)] - CLEARANCE_BELOW_MARIO) >= mem8[MARIO_Y]) return loc_20c3(m);
+  if (u8(mem8[at(OBJ_Y)] - CLEARANCE_BELOW_MARIO) >= mem8[MARIO_Y]) return loc_20c3(m, cur);
 
-  return loc_20b5(m);
+  return loc_20b5(m, cur);
 }

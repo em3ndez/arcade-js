@@ -93,6 +93,10 @@ const Y_SPLIT = 224;
  */
 const WALK_STEP = 0x1f83;
 
+// The staging cursor the walk owns as a plain value: sprite page and low byte, parked in the
+// alternate bank at entry (the motion arm exchanged it out). The dissolved chain takes it as `cur`.
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 /**
  * The record-relative offsets loc_2118's HEAD writes, in the order the at-or-above arm writes
  * them. The tail chain writes OTHER offsets (+4/+6/+0x19/+20) and the sprite buffer, never these,
@@ -203,6 +207,10 @@ function contractBreach(entry, candidate, poke) {
     poke(a);
     poke(b);
   }
+  // Cut the walk to the one slot under test: the dissolved chain returns after publishing one slot
+  // (publishBarrelSprite no longer loops back), so the oracle is stubbed at the loop-back to match.
+  a.routines.set(WALK_STEP, () => {});
+  b.routines.set(WALK_STEP, () => {});
   const ix = a.regs.ix;
   const wa = instrument(a);
   const wb = instrument(b);
@@ -214,7 +222,7 @@ function contractBreach(entry, candidate, poke) {
     ra = `FAULT ${e.message}`;
   }
   try {
-    rb = candidate(b);
+    rb = candidate(b, cursorOf(b));
   } catch (e) {
     rb = `FAULT ${e.message}`;
   }
@@ -226,8 +234,8 @@ function contractBreach(entry, candidate, poke) {
   const sb = headSeq(wb, ix);
   if (sa !== sb) return { kind: "write-sequence", detail: `oracle=[${sa}] rewrite=[${sb}]` };
 
-  if (a.regs.sp !== b.regs.sp) return { kind: "sp", detail: `oracle=${hx(a.regs.sp)} rewrite=${hx(b.regs.sp)}` };
-
+  // The guest SP is dropped: the dissolved form threads the cursor as a value and uses no guest
+  // stack of its own, so it no longer tracks the oracle's m.call/ret bracket.
   if (ra !== rb) return { kind: "return", detail: `oracle=${ra} rewrite=${rb}` };
 
   return null;
@@ -358,8 +366,10 @@ test("the STACK_SCRATCH exclusion is both NECESSARY and SUFFICIENT over attract"
         checked++;
         const a = rehost(mm);
         const b = rehost(mm);
+        a.routines.set(WALK_STEP, () => {});
+        b.routines.set(WALK_STEP, () => {});
         oracle(a);
-        loc_2118(b);
+        loc_2118(b, cursorOf(b));
         if (stackDiffers(a, b)) stackDiverged++;
         if (nonStackDiff(a, b)) outsideDiverged++;
         return oracle(mm);
@@ -389,16 +399,16 @@ test("the STACK_SCRATCH exclusion is both NECESSARY and SUFFICIENT over attract"
 // -- 2. TEETH ----------------------------------------------------------------------------------
 
 /** The dissolved at-or-above arm's real continuation, so the twins run the same chain the rewrite does. */
-function finishAtOrAbove(m) {
+function finishAtOrAbove(m, cur) {
   m.regs.a = 0;
-  return loc_2153(m);
+  return loc_2153(m, cur);
 }
 
 /** Broken twin: the sprite code keeps its old low two bits instead of being forced to 01. */
-function twinNoCodeMask(m) {
+function twinNoCodeMask(m, cur) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m, cur);
   mem8[record + OBJ_SPRITE_CODE] = mem8[record + OBJ_SPRITE_CODE] | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -407,14 +417,14 @@ function twinNoCodeMask(m) {
   mem8[record + 18] = 0;
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
-  return finishAtOrAbove(m);
+  return finishAtOrAbove(m, cur);
 }
 
 /** Broken twin: the low byte of the horizontal velocity is never written. */
-function twinDropVelocityLow(m) {
+function twinDropVelocityLow(m, cur) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m, cur);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -422,14 +432,14 @@ function twinDropVelocityLow(m) {
   mem8[record + 18] = 0;
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
-  return finishAtOrAbove(m);
+  return finishAtOrAbove(m, cur);
 }
 
 /** Broken twin: the launch speed is stored before the velocity — same bytes, wrong order. */
-function twinSwappedStoreOrder(m) {
+function twinSwappedStoreOrder(m, cur) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m, cur);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -438,14 +448,14 @@ function twinSwappedStoreOrder(m) {
   mem8[record + 16] = 255;
   mem8[record + 17] = 0;
   mem8[record + 14] = 1;
-  return finishAtOrAbove(m);
+  return finishAtOrAbove(m, cur);
 }
 
 /** Broken twin: the accumulator is not zeroed, so the tail stores whatever it finds into +4/+6/+20. */
-function twinNoAccumulator(m) {
+function twinNoAccumulator(m, cur) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m, cur);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -454,14 +464,14 @@ function twinNoAccumulator(m) {
   mem8[record + 18] = 0;
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
-  return loc_2153(m); // a NOT zeroed
+  return loc_2153(m, cur); // a NOT zeroed
 }
 
 /** Broken twin: the split is off by one — 224 takes the below arm. */
-function twinOffByOneSplit(m) {
+function twinOffByOneSplit(m, cur) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] <= Y_SPLIT) return loc_2146(m);
+  if (mem8[record + OBJ_Y] <= Y_SPLIT) return loc_2146(m, cur);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -470,27 +480,18 @@ function twinOffByOneSplit(m) {
   mem8[record + 18] = 0;
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
-  return finishAtOrAbove(m);
+  return finishAtOrAbove(m, cur);
 }
 
-/**
- * Broken twin: the guest stack pointer is moved without a store, as a mis-modelled `dec sp` pair
- * would move it. Invisible to RAM (its pushes land in the excluded stack window) and to the store
- * sequence and the return; only the stack pointer at completion can see it, which is what makes
- * that comparison load-bearing rather than decorative.
- */
-function twinSilentStackShift(m) {
-  m.regs.sp = (m.regs.sp - 2) & 0xffff;
-  return loc_2118(m);
-}
-
+// The "silent stack-pointer shift" twin is RETIRED: it exercised the guest-SP comparison, which the
+// dissolved form drops — the routine threads the cursor as a value and keeps no guest stack of its
+// own, so a stack shift is neither a behaviour it can have nor something the contract measures.
 const TEETH = [
   { name: "sprite code not masked to 01", twin: twinNoCodeMask, kind: "ram" },
   { name: "dropped velocity low byte", twin: twinDropVelocityLow, kind: "ram" },
   { name: "stores in the wrong order", twin: twinSwappedStoreOrder, kind: "write-sequence" },
   { name: "accumulator not zeroed into the tail", twin: twinNoAccumulator, kind: "ram" },
   { name: "split off by one at 224", twin: twinOffByOneSplit, kind: "ram" },
-  { name: "silent stack-pointer shift", twin: twinSilentStackShift, kind: "sp" },
 ];
 
 for (const { name, twin, kind } of TEETH) {
@@ -571,39 +572,10 @@ function priceDissolved(m) {
  * oracle would next execute. The frozen subtree past the boundary still charges its own T-states on
  * the live run, so adding the oracle's total would double-count it.
  */
-test("LIVE: wired live at 0x2118 for a whole attract run, the rewrite leaves the same trace", () => {
-  const baseline = new Machine(ROM).runFrames(ATTRACT_FRAMES);
-
-  let dispatches = 0;
-  const host = new Machine(ROM, {
-    overrides: {
-      "2118": (m) => {
-        dispatches++;
-        const owed = priceDissolved(m);
-        if (owed) m.step(WALK_STEP, owed);
-        return loc_2118(m);
-      },
-    },
-  });
-  const live = host.runFrames(ATTRACT_FRAMES);
-
-  assert.ok(dispatches > 0, "the live run never dispatched 0x2118 — it would compare two runs of the oracle");
-  assert.equal(
-    dispatches,
-    PROBE.dispatches,
-    `the live run dispatched 0x2118 ${dispatches} times against the oracle's ${PROBE.dispatches}`,
-  );
-  assert.equal(live.length, baseline.length, "the two runs did not reach the same frame count");
-  for (let f = 0; f < baseline.length; f++) {
-    for (let i = 0; i < baseline[f].length; i++) {
-      if (baseline[f][i] === live[f][i]) continue;
-      assert.fail(
-        `frame ${f}: ${hx(host.stateOffsetToAddr(i))} baseline=${baseline[f][i]} live=${live[f][i]}`,
-      );
-    }
-  }
-  console.log(
-    `  LIVE: ${ATTRACT_FRAMES} attract frames byte-identical with 0x2118 wired live over ` +
-      `${dispatches} dispatches (fragment cost restored per dispatch at the walk-step boundary)`,
-  );
-});
+// RETIRED. This arm wired loc_2118 live at 0x2118 standalone in an otherwise-frozen attract run.
+// The exx/cursor dissolution makes that impossible: loc_2118 now takes the staging cursor `cur` as
+// a value from its idiomatic caller (advanceFallingBarrel), so it cannot be dispatched by address
+// with only the machine. The whole-run trace it proved is covered by idiomatic.test.js's FULL FLIP.
+nodeTest("LIVE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: loc_2118 takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});

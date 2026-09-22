@@ -18,7 +18,7 @@ const VISITS_PER_TILE = 4;
 // low bit of the tile code selects which tile of the pair; bit 7 is the raster flip
 const TILE_PAIR_BIT = 1;
 
-export function advanceBarrelTileAnimation(m, record = m.regs.ix) {
+export function advanceBarrelTileAnimation(m, cur, record = m.regs.ix) {
   const { mem8 } = m;
 
   let remaining = u8(mem8[record + OBJ_ANIM_PRESCALER] - 1);
@@ -29,5 +29,5 @@ export function advanceBarrelTileAnimation(m, record = m.regs.ix) {
   }
   mem8[record + OBJ_ANIM_PRESCALER] = remaining;
 
-  return publishBarrelSprite(m);
+  return publishBarrelSprite(m, cur);
 }

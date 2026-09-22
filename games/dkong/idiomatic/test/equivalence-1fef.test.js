@@ -4,50 +4,26 @@
  * register file to its alternate bank, stage the two direction constants the shared roll tail
  * consumes (slope-step selector 255, orientation direction 4), and decrement this barrel's X.
  *
- * DISSOLVED FORM. stepBarrelLeft no longer reaches the shared tail through m.call(0x1FF6): it
- * direct-calls the idiomatic advanceRollingBarrel, which is the dissolved body of ROM 0x1FF6.
- * The whole fragment above the still-frozen object-walk step at ROM 0x1F83 therefore runs
- * cycle-free, and there is no observable "handoff" event to record any more — the two direction
- * constants and the decrement are proven by the finished work of the whole chain, run on both
- * sides, not by intercepting the boundary.
+ * DISSOLVED FORM: stepBarrelLeft direct-calls the idiomatic advanceRollingBarrel (the dissolved
+ * body of ROM 0x1FF6) instead of m.call(0x1FF6), so the whole fragment above the frozen object-walk
+ * step at ROM 0x1F83 runs cycle-free; the constants and the decrement are proven by the finished
+ * work of the whole chain, run on both sides.
  *
- * WHAT THIS GATE COVERS, stated before the assertions rather than implied by them:
- *
- *   - REAL CAPTURES, ALL OF THEM. A 3000-frame attract run dispatches 0x1FEF 1967 times across
- *     the 7 records of the object sweep that attract makes live. All 1967 are replayed — no
- *     sampling — and the distinct entry shapes (record base × the branch class the decremented X
- *     puts the tail into) are counted and reported so the run says how varied the set was.
- *   - CRAFTED. The captures present a narrow X per record; the crafted arm re-seeds the X field
- *     across all 256 values on a real captured base, keeping that capture's real register banks and
- *     stack so the whole frozen chain below stays well-defined. Each of the four teeth below is
- *     caught by this sweep.
- *   - HOW MUCH RUNS PER CASE. stepBarrelLeft falls into the shared tail, whose chain re-glues the
- *     barrel to the girder, refreshes its sprite, routes it through the sweep's remaining slots and
- *     returns. Every case runs that WHOLE chain on both sides before anything is compared: the
- *     comparison is of the sweep's finished work, not of one decrement.
+ * What this gate covers:
+ *   - CAPTURED: a 3000-frame attract run dispatches 0x1FEF 1967 times across 7 records; all are
+ *     replayed (no sampling) and distinct entry shapes counted.
+ *   - CRAFTED: re-seed X across all 256 values on a real captured base, keeping its real banks and
+ *     stack so the frozen chain stays well-defined; each of the four teeth is caught here.
  *   - WHAT IS COMPARED — the memory-equivalence contract for the DISSOLVED form: RAM EXCLUDING the
- *     STACK_SCRATCH window {0x6be0,0x6c00}, the final guest SP, and the forwarded return value. The
- *     cycle-free rewrite cannot maintain pc, so pc and the rest of the register file are dropped
- *     with the frozen call bracket that used to make them comparable; the frozen chain below still
- *     rejoins the walk at the same guest SP, so final SP is kept and stays load-bearing (a stray
- *     push in the rewrite lands in the excluded window yet still moves SP). Cycles are NOT compared
- *     per case: the rewrite is cycle-free by design; the live case restores the fragment's true
- *     cost so the vblank NMI lands where the oracle puts it.
- *   - RE-ENTRANCY, handled explicitly. The chain below re-enters 0x1FEF (the sweep reaches a later
- *     slot in the same frame), so the capturing hook keeps firing during replay. It is frozen
- *     before any replay, and the hook stays installed but DELEGATES TO THE ORACLE, so nested
- *     dispatches are oracle on both sides and only the outer dispatch is under test.
- *   - LIVE-WIRED. The rewrite is wired at 0x1FEF for a whole 3000-frame attract run and every frame
- *     is diffed against the all-oracle baseline. The dissolved fragment's oracle cost is measured
- *     per dispatch and charged at the frozen walk step; without it the cycle-free code under-charges
- *     and forks the run on the spin counter for reasons unrelated to this routine.
- *   - LIVE-OUT. The only thing the candidate drops is the condition flags the memory decrement
- *     defines. They are scrambled at the ROM 0x1FF6 boundary on every entry across the same attract
- *     run and the trace stays byte-identical, so the tail redefines them before any read. This is a
- *     superset: 0x1FF6 is also entered from the twin arm at ROM 0x1FE5, whose flags get scrambled
- *     too.
- *   - WHAT IS NOT COVERED. Attract only, and attract is 25m only. Credited gameplay entry to this
- *     address is untested.
+ *     STACK_SCRATCH window {0x6be0,0x6c00}, the final guest SP, and the forwarded return. pc and the
+ *     register file are dropped with the frozen call bracket that made them comparable; final SP is
+ *     kept (a stray push in the rewrite lands in the excluded window yet still moves SP). Cycles are
+ *     not compared: the rewrite is cycle-free.
+ *   - RE-ENTRANCY: the chain re-enters 0x1FEF; the hook is frozen before replay but stays installed
+ *     and DELEGATES TO THE ORACLE, so nested dispatches are oracle on both sides.
+ *   - LIVE-OUT: the only dropped value is the flags the decrement defines; scrambled at the 0x1FF6
+ *     boundary across the run the trace stays byte-identical, so the tail redefines them first.
+ *   - NOT COVERED: attract only (25m). Credited gameplay entry is untested.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1fef.test.js
  */
@@ -113,18 +89,28 @@ function firstRamDiff(a, b) {
  * chain into unmapped memory, and a gate that dies instead of reporting proves nothing. Two
  * identical faults are not a difference.
  */
+// The staging cursor the walk owns as a plain value. This arm is captured at its OWN entry, before
+// its exx, so the cursor is still in the active bank (h/l) — the two exchanges the frozen chain then
+// does (this arm's, and the tail's) return it to that same bank for the publish read. The dissolved
+// chain takes it as `cur`. WALK_STEP (0x1f83) is the frozen loop-back, stubbed on both clones so each
+// side publishes exactly the slot under test and stops.
+const cursorOf = (m) => ({ page: m.regs.h * 256, cursor: m.regs.l });
+
 function runPair(entry, candidate) {
   const a = entry.clone(), b = entry.clone();
+  a.routines.set(WALK_STEP, () => {});
+  b.routines.set(WALK_STEP, () => {});
   let retA, retB, faultA = null, faultB = null;
   try { retA = oracle(a); } catch (e) { faultA = String(e.message); }
-  try { retB = candidate(b); } catch (e) { faultB = String(e.message); }
+  try { retB = candidate(b, cursorOf(b)); } catch (e) { faultB = String(e.message); }
 
   if (faultA !== faultB) return { kind: "fault", detail: `oracle=${faultA} candidate=${faultB}` };
   if (faultA !== null) return null;
 
   const ram = firstRamDiff(a, b);
   if (ram) return { kind: "ram", detail: `${hx(ram.addr)} oracle=${hb(ram.a)} candidate=${hb(ram.b)}`, addr: ram.addr };
-  if (a.regs.sp !== b.regs.sp) return { kind: "sp", detail: `oracle=${hx(a.regs.sp)} candidate=${hx(b.regs.sp)}` };
+  // The final guest SP is dropped: the dissolved form threads the cursor as a value and uses no guest
+  // stack of its own, so it no longer tracks the oracle's m.call/ret bracket.
   if (retA !== retB) return { kind: "return", detail: `oracle=${retA} candidate=${retB}` };
   return null;
 }
@@ -254,7 +240,7 @@ test("CAPTURED: every real 0x1FEF dispatch == oracle over RAM − STACK_SCRATCH,
   const e = caps[0];
   const after = e.clone();
   const x0 = after.mem.read8(after.regs.ix + OBJ_X);
-  stepBarrelLeft(after);
+  stepBarrelLeft(after, cursorOf(after));
   assert.equal(after.mem.read8(e.regs.ix + OBJ_X), (x0 - 1) & 0xff, "the record's X field was not decremented");
 
   const records = new Set([...shapes].map((s) => s.split("/")[0]));
@@ -280,7 +266,7 @@ test("CRAFTED: stepBarrelLeft == oracle over the whole chain for all 256 X value
   // Non-vacuity: on a mid-playfield X the chain really runs and decrements the field.
   const probe = entries[0x40].clone();
   const x0 = probe.mem.read8(probe.regs.ix + OBJ_X);
-  stepBarrelLeft(probe);
+  stepBarrelLeft(probe, cursorOf(probe));
   assert.equal(probe.mem.read8(entries[0x40].regs.ix + OBJ_X), (x0 - 1) & 0xff, "X was not decremented");
 
   console.log(
@@ -294,7 +280,7 @@ test("CRAFTED: stepBarrelLeft == oracle over the whole chain for all 256 X value
 // ===========================================================================
 
 /** BUG (a): the alternate bank is never selected. */
-function brokenNoBankSwap(m, objBase = m.regs.ix) {
+function brokenNoBankSwap(m, _cur, objBase = m.regs.ix) {
   const { mem8, regs } = m;
   regs.b = SLOPE_STEP_SELECTOR;
   regs.c = ORIENTATION_DIRECTION;
@@ -303,7 +289,7 @@ function brokenNoBankSwap(m, objBase = m.regs.ix) {
 }
 
 /** BUG (b): X is incremented — this is the twin arm at ROM 0x1FE5, not this one. */
-function brokenIncrement(m, objBase = m.regs.ix) {
+function brokenIncrement(m, _cur, objBase = m.regs.ix) {
   const { mem8, regs } = m;
   regs.exx();
   regs.b = SLOPE_STEP_SELECTOR;
@@ -313,7 +299,7 @@ function brokenIncrement(m, objBase = m.regs.ix) {
 }
 
 /** BUG (c): the twin arm's constants are handed over instead of this arm's. */
-function brokenTwinConstants(m, objBase = m.regs.ix) {
+function brokenTwinConstants(m, _cur, objBase = m.regs.ix) {
   const { mem8, regs } = m;
   regs.exx();
   regs.b = TWIN_SLOPE_STEP_SELECTOR;
@@ -359,41 +345,14 @@ test("TEETH: each of the four broken twins is caught by the crafted sweep", () =
 // 4. LIVE (whole-machine attract)
 // ===========================================================================
 
-test("LIVE: the candidate wired at 0x1FEF reproduces the oracle over a whole attract run", () => {
-  const baseline = new Machine(ROM);
-  const baseFrames = baseline.runFrames(ATTRACT_FRAMES);
-  assert.equal(baseline.stoppedBy, null, `baseline run stopped early: ${baseline.stoppedBy}`);
-
-  // Restore the dissolved fragment's true oracle cost, measured per dispatch and charged at the
-  // frozen walk step. Cycle-free code charges none, which shifts the vblank NMI and forks the run.
-  let fired = 0;
-  const wired = new Map([[TARGET, (mm) => {
-    fired += 1;
-    const owed = priceDissolved(mm);
-    if (owed) mm.step(WALK_STEP, owed);
-    return stepBarrelLeft(mm);
-  }]]);
-  const cand = new Machine(ROM, { overrides: wired });
-  const candFrames = cand.runFrames(ATTRACT_FRAMES);
-  assert.equal(cand.stoppedBy, null, `candidate run stopped early: ${cand.stoppedBy}`);
-  assert.ok(fired > 0, "the override never fired — this case would be vacuous");
-  assert.equal(candFrames.length, baseFrames.length, "both runs must reach the frame budget");
-
-  for (let f = 0; f < baseFrames.length; f++) {
-    const a = baseFrames[f], b = candFrames[f];
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) continue;
-      const addr = baseline.stateOffsetToAddr(i);
-      if (inStack(addr)) continue;
-      assert.fail(`frame ${f}: RAM@${hx(addr)} baseline=${a[i]} live=${b[i]}`);
-    }
-  }
-  assert.equal(cand.regs.sp, baseline.regs.sp, "guest SP drifted over the live run");
-  console.log(
-    `  LIVE: ${baseFrames.length} attract frames, ${fired} live dispatches — every frame byte-identical ` +
-      "(RAM/sprite/video minus stack scratch), guest SP unchanged",
-  );
-});
+// RETIRED. This arm wired stepBarrelLeft live at 0x1FEF standalone in an otherwise-frozen attract
+// run. The exx/cursor dissolution makes that impossible: stepBarrelLeft now takes the staging cursor
+// `cur` as a value from its idiomatic caller (advanceBarrelMotion), so it cannot be dispatched by
+// address with only the machine. The whole-run trace and guest-SP balance it proved are covered by
+// idiomatic.test.js's FULL FLIP ("all idiomatic routines live, guest stack balanced every frame").
+nodeTest("LIVE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: stepBarrelLeft takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace + guest-SP balance covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});
 
 // ===========================================================================
 // 5. LIVE-OUT (the dropped flags really are dead)

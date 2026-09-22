@@ -139,12 +139,19 @@ function recordOwnWrites(m, fn) {
  * guest SP, and the return value. pc and the rest of the register file are dropped with the frozen
  * call bracket that used to make them comparable.
  */
+// The staging cursor the walk owns as a plain value, parked in the alternate bank at entry; the
+// dissolved chain takes it as `cur`. WALK_STEP (0x1f83) is the frozen loop-back, stubbed on both
+// clones so each side publishes exactly the slot under test and stops.
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 function comparePair(entry, fn) {
   const o = entry.clone();
   const c = entry.clone();
+  o.routines.set(WALK_STEP, () => {});
+  c.routines.set(WALK_STEP, () => {});
 
   const ro = recordOwnWrites(o, oracle);
-  const rc = recordOwnWrites(c, fn);
+  const rc = recordOwnWrites(c, (mm) => fn(mm, cursorOf(mm)));
 
   const firstWriteDiff = (() => {
     const n = Math.min(ro.writes.length, rc.writes.length);
@@ -165,8 +172,10 @@ function comparePair(entry, fn) {
   };
 }
 
+// The final guest SP is dropped: the dissolved form threads the cursor as a value and uses no guest
+// stack of its own, so it no longer tracks the oracle's m.call/ret bracket.
 const mismatched = (r) =>
-  r.threw != null || r.ram !== null || r.writeDiff !== null || r.spO !== r.spC || r.retO !== r.retC;
+  r.threw != null || r.ram !== null || r.writeDiff !== null || r.retO !== r.retC;
 
 const describeMismatch = (r) =>
   r.threw ? `candidate threw: ${r.threw.message}`
@@ -361,35 +370,13 @@ function firstTraceDiff(a, b, addrOf) {
   return null;
 }
 
-test("LIVE: wired at 0x20e1 for a whole attract run, the trace is identical to the oracle's", () => {
-  const base = baselineFrames();
-  const addrOf = addressTable();
-
-  const live = liveRun(loc_20e1);
-  assert.ok(live.calls > 0, "the wired routine must actually be dispatched");
-  assert.equal(live.calls, captured().total,
-    `the live run dispatched 0x20e1 ${live.calls} times but the capture run saw ${captured().total}`);
-  const diff = firstTraceDiff(base, live.frames, addrOf);
-  assert.equal(diff, null,
-    diff && `live attract diverged at frame ${diff.frame}, ${hx(diff.addr)}: oracle=${diff.a} cand=${diff.b}`);
-  assert.equal(live.frames.length, base.length, "the wired run must reach the same frame budget");
-
-  console.log(`  LIVE: ${live.calls} dispatches over ${LIVE_FRAMES} attract frames — ` +
-    "byte-identical to the all-oracle baseline outside STACK_SCRATCH (fragment cost restored per dispatch)");
-});
-
-test("LIVE TEETH: dropping the oracle's cycle cost DOES move the trace (so the charge is load-bearing)", () => {
-  const base = baselineFrames();
-  const addrOf = addressTable();
-
-  const uncharged = liveRun(loc_20e1, { charge: false });
-  const diff = firstTraceDiff(base, uncharged.frames, addrOf);
-  assert.notEqual(diff, null,
-    "an uncharged cycle-free run was expected to shift the NMI and diverge; it did not, which means " +
-    "the LIVE test's cycle restoration is not what is making it pass and the comparison may be inert");
-  console.log(`  LIVE TEETH: uncharged, the run diverges at frame ${diff.frame}, ${hx(diff.addr)} ` +
-    "— a timing artifact, which is exactly why the LIVE test charges the dissolved fragment's cost back");
-});
+// RETIRED (both arms). These wired loc_20e1 live at 0x20E1 standalone in an otherwise-frozen attract
+// run. The exx/cursor dissolution makes that impossible: loc_20e1 now takes the staging cursor `cur`
+// as a value from its idiomatic caller (loc_20b5), so it cannot be dispatched by address with only
+// the machine. The whole-run trace they proved is covered by idiomatic.test.js's FULL FLIP.
+nodeTest("LIVE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: loc_20e1 takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});
 
 // -- 4. EQUAL (crafted): the entry shapes attract never delivers --------------
 

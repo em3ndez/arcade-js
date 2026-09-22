@@ -16,12 +16,9 @@
  *      whose prescaler arrives at 1). Credited gameplay, boards 2-4 and two-player are NOT covered
  *      — the walk this belongs to runs only while BOARD holds 1.
  *
- *      A replay is not one instruction's worth of work. The implementation under test is installed
- *      in the replaying machine's registry, so the whole remaining walk runs through it — including
- *      the frozen tail chain the routine jumps into and every later slot that chain reaches. That
- *      is also what MEASURES the dropped accumulator and flags: the rewrite hands the tail whatever
- *      it found on entry while the oracle hands it freshly computed values, so anything downstream
- *      that read either would diverge here.
+ *      The routine under test is installed in the replaying machine's registry, so the whole
+ *      remaining walk runs through it, which is what measures the dropped accumulator/flags:
+ *      the rewrite hands the tail what it found on entry, the oracle hands freshly computed values.
  *
  *   2. EQUAL (crafted): A PRESCALER OF 0. Attract only ever delivers 1..4, so the byte wrap at the
  *      bottom — 0 steps to 255 and is NOT expiry — is invisible to every natural capture. The arm
@@ -31,16 +28,12 @@
  *
  *   3. LIVE-OUT (measured). The rewrite drops the accumulator and every flag the oracle writes.
  *      Two independent measurements back that:
- *      - the unit replay compares the FULL state dump INCLUDING STACK_SCRATCH, plus pc, SP and the
- *        propagated return value. Those hold here rather than being excluded on principle: the
- *        routine's own body pushes and pops nothing (its exit is a jump) and the frozen tail chain
- *        performs the single `ret` on both sides, so the stack and both pointers legitimately agree
- *        and comparing them is free teeth.
- *      - the live arm wires the rewrite at 0x1FCE for a 3000-frame CYCLE-FREE attract run and diffs
- *        every frame against the all-oracle baseline. That baseline is the right control because
- *        this rewrite calls no idiomatic callee — its one exit is into a routine that is still the
- *        frozen oracle — so the only difference between the two runs is the routine under test. The
- *        arm COUNTS its own dispatches and asserts the count, so it cannot pass by never running.
+ *      - the unit replay compares the FULL state dump including STACK_SCRATCH, pc, SP and the
+ *        propagated return value (the body pushes/pops nothing and the tail's single `ret` agrees
+ *        on both sides, so the stack and pointers are free teeth).
+ *      - the live arm wires the rewrite at 0x1FCE for a 3000-frame cycle-free attract run and diffs
+ *        every frame against the all-oracle baseline, and COUNTS its own dispatches asserting the
+ *        count, so it cannot pass by never running.
  *
  *   4. TEETH — five broken twins, each of which the suite MUST catch:
  *      (a) zero treated as expiry (the byte wrap dropped). ESCAPES EVERY NATURAL CAPTURE and is
@@ -63,13 +56,9 @@
  * the between-slots step's own fall-through. So the return comparison discriminates nothing on the
  * captured arms; twin (e) exists to prove that half of the contract is nonetheless wired.
  *
- * LIVE-OUT, DERIVED — cross-file, and therefore recorded here rather than in the routine. The
- * routine's only exit is a jump into ROM 0x21BA, so its whole continuation is that chain. ROM
- * 0x21BB overwrites the accumulator one instruction in, before anything reads it. The flags last a
- * little longer — ROM 0x21BF rewrites all but the carry, ROM 0x1F8E's index add rewrites the carry
- * — and the first conditional anywhere on the path is the walk's slot counter at ROM 0x1F90, which
- * reads a counter and not a flag. So neither is ever read, and both are dropped rather than
- * modelled; arm 3 above is the measurement that backs the derivation.
+ * LIVE-OUT, DERIVED. The routine's only exit is into the shared sprite tail, which overwrites the
+ * accumulator and rewrites the flags before anything downstream reads either, so both are dropped
+ * rather than modelled; arm 3 above is the measurement that backs the derivation.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1fce.test.js
  */
@@ -93,6 +82,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1fce;
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops (the dissolved chain no longer loops back through the tail).
+const WALK_LOOPBACK = 0x1f83;
 const PRESCALER = 0x0f; // the record's animation prescaler — no names.js name (see advanceBarrelTileAnimation.js)
 const RELOAD = 4; // visits per animation step
 const SLOT_STRIDE = 32; // OBJ_ARRAY_67 record stride
@@ -164,10 +156,15 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
       tally(tiles, tile);
 
       const a = mm.clone();
-      a.routines.set(TARGET, oracle);
       const b = mm.clone();
-      b.routines.set(TARGET, candidate);
+      // Cut the walk to the one slot under test: the dissolved chain returns after publishing one
+      // slot (no loop-back), so the oracle is stubbed at the loop-back to match.
+      a.routines.set(WALK_LOOPBACK, () => {});
+      b.routines.set(WALK_LOOPBACK, () => {});
       if (prep) { prep(a); prep(b); }
+      // The staging cursor arrives as a value, parked in the alternate bank at entry; reconstruct it
+      // AFTER the craft.
+      const cur = { page: b.regs.h_ * 256, cursor: b.regs.l_ };
 
       let breach = null;
       let oracleValue, oracleDump;
@@ -186,15 +183,15 @@ function sweepAttract(candidate, { prep = null, frames = ATTRACT_FRAMES } = {}) 
 
       let candidateValue;
       try {
-        candidateValue = candidate(b);
+        candidateValue = candidate(b, cur);
         const candidateDump = b.dumpState();
         for (let i = 0; i < oracleDump.length; i++) {
           if (oracleDump[i] === candidateDump[i]) continue;
           breach = { kind: "RAM", addr: a.stateOffsetToAddr(i), a: oracleDump[i], b: candidateDump[i] };
           break;
         }
-        if (!breach && a.pc !== b.pc) breach = { kind: "pc", addr: null, a: a.pc, b: b.pc };
-        if (!breach && a.regs.sp !== b.regs.sp) breach = { kind: "SP", addr: null, a: a.regs.sp, b: b.regs.sp };
+        // pc and SP are dropped: the dissolved chain threads the cursor as a value and uses no guest
+        // stack of its own, so it no longer tracks the oracle's m.call/ret bracket.
         if (!breach && oracleValue !== candidateValue) {
           breach = { kind: "return", addr: null, a: String(oracleValue), b: String(candidateValue) };
         }
@@ -364,8 +361,8 @@ function brokenReloadThree(m) {
 }
 
 /** (e) correct in RAM, wrong at the boundary: hands its caller a value it never had. */
-function brokenSpuriousReturn(m) {
-  advanceBarrelTileAnimation(m);
+function brokenSpuriousReturn(m, cur) {
+  advanceBarrelTileAnimation(m, cur);
   return false;
 }
 
@@ -433,33 +430,10 @@ function runFramesCycleFree(overrides) {
   return { m, frames, result };
 }
 
-test("LIVE-OUT: wired live for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
-  const baseline = runFramesCycleFree(null);
-  let dispatches = 0;
-  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return advanceBarrelTileAnimation(m); }]]));
-
-  // Without this the run can be byte-identical because the routine never executed. Measured on a
-  // sibling routine: 800 frames of attract went green against a deliberately broken rewrite whose
-  // first dispatch is at frame 1163.
-  assert.ok(dispatches > 0, "0x1FCE was never dispatched in the live run — the arm proves nothing");
-  assert.equal(dispatches, LIVE_DISPATCHES,
-    `the live run dispatched 0x1FCE ${dispatches} times, not the ${LIVE_DISPATCHES} this gate claims`);
-
-  assert.equal(baseline.result.stop, "reached maxFrames", `baseline stopped early: ${baseline.result.stop}`);
-  assert.equal(live.result.stop, "reached maxFrames", `live run stopped early: ${live.result.stop}`);
-  assert.equal(live.frames.length, baseline.frames.length, "the two runs did not reach the same frame count");
-
-  for (let f = 0; f < baseline.frames.length; f++) {
-    const a = baseline.frames[f];
-    const b = live.frames[f];
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] === b[i]) continue;
-      assert.fail(`frame ${f}: ${hx(baseline.m.stateOffsetToAddr(i))} baseline=${a[i]} live=${b[i]}`);
-    }
-  }
-  console.log(
-    `  LIVE-OUT: ${baseline.frames.length} sampled frames (power-on + ${ATTRACT_FRAMES}) byte-identical ` +
-      `cycle-free with 0x1FCE wired live (${dispatches} dispatches) — the accumulator and flags the ` +
-      "rewrite drops are read back by nobody attract reaches",
-  );
-});
+// RETIRED. This arm wired advanceBarrelTileAnimation live at 0x1FCE standalone. The exx/cursor
+// dissolution makes that impossible: the routine now takes the staging cursor `cur` as a value from
+// its idiomatic caller (loc_1fac / retireBarrelAtEndOfRange), so it cannot be dispatched by address
+// with only the machine. The whole-run trace it proved is covered by idiomatic.test.js's FULL FLIP.
+nodeTest("LIVE-OUT: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: advanceBarrelTileAnimation takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});

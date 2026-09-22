@@ -17,7 +17,7 @@ import { OBJ_Y } from "./names.js";
 
 const OBJ_Y_SNAPSHOT = 0x19;
 
-export function loc_2146(m, record = m.regs.ix) {
+export function loc_2146(m, cur, record = m.regs.ix) {
   const { regs, mem8 } = m;
 
   loc_2407(m);
@@ -25,5 +25,5 @@ export function loc_2146(m, record = m.regs.ix) {
 
   mem8[record + OBJ_Y_SNAPSHOT] = mem8[record + OBJ_Y];
 
-  return (regs.a = 0, loc_2153(m));
+  return (regs.a = 0, loc_2153(m, cur));
 }

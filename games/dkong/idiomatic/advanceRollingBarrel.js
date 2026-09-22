@@ -43,15 +43,16 @@ const SNAP_OFFSET = 3;
 // walk over.
 
 // Param-defaults (both exempt): slopeStep — both entry arms leave the selector in regs.b;
-// record — the continuations read this record back off regs.ix.
-export function advanceRollingBarrel(m, slopeStep = m.regs.b, record = m.regs.ix) {
+// record — the continuations read this record back off regs.ix. `cur` is the staging cursor,
+// threaded to the shared sprite tail and to every continuation that reaches it.
+export function advanceRollingBarrel(m, cur, slopeStep = m.regs.b, record = m.regs.ix) {
   const { mem8 } = m;
 
   const x = mem8[record + OBJ_X];
 
   // One X in eight takes the ladder detour, which reads both coordinates off the return bridge.
   if ((x & 7) === 3) {
-    return (m.regs.h = x), (m.regs.l = mem8[record + OBJ_Y]), loc_215f(m);
+    return (m.regs.h = x), (m.regs.l = mem8[record + OBJ_Y]), loc_215f(m, cur);
   }
 
   // Re-glue the barrel to the girder slope it just stepped along.
@@ -62,16 +63,16 @@ export function advanceRollingBarrel(m, slopeStep = m.regs.b, record = m.regs.ix
   advanceBarrelSpriteOrientation(m);
 
   // On its own last arm the gate discards this return address and carries the walk on itself.
-  if (!retireBarrelIntoOilDrum(m)) return;
+  if (!retireBarrelIntoOilDrum(m, cur)) return;
 
   // Re-read X: the gate writes that field itself, though only on the arm that never comes back.
   const xNow = mem8[record + OBJ_X];
-  if (xNow < X_LOW_EDGE) return loc_202f(m);
-  if (xNow < X_HIGH_EDGE) return publishBarrelSprite(m);
+  if (xNow < X_LOW_EDGE) return loc_202f(m, cur);
+  if (xNow < X_HIGH_EDGE) return publishBarrelSprite(m, cur);
 
   // Past the high edge: stamp the rightward step, hand to the shared motion writer.
   mem8[record + STEP_X_HI] = STEP_X_RIGHT >> 8;
   mem8[record + STEP_X_LO] = STEP_X_RIGHT;
   // the shared motion writer stores the accumulator (0) into four further record bytes.
-  return (m.regs.a = 0), loc_2038(m);
+  return (m.regs.a = 0), loc_2038(m, cur);
 }

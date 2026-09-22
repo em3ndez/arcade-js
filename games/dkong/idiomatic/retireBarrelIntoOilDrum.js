@@ -42,7 +42,7 @@ const PHASE_SECOND_ARM = 2;
 
 // One-shot mode latch, multiplexed (object-velocity mode / spawn gate), so file-local.
 
-export function retireBarrelIntoOilDrum(m, ix = m.regs.ix) {
+export function retireBarrelIntoOilDrum(m, cur, ix = m.regs.ix) {
   const { mem8 } = m;
   const record = ix;
 
@@ -61,6 +61,6 @@ export function retireBarrelIntoOilDrum(m, ix = m.regs.ix) {
 
   if (mem8[BARREL_DIFFICULTY_LATCH] === 0) mem8[BARREL_DIFFICULTY_LATCH] = 1;
 
-  publishBarrelSprite(m);
+  publishBarrelSprite(m, cur);
   return false;
 }

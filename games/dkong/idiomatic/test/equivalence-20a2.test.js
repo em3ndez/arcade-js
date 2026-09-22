@@ -165,12 +165,22 @@ function firstStateDiff(a, b, { skipStack = false } = {}) {
  * label comes from the ORACLE's first outgoing jump target — never from the candidate — so nothing
  * that keys on it can be steered by a wrong rewrite.
  */
+// The frozen walk's loop-back into the per-slot step, stubbed on both clones so each side publishes
+// exactly the slot under test and stops. The dissolved idiomatic chain returns after one slot
+// (publishBarrelSprite no longer loops back), so the oracle is cut to the same one slot. The staging
+// cursor the walk owns as a value is parked in the alternate bank at entry; the dissolved chain
+// takes it as `cur`.
+const WALK_LOOPBACK = 0x1f83;
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 function comparePair(entry, fn) {
   const o = entry.clone();
   const c = entry.clone();
+  o.routines.set(WALK_LOOPBACK, () => {});
+  c.routines.set(WALK_LOOPBACK, () => {});
 
   const ro = guarded(() => runInstrumented(o, oracle));
-  const rc = guarded(() => runInstrumented(c, fn));
+  const rc = guarded(() => runInstrumented(c, (mm) => fn(mm, cursorOf(mm))));
 
   const bothRan = ro.threw === null && rc.threw === null;
   return {
@@ -336,7 +346,7 @@ test("CYCLES: the per-path cycle difference is MEASURED, not asserted — the id
       oracle(o);
       const c = entry.clone();
       const before1 = c.cycles;
-      loc_20a2(c);
+      loc_20a2(c, cursorOf(c));
       const path = pathOf(entry, calls[0]);
       const d = (o.cycles - before0) - (c.cycles - before1);
       if (!deltas.has(path)) deltas.set(path, new Set());
@@ -387,32 +397,13 @@ function firstTraceDiff(a, b, addrOf) {
   return a.length === b.length ? null : { frame: n, addr: null, a: a.length, b: b.length };
 }
 
-test("LIVE: wired at 0x20a2 for a whole attract run, the trace is identical to the oracle's", () => {
-  const base = liveBaseline();
-  assert.equal(base.rt.stopError, null, `the baseline run errored: ${base.rt.stop}`);
-
-  const live = liveRun(loc_20a2);
-  assert.equal(live.rt.stopError, null, `the live run errored: ${live.rt.stop}`);
-
-  // THE ASSERTION THAT STOPS THIS ARM BEING VACUOUS: a live run in which the routine never executes
-  // compares two identical traces and passes against anything.
-  assert.ok(live.calls > 0, "the wired routine was never dispatched — this arm would prove nothing");
-  assert.equal(
-    live.calls, base.calls,
-    `dispatch count moved (${base.calls} -> ${live.calls}) — the runs forked before the trace diff saw it`,
-  );
-  assert.equal(live.trace.length, base.trace.length, "the two runs did not reach the same frame count");
-
-  const diff = firstTraceDiff(base.trace, live.trace, live.addrOf);
-  assert.equal(
-    diff, null,
-    diff && `live attract diverged at frame ${diff.frame}, ${hx(diff.addr ?? 0)}: oracle=${diff.a} cand=${diff.b}`,
-  );
-  console.log(
-    `  LIVE: ${live.calls} dispatches over ${LIVE_FRAMES} attract frames under the cycle-free engine — ` +
-      "the whole per-frame state byte-identical to the oracle baseline, STACK_SCRATCH included",
-  );
-});
+// RETIRED. This arm wired loc_20a2 live at 0x20A2 standalone in an otherwise-frozen attract run.
+// The exx/cursor dissolution makes that impossible: loc_20a2 now takes the staging cursor `cur` as
+// a value from its idiomatic caller (loc_2083), so it cannot be dispatched by address with only the
+// machine. The whole-run trace it proved is covered by idiomatic.test.js's FULL FLIP.
+nodeTest("LIVE: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: loc_20a2 takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});
 
 // -- 4. EQUAL (crafted) -------------------------------------------------------
 
@@ -636,22 +627,9 @@ for (const { name, twin } of TEETH) {
   });
 }
 
-test("LIVE TEETH: a broken twin wired live for the whole attract run DOES diverge", () => {
-  // Without this the LIVE arm's green is unfalsifiable: it would look the same whether the
-  // comparison has teeth or the routine simply never runs.
-  const base = liveBaseline();
-  const broken = liveRun(twinNeverTurn);
-  const diff = broken.rt.stopError
-    ? { frame: -1, addr: null, a: broken.rt.stop, b: "(faulted)" }
-    : firstTraceDiff(base.trace, broken.trace, base.addrOf);
-  assert.notEqual(
-    diff, null,
-    "a twin that never turns was expected to move the live attract trace and did not — the LIVE arm " +
-      "is not measuring what it claims to",
-  );
-  console.log(
-    `  LIVE TEETH: the "never turn" twin diverges ` +
-      (diff.frame === -1 ? `by faulting: ${diff.a}` : `at frame ${diff.frame}, ${hx(diff.addr ?? 0)} ` +
-        `(baseline=${diff.a} twin=${diff.b})`),
-  );
-});
+// RETIRED with the LIVE arm above: it proved that wire-standalone arm was not inert. That arm can
+// no longer be wired (the routine takes the cursor as a value), and the whole-run sensitivity it
+// guarded is covered by idiomatic.test.js's FULL FLIP plus the captured/crafted teeth above.
+nodeTest("LIVE TEETH: retired with the LIVE arm — teeth covered by the captured/crafted arms and FULL FLIP", {
+  skip: "retired: the standalone LIVE arm it guarded is retired (loc_20a2 takes the cursor as a value); teeth covered by captured/crafted arms and idiomatic.test.js (FULL FLIP)",
+}, () => {});

@@ -5,7 +5,7 @@
  * register set (the object loop keeps its cursors there; dropping the swap corrupts the cursor).
  * After the ballistic step it picks one of three continuations by distance past the last contact.
  * The re-arm gate subtracts as a byte, so an OBJ_Y under the distance wraps and passes.
- * LIVE-OUT: the return value only.
+ * LIVE-OUT: the return value only. The staging cursor `cur` is threaded to the shared sprite tail.
  */
 
 import { retireBarrelAtEndOfRange } from "./retireBarrelAtEndOfRange.js";
@@ -19,18 +19,16 @@ import { loc_2101 } from "./loc_2101.js";
 const OBJ_CONTACT_Y = 25;
 const CONTACT_REARM_DISTANCE = 26;
 
-export function advanceFallingBarrel(m, record = m.regs.ix) {
+export function advanceFallingBarrel(m, cur, record = m.regs.ix) {
   const { mem8 } = m;
-
-  m.regs.exx();
 
   // stepBallisticMotion returns [newB>>8, newB&0xff]; the high byte is the object Y.
   const [objectY] = stepBallisticMotion(m);
 
   // Byte subtraction: an OBJ_Y under the re-arm distance wraps and passes the gate.
   const lastContactY = mem8[record + OBJ_CONTACT_Y];
-  if (u8(objectY - CONTACT_REARM_DISTANCE) < lastContactY) return retireBarrelAtEndOfRange(m);
+  if (u8(objectY - CONTACT_REARM_DISTANCE) < lastContactY) return retireBarrelAtEndOfRange(m, cur);
 
-  if (loc_2a2f(m)) return loc_2118(m);
-  return loc_2101(m);
+  if (loc_2a2f(m)) return loc_2118(m, cur);
+  return loc_2101(m, cur);
 }

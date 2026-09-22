@@ -14,7 +14,7 @@ const AIRBORNE_FRAMES = 20; // elapsed airborne frames; scales the gravity term
 const X_FRAC = 4;
 const Y_FRAC = 6;
 
-export function loc_2153(m, stored = m.regs.a, record = m.regs.ix) {
+export function loc_2153(m, cur, stored = m.regs.a, record = m.regs.ix) {
   const { mem8 } = m;
 
   mem8[record + AIRBORNE_FRAMES] = stored;
@@ -22,5 +22,5 @@ export function loc_2153(m, stored = m.regs.a, record = m.regs.ix) {
   mem8[record + Y_FRAC] = stored;
 
   // Shared object-sprite tail, reached by a jump, so its result is this routine's result.
-  return publishBarrelSprite(m);
+  return publishBarrelSprite(m, cur);
 }

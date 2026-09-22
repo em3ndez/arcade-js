@@ -94,14 +94,25 @@ function captures() {
   return CAPTURES;
 }
 
+// The frozen walk's loop-back into the per-slot step. Stubbed on both clones so each side publishes
+// exactly the slot under test and stops, rather than driving the rest of the ten-slot walk — the
+// dissolved idiomatic chain returns after one slot (publishBarrelSprite no longer loops back), so the
+// oracle is cut to the same one slot to compare like with like.
+const WALK_LOOPBACK = 0x1f83;
+
+// The staging cursor the walk owns as a plain value: sprite page and low byte, parked in the
+// alternate bank at entry (the motion arm exchanged it out). The dissolved chain takes it as `cur`.
+const cursorOf = (m) => ({ page: m.regs.h_ * 256, cursor: m.regs.l_ });
+
 // Run the oracle and a candidate on two FRESH, byte-identical clones of one entry state, and
-// report the first RAM difference plus both return values. The whole frozen chain below 0x202F
-// runs on each side.
+// report the first RAM difference. Each side publishes one slot (the loop-back is cut).
 function runPair(entry, candidate) {
-  const a = entry.clone(); // oracle
-  const b = entry.clone(); // candidate
+  const a = entry.clone(); // oracle: frozen head + frozen tail, loop-back cut to one slot
+  const b = entry.clone(); // candidate: dissolved idiomatic chain, one slot
+  a.routines.set(WALK_LOOPBACK, () => {});
+  b.routines.set(WALK_LOOPBACK, () => {});
   const retA = oracle(a);
-  const retB = candidate(b);
+  const retB = candidate(b, cursorOf(b));
   return { ram: firstRamDiff(a, b), retA, retB, after: b };
 }
 
@@ -120,52 +131,6 @@ const describe = (mm) =>
   (mm.ram
     ? `case ${mm.i}: RAM diverges at ${hx(mm.ram.addr ?? 0)} (${mm.ram.a}->${mm.ram.b})`
     : `case ${mm.i}: return value diverges (${mm.ret[0]} vs ${mm.ret[1]})`);
-
-// The boundary where the frozen chain resumes: loc_1f8d's still-live m.call(0x1f83) back into the
-// object-walk step. loc_202f is now DISSOLVED — it direct-calls loc_2038, which direct-calls
-// publishBarrelSprite, which direct-calls loc_1f8d — so the whole fragment above 0x1f83 runs
-// cycle-free. Everything at or below 0x1f83 is still frozen and charges its own T-states.
-const WALK_STEP = 0x1f83;
-
-// A FRESH, override-free Machine carrying the source machine's observable state. Machine.clone()
-// would rerun the constructor with the live override installed and re-enter the routine through
-// its own tail chain; a fresh machine dispatches purely through the oracle registry, so pricing
-// the oracle here is hermetic.
-function rehost(m) {
-  const c = new Machine(ROM);
-  c.mem.workRam.set(m.mem.workRam);
-  c.mem.spriteRam.set(m.mem.spriteRam);
-  c.mem.videoRam.set(m.mem.videoRam);
-  c.mem.discardedWrites = m.mem.discardedWrites;
-  c.regs.copyFrom(m.regs);
-  c.io.loadStateFrom(m.io);
-  c.cycles = m.cycles;
-  c.pc = m.pc;
-  c.pcKnown = m.pcKnown;
-  c.frame = m.frame;
-  c.nmiCount = m.nmiCount;
-  c.booted = m.booted;
-  c.nextBoundary = Infinity;
-  c.nextNmi = Infinity;
-  c.maxFrames = Infinity;
-  c.maxCycles = Infinity;
-  return c;
-}
-
-// What the ORACLE spends on the fragment this rewrite replaces cycle-free: loc_202f's head, the
-// dissolved loc_2038, the sprite tail and loc_1f8d, up to — but NOT including — the frozen
-// m.call(0x1f83). Measured on a rehosted machine with that boundary stubbed to zero cost, so the
-// price is exactly the fragment and not the frozen subtree past it (which the live run charges for
-// itself when its own JS chain reaches the same frozen call). This replaces the old fixed 42-cycle
-// charge, which only covered ROM 0x202F-0x2037 and left the dissolved 0x2038/0x21BA/0x1F8D
-// fragment uncharged, forking the run on the spin counter.
-function priceDissolved(m) {
-  const probe = rehost(m);
-  probe.routines.set(WALK_STEP, () => 0);
-  const before = probe.cycles;
-  oracle(probe);
-  return probe.cycles - before;
-}
 
 // A crafted entry: a real captured machine with a synthetic stack (one plausible caller return
 // at the top of work RAM) and the three input bytes attract barely varies re-seeded.
@@ -283,55 +248,14 @@ test("TEETH: a wrong high byte, a dropped low byte and a dropped accumulator cle
   console.log(`  TEETH: ${Object.entries(caught).map(([k, v]) => `${k} caught (${v})`).join("; ")}`);
 });
 
-// -- 4. the live-out claim, measured -------------------------------------------
+// -- 4. the live-out claim -----------------------------------------------------
 
-test("LIVE-OUT (measured): the rewrite wired live keeps a whole attract run identical", () => {
-  // 1500, not a round smaller number: attract's first 0x202F dispatch is at frame 1163, so a
-  // shorter run compares two traces in which this routine never ran and proves nothing. The
-  // dispatch count below is asserted for exactly that reason.
-  const FRAMES = 1500;
-  const trace = (overrides) => {
-    const m = new Machine(ROM, overrides ? { overrides } : {});
-    const frames = m.runFrames(FRAMES);
-    return { frames, addrOf: (o) => m.stateOffsetToAddr(o) };
-  };
-
-  // loc_202f is cycle-free and, dissolved, so is the whole 0x2038/0x21BA/0x1F8D fragment below it.
-  // Cycle-free code charges nothing, which shifts the vblank interrupt and forks the run on the
-  // spin counter a few hundred frames later — nothing to do with this routine. Restore the
-  // fragment's true oracle cost, measured per dispatch and charged at the frozen walk-step
-  // boundary, then compare.
-  let dispatches = 0;
-  const wired = (mm) => {
-    dispatches += 1;
-    const owed = priceDissolved(mm);
-    if (owed) mm.step(WALK_STEP, owed);
-    return loc_202f(mm);
-  };
-
-  const base = trace(null);
-  const cand = trace(new Map([[TARGET, wired]]));
-  assert.ok(dispatches > 0, "the live run never dispatched 0x202F — this comparison would be vacuous");
-
-  let firstDiff = null;
-  for (let f = 0; f < Math.min(base.frames.length, cand.frames.length) && firstDiff === null; f++) {
-    const A = base.frames[f], B = cand.frames[f];
-    for (let i = 0; i < A.length; i++) {
-      if (A[i] === B[i]) continue;
-      const addr = base.addrOf(i);
-      if (inStack(addr)) continue;
-      firstDiff = { frame: f, addr, a: A[i], b: B[i] };
-      break;
-    }
-  }
-  assert.equal(
-    firstDiff,
-    null,
-    firstDiff && `live run diverges at frame ${firstDiff.frame}, ${hx(firstDiff.addr ?? 0)} ` +
-      `(${hb(firstDiff.a)}->${hb(firstDiff.b)})`,
-  );
-  console.log(
-    `  LIVE-OUT: ${FRAMES} live frames (${dispatches} real dispatches wired) identical to the ` +
-      "all-oracle baseline (RAM − STACK_SCRATCH)",
-  );
-});
+// RETIRED. This arm wired loc_202f live at 0x202F standalone in an otherwise-frozen attract run.
+// The exx/cursor dissolution makes that impossible: loc_202f now takes the staging cursor `cur` as
+// a value from its idiomatic caller (advanceRollingBarrel), so it cannot be dispatched by address
+// with only the machine — a registry hook receives no cursor. The whole-run trace it proved is
+// covered by idiomatic.test.js's FULL FLIP ("all idiomatic routines live, guest stack balanced
+// every frame"), which runs the dissolved chain end to end with the cursor threaded.
+nodeTest("LIVE-OUT: retired — the routine now takes the cursor as a value; FULL FLIP covers the whole run", {
+  skip: "retired: loc_202f takes the staging cursor from its idiomatic caller and cannot be wired standalone; whole-run trace covered by idiomatic.test.js (FULL FLIP)",
+}, () => {});

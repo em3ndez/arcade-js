@@ -4,11 +4,12 @@
 // sub-state if Mario went inactive. Memory-only; returns void on every arm -- a boolean would make
 // the call seam treat this as caller-skip-capable and drop a stack word it does not owe.
 
-import { MARIO_ACTIVE, SND_TRIGGER, RESUME_AFTER_OBJECT_DISPATCH } from "./names.js";
+import { MARIO_ACTIVE, SND_TRIGGER } from "./names.js";
 
 import { dispatchEffectState } from "./dispatchEffectState.js";
 import { runHitEffectInsteadOfPlay } from "./runHitEffectInsteadOfPlay.js";
 import { dispatchMarioMovement } from "./dispatchMarioMovement.js";
+import { update25mBarrels } from "./update25mBarrels.js";
 import { driveBarrelRelease } from "./driveBarrelRelease.js";
 import { scheduleBarrelRelease } from "./scheduleBarrelRelease.js";
 import { updateFires } from "./updateFires.js";
@@ -44,9 +45,8 @@ export function runGameplayFrame(m) {
 
   dispatchMarioMovement(m);
 
-  // Object-slot walk + shared sprite tail, dispatched by address (returns through its own `ret`).
-  m.push16(RESUME_AFTER_OBJECT_DISPATCH);
-  m.call(0x1f72);
+  // Object-slot walk + shared sprite tail, now fully idiomatic: a direct call, no guest-stack bracket.
+  update25mBarrels(m);
 
   driveBarrelRelease(m);
   scheduleBarrelRelease(m);
