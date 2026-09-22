@@ -12,10 +12,9 @@
  * bytes, and the reloaded, Y-shifted sprite-object block.
  */
 
-import { BARREL_CLAIM_MODE, BARREL_RELEASE_ARMED, loc_6393, OBJ_ACTIVE, OBJ_X, OBJ_Y, RENDER_STR_PTR, SPRITE_OBJ_BLOCK, SPRITE_Y, ANIM_STRING_RESTART } from "./names.js";
+import { BARREL_CLAIM_MODE, BARREL_RELEASE_ARMED, loc_6393, OBJ_ACTIVE, OBJ_X, OBJ_Y, RENDER_STR_PTR, SPRITE_OBJ_BLOCK, SPRITE_Y, ANIM_STRING_RESTART, SPRITE_BASE_FIGURE_ROM } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
-const SPRITE_TEMPLATE = 0x385c; // stored template reloaded into the sprite-object block
 const Y_COLUMN_DELTA = 0xfc; // -4, added to every record's Y field
 
 export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de) {
@@ -43,7 +42,7 @@ export function activateReleasedBarrel(m, obj = m.regs.ix, renderPtr = m.regs.de
   mem8[obj + OBJ_X] = mem8[renderPtr];
   mem8[obj + OBJ_Y] = mem8[renderPtr + SPRITE_Y];
 
-  loadSpriteObjectBlock(m, SPRITE_TEMPLATE); // copies 40 bytes from HL into SPRITE_OBJ_BLOCK
+  loadSpriteObjectBlock(m, SPRITE_BASE_FIGURE_ROM); // copies 40 bytes from HL into SPRITE_OBJ_BLOCK
 
   // adds -4 into all ten Y fields
   addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK + SPRITE_Y, Y_COLUMN_DELTA);

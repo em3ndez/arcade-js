@@ -270,8 +270,8 @@ the later levels, and 50m does not appear at all until level 3. Only level 3 is 
 order" the public sources describe. This is an inside-out correction to the public record, not a
 disagreement between sources.
 
-**The loop.** Hitting the `0x7F` terminator reloads the pointer to **0x3A73**, the head of the L5+
-group, so from level 5 on the same six-board group repeats forever. `[code]` `[seen]` (a played run
+**The loop.** Hitting the `0x7F` terminator reloads the pointer to **BOARD_SEQ_RESTART_L5_ROM**
+(0x3A73), the head of the L5+ group, so from level 5 on the same six-board group repeats forever. `[code]` `[seen]` (a played run
 reached 100m → wrap → 25m with `LEVEL` incrementing, frame-for-frame against MAME)
 
 **`LEVEL` increments exactly once per 100m clear — a structural fact, not a counter.** Two places

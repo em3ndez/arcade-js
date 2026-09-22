@@ -998,18 +998,28 @@ export const STRING_DESCRIPTOR_PTR_TABLE = 0x364b;
 export const INTRO_SETUP_LAYOUT_TABLE = 0x380d;
 /** BONUS_DISPLAY_TILE_FRAME (0x384a) — ROM source of the bonus-readout's 18-byte tile frame (6 columns x 3 cells, column stride 0x20) block-copied into video RAM starting at 0x7465 by loc_0… [seen] */
 export const BONUS_DISPLAY_TILE_FRAME = 0x384a;
+/** SPRITE_BASE_FIGURE_ROM (0x385c) — ROM ten-record "base figure" sprite-object template; stamped into SPRITE_OBJ_BLOCK then X-shifted +0x44 by the recapture/animation routines. [code] */
+export const SPRITE_BASE_FIGURE_ROM = 0x385c;
 /** SPRITE_OBJECT_BLOCK_TEMPLATE (0x388c) — ROM base of the fixed 40-byte (0x28 = ten 4-byte records) sprite-object block template reloaded into SPRITE_OBJ_BLOCK via loadSpriteObjectBlock; same … [code] */
 export const SPRITE_OBJECT_BLOCK_TEMPLATE = 0x388c;
+/** INTRO_WALK_TABLE_B_ROM (0x38cb) — ROM intro-walk table B (per-step signed-Y-delta list); setupIntroCutsceneStep seeds it into INTRO_WALK_PTR_B and loc_0b68 walks it. [code] */
+export const INTRO_WALK_TABLE_B_ROM = 0x38cb;
 /** INTRO_BEAT_LAYOUT_TABLE (0x392c) — ROM board-layout segment table passed (in DE) to drawBoardLayout by loc_0b06 at the intro cutscene's terminal beat (step 4). Distinct from the step-0 … [seen] */
 export const INTRO_BEAT_LAYOUT_TABLE = 0x392c;
 /** SPRITE_OBJ_ANIM_FRAME_TABLE (0x3932) — ROM base of a table of 40-byte sprite-object animation-frame records (ten 4-byte sprite records each). advanceBarrelRelease reads a sub-counter and co… [code] */
 export const SPRITE_OBJ_ANIM_FRAME_TABLE = 0x3932;
 /** OBJ_ANIM_STRING_BASE (0x39aa) — ROM base of the object animation-string walked via the object walk pointer. loc_2e9c rewinds the walk pointer here on the string terminator (and fires… [seen] */
 export const OBJ_ANIM_STRING_BASE = 0x39aa;
+/** SPRITE_ANIM_FIGURE_A_ROM (0x39cf) — ROM sprite animation figure A, one of the two figures the rate-limited animation sequence alternates (twin of SPRITE_ANIM_FIGURE_B_ROM). [code] */
+export const SPRITE_ANIM_FIGURE_A_ROM = 0x39cf;
+/** SPRITE_ANIM_FIGURE_B_ROM (0x39f7) — ROM sprite animation figure B, the alternate figure of SPRITE_ANIM_FIGURE_A_ROM. [code] */
+export const SPRITE_ANIM_FIGURE_B_ROM = 0x39f7;
 /** BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME (0x3a1f) — ROM base of this board-advance interlude step's ten-record (40-byte) sprite-object frame, copied over SPRITE_OBJ_BLOCK by loc_186f when SUBSTATE_TIMER… [code] */
 export const BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME = 0x3a1f;
 /** INTERLUDE_LAYOUT_SEGMENT_TABLE (0x3a5f) — ROM board-layout line-segment table for the between-boards interlude scene; loc_1880 hands it to drawBoardLayout (via regs.de) on the single frame the… [code] */
 export const INTERLUDE_LAYOUT_SEGMENT_TABLE = 0x3a5f;
+/** BOARD_SEQ_RESTART_L5_ROM (0x3a73) — ROM head of the L5+ board-order group; on the 0x7F terminator BOARD_SEQ_PTR reloads here so levels 5+ repeat forever. [code] */
+export const BOARD_SEQ_RESTART_L5_ROM = 0x3a73;
 /** FIRE_Y_OFFSET_TABLE (0x3a7a) — ROM table of per-frame Y offsets added to a fire's working Y to produce OBJ_Y in advanceFire's publish step; indexed by a record field (OBJ_Y_OFFSET_I… [seen] */
 export const FIRE_Y_OFFSET_TABLE = 0x3a7a;
 /** WALK_PATH_TABLE_342C (0x3a8c) — ROM scripted position-walk (waypoint) table for the loc_342c object walker: a fresh walk (saved pointer 0) aims here and stamps X seed 38, then the sh… [seen] */

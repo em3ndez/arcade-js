@@ -14,13 +14,17 @@ import { resetColorCycleSweep } from "./resetColorCycleSweep.js";
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { dispatchColorCascadeByBoard } from "./dispatchColorCascadeByBoard.js";
-import { SND_TRIGGER, ANIM_STEP_COUNTER, loc_6393 } from "./names.js";
+import {
+  SND_TRIGGER,
+  ANIM_STEP_COUNTER,
+  loc_6393,
+  SPRITE_ANIM_FIGURE_A_ROM,
+  SPRITE_ANIM_FIGURE_B_ROM,
+} from "./names.js";
 
 const SWEEP_TOP = 0x80;
 const BOUNDARY_MASK = 0x1f; // low 5 bits zero -> a 32-frame boundary
 const TEMPLATE_BIT = 0x20; // counter bit 5: selects which template the boundary reloads from
-const TEMPLATE_BIT5_SET = 0x39cf;
-const TEMPLATE_BIT5_CLEAR = 0x39f7;
 
 export function advanceColorCycleSweep(m) {
   const { regs, mem8 } = m;
@@ -42,7 +46,7 @@ export function advanceColorCycleSweep(m) {
     return;
   }
 
-  loadSpriteObjectBlock(m, (counter & TEMPLATE_BIT) !== 0 ? TEMPLATE_BIT5_SET : TEMPLATE_BIT5_CLEAR);
+  loadSpriteObjectBlock(m, (counter & TEMPLATE_BIT) !== 0 ? SPRITE_ANIM_FIGURE_A_ROM : SPRITE_ANIM_FIGURE_B_ROM);
   mem8[SND_TRIGGER + 2] = 3;
   dispatchColorCascadeByBoard(m);
 }

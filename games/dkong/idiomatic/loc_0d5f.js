@@ -12,9 +12,8 @@ import { initBoardState } from "./initBoardState.js";
 import { loadBoardObjectRecords } from "./loadBoardObjectRecords.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addStrided } from "./addStrided.js";
-import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER } from "./names.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SPRITE_BASE_FIGURE_ROM } from "./names.js";
 
-const OBJECT_TEMPLATE_SRC = 0x385c;
 const HEAD_COPY_BYTES = 8;
 const OBJ_BLOCK_BYTES = 0x28; // loadSpriteObjectBlock copies this many, advancing its source
 const OBJ_COLUMN_STRIDE = 4; // one sprite-object record
@@ -31,9 +30,9 @@ export function loc_0d5f(m) {
 
   // The block loader leaves its source pointer advanced past the 0x28 bytes it copied; the head
   // copy below continues the same template stream from that advanced pointer.
-  loadSpriteObjectBlock(m, OBJECT_TEMPLATE_SRC);
+  loadSpriteObjectBlock(m, SPRITE_BASE_FIGURE_ROM);
 
-  let src = u16(OBJECT_TEMPLATE_SRC + OBJ_BLOCK_BYTES);
+  let src = u16(SPRITE_BASE_FIGURE_ROM + OBJ_BLOCK_BYTES);
   let dst = SPRITE_BUFFER;
   for (let i = 0; i < HEAD_COPY_BYTES; i++) {
     mem8[dst] = mem8[src];

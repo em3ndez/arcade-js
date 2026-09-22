@@ -15,6 +15,7 @@ import {
   BOARD,
   BOARD_ADVANCE_STEP,
   BOARD_SEQ_PTR,
+  BOARD_SEQ_RESTART_L5_ROM,
   CUTSCENE_SPRITE_2_CODE,
   CUTSCENE_SPRITE_RECORD,
   GAME_SUBSTATE,
@@ -45,7 +46,6 @@ const SOUND_AT = 0xc0;
 const SCREEN_MIDPOINT = 0x80;
 
 const BOARD_TABLE_TERMINATOR = 0x7f;
-const BOARD_TABLE_REPEAT_GROUP = 0x3a73;
 
 export function runRivetBoardFinaleThenAdvanceLevel(m) {
   const { mem8 } = m;
@@ -98,7 +98,7 @@ function advanceBoardSequence(m) {
   let ptr = u16(mem16[BOARD_SEQ_PTR] + 1);
   let nextBoard = mem8[ptr];
   if (nextBoard === BOARD_TABLE_TERMINATOR) {
-    ptr = BOARD_TABLE_REPEAT_GROUP;
+    ptr = BOARD_SEQ_RESTART_L5_ROM;
     nextBoard = mem8[ptr];
   }
   mem16[BOARD_SEQ_PTR] = ptr;

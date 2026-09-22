@@ -9,9 +9,8 @@
 import { u16 } from "../../../core/int.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { enqueueTask } from "./enqueueTask.js";
-import { BOARD_SEQ_PTR, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD_ADVANCE_STEP } from "./names.js";
+import { BOARD_SEQ_PTR, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD_ADVANCE_STEP, BOARD_SEQ_RESTART_L5_ROM } from "./names.js";
 
-const SEQ_TABLE_WRAP = 0x3a73; // where the board order restarts at the table's end
 const SEQ_TERMINATOR = 0x7f;
 
 export function advanceToNextBoard(m) {
@@ -23,7 +22,7 @@ export function advanceToNextBoard(m) {
   let ptr = u16(mem16[BOARD_SEQ_PTR] + 1);
   let board = mem8[ptr];
   if (board === SEQ_TERMINATOR) {
-    ptr = SEQ_TABLE_WRAP;
+    ptr = BOARD_SEQ_RESTART_L5_ROM;
     board = mem8[ptr];
   }
   mem16[BOARD_SEQ_PTR] = ptr;

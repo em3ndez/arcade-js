@@ -13,13 +13,12 @@
  * opening tableau writes.
  */
 
-import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
+import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP, SPRITE_BASE_FIGURE_ROM } from "./names.js";
 import { spawnInterludeHeart } from "./spawnInterludeHeart.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 
 const RECORD2_X = SPRITE_OBJ_BLOCK + 0x08;
-const FIGURE_TEMPLATE = 0x385c;
 const TEMPLATE_ANCHOR_X = 0x3b;
 
 export function begin50mKongRecaptureInterlude(m) {
@@ -30,7 +29,7 @@ export function begin50mKongRecaptureInterlude(m) {
   // Read BEFORE the copy below overwrites this byte — the shift must measure the OLD X.
   const shift = (mem8[RECORD2_X] - TEMPLATE_ANCHOR_X) & 0xff;
 
-  loadSpriteObjectBlock(m, FIGURE_TEMPLATE);
+  loadSpriteObjectBlock(m, SPRITE_BASE_FIGURE_ROM);
 
   addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, shift);
 

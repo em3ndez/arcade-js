@@ -11,9 +11,8 @@
 import { spawnInterludeHeart } from "./spawnInterludeHeart.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { advanceInterludeStepAndLiftKongFigure } from "./advanceInterludeStepAndLiftKongFigure.js";
-import { SUBSTATE_TIMER } from "./names.js";
+import { SUBSTATE_TIMER, SPRITE_BASE_FIGURE_ROM } from "./names.js";
 
-const ANIM_FRAME_SRC = 0x385c;
 const POSE_HOLD_FRAMES = 0x20;
 
 export function beginKongRecaptureInterlude(m) {
@@ -21,7 +20,7 @@ export function beginKongRecaptureInterlude(m) {
 
   spawnInterludeHeart(m);
 
-  loadSpriteObjectBlock(m, ANIM_FRAME_SRC);
+  loadSpriteObjectBlock(m, SPRITE_BASE_FIGURE_ROM);
 
   mem8[SUBSTATE_TIMER] = POSE_HOLD_FRAMES;
 

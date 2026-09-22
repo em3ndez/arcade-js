@@ -6,13 +6,17 @@
  *
  * LIVE-OUT: memory-only.
  */
-import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP, ANIM_STEP_COUNTER } from "./names.js";
+import {
+  SUBSTATE_TIMER,
+  SPRITE_OBJ_BLOCK,
+  BOARD_ADVANCE_STEP,
+  ANIM_STEP_COUNTER,
+  SPRITE_BASE_FIGURE_ROM,
+  SPRITE_ANIM_FIGURE_A_ROM,
+  SPRITE_ANIM_FIGURE_B_ROM,
+} from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
-
-const FRAME_A = 0x39cf; // counter bit 3 SET
-const FRAME_B = 0x39f7; // counter bit 3 CLEAR
-const BASE_FIGURE = 0x385c; // re-stamped on the wrap
 
 const X_COLUMN_SHIFT = 0x44;
 const HOLD_FRAMES = 0x20;
@@ -31,7 +35,7 @@ export function stepSpriteAnimationSequence(m) {
 
   if (counter === 0) {
     // Wrap: stamp the base figure, re-arm the hold timer, advance to the next step.
-    stampFigure(m, BASE_FIGURE);
+    stampFigure(m, SPRITE_BASE_FIGURE_ROM);
     mem8[SUBSTATE_TIMER] = HOLD_FRAMES;
     mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);
     return;
@@ -40,5 +44,5 @@ export function stepSpriteAnimationSequence(m) {
   if ((counter & 0x07) !== 0) return;
 
   // Every eighth call: stamp one of two alternating frames (counter bit 3 selects).
-  stampFigure(m, (counter & 0x08) !== 0 ? FRAME_A : FRAME_B);
+  stampFigure(m, (counter & 0x08) !== 0 ? SPRITE_ANIM_FIGURE_A_ROM : SPRITE_ANIM_FIGURE_B_ROM);
 }

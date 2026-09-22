@@ -20,6 +20,7 @@ import {
   PALETTE_BANK_BIT1,
   SPRITE_OBJ_BLOCK,
   SUBSTATE_TIMER,
+  SPRITE_ANIM_FIGURE_A_ROM,
 } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
@@ -31,8 +32,6 @@ const SEED_PATTERN = 0x5f;
 
 
 const FILL_TILE = 0xb0;
-
-const SPRITE_TEMPLATE = 0x39cf;
 
 export function loc_07cb(m) {
   const { mem8 } = m;
@@ -81,7 +80,7 @@ export function loc_07cb(m) {
   enqueueTask(m, 0x03, 0x1e);
   enqueueTask(m, 0x03, 0x1f);
 
-  loadSpriteObjectBlock(m, SPRITE_TEMPLATE);
+  loadSpriteObjectBlock(m, SPRITE_ANIM_FIGURE_A_ROM);
   stampFixedTilePair(m);
 
   addToSpriteObjectColumn(m, SPRITE_OBJ_BLOCK, 0x44);

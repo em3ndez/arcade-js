@@ -10,9 +10,8 @@
 import { u16 } from "../../../core/int.js";
 import { addStrided } from "./addStrided.js"; // add a value into N bytes at a fixed stride
 import { drawBoardLayout } from "./drawBoardLayout.js"; // walk a board-layout segment table and draw it
-import { FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK, INTRO_WALK_PTR_B, CUTSCENE_BAND_COUNT, BAND_TABLE } from "./names.js";
+import { FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK, INTRO_WALK_PTR_B, CUTSCENE_BAND_COUNT, BAND_TABLE, INTRO_WALK_TABLE_B_ROM } from "./names.js";
 
-const SCROLL_TABLE = 0x38cb; // base of the per-step signed-Y-delta table
 const SENTINEL = 0x7f; // table byte meaning "path wrapped"
 
 const OBJ_X = SPRITE_OBJ_BLOCK; // record 0's X byte — the start of the stride-4 X column
@@ -43,7 +42,7 @@ export function loc_0b68(m) {
   }
 
   // Path wrapped: rewind the cursor and trigger the stamp sound.
-  mem16[INTRO_WALK_PTR_B] = SCROLL_TABLE;
+  mem16[INTRO_WALK_PTR_B] = INTRO_WALK_TABLE_B_ROM;
   mem8[SND_TRIGGER + 2] = 0x03; // a 3-frame sound assert
 
   const bandIdx = nibbleSwap((mem8[CUTSCENE_BAND_COUNT] - 1) & 0xff);

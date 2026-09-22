@@ -15,6 +15,7 @@ import {
   INTRO_STEP,
   INTRO_WALK_PTR_A,
   INTRO_WALK_PTR_B,
+  INTRO_WALK_TABLE_B_ROM,
   ANIM_PACE_COUNTER,
   PALETTE_BANK_BIT0,
   PALETTE_BANK_BIT1,
@@ -39,7 +40,7 @@ export function setupIntroCutsceneStep(m) {
   mem8[ANIM_PACE_COUNTER] = 0x00;
 
   mem16[INTRO_WALK_PTR_A] = 0x38b4;
-  mem16[INTRO_WALK_PTR_B] = 0x38cb;
+  mem16[INTRO_WALK_PTR_B] = INTRO_WALK_TABLE_B_ROM;
 
   mem8[SUBSTATE_TIMER] = 0x40;
   mem8[INTRO_STEP] = (mem8[INTRO_STEP] + 1);

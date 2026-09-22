@@ -7,12 +7,10 @@
  * LIVE-OUT: memory-only — the two counter clears plus whatever the callees paint or reload.
  */
 
-import { ANIM_STEP_COUNTER, COLOUR_CYCLE_ACTIVE, loc_6393 } from "./names.js";
+import { ANIM_STEP_COUNTER, COLOUR_CYCLE_ACTIVE, loc_6393, SPRITE_BASE_FIGURE_ROM } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js";
 import { dispatchColorCascadeByBoard } from "./dispatchColorCascadeByBoard.js";
-
-const OBJ_TEMPLATE = 0x385c;
 
 export function resetColorCycleSweep(m) {
   const { mem8 } = m;
@@ -25,6 +23,6 @@ export function resetColorCycleSweep(m) {
     return;
   }
 
-  loadSpriteObjectBlock(m, OBJ_TEMPLATE);
+  loadSpriteObjectBlock(m, SPRITE_BASE_FIGURE_ROM);
   dispatchColorCascadeByBoard(m);
 }
