@@ -1,47 +1,63 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2118 (ROM 0x2118).
+ * Memory-equivalence gate for loc_2118 (ROM 0x2118), in its DISSOLVED form.
  *
- * WHAT THIS ROUTINE MAKES AWKWARD, and how the harness answers it. ROM 0x2118 ends in a `jp`
- * tail on BOTH arms, into ROM 0x2146 and ROM 0x2153 — two routines that are still frozen and
- * whose chain runs the rest of the object sweep and can come back round to ROM 0x2118 itself
- * (0x2153 -> 0x21BA -> 0x1F8D -> the sweep's loop advance). Replaying the oracle from a captured
- * entry would therefore run thousands of instructions, drown this routine's eight stores in the
- * tail's writes, and — because Machine.clone() rebuilds from the source machine's assets and so
- * carries the capturing override with it — let the hook fire again underneath the replay.
+ * WHAT CHANGED, and why this file was rewritten. loc_2118 used to end in a `jp` tail on BOTH arms
+ * that reached its continuations through the SEAM — `m.call(0x2146)` / `m.call(0x2153)`. Those two
+ * continuations (0x2146, 0x2153) are now idiomatic overrides that return normally, so loc_2118
+ * DIRECT-CALLS them as plain JS (`loc_2146(m)` / `loc_2153(m)`); the raw addresses are gone. A
+ * direct call cannot be intercepted by `m.routines.set`, so the previous harness — which STUBBED
+ * both tails on a rehosted machine and compared this routine's head at the hand-off — no longer
+ * describes what runs: the rewrite would bypass the stub and run the full real chain while the
+ * oracle hit the stub, and every comparison would diverge on writes that are not a defect.
  *
- * So the harness does two things. Every entry is REHOSTED into a fresh Machine built with no
- * overrides at all, which cannot re-enter the hook; and both tails are STUBBED on that fresh
- * machine, so what is compared is exactly this routine's own head, at the hand-off. The stub is
- * installed on the machine that actually runs (never inherited through a clone) and its liveness
- * is asserted, not assumed: a replay in which the oracle did not reach the stub exactly once is
- * reported as a breach rather than passing quietly.
+ * SO THIS HARNESS RUNS BOTH SIDES TO COMPLETION. Each replay rehosts the captured entry onto a
+ * fresh, override-free Machine (which cannot re-enter the routine through its own tail chain) and
+ * runs it two ways: the FROZEN ORACLE loc_2118 on one, the idiomatic loc_2118 on the other. Both
+ * carry on through the shared continuation — loc_2146 / loc_2153 / publishBarrelSprite / loc_1f8d
+ * and, past that boundary, the still-frozen m.call(0x1f83) — until the object-walk step returns.
+ * Neither tail is stubbed. Because the two continuations are memory-equivalent idiomatic rewrites
+ * of their frozen twins, the ONLY thing that differs between the two completed runs is this
+ * routine's own head, plus the dead stack scratch the frozen side's `call`/`ret` bracket touches
+ * that the JS side does not.
+ *
+ * CONTRACT — the resulting RAM state EXCLUDING the STACK_SCRATCH window, this routine's OWN ordered
+ * store sequence (the writes it makes to its record's head fields, isolated by address so the tail
+ * chain's writes are not mixed in), the guest stack pointer at completion, and the propagated
+ * return value. STACK_SCRATCH is EXCLUDED, not asserted inert: the frozen side reaches loc_1f8d's
+ * live `m.call(0x1f83)`, whose `call`/`ret` bracket writes a return address into that window at an
+ * SP the JS side never pushes to, so the two runs legitimately differ there and nowhere else. That
+ * the exclusion is NECESSARY (some real dispatch diverges inside it) and SUFFICIENT (no real
+ * dispatch diverges outside it) is proven by its own test below, so the window is excluded on
+ * evidence rather than by habit. The final SP is compared rather than excluded: the frozen and JS
+ * chains both leave SP where they found it, so a rewrite that shifts it is visible even though its
+ * pushes land in the excluded window.
  *
  * COVERAGE — ATTRACT ONLY. A hook at 0x2118 replays INLINE at every real dispatch of a
- * 12000-frame attract run; nothing is captured for later and nothing is sampled. The count is
- * cross-checked against a separate pure-oracle counting run, so a replay loop that silently
- * stopped early cannot read as coverage. No gameplay is entered. Each real entry is also
- * replayed under 9 CRAFTED variants poked onto that same real entry (never built from scratch):
- * the exact 223/224 split boundary, which no natural dispatch lands on, and five sprite-code
- * patterns for the low-two-bit mask. The crafted variants also pre-pattern the eight written
- * fields with distinct values, so a MISSING store shows as well as a spurious one.
+ * 12000-frame attract run; the count is cross-checked against a separate pure-oracle counting run,
+ * so a replay loop that silently stopped early cannot read as coverage. No gameplay is entered.
+ * Each real entry is also replayed under crafted variants poked onto that same real entry (never
+ * built from scratch): the exact 223/224 split boundary, which no natural dispatch lands on, and
+ * five sprite-code patterns for the low-two-bit mask. The crafted variants pre-pattern the eight
+ * written fields with distinct values, so a MISSING store shows in the final RAM as well as a
+ * spurious one.
  *
- * CONTRACT — the ordered write sequence, the full 5120-byte state dump INCLUDING STACK_SCRATCH,
- * the registers at the hand-off, the guest stack pointer, and the return value. The stack is
- * compared rather than excluded because this rewrite keeps the oracle's bracket shape exactly: a
- * `jp` tail pushes no return address on either side. That exclusion would be INERT here, and the
- * gate asserts the inertness explicitly (neither side writes into STACK_SCRATCH) instead of
- * leaving it as an unexamined habit — which is also what gives the spurious-push twin its teeth.
- * EXCLUDED, with the reason: `pc` and the cycle count (the rewrite is cycle-free and sets
- * neither), the flag register on both arms, and the accumulator on the below-224 arm — those
- * three are dead into the frozen tails, measured by poisoning them at the seam over a
- * 4000-frame attract run against a control that does diverge.
+ * Checks: EQUAL over every real dispatch and every crafted variant; SIX broken twins, each pinned
+ * to the single check that can see it, with the split-boundary twin additionally shown to ESCAPE
+ * every natural entry so the crafted half is documented rather than assumed; and a whole-attract
+ * run with the routine wired live, asserting a non-zero dispatch count equal to the independent
+ * count and a byte-identical frame trace.
  *
- * Checks: EQUAL over every real dispatch and every crafted variant; SEVEN broken twins, each
- * pinned to the single check that can see it, with the split-boundary twin additionally shown to
- * ESCAPE every natural entry so the crafted half is documented rather than assumed; and a
- * whole-attract run with the routine wired live, asserting a non-zero dispatch count equal to the
- * independent count and a byte-identical frame trace.
+ * TWO TWINS FROM THE OLD HARNESS ARE RETIRED, both because the stub they depended on is gone:
+ *  - "spurious push around the tail" asserted that neither side writes STACK_SCRATCH. That
+ *    assertion is now false by construction (the frozen chain writes there), and the whole-game SP
+ *    guards — idiomatic.test.js "FULL FLIP" and barrel-jump-reset — are the backstop for a stray
+ *    push in the dissolved form.
+ *  - "tail result dropped" depended on the stub returning a distinctive sentinel; run to
+ *    completion the real chain returns `undefined` on every measured path, so a dropped return has
+ *    no observable effect and the twin cannot go red. The return-equality assertion itself is KEPT
+ *    (it would catch a rewrite that fabricated a return value); only the sentinel-dependent twin is
+ *    retired.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2118.test.js
  */
@@ -53,6 +69,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_2118 as oracle } from "../../translated/loc_2118.js";
 import { loc_2118 } from "../loc_2118.js";
+import { loc_2146 } from "../loc_2146.js";
+import { loc_2153 } from "../loc_2153.js";
 import { OBJ_SPRITE_CODE, OBJ_Y, STACK_SCRATCH } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -64,26 +82,37 @@ const test = ROM_PRESENT
 
 const ATTRACT_FRAMES = 12000;
 
-/** The two still-frozen tails ROM 0x2118 hands to, one per arm. */
-const TAIL_BELOW = 0x2146;
-const TAIL_AT_OR_ABOVE = 0x2153;
-const TAILS = [TAIL_BELOW, TAIL_AT_OR_ABOVE];
+/** The 223/224 vertical split each arm turns on, mirrored from the routine. */
+const Y_SPLIT = 224;
 
-/** A value no real tail returns, so a rewrite that forgets to propagate the tail is visible. */
-const STUB_RETURN = 0x51180000;
+/**
+ * The boundary where the frozen chain resumes on the JS side: loc_1f8d's still-live
+ * `m.call(0x1f83)` back into the object-walk step. This is where the LIVE run restores the cost of
+ * the cycle-free fragment the rewrite replaces — everything up to it is idiomatic and free, the
+ * frozen subtree past it charges its own T-states on both runs.
+ */
+const WALK_STEP = 0x1f83;
+
+/**
+ * The record-relative offsets loc_2118's HEAD writes, in the order the at-or-above arm writes
+ * them. The tail chain writes OTHER offsets (+4/+6/+0x19/+20) and the sprite buffer, never these,
+ * so filtering the write log to these addresses isolates the routine's own store sequence from the
+ * whole completed chain. The below-224 arm writes NONE of them (it tails straight into loc_2146).
+ */
+const HEAD_OFFSETS = [0x07, 0x01, 0x02, 0x10, 0x11, 0x12, 0x13, 0x0e];
 
 const hx = (v) => "0x" + (v >>> 0).toString(16);
 
-// -- rehosting, stubbing, and the per-replay instrumentation --------------------------------
+// -- rehosting and per-replay instrumentation ------------------------------------------------
 
 /**
  * The source machine's observable state on a FRESH Machine built with no overrides.
  *
  * Machine.clone() would be wrong here: it reruns the constructor with the source's assets, so it
- * carries this file's capturing hook into every replay, where this routine's own tail chain can
- * re-enter it. A fresh machine has no override map and no call-bracket seam, so a replay is
- * hermetic. Copies exactly what clone() copies, and neutralises the frame machinery the same way
- * so that running one routine cannot trip a frame sample or fire an NMI.
+ * carries any capturing hook into every replay, where this routine's own tail chain can re-enter
+ * it. A fresh machine has no override map, so a replay is hermetic. Copies exactly what clone()
+ * copies, and neutralises the frame machinery so that running one routine to completion cannot
+ * trip a frame sample or fire an NMI.
  */
 function rehost(m) {
   const c = new Machine(ROM);
@@ -106,56 +135,66 @@ function rehost(m) {
   return c;
 }
 
-const REG_KEYS = [
-  "a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "sp",
-  "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_",
-];
-const snapRegs = (r) => Object.fromEntries(REG_KEYS.map((k) => [k, r[k]]));
-
 /**
- * Stub both tails on ONE machine and record every byte written and every hand-off.
- *
- * `routines.set` is used deliberately rather than the constructor's override map: it installs the
- * stub without the call-bracket seam wrapping it, which is what a bare `jp` tail dispatch means.
- * The write hook goes on `mem.write8`, which both sides reach — the oracle calls it directly and
- * the rewrite's `mem8` view forwards to it per access.
+ * Record every byte written on ONE machine, in order. No routine is stubbed — the dissolved form
+ * runs its continuations for real. The hook goes on `mem.write8`, which both sides reach (the
+ * oracle calls it directly and the rewrite's `mem8` view forwards to it per access).
  */
 function instrument(m) {
-  const log = { writes: [], handoffs: [] };
+  const writes = [];
   const baseWrite = m.mem.write8.bind(m.mem);
   m.mem.write8 = (addr, value) => {
-    log.writes.push([addr & 0xffff, value & 0xff]);
+    writes.push([addr & 0xffff, value & 0xff]);
     return baseWrite(addr, value);
   };
-  for (const tail of TAILS) {
-    m.routines.set(tail, (mm) => {
-      log.handoffs.push({ tail, sp: mm.regs.sp, regs: snapRegs(mm.regs) });
-      return STUB_RETURN + tail;
-    });
-  }
-  return log;
+  return writes;
 }
 
-/** First differing state byte, with a flag for whether it lies in the excluded stack window. */
-function stateDiff(a, b) {
+/** First differing state byte OUTSIDE the excluded stack window; stack-only diffs are ignored. */
+function nonStackDiff(a, b) {
   const da = a.dumpState();
   const db = b.dumpState();
   for (let i = 0; i < da.length; i++) {
     if (da[i] === db[i]) continue;
     const addr = a.stateOffsetToAddr(i);
-    return { addr, inStack: addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi, a: da[i], b: db[i] };
+    if (addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi) continue;
+    return { addr, a: da[i], b: db[i] };
   }
   return null;
 }
 
-const seqOf = (writes) => writes.map(([addr, value]) => `${hx(addr)}=${value}`).join(",");
+/** Does any state byte INSIDE the excluded stack window differ? (necessity of the exclusion). */
+function stackDiffers(a, b) {
+  const da = a.dumpState();
+  const db = b.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi) return true;
+  }
+  return false;
+}
+
+/** This routine's own store sequence: the writes to its record's head fields, in order. */
+function headSeq(writes, ix) {
+  const addrs = new Set(HEAD_OFFSETS.map((o) => (ix + o) & 0xffff));
+  return writes
+    .filter(([addr]) => addrs.has(addr))
+    .map(([addr, value]) => `${hx(addr)}=${value}`)
+    .join(",");
+}
 
 /**
- * Replay ONE entry both ways on two independently rehosted, tail-stubbed machines and report the
- * first contract breach. `poke` (optional) is applied identically to both sides before either
- * runs, which is how a crafted arm is produced without leaving the real entry behind. A fault is
- * a RESULT, not a crash: a twin that walks off a table throws, and that must be reported rather
- * than killing the run.
+ * Replay ONE entry both ways on two independently rehosted machines and report the first contract
+ * breach. `poke` (optional) is applied identically to both sides before either runs, which is how
+ * a crafted arm is produced without leaving the real entry behind. A fault is a RESULT, not a
+ * crash: a twin that walks off a table throws, and that must be reported rather than killing the
+ * run.
+ *
+ * Order of checks fixes each twin's pin: RAM first (the head's memory effect and the split arm),
+ * then this routine's own store sequence (the only thing that sees a re-ORDER of equal bytes),
+ * then the guest SP (the only thing that sees a stack shift whose pushes land in the excluded
+ * window), then the propagated return.
  */
 function contractBreach(entry, candidate, poke) {
   const a = rehost(entry);
@@ -164,8 +203,9 @@ function contractBreach(entry, candidate, poke) {
     poke(a);
     poke(b);
   }
-  const la = instrument(a);
-  const lb = instrument(b);
+  const ix = a.regs.ix;
+  const wa = instrument(a);
+  const wb = instrument(b);
 
   let ra, rb;
   try {
@@ -179,54 +219,18 @@ function contractBreach(entry, candidate, poke) {
     rb = `FAULT ${e.message}`;
   }
 
-  // The stub must be observably live on the oracle side, or this replay proves nothing.
-  if (la.handoffs.length !== 1) {
-    return { kind: "harness", detail: `the oracle reached a stubbed tail ${la.handoffs.length} times, expected 1` };
-  }
-  if (lb.handoffs.length !== la.handoffs.length) {
-    return { kind: "handoff-count", detail: `oracle=${la.handoffs.length} rewrite=${lb.handoffs.length}` };
-  }
-  const ha = la.handoffs[0];
-  const hb = lb.handoffs[0];
-  if (ha.tail !== hb.tail) return { kind: "arm", detail: `oracle=${hx(ha.tail)} rewrite=${hx(hb.tail)}` };
+  const ram = nonStackDiff(a, b);
+  if (ram) return { kind: "ram", detail: `${hx(ram.addr)} oracle=${ram.a} rewrite=${ram.b}` };
 
-  if (seqOf(la.writes) !== seqOf(lb.writes)) {
-    return { kind: "write-sequence", detail: `oracle=[${seqOf(la.writes)}] rewrite=[${seqOf(lb.writes)}]` };
-  }
+  const sa = headSeq(wa, ix);
+  const sb = headSeq(wb, ix);
+  if (sa !== sb) return { kind: "write-sequence", detail: `oracle=[${sa}] rewrite=[${sb}]` };
 
-  const ram = stateDiff(a, b);
-  if (ram) {
-    return {
-      kind: ram.inStack ? "ram(STACK_SCRATCH)" : "ram",
-      addr: ram.addr,
-      detail: `${hx(ram.addr)} oracle=${ram.a} rewrite=${ram.b}`,
-    };
-  }
-
-  if (ha.sp !== hb.sp) return { kind: "sp", detail: `oracle=${hx(ha.sp)} rewrite=${hx(hb.sp)}` };
-
-  // The flag register is dead into both tails and the accumulator is dead into the below-224
-  // one — both measured by poisoning at the seam. Everything else the tails could read is
-  // compared, which is what catches a rewrite that clobbers a register it had no business
-  // touching.
-  const live = REG_KEYS.filter((k) => k !== "f" && !(k === "a" && ha.tail === TAIL_BELOW));
-  for (const k of live) {
-    if (ha.regs[k] !== hb.regs[k]) {
-      return { kind: `handoff reg ${k}`, detail: `oracle=${hx(ha.regs[k])} rewrite=${hx(hb.regs[k])}` };
-    }
-  }
+  if (a.regs.sp !== b.regs.sp) return { kind: "sp", detail: `oracle=${hx(a.regs.sp)} rewrite=${hx(b.regs.sp)}` };
 
   if (ra !== rb) return { kind: "return", detail: `oracle=${ra} rewrite=${rb}` };
 
   return null;
-}
-
-/** True when neither side of a clean replay touched the excluded stack window. */
-function wroteStack(entry) {
-  const a = rehost(entry);
-  const la = instrument(a);
-  oracle(a);
-  return la.writes.some(([addr]) => addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi);
 }
 
 // -- the crafted variants -------------------------------------------------------------------
@@ -275,7 +279,7 @@ function countDispatches() {
     overrides: {
       "2118": (mm) => {
         dispatches++;
-        const tail = mm.mem.read8((mm.regs.ix + OBJ_Y) & 0xffff) < 224 ? TAIL_BELOW : TAIL_AT_OR_ABOVE;
+        const tail = mm.mem.read8((mm.regs.ix + OBJ_Y) & 0xffff) < Y_SPLIT ? 0x2146 : 0x2153;
         arms.set(tail, (arms.get(tail) ?? 0) + 1);
         bases.set(mm.regs.ix, (bases.get(mm.regs.ix) ?? 0) + 1);
         return oracle(mm);
@@ -340,47 +344,77 @@ test("EQUAL: loc_2118 matches the oracle at every real dispatch and every crafte
   console.log(
     `  EQUAL: ${REAL.dispatches} of ${PROBE.dispatches} real dispatches in ${ATTRACT_FRAMES} attract ` +
       `frames, each replayed as 1 natural + ${CRAFTS.length - 1} crafted entries = ${REAL.replays} ` +
-      `replays; arms ${arms}; record bases ${bases}`,
+      `replays, run to completion; arms ${arms}; record bases ${bases}`,
   );
 });
 
-test("the STACK_SCRATCH exclusion would be INERT here, so the full dump is compared instead", () => {
+test("the STACK_SCRATCH exclusion is both NECESSARY and SUFFICIENT over attract", () => {
   let checked = 0;
-  let touched = 0;
+  let stackDiverged = 0;
+  let outsideDiverged = 0;
   const m = new Machine(ROM, {
     overrides: {
       "2118": (mm) => {
         checked++;
-        if (wroteStack(mm)) touched++;
+        const a = rehost(mm);
+        const b = rehost(mm);
+        oracle(a);
+        loc_2118(b);
+        if (stackDiffers(a, b)) stackDiverged++;
+        if (nonStackDiff(a, b)) outsideDiverged++;
         return oracle(mm);
       },
     },
   });
   m.runFrames(ATTRACT_FRAMES);
   assert.ok(checked > 0, "no dispatch was checked — this assertion would be vacuous");
-  assert.equal(touched, 0, `the oracle wrote into STACK_SCRATCH on ${touched} of ${checked} dispatches`);
+  assert.equal(
+    outsideDiverged,
+    0,
+    `the two runs diverged OUTSIDE STACK_SCRATCH on ${outsideDiverged} of ${checked} dispatches — ` +
+      "the exclusion would be hiding a real defect",
+  );
+  assert.ok(
+    stackDiverged > 0,
+    "the two runs NEVER diverged inside STACK_SCRATCH — the exclusion is decorative, not load-bearing, " +
+      "and the frozen chain's bracket this rewrite removes is not actually being exercised",
+  );
   console.log(
-    `  INERT: neither side writes into [${hx(STACK_SCRATCH.lo)},${hx(STACK_SCRATCH.hi)}) on any of ` +
-      `${checked} dispatches, so that window is compared rather than excluded`,
+    `  EXCLUSION: over ${checked} dispatches the frozen and JS chains diverge inside ` +
+      `[${hx(STACK_SCRATCH.lo)},${hx(STACK_SCRATCH.hi)}) on ${stackDiverged} (necessary) and NOWHERE ` +
+      `else (sufficient)`,
   );
 });
 
 // -- 2. TEETH ----------------------------------------------------------------------------------
 
+/** The dissolved at-or-above arm's real continuation, so the twins run the same chain the rewrite does. */
+function finishAtOrAbove(m) {
+  m.regs.a = 0;
+  return loc_2153(m);
+}
+
 /** Broken twin: the sprite code keeps its old low two bits instead of being forced to 01. */
 function twinNoCodeMask(m) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < 224) return m.call(TAIL_BELOW);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
   mem8[record + OBJ_SPRITE_CODE] = mem8[record + OBJ_SPRITE_CODE] | 0x01;
-  return finishAtOrAbove(m, record);
+  mem8[record + 1] = 0;
+  mem8[record + 2] = 0;
+  mem8[record + 16] = 255;
+  mem8[record + 17] = 0;
+  mem8[record + 18] = 0;
+  mem8[record + 19] = 176;
+  mem8[record + 14] = 1;
+  return finishAtOrAbove(m);
 }
 
 /** Broken twin: the low byte of the horizontal velocity is never written. */
 function twinDropVelocityLow(m) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < 224) return m.call(TAIL_BELOW);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -388,15 +422,14 @@ function twinDropVelocityLow(m) {
   mem8[record + 18] = 0;
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
-  m.regs.a = 0;
-  return m.call(TAIL_AT_OR_ABOVE);
+  return finishAtOrAbove(m);
 }
 
 /** Broken twin: the launch speed is stored before the velocity — same bytes, wrong order. */
 function twinSwappedStoreOrder(m) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < 224) return m.call(TAIL_BELOW);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -405,29 +438,14 @@ function twinSwappedStoreOrder(m) {
   mem8[record + 16] = 255;
   mem8[record + 17] = 0;
   mem8[record + 14] = 1;
-  m.regs.a = 0;
-  return m.call(TAIL_AT_OR_ABOVE);
+  return finishAtOrAbove(m);
 }
 
-/** Shared body for the twins that only differ before the stores. */
-function finishAtOrAbove(m, record) {
-  const { mem8 } = m;
-  mem8[record + 1] = 0;
-  mem8[record + 2] = 0;
-  mem8[record + 16] = 255;
-  mem8[record + 17] = 0;
-  mem8[record + 18] = 0;
-  mem8[record + 19] = 176;
-  mem8[record + 14] = 1;
-  m.regs.a = 0;
-  return m.call(TAIL_AT_OR_ABOVE);
-}
-
-/** Broken twin: the accumulator is not zeroed, so the frozen tail stores whatever it finds. */
+/** Broken twin: the accumulator is not zeroed, so the tail stores whatever it finds into +4/+6/+20. */
 function twinNoAccumulator(m) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < 224) return m.call(TAIL_BELOW);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -436,42 +454,14 @@ function twinNoAccumulator(m) {
   mem8[record + 18] = 0;
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
-  return m.call(TAIL_AT_OR_ABOVE);
+  return loc_2153(m); // a NOT zeroed
 }
 
 /** Broken twin: the split is off by one — 224 takes the below arm. */
 function twinOffByOneSplit(m) {
   const { mem8 } = m;
   const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] <= 224) return m.call(TAIL_BELOW);
-  mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
-  return finishAtOrAbove(m, record);
-}
-
-/** Broken twin: the tail runs but its result is dropped. */
-function twinNoReturn(m) {
-  loc_2118(m);
-}
-
-/**
- * Broken twin: the guest stack pointer is moved without a store, as a mis-modelled `dec sp` pair
- * would move it. Invisible to RAM, to the write sequence and to the return value; only the stack
- * pointer at the hand-off can see it, which is what makes that comparison load-bearing rather
- * than decorative.
- */
-function twinSilentStackShift(m) {
-  m.regs.sp = (m.regs.sp - 2) & 0xffff;
-  return loc_2118(m);
-}
-
-/** Broken twin: a return address is pushed around the tail, which a `jp` never does. */
-function twinSpuriousPush(m) {
-  const { mem8 } = m;
-  const record = m.regs.ix;
-  if (mem8[record + OBJ_Y] < 224) {
-    m.push16(0x2146);
-    return m.call(TAIL_BELOW);
-  }
+  if (mem8[record + OBJ_Y] <= Y_SPLIT) return loc_2146(m);
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
   mem8[record + 2] = 0;
@@ -480,22 +470,27 @@ function twinSpuriousPush(m) {
   mem8[record + 18] = 0;
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
-  m.regs.a = 0;
-  m.push16(0x2153);
-  return m.call(TAIL_AT_OR_ABOVE);
+  return finishAtOrAbove(m);
+}
+
+/**
+ * Broken twin: the guest stack pointer is moved without a store, as a mis-modelled `dec sp` pair
+ * would move it. Invisible to RAM (its pushes land in the excluded stack window) and to the store
+ * sequence and the return; only the stack pointer at completion can see it, which is what makes
+ * that comparison load-bearing rather than decorative.
+ */
+function twinSilentStackShift(m) {
+  m.regs.sp = (m.regs.sp - 2) & 0xffff;
+  return loc_2118(m);
 }
 
 const TEETH = [
-  { name: "sprite code not masked to 01", twin: twinNoCodeMask, kind: "write-sequence" },
-  { name: "dropped velocity low byte", twin: twinDropVelocityLow, kind: "write-sequence" },
+  { name: "sprite code not masked to 01", twin: twinNoCodeMask, kind: "ram" },
+  { name: "dropped velocity low byte", twin: twinDropVelocityLow, kind: "ram" },
   { name: "stores in the wrong order", twin: twinSwappedStoreOrder, kind: "write-sequence" },
-  { name: "accumulator not zeroed into the tail", twin: twinNoAccumulator, kind: "handoff reg a" },
-  { name: "split off by one at 224", twin: twinOffByOneSplit, kind: "arm" },
-  { name: "tail result dropped", twin: twinNoReturn, kind: "return" },
+  { name: "accumulator not zeroed into the tail", twin: twinNoAccumulator, kind: "ram" },
+  { name: "split off by one at 224", twin: twinOffByOneSplit, kind: "ram" },
   { name: "silent stack-pointer shift", twin: twinSilentStackShift, kind: "sp" },
-  // The spurious push is caught by the write sequence BEFORE the stack pointer is reached — a
-  // push is a store, and the write hook sees it first. Pinned to what actually catches it.
-  { name: "spurious push around the tail", twin: twinSpuriousPush, kind: "write-sequence" },
 ];
 
 for (const { name, twin, kind } of TEETH) {
@@ -547,58 +542,49 @@ test("TEETH: the off-by-one split ESCAPES every natural entry and is caught only
 // -- 3. LIVE ------------------------------------------------------------------------------------
 
 /**
- * What the ORACLE spends on its own head, per dispatch, with both tails stubbed so the price is
- * the fragment this routine replaces and not the whole sweep behind it. Measured on a rehosted
- * machine, which is override-free and so cannot re-enter the routine being priced.
+ * What the ORACLE spends on the fragment this rewrite replaces cycle-free, per dispatch: its head
+ * plus the whole idiomatic continuation up to — but not including — loc_1f8d's `m.call(0x1f83)`
+ * back into the walk. Measured on a rehosted, override-free machine with that boundary stubbed to
+ * zero cost, so the price is exactly the fragment and not the frozen subtree past it (which the
+ * live run charges for itself when the JS chain reaches the same live call).
  */
-function priceHead(m) {
+function priceDissolved(m) {
   const probe = rehost(m);
-  for (const tail of TAILS) probe.routines.set(tail, () => 0);
+  probe.routines.set(WALK_STEP, () => 0);
   const before = probe.cycles;
   oracle(probe);
   return probe.cycles - before;
 }
 
 /**
- * The unit checks compare one hand-off at a time, so they cannot see anything a caller reads back
- * after the whole chain returns. This wires the rewrite LIVE at 0x2118 for a whole attract run and
- * diffs the frame trace against the pure-oracle baseline.
+ * The unit checks compare one completed run at a time, so they cannot see anything a caller reads
+ * back after the whole chain returns. This wires the rewrite LIVE at 0x2118 for a whole attract
+ * run and diffs the frame trace against the pure-oracle baseline.
  *
- * The baseline is a plain oracle machine, which is the right control precisely because this
- * rewrite direct-calls nothing: both tails are still frozen, so the ONLY difference between the
- * two runs is this routine's head.
+ * The baseline is a plain oracle machine, which is the right control precisely because the ONLY
+ * routine wired live is 0x2118: its dissolved continuation direct-calls the idiomatic
+ * loc_2146/loc_2153/publishBarrelSprite/loc_1f8d (each already a memory-equivalent override), and
+ * past loc_1f8d the frozen 0x1f83 subtree runs identically on both.
  *
- * The head is cycle-free, so its cost is restored — measured per dispatch and charged AT THE
- * HAND-OFF, where the oracle finished charging it, with the program counter set to the tail. The
- * charge is only the head: the frozen tail still runs through the registry and charges its own
- * subtree, so adding the oracle's total would double-count it. The charging shim goes on
- * `routines` directly, not through the override map, so the call-bracket seam is not involved.
+ * That whole fragment is cycle-free, so its T-state cost is restored at the dispatch — measured by
+ * priceDissolved and charged with the program counter set to the walk-step boundary, the point the
+ * oracle would next execute. The frozen subtree past the boundary still charges its own T-states on
+ * the live run, so adding the oracle's total would double-count it.
  */
 test("LIVE: wired live at 0x2118 for a whole attract run, the rewrite leaves the same trace", () => {
   const baseline = new Machine(ROM).runFrames(ATTRACT_FRAMES);
 
   let dispatches = 0;
-  let owed = 0;
   const host = new Machine(ROM, {
     overrides: {
       "2118": (m) => {
         dispatches++;
-        owed = priceHead(m);
+        const owed = priceDissolved(m);
+        if (owed) m.step(WALK_STEP, owed);
         return loc_2118(m);
       },
     },
   });
-  for (const tail of TAILS) {
-    const frozen = host.routines.get(tail);
-    host.routines.set(tail, (m) => {
-      if (owed) {
-        const cost = owed;
-        owed = 0;
-        m.step(tail, cost);
-      }
-      return frozen(m);
-    });
-  }
   const live = host.runFrames(ATTRACT_FRAMES);
 
   assert.ok(dispatches > 0, "the live run never dispatched 0x2118 — it would compare two runs of the oracle");
@@ -618,6 +604,6 @@ test("LIVE: wired live at 0x2118 for a whole attract run, the rewrite leaves the
   }
   console.log(
     `  LIVE: ${ATTRACT_FRAMES} attract frames byte-identical with 0x2118 wired live over ` +
-      `${dispatches} dispatches (head cost restored per dispatch at the hand-off)`,
+      `${dispatches} dispatches (fragment cost restored per dispatch at the walk-step boundary)`,
   );
 });

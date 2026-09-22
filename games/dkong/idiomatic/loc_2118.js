@@ -9,6 +9,8 @@
  * tail, which stores it into the record's +20, +4 and +6.
  */
 
+import { loc_2146 } from "./loc_2146.js";
+import { loc_2153 } from "./loc_2153.js";
 import { OBJ_SPRITE_CODE, OBJ_Y } from "./names.js";
 
 const Y_SPLIT = 224;
@@ -16,7 +18,7 @@ const Y_SPLIT = 224;
 export function loc_2118(m, record = m.regs.ix) {
   const { mem8 } = m;
 
-  if (mem8[record + OBJ_Y] < Y_SPLIT) return m.call(0x2146);
+  if (mem8[record + OBJ_Y] < Y_SPLIT) return loc_2146(m);
 
   mem8[record + OBJ_SPRITE_CODE] = (mem8[record + OBJ_SPRITE_CODE] & 0xfc) | 0x01;
   mem8[record + 1] = 0;
@@ -27,5 +29,5 @@ export function loc_2118(m, record = m.regs.ix) {
   mem8[record + 19] = 176;
   mem8[record + 14] = 1;
 
-  return (m.regs.a = 0, m.call(0x2153));
+  return (m.regs.a = 0, loc_2153(m));
 }
