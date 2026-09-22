@@ -4,9 +4,8 @@
  * its timer reroll that heading when it expires, and publish the working position into the drawn
  * position.
  *
- * The fire's record arrives through OBJ_ITER_PTR (the walk stores it there before entering), and
- * callees read it back from the machine's record register, so it is deliberately RE-READ at three
- * points because a callee may have moved it on.
+ * The fire's record arrives through OBJ_ITER_PTR (the walk stores it there before entering); it is
+ * read once and threaded into every callee as an explicit argument.
  *
  * Three things happen, in order:
  *   1. ROUTING. A record with OBJ_INSERT_REQUESTED == 1 belongs to the insert walker and nothing
@@ -70,10 +69,10 @@ const isHighState = (state) => (u8(state - 4) & 0x80) === 0;
  * @returns {void}
  */
 export function advanceFire(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
-  const loadRecord = () => { regs.ix = mem16[OBJ_ITER_PTR]; };
-  const field = (off) => u16(regs.ix + off);
+  const rec = mem16[OBJ_ITER_PTR];
+  const field = (off) => u16(rec + off);
 
   // Step 3: publish the working position into the drawn position, and step the table index.
   function publishPosition() {
@@ -88,7 +87,6 @@ export function advanceFire(m) {
   // The step was refused: undo the pixel just taken, reverse the heading, then let the girder-slope
   // tail re-snap the working Y under the new X.
   function reverseTravel() {
-    loadRecord();
     if (mem8[field(OBJ_STATE)] === TRAVEL_X_UP) {
       mem8[field(OBJ_WORKING_X)] = mem8[field(OBJ_WORKING_X)] - 1;
       mem8[field(OBJ_STATE)] = TRAVEL_X_DOWN;
@@ -96,26 +94,25 @@ export function advanceFire(m) {
       mem8[field(OBJ_WORKING_X)] = mem8[field(OBJ_WORKING_X)] + 1;
       mem8[field(OBJ_STATE)] = TRAVEL_X_UP;
     }
-    settleFireOnGirderSlope(m);
+    settleFireOnGirderSlope(m, rec);
     publishPosition();
   }
 
   // Step 2: the movement update — every routing path that has not already returned ends here.
   function stepMovement() {
     if (isHighState(mem8[field(OBJ_STATE)])) {
-      loc_33e7(m);
+      loc_33e7(m, rec);
       publishPosition();
       return;
     }
 
-    walkFireOneStep(m);
+    walkFireOneStep(m, rec);
     if (turnFireAtGroundEdge(m)) {
       reverseTravel();
       return;
     }
 
     // Accepted. Only the two X edges can re-arm the heading from here.
-    loadRecord();
     const workingX = mem8[field(OBJ_WORKING_X)];
     if (workingX < X_LOW_EDGE) mem8[field(OBJ_STATE)] = TRAVEL_X_UP;
     else if (workingX >= X_HIGH_EDGE) mem8[field(OBJ_STATE)] = TRAVEL_X_DOWN;
@@ -123,19 +120,18 @@ export function advanceFire(m) {
   }
 
   // Step 1: routing.
-  loadRecord();
 
   // A record still waiting to be inserted is the walker's business only.
   if (mem8[field(OBJ_INSERT_REQUESTED)] === 1) {
-    loc_32bd(m);
+    loc_32bd(m, rec);
     return;
   }
 
   if (!isHighState(mem8[field(OBJ_STATE)])) {
     if (mem8[field(OBJ_TIMER_KIND)] === 2) {
-      loc_32d6(m);
+      loc_32d6(m, rec);
     } else {
-      tickFireTimerAndRerollDirection(m);
+      tickFireTimerAndRerollDirection(m, rec);
       // Only a pass with the low two bits of RANDOM clear may reach the state machine.
       if ((mem8[RANDOM] & 0x03) !== 0) {
         stepMovement();
@@ -153,7 +149,7 @@ export function advanceFire(m) {
   // The heading/collision state machine: two of its callees used to unwind PAST this point; the
   // idiomatic form absorbs that as plain JS early returns, so its finished and bailed cases both
   // arrive here (no signal, guest stack net-zero) and fall into the movement step.
-  driveFireLadderClimb(m);
+  driveFireLadderClimb(m, rec);
 
   stepMovement();
 }

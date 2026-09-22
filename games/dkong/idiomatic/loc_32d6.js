@@ -23,7 +23,7 @@ export function loc_32d6(m, record = m.regs.ix) {
   const clearExitAndTick = () => {
     mem8[at(EXIT_FIELD_19)] = 0;
     mem8[at(DWELL_COUNTER)] = 0;
-    tickFireTimerAndRerollDirection(m);
+    tickFireTimerAndRerollDirection(m, record);
   };
 
   const counter = mem8[at(DWELL_COUNTER)];
@@ -39,7 +39,7 @@ export function loc_32d6(m, record = m.regs.ix) {
   }
 
   if (mem8[at(ARM_FLAG)] !== 1) {
-    tickFireTimerAndRerollDirection(m);
+    tickFireTimerAndRerollDirection(m, record);
     return;
   }
 

@@ -11,7 +11,7 @@
  * The table holds seven entries; the offset is masked to five bits, so opcodes 7..15 index PAST it
  * into following bytes and 16+ alias back. A target outside the table faults rather than jumping.
  * LIVE-OUT: memory — the two released ring bytes and the advanced TASK_HEAD — plus whatever the
- * dispatched handler leaves (a tail call). The handler takes its argument from the accumulator.
+ * dispatched handler leaves (a tail call). The payload is threaded to the handler as an argument.
  */
 
 import { u8, page } from "../../../core/int.js";
@@ -31,7 +31,7 @@ const RING_BASE = u8(TASK_RING); // the dequeue pointer is a low byte within its
 
 // The sole caller hands slot and opcode over in registers; the live engine dispatches with m alone.
 export function loc_02e3(m, slot = m.regs.hl, doubledOpcode = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Release the slot as consumed, taking the payload before its byte frees. The dequeue pointer
   // walks WITHIN one page, so only its low byte advances.
@@ -44,18 +44,16 @@ export function loc_02e3(m, slot = m.regs.hl, doubledOpcode = m.regs.a) {
   const next = u8(payloadCell + 1);
   mem8[TASK_HEAD] = next < RING_BASE ? RING_BASE : next;
 
-  regs.a = payload; // the handler's argument
-
   // The doubled opcode selects the n-th task handler (opcode n -> the n-th of seven). Offsets past
-  // the seven entries (or aliased by the 5-bit mask) fault.
+  // the seven entries (or aliased by the 5-bit mask) fault. The payload is the handler's argument.
   switch (doubledOpcode & OFFSET_MASK) {
-    case 0: return addToScoreTask(m);
-    case 2: return resetScoreCounter(m);
-    case 4: return drawScoreTask(m);
-    case 6: return drawStringVertical(m);
+    case 0: return addToScoreTask(m, payload);
+    case 2: return resetScoreCounter(m, payload);
+    case 4: return drawScoreTask(m, payload);
+    case 6: return drawStringVertical(m, payload);
     case 8: return drawCreditLineInAttract(m);
-    case 10: return loc_062a(m); // one bonus-readout step; returns to the task loop
-    case 12: return drawLivesAndLevel(m);
+    case 10: return loc_062a(m, payload); // one bonus-readout step; returns to the task loop
+    case 12: return drawLivesAndLevel(m, payload);
     default:
       throw new NotImplemented(
         `task handler offset ${doubledOpcode & OFFSET_MASK} has no entry (payload 0x${payload.toString(16)})`,

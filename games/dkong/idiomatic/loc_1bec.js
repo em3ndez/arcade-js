@@ -11,8 +11,8 @@
 import { stepBallisticMotion } from "./stepBallisticMotion.js";
 import { loc_1c05 } from "./loc_1c05.js";
 
-export function loc_1bec(m) {
-  stepBallisticMotion(m);
+export function loc_1bec(m, ix = m.regs.ix) {
+  stepBallisticMotion(m, ix);
 
   return loc_1c05(m);
 }

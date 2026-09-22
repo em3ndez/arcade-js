@@ -26,5 +26,5 @@ export function resetScoreCounter(m, payload = m.regs.a) {
   mem8[base + 1] = 0;
   mem8[base + 2] = 0;
 
-  drawScoreTask(m);
+  drawScoreTask(m, payload);
 }

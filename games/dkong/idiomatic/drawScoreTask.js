@@ -26,5 +26,6 @@ export function drawScoreTask(m, a = m.regs.a) {
     return;
   }
 
-  return (m.regs.de = (payload === 0 ? P1_SCORE : P2_SCORE) + 2, loc_056b(m));
+  const src = (payload === 0 ? P1_SCORE : P2_SCORE) + 2;
+  return (m.regs.de = src, loc_056b(m, payload, src));
 }

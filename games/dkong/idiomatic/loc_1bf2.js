@@ -20,7 +20,7 @@ const FACING_BIT = 0x80;
 const DRIFT_LEFT_HI = 0xff;
 const DRIFT_LEFT_LO = 0x80;
 
-export function loc_1bf2(m, _ctx, leftVerdict = m.regs.e) {
+export function loc_1bf2(m, _ctx, leftVerdict = m.regs.e, record = m.regs.ix) {
   const { mem8 } = m;
 
   if (leftVerdict !== 1) {
@@ -31,5 +31,5 @@ export function loc_1bf2(m, _ctx, leftVerdict = m.regs.e) {
   mem8[MARIO_AIR_VX_LO] = DRIFT_LEFT_LO;
   mem8[MARIO_SPRITE_CODE] = mem8[MARIO_SPRITE_CODE] & ~FACING_BIT;
 
-  return reverseMarioVerticalArc(m);
+  return reverseMarioVerticalArc(m, record);
 }

@@ -2,7 +2,7 @@
 /**
  * loc_056b — thin front end to the shared packed-BCD column renderer: pick one of two destination
  * video columns from a zero/nonzero selector, then render the 3-byte counter at the caller's source
- * pointer up that column, one tilemap row per digit. Selector and source both arrive in registers.
+ * pointer up that column, one tilemap row per digit. The chosen column is threaded into the renderer.
  *
  * LIVE-OUT: memory-only — the six digit cells the renderer writes into video RAM.
  */
@@ -14,9 +14,7 @@ import {
 
 
 export function loc_056b(m, selector = m.regs.a, src = m.regs.de) {
-  const { regs } = m;
+  const dest = selector === 0 ? P1_SCORE_COLUMN_BASE : SCORE_VRAM_COLUMN_P2;
 
-  regs.ix = selector === 0 ? P1_SCORE_COLUMN_BASE : SCORE_VRAM_COLUMN_P2;
-
-  renderBcdColumn(m, src);
+  renderBcdColumn(m, src, dest);
 }

@@ -18,15 +18,15 @@ import {
 import { loc_2407 } from "./loc_2407.js";
 import { loc_1bec } from "./loc_1bec.js";
 
-export function reverseMarioVerticalArc(m) {
+export function reverseMarioVerticalArc(m, record = m.regs.ix) {
   const { mem8 } = m;
 
   if (mem8[MARIO_FATAL_FALL] !== 1) {
-    const rebasedVelocity = loc_2407(m);
+    const rebasedVelocity = loc_2407(m, record);
     mem8[MARIO_AIR_VY_HI] = rebasedVelocity >> 8;
     mem8[MARIO_AIR_VY_LO] = rebasedVelocity;
     mem8[MARIO_AIR_FRAMES] = 0;
   }
 
-  return loc_1bec(m);
+  return loc_1bec(m, record);
 }

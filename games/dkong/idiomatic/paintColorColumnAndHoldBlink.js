@@ -14,10 +14,10 @@ import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js";
 
 const SPRITE1_CODE = SPRITE_BUFFER + 5;
 
-export function paintColorColumnAndHoldBlink(m) {
+export function paintColorColumnAndHoldBlink(m, fillCode = m.regs.a) {
   const { mem8 } = m;
 
-  fillDescendingColumn(m, BLINK_COLOR_COLUMN_TOP);
+  fillDescendingColumn(m, BLINK_COLOR_COLUMN_TOP, fillCode);
 
   storeBlinkSpriteCode(m, mem8[SPRITE1_CODE]);
 }

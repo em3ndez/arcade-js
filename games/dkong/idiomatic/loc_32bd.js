@@ -12,16 +12,16 @@ import { loc_342c } from "./loc_342c.js";
 import { loc_3478 } from "./loc_3478.js";
 import { loc_34b9 } from "./loc_34b9.js";
 
-export function loc_32bd(m) {
+export function loc_32bd(m, ix = m.regs.ix) {
   const board = m.mem8[BOARD];
 
   if (board === 0x01) {
-    loc_342c(m);
+    loc_342c(m, ix);
     return;
   }
   if (board === 0x02) {
-    loc_3478(m);
+    loc_3478(m, ix);
     return;
   }
-  loc_34b9(m);
+  loc_34b9(m, ix);
 }

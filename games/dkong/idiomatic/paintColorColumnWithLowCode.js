@@ -9,7 +9,5 @@
 import { paintColorColumnAndHoldBlink } from "./paintColorColumnAndHoldBlink.js";
 
 export function paintColorColumnWithLowCode(m) {
-  // Preset the LOW colour-attribute code, then fall into the column paint.
-  m.regs.a = 0x10;
-  paintColorColumnAndHoldBlink(m);
+  paintColorColumnAndHoldBlink(m, 0x10);
 }

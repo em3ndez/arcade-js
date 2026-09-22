@@ -42,5 +42,5 @@ export function walkFireOneStep(m, ix = m.regs.ix) {
 
   stepObjectSpriteFrame(m, objBase);
 
-  settleFireOnGirderSlope(m);
+  settleFireOnGirderSlope(m, objBase);
 }

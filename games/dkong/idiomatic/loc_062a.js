@@ -27,7 +27,7 @@ const BLOCK_CELLS_PER_COLUMN = 3;
 const BLOCK_COLUMN_STRIDE = 0x20;
 
 export function loc_062a(m, taskPayload = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (taskPayload === 0) {
     awardRemainingBonusToScore(m);
@@ -36,8 +36,7 @@ export function loc_062a(m, taskPayload = m.regs.a) {
 
   const display = mem8[BONUS_DISPLAY];
   if (display !== 0) {
-    regs.a = display;
-    stepBonusDisplayDown(m);
+    stepBonusDisplayDown(m, display);
     return;
   }
 

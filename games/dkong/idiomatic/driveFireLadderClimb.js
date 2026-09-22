@@ -31,8 +31,7 @@ const TABLE_ENTRIES = 21;
 
 /**
  * @param {object} m  the machine.
- * @param {number} recordBase  the fire record to run; must equal the machine's record pointer,
- *   which the guard re-reads to test the same record.
+ * @param {number} recordBase  the fire record to run; threaded on into the height guard.
  */
 export function driveFireLadderClimb(m, recordBase = m.regs.ix) {
   const { mem8 } = m;
@@ -50,7 +49,7 @@ export function driveFireLadderClimb(m, recordBase = m.regs.ix) {
   }
 
   // On foot: a fire that has risen above the guard's height line abandons this routine.
-  if (!loc_33a1(m)) return;
+  if (!loc_33a1(m, recordBase)) return;
 
   // live-in: key = X, disc = biased Y base, count = table entries.
   const yBiased = u8(mem8[at(RECORD_Y_BASE)] + Y_BASE_BIAS);

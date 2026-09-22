@@ -47,7 +47,7 @@ function rotl8(v) {
 }
 
 export function runBonusItemValueDisplay(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   drawCreditDisplay(m);
 
@@ -158,8 +158,7 @@ export function runBonusItemValueDisplay(m) {
   }
   const iy = mem16[BONUS_ITEM_SLOT_PTR];
   const dest = mem8[u16(iy + 4)] | (mem8[u16(iy + 5)] << 8);
-  regs.ix = dest;
-  renderBcdColumn(m, source);
+  renderBcdColumn(m, source, dest);
   mem8[BONUS_ITEM_ANIM_TIMER] = 0x10;
 }
 
