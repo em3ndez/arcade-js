@@ -19,13 +19,9 @@ const PARAM_TABLE_COLUMN = 21;
 const DISCRIMINATOR_OFFSET = 5;
 
 export function loc_215f(m, cur, searchKey = m.regs.h, rowField = m.regs.l) {
-  const { regs } = m;
-
-  // The grader and its own lookup take their inputs in registers, so stage them there.
-  regs.d = rowField + DISCRIMINATOR_OFFSET;
-  regs.a = searchKey;
-  regs.bc = PARAM_TABLE_COLUMN;
-  startBarrelDescentAtLadder(m);
+  // Hand the grader its position and scan count as values; the register-shaped seam lives inside it.
+  const disc = rowField + DISCRIMINATOR_OFFSET;
+  startBarrelDescentAtLadder(m, disc, searchKey, PARAM_TABLE_COLUMN);
 
   return publishBarrelSprite(m, cur);
 }

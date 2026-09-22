@@ -29,9 +29,10 @@ const STRING_TERMINATOR = 0x7f;    // end of the height string: rewind and bounc
 export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
   const { mem8 } = m;
 
+  // The tail routines address the object and paired-sprite records through the register file, so
+  // each arm seats both cursors on its return bridge before handing off.
   if ((mem8[record + OBJ_ACTIVE] & 0x01) === 0) {
-    spawnObjectIntoInactiveSlot(m);
-    return;
+    return (m.regs.ix = record, m.regs.iy = spriteRecord, void spawnObjectIntoInactiveSlot(m));
   }
 
   // Cosmetic flicker every 16th frame; falls through to the dispatch below.
@@ -40,8 +41,7 @@ export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
   }
 
   if (mem8[record + OBJ_STATE] === RETIRE_STATE) {
-    loc_2e84(m);
-    return;
+    return (m.regs.ix = record, m.regs.iy = spriteRecord, void loc_2e84(m));
   }
 
   mem8[record + OBJ_X] = mem8[record + OBJ_X] + CROSS_STEP;
@@ -51,12 +51,13 @@ export function advanceSpring(m, record = m.regs.ix, spriteRecord = m.regs.iy) {
   const delta = mem8[ptr];
 
   if (delta === STRING_TERMINATOR) {
-    // Re-seat: the terminator tail reads the last string byte off the return bridge.
-    return (m.regs.c = delta), void loc_2e9c(m);
+    // Re-seat: the terminator tail reads the last string byte and both cursors off the return bridge.
+    return (m.regs.ix = record, m.regs.iy = spriteRecord, m.regs.c = delta, void loc_2e9c(m));
   }
 
   // Step past the byte, accumulate it into OBJ_Y (add, not store), then converge at the tail.
   const next = u16(ptr + 1);
   mem8[record + OBJ_Y] = delta + mem8[record + OBJ_Y];
-  advanceSpringArcAndDropAtTravelEnd(m, record, next & 0xff, next >> 8, delta);
+  return (m.regs.ix = record, m.regs.iy = spriteRecord,
+          void advanceSpringArcAndDropAtTravelEnd(m, record, next & 0xff, next >> 8, delta));
 }

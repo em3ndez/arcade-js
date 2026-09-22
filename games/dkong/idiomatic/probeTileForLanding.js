@@ -5,8 +5,8 @@
  * resolveAirborneTileLanding.
  *
  * Returns `{ skip, a, b, c, e }`: skip is the caller-skip (false = the two-frame unwind once Mario
- * has landed), a/b the result code and twin, c the column boundary, e the pixel x. A/B and DE also
- * stay on the register file for the downstream ABI.
+ * has landed), a/b the result code and twin, c the column boundary, e the pixel x. A/B still ride
+ * the register file for the downstream ABI; the pixel x is threaded via `e` only.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -32,7 +32,6 @@ export function probeTileForLanding(m, hl = m.regs.hl, ix = m.regs.ix) {
   const y = (pixel >> 8) & 0xff;
   const x = pixel & 0xff;
   const addr = tileAddrForPixel(y, x); // local cell address, not a live-out
-  regs.de = pixel; // DE = pixel is a downstream live-out
 
   let tile = mem8[addr];
 

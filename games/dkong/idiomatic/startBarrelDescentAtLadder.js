@@ -22,11 +22,11 @@ import {
 
 // Multiplexed engine-scratch gate: clear = start immediately; set = run the grading below.
 
-export function startBarrelDescentAtLadder(m, disc = m.regs.d, ix = m.regs.ix, key = m.regs.a) {
+export function startBarrelDescentAtLadder(m, disc = m.regs.d, key = m.regs.a, count = m.regs.bc, ix = m.regs.ix) {
   const { mem8 } = m;
   const rec = (off) => u16(ix + off); // a field of the object record the caller pointed at
 
-  const end = findOppositeLadderEnd(m);
+  const end = findOppositeLadderEnd(m, key, disc, count);
   if (!end.hit) return;
 
   // Lookup tags a hit 1 (near slot) or 0 (far slot); only tag-1 is processed.
