@@ -15,5 +15,5 @@ export function findHammerOverlappingMario(m) {
   // against the hammer pair, and surface its outcome as [touching, matched].
   let r;
   // prettier-ignore
-  return (m.regs.iy = MARIO_ACTIVE, m.regs.c = m.mem8[MARIO_Y], m.regs.hl = 0x0408, m.regs.b = 0x02, m.regs.de = 16, m.regs.ix = OBJ_PAIR_6680, r = findCollidingObject(m), [r.a, r.b]);
+  return (m.regs.iy = MARIO_ACTIVE, m.regs.c = m.mem8[MARIO_Y], m.regs.hl = (0x04 << 8) | 0x08, m.regs.b = 0x02, m.regs.de = 16, m.regs.ix = OBJ_PAIR_6680, r = findCollidingObject(m), [r.a, r.b]);
 }

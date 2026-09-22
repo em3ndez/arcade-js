@@ -39,7 +39,7 @@ const CONTEXT_BYTES = 0x08;
 const CONTEXT_TEMPLATE_BYTES = 0x07;
 
 // Both arms post opcode 0x01 with the player index as argument.
-const START_TASK_P1 = 0x0100; // opcode 0x01, argument 0x00
+const START_TASK_P1 = (0x01 << 8) | 0x00; // opcode 0x01, argument 0x00
 
 function seedPlayerContext(m, base) {
   const { mem8 } = m;

@@ -25,5 +25,5 @@ export function writeDigitPairWithCarry(m, e = m.regs.e, d = m.regs.d, hl = m.re
   }
 
   // hand-off to the second pass (frozen caller reads de/hl back)
-  return [m.regs.de = 0x0201, m.regs.hl = TITLE_FIXED_DIGIT_PAIR_LEFT_CELL];
+  return [m.regs.de = (0x02 << 8) | 0x01, m.regs.hl = TITLE_FIXED_DIGIT_PAIR_LEFT_CELL];
 }

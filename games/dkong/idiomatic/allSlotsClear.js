@@ -17,19 +17,15 @@ export function allSlotsClear(mem, base, stride) {
 }
 
 /**
- * allSlotsClearFromRegisters — the seam entry the override resolvers dispatch as fn(m). Base and
- * stride arrive in HL/DE; the verdict is the caller-skip boolean (true = all clear, caller
- * continues; false = a slot is occupied, caller aborts). Writes no memory.
- * The all-clear arm replays the walk's final register/flag state; the occupied arm drops residuals.
+ * allSlotsClearFromRegisters — the fn(m) seam entry (base/stride in HL/DE); returns the caller-skip
+ * boolean. DEAD-WIRED: the live board-advance arm bypasses it (calls the pure allSlotsClear direct),
+ * so it is never dispatched and its exit flags are never observed. The all-clear arm keeps A/HL/B as
+ * the isolated-seam data contract; F is dropped as dead. Writes no memory.
  */
 export function allSlotsClearFromRegisters(m, base = m.regs.hl, stride = m.regs.de) {
-  const { regs, mem } = m;
+  const { mem } = m;
 
   if (!allSlotsClear(mem, base, stride)) return false; // caller-skip; residuals dropped
 
-  regs.a = 0x00; // tenth cell, zero on this arm
-  regs.and(regs.a); // zero test: Z set, S clear, PV even, carry cleared
-  regs.hl = u16(base + 9 * stride);
-  regs.addHl(stride); // tenth advance — rewrites half-carry/subtract/carry, keeps the above
-  return (m.regs.b = 0x00), true;
+  return (m.regs.a = 0x00, m.regs.hl = u16(base + 10 * stride), m.regs.b = 0x00, true);
 }
