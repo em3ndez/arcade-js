@@ -29,9 +29,7 @@ export function dispatch50mObjectState(m) {
   const state = mem8[recordBase];
   switch (state) {
     case 0:
-      // Parked arm takes its record base off the stack.
-      m.push16(recordBase);
-      return hold50mObjectParked(m);
+      return hold50mObjectParked(m, recordBase);
     case 1:
       return slide50mObjectDown(m, recordBase);
     case 2:
