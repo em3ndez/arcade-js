@@ -9,7 +9,7 @@
 
 // The seam entry marshals the register file to the pure (y, x) leaf — not a bare (y, x) call.
 import { u16 } from "../../../core/int.js";
-import { tileAddrForPixelFromRegisters } from "./tileAddrForPixel.js";
+import { tileAddrForPixel, tileAddrForPixelFromRegisters } from "./tileAddrForPixel.js";
 import { loc_0dd3 } from "./loc_0dd3.js";
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js";
 
@@ -28,19 +28,17 @@ export function drawBoardLayout(m, sp = m.regs.sp, de = m.regs.de) {
     mem8[SEG_KIND] = kind;
     if (kind === 0xaa) return;
 
-    // First point: y then x. The address-conversion leaf reads them from H and L, so hand them
-    // over there; the local pointer keeps walking the table independently.
+    // First point: y then x. Hand them to the converter as arguments; the local pointer keeps
+    // walking the table independently.
     de = u16(de + 1);
     const y = mem8[de];
-    regs.h = y;
     de = u16(de + 1);
     const x = mem8[de];
-    regs.l = x;
 
-    // Convert the first point to a tile address. The callee clobbers the register file (including
-    // DE) but not our local pointer, so no save/restore is needed around it.
-    tileAddrForPixelFromRegisters(m);
-    mem16[SEG_ADDR1] = regs.hl;
+    // First point -> tile address. The converter clobbers the register file but not our local
+    // pointer; SEG_ADDR1 takes the pure leaf's value (== the HL the converter leaves).
+    tileAddrForPixelFromRegisters(m, y, x);
+    mem16[SEG_ADDR1] = tileAddrForPixel(y, x);
 
     // Sub-tile remainders: the conversion dropped the low three bits of each coordinate.
     mem8[SEG_SUBTILE_Y1] = y & 0x07;
