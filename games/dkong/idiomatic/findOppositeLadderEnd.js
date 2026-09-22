@@ -7,6 +7,8 @@
  * interface stays register-shaped.
  *
  * LIVE-OUT: on a hit, the four register results, discriminator passing through; on a miss, false.
+ * The register writes stay load-bearing (a frozen translated caller reads a/b/c/e off them); the
+ * return now ALSO carries those outputs as an object so idiomatic callers consume them directly.
  */
 
 import { u16 } from "../../../core/int.js";
@@ -17,7 +19,9 @@ const FAR_SLOT = 0x2a;
 
 /**
  * @param {object} m  the machine. Live-in registers: search key, entry count, discriminator.
- * @returns {boolean} true on a hit (results in registers); false on a miss.
+ * @returns {{hit: boolean, a?: number, b?: number, c?: number, e?: number}} `{hit: true}` plus the
+ *   four register results (a/b/c/e, mirroring the register writes) on a hit; `{hit: false}` on a
+ *   miss. The regs.a/b/c/e writes are kept for the frozen-seam ABI.
  */
 export function findOppositeLadderEnd(m, key = m.regs.a, disc = m.regs.d, count = m.regs.bc) {
   const { mem8 } = m;
@@ -34,17 +38,20 @@ export function findOppositeLadderEnd(m, key = m.regs.a, disc = m.regs.d, count 
       if (hit) { found = true; break; }
     } while (count !== 0);
 
-    if (!found) return false;
+    if (!found) return { hit: false };
 
     const match = u16(addr - 1);
     const nearAddr = u16(match + NEAR_SLOT);
     const farAddr = u16(match + FAR_SLOT);
 
     if (disc === mem8[nearAddr]) {
-      return (m.regs.a = 1, m.regs.b = mem8[farAddr], m.regs.c = count & 0xff, m.regs.e = key, true);
+      const b = mem8[farAddr], c = count & 0xff;
+      // Writes ride the return (frozen-seam ABI) so they stay the exempt outgoing form.
+      return (m.regs.a = 1, m.regs.b = b, m.regs.c = c, m.regs.e = key, { hit: true, a: 1, b, c, e: key });
     }
     if (disc === mem8[farAddr]) {
-      return (m.regs.a = 0, m.regs.b = mem8[nearAddr], m.regs.c = count & 0xff, m.regs.e = key, true);
+      const b = mem8[nearAddr], c = count & 0xff;
+      return (m.regs.a = 0, m.regs.b = b, m.regs.c = c, m.regs.e = key, { hit: true, a: 0, b, c, e: key });
     }
     // Neither slot matched — resume scanning past this entry.
   }

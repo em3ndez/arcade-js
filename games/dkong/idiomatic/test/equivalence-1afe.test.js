@@ -224,7 +224,7 @@ function twinBody(m, { spriteOr, swapLimits }) {
   const yLimit = (mem.read8(MARIO_Y) + 8) & 0xff;
   const searchKey = (mem.read8(MARIO_X) | 0x03) & 0xfb;
   regs.a = searchKey; regs.d = yLimit; regs.bc = 21;
-  if (!findOppositeLadderEnd(m)) return;
+  if (!findOppositeLadderEnd(m).hit) return;
   const tag = regs.a, slotByte = regs.b, residualCount = regs.c;
   mem.write8(MARIO_SPRITE_CODE, (mem.read8(MARIO_SPRITE_CODE) & 0x80) | spriteOr);
   const nearEndOfScan = residualCount <= 4 ? 1 : 0;

@@ -30,7 +30,7 @@ const FACING_BIT = 0x80;
 const NEAR_END_OF_SCAN = 4;
 
 export function armMarioClimbAtLadderEnd(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Hammer gate: proceed only when the hammer state is not exactly 1.
   if (mem8[MARIO_HAMMER_ACTIVE] === 1) return;
@@ -40,13 +40,14 @@ export function armMarioClimbAtLadderEnd(m) {
   const searchKey = (mem8[MARIO_X] | 0x03) & 0xfb;
 
   // miss: the callee unwound to the caller's caller
-  if (!findOppositeLadderEnd(m, searchKey, yLimit, TABLE_SCAN_COUNT)) return;
+  const end = findOppositeLadderEnd(m, searchKey, yLimit, TABLE_SCAN_COUNT);
+  if (!end.hit) return;
 
-  // findOppositeLadderEnd stays register-shaped (dispatched via m.call from the frozen translated
-  // layer); read back its four register results here.
-  const tag = regs.a;
-  const slotByte = regs.b;
-  const residualCount = regs.c;
+  // findOppositeLadderEnd also writes its four results to registers for the frozen translated
+  // seam; consume them here off the returned object.
+  const tag = end.a;
+  const slotByte = end.b;
+  const residualCount = end.c;
 
   // Stamp the ladder-STANDING pose, keeping the facing bit.
   mem8[MARIO_SPRITE_CODE] = (mem8[MARIO_SPRITE_CODE] & FACING_BIT) | LADDER_STANDING_POSE;

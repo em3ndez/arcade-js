@@ -164,7 +164,7 @@ function lookupArm(entry) {
   probe.regs.d = probe.regs.l + DISCRIMINATOR_OFFSET;
   probe.regs.a = probe.regs.h;
   probe.regs.bc = PARAM_TABLE_COLUMN;
-  if (!findOppositeLadderEnd(probe)) return "miss";
+  if (!findOppositeLadderEnd(probe).hit) return "miss";
   return probe.regs.a === 1 ? "tag1" : "tag0";
 }
 

@@ -514,7 +514,7 @@ function lookup(m, at) {
   regs.d = u8(mem8[at(RECORD_Y_BASE)] + Y_BASE_BIAS);
   regs.a = mem8[at(RECORD_X)];
   regs.bc = TABLE_ENTRIES;
-  return findOppositeLadderEnd(m);
+  return findOppositeLadderEnd(m).hit;
 }
 
 /** (a) the twin-merge trap: the descent gets the ascent's arrival mark. */
@@ -565,7 +565,7 @@ function brokenNoLookupBias(m) {
   regs.d = mem8[at(RECORD_Y_BASE)]; // BUG: no bias
   regs.a = mem8[at(RECORD_X)];
   regs.bc = TABLE_ENTRIES;
-  if (!findOppositeLadderEnd(m)) return;
+  if (!findOppositeLadderEnd(m).hit) return;
   mem8[at(RECORD_DESTINATION)] = regs.b;
   if (regs.a === 0) { mem8[at(OBJ_STATE)] = STATE_ASCEND; return; }
   if (mem8[at(RECORD_Y_BASE)] >= mem8[MARIO_Y]) return;

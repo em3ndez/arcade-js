@@ -110,7 +110,8 @@ function contractDiffs(entry, candidate) {
   const a = entry.clone(); a.nextNmi = Infinity; a.nextBoundary = Infinity;
   const b = entry.clone(); b.nextNmi = Infinity; b.nextBoundary = Infinity;
   const ro = oracle(a);
-  const rc = candidate(b);
+  // The oracle returns a bare boolean; the candidate returns { hit, ... } — compare on .hit.
+  const rc = candidate(b).hit;
   const diffs = [];
   const ram = firstRamDiff(a, b);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
@@ -244,14 +245,14 @@ function brokenWrongSlot(m) {
       count = (count - 1) & 0xffff;
       if (hit) { found = true; break; }
     } while (count !== 0);
-    if (!found) return false;
+    if (!found) return { hit: false };
     const match = (addr - 1) & 0xffff;
     const nearAddr = (match + NEAR) & 0xffff, farAddr = (match + FAR) & 0xffff;
     if (disc === mem.read8(nearAddr)) {
-      regs.a = 1; regs.b = mem.read8(nearAddr); regs.c = count & 0xff; regs.e = key; return true; // BUG: near, not far
+      regs.a = 1; regs.b = mem.read8(nearAddr); regs.c = count & 0xff; regs.e = key; return { hit: true }; // BUG: near, not far
     }
     if (disc === mem.read8(farAddr)) {
-      regs.a = 0; regs.b = mem.read8(farAddr); regs.c = count & 0xff; regs.e = key; return true;  // BUG: far, not near
+      regs.a = 0; regs.b = mem.read8(farAddr); regs.c = count & 0xff; regs.e = key; return { hit: true };  // BUG: far, not near
     }
   }
 }
@@ -269,11 +270,11 @@ function brokenMissAsHit(m) {
       count = (count - 1) & 0xffff;
       if (hit) { found = true; break; }
     } while (count !== 0);
-    if (!found) return true; // BUG: should be false
+    if (!found) return { hit: true }; // BUG: should be false
     const match = (addr - 1) & 0xffff;
     const nearAddr = (match + NEAR) & 0xffff, farAddr = (match + FAR) & 0xffff;
-    if (disc === mem.read8(nearAddr)) { regs.a = 1; regs.b = mem.read8(farAddr); regs.c = count & 0xff; regs.e = key; return true; }
-    if (disc === mem.read8(farAddr)) { regs.a = 0; regs.b = mem.read8(nearAddr); regs.c = count & 0xff; regs.e = key; return true; }
+    if (disc === mem.read8(nearAddr)) { regs.a = 1; regs.b = mem.read8(farAddr); regs.c = count & 0xff; regs.e = key; return { hit: true }; }
+    if (disc === mem.read8(farAddr)) { regs.a = 0; regs.b = mem.read8(nearAddr); regs.c = count & 0xff; regs.e = key; return { hit: true }; }
   }
 }
 
@@ -289,12 +290,12 @@ function brokenNoRescan(m) {
     count = (count - 1) & 0xffff;
     if (hit) { found = true; break; }
   } while (count !== 0);
-  if (!found) return false;
+  if (!found) return { hit: false };
   const match = (addr - 1) & 0xffff;
   const nearAddr = (match + NEAR) & 0xffff, farAddr = (match + FAR) & 0xffff;
-  if (disc === mem.read8(nearAddr)) { regs.a = 1; regs.b = mem.read8(farAddr); regs.c = count & 0xff; regs.e = key; return true; }
-  if (disc === mem.read8(farAddr)) { regs.a = 0; regs.b = mem.read8(nearAddr); regs.c = count & 0xff; regs.e = key; return true; }
-  return false; // BUG: should rescan
+  if (disc === mem.read8(nearAddr)) { regs.a = 1; regs.b = mem.read8(farAddr); regs.c = count & 0xff; regs.e = key; return { hit: true }; }
+  if (disc === mem.read8(farAddr)) { regs.a = 0; regs.b = mem.read8(nearAddr); regs.c = count & 0xff; regs.e = key; return { hit: true }; }
+  return { hit: false }; // BUG: should rescan
 }
 
 test("TEETH: wrong-slot, miss-as-hit, and no-rescan twins are all CAUGHT", () => {

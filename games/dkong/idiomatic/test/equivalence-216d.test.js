@@ -276,7 +276,7 @@ test("EQUAL (crafted): every miss/reject/advance arm matches the oracle", () => 
 function brokenWrongStamp(m) {
   const { regs, mem } = m;
   const r = (off) => (regs.ix + off) & 0xffff;
-  if (!findOppositeLadderEnd(m)) return;
+  if (!findOppositeLadderEnd(m).hit) return;
   if (regs.a !== 1) return;
   mem.write8(r(0x17), u8(regs.b - 4)); // BUG: -4
   if (mem.read8(SPAWN_MODE_GATE) === 0) { // clear-gate advance path (matches the test case)
@@ -289,7 +289,7 @@ function brokenWrongStamp(m) {
 function brokenSkipGates(m) {
   const { regs, mem } = m;
   const r = (off) => (regs.ix + off) & 0xffff;
-  if (!findOppositeLadderEnd(m)) return;
+  if (!findOppositeLadderEnd(m).hit) return;
   if (regs.a !== 1) return;
   mem.write8(r(0x17), u8(regs.b - 5)); // correct stamp
   // BUG: no vertical / throttle / input grading — always advance.

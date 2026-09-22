@@ -35,7 +35,7 @@ const TABLE_ENTRIES = 21;
  *   which the guard re-reads to test the same record.
  */
 export function driveFireLadderClimb(m, recordBase = m.regs.ix) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const at = (offset) => u16(recordBase + offset);
 
   const state = mem8[at(OBJ_STATE)];
@@ -54,10 +54,11 @@ export function driveFireLadderClimb(m, recordBase = m.regs.ix) {
 
   // live-in: key = X, disc = biased Y base, count = table entries.
   const yBiased = u8(mem8[at(RECORD_Y_BASE)] + Y_BASE_BIAS);
-  if (!findOppositeLadderEnd(m, mem8[at(RECORD_X)], yBiased, TABLE_ENTRIES)) return;
+  const end = findOppositeLadderEnd(m, mem8[at(RECORD_X)], yBiased, TABLE_ENTRIES);
+  if (!end.hit) return;
 
-  const standingOnFarSlot = regs.a === 0; // end tag returned in A
-  mem8[at(RECORD_DESTINATION)] = regs.b; // opposite height returned in B
+  const standingOnFarSlot = end.a === 0; // end tag returned in A
+  mem8[at(RECORD_DESTINATION)] = end.b; // opposite height returned in B
 
   if (standingOnFarSlot) {
     mem8[at(OBJ_STATE)] = STATE_ASCEND;
