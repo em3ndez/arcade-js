@@ -22,13 +22,14 @@ export function tileAddrForPixel(y, x) {
  * to its own caller. The page-add flag byte is dead at every caller and is not reproduced.
  */
 export function tileAddrForPixelFromRegisters(m, y = m.regs.h, x = m.regs.l) {
-  const { regs } = m;
-
   const rowBase = tileAddrForPixel(y, 0); // the pure function at column zero
   const col = (x >> 3) & 0x1f;
 
-  regs.e = rowBase & 0xff;
-  regs.a = (rowBase >> 8) & 0xff;
-  regs.d = regs.a;
-  regs.hl = u16(col + rowBase); // DE = rowBase, so col + rowBase is the addHl result
+  const eVal = rowBase & 0xff;
+  const aVal = (rowBase >> 8) & 0xff;
+  const dVal = aVal;
+  const hlVal = u16(col + rowBase); // DE = rowBase, so col + rowBase is the addHl result
+
+  // outgoing seam ABI: set the frozen dispatch's registers AND return the address
+  return (m.regs.a = aVal, m.regs.d = dVal, m.regs.e = eVal, m.regs.hl = hlVal);
 }
