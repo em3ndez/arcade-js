@@ -20,12 +20,12 @@ function reject(m) {
 }
 
 /** HIT tail: resolve the airborne descent with explicit args, and carry its A/B off the return. */
-function airborneHit(m, boundary, x) {
-  const res = resolveAirborneTileLanding(m, boundary, m.regs.ix, x);
+function airborneHit(m, boundary, x, ix) {
+  const res = resolveAirborneTileLanding(m, boundary, ix, x);
   return { skip: res.skip, a: res.a, b: res.b, c: boundary, e: x };
 }
 
-export function probeTileForLanding(m, hl = m.regs.hl) {
+export function probeTileForLanding(m, hl = m.regs.hl, ix = m.regs.ix) {
   const { regs, mem8 } = m;
 
   const pixel = hl;
@@ -42,7 +42,7 @@ export function probeTileForLanding(m, hl = m.regs.hl) {
   if (tile === 0xc0) return reject(m);         // the excluded tile
 
   // HIT (silent): x's 8-pixel column, minus one.
-  if (tile < 0xc0) return airborneHit(m, u8((x & 0xf8) - 1), x);
+  if (tile < 0xc0) return airborneHit(m, u8((x & 0xf8) - 1), x, ix);
 
   // Above 0xC0: column offset from the tile band.
   let col;
@@ -53,6 +53,6 @@ export function probeTileForLanding(m, hl = m.regs.hl) {
 
   const boundary = u8((x & 0xf8) + col);
   // HIT only if left of x; otherwise the C boundary still rides out to the reject.
-  if (boundary < x) return airborneHit(m, boundary, x);
+  if (boundary < x) return airborneHit(m, boundary, x, ix);
   return (regs.c = boundary, reject(m));
 }

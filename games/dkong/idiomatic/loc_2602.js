@@ -16,7 +16,7 @@ import { loc_26a6 } from "./loc_26a6.js";
 import { signStepHalfRate } from "./signStepHalfRate.js";
 
 export function loc_2602(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Even frames only: tick the turnaround countdown.
   if ((mem8[FRAME] & 0x01) === 0) {
@@ -29,9 +29,7 @@ export function loc_2602(m) {
   }
 
   // Every frame: republish the direction through the odd-frame sign helper as this object's step.
-  regs.hl = M50_OBJ1_STEP_DIR;
-  signStepHalfRate(m);
-  mem8[M50_OBJ1_STEP] = regs.a;
+  mem8[M50_OBJ1_STEP] = signStepHalfRate(m, M50_OBJ1_STEP_DIR);
 
   // Every 32nd frame: advance the mirrored sprite-animation counter pair.
   if ((mem8[FRAME] & 0x1f) !== 0x01) return;

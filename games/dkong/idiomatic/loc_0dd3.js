@@ -13,7 +13,7 @@
 
 // The seam entry marshals the register file to the pure (y, x) leaf.
 import { u16 } from "../../../core/int.js";
-import { tileAddrForPixelFromRegisters } from "./tileAddrForPixel.js";
+import { tileAddrForPixel, tileAddrForPixelFromRegisters } from "./tileAddrForPixel.js";
 import { drawGirderSpan } from "./drawGirderSpan.js";
 import { drawLadder } from "./drawLadder.js";
 
@@ -37,13 +37,15 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de) {
   // Second point's x: run = difference of the two x values, sub-tile = its low 3 bits.
   de = u16(de + 1);
   const x2 = mem8[de];
-  m.regs.l = x2; // L is the seam entry's x input
   mem8[SEG_RUN] = (x2 - c);
   mem8[SEG_SUBTILE2] = x2 & 0x07;
 
-  // Convert the second point to a tile address (the record pointer is safe in the `de` local).
-  tileAddrForPixelFromRegisters(m);
-  mem16[SEG_ADDR2] = m.regs.hl; // the seam entry returns the address in HL
+  // Convert the second point to a tile address (the record pointer is safe in the `de` local). The
+  // y arrives in H (the caller kept it there for the frozen leaf); hand (y, x) to the converter as
+  // arguments, and take SEG_ADDR2 from the pure leaf — it equals the HL the converter leaves.
+  const y = m.regs.h;
+  tileAddrForPixelFromRegisters(m, y, x2);
+  mem16[SEG_ADDR2] = tileAddrForPixel(y, x2);
 
   // Hand the record cursor to the drawers, which read regs.de and step it to the next record.
   m.regs.de = de;
@@ -72,6 +74,6 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de) {
     mem8[SEG_RUN] = 0x00;
   }
 
-  m.regs.hl = hl; // drawLadder reads HL (and L = its low byte) as its write cursor
-  drawLadder(m);
+  // drawLadder reads HL (and L = its low byte) as its write cursor — handed in as an argument.
+  drawLadder(m, hl);
 }
