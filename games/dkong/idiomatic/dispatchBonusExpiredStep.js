@@ -38,7 +38,7 @@ export function dispatchBonusExpiredStep(m) {
     default:
       throw new NotImplemented(
         `dispatchBonusExpiredStep: BONUS_EXPIRED_STEP=0x${(step & 0xff).toString(16)} ` +
-          "out of the 0..3 range (rst-0x28 table past idx3 is dw 0x0000 -> wild jp 0x0000); " +
+          "out of the 0..3 range (rst-0x28 table past idx3 is a null dw -> wild jp to address 0); " +
           "non-executing frontier.",
       );
   }

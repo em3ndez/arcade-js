@@ -18,7 +18,7 @@ export function drawScoreTask(m, a = m.regs.a) {
   const payload = a;
 
   if (payload === 3) {
-    throw new NotImplemented("drawScoreTask payload 3 path at ROM 0x05E0 (un-lifted arm)");
+    throw new NotImplemented("drawScoreTask payload 3: the un-lifted clear-and-redraw arm (ROM branch not lifted)");
   }
 
   if (payload === 2) {

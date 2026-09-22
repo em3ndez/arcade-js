@@ -50,7 +50,7 @@ export function perFrame(m, sp = m.regs.sp) {
   const handler = NMI_GAME_STATE[state];
   if (handler === undefined) {
     throw new NotImplemented(
-      `GAME_STATE ${state} is out of range for the 4-entry NMI dispatch table at ROM 0x00CA`,
+      `GAME_STATE ${state} is out of range for the 4-entry NMI dispatch table (NMI_GAME_STATE)`,
     );
   }
   handler(m);
