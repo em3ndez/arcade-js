@@ -23,12 +23,12 @@ export function search50mObjectOverlap(m) {
   // Sweep 1 — five-record array, 32-byte stride. The count is the search's record budget.
   mem8[OBJ_SEARCH_COUNT] = 0x05;
   // prettier-ignore
-  if (!findCollidingObject(m, OBJ_ARRAY_64, undefined, tolLow, undefined, tolHigh, 32, 0x05)) return (regs.hl = bounds, regs.de = 32, regs.ix = OBJ_ARRAY_64, true);
+  if (findCollidingObject(m, OBJ_ARRAY_64, undefined, tolLow, undefined, tolHigh, 32, 0x05).hit) return (regs.hl = bounds, regs.de = 32, regs.ix = OBJ_ARRAY_64, true);
 
   // Sweep 2 — this board's mover array, 16-byte stride, 6 records.
   mem8[OBJ_SEARCH_COUNT] = 0x06;
   // prettier-ignore
-  if (!findCollidingObject(m, OBJ_ARRAY_65A0, undefined, tolLow, undefined, tolHigh, 16, 0x06)) return (regs.hl = bounds, regs.de = 16, regs.ix = OBJ_ARRAY_65A0, true);
+  if (findCollidingObject(m, OBJ_ARRAY_65A0, undefined, tolLow, undefined, tolHigh, 16, 0x06).hit) return (regs.hl = bounds, regs.de = 16, regs.ix = OBJ_ARRAY_65A0, true);
 
   // Sweep 3 — single record, stride zero.
   mem8[OBJ_SEARCH_COUNT] = 0x01;

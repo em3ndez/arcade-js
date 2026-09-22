@@ -20,13 +20,12 @@ const PICKUP_SOUND_FRAMES = 64;
 const PAIR_STRIDE = 0x10;
 
 export function latchHammerTouch(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (!boardBitGate(m, HAMMER_BOARDS)) return;
 
-  findHammerOverlappingMario(m);
-  const touching = regs.a; // 1 = overlapping a hammer, 0 = neither
-  const matched = regs.b;  // 2 = first record, 1 = second, 0 = no overlap
+  // touching: 1 = overlapping a hammer, 0 = neither. matched: 2 = first record, 1 = second, 0 = none.
+  const [touching, matched] = findHammerOverlappingMario(m);
 
   // Both writes are unconditional, so a miss clears whatever a touch set.
   mem8[MARIO_HAMMER_PENDING] = touching;

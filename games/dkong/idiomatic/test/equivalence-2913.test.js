@@ -105,8 +105,8 @@ function runOracle(entry) {
  */
 function runCandidate(entry, fn) {
   const c = entry.clone();
-  const exhausted = fn(c);
-  if (!exhausted) c.regs.sp = (c.regs.sp + 2) & 0xffff; // caller-skip: drop the immediate return
+  const { hit } = fn(c);
+  if (hit) c.regs.sp = (c.regs.sp + 2) & 0xffff; // caller-skip: drop the immediate return
   c.ret();
   return c;
 }
@@ -369,20 +369,20 @@ function brokenDropInc(m) {
       }
       hit = true;
     }
-    if (hit) { regs.a = 0x01; return false; }
+    if (hit) { regs.a = 0x01; return { hit: true, a: 0x01, b: regs.b }; }
     rec = (rec + regs.de) & 0xffff;
     regs.djnz();
     if (regs.b === 0) break;
   }
   regs.xor(regs.a);
-  return true;
+  return { hit: false, a: regs.a, b: regs.b };
 }
 
 /** Broken twin (b): correct decision, but corrupts the live-out B on the hit path. */
 function brokenHitB(m) {
-  const exhausted = findCollidingObject(m);
-  if (!exhausted) m.regs.b = (m.regs.b - 1) & 0xff; // BUG: index recovery reads count - B
-  return exhausted;
+  const r = findCollidingObject(m);
+  if (r.hit) m.regs.b = (m.regs.b - 1) & 0xff; // BUG: index recovery reads count - B
+  return r;
 }
 
 test("TEETH: the dropped-`+1` twin and the corrupted-B twin are CAUGHT by the same suite", () => {

@@ -3,13 +3,11 @@
  * findCollidingObject — scan an object list for the first record whose bounding box overlaps a
  * reference point on both axes; stop and report a hit, or report the list exhausted. A leaf
  * collision primitive: inactive records (flag +0 bit0 clear) are skipped, and each axis passes
- * inside the caller's base tolerance window or the record's own extra span. It writes no memory;
- * the returned boolean is inverted (see below).
- *
- * LIVE-OUT: A (1 on a hit, 0 exhausted), B (count-minus-index residue the hit-handler reads), the
- * flag byte, and the boolean; no memory. Axis 1's arithmetic leaves no live flag (axis 2 or the exit
- * `xor a` always overwrites it), so it is plain JS; axis 2's surviving-flag exit — the hit — is kept
- * on the real Z80 subtractions so the outgoing flag byte stays bit-exact.
+ * inside the caller's base tolerance window or the record's own extra span. It writes no memory.
+ * Returns `{ hit, a, b }` (a/b mirror the regs.a/regs.b writes). LIVE-OUT: A (1 hit / 0 exhausted),
+ * B (count-minus-index residue the hit-handler reads), the flag byte; no memory. Axis 2's hit exit
+ * keeps the real Z80 subtractions so the outgoing flag byte stays bit-exact (axis 1 leaves no live
+ * flag, so it is plain JS).
  */
 
 import { u16 } from "../../../core/int.js";
@@ -49,8 +47,8 @@ export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.
       hit = true;
     }
 
-    // FALSE = a hit was found (caller-skip); B carries the count-minus-index residue the handler reads.
-    if (hit) return (m.regs.b = remaining, m.regs.a = 0x01, false);
+    // hit: true = a hit was found (caller-skip); B carries the count-minus-index residue the handler reads.
+    if (hit) return (m.regs.b = remaining, m.regs.a = 0x01, { hit: true, a: 0x01, b: remaining });
 
     rec = u16(rec + de);
     remaining = (remaining - 1) & 0xff; // one record consumed; drains into B on exit
@@ -58,5 +56,5 @@ export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.
   }
 
   regs.xor(regs.a);
-  return (m.regs.b = 0, true); // TRUE = list exhausted, no hit; B drained to 0
+  return (m.regs.b = 0, { hit: false, a: 0, b: 0 }); // list exhausted, no hit; A and B drained to 0
 }
