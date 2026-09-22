@@ -129,15 +129,15 @@ function runCandidate(entry, fn) {
   return { m: c, ret };
 }
 
-/** Full contract diff: RAM − STACK_SCRATCH, pc, SP, and the forwarded return value. */
+/** Contract diff: RAM − STACK_SCRATCH and the forwarded return value (pc/SP excluded — seam artifacts). */
 function contractDiffs(entry, fn) {
   const o = runOracle(entry);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o.m, c.m);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.m.pc !== c.m.pc) diffs.push(`pc oracle=${hx(o.m.pc)} cand=${hx(c.m.pc)}`);
-  if (o.m.regs.sp !== c.m.regs.sp) diffs.push(`SP oracle=${hx(o.m.regs.sp)} cand=${hx(c.m.regs.sp)}`);
+  // pc/SP dropped: the airborne tail's m.call(0x1C05) was dissolved to a direct loc_1c05 call, so
+  // pc and SP are now seam artifacts, never game live-outs; the whole-game SP-inertness tests guard SP.
   if (o.ret !== c.ret) diffs.push(`return oracle=${o.ret} cand=${c.ret}`);
   return diffs;
 }

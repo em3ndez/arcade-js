@@ -126,16 +126,16 @@ function runOn(entry, fn) {
   return { m: c, ret };
 }
 
-/** Compare a candidate against the oracle on the full contract: RAM − STACK_SCRATCH, pc, SP,
- *  and the propagated return value. Returns human-readable mismatches. */
+/** Compare a candidate against the oracle on the contract: RAM − STACK_SCRATCH and the
+ *  propagated return value (pc/SP excluded — seam artifacts). Returns human-readable mismatches. */
 function contractDiffs(entry, fn) {
   const o = runOn(entry, oracle);
   const c = runOn(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o.m, c.m);
   if (ram) diffs.push(`RAM@${hx16(ram.addr)} oracle=${hx(ram.a)} cand=${hx(ram.b)}`);
-  if (o.m.pc !== c.m.pc) diffs.push(`pc oracle=${hx16(o.m.pc)} cand=${hx16(c.m.pc)}`);
-  if (o.m.regs.sp !== c.m.regs.sp) diffs.push(`SP oracle=${hx16(o.m.regs.sp)} cand=${hx16(c.m.regs.sp)}`);
+  // pc/SP dropped: the tail m.call(0x1C05) was dissolved to a direct loc_1c05 call, so pc and
+  // SP are now seam artifacts, never game live-outs; the whole-game SP-inertness tests guard SP.
   if (String(o.ret) !== String(c.ret)) diffs.push(`return oracle=${o.ret} cand=${c.ret}`);
   return diffs;
 }
@@ -264,7 +264,7 @@ test("EQUAL (real dispatches): loc_1bec == oracle on every captured 0x1BEC entry
     .flatMap(({ caps }) => caps)
     .filter((c) => runOn(c, oracle).m.mem.read8(MARIO_Y_FRAC) !== c.mem.read8(MARIO_Y_FRAC)).length;
   assert.ok(moved >= 1, "expected at least one dispatch to visibly move the vertical coordinate");
-  console.log(`  EQUAL/real: ${n} captured dispatches identical on RAM+pc+SP+return (${moved} moved the arc)`);
+  console.log(`  EQUAL/real: ${n} captured dispatches identical on RAM(−stack)+return (${moved} moved the arc)`);
 });
 
 // -- 2. EQUAL (crafted handler arms) ------------------------------------------
@@ -331,7 +331,7 @@ test("EQUAL (crafted sweep): 1085 position/phase entries — including the landi
   assert.equal(firstBad, null, firstBad);
   assert.equal(count, COLUMNS.length * (0xf8 - 0x20 + 1));
   assert.ok(landings >= 1, "expected the sweep to reach the landing exit the poked runs never hit");
-  console.log(`  EQUAL/sweep: ${count} crafted entries identical on RAM+pc+SP+return (${landings} took the landing exit)`);
+  console.log(`  EQUAL/sweep: ${count} crafted entries identical on RAM(−stack)+return (${landings} took the landing exit)`);
 });
 
 // -- 4. TEETH -----------------------------------------------------------------

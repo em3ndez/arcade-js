@@ -11,6 +11,7 @@
 
 import { MARIO_AIR_VX_HI, MARIO_AIR_VX_LO, MARIO_SPRITE_CODE } from "./names.js";
 import { reverseMarioVerticalArc } from "./reverseMarioVerticalArc.js";
+import { loc_1c05 } from "./loc_1c05.js";
 
 /** Horizontal-flip / facing bit of MARIO_SPRITE_CODE (1 = facing right). */
 const FACING_BIT = 0x80;
@@ -23,7 +24,7 @@ export function loc_1bf2(m) {
   const { regs, mem8 } = m;
 
   if (regs.e !== 1) {
-    return m.call(0x1c05);
+    return loc_1c05(m);
   }
 
   mem8[MARIO_AIR_VX_HI] = DRIFT_LEFT_HI;

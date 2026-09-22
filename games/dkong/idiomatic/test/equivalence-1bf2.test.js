@@ -15,17 +15,12 @@
  * of every comparison here, so a wrong hand-off surfaces as divergent RAM downstream rather
  * than staying local.
  *
- * MEMORY-EQUIVALENCE CONTRACT. RAM − STACK_SCRATCH [0x6be0,0x6c00), plus pc, SP and the
- * forwarded return value (the airborne cascade above uses it for the caller-skip convention);
- * live-out is otherwise memory-only. WHY no register or flag is compared: the verdict register
- * and the flags of the oracle's decrement are dead past the branch — on BOTH tails the next
- * routine to look at that register pair is the tile classifier at 0x2B9B, whose `pop de`
- * overwrites the pair outright, and every flag consumer downstream (0x1BDC, 0x2B2D) sets the
- * flags itself first. No pose or velocity value survives in a register either; everything the
- * routine decides is written to RAM. The direct call to reverseMarioVerticalArc dissolves the oracle's
- * push/pop bracket around its fixed-point leaf, which is what the exclusion is for — but in
- * fact the stack matches too, and that finding is asserted separately at the end of suite 3
- * rather than folded into the contract.
+ * MEMORY-EQUIVALENCE CONTRACT. RAM − STACK_SCRATCH [0x6be0,0x6c00), plus the forwarded return
+ * value; live-out is otherwise memory-only. pc/SP/registers/flags are NOT compared: the tail
+ * m.call(0x1C05) was dissolved to a direct loc_1c05 call, so they are seam artifacts (whole-game
+ * SP-inertness guards SP), and no register/flag/pose/velocity survives past the branch — every
+ * decision is written to RAM. The dissolution also leaves the oracle's guest-stack return marker
+ * unmatched inside STACK_SCRATCH, which the contract already excludes.
  *
  *   1. REALISM (captured) — hook 0x1BF2 in a real attract run: 360 dispatches, of which a
  *      120-dispatch sample is replayed in full. All 360 take the NOT-raised arm (checked on
@@ -107,16 +102,6 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-/** First differing RAM byte ANYWHERE, stack included (the stronger claim this routine meets). */
-function firstAnyRamDiff(a, b) {
-  const da = a.dumpState(), db = b.dumpState();
-  const n = Math.min(da.length, db.length);
-  for (let i = 0; i < n; i++) {
-    if (da[i] !== db[i]) return { addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] };
-  }
-  return null;
-}
-
 /**
  * Run one implementation on a fresh clone of the entry state. Both sides are handed the SAME
  * context-block accessor the frozen ROM 0x1BB2 oracle passes its tail branch — a closure over
@@ -130,15 +115,15 @@ function run(entry, fn) {
   return { c, value };
 }
 
-/** The declared contract: RAM − STACK_SCRATCH, pc, SP, forwarded return value. */
+/** The declared contract: RAM − STACK_SCRATCH plus the forwarded return value (pc/SP excluded — seam artifacts). */
 function contractDiffs(entry, fn) {
   const o = run(entry, oracle);
   const c = run(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o.c, c.c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.c.pc !== c.c.pc) diffs.push(`pc oracle=${hx(o.c.pc)} cand=${hx(c.c.pc)}`);
-  if (o.c.regs.sp !== c.c.regs.sp) diffs.push(`SP oracle=${hx(o.c.regs.sp)} cand=${hx(c.c.regs.sp)}`);
+  // pc/SP dropped: the tail m.call(0x1C05) was dissolved to a direct loc_1c05 call, so pc and
+  // SP are now seam artifacts, never game live-outs; the whole-game SP-inertness tests guard SP.
   if (o.value !== c.value) diffs.push(`return oracle=${o.value} cand=${c.value}`);
   return diffs;
 }
@@ -252,23 +237,10 @@ test("EXHAUSTIVE: all 256 verdict values × facing bit × fatal-fall match the o
   const skippedAfter = run(notRaised, loc_1bf2).c;
   assert.equal(skippedAfter.mem.read8(MARIO_AIR_VX_HI), 0x5a, "a not-raised verdict must leave the drift alone");
 
-  // STACK RESIDUE — a finding, checked rather than claimed, and deliberately kept OUT of the
-  // per-case contract so it can never be mistaken for it. Direct-calling reverseMarioVerticalArc dissolves
-  // the oracle's push/pop bracket around the fixed-point leaf, so the STACK_SCRATCH exclusion
-  // is available — yet it turns out not to be needed: the dissolved push lands in a slot the
-  // chain's own later pushes overwrite identically on both sides, so even the stack region
-  // comes out equal. A failure HERE is a change in dead stack scratch, not a defect in the
-  // routine; relax this assertion (the declared contract already excludes the region) rather
-  // than chasing it.
-  for (const verdict of [1, 0]) {
-    const entry = base.clone();
-    entry.regs.e = verdict;
-    const stackDiff = firstAnyRamDiff(run(entry, oracle).c, run(entry, loc_1bf2).c);
-    assert.equal(stackDiff, null,
-      `verdict=${verdict}: expected even the stack residue to match, got ${stackDiff && hx(stackDiff.addr)}`);
-  }
+  // STACK RESIDUE not asserted: the dissolved tail leaves the oracle's guest-stack return marker
+  // in STACK_SCRATCH (excluded by the contract above), not a defect.
 
-  console.log(`  EXHAUSTIVE: ${cases} crafted verdict/facing/fatal-fall cases identical to the oracle (stack residue too)`);
+  console.log(`  EXHAUSTIVE: ${cases} crafted verdict/facing/fatal-fall cases identical to the oracle`);
 });
 
 // -- 4. TEETH -----------------------------------------------------------------

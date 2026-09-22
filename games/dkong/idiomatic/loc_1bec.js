@@ -9,9 +9,10 @@
  */
 
 import { stepBallisticMotion } from "./stepBallisticMotion.js";
+import { loc_1c05 } from "./loc_1c05.js";
 
 export function loc_1bec(m) {
   stepBallisticMotion(m);
 
-  return m.call(0x1c05);
+  return loc_1c05(m);
 }
