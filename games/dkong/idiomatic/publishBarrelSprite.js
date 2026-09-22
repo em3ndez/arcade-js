@@ -13,6 +13,7 @@
  */
 
 import { u8 } from "../../../core/int.js";
+import { loc_1f8d } from "./loc_1f8d.js";
 import {
   OBJ_SPRITE_ATTR, OBJ_SPRITE_CODE, OBJ_X, OBJ_Y,
   SPRITE_ATTR, SPRITE_CODE, SPRITE_X, SPRITE_Y,
@@ -35,5 +36,5 @@ export function publishBarrelSprite(m, record = m.regs.ix) {
   mem8[page + u8(cursor + SPRITE_Y)] = mem8[record + OBJ_Y];
 
   // advancing the cursor rides the tail call to the between-slots step.
-  return (m.regs.l = cursor + 3, m.call(0x1f8d));
+  return (m.regs.l = cursor + 3, loc_1f8d(m));
 }

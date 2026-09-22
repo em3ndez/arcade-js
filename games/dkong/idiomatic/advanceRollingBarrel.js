@@ -20,6 +20,8 @@ import {
 } from "./names.js";
 import { snapYToGirder } from "./snapYToGirder.js";
 import { advanceBarrelSpriteOrientation } from "./advanceBarrelSpriteOrientation.js";
+import { loc_2038 } from "./loc_2038.js";
+import { loc_202f } from "./loc_202f.js";
 
 // The record's big-endian signed 16-bit per-frame horizontal step (1/256-px units), unshared so
 // scoped here.
@@ -64,12 +66,12 @@ export function advanceRollingBarrel(m, slopeStep = m.regs.b, record = m.regs.ix
 
   // Re-read X: the gate writes that field itself, though only on the arm that never comes back.
   const xNow = mem8[record + OBJ_X];
-  if (xNow < X_LOW_EDGE) return m.call(0x202f);
+  if (xNow < X_LOW_EDGE) return loc_202f(m);
   if (xNow < X_HIGH_EDGE) return publishBarrelSprite(m);
 
   // Past the high edge: stamp the rightward step, hand to the shared motion writer.
   mem8[record + STEP_X_HI] = STEP_X_RIGHT >> 8;
   mem8[record + STEP_X_LO] = STEP_X_RIGHT;
   // the shared motion writer stores the accumulator (0) into four further record bytes.
-  return (m.regs.a = 0), m.call(0x2038);
+  return (m.regs.a = 0), loc_2038(m);
 }
