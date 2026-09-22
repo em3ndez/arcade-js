@@ -10,16 +10,16 @@
 import { u16 } from "../../../core/int.js";
 import { storeDigitAndAdvance } from "./storeDigitAndAdvance.js";
 
-export function expandBcdDigits(m, hl = m.regs.hl, b = m.regs.b) {
+export function expandBcdDigits(m, hl = m.regs.hl, b = m.regs.b, ix = m.regs.ix, de = m.regs.de) {
   const { mem8 } = m;
 
   do {
     const src = mem8[hl];
 
     // Swap the nibbles so the HIGH digit sits where the shared store's mask will find it.
-    storeDigitAndAdvance(m, ((src >> 4) | (src << 4)) & 0xff);
+    ix = storeDigitAndAdvance(m, ((src >> 4) | (src << 4)) & 0xff, ix, de)[0];
 
-    storeDigitAndAdvance(m, mem8[hl]);
+    ix = storeDigitAndAdvance(m, mem8[hl], ix, de)[0];
 
     hl = u16(hl - 1);
     b = (b - 1) & 0xff;

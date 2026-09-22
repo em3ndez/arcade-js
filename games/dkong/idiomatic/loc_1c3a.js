@@ -25,7 +25,7 @@ export function loc_1c3a(m, counter = m.regs.b, landingFlag = m.regs.a) {
   // Tick reaches zero -> Mario just landed; hand off to the landing-settle routine.
   const airCounter = counter - 1;
   if (airCounter === 0) {
-    settleMarioOnLanding(m);
+    settleMarioOnLanding(m, landingFlag);
     return;
   }
 

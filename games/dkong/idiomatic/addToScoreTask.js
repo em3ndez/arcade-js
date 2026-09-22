@@ -15,7 +15,7 @@ import { loc_056b } from "./loc_056b.js";
 import { drawHighScore } from "./drawHighScore.js";
 import { bcdAddByte } from "../../../core/bcd.js";
 export function addToScoreTask(m, a = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const payload = a & 0xff;
 
@@ -37,10 +37,8 @@ export function addToScoreTask(m, a = m.regs.a) {
   }
   const scoreEnd = scorePtr; // one past the counter's top byte
 
-  // Redraw the score readout. The column renderer reads its source pointer from the DE
-  // register, so hand it the counter's top byte there — the one machine bridge that remains.
-  regs.de = u16(scoreEnd - 1);
-  loc_056b(m, mem8[CURRENT_PLAYER]);
+  // Redraw the score readout from the counter's top byte, walking down.
+  loc_056b(m, mem8[CURRENT_PLAYER], u16(scoreEnd - 1));
 
   // Compare against the high score, top byte first, walking down.
   let cmpPtr = u16(scoreEnd - 1);

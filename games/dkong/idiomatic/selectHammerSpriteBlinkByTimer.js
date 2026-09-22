@@ -11,12 +11,12 @@ import { HAMMER_TIMER_HI } from "./names.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js";
 import { blinkHammerSpriteOnFramePhase } from "./blinkHammerSpriteOnFramePhase.js";
 
-export function selectHammerSpriteBlinkByTimer(m) {
+export function selectHammerSpriteBlinkByTimer(m, de = m.regs.de, ix = m.regs.ix, b = m.regs.b) {
   const { mem8 } = m;
 
   if (mem8[HAMMER_TIMER_HI] === 0) {
-    commitSpriteRecordAtMarioOffset(m);
+    commitSpriteRecordAtMarioOffset(m, de, ix, b);
   } else {
-    blinkHammerSpriteOnFramePhase(m);
+    blinkHammerSpriteOnFramePhase(m, undefined, de, ix, b);
   }
 }

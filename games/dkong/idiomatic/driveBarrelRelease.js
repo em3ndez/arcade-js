@@ -41,9 +41,8 @@ export function driveBarrelRelease(m) {
   let record = OBJ_ARRAY_67;
   for (let remaining = BARREL_SLOTS; remaining > 0; remaining--) {
     if ((mem8[record + OBJ_ACTIVE] & (SLOT_ACTIVE | SLOT_OCCUPIED)) === 0) {
-      regs.ix = record;   // the free record
-      regs.b = remaining; // and the countdown it turns into that record's index
-      return releaseBarrelIntoFreeSlot(m);
+      regs.ix = record;   // still seated: read downstream by stampReleasedBarrelKind (out-of-cluster)
+      return releaseBarrelIntoFreeSlot(m, record, remaining);
     }
     record += RECORD_STRIDE;
   }

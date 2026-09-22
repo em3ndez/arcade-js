@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1bf2 — the airborne handler's leftward-nudge arm. On the gate's left verdict (regs.e === 1,
- * raised only for Mario at or past the right-hand screen limit) stamp the leftward drift into
+ * loc_1bf2 — the airborne handler's leftward-nudge arm. On the gate's left verdict (leftVerdict === 1,
+ * defaulting from regs.e; raised only for Mario at or past the right-hand screen limit) stamp the leftward drift into
  * MARIO_AIR_VX_HI:LO, clear MARIO_SPRITE_CODE's facing bit, and continue into the vertical half
  * of the reflection. Otherwise leave the jump untouched and hand on to the airborne dispatch.
  *
@@ -20,10 +20,10 @@ const FACING_BIT = 0x80;
 const DRIFT_LEFT_HI = 0xff;
 const DRIFT_LEFT_LO = 0x80;
 
-export function loc_1bf2(m) {
-  const { regs, mem8 } = m;
+export function loc_1bf2(m, _ctx, leftVerdict = m.regs.e) {
+  const { mem8 } = m;
 
-  if (regs.e !== 1) {
+  if (leftVerdict !== 1) {
     return loc_1c05(m);
   }
 

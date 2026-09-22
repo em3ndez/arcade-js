@@ -35,7 +35,7 @@ const OBJ_X_DISPLACEMENT = 0x0e; // added to Mario's X by the record write
 const RECORD_ATTR = 0x07;
 const EXPIRY_HIGH = 0x02; // high byte at which the ~512-count lifetime is up
 
-export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c) {
+export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c, de = m.regs.de, b = m.regs.b) {
   const { mem8 } = m;
 
   mem8[MARIO_SPRITE_RECORD + SPRITE_CODE] = c;
@@ -47,14 +47,14 @@ export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c) {
   const lo = u8(mem8[HAMMER_TIMER_LO] + 1);
   mem8[HAMMER_TIMER_LO] = lo;
   if (lo !== 0) {
-    return (m.regs.c = RECORD_ATTR), selectHammerSpriteBlinkByTimer(m);
+    return (m.regs.c = RECORD_ATTR), selectHammerSpriteBlinkByTimer(m, de, objBase, b);
   }
 
   // Low byte wrapped: carry into the high byte. Below expiry, flash while committing.
   const hi = u8(mem8[HAMMER_TIMER_HI] + 1);
   mem8[HAMMER_TIMER_HI] = hi;
   if (hi !== EXPIRY_HIGH) {
-    return (m.regs.c = RECORD_ATTR), blinkHammerSpriteOnFramePhase(m);
+    return (m.regs.c = RECORD_ATTR), blinkHammerSpriteOnFramePhase(m, undefined, de, objBase, b);
   }
 
   // Lifetime up. Park the sprite at the origin: X-displacement = −Mario's X, so the record
@@ -69,5 +69,5 @@ export function updateActiveHammer(m, objBase = m.regs.ix, c = m.regs.c) {
   mem8[u16(objBase + OBJ_ACTIVE)] = 0;
   mem8[SND_BGM] = mem8[HAMMER_SAVED_BGM];
 
-  return (m.regs.c = RECORD_ATTR), commitSpriteRecordAtMarioOffset(m);
+  return (m.regs.c = RECORD_ATTR), commitSpriteRecordAtMarioOffset(m, de, objBase, b);
 }

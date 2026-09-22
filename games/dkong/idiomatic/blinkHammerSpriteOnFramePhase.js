@@ -13,7 +13,7 @@ import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffs
 const BLINK_PHASE_BIT = 0x08;
 const BLINK_ATTR = 1;
 
-export function blinkHammerSpriteOnFramePhase(m, c = m.regs.c) {
+export function blinkHammerSpriteOnFramePhase(m, c = m.regs.c, de = m.regs.de, ix = m.regs.ix, b = m.regs.b) {
   const { mem8 } = m;
 
   if ((mem8[FRAME] & BLINK_PHASE_BIT) !== 0) {
@@ -21,5 +21,5 @@ export function blinkHammerSpriteOnFramePhase(m, c = m.regs.c) {
   }
 
   // R37: commit reads the attribute off the register bridge — the write rides the return.
-  return commitSpriteRecordAtMarioOffset((m.regs.c = c, m));
+  return commitSpriteRecordAtMarioOffset((m.regs.c = c, m), de, ix, b);
 }

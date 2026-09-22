@@ -157,9 +157,8 @@ export function runBonusItemValueDisplay(m) {
   }
   const iy = mem16[BONUS_ITEM_SLOT_PTR];
   const dest = mem8[u16(iy + 4)] | (mem8[u16(iy + 5)] << 8);
-  regs.de = source;
   regs.ix = dest;
-  renderBcdColumn(m);
+  renderBcdColumn(m, source);
   mem8[BONUS_ITEM_ANIM_TIMER] = 0x10;
 }
 

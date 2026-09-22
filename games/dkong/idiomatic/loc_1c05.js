@@ -47,9 +47,8 @@ export function loc_1c05(m) {
   loc_2b1c(m);
   const probeVerdict = regs.a;
 
-  // The landing-settle tail reads the DECREMENTED verdict as its landing flag.
-  regs.a = u8(probeVerdict - 1);
-  if (probeVerdict === 1) return loc_1c3a(m);
+  // The DECREMENTED verdict passes through as the landing flag arg, not a regs.a seat.
+  if (probeVerdict === 1) return loc_1c3a(m, undefined, u8(probeVerdict - 1));
 
   if (mem8[MARIO_AIR_LANDCHECK] === 1) return markFatalFallByHeight(m);
 

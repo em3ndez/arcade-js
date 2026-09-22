@@ -43,7 +43,7 @@ const HAMMER_CODE_FLAG = 0x08;   // fixed flag set in the on-screen hammer-swing
 const SWING_ALT_BIT = 0x01;      // low bit set on both codes during the alternate swing pose
 
 export function driveHammerSprite(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (!boardBitGate(m, HAMMER_BOARDS)) return;
 
@@ -57,14 +57,11 @@ export function driveHammerSprite(m) {
     objBase = OBJ2_BASE;
     recordDest = HAMMER_OBJ2_SPRITE_RECORD;
   }
-  regs.ix = objBase;
-  regs.de = recordDest;
-
   mem8[u16(objBase + OBJ_X_DISPLACEMENT)] = 0x00;
   mem8[u16(objBase + OBJ_Y_DISPLACEMENT)] = 0xf0;
 
   if ((mem8[MARIO_HAMMER_ACTIVE] & 0x01) === 0) {
-    buildPendingHammerSprite(m);
+    buildPendingHammerSprite(m, objBase, recordDest);
     return;
   }
 
@@ -79,8 +76,7 @@ export function driveHammerSprite(m) {
   let hammerCode = u8(marioCode << 1) | facing | HAMMER_CODE_FLAG; // -> Mario's on-screen code
 
   if ((mem8[HAMMER_TIMER_LO] & SWING_PHASE_BIT) === 0) {
-    regs.b = objTile; // ix/de/b ride the bridge into commitSpriteRecordAtMarioOffset
-    updateActiveHammer(m, objBase, hammerCode);
+    updateActiveHammer(m, objBase, hammerCode, recordDest, objTile);
     return;
   }
 
@@ -95,6 +91,5 @@ export function driveHammerSprite(m) {
     mem8[u16(objBase + OBJ_X_DISPLACEMENT)] = 0x10;
   }
 
-  regs.b = objTile;
-  updateActiveHammer(m, objBase, hammerCode);
+  updateActiveHammer(m, objBase, hammerCode, recordDest, objTile);
 }

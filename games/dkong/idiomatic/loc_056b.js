@@ -13,10 +13,10 @@ import {
 } from "./names.js";
 
 
-export function loc_056b(m, selector = m.regs.a) {
+export function loc_056b(m, selector = m.regs.a, src = m.regs.de) {
   const { regs } = m;
 
   regs.ix = selector === 0 ? P1_SCORE_COLUMN_BASE : SCORE_VRAM_COLUMN_P2;
 
-  renderBcdColumn(m);
+  renderBcdColumn(m, src);
 }
