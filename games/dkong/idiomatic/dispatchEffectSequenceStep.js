@@ -29,7 +29,7 @@ export function dispatchEffectSequenceStep(m) {
   if (step) return step(m);
 
   throw new NotImplemented(
-    `dispatchEffectSequenceStep: EFFECT_SEQ_STATE (0x6345) step ${state} runs off the end of the three-entry step ` +
+    `dispatchEffectSequenceStep: EFFECT_SEQ_STATE (0x${EFFECT_SEQ_STATE.toString(16)}) step ${state} runs off the end of the three-entry step ` +
       `table and transfers to a garbage address; only steps 0-2 (and their +128 aliases) exist.`,
   );
 }

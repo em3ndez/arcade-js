@@ -14,34 +14,20 @@
  * dispatched handler leaves (a tail call). The handler takes its argument from the accumulator.
  */
 
-import { u8 } from "../../../core/int.js";
+import { u8, page } from "../../../core/int.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import {
-  TASK_HANDLER_TABLE,
-  TASK_HEAD,
-  TASK_RING,
-} from "./names.js";
+import { TASK_HEAD, TASK_RING } from "./names.js";
 import { addToScoreTask } from "./addToScoreTask.js";
 import { resetScoreCounter } from "./resetScoreCounter.js";
 import { drawScoreTask } from "./drawScoreTask.js";
 import { drawStringVertical } from "./drawStringVertical.js";
 import { drawCreditLineInAttract } from "./drawCreditLineInAttract.js";
 import { drawLivesAndLevel } from "./drawLivesAndLevel.js";
+import { loc_062a } from "./loc_062a.js";
 
 const OFFSET_MASK = 0x1f; // the doubled opcode is masked to five bits before indexing
 const SLOT_FREE = 0xff;
 const RING_BASE = u8(TASK_RING); // the dequeue pointer is a low byte within its page
-const MAIN_LOOP = 0x02bd; // the bonus-readout handler returns straight to the main loop
-
-// The handlers the table names, keyed by the address it holds for each.
-const HANDLERS = new Map([
-  [0x051c, addToScoreTask],
-  [0x059b, resetScoreCounter],
-  [0x05c6, drawScoreTask],
-  [0x05e9, drawStringVertical],
-  [0x0611, drawCreditLineInAttract],
-  [0x06b8, drawLivesAndLevel],
-]);
 
 export function loc_02e3(
   m,
@@ -49,11 +35,11 @@ export function loc_02e3(
   slot = m.regs.hl,
   doubledOpcode = m.regs.a,
 ) {
-  const { regs, mem8, mem16 } = m;
+  const { regs, mem8 } = m;
 
   // Release the slot as consumed, taking the payload before its byte frees. The dequeue pointer
   // walks WITHIN one page, so only its low byte advances.
-  const payloadCell = (slot & 0xff00) | u8(slot + 1);
+  const payloadCell = page(slot) | u8(slot + 1);
   mem8[slot] = SLOT_FREE;
   const payload = mem8[payloadCell];
   mem8[payloadCell] = SLOT_FREE;
@@ -62,20 +48,21 @@ export function loc_02e3(
   const next = u8(payloadCell + 1);
   mem8[TASK_HEAD] = next < RING_BASE ? RING_BASE : next;
 
-  const target = mem16[TASK_HANDLER_TABLE + (doubledOpcode & OFFSET_MASK)];
   regs.a = payload; // the handler's argument
 
-  const handler = HANDLERS.get(target);
-  if (handler !== undefined) return handler(m);
-
-  if (target === 0x062a) {
-    // Dispatched by address; it returns by consuming the main-loop address pushed for it here.
-    m.push16(MAIN_LOOP);
-    return m.call(0x062a);
+  // The doubled opcode selects the n-th task handler (opcode n -> the n-th of seven). Offsets past
+  // the seven entries (or aliased by the 5-bit mask) fault.
+  switch (doubledOpcode & OFFSET_MASK) {
+    case 0: return addToScoreTask(m);
+    case 2: return resetScoreCounter(m);
+    case 4: return drawScoreTask(m);
+    case 6: return drawStringVertical(m);
+    case 8: return drawCreditLineInAttract(m);
+    case 10: return loc_062a(m); // one bonus-readout step; returns to the task loop
+    case 12: return drawLivesAndLevel(m);
+    default:
+      throw new NotImplemented(
+        `task handler offset ${doubledOpcode & OFFSET_MASK} has no entry (payload 0x${payload.toString(16)})`,
+      );
   }
-
-  throw new NotImplemented(
-    `task handler at ROM 0x${target.toString(16).padStart(4, "0")} ` +
-      `(0x0307 table offset ${doubledOpcode & OFFSET_MASK}, payload 0x${payload.toString(16)})`,
-  );
 }
