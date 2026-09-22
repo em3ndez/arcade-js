@@ -236,7 +236,7 @@ function brokenReadControls(m) {
   mem.write8(P1_INPUT, cooked);
   mem.write8(P1_INPUT_RAW, raw);
   if (raw & 0x40) {
-    throw new NotImplemented("input bit 6 set: jp 0x0000 at ROM 0x00B2 -- soft reset via input");
+    throw new NotImplemented("input bit 6 set: soft-reset via input, path not yet exercised");
   }
 }
 

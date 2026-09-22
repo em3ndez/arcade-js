@@ -67,7 +67,7 @@ const ATTRACT_FRAMES = 2000;
 
 // The dispatch-site label. It is read only on the refusal path, where it names which table a
 // target fell out of; every dispatched call ignores it. This is the oracle's own default.
-const SITE = "0x00CA (NMI game state)";
+const SITE = "the NMI game-state table";
 
 // A work-RAM cell the sweep's stubs mark so that "the stub ran" is observable in machine state and
 // not only in a JS counter. Below STACK_SCRATCH (0x6BE0) and below the guest stack pointer at every

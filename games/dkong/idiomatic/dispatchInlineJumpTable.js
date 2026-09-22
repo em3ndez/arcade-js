@@ -8,9 +8,9 @@
  * boolean, which this routine propagates unchanged.
  */
 import { u16 } from "../../../core/int.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
+import { loc_00ca } from "./loc_00ca.js";
 
-export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)", a = m.regs.a) {
+export function dispatchInlineJumpTable(m, site = "the NMI game-state table", a = m.regs.a) {
   const { mem8 } = m;
 
   // Double the selector into a byte offset (8-bit, so 0x80 wraps to 0), pop the table base the

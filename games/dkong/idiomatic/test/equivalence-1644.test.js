@@ -50,7 +50,7 @@ const test = ROM_PRESENT
 
 const STEP = 0x6388;          // the board-render sequence-step selector
 const STEP_TABLE = 0x1648;    // ROM inline jump table base (6 entries)
-const DISPATCH_TABLE_1648 = "0x1648 (0x6388 sequence)";
+const DISPATCH_TABLE_1648 = "the rivet-board interlude sequence table";
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // First differing RAM byte between two dumps, EXCLUDING the dead stack-scratch region

@@ -17,11 +17,11 @@ import {
 } from "./names.js";
 import { clearSpriteColumns } from "./clearSpriteColumns.js";
 import { runRivetBoardInterludeFrame } from "./runRivetBoardInterludeFrame.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
+import { loc_00ca } from "./loc_00ca.js";
 
 
-const DISPATCH_TABLE_1623 = "0x1623 (0x6388 board sub-dispatch)";
-const DISPATCH_TABLE_1637 = "0x1637 (0x6388 board sub-dispatch)";
+const DISPATCH_TABLE_1623 = "the odd-board (25m/75m) interlude sub-dispatch table";
+const DISPATCH_TABLE_1637 = "the 50m-board interlude sub-dispatch table";
 
 // Vector the step through a table of little-endian targets; the step index is doubled to a byte
 // offset with the hardware's 8-bit wrap.

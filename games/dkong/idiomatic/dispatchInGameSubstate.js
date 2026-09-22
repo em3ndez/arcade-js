@@ -9,9 +9,9 @@
 
 import { u16 } from "../../../core/int.js";
 import { GAME_SUBSTATE, IN_GAME_SUBSTATE_TABLE } from "./names.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
+import { loc_00ca } from "./loc_00ca.js";
 
-const DISPATCH_TABLE_0702 = "0x0702 (0x600A game sub-state)";
+const DISPATCH_TABLE_0702 = "the in-game sub-state table";
 
 export function dispatchInGameSubstate(m) {
   const { mem8 } = m;

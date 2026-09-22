@@ -195,7 +195,7 @@ test("CRAFTED: dispatchInlineJumpTable == oracle over all 256 selectors × 5 tab
  * every selector < 0x80 and diverges from 0x80 up, so only a real sweep across the
  * wrap catches it.
  */
-function brokenDispatch(m, site = "0x00CA (NMI game state)") {
+function brokenDispatch(m, site = "the NMI game-state table") {
   const { regs, mem } = m;
   const tableBase = m.pop16();
   const entry = (tableBase + 2 * regs.a) & 0xffff; // BUG: 16-bit offset, no 8-bit wrap

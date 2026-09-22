@@ -7,13 +7,13 @@
  */
 
 import { u16 } from "../../../core/int.js";
-import { loc_00ca } from "../translated/loc_00ca.js";
+import { loc_00ca } from "./loc_00ca.js";
 import {
   BOARD_ADVANCE_STEP,
   RIVET_INTERLUDE_STEP_TABLE,
 } from "./names.js";
 
-const DISPATCH_TABLE_1648 = "0x1648 (0x6388 sequence)";
+const DISPATCH_TABLE_1648 = "the rivet-board interlude sequence table";
 
 export function dispatchRivetBoardInterludeStep(m) {
   const { mem8 } = m;

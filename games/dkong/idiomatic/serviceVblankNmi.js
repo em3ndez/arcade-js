@@ -33,7 +33,7 @@ export function serviceVblankNmi(m, sp = m.regs.sp) {
   // Kick the watchdog (the read is the kick) and reject the SERVICE switch.
   if (mem8[IN2_PORT] & 0x01) {
     throw new NotImplemented(
-      "SERVICE switch held: jp 0x4000 at ROM 0x0077 -- out-of-policy input, " +
+      "SERVICE switch held: out-of-policy service-vector jump, " +
         "no diagnostic ROM exists on this romset",
     );
   }

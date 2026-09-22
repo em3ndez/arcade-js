@@ -52,7 +52,7 @@ const test = ROM_PRESENT
 const TARGET = 0x06fe;
 const GAME_SUBSTATE = 0x600a;
 const SUBSTATE_TABLE = 0x0702;
-const DISPATCH_TABLE_0702 = "0x0702 (0x600A game sub-state)";
+const DISPATCH_TABLE_0702 = "the in-game sub-state table";
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // A coin+start tape (as in the optimized in-game tests): coin on IN2 bit7 at frame 10,
