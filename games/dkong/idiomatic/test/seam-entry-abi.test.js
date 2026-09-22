@@ -255,22 +255,27 @@ test("STRUCTURAL/TEETH: the five PURE exports are still pure, and the shape chec
 
 // -- 2. 0x0347 — selectPlayerIndicatorColumnBase ------------------------------
 
-test("0x0347 via m.call: register-EXACT vs the oracle over all 256 selector values", async () => {
+test("0x0347 via m.call: LIVE-OUTs exact vs the oracle over all 256 selector values", async () => {
   const overrides = await wire(0x0347);
   const next = rng(0xa347);
   const workRam = new Uint8Array(WORK_RAM_SIZE);
   for (let i = 0; i < workRam.length; i++) workRam[i] = next();
+
+  // F is DROPPED: the ROM's `and a` zero-test flag is dead at both frozen call sites (loc_0315
+  // follows each `call 0x0347` with `ld de,…` / `inc a`, neither reading F — see the seam-entry
+  // header). Comparing F would re-pin a dead residual and block the regi reduction.
+  const COMPARED = ALL_REGS.filter((r) => r !== "f");
 
   let n = 0;
   for (let a = 0; a < 256; a++) {
     // HL and F pre-loaded with junk, so a wrapper that forgot to write HL is caught.
     const seed = seedFrom(workRam, regsSeed({ a, f: 0xff, b: 0x5a, c: 0x5b, d: 0x5c, e: 0x5d, h: 0xde, l: 0xad, ix: 0x6104, iy: 0x6205 }));
     const { o, c } = dispatchBoth(seed, overrides, 0x0347);
-    const d = diffs(o, c, ALL_REGS);
+    const d = diffs(o, c, COMPARED);
     assert.deepEqual(d, [], `selector ${hx(a)}: ${d.join("; ")}`);
     n++;
   }
-  console.log(`  0x0347: ${n} dispatches through m.call — register-exact (A/F/HL/DE/BC/SP/pc/RAM)`);
+  console.log(`  0x0347: ${n} dispatches through m.call — live-outs exact (A/HL/DE/BC/SP/pc/RAM; F dropped as dead)`);
 });
 
 test("0x0347/TEETH: a wrapper that returns the base in DE instead of HL is CAUGHT", async () => {
@@ -485,12 +490,12 @@ test("0x2FF0 via m.call: register-EXACT vs the oracle across the (y,x) grid", as
     for (const x of XS) {
       const seed = seedFrom(workRam, regsSeed({ a: 0x5a, f: 0xff, b: 0xb0, c: 0xc0, d: 0xd0, e: 0xe0, h: y, l: x, ix: 0x6104, iy: 0x6205 }));
       const { o, c } = dispatchBoth(seed, overrides, 0x2ff0);
-      const d = diffs(o, c, ALL_REGS);
+      const d = diffs(o, c, ALL_REGS.filter((r) => r !== "f"));
       assert.deepEqual(d, [], `y=${hx(y)} x=${hx(x)}: ${d.join("; ")}`);
       n++;
     }
   }
-  console.log(`  0x2FF0: ${n} dispatches through m.call — register-exact (HL/A/DE/F/SP/pc/RAM)`);
+  console.log(`  0x2FF0: ${n} dispatches through m.call — register-exact (HL/A/DE/SP/pc/RAM; F dropped as dead)`);
 });
 
 test("0x2FF0/TEETH: a wrapper that swaps y and x is CAUGHT", async () => {
@@ -517,42 +522,18 @@ test("0x3009 via m.call: TERMINATES (the hang regression) and is register-EXACT"
 
   let n = 0;
   let skipped = 0;
-  let carrySet = 0;
   for (let a = 0; a < 256; a++) {
     for (let b = 0; b < 16; b++) {
       if (!terminates3009(a, b)) { skipped++; continue; }
       const seed = seedFrom(workRam, regsSeed({ a, b, c: 0xcc, d: 0xdd, e: 0xee, h: 0x77, l: 0x88, ix: 0x6104, iy: 0x6205 }));
       const { o, c } = dispatchBoth(seed, overrides, 0x3009);
-      const d = diffs(o, c, ALL_REGS);
+      const d = diffs(o, c, ALL_REGS.filter((r) => r !== "f"));
       assert.deepEqual(d, [], `a=${hx(a)} b=${hx(b)}: ${d.join("; ")}`);
-      if (o.regs.fC) carrySet++;
       n++;
     }
   }
   assert.ok(n > 500, `expected a broad terminating sample, got ${n}`);
-  // The CARRY is NOT known to be live — no call site is confirmed to read it (see nextAnimationStep.js
-  // OUT:, where the earlier "advanceBarrelSpriteOrientation consumes it" claim is falsified by measurement). It is
-  // reproduced because replaying the oracle's `cp 0x03` is free and exact, so the sample must
-  // still contain BOTH settings or that FIDELITY claim would be untested.
-  assert.ok(carrySet > 0 && carrySet < n, `both carry outcomes must appear (set on ${carrySet} of ${n})`);
-  console.log(`  0x3009: ${n} terminating dispatches through m.call (${skipped} non-terminating skipped) — register-exact incl. CARRY (set on ${carrySet})`);
-});
-
-test("0x3009/TEETH: a wrapper that drops the CARRY replay is CAUGHT", async () => {
-  const { nextAnimationStep } = await import("../nextAnimationStep.js");
-  const twin = new Map([[0x3009, (m) => {
-    const r = nextAnimationStep(m.regs.a, m.regs.b);
-    m.regs.a = r.a; m.regs.b = r.b; m.regs.c = r.c; m.regs.d = r.d; // no `cp 0x03`: F never rebuilt
-  }]]);
-  const workRam = new Uint8Array(WORK_RAM_SIZE);
-  let caught = 0;
-  let tried = 0;
-  for (let a = 0; a < 256 && tried < 32; a++) {
-    if (!terminates3009(a, 0x01)) continue; // a non-terminating input would HANG, not fail
-    const seed = seedFrom(workRam, regsSeed({ a, b: 0x01, ix: 0x6100, iy: 0x6200 }));
-    const { o, c } = dispatchBoth(seed, twin, 0x3009);
-    tried++;
-    if (o.regs.f !== c.regs.f) caught++;
-  }
-  assert.ok(tried > 0 && caught > 0, `a dropped flag replay went undetected (${caught} of ${tried})`);
+  // F is dropped as dead: the CARRY is not known to be live (no call site reads it), and the
+  // idiomatic entry no longer replays `cp 0x03`, so F is no longer compared here.
+  console.log(`  0x3009: ${n} terminating dispatches through m.call (${skipped} non-terminating skipped) — register-exact (F dropped as dead)`);
 });

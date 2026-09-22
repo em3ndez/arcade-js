@@ -13,9 +13,9 @@ export function selectPlayerIndicatorColumnBase(playerSelector) {
 
 /**
  * Machine-shaped seam entry (fn(m)): selector in the accumulator, chosen base left in the register
- * pair callers read. The selector is not overwritten and the zero-test flags survive both exits.
+ * pair callers read. The internal `and a` zero-test sets only F, dead at both frozen call sites
+ * (each reads no flag after the call), so it is dropped. A/selector untouched.
  */
 export function selectPlayerIndicatorColumnBaseFromRegisters(m, a = m.regs.a) {
-  m.regs.and(a); // zero test only: leaves the selector alone, sets zero from it, clears carry
   return (m.regs.hl = selectPlayerIndicatorColumnBase(a));
 }

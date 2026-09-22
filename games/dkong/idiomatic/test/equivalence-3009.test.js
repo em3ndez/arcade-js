@@ -4,32 +4,15 @@
  *
  * entry_3009 is a LEAF and a PURE function of its two register-byte inputs
  * (a = A, b = B): it reads no memory, WRITES NO MEMORY, and calls nothing.
- * Register A is the live-out. THE CARRY IS **NOT** — an earlier version of this header said
- * 0x23F7 consumes it via `rra`, and that is wrong: that `rra` reads the incoming carry into A
- * bit 7, while what rotates onward into (ix+8) and (ix+7) is A's bit 0 and bit 1, and the
- * incoming carry lands in A bit 6 and is destroyed by `ld a,0x04` at 0x2401. Falsified by
- * measurement, not by re-reading: 4000 randomized advanceBarrelSpriteOrientation runs forced
- * onto the (ix+0x0f)==1 arm — the only arm reaching here — each run twice with this routine's
- * exit carry FLIPPED, gave ZERO differences in any register, flag or RAM byte, while the control
- * (flipping exit A instead) changed RAM on 500 of 500. The other three call sites overwrite F
- * immediately. The carry, and b/c/d, are reproduced faithfully and checked as free teeth — for
- * fidelity, not because a consumer needs them. So it is
- * gated the strongest way a leaf can be — EXHAUSTIVELY against the frozen oracle
- * — not by a whole-machine trace:
+ * Register A is the live-out; the CARRY is NOT — measurement (4000 forced runs with the exit
+ * carry flipped gave zero register/flag/RAM differences, while the control flipping exit A changed
+ * RAM 500/500) shows no consumer reads it, so the carry is dead flag residue, no longer reproduced
+ * or pinned. b/c/d are reproduced and checked. It is gated the strongest way a leaf can be —
+ * EXHAUSTIVELY against the frozen oracle — not by a whole-machine trace:
  *
- *   1. CAPTURED as well as crafted. ★ CORRECTION: this header used to say
- *      "UNWIRED, so no captured dispatches — 0x3009 is absent from the dispatch
- *      registry (its three call sites 0x1C9E/0x1CBA/0x23F4 are the untranslated
- *      1977 subtree), so attract never dispatches it", and test #0 asserted zero
- *      entries over a 600-frame window. Every part of that was wrong except the
- *      zero, and the zero was an artefact of the window: 0x3009 IS a ROUTINES key,
- *      all three named call sites have translated twins (0x1C9E in loc_1c8f,
- *      0x1CBA in loc_1cab, 0x23F4 in advanceBarrelSpriteOrientation), and there is
- *      a FOURTH the old note missed — 0x18DF in runRivetBoardFinaleThenAdvanceLevel. Re-derived here, against
- *      the pure translated oracle under `new Machine(ROM, { overrides })`: 0
- *      dispatches by frame 600, 23 by frame 700, 798 by frame 1500, 3850 by frame
- *      12000. Test #0 now runs the longer window, asserts the dispatches are
- *      NON-zero, and replays every captured (a, b) against nextAnimationStep.
+ *   1. CAPTURED as well as crafted — 0x3009 is a ROUTINES key dispatched deep in a run
+ *      (0 by frame 600, 798 by 1500, 3850 by 12000); test #0 runs the long window, asserts the
+ *      dispatches are non-zero, and replays every captured (a, b) against nextAnimationStep.
  *
  *   2. EQUAL (exhaustive) — nextAnimationStep == oracle over the full 65,536 (a,b) grid,
  *      on {A, carry, b, c, d}. The routine has FAITHFUL NON-TERMINATION (the
@@ -144,7 +127,7 @@ test("CAPTURED: a real attract run dispatches 0x3009, and every captured input m
     if (!willTerminate(a, b)) continue; // a captured non-terminating input would hang the oracle
     const want = runOracle(m, a, b);
     const got = nextAnimationStep(a, b);
-    if (got.a !== want.a || got.carry !== want.carry || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
+    if (got.a !== want.a || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
       mismatch = { a, b, want, got };
       break;
     }
@@ -178,7 +161,7 @@ test("EQUAL (exhaustive): nextAnimationStep == oracle on {A,carry,b,c,d} over al
       const want = runOracle(m, a, b);
       const got = nextAnimationStep(a, b);
       ran++;
-      if (got.a !== want.a || got.carry !== want.carry || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
+      if (got.a !== want.a || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
         mismatch = { a, b, want, got };
         break;
       }
@@ -231,10 +214,15 @@ test("ARMS: each exit arm (next!=3, next==3 & d!=0, next==3 & d==0) is hit and m
   for (const [label, [a, b]] of Object.entries(arms)) {
     const want = runOracle(m, a, b);
     const got = nextAnimationStep(a, b);
-    assert.deepEqual(got, { a: want.a, carry: want.carry, b: want.b, c: want.c, d: want.d }, `arm "${label}" mismatch`);
+    assert.deepEqual(
+      { a: got.a, b: got.b, c: got.c, d: got.d },
+      { a: want.a, b: want.b, c: want.c, d: want.d },
+      `arm "${label}" mismatch`,
+    );
   }
-  // Confirm the arms are actually distinct (guards against all three collapsing).
-  assert.equal(nextAnimationStep(0x02, 0x00).carry, true, "early arm should set carry");
+  // Confirm the arms are actually distinct (guards against all three collapsing) on the A tooth —
+  // carry is the dead flag residue and is no longer pinned.
+  assert.equal(nextAnimationStep(0x02, 0x00).a, 1, "early arm (next!=3) returns A=1");
   assert.equal(nextAnimationStep(0x03, 0x01).a, 3, "deep d!=0 arm returns A=3");
   assert.equal(nextAnimationStep(0x01, 0x01).a, 0x04, "deep d==0 arm returns A=0x04");
   console.log("  ARMS: all three exit arms reached, distinct, and equal to the oracle");
@@ -279,7 +267,7 @@ test("TEETH (exhaustive): the exit-threshold twin is CAUGHT by the sweep", () =>
       if (!willTerminate(a, b)) continue;
       const want = runOracle(m, a, b);
       const got = brokenLoc3009(a, b);
-      if (got.a !== want.a || got.carry !== want.carry || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
+      if (got.a !== want.a || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
         caught = { a, b, want, got };
         break;
       }

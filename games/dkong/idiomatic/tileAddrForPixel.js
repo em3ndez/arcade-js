@@ -17,18 +17,18 @@ export function tileAddrForPixel(y, x) {
 
 /**
  * tileAddrForPixelFromRegisters — the seam entry: marshals the machine to the pure (y, x) and
- * replays its register/flag return. It reproduces the row-base pair (not just the address) because
- * not all callers bracket the call in a push/pop — one lets that pair flow on to its own caller.
+ * replays its register return. It reproduces the row-base pair (D/E = rowBase, not just the
+ * address) because not all callers bracket the call in a push/pop — one lets that pair flow on
+ * to its own caller. The page-add flag byte is dead at every caller and is not reproduced.
  */
 export function tileAddrForPixelFromRegisters(m, y = m.regs.h, x = m.regs.l) {
   const { regs } = m;
 
   const rowBase = tileAddrForPixel(y, 0); // the pure function at column zero
+  const col = (x >> 3) & 0x1f;
 
-  regs.hl = (x >> 3) & 0x1f;
   regs.e = rowBase & 0xff;
-  regs.a = (rowBase >> 8) - 0x74;
-  regs.add(0x74); // page add — also sets the flags
+  regs.a = (rowBase >> 8) & 0xff;
   regs.d = regs.a;
-  regs.addHl(regs.de);
+  regs.hl = u16(col + rowBase); // DE = rowBase, so col + rowBase is the addHl result
 }

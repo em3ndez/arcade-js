@@ -40,24 +40,20 @@ export function nextAnimationStep(a, b) {
 
 /**
  * nextAnimationStepFromRegisters — the seam entry: marshals the machine to the pure function's
- * (a, b) inputs and replays its register/flag return. ⚠ Wired DIRECTLY (machine as the byte arg,
+ * (a, b) inputs and replays its register return. ⚠ Wired DIRECTLY (machine as the byte arg,
  * selector undefined) the scan loop's match never fires and it hangs — the marshalling is
- * load-bearing. Each branch's plain outputs ride a return-assignment; the terminal compare and the
- * deep-exit decrement stay machine ops — they, not a plain store, set the F the seam gate pins.
+ * load-bearing. Each branch's outputs ride a return-assignment. The terminal compare and the
+ * deep-exit decrement set only F, which no caller reads (dead flag): the compare is dropped, and
+ * the decrement becomes a plain byte op that preserves D exactly.
  */
 export function nextAnimationStepFromRegisters(m, input = m.regs.a, bIn = m.regs.b) {
-  const { regs } = m;
   const r = nextAnimationStep(input, bIn);
-
-  regs.a = r.carry ? r.a : 0x03; // the accumulator the terminal `cp 0x03` compares
-  regs.cp(0x03);                 // terminal compare — sets the returned F (flag-ABI residue)
 
   if (r.carry) {
     return [m.regs.b = r.b, m.regs.c = r.c, m.regs.d = input, m.regs.a = r.a];
   }
 
-  // next == 3: `res 2,d` is a flagless value op (`input & ~0x04`); `dec d` stays a machine op —
-  // its Z/S are the deep exit's return flags — while b/c/d/a ride the return.
-  const dVal = regs.dec8(input & ~0x04);
+  // next == 3: `res 2,d` (input & ~0x04) then `dec d` — a plain byte decrement; its flags were dead.
+  const dVal = ((input & ~0x04) - 1) & 0xff;
   return [m.regs.b = r.b, m.regs.c = r.c, m.regs.d = dVal, m.regs.a = r.a];
 }
