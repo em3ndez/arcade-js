@@ -77,8 +77,11 @@ function firstRamDiff(a, b) {
 }
 
 // The registers the routine leaves live (A hit flag, B count−index) plus the ones it must
-// preserve, and the flag byte (it falls out of the same search arithmetic on both sides).
-const REG_NAMES = ["a", "b", "c", "h", "l", "f", "de", "ix", "iy"];
+// preserve.
+// F is EXCLUDED: the outgoing flag byte is DEAD on every exit -- findCollidingObject's axis-2 is
+// now plain JS (no Z80 ALU op), and every consumer re-derives its branch from A or B (loc_2808
+// `and a`; loc_2954 `ld a,b`/`and a`); the wrapper only `ret`/`ld b` after the call.
+const REG_NAMES = ["a", "b", "c", "h", "l", "de", "ix", "iy"];
 function regDiffs(o, c) {
   const out = [];
   for (const n of REG_NAMES) if (o.regs[n] !== c.regs[n]) out.push(`reg ${n} oracle=${hx(o.regs[n])} cand=${hx(c.regs[n])}`);

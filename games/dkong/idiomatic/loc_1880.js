@@ -44,7 +44,7 @@ const SND_LATCH = SND_TRIGGER + 2; // sound latch 2
 const SND_ASSERT_FRAMES = 0x03; // held asserted for three frames, then counted down elsewhere
 
 export function loc_1880(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   addToSpriteObjectColumn(m, Y_COLUMN, DESCEND_STEP);
 
@@ -57,8 +57,7 @@ export function loc_1880(m) {
   mem8[CUTSCENE_SPRITE_RECORD_2 + 2] = 0x01;
   mem8[CUTSCENE_SPRITE_RECORD_2 + 3] = 0xd8;
 
-  regs.hl = INTERLUDE_TILE_BLOCK_TOPLEFT; // the fill start, read live-in by the fill
-  fillTileBlock(m);
+  fillTileBlock(m, INTERLUDE_TILE_BLOCK_TOPLEFT); // top-left of the 70-tile fill
 
   drawBoardLayout(m, undefined, INTERLUDE_LAYOUT_SEGMENT_TABLE); // the table base, read live-in by the draw
 

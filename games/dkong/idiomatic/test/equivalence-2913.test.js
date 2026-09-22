@@ -82,9 +82,12 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-// The registers this routine leaves live (plus the flag byte, which falls out of the same
-// arithmetic on both exits). IX is preserved, so it is compared too.
-const REG_NAMES = ["a", "b", "c", "h", "l", "f", "de", "ix", "iy"];
+// The registers this routine leaves live: A (hit/exhausted), B (count-minus-index residue), and
+// the untouched live-ins C/H/L/DE/IY plus the preserved IX. The flag byte F is NOT compared: it is
+// dead on every exit — every consumer re-derives its branch from A or B (loc_2808 does `and a`;
+// loc_2954 does `ld a,b`/`and a`), and the sweep wrappers only `ret`/`ld b` after the call. So the
+// idiomatic axis-2 is plain JS (no Z80 ALU op), and F is free to differ from the oracle's residue.
+const REG_NAMES = ["a", "b", "c", "h", "l", "de", "ix", "iy"];
 function regDiffs(o, c) {
   const out = [];
   for (const n of REG_NAMES) if (o.regs[n] !== c.regs[n]) out.push(`reg ${n} oracle=${hx(o.regs[n])} cand=${hx(c.regs[n])}`);

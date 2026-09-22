@@ -78,7 +78,5 @@ export function seed100mBoardObjects(m) {
 
   // Terminal register live-outs the memory-equivalence gate compares: C/D/E/H reloaded here (A/B/L/IX
   // already left by the gather; H-only, since the gather leaves L, so writing HL would clobber L).
-  return void (
-    (regs.c = 0x1c), (regs.de = 32), (regs.h = (M100_FIRE_SPRITE_PAIR >> 8) & 0xff)
-  );
+  return void ((regs.c = 0x1c), (regs.de = 32), (regs.h = (M100_FIRE_SPRITE_PAIR >> 8) & 0xff));
 }

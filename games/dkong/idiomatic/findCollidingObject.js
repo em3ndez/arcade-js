@@ -5,16 +5,16 @@
  * collision primitive: inactive records (flag +0 bit0 clear) are skipped, and each axis passes
  * inside the caller's base tolerance window or the record's own extra span. It writes no memory.
  * Returns `{ hit, a, b }` (a/b mirror the regs.a/regs.b writes). LIVE-OUT: A (1 hit / 0 exhausted),
- * B (count-minus-index residue the hit-handler reads), the flag byte; no memory. Axis 2's hit exit
- * keeps the real Z80 subtractions so the outgoing flag byte stays bit-exact (axis 1 leaves no live
- * flag, so it is plain JS).
+ * B (count-minus-index residue the hit-handler reads); no memory. The outgoing flag byte is DEAD:
+ * every consumer re-derives its branch from A or B and none reads the flags, so both axes are plain
+ * JS with no Z80 ALU op.
  */
 
 import { u16 } from "../../../core/int.js";
 import { OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
 
 export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.l, iy = m.regs.iy, h = m.regs.h, de = m.regs.de, count = m.regs.b) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Walk a local copy of the base so the caller's own base register is preserved.
   let rec = ix;
@@ -35,13 +35,11 @@ export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.
         if ((w - l) >= mem8[u16(rec + OBJ_HIT_EXTENT_Y)]) break record;
       }
 
-      // Axis 2: |ref[+3] - record[+3]|, inside the base window or the record's extra span. The hit
-      // exit's live flag byte comes from these subtractions, so they stay on the Z80 ALU.
-      regs.a = Math.abs(mem8[u16(iy + 0x03)] - mem8[u16(rec + 0x03)]);
-      regs.sub(h);
-      if (!regs.fC) {
-        regs.sub(mem8[u16(rec + OBJ_HIT_EXTENT_X)]);
-        if (regs.fNC) break record; // out of range on axis 2 -> next record
+      // Axis 2: |ref[+3] - record[+3]|, inside the base window or the record's extra span.
+      const wy = Math.abs(mem8[u16(iy + 0x03)] - mem8[u16(rec + 0x03)]) & 0xff;
+      if (wy >= h) {
+        // Past the base tolerance -> must fall inside the record's extra span, else out of range.
+        if ((wy - h) >= mem8[u16(rec + OBJ_HIT_EXTENT_X)]) break record;
       }
 
       hit = true;
@@ -55,6 +53,5 @@ export function findCollidingObject(m, ix = m.regs.ix, c = m.regs.c, l = m.regs.
     if (remaining === 0) break;
   }
 
-  regs.xor(regs.a);
-  return (m.regs.b = 0, { hit: false, a: 0, b: 0 }); // list exhausted, no hit; A and B drained to 0
+  return (m.regs.a = 0, m.regs.b = 0, { hit: false, a: 0, b: 0 }); // list exhausted, no hit; A and B drained to 0
 }

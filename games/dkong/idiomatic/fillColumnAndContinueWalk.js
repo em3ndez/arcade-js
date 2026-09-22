@@ -11,7 +11,7 @@ import { SEG_TILE, SEG_HEIGHT } from "./names.js";
 import { drawBoardLayout } from "./drawBoardLayout.js";
 
 export function fillColumnAndContinueWalk(m, hl = m.regs.hl, de = m.regs.de) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const tile = mem8[SEG_TILE]; // loop-invariant, hoisted
   let addr = hl;
@@ -23,6 +23,7 @@ export function fillColumnAndContinueWalk(m, hl = m.regs.hl, de = m.regs.de) {
     if (height < 0x08) break; // subtraction borrowed -> height spent, column done
   }
 
-  regs.de = u16(de + 1);
-  drawBoardLayout(m);
+  // Step the record pointer and resume the walk; the pointer rides the register into the
+  // resumed walk and stays live for the caller when the next record is the terminator.
+  return (m.regs.de = u16(de + 1), drawBoardLayout(m));
 }

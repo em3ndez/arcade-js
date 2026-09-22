@@ -92,8 +92,9 @@ function firstRamDiff(a, b) {
 // exhaust verdict) and B (count-minus-index) back from loc_2a22; C/DE/H/L/IX/IY are preserved INPUTS the
 // wrapper seats or passes through and no caller reads (loc_29af re-seats IX itself and never reads DE),
 // so pinning them over-compares and would falsely redden a rewrite that legitimately drops the seats. F is
-// kept — it falls out of findCollidingObject's arithmetic identically on both layers (its own gate proves it).
-const REG_NAMES = ["a", "b", "f"];
+// EXCLUDED: it is DEAD on every exit -- findCollidingObject's axis-2 is now plain JS (no Z80 ALU op), and
+// loc_29af re-derives its branch from A (loc_2808 `and a`), never reading the flag byte the search leaves.
+const REG_NAMES = ["a", "b"];
 function regDiffs(o, c) {
   const out = [];
   for (const n of REG_NAMES) if (o.regs[n] !== c.regs[n]) out.push(`reg ${n} oracle=${hx(o.regs[n])} cand=${hx(c.regs[n])}`);

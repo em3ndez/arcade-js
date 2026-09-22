@@ -28,7 +28,7 @@ import {
   SEG_KIND,
 } from "./names.js";
 
-export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de) {
+export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de, y = m.regs.h) {
   const { mem8, mem16 } = m;
 
   // The accumulator arrives holding the segment's height.
@@ -40,22 +40,17 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de) {
   mem8[SEG_RUN] = (x2 - c);
   mem8[SEG_SUBTILE2] = x2 & 0x07;
 
-  // Convert the second point to a tile address (the record pointer is safe in the `de` local). The
-  // y arrives in H (the caller kept it there for the frozen leaf); hand (y, x) to the converter as
+  // Convert the second point to a tile address (the record pointer is safe in the `de` local). y
+  // arrives in H (the caller kept it there for the frozen leaf); hand (y, x) to the converter as
   // arguments, and take SEG_ADDR2 from the pure leaf — it equals the HL the converter leaves.
-  const y = m.regs.h;
   tileAddrForPixelFromRegisters(m, y, x2);
   mem16[SEG_ADDR2] = tileAddrForPixel(y, x2);
-
-  // Hand the record cursor to the drawers, which read regs.de and step it to the next record.
-  m.regs.de = de;
 
   // Dispatch on record kind. This is a SIGN test, not an unsigned compare; the two agree only
   // because real kinds are small.
   const kind = mem8[SEG_KIND];
   if ((((kind - 0x02) & 0xff) & 0x80) === 0) {
-    drawGirderSpan(m);
-    return;
+    return void (m.regs.de = de, drawGirderSpan(m));
   }
 
   // Kinds 0 and 1: fold the second point's sub-tile x into the run before the span fill.
@@ -74,6 +69,7 @@ export function loc_0dd3(m, a = m.regs.a, c = m.regs.c, de = m.regs.de) {
     mem8[SEG_RUN] = 0x00;
   }
 
-  // drawLadder reads HL (and L = its low byte) as its write cursor — handed in as an argument.
-  drawLadder(m, hl);
+  // The ladder drawer reads HL (and L = its low byte) as its write cursor — handed in as an
+  // argument; the record cursor rides the tail on the register file for its far-cap step.
+  return void (m.regs.de = de, drawLadder(m, hl));
 }

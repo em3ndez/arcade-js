@@ -37,7 +37,7 @@ const GAMEOVER_WAIT = 0xc0; //     the hold (~192 frames) before that sequence r
 const SCORE_FORMAT_P1 = 0x01; //   selects player 1's slot for the score format/rank step
 
 export function losePlayer1Life(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   silenceSound(m);
 
@@ -66,8 +66,7 @@ export function losePlayer1Life(m) {
     enqueueTask(m, 0x03, 0x02);
     bannerTop = u16(GAMEOVER_BANNER_TOPLEFT_1P - 1);
   }
-  regs.hl = bannerTop;
-  fillTileBlock(m); // fills 70 tiles from there
+  fillTileBlock(m, bannerTop); // fills 70 tiles from there
 
   enqueueTask(m, 0x03, 0x00);
   mem8[SUBSTATE_TIMER] = GAMEOVER_WAIT;

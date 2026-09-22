@@ -29,12 +29,8 @@ const OFFSET_MASK = 0x1f; // the doubled opcode is masked to five bits before in
 const SLOT_FREE = 0xff;
 const RING_BASE = u8(TASK_RING); // the dequeue pointer is a low byte within its page
 
-export function loc_02e3(
-  m,
-  // The sole caller hands both over in registers; the live engine dispatches with the machine alone.
-  slot = m.regs.hl,
-  doubledOpcode = m.regs.a,
-) {
+// The sole caller hands slot and opcode over in registers; the live engine dispatches with m alone.
+export function loc_02e3(m, slot = m.regs.hl, doubledOpcode = m.regs.a) {
   const { regs, mem8 } = m;
 
   // Release the slot as consumed, taking the payload before its byte frees. The dequeue pointer
