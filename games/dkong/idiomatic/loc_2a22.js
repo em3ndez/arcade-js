@@ -14,5 +14,5 @@ import { OBJ_ARRAY_66 } from "./names.js";
 export function loc_2a22(m, c = m.regs.c, l = m.regs.l, iy = m.regs.iy, h = m.regs.h) {
   // Fixed for this array: six records, 16-byte stride, base OBJ_ARRAY_66. The caller supplies the
   // reference point (c), per-axis tolerances (l/h) and Mario's block (iy).
-  findCollidingObject(m, OBJ_ARRAY_66, c, l, iy, h, 16, 6);
+  return findCollidingObject(m, OBJ_ARRAY_66, c, l, iy, h, 16, 6);
 }

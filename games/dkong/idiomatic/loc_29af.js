@@ -60,12 +60,12 @@ export function loc_29af(m) {
   if (!boardBitGate(m, BOARD_MASK)) return true;
 
   // Run the six-record overlap search against Mario: reference point c = his Y, spans l/h, base iy.
-  loc_2a22(m, mem8[MARIO_Y], CONTACT_SPAN_Y, MARIO_ACTIVE, CONTACT_SPAN_X);
-  if (regs.a === 0) return true;
+  const search = loc_2a22(m, mem8[MARIO_Y], CONTACT_SPAN_Y, MARIO_ACTIVE, CONTACT_SPAN_X);
+  if (search.a === 0) return true;
 
   // Match is reported as count minus index; recover the record — it rides each arm's return into
   // ix for the handler (set on every post-match path, as before the standalone write).
-  const record = OBJ_ARRAY_66 + (RECORD_COUNT - regs.b) * RECORD_STRIDE;
+  const record = OBJ_ARRAY_66 + (RECORD_COUNT - search.b) * RECORD_STRIDE;
 
   const contactLine = u8(mem8[record + OBJ_Y] - CONTACT_LINE_RISE);
   const previousY = mem8[MARIO_AIR_PREV_Y];
