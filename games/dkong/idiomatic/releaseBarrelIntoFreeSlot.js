@@ -42,5 +42,5 @@ export function releaseBarrelIntoFreeSlot(m, record = m.regs.ix, b = m.regs.b) {
   mem8[BONUS] = remaining;
   if (remaining === 0) mem8[BONUS_EXPIRED_STEP] = 1;
 
-  return loc_2ce6(m, BONUS);
+  return loc_2ce6(m, BONUS, record);
 }

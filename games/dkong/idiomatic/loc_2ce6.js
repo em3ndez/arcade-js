@@ -17,7 +17,7 @@ import { stampReleasedBarrelKind } from "./stampReleasedBarrelKind.js";
 const COUNTDOWN_RECORDS = 4;
 const SPRITE_RECORD_BYTES = 4;
 
-export function loc_2ce6(m, hl = m.regs.hl) {
+export function loc_2ce6(m, hl = m.regs.hl, record = m.regs.ix) {
   const { mem8 } = m;
 
   // The caller left its pointer on the bonus counter it just decremented for this release.
@@ -27,5 +27,5 @@ export function loc_2ce6(m, hl = m.regs.hl) {
     mem8[BONUS_COUNTDOWN_SPRITES + remaining * SPRITE_RECORD_BYTES + SPRITE_X] = 0;
   }
 
-  return stampReleasedBarrelKind(m);
+  return stampReleasedBarrelKind(m, record);
 }

@@ -11,16 +11,12 @@
  * clone is only safe for a read-only leaf). LIVE-OUT is MEMORY-ONLY: the successor
  * (dispatchBoardClearedInterlude's rst-0x28 tail, a plain `ret`) reads no register or flag, so the
  * oracle's residual A/HL/F are dead ABI and are NOT compared. Both oracle exit arms
- * land at SP+2 / pc = word@SP (the grandparent return); the candidate reaches the
- * same by replacing the Z80 stack with the JS call stack and letting the harness
- * supply ONE closing `ret`.
+ * land at SP+2 / pc = word@SP; the candidate reaches the same via the JS call stack
+ * plus one harness-supplied closing `ret`.
  *
- * Its three callees (animateSpriteObjectBlock 0x306f, cullSpriteObjectsAtTop 0x176c,
- * allSlotsClear 0x1783) are the already-decompiled idiomatic primitives the routine
- * calls directly. The oracle reaches the SAME implementations' behaviour through the
- * translated table (a no-override Machine runs pure translated code), so any diff is
- * this routine's own glue — the two sprite passes' ORDER and the inc-hl/inc-de
- * pointer advance that feeds allSlotsClear.
+ * Its three callees are already-decompiled idiomatic primitives the routine calls
+ * directly; the oracle reaches the same behaviour through the translated table, so any
+ * diff is this routine's own glue — the sprite passes' ORDER and the pointer advance.
  *
  * REACHABILITY: 0x1757 is NOT reached in attract — a real run dispatches it ZERO
  * times (measured 0 / 2000 frames; its board-advance caller never runs in attract).
@@ -184,24 +180,24 @@ function craft(seed, { xOf, yOf, phase, timerSentinel = 0x11, selSentinel = 0x22
 
 /** Broken twin: arms SUBSTATE_TIMER = 0x41 instead of 0x40 on the clear arm. */
 function brokenTimerValue(m) {
-  const { regs, mem } = m;
+  const { regs, mem, mem8 } = m;
   animateSpriteObjectBlock(m);
   cullSpriteObjectsAtTop(m);
   regs.hl = (regs.hl + 1) & 0xffff;
   regs.de = (regs.de + 1) & 0xffff;
-  if (!allSlotsClear(mem, regs.hl, regs.de)) return;
+  if (!allSlotsClear(mem8, regs.hl, regs.de)) return;
   mem.write8(SUBSTATE_TIMER, 0x41); // BUG: should be 0x40
   mem.write8(SEQUENCE_SELECTOR, (mem.read8(SEQUENCE_SELECTOR) + 1) & 0xff);
 }
 
 /** Broken twin: forgets to advance the 0x6388 sequence selector on the clear arm. */
 function brokenNoSelectorIncrement(m) {
-  const { regs, mem } = m;
+  const { regs, mem, mem8 } = m;
   animateSpriteObjectBlock(m);
   cullSpriteObjectsAtTop(m);
   regs.hl = (regs.hl + 1) & 0xffff;
   regs.de = (regs.de + 1) & 0xffff;
-  if (!allSlotsClear(mem, regs.hl, regs.de)) return;
+  if (!allSlotsClear(mem8, regs.hl, regs.de)) return;
   mem.write8(SUBSTATE_TIMER, 0x40);
   // BUG: the `inc (0x6388)` is missing
 }
@@ -209,11 +205,11 @@ function brokenNoSelectorIncrement(m) {
 /** Broken twin: drops the inc hl / inc de, so it scans allSlotsClear(0x6907, 3) — the
  *  cull's raw pointer/stride — instead of the block scan (0x6908, 4). */
 function brokenNoPointerAdvance(m) {
-  const { regs, mem } = m;
+  const { regs, mem, mem8 } = m;
   animateSpriteObjectBlock(m);
   cullSpriteObjectsAtTop(m); // leaves HL = 0x6907, DE = 3
   // BUG: inc hl / inc de omitted
-  if (!allSlotsClear(mem, regs.hl, regs.de)) return;
+  if (!allSlotsClear(mem8, regs.hl, regs.de)) return;
   mem.write8(SUBSTATE_TIMER, 0x40);
   mem.write8(SEQUENCE_SELECTOR, (mem.read8(SEQUENCE_SELECTOR) + 1) & 0xff);
 }

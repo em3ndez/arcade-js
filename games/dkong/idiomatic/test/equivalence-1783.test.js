@@ -9,10 +9,9 @@
  * whole observable output is (a) no memory written and (b) that boolean. It is
  * validated against the frozen oracle on both:
  *
- *   1. REACHABILITY — hook 0x1783 over a long attract run. It is NOT dispatched in
- *      attract (its caller sub_1757 is a post-board object-clear phase attract never
- *      enters), so per doc-06 the gate is entirely CRAFTED ENTRIES over every arm.
- *      Any real dispatch that *does* appear is validated; none is required.
+ *   1. REACHABILITY — hook 0x1783 over a long attract run. It is NOT dispatched in attract
+ *      (its caller sub_1757 is a post-board object-clear phase), so the gate is entirely
+ *      CRAFTED ENTRIES over every arm; any real dispatch that appears is validated, none required.
  *
  *   2. EQUAL (crafted arms) — for a curated set of strided-scan states covering every
  *      control arm (all-clear; first / middle / last slot occupied; several strides;
@@ -110,7 +109,7 @@ function runOracle(crafted) {
 function runCandidate(crafted) {
   const m = crafted.clone();
   const before = m.dumpState();
-  const bool = allSlotsClear(m.mem, m.regs.hl, m.regs.de);
+  const bool = allSlotsClear(m.mem8, m.regs.hl, m.regs.de);
   const after = m.dumpState();
   // candidate is read-only; confirm it too mutated nothing
   const wrote = firstRamDiffExStack(before, after, m);

@@ -29,7 +29,7 @@ const SLOT_ACTIVE = 0x01;      // OBJ_ACTIVE bit 0 — the record is a barrel al
 const SLOT_OCCUPIED = 0x02;    // OBJ_ACTIVE bit 1 — the record is claimed but not yet moving
 
 export function driveBarrelRelease(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (!boardBitGate(m, BOARD_MASK)) return;
   if (!marioActiveGuard(m)) return;
@@ -41,7 +41,6 @@ export function driveBarrelRelease(m) {
   let record = OBJ_ARRAY_67;
   for (let remaining = BARREL_SLOTS; remaining > 0; remaining--) {
     if ((mem8[record + OBJ_ACTIVE] & (SLOT_ACTIVE | SLOT_OCCUPIED)) === 0) {
-      regs.ix = record;   // still seated: read downstream by stampReleasedBarrelKind (out-of-cluster)
       return releaseBarrelIntoFreeSlot(m, record, remaining);
     }
     record += RECORD_STRIDE;

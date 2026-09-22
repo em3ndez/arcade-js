@@ -19,7 +19,7 @@ import { allSlotsClear } from "./allSlotsClear.js";
 const SUBSTATE_DWELL = 0x40; // frames to hold before the next sub-state proceeds
 
 export function advanceBoardStepWhenSpritesCleared(m) {
-  const { mem, mem8 } = m;
+  const { mem8 } = m;
 
   animateSpriteObjectBlock(m);
   // Returns the scan pointer/stride pair (also mirrored to HL/DE), each one short.
@@ -28,7 +28,7 @@ export function advanceBoardStepWhenSpritesCleared(m) {
   const base = u16(scanPtr + 1);
   const stride = u16(recordStride + 1);
 
-  if (!allSlotsClear(mem, base, stride)) return;
+  if (!allSlotsClear(mem8, base, stride)) return;
 
   mem8[SUBSTATE_TIMER] = SUBSTATE_DWELL;
   mem8[BOARD_ADVANCE_STEP] = (mem8[BOARD_ADVANCE_STEP] + 1);

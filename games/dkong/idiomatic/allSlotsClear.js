@@ -7,10 +7,10 @@
  */
 import { u16 } from "../../../core/int.js";
 
-export function allSlotsClear(mem, base, stride) {
+export function allSlotsClear(mem8, base, stride) {
   let addr = u16(base);
   for (let slot = 0; slot < 10; slot++) {
-    if (mem.read8(addr) !== 0) return false;
+    if (mem8[addr] !== 0) return false;
     addr = u16(addr + stride); // 16-bit wrap
   }
   return true;
@@ -23,9 +23,9 @@ export function allSlotsClear(mem, base, stride) {
  * the isolated-seam data contract; F is dropped as dead. Writes no memory.
  */
 export function allSlotsClearFromRegisters(m, base = m.regs.hl, stride = m.regs.de) {
-  const { mem } = m;
+  const { mem8 } = m;
 
-  if (!allSlotsClear(mem, base, stride)) return false; // caller-skip; residuals dropped
+  if (!allSlotsClear(mem8, base, stride)) return false; // caller-skip; residuals dropped
 
   return (m.regs.a = 0x00, m.regs.hl = u16(base + 10 * stride), m.regs.b = 0x00, true);
 }
