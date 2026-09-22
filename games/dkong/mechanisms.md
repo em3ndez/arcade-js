@@ -203,7 +203,7 @@ get *there*" question resolves to one of them. All four tables read directly out
 |---|---|---|---|
 | top | `GAME_STATE` | ROM 0x00CA | 4 words: `0x01C3` power-on, `0x073C` attract, `0x08B2` credited, `0x06FE` in-game |
 | in-game | `GAME_SUBSTATE` | ROM 0x0702 | 24 words for indices 0x00–0x17, of which index 0x09 is `0x0000`, so 23 live handlers; padded with five more zero words |
-| attract | `GAME_SUBSTATE` | ROM 0x0748 | 8 words: `0779 0763 123C 1977 127C 07C3 07CB 084B` |
+| attract | `GAME_SUBSTATE` | ROM 0x0748 | 8 words: `0779` composeAttractTitleScreen, `0763` restartAttractDemoAt25m, `123C` seedMarioActorRecord, `1977` runAttractDemoFrame, `127C` runDeathAnimationSubstate, `07C3` clearScreenAndAdvanceSubstate, `07CB` loc_07cb, `084B` clearSubstateWhenTimerExpires |
 | within a state | a per-machine step byte | various | `INTRO_STEP` → ROM 0x0A7A; `BOARD_ADVANCE_STEP` → ROM 0x1623 / 0x1637 / 0x1648 |
 
 `[code]`
