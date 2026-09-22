@@ -9,6 +9,8 @@
  */
 
 import { u16 } from "../../../core/int.js";
+import { loc_20e1 } from "./loc_20e1.js";
+import { loc_20c3 } from "./loc_20c3.js";
 
 const STEP_WHOLE = 16;
 const STEP_FRACTION = 17;
@@ -21,10 +23,10 @@ export function loc_20b5(m, ix = m.regs.ix) {
   const { mem8 } = m;
   const at = (offset) => u16(ix + offset);
 
-  if (mem8[at(STEP_WHOLE)] !== 0) return m.call(0x20e1);
+  if (mem8[at(STEP_WHOLE)] !== 0) return loc_20e1(m);
 
   mem8[at(STEP_FRACTION)] = LEFTWARD_ONE_PIXEL_FRACTION;
   mem8[at(STEP_WHOLE)] = LEFTWARD_ONE_PIXEL_WHOLE;
 
-  return m.call(0x20c3);
+  return loc_20c3(m);
 }

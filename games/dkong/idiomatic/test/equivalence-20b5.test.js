@@ -4,27 +4,27 @@
  * onto an object record whose whole-pixel step byte is zero, and routes every other record to the
  * mirror arm at ROM 0x20E1. Both exits continue into the still-frozen tail at ROM 0x20C3.
  *
- * WHAT IS COMPARED, and it is MORE than the standard contract. Both continuations are frozen and
- * run identically on both sides, so everything downstream of the two stores is common code and can
- * be asserted rather than excluded:
- *   - the FULL state dump, STACK_SCRATCH INCLUDED. The usual exclusion exists for a rewrite that
- *     dissolves the oracle's call brackets; this one dissolves none — the oracle reaches ROM 0x20E1
- *     by a jump and ROM 0x20C3 by falling through, so neither exit pushes anything and the rewrite
- *     makes exactly the same two registry calls the oracle makes. The stack region therefore has to
- *     match, and asserting it is teeth the exclusion would throw away. Test 1 asserts the dump
- *     really does span that window, so "STACK_SCRATCH included" is not a claim about an empty set.
- *   - the ORACLE's and the CANDIDATE's whole ordered write sequences (address AND value). This is
- *     the only half that can see a value-neutral store — the oracle writes the fraction FIRST and
- *     the whole byte SECOND, and swapping them leaves identical RAM. Carried as a teeth case.
- *   - the entire exit register file (flags and the shadow set included), pc and SP. This routine
- *     writes no register the continuation does not immediately overwrite, so anything visible at
- *     the exit belongs to that common code and must match exactly. There is no dead-register
- *     exclusion to defend.
- *   - the propagated return value, which is `undefined` on every entry reached here — so it is
- *     asserted but carries little on its own, and test 6 manufactures the observable that the weak
- *     return leaves missing.
- * Cycles are NOT compared: they are what cycle-free code gives up. Test 2 measures the difference
- * explicitly and test 3 charges it back.
+ * WHAT IS COMPARED — the memory-equivalence contract for the DISSOLVED form. loc_20b5 no longer
+ * reaches its continuations through m.call: it DIRECT-CALLS the idiomatic loc_20e1 (mirror arm) and
+ * loc_20c3 (fall-through), each of which direct-calls on down to the still-frozen m.call(0x1f83).
+ * Both sides run the rest of the object loop to completion; measured, they leave RAM outside the
+ * stack window and the final SP identical, and only the frozen side's call/ret bracket writes into
+ * the stack window. So this gate asserts:
+ *   - RAM EXCLUDING the STACK_SCRATCH window {0x6be0,0x6c00}: the frozen chain's bracket writes a
+ *     return address there at an SP the JS chain does not push to, so the two runs legitimately
+ *     differ inside it and nowhere else;
+ *   - this routine's OWN ordered store sequence — its writes to the record's two step bytes,
+ *     isolated by address so the tail chain's writes are not mixed in. This is the only half that
+ *     sees a value-neutral store: the local arm writes the fraction FIRST and the whole byte SECOND,
+ *     and swapping them leaves identical RAM. Carried as a teeth case;
+ *   - the final guest SP (a stray push in the dissolved form lands in the excluded window yet still
+ *     moves SP, so this stays load-bearing);
+ *   - the propagated return value, `undefined` on every entry reached here — so it carries little on
+ *     its own, and the TAIL CHOICE test manufactures the arm observable the weak return leaves
+ *     missing.
+ * pc and the rest of the register file are dropped with the frozen call bracket that used to justify
+ * them; cycles are NOT compared (the rewrite is cycle-free), and the LIVE run restores the dissolved
+ * fragment's true oracle cost per dispatch instead.
  *
  *   0/1. REACHABILITY + EQUAL (captured) — 0x20B5 is dispatched naturally during attract, and every
  *        dispatch is replayed INLINE at the dispatch: two clones, oracle on one, candidate on the
@@ -33,27 +33,27 @@
  *        occur, and that attract delivers only the two whole-pixel bytes 0 and 255 — the honest
  *        hole the crafted sweep in test 5 exists to fill, asserted so it cannot quietly become
  *        coverage.
- *   2. CYCLES — the rewrite spends exactly 71 fewer T-states than the oracle on the local arm and
- *      33 fewer on the mirror arm, at every capture. Both constants are pinned by real captures
- *      because attract exercises both arms. They are what test 3 charges back.
  *   3. LIVE — the live-out measurement: the rewrite wired at 0x20B5 for a whole 4000-frame attract
- *      run, its per-frame trace diffed against the all-oracle baseline on EVERY cell, stack
- *      region included, with the dispatch count asserted non-zero and equal to the oracle run's.
- *      COVERAGE: attract only. Gameplay, the other boards and every crafted shape are not run live.
+ *      run, its per-frame trace diffed against the all-oracle baseline on every cell outside
+ *      STACK_SCRATCH, with the dispatch count asserted non-zero and equal to the oracle run's. The
+ *      dissolved fragment's cycle-free cost is measured PER DISPATCH (priceDissolved, to the frozen
+ *      walk-step boundary) and charged back. COVERAGE: attract only. Gameplay, the other boards and
+ *      every crafted shape are not run live.
  *   4. LIVE TEETH — dropping the cycle charge MUST move the trace, so test 3 is sensitive rather
  *      than lenient.
  *   5. EQUAL (crafted) — all 256 whole-pixel step bytes crossed with four fractions (1024 entries),
  *      each a real captured state with two surgical pokes applied identically to both sides, plus
  *      all ten OBJ_ARRAY_67 record bases. This is the only thing that reaches the whole-pixel bytes
  *      1..254 at all.
- *   6. TAIL CHOICE — the manufactured observable. The two continuations are replaced by stubs on a
- *      real captured machine, so which one the routine enters, and with which record pointer,
- *      becomes directly visible instead of being inferred from a 35-write chain. The stubs are
- *      installed on the machine that is actually run (a stub does not survive clone()) and their
- *      liveness is asserted, both from the recorded calls and from a marker byte in RAM.
+ *   6. TAIL CHOICE — the manufactured observable. The routine is run to completion on a real
+ *      captured machine and the record it hands on is read back: the local arm leaves the leftward
+ *      step (whole 255) stamped, the mirror arm leaves loc_20e1's rightward step (whole 1), so which
+ *      arm ran is directly visible in the record. (The old form stubbed the two continuations with
+ *      m.routines.set; a direct call cannot be intercepted that way, so the stub is replaced by
+ *      reading the record.)
  *   7. TEETH — seven broken twins, each of which this contract must catch, followed by two tests
- *      that pin WHICH half catches what: a swapped store ORDER, which the state, the registers and
- *      the return are all blind to and only the write sequence sees; and a twin that misreads a
+ *      that pin WHICH half catches what: a swapped store ORDER, which the state, the SP and the
+ *      return are all blind to and only the own-store sequence sees; and a twin that misreads a
  *      whole-pixel byte attract never delivers, which every one of the 23 real dispatches misses
  *      and only the crafted sweep catches — so neither half of the gate is decorative.
  *
@@ -73,7 +73,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_20b5 as oracle } from "../../translated/loc_20b5.js";
 import { loc_20b5 } from "../loc_20b5.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { STACK_SCRATCH, OBJ_ARRAY_67 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -85,20 +84,21 @@ const test = ROM_PRESENT
 
 const TARGET = 0x20b5;
 
-// The record fields, mirrored from the routine under test.
+// The record fields, mirrored from the routine under test. These two are also this routine's OWN
+// store footprint — the ordered write-sequence check filters the write log down to exactly them.
 const STEP_WHOLE = 16;
 const STEP_FRACTION = 17;
+const OWN_STORES = [STEP_WHOLE, STEP_FRACTION];
 
-// The two continuations, both still frozen and both in this decompile batch.
-const MIRROR_ARM = 0x20e1; // reached by a jump when the whole-pixel byte is nonzero
+// The two continuations, now direct-called by the dissolved routine.
+const MIRROR_ARM = 0x20e1; // reached when the whole-pixel byte is nonzero
 const SHARED_TAIL = 0x20c3; // reached by falling through, after the two stores
 
-// The oracle's T-states the cycle-free rewrite does not spend, per arm. Mirror arm: the load (19),
-// the test (4) and the taken jump (10). Local arm: those three plus the two stores (19 each) — the
-// jump is not taken there and ROM 0x20C3 is entered by falling through, so there is no jump to pay
-// for. Asserted against real captures in test 2 rather than trusted.
-const MIRROR_ARM_SKIPPED = 33;
-const LOCAL_ARM_SKIPPED = 71;
+// The boundary where the frozen chain resumes: loc_1f8d's still-live m.call(0x1f83) back into the
+// object-walk step. loc_20b5 is now DISSOLVED — it direct-calls loc_20e1 / loc_20c3, which
+// direct-call on down to loc_1f8d — so its whole fragment above 0x1f83 runs cycle-free; 0x1f83 and
+// below stay frozen and charge their own T-states.
+const WALK_STEP = 0x1f83;
 
 const ATTRACT_FRAMES = 4000;
 
@@ -108,16 +108,19 @@ const EXPECTED_DISPATCHES = 23;
 const EXPECTED_SHAPES = [0, 255]; // the only whole-pixel step bytes attract delivers
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
+const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
-/** The whole register file as a comparable string — flags and the shadow set included. */
-const regSnapshot = (m) => REG_FIELDS.map((k) => `${k}=${m.regs[k]}`).join(" ");
-
-/** Record every (address, value) a machine writes while `fn` runs, in order. */
-function recordWrites(m, fn) {
+/**
+ * Record this machine's OWN store sequence while `fn` runs: the writes to the record's two step
+ * bytes, in order, isolated by address so the tail chain's writes (and its stack pushes) are not
+ * mixed in. This is the only half of the contract that sees a value-neutral store.
+ */
+function recordOwnWrites(m, fn) {
+  const own = new Set(OWN_STORES.map((o) => (m.regs.ix + o) & 0xffff));
   const writes = [];
   const base = m.mem.write8.bind(m.mem);
   m.mem.write8 = (addr, value) => {
-    writes.push(`${addr & 0xffff}:${value & 0xff}`);
+    if (own.has(addr & 0xffff)) writes.push(`${addr & 0xffff}:${value & 0xff}`);
     return base(addr, value);
   };
   let ret, threw = null;
@@ -130,23 +133,31 @@ function recordWrites(m, fn) {
   return { writes, ret, threw };
 }
 
-/** First differing byte of the FULL state dump — nothing excluded, stack region included. */
+/** First differing state byte OUTSIDE the excluded STACK_SCRATCH window. */
 function firstStateDiff(a, b) {
   const da = a.dumpState(), db = b.dumpState();
   const n = Math.min(da.length, db.length);
   for (let i = 0; i < n; i++) {
-    if (da[i] !== db[i]) return { addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] };
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (inStack(addr)) continue;
+    return { addr, a: da[i], b: db[i] };
   }
   return null;
 }
 
-/** Run the oracle and a candidate on two byte-identical clones and report the whole contract. */
+/**
+ * Run the oracle and a candidate on two byte-identical clones and report the DISSOLVED-form
+ * contract: RAM − STACK_SCRATCH, this routine's own ordered store sequence, the final guest SP, and
+ * the return value. pc and the rest of the register file are dropped with the frozen call bracket
+ * that used to make them comparable.
+ */
 function comparePair(entry, fn) {
   const o = entry.clone();
   const c = entry.clone();
 
-  const ro = recordWrites(o, oracle);
-  const rc = recordWrites(c, fn);
+  const ro = recordOwnWrites(o, oracle);
+  const rc = recordOwnWrites(c, fn);
   if (ro.threw) throw ro.threw; // the oracle faulting is a harness bug, not a result
 
   const writeDiff = (() => {
@@ -160,8 +171,7 @@ function comparePair(entry, fn) {
     threw: rc.threw,
     state: rc.threw ? null : firstStateDiff(o, c),
     writeDiff: rc.threw ? null : writeDiff,
-    regsO: regSnapshot(o), regsC: rc.threw ? null : regSnapshot(c),
-    pcO: o.pc, pcC: rc.threw ? null : c.pc,
+    spO: o.regs.sp, spC: rc.threw ? null : c.regs.sp,
     retO: ro.ret, retC: rc.ret,
     oracleMachine: o,
   };
@@ -169,15 +179,57 @@ function comparePair(entry, fn) {
 
 const mismatched = (r) =>
   r.threw != null || r.state !== null || r.writeDiff !== null ||
-  r.regsO !== r.regsC || r.pcO !== r.pcC || r.retO !== r.retC;
+  r.spO !== r.spC || r.retO !== r.retC;
 
 const describeMismatch = (r) =>
   r.threw ? `candidate threw: ${r.threw.message}`
     : r.state ? `state@${hx(r.state.addr)} oracle=${r.state.a} cand=${r.state.b}`
-      : r.writeDiff ? `write #${r.writeDiff.i} (addr:value) oracle=${r.writeDiff.a} cand=${r.writeDiff.b}`
-        : r.regsO !== r.regsC ? `exit registers differ:\n    oracle=${r.regsO}\n    cand  =${r.regsC}`
-          : r.pcO !== r.pcC ? `exit pc oracle=${hx(r.pcO)} cand=${hx(r.pcC)}`
-            : `return oracle=${r.retO} cand=${r.retC}`;
+      : r.writeDiff ? `own store #${r.writeDiff.i} (addr:value) oracle=${r.writeDiff.a} cand=${r.writeDiff.b}`
+        : r.spO !== r.spC ? `final SP oracle=${hx(r.spO)} cand=${hx(r.spC)}`
+          : `return oracle=${r.retO} cand=${r.retC}`;
+
+/**
+ * A FRESH, override-free Machine carrying the source machine's observable state. Machine.clone()
+ * would rerun the constructor with any live override installed and re-enter this routine through its
+ * own tail chain; a fresh machine dispatches purely through the oracle registry, so pricing the
+ * oracle here is hermetic.
+ */
+function rehost(m) {
+  const c = new Machine(ROM);
+  c.mem.workRam.set(m.mem.workRam);
+  c.mem.spriteRam.set(m.mem.spriteRam);
+  c.mem.videoRam.set(m.mem.videoRam);
+  c.mem.discardedWrites = m.mem.discardedWrites;
+  c.regs.copyFrom(m.regs);
+  c.io.loadStateFrom(m.io);
+  c.cycles = m.cycles;
+  c.pc = m.pc;
+  c.pcKnown = m.pcKnown;
+  c.frame = m.frame;
+  c.nmiCount = m.nmiCount;
+  c.booted = m.booted;
+  c.nextBoundary = Infinity;
+  c.nextNmi = Infinity;
+  c.maxFrames = Infinity;
+  c.maxCycles = Infinity;
+  return c;
+}
+
+/**
+ * What the ORACLE spends on the fragment this rewrite replaces cycle-free: loc_20b5's head, the
+ * dissolved loc_20e1 / loc_20c3 / sprite tail / loc_1f8d, up to — but NOT including — the frozen
+ * m.call(0x1f83). Measured on a rehosted machine with that boundary stubbed to zero cost, so the
+ * price is exactly the fragment and not the frozen subtree past it (which the live run charges for
+ * itself when its own JS chain reaches the same frozen call). Replaces the old fixed 71/33 per-arm
+ * charge, which modelled only ROM 0x20B5's head and left the dissolved fragment below it uncharged.
+ */
+function priceDissolved(m) {
+  const probe = rehost(m);
+  probe.routines.set(WALK_STEP, () => 0);
+  const before = probe.cycles;
+  oracle(probe);
+  return probe.cycles - before;
+}
 
 // -- 0/1. real dispatches, replayed inline ------------------------------------
 
@@ -252,14 +304,6 @@ test("EQUAL (captured): loc_20b5 == oracle on EVERY real dispatch, replayed inli
       `ix=${hx(mismatches[0].ix)} whole=${hx(mismatches[0].whole)}: ${mismatches[0].text}` : "");
   assert.equal(caps.length, dispatches, "every dispatch must have been replayed — no sampling here");
 
-  // The claim "STACK_SCRATCH included" must not be a claim about an empty set. Array.from, NOT
-  // dumpState().map — dumpState returns a Uint8Array whose map would truncate every address.
-  const probe = new Machine(ROM);
-  const addrOf = Array.from(probe.dumpState(), (_, i) => probe.stateOffsetToAddr(i));
-  const inScratch = addrOf.filter((a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi).length;
-  assert.equal(inScratch, STACK_SCRATCH.hi - STACK_SCRATCH.lo,
-    "the compared state dump does not actually span STACK_SCRATCH, so including it proves nothing");
-
   // Non-vacuity: the oracle really did change the record, from a value that was not the target.
   const local = caps.find((e) => e.mem.read8((e.regs.ix + STEP_WHOLE) & 0xffff) === 0);
   assert.ok(local, "expected at least one capture on the local arm");
@@ -268,29 +312,7 @@ test("EQUAL (captured): loc_20b5 == oracle on EVERY real dispatch, replayed inli
   assert.equal(after.mem.read8((local.regs.ix + STEP_FRACTION) & 0xffff), 0, "oracle must leave the fraction = 0");
 
   console.log(`  EQUAL/captured: ${dispatches} of ${dispatches} real dispatches replayed inline (all of them) — ` +
-    `identical on the FULL state dump (${inScratch} STACK_SCRATCH bytes included), the whole write ` +
-    "sequence, the exit register file, pc, SP and the return");
-});
-
-// -- 2. the cycle difference the live run charges back ------------------------
-
-const skippedFor = (whole) => (whole !== 0 ? MIRROR_ARM_SKIPPED : LOCAL_ARM_SKIPPED);
-
-test("CYCLES: the rewrite spends exactly 71 fewer T-states on the local arm and 33 on the mirror arm", () => {
-  const { caps } = run();
-  const seen = new Map();
-  for (const entry of caps) {
-    const whole = entry.mem.read8((entry.regs.ix + STEP_WHOLE) & 0xffff);
-    const o = entry.clone(); const co = o.cycles; oracle(o);
-    const c = entry.clone(); const cc = c.cycles; loc_20b5(c);
-    const delta = (o.cycles - co) - (c.cycles - cc);
-    assert.equal(delta, skippedFor(whole),
-      `cycle delta at ix=${hx(entry.regs.ix)} whole=${hx(whole)} is ${delta}, not ${skippedFor(whole)}`);
-    seen.set(whole !== 0 ? "mirror" : "local", delta);
-  }
-  assert.equal(seen.size, 2, "both arms must be measured — attract reaches both, so both constants are pinned");
-  console.log(`  CYCLES: ${caps.length} captures — local arm ${LOCAL_ARM_SKIPPED}, mirror arm ` +
-    `${MIRROR_ARM_SKIPPED}, every time; these are the constants the LIVE run charges back`);
+    "identical on RAM − STACK_SCRATCH, this routine's own store sequence, the final guest SP and the return");
 });
 
 // -- 3/4. LIVE (whole attract): the live-out measurement ----------------------
@@ -306,18 +328,19 @@ function baselineFrames() {
 }
 
 /**
- * Run attract with `fn` wired live at 0x20B5. The arm is decided from the record BEFORE `fn` runs,
- * because the local arm overwrites the very byte the arm is chosen from. The charge is applied with
- * step() at the machine's current pc, so it restores T-states without moving the pc and without
- * clearing pcKnown the way tick() would.
+ * Run attract with `fn` wired live at 0x20B5. The dissolved fragment is cycle-free, so its true
+ * oracle cost is measured PER DISPATCH by priceDissolved (on the entry state, before `fn` mutates
+ * it) and charged at the frozen walk-step boundary — the point the oracle would next execute. The
+ * frozen subtree past the boundary still charges its own T-states, so adding the oracle's total
+ * would double-count it.
  */
 function liveRun(fn, { charge = true } = {}) {
   let calls = 0;
   const ov = new Map([[TARGET, (mm) => {
     calls++;
-    const skipped = skippedFor(mm.mem.read8((mm.regs.ix + STEP_WHOLE) & 0xffff));
+    const owed = charge ? priceDissolved(mm) : 0;
     const r = fn(mm);
-    if (charge) mm.step(mm.pc, skipped);
+    if (owed) mm.step(WALK_STEP, owed);
     return r;
   }]]);
   const m = new Machine(ROM, { overrides: ov });
@@ -331,12 +354,12 @@ function addressTable() {
   return Array.from(probe.dumpState(), (_, i) => probe.stateOffsetToAddr(i));
 }
 
-/** First (frame, address) where two traces differ. Nothing is excluded — the stack region counts. */
+/** First (frame, address) where two traces differ OUTSIDE the excluded STACK_SCRATCH window. */
 function firstTraceDiff(a, b, addrOf) {
   const n = Math.min(a.length, b.length);
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < a[i].length; j++) {
-      if (a[i][j] !== b[i][j]) return { frame: i, addr: addrOf[j], a: a[i][j], b: b[i][j] };
+      if (a[i][j] !== b[i][j] && !inStack(addrOf[j])) return { frame: i, addr: addrOf[j], a: a[i][j], b: b[i][j] };
     }
   }
   return a.length === b.length ? null : { frame: -1, addr: -1, a: a.length, b: b.length };
@@ -359,7 +382,7 @@ test("LIVE: wired at 0x20b5 for a whole attract run, the trace is identical to t
   assert.equal(live.frames.length, base.length, "the wired run must reach the same frame budget");
 
   console.log(`  LIVE: ${live.calls} dispatches over ${ATTRACT_FRAMES} attract frames — byte-identical to the ` +
-    "all-oracle baseline on every cell, STACK_SCRATCH included");
+    "all-oracle baseline on every cell outside STACK_SCRATCH (fragment cost restored per dispatch)");
 });
 
 test("LIVE TEETH: dropping the cycle charge DOES move the trace, so the LIVE comparison is sensitive", () => {
@@ -371,7 +394,7 @@ test("LIVE TEETH: dropping the cycle charge DOES move the trace, so the LIVE com
     "an uncharged cycle-free run was expected to shift the NMI and diverge; it did not, which means the " +
     "LIVE test's cycle restoration is not what makes it pass and that comparison may be inert");
   console.log(`  LIVE TEETH: uncharged, the run diverges at frame ${diff.frame}, ${hx(diff.addr)} — a timing ` +
-    "artifact, which is exactly why the LIVE test charges the skipped T-states back");
+    "artifact, which is exactly why the LIVE test charges the dissolved fragment's cost back");
 });
 
 // -- 5. EQUAL (crafted): the shapes attract never delivers --------------------
@@ -414,67 +437,48 @@ test("EQUAL (crafted): all 256 whole-pixel bytes x 4 fractions, and all ten reco
     "reach the whole-pixel bytes 1..254 at all");
 });
 
-// -- 6. TAIL CHOICE: the manufactured observable ------------------------------
+// -- 6. TAIL CHOICE: the arm observable ---------------------------------------
 
-// The routine returns `undefined`, so the return assertion is near-vacuous. Replacing the two
-// continuations with stubs makes the branch decision and the handed-on record pointer directly
-// observable instead of being inferred from the 35-write chain they run.
-const MARKER = STACK_SCRATCH.lo; // dead scratch; nothing else runs on the stubbed machine
+// The routine returns `undefined`, so the return assertion is near-vacuous. The dissolved routine
+// DIRECT-CALLS its two continuations, so they can no longer be stubbed with m.routines.set (a direct
+// call bypasses the registry). The arm is instead read back from the record the routine hands on:
+// the local arm leaves the leftward whole-pixel step (255) stamped, the mirror arm leaves loc_20e1's
+// rightward step (1) — distinct values, so which arm ran is directly visible in the finished record.
 
-/**
- * Run `fn` on a real capture whose two continuations are stubbed out. The stubs go on the machine
- * that is ACTUALLY RUN — a stub does not survive clone(), and one installed on a machine that is
- * then cloned would silently test nothing.
- */
-function runWithStubbedTails(entry, fn, { whole, fraction, ix = entry.regs.ix } = {}) {
+/** Run `fn` to completion on a real capture (poked) and read back the record's two step bytes. */
+function runAndReadStep(entry, fn, { whole, fraction, ix = entry.regs.ix } = {}) {
   const m = entry.clone();
   m.regs.ix = ix;
   if (whole !== undefined) m.mem.write8((ix + STEP_WHOLE) & 0xffff, whole);
   if (fraction !== undefined) m.mem.write8((ix + STEP_FRACTION) & 0xffff, fraction);
-  m.mem.write8(MARKER, 0);
-
-  const entered = [];
-  const stub = (addr, mark) => (mm) => {
-    entered.push({ addr, ix: mm.regs.ix, whole: mm.mem.read8((mm.regs.ix + STEP_WHOLE) & 0xffff) });
-    mm.mem.write8(MARKER, mark); // an observable in RAM, so stub liveness is provable from state
-  };
-  m.routines.set(MIRROR_ARM, stub(MIRROR_ARM, 0xe1));
-  m.routines.set(SHARED_TAIL, stub(SHARED_TAIL, 0xc3));
-
   fn(m);
-  return { entered, marker: m.mem.read8(MARKER), m };
+  return {
+    whole: m.mem.read8((ix + STEP_WHOLE) & 0xffff),
+    fraction: m.mem.read8((ix + STEP_FRACTION) & 0xffff),
+  };
 }
 
-test("TAIL CHOICE: the routine enters the right continuation, with the record pointer handed on intact", () => {
+test("TAIL CHOICE: the routine routes to the correct arm, observable in the record it hands on", () => {
   const { caps } = run();
   const seed = caps[0];
 
-  const local = runWithStubbedTails(seed, loc_20b5, { whole: 0, fraction: 0xa0 });
-  assert.equal(local.marker, 0xc3, "the stub at ROM 0x20C3 did not fire — a stub nobody can see is no stub");
-  assert.deepEqual(local.entered.map((e) => e.addr), [SHARED_TAIL],
-    "a zero whole-pixel byte must fall through into ROM 0x20C3, exactly once");
-  assert.equal(local.entered[0].ix, seed.regs.ix, "the record pointer must reach the continuation unchanged");
-  assert.equal(local.entered[0].whole, 255, "the leftward whole pixel must already be stored when the tail runs");
-  assert.equal(local.m.mem.read8((seed.regs.ix + STEP_FRACTION) & 0xffff), 0, "…and the fraction cleared");
+  // A zero whole-pixel byte -> the local arm stamps the leftward whole pixel (255, fraction 0).
+  const local = runAndReadStep(seed, loc_20b5, { whole: 0, fraction: 0xa0 });
+  assert.equal(local.whole, 255, "a zero whole-pixel byte must take the local arm and stamp the leftward pixel");
+  assert.equal(local.fraction, 0, "…with the fraction cleared");
 
-  const mirror = runWithStubbedTails(seed, loc_20b5, { whole: 255, fraction: 0xa0 });
-  assert.equal(mirror.marker, 0xe1, "the stub at ROM 0x20E1 did not fire");
-  assert.deepEqual(mirror.entered.map((e) => e.addr), [MIRROR_ARM],
-    "a nonzero whole-pixel byte must jump to ROM 0x20E1, exactly once");
-  assert.equal(mirror.m.mem.read8((seed.regs.ix + STEP_WHOLE) & 0xffff), 255,
-    "the mirror arm owns the store — this routine must not have written the record itself");
-  assert.equal(mirror.m.mem.read8((seed.regs.ix + STEP_FRACTION) & 0xffff), 0xa0,
-    "…and must have left the fraction alone");
+  // A nonzero whole-pixel byte -> the mirror arm (loc_20e1) stamps the rightward whole pixel (1).
+  const mirror = runAndReadStep(seed, loc_20b5, { whole: 255, fraction: 0xa0 });
+  assert.equal(mirror.whole, 1, "a nonzero whole-pixel byte must take the mirror arm, which stamps the rightward pixel");
+  assert.equal(mirror.fraction, 0, "…and loc_20e1 clears the fraction");
 
-  // Sensitivity: an inverted branch is caught by the observable itself, not by a downstream side
-  // effect, which is the whole point of stubbing the continuations out.
-  const wrong = runWithStubbedTails(seed, twinInvertedBranch, { whole: 0, fraction: 0xa0 });
-  assert.deepEqual(wrong.entered.map((e) => e.addr), [MIRROR_ARM],
-    "the inverted-branch twin should have been observed entering the WRONG continuation");
+  // Sensitivity: the inverted-branch twin routes a whole=0 record to the mirror arm instead, so the
+  // record ends stamped rightward (1) rather than leftward (255) — the observable catches it directly.
+  const wrong = runAndReadStep(seed, twinInvertedBranch, { whole: 0, fraction: 0xa0 });
+  assert.equal(wrong.whole, 1, "the inverted-branch twin should have routed the whole=0 record to the mirror arm");
 
-  console.log("  TAIL CHOICE: zero whole-pixel byte -> ROM 0x20C3 with the record already stamped; nonzero -> " +
-    "ROM 0x20E1 with the record untouched; both stubs observed firing, and an inverted branch is seen going " +
-    "to the wrong one");
+  console.log("  TAIL CHOICE: whole-pixel byte 0 -> local arm stamps leftward (255); nonzero -> mirror arm " +
+    "loc_20e1 stamps rightward (1); the inverted-branch twin is seen taking the wrong arm");
 });
 
 // -- 7. TEETH -----------------------------------------------------------------
@@ -582,12 +586,12 @@ test("TEETH: the swapped store order is caught by the write sequence ALONE, and 
   const entry = craft(caps[0], 0, 0xa0);
   const r = comparePair(entry, twinStoreOrder);
   assert.equal(r.state, null, "a swapped store order must leave the final state identical");
-  assert.equal(r.regsO, r.regsC, "…and the registers identical");
+  assert.equal(r.spO, r.spC, "…and the final SP identical");
   assert.equal(r.retO, r.retC, "…and the return identical");
   assert.notEqual(r.writeDiff, null,
-    "…so the ordered write-sequence comparison must be what catches it — otherwise a reordered store " +
-    "pair would pass this gate unseen");
-  console.log(`  TEETH/order-only: state, registers and return all identical; caught at write ` +
+    "…so the ordered own-store-sequence comparison must be what catches it — otherwise a reordered " +
+    "store pair would pass this gate unseen");
+  console.log(`  TEETH/order-only: state, SP and return all identical; caught at own store ` +
     `#${r.writeDiff.i} oracle=${r.writeDiff.a} twin=${r.writeDiff.b}`);
 });
 

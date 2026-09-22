@@ -11,6 +11,8 @@
 
 import { publishBarrelSprite } from "./publishBarrelSprite.js";
 import { u8, u16 } from "../../../core/int.js";
+import { loc_20a2 } from "./loc_20a2.js";
+import { loc_20c3 } from "./loc_20c3.js";
 
 // Record offsets: +2 is the per-slot walk selector (bit 1 walks one pixel right, bit 2 one left),
 // +14 this sub-state's step counter, +16 the whole-pixel half of the per-frame step (1 right, 255 left).
@@ -30,8 +32,8 @@ export function loc_2083(m, ix = m.regs.ix) {
   const step = u8(mem8[at(SUBSTATE)] + 1);
   mem8[at(SUBSTATE)] = step;
 
-  if (step === 1) return m.call(0x20a2);
-  if (step === 2) return m.call(0x20c3);
+  if (step === 1) return loc_20a2(m);
+  if (step === 2) return loc_20c3(m);
 
   mem8[at(ARM_SELECT)] =
     mem8[at(STEP_WHOLE)] === RIGHTWARD_ONE_PIXEL ? SELECT_WALK_RIGHT : SELECT_WALK_LEFT;

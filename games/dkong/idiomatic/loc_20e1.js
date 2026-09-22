@@ -9,6 +9,7 @@
 
 // The record's 16-bit horizontal velocity: whole pixels first, then the 1/256-pixel fraction.
 import { u16 } from "../../../core/int.js";
+import { loc_20c3 } from "./loc_20c3.js";
 
 const VELOCITY_X_WHOLE = 0x10;
 const VELOCITY_X_FRACTION = 0x11;
@@ -24,5 +25,5 @@ export function loc_20e1(m, record = m.regs.ix) {
   mem8[at(VELOCITY_X_FRACTION)] = RIGHTWARD_ONE_PIXEL_FRACTION;
 
   // On into the shared tail, which rebuilds the vertical half of the launch from the same record.
-  return m.call(0x20c3);
+  return loc_20c3(m);
 }

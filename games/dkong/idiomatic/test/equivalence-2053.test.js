@@ -21,11 +21,14 @@
  *
  * THE RETURN VALUE IS UNDEFINED ON EVERY ARM, of the oracle and of the rewrite alike, so
  * asserting it is near-vacuous. The observable that replaces it is WHICH ARM control left
- * through, and it is derived NON-CIRCULARLY: the label comes from hooks on the continuation
- * addresses that record the ORACLE's own outgoing calls at the outermost dispatch, and the same
- * labeller is then run over the rewrite and the two labels compared. The bounds gate is no longer
- * a hookable continuation (the rewrite inlines it), so its inline-vs-splice split now lives in the
- * RAM contract, and both sides label that fall-through simply "tail".
+ * through, labelled from hooks on the continuation addresses that record the ORACLE's own outgoing
+ * calls at the outermost dispatch. The DISSOLVED rewrite direct-calls those continuations, so they
+ * are no longer hookable on the rewrite side; whichever one it entered is pinned instead by the full
+ * run-to-completion contract (RAM minus stack, the main register live-outs, the return), because a
+ * different continuation changes RAM — contract-equality on a capture IS arm-equality on it. So the
+ * arm labeller now builds the ORACLE's arm census (documentation, and the rare-retire-arm coverage
+ * claim) while the rewrite's agreement is the contract check. The bounds gate is likewise not a
+ * hookable continuation, so its inline-vs-splice split lives in the RAM contract, labelled "tail".
  *
  * WHY THE ENTRIES ARE REHOSTED. A capture is cloned from a machine carrying the capturing
  * override, and clone() reruns the constructor, so a clone carries it too. This branch's tail
@@ -349,16 +352,21 @@ test("ARM: the rewrite leaves through the same continuation as the oracle, on ev
   assert.ok(caps.length > 0, "no dispatch captured — this case would be vacuous");
   const census = new Map();
   for (let i = 0; i < caps.length; i++) {
+    // The arm is a property of the ENTRY, labelled from the ORACLE's own outgoing dispatches (it
+    // still reaches its continuations through the registry, so its arm stays hookable).
     const want = armOf(caps[i], (mm) => oracle(mm));
-    const got = armOf(caps[i], (mm) => loc_2053(mm));
-    assert.equal(got, want, `capture ${i}: oracle left through ${want}, rewrite through ${got}`);
     census.set(want, (census.get(want) ?? 0) + 1);
+    // The dissolved rewrite direct-calls its continuations, so its arm is not independently
+    // hookable; a different continuation changes RAM, so contract-equality on this capture is
+    // arm-equality on it.
+    const diffs = contractDiffs(caps[i], loc_2053);
+    assert.equal(diffs.length, 0, `capture ${i}: rewrite diverged from the oracle's ${want} arm: ${diffs.join("; ")}`);
   }
   // The header claims the retire arm occurs exactly once in the run; this is the line producing it.
   const rare = [...census].filter(([, n]) => n === 1).map(([a]) => a);
   assert.ok(rare.length > 0, "expected at least one arm reached exactly once — re-derive the header's claim");
   console.log(
-    `  ARM: ${caps.length} captures, all agreeing; census ` +
+    `  ARM: ${caps.length} captures, rewrite contract-equal on all; oracle arm census ` +
       `${[...census].sort((p, q) => q[1] - p[1]).map(([a, n]) => `${a}x${n}`).join(" ")} ` +
       `(reached exactly once: ${rare.join(",")})`,
   );

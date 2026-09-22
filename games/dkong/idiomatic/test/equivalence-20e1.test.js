@@ -3,20 +3,24 @@
  * Equivalence test for loc_20e1 (ROM 0x20E1) — the arm that stamps a +1.0 px/frame horizontal
  * velocity onto an object record before the shared launch tail at ROM 0x20C3.
  *
- * WHAT IS COMPARED, and it is more than the usual contract. The routine tail-calls the frozen
- * oracle at ROM 0x20C3, which runs the rest of the object loop and returns through ROM 0x1F92's
- * `ret`, so BOTH sides execute byte-for-byte the same code after the two stores. That makes three
- * stronger assertions affordable than a routine which dissolves its own tail can offer, and all
- * three are made here:
- *   - RAM − STACK_SCRATCH, the standard memory-equivalence contract;
- *   - the ORACLE's and the CANDIDATE's full write sequences (address AND value, in order,
- *     STACK_SCRATCH included) must be identical — so the excluded stack window is shown not to be
- *     hiding a difference rather than assumed not to be;
- *   - the whole exit register file, SP included. This routine writes no register of its own, so
- *     anything left behind is the frozen tail's and must match exactly. There is no dead-register
- *     exclusion to defend.
- * Plus the return value. pc and cycles are NOT compared: they are what cycle-free code gives up,
- * and test 2 measures the cycle difference explicitly instead.
+ * WHAT IS COMPARED — the memory-equivalence contract for the DISSOLVED form. loc_20e1 no longer
+ * reaches its tail through m.call(0x20c3): it DIRECT-CALLS the idiomatic loc_20c3, which direct-calls
+ * loc_2407 / publishBarrelSprite / loc_1f8d, down to the still-frozen m.call(0x1f83). The frozen
+ * oracle jp-tails to that same boundary at the same guest SP (a jp pushes nothing), so both sides
+ * run the rest of the object loop and, measured, leave RAM outside the stack window and the final SP
+ * identical. So this gate asserts:
+ *   - RAM EXCLUDING the STACK_SCRATCH window {0x6be0,0x6c00}: the frozen side's call/ret bracket
+ *     writes a return address into that window at an SP the JS side does not push to, so the two
+ *     runs legitimately differ there and nowhere else;
+ *   - this routine's OWN ordered store sequence — its two writes to the record's velocity bytes,
+ *     isolated by address so the tail chain's writes are not mixed in. This is the only half that
+ *     sees a value-neutral dropped store (a fraction store dropped when the fraction was already 0);
+ *   - the final guest SP (a stray push in the dissolved form lands in the excluded window yet still
+ *     moves SP, so this stays load-bearing);
+ *   - the propagated return value.
+ * pc and the rest of the register file are dropped with the frozen call bracket that used to justify
+ * them; cycles are NOT compared (the rewrite is cycle-free), and test 3's LIVE run restores the
+ * fragment's true oracle cost per dispatch instead.
  *
  *   0. REACHABILITY — 0x20E1 is dispatched naturally during attract. The test measures the count,
  *      the record bases, and the entry shapes, and asserts BOTH that attract reaches this routine
@@ -25,15 +29,14 @@
  *      coverage, and the producing line for the entry numbers the routine header quotes.
  *   1. EQUAL (captured) — EVERY captured dispatch replayed on fresh clones. No sampling: the
  *      natural count is small and test 0 asserts the capture is complete.
- *   2. CYCLES — the candidate spends exactly 48 fewer cycles than the oracle at every capture (the
- *      two stores' 19+19 and the tail jump's 10). That constant is what test 3's live run charges
- *      back, so it is measured here rather than assumed.
  *   3. LIVE (whole attract) — the live-out measurement: the candidate wired at 0x20E1 for a real
  *      4000-frame attract run, its frame trace diffed against the all-oracle baseline on every
  *      cell outside STACK_SCRATCH.
- *      ★ The oracle's 48 skipped cycles are charged back inside the override. Without that the run
- *      diverges purely because cycle-free code shifts the NMI — carried as a teeth case so the
- *      restoration cannot be dropped silently.
+ *      ★ loc_20e1 is cycle-free and, dissolved, so is the whole 0x20C3/0x21BA/0x1F8D fragment below
+ *      it; its true oracle cost is measured PER DISPATCH (priceDissolved, up to the frozen walk-step
+ *      boundary) and charged back inside the override. Without that the run diverges purely because
+ *      cycle-free code shifts the NMI — carried as a teeth case so the restoration cannot be dropped
+ *      silently.
  *      COVERAGE: attract only. Gameplay, the other three boards and every crafted shape in test 4
  *      are NOT exercised live.
  *   4. EQUAL (crafted) — the entry shapes attract never delivers, each a real captured state with
@@ -64,7 +67,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_20e1 as oracle } from "../../translated/loc_20e1.js";
 import { loc_20e1 } from "../loc_20e1.js";
 import { Machine } from "../../machine.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { STACK_SCRATCH, OBJ_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -76,13 +78,18 @@ const test = ROM_PRESENT
 
 const TARGET = 0x20e1;
 
-// The record fields, mirrored from the routine under test.
+// The record fields, mirrored from the routine under test. These two are also this routine's OWN
+// store footprint — the ordered write-sequence check filters the write log down to exactly them, so
+// the tail chain's writes are not mixed in.
 const VELOCITY_X_WHOLE = 0x10;
 const VELOCITY_X_FRACTION = 0x11;
+const OWN_STORES = [VELOCITY_X_WHOLE, VELOCITY_X_FRACTION];
 
-// The oracle's three cycle charges the cycle-free rewrite does not spend: the two stores (19 each)
-// and the tail jump (10).
-const SKIPPED_CYCLES = 48;
+// The boundary where the frozen chain resumes: loc_1f8d's still-live m.call(0x1f83) back into the
+// object-walk step. loc_20e1 is now DISSOLVED — it direct-calls loc_20c3, which direct-calls
+// publishBarrelSprite / loc_1f8d — so its whole fragment above 0x1f83 runs cycle-free; 0x1f83 and
+// below stay frozen and charge their own T-states.
+const WALK_STEP = 0x1f83;
 
 const ATTRACT_FRAMES = 4000;
 const LIVE_FRAMES = 4000;
@@ -103,15 +110,17 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-/** The whole register file as a comparable string, SP included. */
-const regSnapshot = (m) => REG_FIELDS.map((k) => `${k}=${m.regs[k]}`).join(" ");
-
-/** Record every (address, value) this machine writes while `fn` runs, in order. */
-function recordWrites(m, fn) {
+/**
+ * Record this machine's OWN store sequence while `fn` runs: the writes to the record's velocity
+ * bytes, in order, isolated by address so the tail chain's writes (and its stack pushes) are not
+ * mixed in. This is the only half of the contract that sees a value-neutral dropped store.
+ */
+function recordOwnWrites(m, fn) {
+  const own = new Set(OWN_STORES.map((o) => (m.regs.ix + o) & 0xffff));
   const writes = [];
   const base = m.mem.write8.bind(m.mem);
   m.mem.write8 = (addr, value) => {
-    writes.push(`${addr & 0xffff}:${value & 0xff}`);
+    if (own.has(addr & 0xffff)) writes.push(`${addr & 0xffff}:${value & 0xff}`);
     return base(addr, value);
   };
   let ret, threw = null;
@@ -125,16 +134,17 @@ function recordWrites(m, fn) {
 }
 
 /**
- * Run the oracle on one clone and a candidate on another, byte-identical one, and report the whole
- * contract: RAM − STACK_SCRATCH, the identical-write-sequence check, the exit register file and the
- * return value.
+ * Run the oracle on one clone and a candidate on another, byte-identical one, and report the
+ * DISSOLVED-form contract: RAM − STACK_SCRATCH, this routine's own ordered store sequence, the final
+ * guest SP, and the return value. pc and the rest of the register file are dropped with the frozen
+ * call bracket that used to make them comparable.
  */
 function comparePair(entry, fn) {
   const o = entry.clone();
   const c = entry.clone();
 
-  const ro = recordWrites(o, oracle);
-  const rc = recordWrites(c, fn);
+  const ro = recordOwnWrites(o, oracle);
+  const rc = recordOwnWrites(c, fn);
 
   const firstWriteDiff = (() => {
     const n = Math.min(ro.writes.length, rc.writes.length);
@@ -148,7 +158,7 @@ function comparePair(entry, fn) {
   return {
     ram: rc.threw ? null : firstRamDiff(o, c),
     writeDiff: rc.threw ? null : firstWriteDiff,
-    regsO: regSnapshot(o), regsC: rc.threw ? null : regSnapshot(c),
+    spO: o.regs.sp, spC: rc.threw ? null : c.regs.sp,
     retO: ro.ret, retC: rc.ret,
     threw: rc.threw,
     oracleMachine: o,
@@ -156,14 +166,58 @@ function comparePair(entry, fn) {
 }
 
 const mismatched = (r) =>
-  r.threw != null || r.ram !== null || r.writeDiff !== null || r.regsO !== r.regsC || r.retO !== r.retC;
+  r.threw != null || r.ram !== null || r.writeDiff !== null || r.spO !== r.spC || r.retO !== r.retC;
 
 const describeMismatch = (r) =>
   r.threw ? `candidate threw: ${r.threw.message}`
     : r.ram ? `RAM@${hx(r.ram.addr)} oracle=${r.ram.a} cand=${r.ram.b}`
-      : r.writeDiff ? `write #${r.writeDiff.i} (addr:value) oracle=${r.writeDiff.a} cand=${r.writeDiff.b}`
-        : r.regsO !== r.regsC ? `exit registers differ:\n  oracle=${r.regsO}\n  cand  =${r.regsC}`
+      : r.writeDiff ? `own store #${r.writeDiff.i} (addr:value) oracle=${r.writeDiff.a} cand=${r.writeDiff.b}`
+        : r.spO !== r.spC ? `final SP oracle=${hx(r.spO)} cand=${hx(r.spC)}`
           : `return oracle=${r.retO} cand=${r.retC}`;
+
+/**
+ * A FRESH, override-free Machine carrying the source machine's observable state. Machine.clone()
+ * would rerun the constructor with any live override installed and re-enter this routine through its
+ * own tail chain; a fresh machine dispatches purely through the oracle registry, so pricing the
+ * oracle here is hermetic.
+ */
+function rehost(m) {
+  const c = new Machine(ROM);
+  c.mem.workRam.set(m.mem.workRam);
+  c.mem.spriteRam.set(m.mem.spriteRam);
+  c.mem.videoRam.set(m.mem.videoRam);
+  c.mem.discardedWrites = m.mem.discardedWrites;
+  c.regs.copyFrom(m.regs);
+  c.io.loadStateFrom(m.io);
+  c.cycles = m.cycles;
+  c.pc = m.pc;
+  c.pcKnown = m.pcKnown;
+  c.frame = m.frame;
+  c.nmiCount = m.nmiCount;
+  c.booted = m.booted;
+  c.nextBoundary = Infinity;
+  c.nextNmi = Infinity;
+  c.maxFrames = Infinity;
+  c.maxCycles = Infinity;
+  return c;
+}
+
+/**
+ * What the ORACLE spends on the fragment this rewrite replaces cycle-free: loc_20e1's two stores,
+ * the dissolved loc_20c3 / sprite tail / loc_1f8d, up to — but NOT including — the frozen
+ * m.call(0x1f83). Measured on a rehosted machine with that boundary stubbed to zero cost, so the
+ * price is exactly the fragment and not the frozen subtree past it (which the live run charges for
+ * itself when its own JS chain reaches the same frozen call). Replaces the old fixed 48-cycle
+ * charge, which modelled only ROM 0x20E1's stores + jp and left the dissolved 0x20C3/0x21BA/0x1F8D
+ * fragment uncharged, forking the run on the spin counter.
+ */
+function priceDissolved(m) {
+  const probe = rehost(m);
+  probe.routines.set(WALK_STEP, () => 0);
+  const before = probe.cycles;
+  oracle(probe);
+  return probe.cycles - before;
+}
 
 // -- 0/1. real dispatches -----------------------------------------------------
 
@@ -250,20 +304,7 @@ test("EQUAL (captured): loc_20e1 == oracle on every real dispatch", () => {
   assert.equal(after.mem.read8((base + VELOCITY_X_FRACTION) & 0xffff), 0, "oracle must leave the fraction = 0");
 
   console.log(`  EQUAL/captured: ${caps.length} of ${total} real dispatches replayed (all of them) — ` +
-    "identical on RAM − STACK_SCRATCH, the whole write sequence, the exit register file and the return");
-});
-
-// -- 2. the cycle difference the live run charges back ------------------------
-
-test("CYCLES: the rewrite spends exactly 48 fewer cycles than the oracle, at every capture", () => {
-  const { caps } = captured();
-  for (const entry of caps) {
-    const o = entry.clone(); const before0 = o.cycles; oracle(o);
-    const c = entry.clone(); const before1 = c.cycles; loc_20e1(c);
-    assert.equal((o.cycles - before0) - (c.cycles - before1), SKIPPED_CYCLES,
-      `cycle delta at ix=${hx(entry.regs.ix)} is not the two stores plus the tail jump`);
-  }
-  console.log(`  CYCLES: ${caps.length} captures, delta ${SKIPPED_CYCLES} every time — the constant the LIVE run charges`);
+    "identical on RAM − STACK_SCRATCH, this routine's own store sequence, the final guest SP and the return");
 });
 
 // -- 3. LIVE (whole attract): the live-out measurement ------------------------
@@ -279,15 +320,18 @@ function baselineFrames() {
 }
 
 /**
- * Run attract with `fn` wired at 0x20E1. `charge` restores the cycles the cycle-free rewrite does
- * not spend, at the machine's current PC so the charge cannot itself move the PC.
+ * Run attract with `fn` wired at 0x20E1. `charge` restores the cycles the cycle-free dissolved
+ * fragment does not spend — measured PER DISPATCH by priceDissolved and charged at the frozen
+ * walk-step boundary, the point the oracle would next execute. The frozen subtree past the boundary
+ * still charges its own T-states on the live run, so adding the oracle's total would double-count it.
  */
 function liveRun(fn, { charge = true } = {}) {
   let calls = 0;
   const ov = new Map([[TARGET, (mm) => {
     calls++;
+    const owed = charge ? priceDissolved(mm) : 0;
     const r = fn(mm);
-    if (charge) mm.step(mm.pc, SKIPPED_CYCLES);
+    if (owed) mm.step(WALK_STEP, owed);
     return r;
   }]]);
   const m = new Machine(ROM, { overrides: ov });
@@ -323,13 +367,15 @@ test("LIVE: wired at 0x20e1 for a whole attract run, the trace is identical to t
 
   const live = liveRun(loc_20e1);
   assert.ok(live.calls > 0, "the wired routine must actually be dispatched");
+  assert.equal(live.calls, captured().total,
+    `the live run dispatched 0x20e1 ${live.calls} times but the capture run saw ${captured().total}`);
   const diff = firstTraceDiff(base, live.frames, addrOf);
   assert.equal(diff, null,
     diff && `live attract diverged at frame ${diff.frame}, ${hx(diff.addr)}: oracle=${diff.a} cand=${diff.b}`);
   assert.equal(live.frames.length, base.length, "the wired run must reach the same frame budget");
 
   console.log(`  LIVE: ${live.calls} dispatches over ${LIVE_FRAMES} attract frames — ` +
-    "byte-identical to the all-oracle baseline outside STACK_SCRATCH");
+    "byte-identical to the all-oracle baseline outside STACK_SCRATCH (fragment cost restored per dispatch)");
 });
 
 test("LIVE TEETH: dropping the oracle's cycle cost DOES move the trace (so the charge is load-bearing)", () => {
@@ -342,7 +388,7 @@ test("LIVE TEETH: dropping the oracle's cycle cost DOES move the trace (so the c
     "an uncharged cycle-free run was expected to shift the NMI and diverge; it did not, which means " +
     "the LIVE test's cycle restoration is not what is making it pass and the comparison may be inert");
   console.log(`  LIVE TEETH: uncharged, the run diverges at frame ${diff.frame}, ${hx(diff.addr)} ` +
-    "— a timing artifact, which is exactly why the LIVE test charges the 48 cycles back");
+    "— a timing artifact, which is exactly why the LIVE test charges the dissolved fragment's cost back");
 });
 
 // -- 4. EQUAL (crafted): the entry shapes attract never delivers --------------
