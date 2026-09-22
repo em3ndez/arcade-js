@@ -26,7 +26,7 @@ export function dispatchEffectState(m) {
   if (handler) return handler(m);
 
   throw new NotImplemented(
-    `dispatchEffectState: EFFECT_STATE (0x6340) state ${state} has no handler (state 3 is the ROM 0x0000 reset ` +
+    `dispatchEffectState: EFFECT_STATE (0x${EFFECT_STATE.toString(16)}) state ${state} has no handler (state 3 is the ROM 0x0000 reset ` +
       `vector; states above 2 do not occur in play).`,
   );
 }

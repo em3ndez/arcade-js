@@ -10,5 +10,5 @@ import { stageAwardPopupAtHitObject } from "./stageAwardPopupAtHitObject.js";
 export function stageAward500Popup(m) {
   // de re-seats the feeder's message (enqueueTask reads d/e); assign it first in the return
   // tuple so it lands before the call. Sprite code forwarded as the feeder's b param.
-  return [(m.regs.de = 0x0005), stageAwardPopupAtHitObject(m, 0x7e)];
+  return [(m.regs.de = 5), stageAwardPopupAtHitObject(m, 0x7e)];
 }

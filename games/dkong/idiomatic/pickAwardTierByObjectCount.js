@@ -14,7 +14,7 @@ import { loc_1e28 } from "../translated/loc_1e28.js";
 
 export function pickAwardTierByObjectCount(m, a = m.regs.a) {
   // The DE/B writes ride the return so the register bridge survives the frozen dispatch (void shape).
-  if ((a & 0x01) === 0) return void (m.regs.de = 0x0001, m.regs.b = 0x7b, loc_1e28(m));
-  if ((a & 0x02) === 0) return void (m.regs.de = 0x0003, m.regs.b = 0x7d, loc_1e28(m));
-  return void (m.regs.de = 0x0005, m.regs.b = 0x7f, loc_1e28(m));
+  if ((a & 0x01) === 0) return void (m.regs.de = 1, m.regs.b = 0x7b, loc_1e28(m));
+  if ((a & 0x02) === 0) return void (m.regs.de = 3, m.regs.b = 0x7d, loc_1e28(m));
+  return void (m.regs.de = 5, m.regs.b = 0x7f, loc_1e28(m));
 }

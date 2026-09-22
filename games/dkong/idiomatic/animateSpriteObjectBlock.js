@@ -23,8 +23,8 @@ export function animateSpriteObjectBlock(m) {
 
   addToSpriteObjectColumn(m, B + 3, 0xfc); // scroll every record's Y up 4px
 
-  xorMaskStridedPair(m, 0x81, 0x0004, B + 1); // records 0 & 1
-  xorMaskStridedPair(m, 0x81, 0x0004, B + 0x15); // records 5 & 6
+  xorMaskStridedPair(m, 0x81, 4, B + 1); // records 0 & 1
+  xorMaskStridedPair(m, 0x81, 4, B + 0x15); // records 5 & 6
 
   stirRandomSeed(m); // refreshes the pseudo-random seed byte in RANDOM
   const rec9Code = B + 0x25;

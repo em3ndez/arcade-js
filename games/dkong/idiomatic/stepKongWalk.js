@@ -15,5 +15,5 @@ export function stepKongWalk(m) {
 
   loc_2602(m);
 
-  addStrided(m, mem8[M50_OBJ1_STEP], 0x0004, 0x0a, SPRITE_OBJ_BLOCK);
+  addStrided(m, mem8[M50_OBJ1_STEP], 4, 0x0a, SPRITE_OBJ_BLOCK);
 }

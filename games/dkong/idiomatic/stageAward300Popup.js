@@ -8,7 +8,7 @@
 import { stageAwardPopupAtHitObject } from "./stageAwardPopupAtHitObject.js";
 
 const SPRITE_CODE = 0x7d; // stamped into the effect record's code byte
-const TASK_MESSAGE = 0x0003; // the deferred-task message: opcode 0, argument 3
+const TASK_MESSAGE = 3; // the deferred-task message: opcode 0, argument 3
 
 export function stageAward300Popup(m) {
   // de re-seats the feeder's message (enqueueTask reads d/e); assign it first in the return
