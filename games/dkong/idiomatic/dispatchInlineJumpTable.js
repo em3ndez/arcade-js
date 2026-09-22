@@ -11,22 +11,14 @@ import { u16 } from "../../../core/int.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
 export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)", a = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  // Double the selector into a byte offset: an 8-bit result, so 0x80 wraps to 0.
-  regs.add(a);
+  // Double the selector into a byte offset (8-bit, so 0x80 wraps to 0), pop the table base the
+  // caller pushed, and read the little-endian target word at table[selector].
+  const offset = (a << 1) & 0xff;
+  const base = m.pop16();
+  const entryAddr = u16(base + offset);
+  const target = mem8[entryAddr] | (mem8[u16(entryAddr + 1)] << 8);
 
-  regs.hl = m.pop16();
-
-  regs.e = regs.a;
-  regs.d = 0x00;
-  regs.addHl(regs.de);
-
-  regs.e = mem8[regs.hl];
-  regs.hl = u16(regs.hl + 1);
-  regs.d = mem8[regs.hl];
-
-  regs.exDeHl();
-
-  return loc_00ca(m, regs.hl, site);
+  return loc_00ca(m, target, site);
 }

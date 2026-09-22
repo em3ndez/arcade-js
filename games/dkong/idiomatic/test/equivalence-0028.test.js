@@ -128,8 +128,10 @@ function stubOverrides(rec) {
   const SENTINEL = 0x5a;
   return {
     has: () => true,
-    get: () => (mm) => {
-      rec.push({ a: mm.regs.a, hl: mm.regs.hl, de: mm.regs.de, sp: mm.regs.sp });
+    get: (target) => (mm) => {
+      // The dissolved form hands loc_00ca the target as a value, not via regs.hl, so the
+      // arithmetic is observed at the dispatched target itself (== the old regs.hl handoff).
+      rec.push({ target, sp: mm.regs.sp });
       return SENTINEL;
     },
   };
@@ -170,9 +172,7 @@ test("CRAFTED: dispatchInlineJumpTable == oracle over all 256 selectors × 5 tab
         break;
       }
       const A = recA[0], B = recB[0];
-      if (A.a !== B.a) mismatch = { tableBase, sel, why: `A ${hx(A.a)}/${hx(B.a)}` };
-      else if (A.hl !== B.hl) mismatch = { tableBase, sel, why: `HL(target) ${hx(A.hl)}/${hx(B.hl)}` };
-      else if (A.de !== B.de) mismatch = { tableBase, sel, why: `DE ${hx(A.de)}/${hx(B.de)}` };
+      if (A.target !== B.target) mismatch = { tableBase, sel, why: `target ${hx(A.target)}/${hx(B.target)}` };
       else if (A.sp !== B.sp) mismatch = { tableBase, sel, why: `SP ${hx(A.sp)}/${hx(B.sp)}` };
       else if (retA !== retB) mismatch = { tableBase, sel, why: `return ${retA}/${retB}` };
     }
@@ -216,7 +216,7 @@ test("TEETH: the 16-bit-offset twin (no 8-bit wrap) is CAUGHT by the selector sw
   for (const tableBase of TABLE_BASES) {
     for (let sel = 0; sel < 256 && !caughtAt; sel++) {
       const { recA, recB } = runCrafted(base, brokenDispatch, tableBase, sel);
-      if (recA.length !== 1 || recB.length !== 1 || recA[0].hl !== recB[0].hl) {
+      if (recA.length !== 1 || recB.length !== 1 || recA[0].target !== recB[0].target) {
         caughtAt = { tableBase, sel };
       }
     }
