@@ -16,7 +16,7 @@ const IMAGE_BYTES = 0x1e;
 const GENUINE_BIAS = 0x2c;
 
 export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   let total = mem8[SEQUENCE_PHASE];
   for (let i = 0; i < IMAGE_BYTES; i++) total = u8(total + mem8[u16(loc_178c + i)]);
@@ -26,11 +26,14 @@ export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
   const savedPen = playerTwo ? PLAYER_TWO_PEN_GLYPH : PLAYER_ONE_PEN_GLYPH;
   const era = playerTwo ? mem8[PLAYER_TWO_ERA_INDEX] : mem8[PLAYER_ONE_ERA_INDEX];
 
+  // fetchTableByte leaves the table pointer standing at the indexed entry; the colour is the
+  // record's second byte, read straight off that entry.
+  const entry = u16(loc_0f8d_ADDR + u8(era * 2));
   const glyph = fetchTableByte(m, loc_0f8d_ADDR, u8(era * 2));
   mem8[savedPen] = glyph;
   mem8[PEN_GLYPH] = glyph;
 
-  const colour = mem8[u16(regs.hl + 1)];
+  const colour = mem8[u16(entry + 1)];
   mem8[savedPen + 1] = colour;
   const penColourHeld = colour === mem8[PEN_COLOUR];
   mem8[PEN_COLOUR] = colour;

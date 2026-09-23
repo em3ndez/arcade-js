@@ -15,40 +15,29 @@ import { COIN_ACCEPTED, COIN_SLOT_1_ACCUMULATOR, COIN_SLOT_1_DEBOUNCE, COIN_SLOT
 export function tallyCoinSlot1AndAwardCredit(m) {
   const { regs, mem8 } = m;
 
-  regs.a = mem8[IN0_MIRROR];
-  regs.hl = COIN_SLOT_1_DEBOUNCE;
-  regs.rrca();
-  mem8[regs.hl] = regs.rl(mem8[regs.hl]);
-  regs.a = mem8[regs.hl];
-  regs.and(0x07);
-  regs.cp(0x01);
-  if (regs.fNZ) return; // not the clean rising edge
+  const coinBit = mem8[IN0_MIRROR] & 0x01; // rrca: carry = coin line (bit 0)
+  const debounce = ((mem8[COIN_SLOT_1_DEBOUNCE] << 1) | coinBit) & 0xff; // rl through that carry
+  mem8[COIN_SLOT_1_DEBOUNCE] = debounce;
+  regs.hl = COIN_SLOT_1_DEBOUNCE; // pointer left seated for the debounce cell
+  if ((debounce & 0x07) !== 0x01) return; // not the clean rising edge
 
   requestCoinSound(m);
   mem8[COIN_ACCEPTED] = mem8[COIN_ACCEPTED] + 1;
 
-  regs.hl = COIN_SLOT_1_ACCUMULATOR;
-  regs.a = mem8[regs.hl];
-  regs.add(0x10);
-  mem8[regs.hl] = regs.a;
-  regs.b = regs.a;
+  const accumulator = (mem8[COIN_SLOT_1_ACCUMULATOR] + 0x10) & 0xff;
+  mem8[COIN_SLOT_1_ACCUMULATOR] = accumulator;
+  regs.b = accumulator; // whole accumulator byte, carried in B
+  const coinage = mem8[COIN_SLOT_1_RATIO]; // coins/credit hi nibble, credits lo nibble
   regs.hl = COIN_SLOT_1_RATIO;
-  regs.a = mem8[regs.hl];
-  regs.sub(regs.b);
-  if (regs.fNC) return; // still short of a credit
+  if (coinage >= accumulator) return; // still short of a credit
 
-  regs.a = mem8[regs.hl];
-  regs.c = regs.a; // the whole coinage byte
-  regs.and(0xf0);
-  regs.add(0x10);
+  mem8[COIN_SLOT_1_ACCUMULATOR] = accumulator - ((coinage & 0xf0) + 0x10); // carry the overshoot forward (write8 truncates)
+  regs.c = coinage; // whole coinage byte, carried in C
   regs.hl = COIN_SLOT_1_ACCUMULATOR;
-  regs.neg();
-  regs.add(mem8[regs.hl]);
-  mem8[regs.hl] = regs.a; // carry the overshoot forward
 
   if (mem8[FREE_PLAY] !== 0) return pulseSlot1CoinCounter(m);
 
-  regs.a = regs.c & 0x0f;
+  regs.a = coinage & 0x0f;
   regs.hl = CREDIT_COUNT;
   regs.add(mem8[regs.hl]);
   regs.daa();

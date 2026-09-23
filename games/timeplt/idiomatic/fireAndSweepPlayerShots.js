@@ -40,14 +40,13 @@ export function fireAndSweepPlayerShots(m) {
 }
 
 function spawnIntoFreeSlot(m, slot) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
   requestPlayerShotSound(m);
 
   mem16[slot + SEED1] = u16(-4 * mem16[WORLD_SCROLL_Y]);
   mem16[slot + SEED2] = u16(-4 * mem16[WORLD_SCROLL_X]);
 
-  fetchWideTableWord(m, PLAYER_SHOT_VELOCITY_TABLE, (u8(mem8[PLAYER_HEADING] + 4) >> 3) & 0x1f);
-  const velocity = regs.de;
+  const velocity = fetchWideTableWord(m, PLAYER_SHOT_VELOCITY_TABLE, (u8(mem8[PLAYER_HEADING] + 4) >> 3) & 0x1f);
 
   mem8[slot + OCC] = u8(mem8[slot + OCC] - 1);
   mem8[slot + AXIS1] = 0;

@@ -19,7 +19,7 @@ const CHECK_LEN = 16;
 const CHECK_SEED = 0x8c;
 
 export function drawRoundNumberCaption(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const value = mem8[ROUND_NUMBER];
   if (value >= 100) return;
 
@@ -28,9 +28,11 @@ export function drawRoundNumberCaption(m) {
   retreatCharCursor(m);
 
   const colour = mem8[PEN_COLOUR];
+  // The tens paint is called with allowance 1: both its paths (paint-and-spend, or drop-and-decrement)
+  // leave the allowance at 0, so the ones digit inherits 0 and a trailing zero always shows.
   paintDigitDroppingLeadingZero(m, Math.floor(value / 10), 1, colour);
   advanceCharCursor(m);
-  paintDigitDroppingLeadingZero(m, value % 10, regs.b, colour);
+  paintDigitDroppingLeadingZero(m, value % 10, 0, colour);
   advanceCharCursor(m);
 
   let checksum = CHECK_SEED;

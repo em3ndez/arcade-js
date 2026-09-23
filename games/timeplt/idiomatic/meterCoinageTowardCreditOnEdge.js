@@ -13,12 +13,10 @@ const PHASE_MASK = 0x07;
 const READY = 0x01;
 
 export function meterCoinageTowardCreditOnEdge(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = mem8[IN0_MIRROR];
-  regs.rrca();
-  regs.rrca();
-  mem8[COIN_SLOT_2_DEBOUNCE] = regs.rl(mem8[COIN_SLOT_2_DEBOUNCE]); // selector bit shifted in as the low bit
+  const selectorBit = (mem8[IN0_MIRROR] >> 1) & 1; // two rrca land IN0 bit 1 in carry
+  mem8[COIN_SLOT_2_DEBOUNCE] = (mem8[COIN_SLOT_2_DEBOUNCE] << 1) | selectorBit; // selector bit shifted in as the low bit
   if ((mem8[COIN_SLOT_2_DEBOUNCE] & PHASE_MASK) !== READY) return;
 
   requestCoinSound(m);

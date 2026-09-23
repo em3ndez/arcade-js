@@ -15,19 +15,23 @@ const BALLISTIC = 0xff;
 
 export function sweepObjectSlotBankServicingFirstSlot(m) {
   const { regs, mem8 } = m;
+  // Cursors and count arrive in ix/iy/b; carry them in locals (live-out is memory only).
+  let record = regs.ix;
+  let sprite = regs.iy;
+  let count = regs.b;
   let service = true;
   for (;;) {
-    if (service) runOneShotAnimatedObjectSlot(m);
+    if (service) runOneShotAnimatedObjectSlot(m, record, sprite);
 
-    regs.ix = u16(regs.ix + RECORD_STRIDE);
-    regs.iy = u16(regs.iy + SPRITE_STRIDE);
-    regs.b = (regs.b - 1) & 0xff;
-    if (regs.b === 0) return;
+    record = u16(record + RECORD_STRIDE);
+    sprite = u16(sprite + SPRITE_STRIDE);
+    count = (count - 1) & 0xff;
+    if (count === 0) { regs.ix = record; regs.iy = sprite; regs.b = count; return; }
 
-    const marker = mem8[regs.ix];
+    const marker = mem8[record];
     if (marker === EMPTY) { service = false; continue; }
     if (marker !== BALLISTIC) { service = true; continue; }
-    flyAlongBallisticArc(m);
+    flyAlongBallisticArc(m, record, sprite);
     service = false;
   }
 }
