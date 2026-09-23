@@ -1295,6 +1295,8 @@ export const ROUTINES = {
   0x2fb7: { name: "drawTerrainColumn", role: "write one vertical strip of backdrop tiles up a column, then tick the animation clock", cert: "seen" },
   0x2fc0: { name: "advanceChamberCreatureAnimation", role: "the chamber creature's sprite-flip phase clock — tick the phase countdown and route to the flip / position-step / publish continuation", cert: "seen" },
   0x2fd9: { name: "setChamberCreatureFrame", role: "commit the chosen chamber-creature flip tile, then continue the shared animation tail", cert: "seen" },
+  0x2fe3: { name: "oscillateChamberCreature", role: "step the chamber creature's position on an on-beat frame — horizontal bounce + accelerating fall-Y to the floor + RNG-reset, then publish", cert: "seen" },
+  0x3029: { name: "publishChamberCreatureSprite", role: "write the chamber creature's four screen-relative sprite bytes into its staging slot, then hand off to the object-record pass", cert: "seen" },
   0x30de: { name: "seedEnemyRecords", role: "seed the enemy records (second block of round setup) and derive the difficulty-scaled enemy-speed pair (0x07 − (level&6) → 7,5,3,1)", cert: "seen" },
   0x312d: { name: "updateEnemy1", role: "per-frame enemy pass — drive enemy 1 through the shared move/collision driver, stage its sprite, then hand off enemy 2", cert: "seen" },
   0x316f: { name: "updateEnemy2", role: "advance enemy 2 one frame through the shared driver and stage its sprite", cert: "seen" },

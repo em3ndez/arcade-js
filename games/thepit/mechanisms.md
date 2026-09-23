@@ -15,9 +15,11 @@ cross-referencing. **The slot-3 sprite driven by `loc_2f71` off `0x80db-0x80de` 
 left-CHAMBER creature** (§2.8), *not* the "Zonker tank" — and the code now matches: `names.js` and the
 idiomatic routines carry the `CHAMBER_CREATURE_*` cell names (`0x80db-0x80de`, `0x80e3`) and the
 `PIT_FLOOR_REVEAL_*` cell names (`0x80e4-0x80e6`), plus the routines `advanceChamberCreature`,
-`seedChamberCreature`, `advanceChamberCreatureAnimation`, and `setChamberCreatureFrame`. **The word
+`seedChamberCreature`, `advanceChamberCreatureAnimation`, `setChamberCreatureFrame`,
+`oscillateChamberCreature` (the on-beat position step at `0x2fe3`), and `publishChamberCreatureSprite`
+(the sprite-publish tail at `0x3029`). **The word
 "Zonker" is reserved here for the baked top-right tank scenery** (§2.9). Current layer sizes:
-`translated/` = 169 routines, `idiomatic/` = 169 routine files + `names.js`. `names.js` names **174**
+`translated/` = 171 routines, `idiomatic/` = 171 routine files + `names.js`. `names.js` names **174**
 work-RAM cells (measured 2026-07-31): the 2026-07-31 centralization pass added 31 — cells that had
 been referenced by raw hex or by a file-LOCAL `const` inside one routine (the enemy-3 record fields,
 the enemy-work scratch slot, the per-player level/men backups, the attract demo-steer state, the

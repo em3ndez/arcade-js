@@ -70,6 +70,8 @@ import { loc_2f88 } from "./loc_2f88.js";
 import { loc_2fb7 } from "./loc_2fb7.js";
 import { loc_2fc0 } from "./loc_2fc0.js";
 import { loc_2fd9 } from "./loc_2fd9.js";
+import { loc_2fe3 } from "./loc_2fe3.js";
+import { loc_3029 } from "./loc_3029.js";
 import { loc_30de } from "./loc_30de.js";
 import { loc_312d } from "./loc_312d.js";
 import { loc_316f } from "./loc_316f.js";
@@ -256,6 +258,8 @@ export const ORACLE_ROUTINES = new Map([
   [0x2fb7, loc_2fb7],
   [0x2fc0, loc_2fc0],
   [0x2fd9, loc_2fd9],
+  [0x2fe3, loc_2fe3],
+  [0x3029, loc_3029],
   [0x30de, loc_30de],
   [0x312d, loc_312d],
   [0x316f, loc_316f],
