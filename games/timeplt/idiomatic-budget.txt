@@ -1,4 +1,4 @@
 # Idiomatic-gate cruft budget for this game — a shrinking ratchet toward 0 (single integer, first
 # non-comment line). Absent -> implicit 0. A game is IDIOMATIC (a done requirement) only at 0.
 # timeplt: legacy-retrofit §4 de-cruft campaign IN PROGRESS (2427 -> 0), marched down per batch.
-325
+320

@@ -7,17 +7,18 @@
 import { CREDIT_COUNT, FREE_PLAY } from "./names.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
+import { bcdAddByte } from "../../../core/bcd.js";
 
 const CREDIT_CAP = 0x99;
 const DIGIT_MASK = 0x0f;
 
 export function awardCoinCreditThenPulseCoinCounter(m, c = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   if (mem8[FREE_PLAY] === 0) {
-    regs.a = c & DIGIT_MASK;
-    regs.add(mem8[CREDIT_COUNT]);
-    regs.daa();
-    mem8[CREDIT_COUNT] = regs.fNC ? regs.a : CREDIT_CAP;
+    // BCD-add the coin's low digit into the packed-BCD credit count; a carry out means it passed 99,
+    // so it saturates at 0x99.
+    const { value, carry } = bcdAddByte(mem8[CREDIT_COUNT], c & DIGIT_MASK);
+    mem8[CREDIT_COUNT] = carry ? CREDIT_CAP : value;
     paintCreditCountPanel(m);
   }
   return pulseSlot1CoinCounter(m);
