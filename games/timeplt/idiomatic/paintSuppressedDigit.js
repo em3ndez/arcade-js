@@ -13,7 +13,7 @@
 import { fetchTableByte } from "./fetchTableByte.js";
 import { DIGIT_GLYPH_TABLE, LEADING_ZERO_BLANK_GLYPH_INDEX } from "./names.js";
 
-const CHARACTER_PLANE_BIT = 0x0400;
+const CHARACTER_PLANE_BIT = 1 << 10; // bit 10: character/attribute plane select
 const LOW_NIBBLE = 0x0f;
 
 export function paintSuppressedDigit(m, a = m.regs.a, b = m.regs.b, c = m.regs.c, hl = m.regs.hl, de = m.regs.de) {

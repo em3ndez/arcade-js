@@ -11,7 +11,7 @@ import { fetchTableByte } from "./fetchTableByte.js";
 import { DIGIT_GLYPH_TABLE } from "./names.js";
 
 const DIGIT_BITS = 0x0f;
-const CHARACTER_PLANE_BIT = 0x0400;
+const CHARACTER_PLANE_BIT = 1 << 10; // bit 10: character/attribute plane select
 
 export function paintUnsuppressedDigit(m, a = m.regs.a, c = m.regs.c, hl = m.regs.hl, de = m.regs.de) {
   const { mem8 } = m;

@@ -15,7 +15,7 @@ import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, SELFTEST_INTRO_SHAPE
 const PARKED_POINTER = 0x56f1;
 const ROW_STEP = -32;
 
-const toColour = (cell) => cell & 0xfbff; // clear bit 10: attribute plane -> colour plane
+const toColour = (cell) => cell & ~(1 << 10); // clear bit 10: attribute plane -> colour plane
 
 export function paintSelfTestScreenPhaseThenStepSequence(m) {
   const { mem8 } = m;

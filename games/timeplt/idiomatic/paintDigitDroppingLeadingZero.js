@@ -16,7 +16,7 @@ import { retreatCharCursor } from "./retreatCharCursor.js";
 import { DIGIT_GLYPH_TABLE_2 } from "./names.js";
 
 const DIGIT_BITS = 0x0f;
-const CHARACTER_PLANE_BIT = 0x0400;
+const CHARACTER_PLANE_BIT = 1 << 10; // bit 10: character/attribute plane select
 
 export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m.regs.b, colour = m.regs.c, hl = m.regs.hl, de = m.regs.de) {
   const { mem8 } = m;
