@@ -9,7 +9,8 @@
  * the stride from the cursor's low byte, and it leaves the accumulator holding that stepped low
  * byte and the flags of the subtract — or, when the low byte borrowed, of the high-byte decrement,
  * the borrow standing as carry.
- * LIVE-OUT: the four cells written, the stepped cursor, and the accumulator and flags that step set. */
+ * LIVE-OUT: the four cells written, the stepped cursor (kept in de and returned), and the
+ * accumulator and flags that step set. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { F_S, F_Z, F_N, F_F3, F_F5, F_C, F_H, F_PV } from "../../../core/cpu/z80.js";
@@ -35,7 +36,7 @@ export function paintGlyphOverBlankInColourThenStepCursor(m, cursor = m.regs.de,
   const low = cursor & 0xff;
   const diff = low - CELL_STRIDE;
   const av = u8(diff);
-  advanceCharCursor(m, cursor);
+  const stepped = advanceCharCursor(m, cursor);
   let fv =
     (av & 0x80 ? F_S : 0) |
     (av === 0 ? F_Z : 0) |
@@ -55,5 +56,5 @@ export function paintGlyphOverBlankInColourThenStepCursor(m, cursor = m.regs.de,
       ((high & 0x0f) === 0x0f ? F_H : 0) |
       (high === 0x7f ? F_PV : 0);
   }
-  return (m.regs.a = av, m.regs.f = fv);
+  return (m.regs.a = av, m.regs.f = fv, stepped);
 }

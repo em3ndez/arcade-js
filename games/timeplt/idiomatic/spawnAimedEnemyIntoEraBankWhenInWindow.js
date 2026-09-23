@@ -6,9 +6,8 @@
  * shape into the era's fixed record+sprite bank and reloads the cooldown. LIVE-OUT: memory. The routine is a
  * pure writer — its sole caller (advanceTwoTileObjectThenTryAimedSpawn) tail-returns and reads no register it
  * leaves, and that whole dispatch chain up to serviceEra1BomberObject is memory-only — so the search pointers,
- * the window bound and the loop count all live here as JS locals. The one register still seated is the aimed
- * heading in `a`: the velocity shim reads it off the file as its input and hands the doubled pair back
- * in d,e,b,c, which this routine reads straight into the record. */
+ * the window bound and the loop count all live here as JS locals. The aimed heading passes into the velocity
+ * shim as an argument, and the shim hands the doubled pair back, which this routine reads straight into the record. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { requestEnemyLaunchSound } from "./requestEnemyLaunchSound.js";
@@ -34,7 +33,7 @@ const NEW_SHAPE = 0x62;
 const useSecondBank = (m) => m.mem8[ATTACKER_SPAWN_SLOT_COUNT] !== 1 && m.mem8[ERA_OBJECT_RECORD_SLOT2] === 0;
 
 export function spawnAimedEnemyIntoEraBankWhenInWindow(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[ix] !== SLOT_FREE) return;
   if (mem8[ATTACKER_SPAWN_COOLDOWN] !== 0) return;
@@ -76,8 +75,7 @@ export function spawnAimedEnemyIntoEraBankWhenInWindow(m, ix = m.regs.ix, iy = m
 
   mem8[entBank + ENTRY_Y] = foundY;
   mem8[entBank + ENTRY_X] = foundX;
-  regs.a = aimed; // the velocity shim's input off the register file: the heading it doubles a velocity for
-  const [de, bc] = loc_59c5(m); // doubled velocity pair for the aimed heading
+  const [de, bc] = loc_59c5(m, aimed); // doubled velocity pair for the aimed heading
   mem8[recBank + 0x0a] = de;
   mem8[recBank + 0x0b] = u8(de >> 8);
   mem8[recBank + 0x0c] = bc;

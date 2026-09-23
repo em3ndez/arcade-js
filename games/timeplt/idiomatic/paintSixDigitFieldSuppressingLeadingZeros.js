@@ -10,12 +10,18 @@ import { u16 } from "../../../core/int.js";
 import { paintTwoUnsuppressedDigitsFromByte } from "./paintTwoUnsuppressedDigitsFromByte.js";
 import { paintTwoSuppressedDigitsFromByte } from "./paintTwoSuppressedDigitsFromByte.js";
 
-export function paintSixDigitFieldSuppressingLeadingZeros(m) {
+export function paintSixDigitFieldSuppressingLeadingZeros(m, hl = m.regs.hl) {
   const { regs } = m;
+  // the pointer walks a local; the cursor and the shared flag thread through the machine, since the
+  // three painters below still read them there. The flag is cleared so the four suppressed digits decide together.
+  regs.hl = hl;
   regs.b = 0;
   paintTwoSuppressedDigitsFromByte(m);
-  regs.hl = u16(regs.hl - 1);
+  regs.hl = hl = u16(hl - 1);
   paintTwoSuppressedDigitsFromByte(m);
-  regs.hl = u16(regs.hl - 1);
+  regs.hl = hl = u16(hl - 1);
   paintTwoUnsuppressedDigitsFromByte(m);
+
+  // pointer two bytes back and the cursor six cells on; the pointer write keeps the bridge for a dispatched caller
+  return [regs.hl = hl, regs.de];
 }

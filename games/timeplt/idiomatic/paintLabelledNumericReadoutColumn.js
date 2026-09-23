@@ -26,7 +26,7 @@ function stamp(m, tile, cell, pen) {
 }
 
 export function paintLabelledNumericReadoutColumn(m, hl = m.regs.hl, cursor = m.regs.de, pen = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const source = hl;
 
   // pictogram: three consecutive tiles of the record the source's lead byte selects (stride 3)
@@ -39,12 +39,11 @@ export function paintLabelledNumericReadoutColumn(m, hl = m.regs.hl, cursor = m.
   stamp(m, mem8[u16(record + 2)], cursor, pen);
 
   // six-digit field: drop the cursor a pictogram's height and read the digits forward from the source.
-  // paintSixDigit... takes its cursor, source pointer and pen from the machine registers, so seat them.
-  regs.de = u16(cursor - PICTOGRAM_TO_FIELD);
-  regs.hl = u16(source + 3);
-  paintSixDigitFieldSuppressingLeadingZeros(m);
-  cursor = u16(regs.de - FIELD_TO_SUFFIX);
-  const suffix = u16(regs.hl + 3);
+  // the printer takes the source pointer as an argument and the cursor from the machine, and hands both back.
+  m.regs.de = u16(cursor - PICTOGRAM_TO_FIELD);
+  const [fieldPtr, fieldCursor] = paintSixDigitFieldSuppressingLeadingZeros(m, u16(source + 3));
+  cursor = u16(fieldCursor - FIELD_TO_SUFFIX);
+  const suffix = u16(fieldPtr + 3);
 
   // suffix: three more tiles, read forward from where the field left the source pointer
   stamp(m, mem8[suffix], cursor, pen);

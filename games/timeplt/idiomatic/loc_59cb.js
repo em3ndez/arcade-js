@@ -6,6 +6,6 @@ import { doubledVelocityForHeading } from "./doubledVelocityForHeading.js";
 
 const VELOCITY_TABLE = 0x5c00;
 
-export function loc_59cb(m) {
-  return doubledVelocityForHeading(m, VELOCITY_TABLE);
+export function loc_59cb(m, heading = m.regs.a) {
+  return doubledVelocityForHeading(m, VELOCITY_TABLE, heading);
 }

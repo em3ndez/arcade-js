@@ -19,19 +19,17 @@ const CHECK_LEN = 256;
 const CHECK_BIAS = 25;
 
 export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   if (mem8[PLAY_ACTIVE] === 0) return;
 
-  // the cursor is threaded through the callees, which advance it in de and leave it there; read it back.
+  // each callee advances the cursor and returns it; carry that forward to the next.
   let cursor = EMBLEM_STRIP_TOP;
   for (let emblems = count > MAX_EMBLEMS ? MAX_EMBLEMS : count; emblems !== 0; emblems--) {
-    stampTwoByTwoTileBlock(m, EMBLEM_BASE, EMBLEM_COLOUR, cursor);
-    cursor = regs.de;
+    cursor = stampTwoByTwoTileBlock(m, EMBLEM_BASE, EMBLEM_COLOUR, cursor);
   }
 
   while (cursor >= EMBLEM_STRIP_FLOOR) {
-    paintGlyphOverBlankInColourThenStepCursor(m, cursor, BLANK_GLYPH, BLANK_COLOUR);
-    cursor = regs.de;
+    cursor = paintGlyphOverBlankInColourThenStepCursor(m, cursor, BLANK_GLYPH, BLANK_COLOUR);
   }
 
   let check = 0;

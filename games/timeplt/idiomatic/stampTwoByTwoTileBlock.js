@@ -7,7 +7,7 @@
  * and the four colour writes are made in the reverse of the order the shapes were, walking back
  * across the square. The cursor is stepped once inside each line, so it comes out two places along
  * — the width of the emblem — ready for the next one. LIVE-OUT: memory, eight cells, and the
- * stepped cursor. */
+ * stepped cursor, which is both kept in de and returned. */
 
 import { u16 } from "../../../core/int.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
@@ -36,4 +36,6 @@ export function stampTwoByTwoTileBlock(m, base = m.regs.b, colour = m.regs.c, de
   colourCell = u16(colourCell + NEXT_LINE);
   mem8[colourCell] = colour;
   mem8[u16(colourCell + 1)] = colour;
+
+  return (m.regs.de = de);
 }

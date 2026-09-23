@@ -5,6 +5,6 @@
 import { doubledVelocityForHeading } from "./doubledVelocityForHeading.js";
 import { loc_59d7 } from "./names.js";
 
-export function loc_59c5(m) {
-  return doubledVelocityForHeading(m, loc_59d7);
+export function loc_59c5(m, heading = m.regs.a) {
+  return doubledVelocityForHeading(m, loc_59d7, heading);
 }

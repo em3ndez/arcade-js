@@ -9,7 +9,7 @@
  * source, and count the record head down one. The scan cursors, the margin scratch and the found
  * pointers are JS locals; the two entry pointers ride in on ix/iy and are never disturbed, so both
  * stay seated as the only register live-outs (the sprite/steer callees downstream read them). The
- * accumulator is re-seated only where the heading and velocity callees read it. LIVE-OUT: the found
+ * heading passes into the velocity shims as an argument. LIVE-OUT: the found
  * record and its entry, the pointer cells, the arm flag; and ix/iy held. Nothing is returned. */
 
 import { u8, u16 } from "../../../core/int.js";
@@ -28,7 +28,7 @@ const VELOCITY = 0x0a;
 const RECORD_STRIDE = 0x10;
 
 export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEntry = m.regs.iy) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   if (((mem8[FRAME_TICK] & 0x07) + 0x05) !== mem8[u16(ixEntry + PHASE_KEY)]) return; // wrong bank phase this frame
   if (mem8[BANK_LAUNCH_COOLDOWN] !== 0) return; // launch already armed
@@ -86,8 +86,7 @@ export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEnt
   mem8[u16(entIy + COORD_Y)] = coordY;
   mem8[entIy] = coordX;
 
-  regs.a = heading; // the velocity shim reads the heading out of the accumulator
-  const [de, bc] = mem8[ERA_INDEX] !== 0 ? loc_59d1(m) : loc_59cb(m);
+  const [de, bc] = mem8[ERA_INDEX] !== 0 ? loc_59d1(m, heading) : loc_59cb(m, heading);
 
   // the shim's doubled pair: de then bc, stored low, high, low, high
   mem8[u16(recIx + VELOCITY + 0)] = de;
