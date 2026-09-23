@@ -21,6 +21,7 @@
 import {
   ACTIVE_PLAYER,
   BOARD_MODE,
+  PLAYERS_LABEL_GLYPHS,
   PLOT_RUN_LENGTH,
   SHARED_PANEL_COL13_LABEL_GLYPHS,
   SHARED_PANEL_COL7_LABEL_GLYPHS,
@@ -61,7 +62,7 @@ export function drawSharedPanel(m) {
   mem8[PLOT_RUN_LENGTH] = 1;
   copyTileColumn(m, ACTIVE_PLAYER); // one dynamic indicator glyph
   mem8[PLOT_RUN_LENGTH] = 7;
-  copyCappedTileColumn(m, 0x49b1); // a fixed cap byte, then a second strip
+  copyCappedTileColumn(m, PLAYERS_LABEL_GLYPHS); // capped "PLAYERS" run (cap trims the S -> "PLAYER")
   mem8[PLOT_RUN_LENGTH] = 8;
   fillColourColumn(m);
 

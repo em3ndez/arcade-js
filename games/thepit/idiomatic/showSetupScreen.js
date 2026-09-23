@@ -31,6 +31,7 @@ import {
   COINS_PER_CREDIT_A,
   COINS_PER_CREDIT_B,
   LOOP_COUNTER,
+  PLAYERS_LABEL_GLYPHS,
   PLOT_RUN_LENGTH,
   SETUP_COINAGE_A_COUNT_TILE,
   SETUP_COINAGE_A_MARKER_TILE,
@@ -114,7 +115,7 @@ export function* showSetupScreen(m) {
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
   mem8[PLOT_RUN_LENGTH] = 7;
-  copyTileColumn(m, 0x49b1); // copy the marker's glyph-run from its source table
+  copyTileColumn(m, PLAYERS_LABEL_GLYPHS); // the fixed "PLAYERS" glyph run
   fillColourColumnAt(m, 18, 3); // colour column 18 in colour 3
 
   // Second count field (COINS_PER_CREDIT_B), at column 20. No singular patch here.

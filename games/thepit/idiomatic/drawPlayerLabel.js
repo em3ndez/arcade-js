@@ -12,7 +12,7 @@
  * order, the last a tail hand-off back to our caller.
  */
 
-import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH, BOARD_MODE } from "./names.js";
+import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH, BOARD_MODE, PLAYERS_LABEL_GLYPHS } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -21,8 +21,6 @@ import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 
 // The shared tile-plotter's scratch parameter block: the plotter ABI, so its cells stay hex here.
 const PLOT_FILL_BYTE = BOARD_MODE; // the colour byte the colour-column paint writes
-
-const PANEL_TILE_TABLE = 0x49b1;
 
 export function drawPlayerLabel(m) {
   const { mem8 } = m;
@@ -39,9 +37,9 @@ export function drawPlayerLabel(m) {
   mem8[PLOT_RUN_LENGTH] = 1;
   copyTileColumn(m, ACTIVE_PLAYER);
 
-  // Next seven cells: a fixed tile run from the table, called directly with its source pointer.
+  // Next seven cells: the "PLAYERS" glyph run, capped (the cap trims the trailing S -> "PLAYER").
   mem8[PLOT_RUN_LENGTH] = 7;
-  copyCappedTileColumn(m, PANEL_TILE_TABLE);
+  copyCappedTileColumn(m, PLAYERS_LABEL_GLYPHS);
 
   // Finally a nine-cell colour column with the fill byte; a tail hand-off back to our caller.
   mem8[PLOT_RUN_LENGTH] = 9;

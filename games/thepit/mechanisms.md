@@ -538,6 +538,13 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
   copied down one tilemap column: `LEFT_EDGE_COLUMN_TILE_STRIP` (`0x4aab` → `drawLeftEdgeColumn`, video
   col 0 / dest `0x93e0`) and `BOOT_TEXT_COLUMN30_TILE_STRIP` (`0x4acb` = `0x4aab+0x20`, the next strip →
   `drawBestScoresTodayLabel`, col 30 / dest `0x93fe`). `[code]`
+- **Fixed label text is drawn from back-to-front ROM glyph-run tables**, walked backward by
+  `copyTileColumn` / `copyCappedTileColumn` (source pointer = the run's tail; the capped variant
+  forces the top cell to a cap tile). `PLAYERS_LABEL_GLYPHS` (`0x49b1`) is the shared 7-glyph
+  **"PLAYERS"** run (char-ROM tiles decode to S·R·E·Y·A·L·P; it overlaps the FREE-PLAY run at
+  `0x49ae`, sharing the "PLAY" bytes): `drawPlayerLabel` and `drawSharedPanel` (col 9 / row 13)
+  copy it capped, trimming the S to **"PLAYER"**; `showSetupScreen` (col 18 / row 12) copies the
+  full word. `[seen]` (char-ROM glyph decode)
 - **Sprite records (8 slots, 4 bytes each; `SPRITE_STAGING_BASE 0x8220`–`ENEMY3_TWIN_SPRITE_Y 0x823f`, LDIR'd to sprite RAM `SPRITE_RAM_BASE 0x9840` by the
   NMI):** `[seen]`/`[code]`
   - slot 0 `0x8220` player (attr `OBJECT_SPRITE_ATTR 0x8222`) · slot 1 `0x8224` reaction/laser · **slot 2 `0x8228` falling-hazard**
