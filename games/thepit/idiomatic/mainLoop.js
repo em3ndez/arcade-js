@@ -7,7 +7,7 @@
  * stands in for the joystick), then run the per-frame game services in order.
  */
 
-import { GAME_STATE, STACK_TOP, WATCHDOG_KICK } from "./names.js";
+import { GAME_STATE, WATCHDOG_KICK } from "./names.js";
 import { enableNmi } from "./enableNmi.js";
 import { steerDemoPlayer } from "./steerDemoPlayer.js";
 import { dispatchObjectFrameByStateTimer } from "./dispatchObjectFrameByStateTimer.js";
@@ -25,10 +25,6 @@ export function* mainLoop(m) {
   const { mem8 } = m;
 
   for (;;) {
-    // Re-seat the stack at the top of every pass; the whole round runs inside this loop,
-    // so resetting the stack pointer each frame keeps the work stack from drifting.
-    m.regs.sp = STACK_TOP;
-
     // Pet the watchdog so the hardware does not reset mid-round.
     void mem8[WATCHDOG_KICK];
 

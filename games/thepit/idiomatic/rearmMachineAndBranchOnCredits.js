@@ -4,8 +4,8 @@
  * on the credit count to either the held credit screen or into play.
  *
  * Reached by a jump from the reset epilogue (and the game-over teardown), so it is a state
- * ENTRY, not a called subroutine: it hard-resets the stack to the top of work RAM and never
- * returns. It re-arms the machine — enables the per-frame interrupt, arms ACTIVE_PLAYER (the
+ * ENTRY, not a called subroutine, and never returns. It re-arms the machine — enables the
+ * per-frame interrupt, arms ACTIVE_PLAYER (the
  * secondary game-state byte the DIP decode folds into its flip-screen configuration), commits
  * the cabinet DIP settings — then forks on CREDIT_COUNT: credits present hands off to the held
  * credit screen, which spins forever; no credits (the normal path) mutes the audio, clears
@@ -19,13 +19,10 @@ import { applyDipSwitches } from "./applyDipSwitches.js";
 import { disableSound } from "./disableSound.js";
 import { showFixedScreen } from "./showFixedScreen.js";
 import { enterPlayMode } from "./enterPlayMode.js";
-import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT, STACK_TOP } from "./names.js";
+import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT } from "./names.js";
 
 export function* rearmMachineAndBranchOnCredits(m) {
-  const { mem8, regs } = m;
-
-  // Hard restart: drop the stack to the top of work RAM. This is a state entry — it never returns.
-  regs.sp = STACK_TOP;
+  const { mem8 } = m;
 
   // Re-arm: enable the per-frame interrupt and arm the secondary game-state byte for the DIP decode.
   enableNmi(m);

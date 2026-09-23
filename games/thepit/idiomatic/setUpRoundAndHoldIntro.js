@@ -32,11 +32,10 @@ export function* setUpRoundAndHoldIntro(m) {
   const { mem8 } = m;
 
   // Bring up the round: make the player's progress live, configure from dip switches, unmute,
-  // build the board screen, play the round-start sound. The board build returns via the work stack.
+  // build the board screen, play the round-start sound.
   loadPlayerState(m);
   applyDipSwitches(m);
   enableSound(m);
-  m.push16(0x02d6);
   setupBoardMode90(m);
   requestSound4(m);
 

@@ -4,8 +4,7 @@
  *   "BEST SCORES TODAY" table (entering initials if it places), reset the game state, then hand off
  *   to the attract/entry handler.
  *
- * Reached by a jump when a game ends, so it first drops the caller's stale return frame and restarts
- * from a clean stack. It plays the game-over jingle; for a real 1- or 2-player game (GAME_STATE holds
+ * Reached by a jump when a game ends. It plays the game-over jingle; for a real 1- or 2-player game (GAME_STATE holds
  * the player count) it finishes each active player's score — rebuild the board display, hold briefly,
  * then select each player via ACTIVE_PLAYER and offer their saved score, running the initials-entry
  * screen if it places (player 1 always, player 2 only in a two-player game). Finally it resets for
@@ -14,7 +13,7 @@
  */
 
 import { rearmMachineAndBranchOnCredits } from "./rearmMachineAndBranchOnCredits.js";
-import { GAME_STATE, ACTIVE_PLAYER, STACK_TOP, VARIANT } from "./names.js";
+import { GAME_STATE, ACTIVE_PLAYER, VARIANT } from "./names.js";
 import { requestSound5 } from "./requestSound5.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
 import { waitFrames } from "./waitFrames.js";
@@ -27,27 +26,18 @@ const LANDED_RANK = VARIANT; // rank the just-submitted score placed at; 0 = it 
 const GAMEOVER_BOARD_MODE = 0xe0; // board-mode / screen-wide colour byte for the game-over display
 const GAMEOVER_HOLD_FRAMES = 20; // video frames the game-over display is held before scoring
 
-// These callees model their return through the work stack; each non-tail call is handed its resume address.
-const RESUME_AFTER_ENTRY_1 = 0x0398;
-const RESUME_AFTER_ENTRY_2 = 0x03ac;
-
 /** Offer the currently-selected player's score to the high-score table; if it placed, run the
  *  initials-entry screen (a generator, since it holds over many vblanks) for the rank it landed at. */
-function* submitScoreAndMaybeEnterInitials(m, resumeAfterEntry) {
+function* submitScoreAndMaybeEnterInitials(m) {
   const { mem8 } = m;
   submitPlayerHighScore(m); // records the landed rank in LANDED_RANK (0 if it did not place)
   if (mem8[LANDED_RANK] !== 0) {
-    m.push16(resumeAfterEntry);
     yield* runHighScoreInitialsEntry(m);
   }
 }
 
 export function* submitHighScoresAndReset(m) {
-  const { mem8, regs } = m;
-
-  // State entry reached by a jump: discard the caller's return frame so the reset below
-  // starts from a clean stack.
-  regs.sp = STACK_TOP;
+  const { mem8 } = m;
 
   requestSound5(m); // game-over jingle
 
@@ -60,12 +50,12 @@ export function* submitHighScoresAndReset(m) {
 
     // Player 1 always finishes.
     mem8[ACTIVE_PLAYER] = 1;
-    yield* submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_1);
+    yield* submitScoreAndMaybeEnterInitials(m);
 
     // A two-player game also finishes player 2.
     mem8[ACTIVE_PLAYER] = playerCount;
     if (playerCount === 2) {
-      yield* submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_2);
+      yield* submitScoreAndMaybeEnterInitials(m);
     }
   }
 
@@ -75,6 +65,6 @@ export function* submitHighScoresAndReset(m) {
   applyDipSwitches(m);
   yield* showSetupScreen(m);
 
-  // Tail hand-off to the reset/entry handler (re-seats the stack, runs the never-returning loop to attract).
+  // Tail hand-off to the reset/entry handler (runs the never-returning loop to attract).
   return yield* rearmMachineAndBranchOnCredits(m);
 }
