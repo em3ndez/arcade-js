@@ -260,7 +260,7 @@ export const HAZARD_Y = 0x80ac;
 export const HAZARD_STATE = 0x80aa;
 /** PIT_CROSS_ACTIVE (0x8077, sticky) — the Pit-crossing flag: set when the player reaches goal tile
  *  0x27 (past column 0x53); it gates boarding the ship at the far edge (col ≥ 0x8a, loc_19d0/19e3) and
- *  disables the laser while crossing. The cross itself awards no points (§2.5, grounding-2 Z-5). [code] */
+ *  disables the laser while crossing. The cross itself awards no points (§2.5, grounding-2 Z-5). [seen] */
 export const PIT_CROSS_ACTIVE = 0x8077;
 /** SPRITE_COORD_BIAS (0x8051) — flipBit<<1, i.e. true value **0x02** when the picture is flipped
  *  (0 in an upright cabinet): a +2 sprite-Y nudge biased into published sprite coordinates, computed
@@ -379,7 +379,7 @@ export const MOUNTAIN_ERODE_TIMER = 0x8067;
 /**
  *  PLAYER_SPRITE_ATTR (0x806a) — object sprite attribute byte (palette bits0-2 + priority bit3):
  *  seeded 2 by seedObjectStartState, copied by stageObjectSpriteRecord into sprite-record byte+2 (0x8222) which video.js
- *  decodes as color and priority [code]
+ *  decodes as color and priority [seen]
  */
 export const PLAYER_SPRITE_ATTR = 0x806a;
 /**
@@ -530,7 +530,7 @@ export const ENEMY1_SPRITE = 0x80e9;
 /**
  *  ENEMY1_ATTR (0x80ea) — Object-1 record offset 2: seeded 0x04 (seedEnemyRecords), copied verbatim to
  *  sprite-record byte 2 (updateEnemy1), color-cycled with priority bit 3 held clear (advanceDormantMover) --
- *  A/B and my derivation all agree. [code]
+ *  A/B and my derivation all agree. [seen]
  */
 export const ENEMY1_ATTR = 0x80ea;
 /**
@@ -542,7 +542,7 @@ export const ENEMY1_MOVE_PERIOD = 0x80f6;
 /**
  *  ENEMY1_TARGET_COL (0x80f8) — Object-1 record offset 16 target column: seeded 0x04
  *  (seedEnemyRecords); stepEnemyMover fast-exits when 0x807a equals it and keys the tile-probe/direction
- *  dispatch on it -- A/B and my derivation agree. [code]
+ *  dispatch on it -- A/B and my derivation agree. [seen]
  */
 export const ENEMY1_TARGET_COL = 0x80f8;
 /**
@@ -627,10 +627,10 @@ export const TREASURE_COLLECTED = 0x8078;
  */
 export const HIGH_SCORE_TABLE = 0x8039;
 /** HIGH_SCORE_RANK2_ENTRY (0x803e) — second-rank record of the descending 3-entry high-score table
- *  (HIGH_SCORE_TABLE + 5); 5-byte record = 3 initials + 16-bit score; this is the record's first byte. [code] */
+ *  (HIGH_SCORE_TABLE + 5); 5-byte record = 3 initials + 16-bit score; this is the record's first byte. [seen] */
 export const HIGH_SCORE_RANK2_ENTRY = 0x803e;
 /** HIGH_SCORE_RANK3_ENTRY (0x8043) — third-rank record of the high-score table (HIGH_SCORE_TABLE + 10);
- *  5-byte record = 3 initials + 16-bit score; record's first byte. [code] */
+ *  5-byte record = 3 initials + 16-bit score; record's first byte. [seen] */
 export const HIGH_SCORE_RANK3_ENTRY = 0x8043;
 
 // ── Object phase/step + mover direction ──
@@ -643,13 +643,13 @@ export const PLAYER_ANIM_PHASE = 0x801a;
 /**
  *  PLAYER_STEP_Y (0x806c) — the player's per-frame Y step: added to the committed PLAYER_Y (0x8068)
  *  by walkActor, subtracted from it by advanceObjectWalkFrame, low byte of the DE step-vector in
- *  advanceTrackedObject, seeded 1 by seedObjectStartState. [code]
+ *  advanceTrackedObject, seeded 1 by seedObjectStartState. [seen]
  */
 export const PLAYER_STEP_Y = 0x806c;
 /**
  *  PLAYER_STEP_X (0x806d) — the player's per-frame X step: added to the committed PLAYER_X (0x806b)
  *  by advanceActorWalk, subtracted by stepObjectAndResolveTile, high byte of the DE step-vector in
- *  advanceTrackedObject, seeded 1 by seedObjectStartState. [code]
+ *  advanceTrackedObject, seeded 1 by seedObjectStartState. [seen]
  */
 export const PLAYER_STEP_X = 0x806d;
 /**
@@ -695,7 +695,7 @@ export const STAGED_DIG_TIMER = 0x80bc;
 /**
  *  STAGED_DIG_SPRITE_ID (0x80bf) — spawnDigEntity stages the classified dig-entity id here;
  *  commitDigEntity stamps it into the tilemap cell before the carve cursor (mem[cellPtr-1]) -- clean
- *  writer/reader pair, A+B converged. [code]
+ *  writer/reader pair, A+B converged. [seen]
  */
 export const STAGED_DIG_SPRITE_ID = 0x80bf;
 
@@ -720,13 +720,13 @@ export const ENEMY3_TWIN_ATTR = 0x811d;
  */
 export const SPRITE_STAGING_BASE = 0x8220;
 /** OBJECT_SPRITE_ATTR (0x8222) — slot-0 sprite-staging attribute byte (SPRITE_STAGING_BASE+2) for the
- *  tracked/player object: palette bits0-2 + priority bit3, copied from PLAYER_SPRITE_ATTR. [code] */
+ *  tracked/player object: palette bits0-2 + priority bit3, copied from PLAYER_SPRITE_ATTR. [seen] */
 export const OBJECT_SPRITE_ATTR = 0x8222;
 /** HAZARD_SPRITE_CODE (0x8229) — slot-2 (dig/hazard) sprite-staging record byte +1: the sprite CODE
  *  selecting the drawn shape of the falling-hazard / dig object, copied from HAZARD_STATE. [seen] */
 export const HAZARD_SPRITE_CODE = 0x8229;
 /** HAZARD_SPRITE_ATTR (0x822a) — slot-2 (dig/hazard) sprite-staging record byte +2: low 3 bits pick the
- *  palette (6=rock, 7=arrow), copied from HAZARD_TYPE. [code] */
+ *  palette (6=rock, 7=arrow), copied from HAZARD_TYPE. [seen] */
 export const HAZARD_SPRITE_ATTR = 0x822a;
 /** OBJ1_SPRITE_X (0x8230) — object-1 sprite-staging record byte 0 (SPRITE_STAGING_BASE+16, slot 4): staged X,
  *  copied each frame from ENEMY1_X by updateEnemy1, then LDIR'd to sprite RAM by the NMI. [seen] */
@@ -820,11 +820,11 @@ export const REACTION_OBJ_CODE = 0x8095;
 export const REACTION_OBJ_ATTR = 0x8096;
 /** ENEMY2_MOVE_PERIOD (0x8107) — OBJ2 mover cadence reload period; structural mirror of ENEMY1_MOVE_PERIOD. [seen] */
 export const ENEMY2_MOVE_PERIOD = 0x8107;
-/** ENEMY2_TARGET_COL (0x8109) — OBJ2 mover target column (seed 5 → stepEnemyMover steer path); mirror of ENEMY1_TARGET_COL. [code] */
+/** ENEMY2_TARGET_COL (0x8109) — OBJ2 mover target column (seed 5 → stepEnemyMover steer path); mirror of ENEMY1_TARGET_COL. [seen] */
 export const ENEMY2_TARGET_COL = 0x8109;
 /** ENEMY1_TIMER (0x80f0) — OBJ1 mover cadence/dwell countdown (record offset 8). [seen] */
 export const ENEMY1_TIMER = 0x80f0;
-/** ENEMY1_STATE (0x80f5) — OBJ1 mover signed state byte stepEnemyMover sign-dispatches on (record offset 13). [code] */
+/** ENEMY1_STATE (0x80f5) — OBJ1 mover signed state byte stepEnemyMover sign-dispatches on (record offset 13). [seen] */
 export const ENEMY1_STATE = 0x80f5;
 /** ENEMY2_TIMER (0x8101) — OBJ2 mover cadence/dwell countdown (mirror of ENEMY1_TIMER). [seen] */
 export const ENEMY2_TIMER = 0x8101;
@@ -905,7 +905,7 @@ export const PLAYER2_MEN_BACKUP = 0x802d;
 export const OBJECT_MOTION_MODE = 0x8075;
 /** Column the active/tracked object is locked (committed) to; 0 = free. Nonzero freezes the player
  *  dispatcher into redraw-only, and the mover latches it to the target column 0x8093 on
- *  arrival/catch. [code] */
+ *  arrival/catch. [seen] */
 export const LOCKED_COLUMN = 0x807a;
 /** Horizontal position byte (offset 0, the base) of the enemy/object work-slot scratch record;
  *  stepped one pixel by the left/right movers and drives the walk-frame phase. [seen] */
@@ -940,7 +940,7 @@ export const CHAMBER_CREATURE_FALL_STEP = 0x80e0;
  *  reveal / chamber pattern copy; stored then reloaded into IX (an HL->IX spill). [seen] */
 export const PATTERN_SOURCE_PTR = 0x80e1;
 /** Y coordinate (offset +3) of the enemy-1 17-byte record; published to sprite byte 3 with the flip
- *  bias. [code] */
+ *  bias. [seen] */
 export const ENEMY1_Y = 0x80eb;
 /** Signed mover state byte (offset +13) of the enemy-3 primary record; dispatched on sign by the
  *  generic mover. [seen] */
@@ -975,7 +975,7 @@ export const SCORE_READOUT_DEST_2 = 0x828c;
  *  (SCORE_READOUT_DEST + 18): 3 label tiles + 4 digit cells + 2 blanks; occupies 0x8295-0x829d. [seen] */
 export const SCORE_READOUT_DEST_3 = 0x8295;
 /** RIGHT_EDGE_TILE_STRIP_END (0x829d) — last (highest-address) cell of the 28-byte right-edge tile strip
- *  (0x8282-0x829d) drawn by drawRightEdgeColumn; also the final trailing blank of SCORE_READOUT_DEST_3. [code] */
+ *  (0x8282-0x829d) drawn by drawRightEdgeColumn; also the final trailing blank of SCORE_READOUT_DEST_3. [seen] */
 export const RIGHT_EDGE_TILE_STRIP_END = 0x829d;
 /** Initial stack pointer = top of work RAM (0x8000-0x83ff); every boot / state-entry routine re-
  *  seats SP here, discarding the caller's frame. [code] */
@@ -1024,15 +1024,15 @@ export const LEFT_EDGE_COLUMN_TILE_STRIP = 0x4aab;
 export const BOOT_TEXT_COLUMN30_TILE_STRIP = 0x4acb;
 
 // --- ROM data-table addresses (thepit Class-B hoist; routine-local consts promoted; [code], stage-B grounding pending) ---
-/** PLAYFIELD_TILE_IMAGE_LEVEL_ODD (0x0762) — ROM 0x400-byte (32x32 = 1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 to lay the round board; paintScreen selects … [code] */
+/** PLAYFIELD_TILE_IMAGE_LEVEL_ODD (0x0762) — ROM 0x400-byte (32x32 = 1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 to lay the round board; paintScreen selects … [seen] */
 export const PLAYFIELD_TILE_IMAGE_LEVEL_ODD = 0x0762;
-/** PLAYFIELD_TILE_IMAGE_LEVEL_EVEN (0x0b62) — ROM 0x400-byte (1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 for the round board; selected when LEVEL (0x8028) bi… [code] */
+/** PLAYFIELD_TILE_IMAGE_LEVEL_EVEN (0x0b62) — ROM 0x400-byte (1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 for the round board; selected when LEVEL (0x8028) bi… [seen] */
 export const PLAYFIELD_TILE_IMAGE_LEVEL_EVEN = 0x0b62;
-/** PLAYFIELD_COLOUR_IMAGE (0x0f62) — ROM 0x400-byte (1024-cell) full-screen colour-attribute image copied into colour RAM (0x8800) by paintScreen/loc_0673 to tint the round board; single, NOT level… [code] */
+/** PLAYFIELD_COLOUR_IMAGE (0x0f62) — ROM 0x400-byte (1024-cell) full-screen colour-attribute image copied into colour RAM (0x8800) by paintScreen/loc_0673 to tint the round board; single, NOT level… [seen] */
 export const PLAYFIELD_COLOUR_IMAGE = 0x0f62;
 /** HORIZ_STEP_EXPECTED_TILE_TABLE (0x1b78) — 360-byte ROM expected-terrain lookup for the CURRENT/UNDER cell during a HORIZONTAL terrain step. Indexed [base + (tile-113)*8 + subOffset], 45 diggable/pushabl… [seen] */
 export const HORIZ_STEP_EXPECTED_TILE_TABLE = 0x1b78;
-/** HORIZ_STEP_AHEAD_TILE_TABLE (0x1ce0) — 360-byte ROM expected-terrain lookup for the tile ONE STEP AHEAD during a HORIZONTAL terrain step; the off-grid companion of HORIZ_STEP_EXPECTED_TILE_TABLE (0x1… [code] */
+/** HORIZ_STEP_AHEAD_TILE_TABLE (0x1ce0) — 360-byte ROM expected-terrain lookup for the tile ONE STEP AHEAD during a HORIZONTAL terrain step; the off-grid companion of HORIZ_STEP_EXPECTED_TILE_TABLE (0x1… [seen] */
 export const HORIZ_STEP_AHEAD_TILE_TABLE = 0x1ce0;
 /** DIG_REACT_EXPECTED_TILE_TABLE (0x1e48) — 360-byte ROM expected-terrain lookup for the CURRENT cell in the ACTOR dig-reaction arm (triggerDigReaction). Indexed [base + (tileCode-113)*8 + subCell] over d… [seen] */
 export const DIG_REACT_EXPECTED_TILE_TABLE = 0x1e48;
@@ -1040,13 +1040,13 @@ export const DIG_REACT_EXPECTED_TILE_TABLE = 0x1e48;
 export const DIG_REACT_NEIGHBOUR_TILE_TABLE = 0x1fb0;
 /** VERT_STEP_EXPECTED_TILE_TABLE (0x2118) — 360-byte ROM expected-terrain lookup for the CURRENT cell during the tracked object's VERTICAL climb/dig-carve step (stepObjectAndResolveTile). Indexed [base + … [seen] */
 export const VERT_STEP_EXPECTED_TILE_TABLE = 0x2118;
-/** VERT_STEP_NEIGHBOUR_TILE_TABLE (0x2280) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell one step back (cellPtr-1) sampled during the object's VERTICAL climb/dig-carve step, reached off … [code] */
+/** VERT_STEP_NEIGHBOUR_TILE_TABLE (0x2280) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell one step back (cellPtr-1) sampled during the object's VERTICAL climb/dig-carve step, reached off … [seen] */
 export const VERT_STEP_NEIGHBOUR_TILE_TABLE = 0x2280;
 /** STOP_TILE_TABLE (0x277a) — ROM data table (cert=code): eight 32-byte per-sub-column lists of scroll-stop tile codes. The horizontal dig/push scroll (advancePlayerLaser.advanceScroll) sele… [seen] */
 export const STOP_TILE_TABLE = 0x277a;
 /** DIG_CHANNEL_SEAM_REMAP_TABLE (0x2dc3) — ROM data table (cert=code): 4-entry tile-translation table keyed by dig-channel tile code, index = tile-0x96 (tiles 0x96..0x99 = 150..153), occupying 0x2dc3-0x2… [seen] */
 export const DIG_CHANNEL_SEAM_REMAP_TABLE = 0x2dc3;
-/** DIG_CARVE_REMAP_TABLE (0x2dc7) — ROM data table (cert=code): 2-D tile-translation table indexed (tile-0x71)*8 + sub-column(E&7) for diggable tiles 0x71..0x99 (113..153), beginning immediately a… [code] */
+/** DIG_CARVE_REMAP_TABLE (0x2dc7) — ROM data table (cert=code): 2-D tile-translation table indexed (tile-0x71)*8 + sub-column(E&7) for diggable tiles 0x71..0x99 (113..153), beginning immediately a… [seen] */
 export const DIG_CARVE_REMAP_TABLE = 0x2dc7;
 /** PIT_FLOOR_REVEAL_PATTERN_TABLE (0x3048) — ROM data table (cert=code): tile-pattern source for the Pit sliding-floor / terrain reveal, stored as consecutive 6-tile columns (TILES_PER_COLUMN). PIT_FLOOR_R… [seen] */
 export const PIT_FLOOR_REVEAL_PATTERN_TABLE = 0x3048;
@@ -1054,9 +1054,9 @@ export const PIT_FLOOR_REVEAL_PATTERN_TABLE = 0x3048;
 export const PROBE_TILE_TABLE = 0x34fe;
 /** PROBE_NEXT_TILE_TABLE (0x35fe) — code: sibling phase-keyed valid-tile ROM lookup table (32-byte rows; region 0x35fe-0x36fd, code resumes at loc_36fe) searched for the FOLLOWING/next tile — the … [seen] */
 export const PROBE_NEXT_TILE_TABLE = 0x35fe;
-/** PREPLAY_FIXED_SCREEN_IMAGE (0x3e32) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by showFixedScreen/loc_3b81, which floods the colour map flat with attribute 0… [code] */
+/** PREPLAY_FIXED_SCREEN_IMAGE (0x3e32) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by showFixedScreen/loc_3b81, which floods the colour map flat with attribute 0… [seen] */
 export const PREPLAY_FIXED_SCREEN_IMAGE = 0x3e32;
-/** CREDIT_STANDBY_SCREEN_IMAGE (0x4232) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by holdFixedScreen/loc_3ba8, flooded flat with background attribute 0x02, over… [code] */
+/** CREDIT_STANDBY_SCREEN_IMAGE (0x4232) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by holdFixedScreen/loc_3ba8, flooded flat with background attribute 0x02, over… [seen] */
 export const CREDIT_STANDBY_SCREEN_IMAGE = 0x4232;
 /** PLAYFIELD_STRIP_COL1_ROW11_TILES (0x494f) — ROM tile-code source table walked BACKWARD (from one byte below the pointer) by copyCappedTileColumn/loc_3ddb to fill the 10-cell (0x0a) vertical tilemap strip … [seen] */
 export const PLAYFIELD_STRIP_COL1_ROW11_TILES = 0x494f;
@@ -1084,7 +1084,7 @@ export const FILL_TILE_CODE = 0x4b0f;
 export const SPRITE_STAGING_WIPE_BASE = 0x8200;
 /** SPRITE_STAGING_END (0x8240) — Exclusive upper bound of the sprite-staging wipe (SPRITE_STAGING_BASE + 0x40); also the floor of the stack-only region 0x8240..0x87ff that no routine … [code] */
 export const SPRITE_STAGING_END = 0x8240;
-/** RIGHT_EDGE_TILE_STRIP (0x8282) — Base of the 28-byte work-RAM tile strip (0x8282..0x829d) that drawRightEdgeColumn copies up video column 31 (rows 2..29); dynamic, built in RAM unlike… [code] */
+/** RIGHT_EDGE_TILE_STRIP (0x8282) — Base of the 28-byte work-RAM tile strip (0x8282..0x829d) that drawRightEdgeColumn copies up video column 31 (rows 2..29); dynamic, built in RAM unlike… [seen] */
 export const RIGHT_EDGE_TILE_STRIP = 0x8282;
 /** COLOUR_COLUMN_ANCHOR (0x8840) — Colour-RAM top-of-column anchor (row 2, col 0 = colour base 0x8800 + two rows). A full-height column fill starts at 0x8840+column and stamps 28 cells … [code] */
 export const COLOUR_COLUMN_ANCHOR = 0x8840;
@@ -1118,25 +1118,25 @@ export const LEFT_EDGE_COLOUR2_LOWER_RUN_BOTTOM = 0x8ba0;
 export const SCORE_HUD_COLOUR_LOWER_BOTTOM = 0x8ba1;
 /** ENEMY3_FIGURE_COLOUR_ANCHOR (0x8ba3) — Colour-RAM anchor cell (0x8800-0x8BFF, pairs with tilemap anchor 0x93a3 = 0x8ba3+0x800) where the two-body enemy3 (twin / alt-phase) actor stamps the … [seen] */
 export const ENEMY3_FIGURE_COLOUR_ANCHOR = 0x8ba3;
-/** JEWEL_GLITTER_TILE_7 (0x9073) — Video/tilemap (0x9000-0x93FF) glyph cell for the glitter jewel selected on glitterJewels countdown value 7; read each frame, and if it equals the anim… [code] */
+/** JEWEL_GLITTER_TILE_7 (0x9073) — Video/tilemap (0x9000-0x93FF) glyph cell for the glitter jewel selected on glitterJewels countdown value 7; read each frame, and if it equals the anim… [seen] */
 export const JEWEL_GLITTER_TILE_7 = 0x9073;
 /** OTHER_SCORE_COLUMN_BASE (0x90c1) — Video-RAM base cell of the non-player-1 (player 2 / 'any other player') score-digit column; drawScoreDigits stamps the four BCD score digits here one … [seen] */
 export const OTHER_SCORE_COLUMN_BASE = 0x90c1;
-/** JEWEL_GLITTER_TILE_5 (0x90d9) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 5; read for the animating glyph 0x3a, paired colour cell 0x88… [code] */
+/** JEWEL_GLITTER_TILE_5 (0x90d9) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 5; read for the animating glyph 0x3a, paired colour cell 0x88… [seen] */
 export const JEWEL_GLITTER_TILE_5 = 0x90d9;
-/** JEWEL_GLITTER_TILE_6 (0x915d) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 6; read for the animating glyph 0x3b (distinct from the 0x3a … [code] */
+/** JEWEL_GLITTER_TILE_6 (0x915d) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 6; read for the animating glyph 0x3b (distinct from the 0x3a … [seen] */
 export const JEWEL_GLITTER_TILE_6 = 0x915d;
 /** HIGH_SCORE_INITIALS_CELL_RANK3 (0x915f) — Video-RAM cell where the entered initial blinks during high-score initials entry for the rank picked by selector/VARIANT==3 (record HIGH_SCORE_TABLE+1… [code] */
 export const HIGH_SCORE_INITIALS_CELL_RANK3 = 0x915f;
-/** SETUP_COINAGE_A_PLURAL_CELL (0x918e) — Setup-screen video-RAM cell above the first coinage field (COINS_PER_CREDIT_A, column 14): showSetupScreen patches it to glyph 0x24 (=BLANK_TILE 36) o… [code] */
+/** SETUP_COINAGE_A_PLURAL_CELL (0x918e) — Setup-screen video-RAM cell above the first coinage field (COINS_PER_CREDIT_A, column 14): showSetupScreen patches it to glyph 0x24 (=BLANK_TILE 36) o… [seen] */
 export const SETUP_COINAGE_A_PLURAL_CELL = 0x918e;
-/** JEWEL_GLITTER_TILE_3 (0x91b6) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 3; read for the animating glyph 0x3a, paired colour cell 0x89… [code] */
+/** JEWEL_GLITTER_TILE_3 (0x91b6) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 3; read for the animating glyph 0x3a, paired colour cell 0x89… [seen] */
 export const JEWEL_GLITTER_TILE_3 = 0x91b6;
-/** JEWEL_GLITTER_TILE_4 (0x91fd) — glitterJewels CELLS[4] video/tilemap glyph cell (paired colour cell 0x89fd, animating glyph 0x3c, resting colour 3). Read to test for the animating di… [code] */
+/** JEWEL_GLITTER_TILE_4 (0x91fd) — glitterJewels CELLS[4] video/tilemap glyph cell (paired colour cell 0x89fd, animating glyph 0x3c, resting colour 3). Read to test for the animating di… [seen] */
 export const JEWEL_GLITTER_TILE_4 = 0x91fd;
-/** MOUNTAIN_ERODE_SOUND_MARKER_TILE (0x9264) — seedMountainErosion tilemap marker cell: `if (mem8[0x9264]===0x32) requestSound21(m)` — holding trigger tile 0x32 cues the Zonker/erosion sound. Only … [code] */
+/** MOUNTAIN_ERODE_SOUND_MARKER_TILE (0x9264) — seedMountainErosion tilemap marker cell: `if (mem8[0x9264]===0x32) requestSound21(m)` — holding trigger tile 0x32 cues the Zonker/erosion sound. Only … [seen] */
 export const MOUNTAIN_ERODE_SOUND_MARKER_TILE = 0x9264;
-/** JEWEL_GLITTER_TILE_2 (0x927d) — glitterJewels CELLS[2] video/tilemap glyph cell (paired colour cell 0x8a7d, animating glyph 0x3d, resting colour 3). Selected on countdown value 2. On… [code] */
+/** JEWEL_GLITTER_TILE_2 (0x927d) — glitterJewels CELLS[2] video/tilemap glyph cell (paired colour cell 0x8a7d, animating glyph 0x3d, resting colour 3). Selected on countdown value 2. On… [seen] */
 export const JEWEL_GLITTER_TILE_2 = 0x927d;
 /** HISCORE_RANK2_INITIALS_TILE (0x927f) — runHighScoreInitialsEntry rankDisplay selector 2: on-screen video cell where the middle rank's initials blink during initials entry (fills HIGH_SCORE_… [seen] */
 export const HISCORE_RANK2_INITIALS_TILE = 0x927f;
@@ -1152,7 +1152,7 @@ export const SETUP_COINAGE_B_COUNT_TILE = 0x9294;
 export const MOUNTAIN_ERODE_SPAWN_TILE = 0x92a4;
 /** P1_SCORE_COLUMN_BASE (0x9301) — drawScoreDigits player-1 score-column base: the four BCD score digits are stamped here and at +32/+64/+96 (one tilemap row apart) when ACTIVE_PLAYER==… [seen] */
 export const P1_SCORE_COLUMN_BASE = 0x9301;
-/** JEWEL_GLITTER_TILE_1 (0x933a) — Video-RAM tile byte of glitterJewels' default glitter cell (countdown value 1, and any stray value outside 2..7); read each cycle to decide whether it… [code] */
+/** JEWEL_GLITTER_TILE_1 (0x933a) — Video-RAM tile byte of glitterJewels' default glitter cell (countdown value 1, and any stray value outside 2..7); read each cycle to decide whether it… [seen] */
 export const JEWEL_GLITTER_TILE_1 = 0x933a;
 /** PIT_FLOOR_REVEAL_COLUMN_BOTTOM (0x938c) — Bottom video-RAM cell of the sliding pit-floor / terrain reveal column; 6 tiles (TILES_PER_COLUMN) are stamped upward from here (cell -= 32 per tile) … [seen] */
 export const PIT_FLOOR_REVEAL_COLUMN_BOTTOM = 0x938c;
@@ -1177,13 +1177,13 @@ export const ATTR_SCROLL_RAM_BASE = 0x9800;
 /** SPRITE_RAM_BASE (0x9840) — base of hardware sprite RAM (0x9840-0x985F = 8 sprites x 4 bytes); the
  *  per-frame NMI LDIRs the SPRITE_STAGING_BASE staging buffer into this region every vblank. [seen] */
 export const SPRITE_RAM_BASE = 0x9840;
-/** JOYSTICK_INPUT_PORT (0xa000) — MMIO input port IN0 (read): 8-way joystick + dig/fire. Read once in serviceVblankNmi.debounceInputs as `mem8[0xa000] // joystick/dig port`. Board io.r… [code] */
+/** JOYSTICK_INPUT_PORT (0xa000) — MMIO input port IN0 (read): 8-way joystick + dig/fire. Read once in serviceVblankNmi.debounceInputs as `mem8[0xa000] // joystick/dig port`. Board io.r… [seen] */
 export const JOYSTICK_INPUT_PORT = 0xa000;
-/** COIN_START_PORT (0xa800) — MMIO input port IN1 (read): coin + start switches, ACTIVE HIGH (idle 0x00, a press sets its bit). Read in serviceVblankNmi.debounceInputs as `mem8[0xa… [code] */
+/** COIN_START_PORT (0xa800) — MMIO input port IN1 (read): coin + start switches, ACTIVE HIGH (idle 0x00, a press sets its bit). Read in serviceVblankNmi.debounceInputs as `mem8[0xa… [seen] */
 export const COIN_START_PORT = 0xa800;
 /** SOUND_ENABLE_LATCH (0xb003) — MMIO WRITE: LS259 control latch bit 3 = master sound-enable line (data on d0). enableSound writes 1 (unmute), disableSound writes 0 (mute). [seen] */
 export const SOUND_ENABLE_LATCH = 0xb003;
-/** DSW_PORT (0xb000) — DIP-switch input port (READ side of 0xB000): the LS157-muxed DSW byte applyDipSwitches decodes. [code] */
+/** DSW_PORT (0xb000) — DIP-switch input port (READ side of 0xB000): the LS157-muxed DSW byte applyDipSwitches decodes. [seen] */
 export const DSW_PORT = 0xb000;
 /** NMI_MASK_LATCH (0xb000) — LS259 control-latch bit0 (WRITE side of 0xB000): 1 arms / 0 masks the vblank NMI. [code] */
 export const NMI_MASK_LATCH = 0xb000;
@@ -1193,7 +1193,7 @@ export const FLIP_SCREEN_X_LATCH = 0xb006;
 /** FLIP_SCREEN_Y_LATCH (0xb007) — LS259 mainlatch line 7 (WRITE side of 0xB007): vertical screen flip
  *  (flipY); applyDipSwitches writes the decoded cocktail flip bit (low bit latched). [seen] */
 export const FLIP_SCREEN_Y_LATCH = 0xb007;
-/** WATCHDOG_KICK (0xb800) — Watchdog reset (READ side of 0xB800): reading it kicks the watchdog. [code] */
+/** WATCHDOG_KICK (0xb800) — Watchdog reset (READ side of 0xB800): reading it kicks the watchdog. [seen] */
 export const WATCHDOG_KICK = 0xb800;
 /** SOUND_CMD_LATCH (0xb800) — Sound-command latch (WRITE side of 0xB800): the byte handed to the audio Z80. [code] */
 export const SOUND_CMD_LATCH = 0xb800;
@@ -1286,7 +1286,7 @@ export const ROUTINES = {
   0x2934: { name: "commitDigEntity", role: "commit one dig entity into its tilemap cell and patch the neighbouring cells", cert: "seen" },
   0x29ad: { name: "advanceDigCarveObject", role: "per-frame driver for the dig/carve object that tunnels the maze — spawn gate, capture hand-off, carve countdown, and tile carving", cert: "seen" },
   0x2bd3: { name: "stageDigObjectSpriteRecord", role: "compose the falling-hazard / dig object's sprite record so it draws at its cell (shape from state, colour from type)", cert: "seen" },
-  0x2bf2: { name: "startNextDigSpawn", role: "start the next queued dig-object spawn, or clear the spawn-active flag when nothing is queued", cert: "code" },
+  0x2bf2: { name: "startNextDigSpawn", role: "start the next queued dig-object spawn, or clear the spawn-active flag when nothing is queued", cert: "seen" },
   0x2c04: { name: "spawnPendingDigObject", role: "pop a random queued column and spawn a falling dig/hazard object there (a rock/arrow that then falls)", cert: "seen" },
   0x2c91: { name: "flagObjectTargetOverlap", role: "flag whether the freshly-placed target cell coincides with the tracked object, then build the cell's record", cert: "seen" },
   0x2cb7: { name: "captureTargetOnOverlap", role: "tick the dig target's countdown and, on expiry, snap the tracked object onto the target when it overlaps, marking it captured", cert: "seen" },
@@ -1385,7 +1385,7 @@ export const ROUTINES = {
   0x4c6f: { name: "requestSound8", role: "enqueue the initials-step sound (command 8)", cert: "seen" },
   0x4c73: { name: "requestSound9", role: "enqueue sound-command 9", cert: "seen" },
   0x4c77: { name: "requestSound10", role: "enqueue sound-command 10", cert: "seen" },
-  0x4c7b: { name: "requestSound11", role: "enqueue the Pit floor-reveal sound (command 11)", cert: "code" },
+  0x4c7b: { name: "requestSound11", role: "enqueue the Pit floor-reveal sound (command 11)", cert: "seen" },
   0x4c7f: { name: "requestSound12", role: "enqueue sound-command 12", cert: "seen" },
   0x4c83: { name: "requestSound13", role: "enqueue the +1 pickup sound (command 13)", cert: "code" },
   0x4c8b: { name: "requestSound15", role: "enqueue sound-command 15", cert: "seen" },

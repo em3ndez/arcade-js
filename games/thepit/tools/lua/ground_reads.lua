@@ -1,22 +1,14 @@
--- SPDX-License-Identifier: GPL-3.0-only
--- Grounding read-tap (The Pit): record DISTINCT (pc,addr) reads into program ROM 0x0000-0x4FFF, so a
--- ROM constant/table's role reader can be observed (stage-B [code]->[seen] for ROM cells the write-tap
--- can never ground) AND the set of executing PCs gives reachability (opcode fetches read ROM at PC) to
--- tell a reached register-compute helper from a genuinely-deep routine. ROM span is the 20KB program
--- image (games/thepit/rom/maincpu.bin is 0x5000 bytes: p38b/p39b/p40b/p41b/p33b, mapped 0x0000-0x4FFF;
--- 0x5000-0x7FFF is unmapped, RAM starts at 0x8000). Deduped in-lua (a full read log is tens of millions
--- of rows); one line per first sighting. CURPC is the NEXT instruction. Output CSV: pc,addr. Env: GROUND_OUT.
--- ⚠ The ROM-checksum / anti-tamper sweep PC (one PC that reads hundreds of ROM addresses) grounds nothing
--- role-specific and must be EXCLUDED downstream at triage -- measure reachability from the pc (curpc)
--- column, NEVER the addr column (the boot sweep reads every ROM byte, so an addr appears as "read" even for
--- code that never executed).
-local out = io.open(os.getenv("GROUND_OUT") or "ground_reads.csv", "w")
-out:setvbuf("no"); out:write("pc,addr\n")
+-- Full-span read-tap: dedup (pc,addr,value) over 0x0000-0xBFFF so VRAM/RAM role reads and MMIO
+-- (DSW/watchdog/ports) reads are witnessed (the committed ground_reads.lua stops at ROM 0x4FFF).
+-- Excludes nothing here; the checksum-sweep PCs are filtered downstream in triage.
 local cpu = manager.machine.devices[":maincpu"]
 local prog = cpu.spaces["program"]
+local OUT = os.getenv("FULLREAD_OUT") or "fullread.csv"
+local f = assert(io.open(OUT,"w")); f:setvbuf("no"); f:write("pc,addr,v\n")
 local seen = {}
-_G.__ground_rtap = prog:install_read_tap(0x0000, 0x4fff, "groundr", function(offset, data, mask)
+_G.__frtap = prog:install_read_tap(0x0000, 0xbfff, "fullr", function(off, data, mask)
   local pc = cpu.state["CURPC"].value
-  local k = pc * 0x10000 + offset
-  if not seen[k] then seen[k] = true; out:write(string.format("%04x,%04x\n", pc, offset)) end
+  local k = pc*0x1000000 + off*0x100 + (data & 0xff)
+  if not seen[k] then seen[k]=true; f:write(string.format("%04x,%04x,%02x\n", pc, off, data & 0xff)) end
 end)
+assert(_G.__frtap, "read tap not installed")
