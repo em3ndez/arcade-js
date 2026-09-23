@@ -14,14 +14,14 @@ import { windUpObjectMove } from "./windUpObjectMove.js";
 import { stepObjectRowUnflipped } from "./stepObjectRowUnflipped.js";
 import { stepObjectRowFlipped } from "./stepObjectRowFlipped.js";
 
-export function routeIdleObjectByMoveCommand(m, moveCommand = m.regs.l) {
+export function routeIdleObjectByMoveCommand(m, moveCommand = m.regs.l, columnBias = m.regs.d, stepY = m.regs.e) {
   const { mem8 } = m;
 
-  if (moveCommand & 0x01) return stepObjectRowFlipped(m);
-  if (moveCommand & 0x02) return stepObjectRowUnflipped(m);
-  if (moveCommand & 0x0c) return windUpObjectMove(m, moveCommand);
+  if (moveCommand & 0x01) return stepObjectRowFlipped(m, stepY);
+  if (moveCommand & 0x02) return stepObjectRowUnflipped(m, stepY);
+  if (moveCommand & 0x0c) return windUpObjectMove(m, moveCommand, columnBias);
 
   mem8[PLAYER_ANIM_PHASE] = 0;
-  if (mem8[GOAL_TILE_LATCH] !== 0) return resolveObjectTile(m);
+  if (mem8[GOAL_TILE_LATCH] !== 0) return resolveObjectTile(m, columnBias);
   return stageObjectSpriteRecord(m);
 }

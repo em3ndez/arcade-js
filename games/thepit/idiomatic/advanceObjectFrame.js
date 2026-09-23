@@ -15,14 +15,14 @@ import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { walkActor } from "./walkActor.js";
 import { OBJECT_MOTION_MODE } from "./names.js";
 
-export function advanceObjectFrame(m, moveCommand = m.regs.a) {
+export function advanceObjectFrame(m, moveCommand = m.regs.a, columnBias = m.regs.d, stepY = m.regs.e) {
   const { mem8 } = m;
 
   const mode = mem8[OBJECT_MOTION_MODE];
 
   // At rest this frame: route on the command bits to the at-rest handler.
   if (mode === 0) {
-    return routeIdleObjectByMoveCommand(m, moveCommand);
+    return routeIdleObjectByMoveCommand(m, moveCommand, columnBias, stepY);
   }
 
   // In motion: the command's direction bits pick the walk stepper; with neither, the mode sign decides.

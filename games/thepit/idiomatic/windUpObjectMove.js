@@ -20,12 +20,12 @@ const WIND_STEP = 32; // one wind-up notch subtracted per frame (0x20 — one st
 const DIR_BITS = 0x0c; // the two move-command direction bits that route into this routine
 const STAMP_HANDLER_BIT = 0x04; // bit 2 of the command: set -> frame-stamp handler, clear -> step-and-resolve
 
-export function windUpObjectMove(m, moveCommand = m.regs.l) {
+export function windUpObjectMove(m, moveCommand = m.regs.l, columnBias = m.regs.d) {
   const { mem8 } = m;
   const phase = mem8[PLAYER_ANIM_PHASE];
 
   // Already settled: run the object's move handler this frame.
-  if (phase === moveCommand) return dispatchMove(m, moveCommand);
+  if (phase === moveCommand) return dispatchMove(m, moveCommand, columnBias);
 
   // Mid wind-up: step the counter down one notch and defer the frame (no move).
   if (phase !== 0) {
@@ -38,12 +38,12 @@ export function windUpObjectMove(m, moveCommand = m.regs.l) {
 
   // Nothing armed yet: start the wind-up high, then run the handler this frame.
   mem8[PLAYER_ANIM_PHASE] = moveCommand | WIND_UP_START;
-  return dispatchMove(m, moveCommand);
+  return dispatchMove(m, moveCommand, columnBias);
 }
 
 /** Dispatch the object's move handler on the command's bit 2 — set runs the frame-stamp handler,
  *  clear runs the step-and-resolve handler. Each handler's return unwinds to windUpObjectMove's caller. */
-function dispatchMove(m, moveCommand) {
-  if (moveCommand & STAMP_HANDLER_BIT) return stampFixedFrameAndResolveTile(m);
-  return stepObjectAndResolveTile(m);
+function dispatchMove(m, moveCommand, columnBias) {
+  if (moveCommand & STAMP_HANDLER_BIT) return stampFixedFrameAndResolveTile(m, columnBias);
+  return stepObjectAndResolveTile(m, columnBias);
 }

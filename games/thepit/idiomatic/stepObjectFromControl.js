@@ -12,7 +12,7 @@ import { REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "./nam
 import { advanceObjectFrame } from "./advanceObjectFrame.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
-export function stepObjectFromControl(m) {
+export function stepObjectFromControl(m, columnBias = m.regs.d, stepY = m.regs.e) {
   const { mem8 } = m;
 
   // A reaction animation owns the object -> defer its move and stage the deferral record.
@@ -24,5 +24,5 @@ export function stepObjectFromControl(m) {
 
   // Hand the command to the per-frame update dispatcher, which positions, animates, or
   // stands the object still.
-  return advanceObjectFrame(m, moveCommand);
+  return advanceObjectFrame(m, moveCommand, columnBias, stepY);
 }

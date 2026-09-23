@@ -11,7 +11,7 @@
 import { PLAYER_FACING } from "./names.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 
-export function stampFixedFrameAndResolveTile(m) {
+export function stampFixedFrameAndResolveTile(m, columnBias = m.regs.d) {
   const { mem8 } = m;
 
   // Choose this prologue's fixed animation frame; the draw code renders the actor with it.
@@ -19,5 +19,5 @@ export function stampFixedFrameAndResolveTile(m) {
 
   // Hand off to the shared tail — rebuild the screen cell, read the under-tile, dispatch;
   // its return unwinds to our caller, so this is our return too.
-  return resolveObjectTile(m);
+  return resolveObjectTile(m, columnBias);
 }

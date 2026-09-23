@@ -9,9 +9,9 @@
  *   - carve state armed (== 1) -> the fixed-frame prologue + shared tile tail; past armed -> defer
  *   - motion marker negative -> step the walk animation; positive -> the player walk step
  *   - goal not reached / crossing recorded / terrain reveal finished -> the matching handler
- * Before dispatching it loads the object's position-bias pair (PLAYER_STEP_Y / PLAYER_STEP_X) into
- * the D and E registers: the handlers read that pair as the column bias and the move deltas, so it
- * is a genuine register boundary. The chosen handler is the whole frame's work and its own return.
+ * Before dispatching it reads the object's position-bias pair (PLAYER_STEP_X / PLAYER_STEP_Y) and
+ * threads it — columnBias and stepY — as explicit args to the handlers that consume it. The chosen
+ * handler is the whole frame's work and its own return.
  */
 
 import {
@@ -35,7 +35,7 @@ import { advanceActorWalk } from "./advanceActorWalk.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 
 export function advanceTrackedObject(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   // Object still mid-work this frame: stage its deferral record and stop.
   if (mem8[LOCKED_COLUMN] !== 0) return stageObjectSpriteRecord(m);
@@ -44,16 +44,15 @@ export function advanceTrackedObject(m) {
   if (mem8[PLAYER_ACTIVE] === 0) return;
   if (mem8[BOARD_END_PHASE] !== 0) return;
 
-  // Load the object's position-bias pair into D and E: the tile-cell tail reads the column bias
-  // from D, and the position handlers reached below read both bytes as the object's move deltas.
+  // The object's position-bias pair: columnBias (the tile-cell tail's column offset) and stepY
+  // (the position handlers' move delta). Threaded to each handler as explicit args below.
   const columnBias = mem8[PLAYER_STEP_X];
-  regs.e = mem8[PLAYER_STEP_Y];
-  regs.d = columnBias;
+  const stepY = mem8[PLAYER_STEP_Y];
 
   // Carve/arm state: armed runs the fixed-frame prologue plus the shared tile tail; any state
   // past armed stages the deferral record instead.
   const armState = mem8[DIG_COLLISION_STATE];
-  if (armState === 1) return stampFixedFrameAndResolveTile(m);
+  if (armState === 1) return stampFixedFrameAndResolveTile(m, columnBias);
   if (armState !== 0) return stageObjectSpriteRecord(m);
 
   // Motion marker: a "negative" marker (high bit set) steps the moving object's walk animation;
@@ -63,7 +62,7 @@ export function advanceTrackedObject(m) {
   if (motionMarker !== 0) return walkActor(m);
 
   // Goal not yet reached: advance the object straight from its control input.
-  if (mem8[GOAL_TILE_LATCH] === 0) return stepObjectFromControl(m);
+  if (mem8[GOAL_TILE_LATCH] === 0) return stepObjectFromControl(m, columnBias, stepY);
 
   // Goal reached, and the crossing point was recorded: walk the object forward past it.
   if (mem8[PIT_CROSS_ACTIVE] !== 0) return advanceActorWalk(m);
@@ -72,5 +71,5 @@ export function advanceTrackedObject(m) {
   if (mem8[PIT_FLOOR_REVEAL_CURSOR] === 0) return resolveObjectTile(m, columnBias);
 
   // Otherwise advance the object from its control input.
-  return stepObjectFromControl(m);
+  return stepObjectFromControl(m, columnBias, stepY);
 }
