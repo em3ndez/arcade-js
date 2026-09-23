@@ -442,6 +442,10 @@ significant byte. `[code]`
 One **displayed high score** is held separately at `0xA98B`-`0xA98D` (`HIGH_SCORE_HI` its MSB), seeded
 at boot and promoted when a game's score passes it.
 
+`paintFiveLabelledNumericReadouts` paints the five records up the tile plane, pairing each record source
+(`HIGH_SCORE_TABLE_BASE`/`REC1..4_BASE`) with its VRAM tile-plane cursor `HIGH_SCORE_REC0..4_CURSOR`
+(`0xA711`,`0xA713`,`0xA715`,`0xA717`,`0xA719`) and a pen colour. `[code]`
+
 The **high-score table** is five records of eight bytes, `HIGH_SCORE_TABLE_BASE` (`0xAB08`) through
 `HIGH_SCORE_TABLE_END` (`0xAB2F`). Each record is `+0` a rank cell, `+1..+3` the score low/mid/high,
 `+4..+7` the initials glyphs; the record bases are `HIGH_SCORE_REC1_BASE`..`REC4_BASE` (record 0 is the

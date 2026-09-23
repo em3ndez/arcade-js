@@ -739,6 +739,13 @@ export const HIGH_SCORE_REC2_BASE = 0xab18;
 export const HIGH_SCORE_REC3_BASE = 0xab20;
 export const HIGH_SCORE_SLIDE_SRC = 0xab27;
 export const HIGH_SCORE_REC4_BASE = 0xab28;
+// The 5 high-score readout CURSORS (VRAM tile-plane write positions), one per record, paired with the
+// HIGH_SCORE_REC*_BASE sources by paintFiveLabelledNumericReadouts. [code]
+export const HIGH_SCORE_REC0_CURSOR = 0xa711;
+export const HIGH_SCORE_REC1_CURSOR = 0xa713;
+export const HIGH_SCORE_REC2_CURSOR = 0xa715;
+export const HIGH_SCORE_REC3_CURSOR = 0xa717;
+export const HIGH_SCORE_REC4_CURSOR = 0xa719;
 export const HIGH_SCORE_TABLE_END = 0xab2f;
 
 /**
