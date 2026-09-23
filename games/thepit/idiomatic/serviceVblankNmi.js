@@ -72,12 +72,10 @@ export function serviceVblankNmi(m) {
   // credit/start flow, which owns the exit — this handler must not re-arm on top of it.
   if (bankCoinInput(m)) return;
 
-  // Normal per-frame exit: re-arm the interrupt for the next vblank and return to the
-  // interrupted code. The `ret` pops the PC the NMI pushed on entry — load-bearing when the
-  // whole game runs idiomatic and this handler is dispatched by the live vblank rather than a
-  // translated caller that would balance the stack itself.
+  // Normal per-frame exit: re-arm the interrupt for the next vblank. Memory-inert interrupt-return:
+  // the idiomatic layer is SP-retired (fireNmi pushes no PC), so there is no return frame to pop;
+  // the engine sets pc = nmiReturnPC after this handler.
   mem8[NMI_MASK_LATCH] = 1;
-  return m.ret();
 }
 
 /**
