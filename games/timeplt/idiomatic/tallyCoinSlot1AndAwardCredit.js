@@ -10,15 +10,15 @@
 import { requestCoinSound } from "./requestCoinSound.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
+import { bcdAddByte } from "../../../core/bcd.js";
 import { COIN_ACCEPTED, COIN_SLOT_1_ACCUMULATOR, COIN_SLOT_1_DEBOUNCE, COIN_SLOT_1_RATIO, CREDIT_COUNT, FREE_PLAY, IN0_MIRROR } from "./names.js";
 
 export function tallyCoinSlot1AndAwardCredit(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  const coinBit = mem8[IN0_MIRROR] & 0x01; // rrca: carry = coin line (bit 0)
-  const debounce = ((mem8[COIN_SLOT_1_DEBOUNCE] << 1) | coinBit) & 0xff; // rl through that carry
+  const coinBit = mem8[IN0_MIRROR] & 0x01; // the coin line (bit 0)
+  const debounce = ((mem8[COIN_SLOT_1_DEBOUNCE] << 1) | coinBit) & 0xff; // shift the coin line in
   mem8[COIN_SLOT_1_DEBOUNCE] = debounce;
-  regs.hl = COIN_SLOT_1_DEBOUNCE; // pointer left seated for the debounce cell
   if ((debounce & 0x07) !== 0x01) return; // not the clean rising edge
 
   requestCoinSound(m);
@@ -26,22 +26,15 @@ export function tallyCoinSlot1AndAwardCredit(m) {
 
   const accumulator = (mem8[COIN_SLOT_1_ACCUMULATOR] + 0x10) & 0xff;
   mem8[COIN_SLOT_1_ACCUMULATOR] = accumulator;
-  regs.b = accumulator; // whole accumulator byte, carried in B
   const coinage = mem8[COIN_SLOT_1_RATIO]; // coins/credit hi nibble, credits lo nibble
-  regs.hl = COIN_SLOT_1_RATIO;
   if (coinage >= accumulator) return; // still short of a credit
 
   mem8[COIN_SLOT_1_ACCUMULATOR] = accumulator - ((coinage & 0xf0) + 0x10); // carry the overshoot forward (write8 truncates)
-  regs.c = coinage; // whole coinage byte, carried in C
-  regs.hl = COIN_SLOT_1_ACCUMULATOR;
 
   if (mem8[FREE_PLAY] !== 0) return pulseSlot1CoinCounter(m);
 
-  regs.a = coinage & 0x0f;
-  regs.hl = CREDIT_COUNT;
-  regs.add(mem8[regs.hl]);
-  regs.daa();
-  mem8[regs.hl] = regs.fNC ? regs.a : 0x99; // BCD add, saturated at 99
+  const { value, carry } = bcdAddByte(mem8[CREDIT_COUNT], coinage & 0x0f);
+  mem8[CREDIT_COUNT] = carry ? 0x99 : value; // BCD add, saturated at 99
   paintCreditCountPanel(m);
   return pulseSlot1CoinCounter(m);
 }

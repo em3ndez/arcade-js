@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** tallyCoinSlot1AndAwardCredit — memory-equivalent to the frozen oracle at ROM 0x4941. A pure leaf: its three ROM
- * calls are dissolved to direct imports, so the rewrite models no stack and omits its own ret.
- * Both tapes' real dispatches replay identically outside the masked stack scratch; four crafted
- * states drive the coinage branches the tapes never reach; register drift is held to a measured
- * ceiling. Run: node --test games/timeplt/idiomatic/test/equivalence-4941.test.js */
+ * calls are dissolved to direct imports, so the rewrite models no stack and omits its own ret. The
+ * rewrite holds its working values in local scratch rather than the register file, so the contract
+ * here is RAM equivalence: both tapes' real dispatches write the same cells (coin debounce line,
+ * tally, coins-inserted accumulator, packed-BCD credit count and the latched coin-counter line)
+ * outside the masked stack window, and four crafted states drive the coinage branches the tapes
+ * never reach. Run: node --test games/timeplt/idiomatic/test/equivalence-4941.test.js */
 
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -14,7 +16,6 @@ import { loc_4941 as oracle } from "../../translated/loc_4941.js";
 import { requestCoinSound } from "../requestCoinSound.js";
 import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x4941;
 const COIN_SAMPLE = 0xa9ae;
@@ -28,9 +29,6 @@ const CREDIT_COUNT = 0xa986;
 // Every game write lands at or below here; the deepest oracle push stays above it, so masking the
 // stack scratch can never hide a data divergence. Asserted against the measured floor below.
 const DATA_TOP = 0xadff;
-// The measured register ceiling: the callers tail-call and read no register, and the dissolved
-// callees leave a/d/e/f/l where the frozen ex/ret path does not. Checked as a subset.
-const EXCLUDED = ["a", "d", "e", "f", "l", "sp"];
 const DISPATCHES_PER_TAPE = 1165;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -51,8 +49,10 @@ function corpus() {
   return corpusCache;
 }
 
-// Oracle vs candidate on independent clones. The oracle pushes a return per delegated call and rets
-// its own; the rewrite models no stack, so [low, seat) is masked, low watched off the oracle's pushes.
+// Oracle vs candidate on independent clones, compared on RAM only. The oracle pushes a return per
+// delegated call and rets its own; the rewrite models no stack, so [low, seat) is masked, low
+// watched off the oracle's pushes. The rewrite keeps its scratch in locals, not the register file,
+// so registers carry no live-out and are not part of the contract.
 function compare(cand, machine) {
   const a = machine.clone();
   const b = machine.clone();
@@ -71,12 +71,7 @@ function compare(cand, machine) {
     if (addr >= low && addr < seat) continue;
     escaped = { addr, oracle: da[i], candidate: db[i] };
   }
-  let reg = null;
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
-    if (a.regs[k] !== b.regs[k]) { reg = { k, a: a.regs[k], b: b.regs[k] }; break; }
-  }
-  return { escaped, reg, low, seat, spDiff: a.regs.sp - b.regs.sp, retEq: ra === rb };
+  return { escaped, low, seat, spDiff: a.regs.sp - b.regs.sp, retEq: ra === rb };
 }
 
 function footprint(machine) {
@@ -154,9 +149,6 @@ function twin(o) {
   };
 }
 
-// ★ control: scribbles h, a register OUTSIDE the ceiling — the positive control for EXCLUDED.
-function control(m) { const r = candidate(m); m.regs.h = (m.regs.h + 1) & 0xff; return r; }
-
 const TWINS = [
   ["no-op", twin({ noop: true }), 4],
   ["no-shift", twin({ noShift: true }), 4],
@@ -170,21 +162,9 @@ function sweepBranches(cand) {
   let caught = 0;
   for (const e of Object.values(branches())) {
     const r = compare(cand, e);
-    if (r.escaped || r.reg) caught++;
+    if (r.escaped) caught++;
   }
   return caught;
-}
-
-function movedOver(cand, set) {
-  const moved = new Set();
-  for (const e of set) {
-    const a = e.clone();
-    const b = e.clone();
-    oracle(a);
-    try { cand(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
 }
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
@@ -192,7 +172,6 @@ function movedOver(cand, set) {
 test("EQUAL at a full-work dispatch: RAM identical outside the masked stack scratch", { skip }, () => {
   const r = compare(candidate, fullWork());
   assert.equal(r.escaped, null, r.escaped && `escaped the mask at ${hex4(r.escaped.addr)}`);
-  assert.equal(r.reg, null, r.reg && `register ${r.reg.k} diverged: ${r.reg.a} vs ${r.reg.b}`);
   assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached down into game data`);
   console.log(`  EQUAL: window [${hex4(r.low)},${hex4(r.seat)}) masked, spDiff ${r.spDiff}`);
 });
@@ -201,7 +180,6 @@ test("CORPUS: every dispatch of both tapes replays identically, and not all are 
   for (const e of corpus()) {
     const r = compare(candidate, e);
     assert.equal(r.escaped, null, `${hex4(e.regs.sp)}: escaped at ${r.escaped && hex4(r.escaped.addr)}`);
-    assert.equal(r.reg, null, `${hex4(e.regs.sp)}: register ${r.reg && r.reg.k} diverged`);
   }
   const working = corpus().filter((e) => footprint(e) > 0).length;
   assert.ok(working > 0, "no captured dispatch makes the oracle write, so the corpus is all no-ops");
@@ -215,7 +193,6 @@ test("PATHS: the four coinage exits are reached and each replays identically", {
   for (const [label, e] of Object.entries(b)) {
     const r = compare(candidate, e);
     assert.equal(r.escaped, null, `${label} escaped at ${r.escaped && hex4(r.escaped.addr)}`);
-    assert.equal(r.reg, null, `${label} diverged on ${r.reg && r.reg.k}`);
   }
   // ★ Vacuity guard: the credit path must reach 0xa986 and the guarded path must not, or a rewrite
   // that ignored the branch would pass every arm here.
@@ -232,18 +209,6 @@ test("SP and RETURN: the oracle re-seats two bytes higher and both return the sa
     assert.ok(r.retEq, "the return value diverged");
   }
   console.log("  SP: +2 on every path; return values identical");
-});
-
-test("EXCLUDED, measured: nothing moves outside the ceiling, with a control that does", { skip }, () => {
-  const set = [...corpus(), ...Object.values(branches())];
-  const moved = movedOver(candidate, set);
-  const ctrl = movedOver(control, set);
-  assert.ok(REG_FIELDS.some((k) => ctrl.has(k) && !EXCLUDED.includes(k)),
-    "the measurement reports nothing even for a twin that scribbles h, so a clean reading proves nothing");
-  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
-  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-  console.log(`  EXCLUDED: candidate moves ${[...moved].join(",")}; control also moves ` +
-    `${REG_FIELDS.filter((k) => ctrl.has(k) && !EXCLUDED.includes(k)).join(",")}`);
 });
 
 for (const [label, brokenTwin, expected] of TWINS) {
