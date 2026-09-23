@@ -723,7 +723,7 @@ export const SPRITE_STAGING_BASE = 0x8220;
  *  tracked/player object: palette bits0-2 + priority bit3, copied from PLAYER_SPRITE_ATTR. [code] */
 export const OBJECT_SPRITE_ATTR = 0x8222;
 /** HAZARD_SPRITE_CODE (0x8229) — slot-2 (dig/hazard) sprite-staging record byte +1: the sprite CODE
- *  selecting the drawn shape of the falling-hazard / dig object, copied from HAZARD_STATE. [code] */
+ *  selecting the drawn shape of the falling-hazard / dig object, copied from HAZARD_STATE. [seen] */
 export const HAZARD_SPRITE_CODE = 0x8229;
 /** HAZARD_SPRITE_ATTR (0x822a) — slot-2 (dig/hazard) sprite-staging record byte +2: low 3 bits pick the
  *  palette (6=rock, 7=arrow), copied from HAZARD_TYPE. [code] */
@@ -857,10 +857,10 @@ export const ENEMY3_SPRITE_ATTR = 0x823a;
 /** ENEMY3_TWIN_SPRITE_SLOT (0x823c) — sprite-staging slot 7 (SPRITE_STAGING_BASE+28), the twin's record. [seen] */
 export const ENEMY3_TWIN_SPRITE_SLOT = 0x823c;
 /** ENEMY3_TWIN_SPRITE_ATTR (0x823e) — byte 2 (color+priority) of the ENEMY3 twin sprite-staging record
- *  (ENEMY3_TWIN_SPRITE_SLOT 0x823c, slot 7), copied from ENEMY3_TWIN_ATTR; mirror of ENEMY3_SPRITE_ATTR. [code] */
+ *  (ENEMY3_TWIN_SPRITE_SLOT 0x823c, slot 7), copied from ENEMY3_TWIN_ATTR; mirror of ENEMY3_SPRITE_ATTR. [seen] */
 export const ENEMY3_TWIN_SPRITE_ATTR = 0x823e;
 /** ENEMY3_TWIN_SPRITE_Y (0x823f) — byte 3 (Y) of the ENEMY3 twin's 4-byte sprite-staging record
- *  (ENEMY3_TWIN_SPRITE_SLOT 0x823c); last byte of the sprite-staging wipe block. [code] */
+ *  (ENEMY3_TWIN_SPRITE_SLOT 0x823c); last byte of the sprite-staging wipe block. [seen] */
 export const ENEMY3_TWIN_SPRITE_Y = 0x823f;
 
 // ── Centralized 2026-07-31: cells previously referenced by raw hex or by a LOCAL const
@@ -884,7 +884,7 @@ export const DEMO_STEER_SERVICE_TIMER = 0x800b;
  *  hint to that region's index. Reset to 0 at round init. [seen] */
 export const DEMO_STEER_BAND_HINT = 0x800c;
 /** Colour-test screen per-pass fill-colour byte; also the 0x80->0xFF pass loop counter (each pass
- *  floods colour RAM 0x8800-0x8BFF with this value). [code] */
+ *  floods colour RAM 0x8800-0x8BFF with this value). [seen] */
 export const COLOUR_TEST_FILL = 0x8012;
 /** Player 1's backup copy of the LEVEL field (offset 0 of the interleaved [working,P1,P2] per-
  *  player record based at LEVEL 0x8028). loadPlayerState restores it into working LEVEL for
@@ -1018,9 +1018,9 @@ export const HISCORE_RANK2_LABEL_STRIP = 0x4a7b;
 export const HISCORE_RANK3_LABEL_STRIP = 0x4a8e;
 /** HIGH_SCORE_INITIALS_PROMPT_GLYPHS (0x4aa9) — Fixed 26-glyph ROM tile-code prompt strip (span 0x4a90..0x4aa9), walked BACKWARD by copyTileColumn. runHighScoreInitialsEntry's fixed prompt line, plotted down … [seen] */
 export const HIGH_SCORE_INITIALS_PROMPT_GLYPHS = 0x4aa9;
-/** LEFT_EDGE_COLUMN_TILE_STRIP (0x4aab) — ROM 32-byte picture strip copied up video column 0 by drawLeftEdgeColumn into LEFT_EDGE_COLUMN_BOTTOM (0x93e0) to give the fixed left-edge playfield column its tile image. [code] */
+/** LEFT_EDGE_COLUMN_TILE_STRIP (0x4aab) — ROM 32-byte picture strip copied up video column 0 by drawLeftEdgeColumn into LEFT_EDGE_COLUMN_BOTTOM (0x93e0) to give the fixed left-edge playfield column its tile image. [seen] */
 export const LEFT_EDGE_COLUMN_TILE_STRIP = 0x4aab;
-/** BOOT_TEXT_COLUMN30_TILE_STRIP (0x4acb) — ROM 32-byte picture strip (= 0x4aab + 0x20, the next strip) copied up tilemap column 30 by drawBestScoresTodayLabel into BOOT_TEXT_COLUMN30_BOTTOM (0x93fe). [code] */
+/** BOOT_TEXT_COLUMN30_TILE_STRIP (0x4acb) — ROM 32-byte picture strip (= 0x4aab + 0x20, the next strip) copied up tilemap column 30 by drawBestScoresTodayLabel into BOOT_TEXT_COLUMN30_BOTTOM (0x93fe). [seen] */
 export const BOOT_TEXT_COLUMN30_TILE_STRIP = 0x4acb;
 
 // --- ROM data-table addresses (thepit Class-B hoist; routine-local consts promoted; [code], stage-B grounding pending) ---
@@ -1048,7 +1048,7 @@ export const STOP_TILE_TABLE = 0x277a;
 export const DIG_CHANNEL_SEAM_REMAP_TABLE = 0x2dc3;
 /** DIG_CARVE_REMAP_TABLE (0x2dc7) — ROM data table (cert=code): 2-D tile-translation table indexed (tile-0x71)*8 + sub-column(E&7) for diggable tiles 0x71..0x99 (113..153), beginning immediately a… [code] */
 export const DIG_CARVE_REMAP_TABLE = 0x2dc7;
-/** PIT_FLOOR_REVEAL_PATTERN_TABLE (0x3048) — ROM data table (cert=code): tile-pattern source for the Pit sliding-floor / terrain reveal, stored as consecutive 6-tile columns (TILES_PER_COLUMN). PIT_FLOOR_R… [code] */
+/** PIT_FLOOR_REVEAL_PATTERN_TABLE (0x3048) — ROM data table (cert=code): tile-pattern source for the Pit sliding-floor / terrain reveal, stored as consecutive 6-tile columns (TILES_PER_COLUMN). PIT_FLOOR_R… [seen] */
 export const PIT_FLOOR_REVEAL_PATTERN_TABLE = 0x3048;
 /** PROBE_TILE_TABLE (0x34fe) — code: base of the phase-keyed valid-tile ROM lookup table (32-byte rows, one per sub-tile phase; region 0x34fe-0x35fd, ends where the sibling table 0x35fe begin… [seen] */
 export const PROBE_TILE_TABLE = 0x34fe;
@@ -1058,7 +1058,7 @@ export const PROBE_NEXT_TILE_TABLE = 0x35fe;
 export const PREPLAY_FIXED_SCREEN_IMAGE = 0x3e32;
 /** CREDIT_STANDBY_SCREEN_IMAGE (0x4232) — ROM 0x400-byte (1024-cell) full-screen tile image stamped into video RAM (0x9000) by holdFixedScreen/loc_3ba8, flooded flat with background attribute 0x02, over… [code] */
 export const CREDIT_STANDBY_SCREEN_IMAGE = 0x4232;
-/** PLAYFIELD_STRIP_COL1_ROW11_TILES (0x494f) — ROM tile-code source table walked BACKWARD (from one byte below the pointer) by copyCappedTileColumn/loc_3ddb to fill the 10-cell (0x0a) vertical tilemap strip … [code] */
+/** PLAYFIELD_STRIP_COL1_ROW11_TILES (0x494f) — ROM tile-code source table walked BACKWARD (from one byte below the pointer) by copyCappedTileColumn/loc_3ddb to fill the 10-cell (0x0a) vertical tilemap strip … [seen] */
 export const PLAYFIELD_STRIP_COL1_ROW11_TILES = 0x494f;
 /** CREDIT_LABEL_GLYPHS (0x496d) — ROM glyph-run source for the fixed CREDIT label drawn beneath the live CREDIT_COUNT value in the two credit HUD panels: drawCreditsDisplay (col6/row10) and draw… [code] */
 export const CREDIT_LABEL_GLYPHS = 0x496d;
@@ -1140,15 +1140,15 @@ export const MOUNTAIN_ERODE_SOUND_MARKER_TILE = 0x9264;
 export const JEWEL_GLITTER_TILE_2 = 0x927d;
 /** HISCORE_RANK2_INITIALS_TILE (0x927f) — runHighScoreInitialsEntry rankDisplay selector 2: on-screen video cell where the middle rank's initials blink during initials entry (fills HIGH_SCORE_… [seen] */
 export const HISCORE_RANK2_INITIALS_TILE = 0x927f;
-/** SETUP_COINAGE_A_MARKER_TILE (0x928c) — showSetupScreen: `mem8[0x928c]=1` — fixed marker/numeral cell heading the first credit-config (coinage A) record before its 6-tile label run is copied… [code] */
+/** SETUP_COINAGE_A_MARKER_TILE (0x928c) — showSetupScreen: `mem8[0x928c]=1` — fixed marker/numeral cell heading the first credit-config (coinage A) record before its 6-tile label run is copied… [seen] */
 export const SETUP_COINAGE_A_MARKER_TILE = 0x928c;
-/** SETUP_COINAGE_A_COUNT_TILE (0x928e) — showSetupScreen stampCountField(m,0x928e,countA,14): first count-record digit cell on the round-setup screen; its tile is COINS_PER_CREDIT_A (DSW coin… [code] */
+/** SETUP_COINAGE_A_COUNT_TILE (0x928e) — showSetupScreen stampCountField(m,0x928e,countA,14): first count-record digit cell on the round-setup screen; its tile is COINS_PER_CREDIT_A (DSW coin… [seen] */
 export const SETUP_COINAGE_A_COUNT_TILE = 0x928e;
-/** SETUP_COINAGE_B_MARKER_TILE (0x9292) — showSetupScreen: `mem8[0x9292]=2` — fixed marker/numeral cell heading the second credit-config (coinage B) record before its 7-tile label run at col18… [code] */
+/** SETUP_COINAGE_B_MARKER_TILE (0x9292) — showSetupScreen: `mem8[0x9292]=2` — fixed marker/numeral cell heading the second credit-config (coinage B) record before its 7-tile label run at col18… [seen] */
 export const SETUP_COINAGE_B_MARKER_TILE = 0x9292;
-/** SETUP_COINAGE_B_COUNT_TILE (0x9294) — showSetupScreen stampCountField(m,0x9294,countB,20): second count-record digit cell on the round-setup screen; its tile is COINS_PER_CREDIT_B (DSW coi… [code] */
+/** SETUP_COINAGE_B_COUNT_TILE (0x9294) — showSetupScreen stampCountField(m,0x9294,countB,20): second count-record digit cell on the round-setup screen; its tile is COINS_PER_CREDIT_B (DSW coi… [seen] */
 export const SETUP_COINAGE_B_COUNT_TILE = 0x9294;
-/** MOUNTAIN_ERODE_SPAWN_TILE (0x92a4) — erodeMountain landmark cell: when the fill cursor MOUNTAIN_ERODE_PTR steps to exactly this address (`if (ptr!==0x92a4) return`) it finalises the erosi… [code] */
+/** MOUNTAIN_ERODE_SPAWN_TILE (0x92a4) — erodeMountain landmark cell: when the fill cursor MOUNTAIN_ERODE_PTR steps to exactly this address (`if (ptr!==0x92a4) return`) it finalises the erosi… [seen] */
 export const MOUNTAIN_ERODE_SPAWN_TILE = 0x92a4;
 /** P1_SCORE_COLUMN_BASE (0x9301) — drawScoreDigits player-1 score-column base: the four BCD score digits are stamped here and at +32/+64/+96 (one tilemap row apart) when ACTIVE_PLAYER==… [seen] */
 export const P1_SCORE_COLUMN_BASE = 0x9301;
@@ -1207,7 +1207,7 @@ export const loc_90c4 = 0x90c4;
 export const loc_90e4 = 0x90e4;
 /** MOUNTAIN_ERODE_VRAM_HEAD (0x9104) — head (top) tilemap cell of the mountain column the Zonker erodes
  *  (VIDEO_RAM_BASE + row8*32 + col4); seedMountainErosion seeds the erosion pointer here, erodeMountain
- *  walks +0x20 down-column. [code] */
+ *  walks +0x20 down-column. [seen] */
 export const MOUNTAIN_ERODE_VRAM_HEAD = 0x9104;
 
 // ═══ ROUTINE LABELS ═══════════════════════════════════════════════════════════
@@ -1394,7 +1394,7 @@ export const ROUTINES = {
   0x4c97: { name: "requestSound18", role: "enqueue the jewel-collect flourish variant (command 18)", cert: "seen" },
   0x4c9b: { name: "requestSound19", role: "enqueue the dig-descend sound (command 19)", cert: "seen" },
   0x4c9f: { name: "requestSound20", role: "enqueue the dig-carve sound (command 20)", cert: "seen" },
-  0x4ca3: { name: "requestSound21", role: "enqueue sound-command 21", cert: "code" },
+  0x4ca3: { name: "requestSound21", role: "enqueue sound-command 21", cert: "seen" },
   0x4ca5: { name: "enqueueSoundCommand", role: "append one sound request (OR'd with bit 7) to the 8-slot sound ring buffer", cert: "seen" },
   0x4cbf: { name: "submitPlayerHighScore", role: "offer the finishing player's final score to the BEST SCORES TODAY table and repaint the readouts", cert: "seen" },
   0x4cca: { name: "renderScoreReadouts", role: "lay the three high-score readout numbers into their on-screen display cells", cert: "seen" },
@@ -1404,5 +1404,5 @@ export const ROUTINES = {
   0x4eea: { name: "stepHighScoreInitialsEntry", role: "per-frame initials-entry handler — step the current letter up/down and commit on Fire, keyed on the debounced input", cert: "seen" },
   0x4f26: { name: "stepInitialDown", role: "step the initials letter down one notch (clamping at the top) and play the step sound", cert: "seen" },
   0x4f38: { name: "advanceInitialUp", role: "step the initials letter up one notch (rolling over at the bottom) and play the step sound", cert: "seen" },
-  0x4f47: { name: "showColourTestScreen", role: "the DIP-selected colour/tile test-pattern screen", cert: "code" },
+  0x4f47: { name: "showColourTestScreen", role: "the DIP-selected colour/tile test-pattern screen", cert: "seen" },
 };
