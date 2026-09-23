@@ -24,8 +24,8 @@ export function armRoundStartThenStepSequence(m) {
 
   mem8[ENEMY_AIM_ANCHOR_Y] = 0x78;
   mem8[ENEMY_AIM_POINT_TABLE] = 0x84;
-  mem16[PLAYER_ONE_LIFE_TICKS_MID] = 0x0000;
-  mem16[PLAYER_TWO_LIFE_TICKS_MID] = 0x0000;
+  mem16[PLAYER_ONE_LIFE_TICKS_MID] = 0;
+  mem16[PLAYER_TWO_LIFE_TICKS_MID] = 0;
 
   const shared = mem8[KILL_QUOTA];
   mem8[PLAYER_ONE_KILLS_REMAINING] = shared;
@@ -36,9 +36,9 @@ export function armRoundStartThenStepSequence(m) {
 
   if (mem8[PLAY_ACTIVE] !== 0) {
     mem8[PLAYER1_SCORE_LO] = 0x00;
-    mem16[PLAYER1_SCORE_MID] = 0x0000;
+    mem16[PLAYER1_SCORE_MID] = 0;
     mem8[PLAYER2_SCORE_LO] = 0x00;
-    mem16[PLAYER2_SCORE_MID] = 0x0000;
+    mem16[PLAYER2_SCORE_MID] = 0;
 
     postCommand(m, 0x04, 0x00);
 

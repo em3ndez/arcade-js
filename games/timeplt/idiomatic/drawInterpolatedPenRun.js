@@ -16,7 +16,7 @@ import { PEN_COLUMN_POS, PEN_COLUMN_STEP, PEN_ROUTE_LEG, PEN_ROW_POS, PEN_ROW_ST
 /** (target - current) times sixteen, keeping only the signed high byte: the per-step increment. */
 function stepToward(target, current) {
   const delta = u16(target - current);
-  const highByte = (delta >> 12) & 1 ? 0xff00 : 0x0000;
+  const highByte = (delta >> 12) & 1 ? (0xff << 8) : 0;
   return u16(highByte | ((delta >> 4) & 0xff));
 }
 

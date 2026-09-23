@@ -24,7 +24,7 @@ import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, MOTHER_SHIP_WARP_SHAPE_TABLE, MOTHER_SHIP_STAGE_ARM_TABLE } from "./names.js";
 
-const SLOT_STRIDE = 0x0010;
+const SLOT_STRIDE = 0x10;
 const SLOT_COUNT = 0x0f;
 const FIRST_SLOT_CODE = 0x14;
 const CODE_STEP = 0x0a;
@@ -256,7 +256,7 @@ export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
       if (u8(u8(NEAR_X - mem8[Y(0x00)]) + halfBand) >= band) return loc_43f0_4734(m);
       if (u8(u8(NEAR_Y - mem8[Y(0x31)]) + halfBand) >= band) return loc_43f0_4734(m);
     }
-    ix = u16(ix + 0x0010);
+    ix = u16(ix + 0x10);
     iy = u16(iy + 2);
     regs.ix = ix;
     regs.iy = iy;
@@ -272,7 +272,7 @@ export function loc_43f0_4734(m) {
   let count = 0x02;
   do {
     if (mem8[recordPtr] === 0x00) return loc_43f0_474c(m, recordPtr, entryPtr); // a free entry
-    recordPtr = u16(recordPtr + 0x0010);
+    recordPtr = u16(recordPtr + 0x10);
     entryPtr = u16(entryPtr + 2);
     count = u8(count - 1);
   } while (count !== 0);

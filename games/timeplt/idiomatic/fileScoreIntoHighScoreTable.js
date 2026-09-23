@@ -63,7 +63,7 @@ export function fileScoreIntoHighScoreTable(m) {
   slotPtr = u16(slotPtr - 1);
   regs.hl = slotPtr;
   regs.de = savedDe;
-  regs.bc = 0x0003;
+  regs.bc = 3;
   regs.exDeHl();
   m.lddrAt(0x4d09, 0x4d0b); // copy the three score cells in
 
