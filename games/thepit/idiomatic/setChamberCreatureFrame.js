@@ -7,11 +7,12 @@
  * tail-jumps into the shared animation-update tail, whose return unwinds back to this caller.
  */
 
+import { oscillateChamberCreature } from "./oscillateChamberCreature.js";
 import { CHAMBER_CREATURE_FRAME } from "./names.js";
 export function setChamberCreatureFrame(m, a = m.regs.a) {
   // Store the caller's just-chosen flip tile into the creature's frame cell.
   m.mem8[CHAMBER_CREATURE_FRAME] = a;
 
   // Tail hand-off into the shared animation-update tail; its return goes to our caller.
-  return m.call(0x2fe3);
+  return oscillateChamberCreature(m);
 }

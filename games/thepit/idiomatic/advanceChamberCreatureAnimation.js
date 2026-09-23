@@ -12,6 +12,8 @@
  */
 
 import { setChamberCreatureFrame } from "./setChamberCreatureFrame.js";
+import { oscillateChamberCreature } from "./oscillateChamberCreature.js";
+import { publishChamberCreatureSprite } from "./publishChamberCreatureSprite.js";
 import { CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_FRAME } from "./names.js";
 
 
@@ -29,10 +31,10 @@ export function advanceChamberCreatureAnimation(m) {
   if (phase !== 0) {
     if (phase % 4 !== 0) {
       // Off-beat frame: nothing to animate — jump to the publish continuation.
-      return m.call(0x3029);
+      return publishChamberCreatureSprite(m);
     }
     // On-beat frame (every fourth): run the position-step body.
-    return m.call(0x2fe3);
+    return oscillateChamberCreature(m);
   }
 
   // Countdown expired: reload it and flip the tile to its other code.

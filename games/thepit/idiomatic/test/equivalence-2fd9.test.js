@@ -1,30 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for setChamberCreatureFrame (ROM 0x2fd9, The Pit) — commit the chosen
- * background-animation flip tile into 0x80dc, then hand off to the shared
- * animation-update tail at 0x2fe3.
+ * chamber-creature flip tile into 0x80dc, then fall through into the shared animation-update tail at
+ * 0x2fe3 (the position step + publish + object pass).
  *
- * TWO WRINKLES this routine forces, both handled with a crafted entry:
+ * DISSOLVED-FORM CONTRACT. The tail 0x2fe3 (and everything below it) is now decompiled, so the
+ * oracle's `m.call(0x2fe3)` and the idiomatic direct call run the SAME real tail. The gate therefore
+ * runs the full chain on both sides and compares work RAM (dumpState) — it no longer stubs the tail.
+ * The object pass the tail reaches can hit the two never-returning transition leaves (0x031a,
+ * 0x01f9), so those are stubbed identically on both clones and the once-per-frame tick is modelled so
+ * any frame-wait drains; the dead stack scratch is excluded. setChamberCreatureFrame is never
+ * dispatched during attract (its whole flip subsystem stays idle), so entries are crafted: a real
+ * sibling loc_2f71 state with the tile byte swept, the exact crafted-entry escape hatch for an
+ * unreached arm.
  *
- *   1. setChamberCreatureFrame is NEVER dispatched during attract — its whole background-flip
- *      subsystem stays idle there (the sibling loc_2f71 runs ~1000x but never takes
- *      the arm that reaches this commit tail). So there is no natural capture. A
- *      real machine state is captured at the sibling loc_2f71 instead, and the
- *      target is invoked on clones of it — a real state with a surgical nudge (the
- *      swept tile byte), exactly the crafted-entry escape hatch for unreached arms.
- *
- *   2. The tail 0x2fe3 is itself still untranslated (not in the registry), so
- *      calling it would throw. Both the oracle and the idiomatic routine delegate
- *      to it identically, so it is replaced by ONE stub installed on both sides at
- *      once: the stub gives the tail an observable memory effect (bumps a mark byte)
- *      and a fixed exit, so "the hand-off happened" is visible to the diff. Because
- *      the stub is the same function on both sides, it can never manufacture or hide
- *      a difference between them — only setChamberCreatureFrame's own behaviour can.
- *
- * The routine's one genuine input is the tile byte the caller left in the machine
- * register file; its one memory effect is the store at 0x80dc. So EQUAL is proven
- * the strong way — an EXHAUSTIVE sweep over all 256 possible tile bytes — plus a
- * forced real dispatch driven through the shared unitEquivalence harness.
+ * EQUAL is proven the strong way — an EXHAUSTIVE sweep over all 256 tile bytes. The teeth twins
+ * (a wrong committed tile, a dropped tail hand-off) are caught.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-2fd9.test.js
  */
@@ -35,169 +26,104 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2fd9 as oracle } from "../../translated/loc_2fd9.js";
 import { setChamberCreatureFrame as idiomatic } from "../setChamberCreatureFrame.js";
+import { oscillateChamberCreature } from "../oscillateChamberCreature.js";
 import { loc_2f71 } from "../../translated/loc_2f71.js";
 import { makeMachineFactory } from "../../machine.js";
-import { unitEquivalence, firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { CHAMBER_CREATURE_FRAME, CHAMBER_CREATURE_X } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
 const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
 const test = ROM_PRESENT
   ? nodeTest
-  : (name, fn) =>
-      nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
+  : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x2fd9; // setChamberCreatureFrame
-const TAIL = 0x2fe3; // the shared animation-update tail (still untranslated)
-const SIB = 0x2f71; // the reachable sibling we capture a real attract state at
-const TILE_CELL = 0x80dc; // the background-animation tile cell setChamberCreatureFrame writes
-const TAIL_MARK = 0x80de; // stub's stand-in for the tail's real memory effect
-const TAIL_EXIT = 0x3029; // stub's stand-in for where the tail leaves the machine
-const CAPTURE_FRAMES = 900; // the sibling first runs ~frame 695, so run well past it
+const SIB = 0x2f71;
+const TILE_CELL = CHAMBER_CREATURE_FRAME; // 0x80dc
+const EXPIRY_LEAVES = [0x031a, 0x01f9];
+const WATCHDOG = 0xb800, COUNTDOWN = 0x8009;
+const CHAIN_SCRATCH_LO = 0x83e0, CHAIN_SCRATCH_HI = 0x8400;
+const CAPTURE_FRAMES = 900;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// The Pit's routine registry is async, so build the factory once and reuse it.
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
-// The stub that stands in for the untranslated tail 0x2fe3. Installed IDENTICALLY
-// on both sides, so it can only ever move both in lockstep. It bumps a mark byte
-// (giving the delegation a visible memory effect) and sets a fixed exit address.
-let tailStubCalls = 0;
-function tailStub(mm) {
-  tailStubCalls++;
-  mm.mem.write8(TAIL_MARK, (mm.mem.read8(TAIL_MARK) + 1) & 0xff);
-  mm.pc = TAIL_EXIT;
-  return undefined;
-}
-
-/**
- * Capture one real attract machine state at the sibling loc_2f71's entry, carrying
- * the tail stub in its registry so setChamberCreatureFrame can be run on clones of it. The sibling
- * hook clones the pristine entry, then runs the real sibling so attract continues.
- */
 function captureSiblingState() {
   let entry = null;
-  const overrides = new Map([
-    [TAIL, tailStub],
-    [SIB, (mm) => {
-      if (entry === null) entry = mm.clone();
-      return loc_2f71(mm);
-    }],
-  ]);
+  const overrides = new Map([[SIB, (mm) => { if (entry === null) entry = mm.clone(); return loc_2f71(mm); }]]);
   const host = makeMachine(overrides);
   host.runFrames(CAPTURE_FRAMES);
   return entry;
 }
-
 const ENTRY = ROM_PRESENT ? captureSiblingState() : null;
 
-/**
- * Run the oracle and a candidate on two independent clones of the crafted entry
- * (real sibling state, tile byte poked to `tile`) and diff memory + registers + pc.
- */
-function runPair(candidate, tile) {
-  const a = ENTRY.clone();
-  const b = ENTRY.clone();
-  a.regs.a = tile;
-  b.regs.a = tile;
-
-  tailStubCalls = 0;
-  oracle(a);
-  const oracleDelegations = tailStubCalls;
-
-  tailStubCalls = 0;
-  candidate(b);
-  const candidateDelegations = tailStubCalls;
-
-  return {
-    ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
-    regs: firstRegDiff(a.regs, b.regs),
-    pc: a.pc === b.pc ? null : { a: a.pc, b: b.pc },
-    tileLanded: a.mem.read8(TILE_CELL),
-    oracleDelegations,
-    candidateDelegations,
+function runIsolated(entry, fn) {
+  const c = entry.clone();
+  for (const a of EXPIRY_LEAVES) c.routines.set(a, () => {});
+  const mem = c.mem;
+  const orig = mem.read8.bind(mem);
+  mem.read8 = (addr) => {
+    if (addr === WATCHDOG) { const v = orig(COUNTDOWN); if (v !== 0) mem.write8(COUNTDOWN, v - 1); }
+    return orig(addr);
   };
+  fn(c);
+  return c;
+}
+function ramDiff(a, b) {
+  const da = a.dumpState(), db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] !== db[i]) {
+      const addr = a.stateOffsetToAddr(i);
+      if (addr >= CHAIN_SCRATCH_LO && addr < CHAIN_SCRATCH_HI) continue;
+      return { addr, a: da[i], b: db[i] };
+    }
+  }
+  return null;
 }
 
 // -- 1. EQUAL: exhaustive over every possible tile byte -----------------------
 
-test("EQUAL (exhaustive): idiomatic == oracle for all 256 tile bytes", () => {
+test("EQUAL (exhaustive): setChamberCreatureFrame == oracle for all 256 tile bytes", () => {
   assert.ok(ENTRY, "captured a real attract state at the sibling loc_2f71");
   for (let tile = 0; tile < 256; tile++) {
-    const r = runPair(idiomatic, tile);
-    assert.equal(
-      r.ram,
-      null,
-      r.ram &&
-        `tile=${hx(tile)}: RAM diverged at ${hx(r.ram.addr ?? 0)} (oracle=${r.ram.a} idiomatic=${r.ram.b})`,
-    );
-    assert.equal(r.regs, null, r.regs && `tile=${hx(tile)}: register ${r.regs?.reg} diverged`);
-    assert.equal(r.pc, null, r.pc && `tile=${hx(tile)}: pc diverged (oracle=${hx(r.pc?.a)} idiomatic=${hx(r.pc?.b)})`);
-    assert.equal(r.tileLanded, tile, `tile=${hx(tile)}: the committed byte must land at ${hx(TILE_CELL)}`);
-    assert.equal(r.candidateDelegations, 1, `tile=${hx(tile)}: idiomatic must delegate to the tail exactly once`);
-    assert.equal(r.oracleDelegations, 1, `tile=${hx(tile)}: oracle delegates to the tail exactly once`);
+    const a = runIsolated(ENTRY, (c) => { c.regs.a = tile; oracle(c); });
+    const b = runIsolated(ENTRY, (c) => { c.regs.a = tile; idiomatic(c); });
+    const r = ramDiff(a, b);
+    assert.equal(r, null, r && `tile=${hx(tile)}: RAM diverged at ${hx(r.addr)} (oracle=${r.a} idiomatic=${r.b})`);
+    assert.equal(a.mem.read8(TILE_CELL), tile, `tile=${hx(tile)}: the committed byte must land at ${hx(TILE_CELL)}`);
   }
-  console.log("  EQUAL/exhaustive: all 256 tile bytes identical to the oracle (memory + regs + pc)");
+  console.log("  EQUAL/exhaustive: all 256 tile bytes identical to the oracle (work RAM, full tail)");
 });
 
 // -- 2. TEETH: broken twins the gate MUST catch -------------------------------
 
-/** Broken twin A: commits the WRONG tile byte (bit-inverted). */
+// Commits the WRONG tile byte, then runs the real tail identically.
 function brokenTile(m) {
-  m.mem.write8(TILE_CELL, m.regs.a ^ 0xff); // BUG: corrupts the committed tile
-  return m.call(TAIL);
+  m.mem8[TILE_CELL] = m.regs.a ^ 0xff; // BUG
+  return oscillateChamberCreature(m);
 }
-
-/** Broken twin B: drops the tail hand-off entirely (returns early). */
+// Commits the right tile but DROPS the tail hand-off entirely.
 function brokenNoTail(m) {
-  m.mem.write8(TILE_CELL, m.regs.a); // stores the right tile...
-  // BUG: ...but never delegates to the shared animation-update tail.
+  m.mem8[TILE_CELL] = m.regs.a; // right tile...
+  // BUG: no tail.
 }
 
 test("TEETH: a wrong committed tile is CAUGHT at the tile cell", () => {
-  const r = runPair(brokenTile, 0x38);
-  assert.notEqual(r.ram, null, "the gate FAILED to catch a wrong committed tile — it is worthless");
-  assert.equal(r.ram.addr, TILE_CELL, `teeth caught the wrong address ${hx(r.ram.addr ?? 0)} (expected ${hx(TILE_CELL)})`);
-  console.log(`  TEETH: wrong tile caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
+  const a = runIsolated(ENTRY, (c) => { c.regs.a = 0x38; oracle(c); });
+  const b = runIsolated(ENTRY, (c) => { c.regs.a = 0x38; brokenTile(c); });
+  const r = ramDiff(a, b);
+  assert.notEqual(r, null, "the gate FAILED to catch a wrong committed tile — it is worthless");
+  assert.equal(r.addr, TILE_CELL, `teeth caught ${hx(r.addr)} (expected ${hx(TILE_CELL)})`);
+  console.log(`  TEETH: wrong tile caught at ${hx(r.addr)} (oracle=${r.a} broken=${r.b})`);
 });
 
 test("TEETH: dropping the tail hand-off is CAUGHT", () => {
-  const r = runPair(brokenNoTail, 0x38);
-  assert.equal(r.candidateDelegations, 0, "the broken twin must not have delegated (that is the bug)");
-  assert.notEqual(r.ram, null, "the missing tail effect must surface as a memory difference");
-  assert.equal(r.ram.addr, TAIL_MARK, `teeth caught ${hx(r.ram.addr ?? 0)} (expected the tail mark ${hx(TAIL_MARK)})`);
-  assert.notEqual(r.pc, null, "and the exit pc must diverge (the tail set it, the twin did not)");
-  console.log(`  TEETH: dropped hand-off caught at ${hx(r.ram.addr)} + pc (oracle=${hx(r.pc.a)} broken=${hx(r.pc.b)})`);
-});
-
-// -- 3. EQUAL + TEETH through the shared unitEquivalence harness ---------------
-// setChamberCreatureFrame is unreached in attract, so a makeMachine wrapper forces a real dispatch:
-// run the real sibling, then invoke the target so the harness's snapshot hook fires
-// on a genuine attract-derived state. The tail stub is layered in the same wrapper.
-
-function makeForced(overrides) {
-  const merged = new Map(overrides ? [...overrides] : []);
-  merged.set(TAIL, tailStub);
-  merged.set(SIB, (mm) => {
-    const r = loc_2f71(mm); // real sibling, natural attract behaviour
-    mm.call(TARGET); // then force-enter the target so the snapshot hook captures it
-    return r;
-  });
-  return makeMachine(merged);
-}
-
-test("EQUAL (harness): a forced real 0x2fd9 dispatch is EQUAL through unitEquivalence", () => {
-  const res = unitEquivalence(makeForced, TARGET, oracle, idiomatic, { maxFrames: CAPTURE_FRAMES });
-  assert.equal(res.equal, true, `harness reported a diff: ram=${JSON.stringify(res.ram)} regs=${JSON.stringify(res.regs)}`);
-  assert.equal(res.ram, null, "harness RAM must be identical");
-  assert.equal(res.pc, null, "harness pc must be identical (both delegate through the same tail stub)");
-  console.log("  EQUAL/harness: unitEquivalence captured a real 0x2fd9 entry -> EQUAL");
-});
-
-test("TEETH (harness): the wrong-tile twin is CAUGHT by unitEquivalence", () => {
-  const res = unitEquivalence(makeForced, TARGET, oracle, brokenTile, { maxFrames: CAPTURE_FRAMES });
-  assert.equal(res.equal, false, "unitEquivalence FAILED to catch the wrong-tile twin — it is worthless");
-  assert.notEqual(res.ram, null, "the diff must be a RAM difference");
-  assert.equal(res.ram.addr, TILE_CELL, `harness caught ${hx(res.ram.addr ?? 0)} (expected ${hx(TILE_CELL)})`);
-  console.log(`  TEETH/harness: wrong tile caught at ${hx(res.ram.addr)} (oracle=${res.ram.a} broken=${res.ram.b})`);
+  const a = runIsolated(ENTRY, (c) => { c.regs.a = 0x38; oracle(c); });
+  const b = runIsolated(ENTRY, (c) => { c.regs.a = 0x38; brokenNoTail(c); });
+  const r = ramDiff(a, b);
+  assert.notEqual(r, null, "the missing tail must surface as a memory difference");
+  // The dropped tail never runs the position step, so the first divergence is the creature's X cell.
+  assert.equal(r.addr, CHAMBER_CREATURE_X, `teeth caught ${hx(r.addr)} (expected the position cell ${hx(CHAMBER_CREATURE_X)})`);
+  console.log(`  TEETH: dropped hand-off caught at ${hx(r.addr)} (oracle=${r.a} broken=${r.b})`);
 });
