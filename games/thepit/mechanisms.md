@@ -544,7 +544,9 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
   **"PLAYERS"** run (char-ROM tiles decode to S·R·E·Y·A·L·P; it overlaps the FREE-PLAY run at
   `0x49ae`, sharing the "PLAY" bytes): `drawPlayerLabel` and `drawSharedPanel` (col 9 / row 13)
   copy it capped, trimming the S to **"PLAYER"**; `showSetupScreen` (col 18 / row 12) copies the
-  full word. `[seen]` (char-ROM glyph decode)
+  full word. `PLAYER_LABEL_GLYPHS` (`0x49b0`) is the same table one byte lower — the 6-glyph
+  **"PLAYER"** run (no S); `showSetupScreen`'s first coinage marker (col 12 / row 13) uses it, so
+  the two markers read **"1 PLAYER" / "2 PLAYERS"**. `[seen]` (char-ROM glyph decode)
 - **Sprite records (8 slots, 4 bytes each; `SPRITE_STAGING_BASE 0x8220`–`ENEMY3_TWIN_SPRITE_Y 0x823f`, LDIR'd to sprite RAM `SPRITE_RAM_BASE 0x9840` by the
   NMI):** `[seen]`/`[code]`
   - slot 0 `0x8220` player (attr `OBJECT_SPRITE_ATTR 0x8222`) · slot 1 `0x8224` reaction/laser · **slot 2 `0x8228` falling-hazard**

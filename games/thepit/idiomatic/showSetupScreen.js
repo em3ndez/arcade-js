@@ -32,6 +32,7 @@ import {
   COINS_PER_CREDIT_B,
   LOOP_COUNTER,
   PLAYERS_LABEL_GLYPHS,
+  PLAYER_LABEL_GLYPHS,
   PLOT_RUN_LENGTH,
   SETUP_COINAGE_A_COUNT_TILE,
   SETUP_COINAGE_A_MARKER_TILE,
@@ -98,7 +99,7 @@ export function* showSetupScreen(m) {
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
   mem8[PLOT_RUN_LENGTH] = 6;
-  copyTileColumn(m, 0x49b0); // copy the marker's glyph-run from its source table
+  copyTileColumn(m, PLAYER_LABEL_GLYPHS); // the fixed "PLAYER" glyph run (marker 1)
   fillColourColumnAt(m, 12, 7); // colour column 12 in colour 7
 
   // First count field (COINS_PER_CREDIT_A), at column 14.

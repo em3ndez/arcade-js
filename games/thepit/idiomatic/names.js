@@ -1070,6 +1070,8 @@ export const MEN_LEFT_DEFAULT_LABEL_GLYPHS = 0x49ba;
 export const MEN_LEFT_ALT_LABEL_GLYPHS = 0x49c2;
 /** PLAYERS_LABEL_GLYPHS (0x49b1) — ROM 7-glyph tile-code strip spelling "PLAYERS" (stored back-to-front, S at 0x49b1 down to P at 0x49ab; char-ROM tiles 1c 1b 0e 22 0a 15 19 draw the letters S R E Y A L P). Walked BACKWARD by copyTileColumn / copyCappedTileColumn; the capped variant caps the top cell, trimming the S -> "PLAYER". Shared source for drawPlayerLabel, drawSharedPanel (col9/row13), showSetupScreen (col18/row12); shares the "PLAY" bytes with the FREE-PLAY run at 0x49ae. [grounded: char-ROM decode] */
 export const PLAYERS_LABEL_GLYPHS = 0x49b1;
+/** PLAYER_LABEL_GLYPHS (0x49b0) — the same ROM glyph table as PLAYERS_LABEL_GLYPHS pointed one byte lower: the 6-glyph run "PLAYER" (bytes 0x49ab..0x49b0 = P L A Y E R, no trailing S). Walked BACKWARD by copyTileColumn. showSetupScreen's first coinage marker (tile 1) labels "PLAYER" at col12/row13; marker 2 uses the full PLAYERS run -> the "1 PLAYER / 2 PLAYERS" setup labels. [grounded: char-ROM decode] */
+export const PLAYER_LABEL_GLYPHS = 0x49b0;
 /** BOOT_TEXT_COLUMN25_TILE_STRIP (0x49c7) — ROM 32-tile source strip for tilemap column 25 (video-RAM col 0x19). drawCopyrightLine reads it FORWARD (0x49c7..0x49e6) and lays it bottom-cell-upward from BOO… [seen] */
 export const BOOT_TEXT_COLUMN25_TILE_STRIP = 0x49c7;
 /** BONUS_SCREEN_ROW3_STRIP (0x4a07) — code: base of the fixed 15-glyph tile-code strip for the THIRD text row of the tier/bonus status screen, plotted at column 21, row 9 via copyTileColumn (source … [seen] */
