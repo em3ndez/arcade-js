@@ -29,7 +29,7 @@ export function headingToward(m, point = m.regs.hl, object = m.regs.iy) {
 
   const firstReach = mem8[point] - mem8[u16(object + FIRST_COORDINATE)];
   const secondReach =
-    mem8[(point & 0xff00) | u8(point - 1)] - mem8[u16(object + SECOND_COORDINATE)];
+    mem8[(point & (0xff << 8)) | u8(point - 1)] - mem8[u16(object + SECOND_COORDINATE)];
 
   let sector = (secondReach < 0 ? SECOND_IS_BELOW : 0) | (firstReach < 0 ? FIRST_IS_BELOW : 0);
   const firstLeg = Math.abs(firstReach);

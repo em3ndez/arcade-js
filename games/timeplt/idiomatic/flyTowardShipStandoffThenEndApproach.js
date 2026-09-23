@@ -30,7 +30,7 @@ export function flyTowardShipStandoffThenEndApproach(m, bc = m.regs.bc, ix = m.r
     // headingToward drops the two axis gaps it measures; recompute them to spot arrival.
     const firstGap = Math.abs(mem8[point] - mem8[iy]);
     const secondGap =
-      Math.abs(mem8[(point & 0xff00) | u8(point - 1)] - mem8[u16(iy + SECOND_COORD)]);
+      Math.abs(mem8[(point & (0xff << 8)) | u8(point - 1)] - mem8[u16(iy + SECOND_COORD)]);
     if (firstGap < ARRIVED && secondGap < ARRIVED) endApproachNow(m, ix);
   }
 

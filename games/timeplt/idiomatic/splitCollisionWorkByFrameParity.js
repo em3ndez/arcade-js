@@ -24,7 +24,7 @@ export function splitCollisionWorkByFrameParity(m) {
   // The sweep above left the record cursor in the low byte of the record pointer (its page unchanged
   // from ACTOR_RECORD_SLOT0) and the entry cursor in IY; the slot sweep reads them one past its last.
   const armed = mem8[MOTHER_SHIP_ARMED] !== 0;
-  destroySlotsAndPlayerOnContact(m, (ACTOR_RECORD_SLOT0 & 0xff00) | m.regs.e, m.regs.iy, armed ? 5 : 7, 7, 15);
+  destroySlotsAndPlayerOnContact(m, (ACTOR_RECORD_SLOT0 & (0xff << 8)) | m.regs.e, m.regs.iy, armed ? 5 : 7, 7, 15);
   if (armed) ramTestPlayerVsMotherShip(m);
   destroyFixedTargetReachedByPlayer(m);
 
@@ -32,5 +32,5 @@ export function splitCollisionWorkByFrameParity(m) {
 
   // The tail marks objects near the player using the cursors that sweep just left (record page from
   // ERA_OBJECT_RECORD_SLOT2, index/entry and the compare flags carried in E/IY/F).
-  return markObjectsTouchingPlayer(m, m.regs.f, 8, 17, ERA_OBJECT_RECORD_SLOT2 & 0xff00, m.regs.e, m.regs.iy, 1);
+  return markObjectsTouchingPlayer(m, m.regs.f, 8, 17, ERA_OBJECT_RECORD_SLOT2 & (0xff << 8), m.regs.e, m.regs.iy, 1);
 }

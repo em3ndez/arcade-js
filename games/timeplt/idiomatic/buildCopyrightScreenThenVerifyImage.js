@@ -26,7 +26,7 @@ export function buildCopyrightScreenThenVerifyImage(m) {
 
   let fold = 0;
   let low = CHECKSUM_BLOCK & 0xff;
-  const page = CHECKSUM_BLOCK & 0xff00;
+  const page = CHECKSUM_BLOCK & (0xff << 8);
   for (let i = 0; i < CHECKSUM_LENGTH; i++) {
     fold ^= mem8[page + low];
     low = u8(low + 1);

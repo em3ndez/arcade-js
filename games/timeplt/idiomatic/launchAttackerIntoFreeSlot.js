@@ -34,7 +34,7 @@ export function launchAttackerIntoFreeSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   let free = false;
   for (; count > 0; count--) {
     if (mem8[record] === 0) { free = true; break; }
-    record = (record & 0xff00) | u8(record + RECORD_STRIDE); // step L only; the bank never carries into H
+    record = (record & (0xff << 8)) | u8(record + RECORD_STRIDE); // step L only; the bank never carries into H
     entry = u16(entry + 2);
   }
   if (!free) return;

@@ -41,8 +41,8 @@ export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEnt
   let freeSlot = false;
   do {
     if (mem8[record] === 0) { freeSlot = true; break; }
-    record = (record & 0xff00) | u8((record & 0xff) + RECORD_STRIDE);
-    entry = (entry & 0xff00) | u8((entry & 0xff) + 2);
+    record = (record & (0xff << 8)) | u8((record & 0xff) + RECORD_STRIDE);
+    entry = (entry & (0xff << 8)) | u8((entry & 0xff) + 2);
     count = u8(count - 1);
   } while (count !== 0);
   if (!freeSlot) return; // bank full
