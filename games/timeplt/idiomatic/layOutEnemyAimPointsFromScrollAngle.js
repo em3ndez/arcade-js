@@ -17,28 +17,28 @@ const DOWN = 0x84;
 
 /** Store term's high byte at the x8 and x16 radii, offset from centre; MIRROR also seats the
  *  negatives (centre - h, a neg-then-add) four fields along from each. */
-function plot(m, term, centre, off8, off16, mirror) {
-  const { regs, mem8 } = m;
-  regs.hl = u16(term << 3);
-  mem8[u16(regs.ix + off8)] = u8(regs.h + centre);
-  if (mirror) mem8[u16(regs.ix + off8 + 4)] = u8(centre - regs.h);
-  regs.hl = u16(regs.hl << 1);
-  mem8[u16(regs.ix + off16)] = u8(regs.h + centre);
-  if (mirror) mem8[u16(regs.ix + off16 + 4)] = u8(centre - regs.h);
+function plot(m, base, term, centre, off8, off16, mirror) {
+  const { mem8 } = m;
+  const h8 = u8(u16(term << 3) >> 8);
+  mem8[u16(base + off8)] = u8(h8 + centre);
+  if (mirror) mem8[u16(base + off8 + 4)] = u8(centre - h8);
+  const h16 = u8(u16(u16(term << 3) << 1) >> 8);
+  mem8[u16(base + off16)] = u8(h16 + centre);
+  if (mirror) mem8[u16(base + off16 + 4)] = u8(centre - h16);
 }
 
 export function layOutEnemyAimPointsFromScrollAngle(m, c = m.regs.c) {
   const { regs, mem8 } = m;
   if ((c & SUBMODE_MASK) !== SUBMODE) return;
-  regs.ix = ENEMY_AIM_ANCHOR_Y;
+  const base = (regs.ix = ENEMY_AIM_ANCHOR_Y);
 
   regs.a = u8(mem8[PLAYER_HEADING] + QUARTER_TURN);
   const [deQuarter, bcQuarter] = loc_59d1(m);
-  plot(m, deQuarter, ACROSS, 0x10, 0x12, true);
-  plot(m, bcQuarter, DOWN, 0x11, 0x13, true);
+  plot(m, base, deQuarter, ACROSS, 0x10, 0x12, true);
+  plot(m, base, bcQuarter, DOWN, 0x11, 0x13, true);
 
   regs.a = mem8[PLAYER_HEADING];
   const [deStraight, bcStraight] = loc_59d1(m);
-  plot(m, deStraight, ACROSS, 0x18, 0x1a, false);
-  plot(m, bcStraight, DOWN, 0x19, 0x1b, false);
+  plot(m, base, deStraight, ACROSS, 0x18, 0x1a, false);
+  plot(m, base, bcStraight, DOWN, 0x19, 0x1b, false);
 }

@@ -22,13 +22,17 @@ export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
   const { regs, mem8 } = m;
   if (mem8[PLAY_ACTIVE] === 0) return;
 
-  regs.de = EMBLEM_STRIP_TOP;
-  let emblems = count > MAX_EMBLEMS ? MAX_EMBLEMS : count;
-  if (emblems !== 0) {
-    for (; emblems !== 0; emblems--) stampTwoByTwoTileBlock(m, EMBLEM_BASE, EMBLEM_COLOUR);
+  // the cursor is threaded through the callees, which advance it in de and leave it there; read it back.
+  let cursor = EMBLEM_STRIP_TOP;
+  for (let emblems = count > MAX_EMBLEMS ? MAX_EMBLEMS : count; emblems !== 0; emblems--) {
+    stampTwoByTwoTileBlock(m, EMBLEM_BASE, EMBLEM_COLOUR, cursor);
+    cursor = regs.de;
   }
 
-  while (regs.de >= EMBLEM_STRIP_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m, regs.de, BLANK_GLYPH, BLANK_COLOUR);
+  while (cursor >= EMBLEM_STRIP_FLOOR) {
+    paintGlyphOverBlankInColourThenStepCursor(m, cursor, BLANK_GLYPH, BLANK_COLOUR);
+    cursor = regs.de;
+  }
 
   let check = 0;
   for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[IMAGE_GUARD_BLOCK_0711_BASE + i];

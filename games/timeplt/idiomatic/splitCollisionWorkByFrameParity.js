@@ -19,18 +19,19 @@ export function splitCollisionWorkByFrameParity(m) {
 
   destroyFixedTargetHitByShots(m);
 
-  destroyPlayerAndObjectsTouchingIt(m, ACTOR_RECORD_SLOT0, ACTOR_ENTRY_SLOT0, 5, 11, 4);
+  const entrySlot0 = destroyPlayerAndObjectsTouchingIt(m, ACTOR_RECORD_SLOT0, ACTOR_ENTRY_SLOT0, 5, 11, 4);
 
-  // The sweep above left the record cursor in the low byte of the record pointer (its page unchanged
-  // from ACTOR_RECORD_SLOT0) and the entry cursor in IY; the slot sweep reads them one past its last.
+  // The sweep above left the record cursor in E (page unchanged from ACTOR_RECORD_SLOT0) and the
+  // entry cursor returned above; the slot sweep reads them one past its last.
   const armed = mem8[MOTHER_SHIP_ARMED] !== 0;
-  destroySlotsAndPlayerOnContact(m, (ACTOR_RECORD_SLOT0 & (0xff << 8)) | m.regs.e, m.regs.iy, armed ? 5 : 7, 7, 15);
+  destroySlotsAndPlayerOnContact(m, (ACTOR_RECORD_SLOT0 & (0xff << 8)) | m.regs.e, entrySlot0, armed ? 5 : 7, 7, 15);
   if (armed) ramTestPlayerVsMotherShip(m);
   destroyFixedTargetReachedByPlayer(m);
 
-  destroyPlayerAndObjectsTouchingIt(m, ERA_OBJECT_RECORD_SLOT2, ERA_OBJECT_ENTRY_SLOT2, 5, 11, 1);
+  const entrySlot2 = destroyPlayerAndObjectsTouchingIt(m, ERA_OBJECT_RECORD_SLOT2, ERA_OBJECT_ENTRY_SLOT2, 5, 11, 1);
 
   // The tail marks objects near the player using the cursors that sweep just left (record page from
-  // ERA_OBJECT_RECORD_SLOT2, index/entry and the compare flags carried in E/IY/F).
-  return markObjectsTouchingPlayer(m, m.regs.f, 8, 17, ERA_OBJECT_RECORD_SLOT2 & (0xff << 8), m.regs.e, m.regs.iy, 1);
+  // ERA_OBJECT_RECORD_SLOT2, the entry cursor returned above, the record index in E and the compare
+  // flags still carried in F).
+  return markObjectsTouchingPlayer(m, m.regs.f, 8, 17, ERA_OBJECT_RECORD_SLOT2 & (0xff << 8), m.regs.e, entrySlot2, 1);
 }

@@ -13,17 +13,17 @@ const SPRITE_STRIDE = 2;
 const EMPTY = 0x00;
 const BALLISTIC = 0xff;
 
-export function advanceSlotThenSweepObjectBankByHead(m) {
-  const { regs, mem8 } = m;
+export function advanceSlotThenSweepObjectBankByHead(m, record = m.regs.ix, sprite = m.regs.iy, count = m.regs.b) {
+  const { mem8 } = m;
   for (;;) {
-    regs.ix = u16(regs.ix + RECORD_STRIDE);
-    regs.iy = u16(regs.iy + SPRITE_STRIDE);
-    regs.b = (regs.b - 1) & 0xff;
-    if (regs.b === 0) return;
+    record = u16(record + RECORD_STRIDE);
+    sprite = u16(sprite + SPRITE_STRIDE);
+    count = (count - 1) & 0xff;
+    if (count === 0) return (m.regs.ix = record, m.regs.iy = sprite, m.regs.b = count, undefined);
 
-    const marker = mem8[regs.ix];
+    const marker = mem8[record];
     if (marker === EMPTY) continue;
-    if (marker !== BALLISTIC) return sweepObjectSlotBankServicingFirstSlot(m);
-    flyAlongBallisticArc(m);
+    if (marker !== BALLISTIC) return (m.regs.ix = record, m.regs.iy = sprite, m.regs.b = count, sweepObjectSlotBankServicingFirstSlot(m));
+    flyAlongBallisticArc(m, record, sprite);
   }
 }

@@ -2,8 +2,9 @@
 /**
  * reaimAndAnimateEnemyCraftOnPhaseTick — memory-equivalent to the frozen oracle at ROM 0x31b4.
  * GATE: natural dispatches under the coin-start tape plus every decision branch crafted, each masked
- * for the dead stack scratch the dissolved tails leave and held to an ix/iy ceiling; spDiff pinned at
- * two, returns compared. Run: node --test games/timeplt/idiomatic/test/equivalence-31b4.test.js
+ * for the dead stack scratch the dissolved tails leave; spDiff pinned at two, returns compared.
+ * The cursors it passed into its callees became explicit arguments, so nothing pins ix/iy any more.
+ * Run: node --test games/timeplt/idiomatic/test/equivalence-31b4.test.js
  */
 
 import test from "node:test";
@@ -17,7 +18,6 @@ import { stepShapeAnimation } from "../stepShapeAnimation.js";
 import { headingToward } from "../headingToward.js";
 import { offsetAddress } from "../offsetAddress.js";
 import { u8 } from "../../../../core/int.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x31b4;
 const PHASE = 0xad05;
@@ -28,9 +28,6 @@ const CAP = 120;
 // Every data write lands at or below here; the seat sits far above it, so masking the scratch can
 // never hide a real byte. Asserted against the watched floor below.
 const DATA_TOP = 0xadff;
-// The two registers this routine constructs and every path leaves equal to the oracle; everything
-// else is dead scratch the dissolved callees leave differently.
-const KEEP = ["ix", "iy"];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -56,15 +53,9 @@ function compare(cand, machine) {
     if (addr >= low && addr < seat) continue;
     escaped = { addr, oracle: da[i], candidate: db[i] };
   }
-  let reg = null;
-  if (!threw) {
-    for (const k of KEEP) {
-      if (a.regs[k] !== b.regs[k]) { reg = { k, a: a.regs[k], b: b.regs[k] }; break; }
-    }
-  }
-  return { escaped, reg, threw, low, seat, spDiff: a.regs.sp - b.regs.sp, rO, rC };
+  return { escaped, threw, low, seat, spDiff: a.regs.sp - b.regs.sp, rO, rC };
 }
-const diverges = (cand, m) => { const r = compare(cand, m); return !!(r.escaped || r.reg || r.threw); };
+const diverges = (cand, m) => { const r = compare(cand, m); return !!(r.escaped || r.threw); };
 
 // Cells the oracle moves at or below the data top from a state — a turn's footprint.
 function footprint(machine) {
@@ -164,9 +155,6 @@ function twin({ noop = false, slotCount = 7, halfTurn = true, call326c = true, h
   };
 }
 
-// The control for the ix/iy ceiling: scribbles a kept register the routine has no business moving.
-function movesCursor(m) { const r = candidate(m); m.regs.iy = (m.regs.iy + 1) & 0xffff; return r; }
-
 const TWINS = [
   ["no-op", twin({ noop: true }), "reaim"],
   ["slot-count-6", twin({ slotCount: 6 }), "reaimSlot6"],
@@ -181,18 +169,6 @@ function sweep(cand, states) {
   return caught;
 }
 
-function movedOver(cand, states) {
-  const moved = new Set();
-  for (const e of states) {
-    const a = e.clone();
-    const b = e.clone();
-    oracle(a);
-    try { cand(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
-}
-
 // ── the gate ──────────────────────────────────────────────────────────────────────────────────
 
 test("REAL: every natural dispatch replays identically, and some write", { skip }, () => {
@@ -202,7 +178,6 @@ test("REAL: every natural dispatch replays identically, and some write", { skip 
     const r = compare(candidate, e);
     assert.equal(r.threw, null, r.threw && `the candidate threw: ${r.threw}`);
     assert.equal(r.escaped, null, r.escaped && `escaped the mask at ${hex4(r.escaped.addr)}`);
-    assert.equal(r.reg, null, r.reg && `register ${r.reg.k} diverged: ${r.reg.a} vs ${r.reg.b}`);
   }
   const wrote = entries.filter((e) => footprint(e) > 0).length;
   assert.ok(wrote > 0, "no natural dispatch makes the oracle write, so this arm would pass a no-op");
@@ -215,7 +190,6 @@ test("PATHS: every decision branch replays, and the branch really branches", { s
     const r = compare(candidate, m);
     assert.equal(r.threw, null, `${name}: ${r.threw}`);
     assert.equal(r.escaped, null, `${name}: escaped at ${r.escaped && hex4(r.escaped.addr)}`);
-    assert.equal(r.reg, null, `${name}: register ${r.reg && r.reg.k} diverged`);
   }
   // ★ Vacuity guard: the write-nothing branches move nothing while the four writers do, so a rewrite
   // that ignored the phase, the slot, the occupancy or the state could not pass all of them.
@@ -238,24 +212,6 @@ test("SP AND RETURN: +2 re-seat on every branch, mask floor over the data, retur
     }
     console.log("  SP: +2 on every branch; window over the data; returns identical");
   });
-
-test("CEILING, measured: ix/iy never move, with a control that moves one", { skip }, () => {
-  const states = corpus();
-  const moved = movedOver(candidate, states);
-  const control = movedOver(movesCursor, states);
-  assert.ok(KEEP.some((k) => control.has(k)),
-    "the measurement reports nothing even for a twin that scribbles a kept register, so a clean " +
-      "reading here proves nothing");
-  const escaped = KEEP.filter((k) => moved.has(k));
-  assert.deepEqual(escaped, [], "a kept register diverged");
-  console.log(`  CEILING: ix/iy steady; the control moves ${KEEP.filter((k) => control.has(k)).join(", ")}`);
-});
-
-test("TEETH CONTROL: the cursor-scribbling twin is caught on every crafted branch", { skip }, () => {
-  const states = corpus();
-  assert.equal(sweep(movesCursor, states), states.length, "the control twin slipped a state");
-  console.log(`  TEETH CONTROL: caught on ${states.length}/${states.length}`);
-});
 
 for (const [label, brokenTwin, catchOn] of TWINS) {
   test(`TEETH: the ${label} twin is caught in memory on its branch`, { skip }, () => {

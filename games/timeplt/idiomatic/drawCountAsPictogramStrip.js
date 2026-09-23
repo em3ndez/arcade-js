@@ -17,8 +17,11 @@ const BLANK_GLYPH = 0xf1;
 const BLANK_COLOUR = 0x10;
 const CHECKSUM_TARGET = 0x69;
 
+// paintQuadTile hands back [colourPtr, cursor]; the slot painters hand back the cursor alone.
+const nextCursor = (ret) => (Array.isArray(ret) ? ret[1] : ret);
+
 export function drawCountAsPictogramStrip(m, a = m.regs.a) {
-  const { regs, mem16 } = m;
+  const { mem16 } = m;
 
   let value = a >= 100 ? 99 : a;
   const thirties = Math.floor(value / 30); value %= 30;
@@ -33,26 +36,13 @@ export function drawCountAsPictogramStrip(m, a = m.regs.a) {
     [thirties, 0x23, 0x11, paintQuadTile],
   ];
 
-  regs.de = COUNT_PICTOGRAM_STRIP_START;
+  let cursor = COUNT_PICTOGRAM_STRIP_START;
   for (const [count, glyph, colour, paint] of denominations) {
-    if (!count) continue;
-    regs.b = glyph;
-    regs.c = colour;
-    for (let i = 0; i < count; i++) paint(m);
+    for (let i = 0; i < count; i++) cursor = nextCursor(paint(m, cursor, glyph, colour));
   }
+  while (cursor < EMBLEM_STRIP_FLOOR) cursor = drawSlotWithOneGlyph(m, cursor, BLANK_GLYPH, BLANK_COLOUR);
 
-  regs.b = BLANK_GLYPH;
-  regs.c = BLANK_COLOUR;
-  while (regs.de < EMBLEM_STRIP_FLOOR) drawSlotWithOneGlyph(m);
-
-  regs.xor(regs.a);
-  regs.hl = mem16[IMAGE_CHECKSUM_WORD_00A0];
-  regs.de = mem16[IMAGE_CHECKSUM_WORD_00A3];
-  regs.bc = mem16[IMAGE_CHECKSUM_WORD_009D];
-  regs.addHl(regs.de);
-  regs.addHl(regs.bc);
-  regs.add(regs.l);
-  regs.add(regs.h);
-  regs.sub(CHECKSUM_TARGET);
-  if (regs.fNZ) return trampolineToSeatTheStackAndSettleTheControlLatch(m);
+  const sum = mem16[IMAGE_CHECKSUM_WORD_00A0] + mem16[IMAGE_CHECKSUM_WORD_00A3] + mem16[IMAGE_CHECKSUM_WORD_009D];
+  const fold = ((sum & 0xff) + ((sum >> 8) & 0xff) - CHECKSUM_TARGET) & 0xff;
+  if (fold !== 0) return trampolineToSeatTheStackAndSettleTheControlLatch(m);
 }

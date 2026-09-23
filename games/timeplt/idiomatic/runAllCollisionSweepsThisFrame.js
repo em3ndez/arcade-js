@@ -27,12 +27,9 @@ export function runAllCollisionSweepsThisFrame(m) {
     destroySlotsAndPlayerOnContact(m, regs.de, regs.iy, 5, 7, 15);
     ramTestPlayerVsMotherShip(m);
 
-    regs.b = 3;
-    regs.de = ERA_OBJECT_RECORD_SLOT0;
+    regs.de = ERA_OBJECT_RECORD_SLOT0; // cursor pair must survive an early attacker-not-live return into the final mark
     regs.iy = ERA_OBJECT_ENTRY_SLOT0;
-    regs.l = 6;
-    regs.h = 13;
-    destroyTargetsReachedByFixedAttacker(m);
+    destroyTargetsReachedByFixedAttacker(m, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_ENTRY_SLOT0, 3, 6, 13);
 
     return (regs.b = 1, regs.l = 8, regs.h = 17, markObjectsTouchingPlayer(m));
   }

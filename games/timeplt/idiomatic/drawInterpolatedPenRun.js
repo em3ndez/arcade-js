@@ -43,7 +43,6 @@ export function drawInterpolatedPenRun(m) {
   mem8[PEN_COLUMN_POS] = 0;
   mem8[PEN_COLUMN_POS + 1] = word >> 8;
 
-  regs.a = rowInt; // sets the Z-flag live-out callers branch on
-  regs.and(rowInt);
-  m.ret(10);
+  // A carries the new row integer and the AND sets the Z-flag live-out callers branch on.
+  return (regs.a = rowInt, regs.and(rowInt), m.ret(10));
 }

@@ -21,7 +21,7 @@ const TENTHS_00 = 0x00;
 const TENTHS_30 = 0x30;
 
 export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const phase = mem8[LIFE_TICKS_LOW];
 
   const tens = phase & 0xf0;
@@ -31,23 +31,21 @@ export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   if (slot >= SLOT_COUNT) return;
   const record = CRAFT_RECORD_SLOT0 + slot * 16;
   const entry = CRAFT_ENTRY_SLOT0 + slot * 2;
-  regs.ix = record;
-  regs.iy = entry;
   if (mem8[record] !== OCCUPIED) return;
 
-  stepShapeAnimation(m);
+  stepShapeAnimation(m, record);
 
   const state = mem8[record + 8];
   if (state === HELD) return;
 
   if (state === REAIM_THEN_HOLD) {
-    const heading = headingToward(m, ENEMY_AIM_POINT_TABLE);
+    const heading = headingToward(m, ENEMY_AIM_POINT_TABLE, entry);
     mem8[record + 1] = u8(heading + 0x80);
     mem8[record + 8] = HELD;
     mem8[record + 9] = 0x00;
     return;
   }
 
-  offsetAddress(m, ENEMY_AIM_POINT_TABLE, u8(state + state));
-  mem8[record + 1] = headingToward(m);
+  const aim = offsetAddress(m, ENEMY_AIM_POINT_TABLE, u8(state + state));
+  mem8[record + 1] = headingToward(m, aim, entry);
 }

@@ -22,8 +22,10 @@ const skip = romsPresent() ? false : "ROM images are gitignored; none assembled"
 
 // The oracle takes its own trailing ret (sp += 2) where the rewrite leaves it to the dispatch seam,
 // computes flags the rewrite skips, and its ex-de-hl parks the velocity-table pointer in DE; a is
-// dead scratch. All checked as a ceiling, never asserted equal.
-const EXCLUDED = ["sp", "f", "d", "e", "a"];
+// dead scratch, and hl is the velocity high-byte scratch the rewrite folds into JS locals (live-out
+// is fields 0x10-0x1b only; the 0x31b4 caller keeps just ix/iy). All checked as a ceiling, never
+// asserted equal.
+const EXCLUDED = ["sp", "f", "d", "e", "a", "h", "l"];
 
 const hex = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 

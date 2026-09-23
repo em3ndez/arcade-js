@@ -13,12 +13,8 @@ const SPRITE_STRIDE = 2;
 const EMPTY = 0x00;
 const BALLISTIC = 0xff;
 
-export function sweepObjectSlotBankServicingFirstSlot(m) {
-  const { regs, mem8 } = m;
-  // Cursors and count arrive in ix/iy/b; carry them in locals (live-out is memory only).
-  let record = regs.ix;
-  let sprite = regs.iy;
-  let count = regs.b;
+export function sweepObjectSlotBankServicingFirstSlot(m, record = m.regs.ix, sprite = m.regs.iy, count = m.regs.b) {
+  const { mem8 } = m;
   let service = true;
   for (;;) {
     if (service) runOneShotAnimatedObjectSlot(m, record, sprite);
@@ -26,7 +22,7 @@ export function sweepObjectSlotBankServicingFirstSlot(m) {
     record = u16(record + RECORD_STRIDE);
     sprite = u16(sprite + SPRITE_STRIDE);
     count = (count - 1) & 0xff;
-    if (count === 0) { regs.ix = record; regs.iy = sprite; regs.b = count; return; }
+    if (count === 0) return (m.regs.ix = record, m.regs.iy = sprite, m.regs.b = count, undefined);
 
     const marker = mem8[record];
     if (marker === EMPTY) { service = false; continue; }
