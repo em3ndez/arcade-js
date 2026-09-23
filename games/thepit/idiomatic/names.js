@@ -1000,13 +1000,13 @@ export const SETUP_COINAGE_SINGULAR_LABEL_GLYPHS = 0x49ae;
 export const SHARED_PANEL_COL13_LABEL_GLYPHS = 0x49f7;
 /** BONUS_SCREEN_ROW1_TIER5_STRIP (0x4a14) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest, fall-through of the 15/10 tests) variant of the FIRST upper text row (col15/row11) of the … [seen] */
 export const BONUS_SCREEN_ROW1_TIER5_STRIP = 0x4a14;
-/** BONUS_SCREEN_ROW1_TIER10_STRIP (0x4a21) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [code] */
+/** BONUS_SCREEN_ROW1_TIER10_STRIP (0x4a21) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [seen] */
 export const BONUS_SCREEN_ROW1_TIER10_STRIP = 0x4a21;
-/** BONUS_SCREEN_ROW1_TIER15_STRIP (0x4a2e) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [code] */
+/** BONUS_SCREEN_ROW1_TIER15_STRIP (0x4a2e) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the FIRST upper text row (col15/row11) of the tier/bonus status screen (showBonusScreen/loc_3be… [seen] */
 export const BONUS_SCREEN_ROW1_TIER15_STRIP = 0x4a2e;
 /** BONUS_SCREEN_ROW2_TIER5_STRIP (0x4a3b) — ROM 12-glyph tile-code strip (run=12) for the TIER-5 (default/lowest) variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBo… [seen] */
 export const BONUS_SCREEN_ROW2_TIER5_STRIP = 0x4a3b;
-/** BONUS_SCREEN_ROW2_TIER10_STRIP (0x4a48) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [code] */
+/** BONUS_SCREEN_ROW2_TIER10_STRIP (0x4a48) — ROM 12-glyph tile-code strip (run=12) for the TIER-10 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [seen] */
 export const BONUS_SCREEN_ROW2_TIER10_STRIP = 0x4a48;
 /** BONUS_SCREEN_ROW2_TIER15_STRIP (0x4a55) — ROM 12-glyph tile-code strip (run=12) for the TIER-15 variant of the SECOND upper text row (col17/row11) of the tier/bonus status screen (showBonusScreen/loc_3b… [seen] */
 export const BONUS_SCREEN_ROW2_TIER15_STRIP = 0x4a55;
@@ -1060,7 +1060,7 @@ export const PREPLAY_FIXED_SCREEN_IMAGE = 0x3e32;
 export const CREDIT_STANDBY_SCREEN_IMAGE = 0x4232;
 /** PLAYFIELD_STRIP_COL1_ROW11_TILES (0x494f) — ROM tile-code source table walked BACKWARD (from one byte below the pointer) by copyCappedTileColumn/loc_3ddb to fill the 10-cell (0x0a) vertical tilemap strip … [seen] */
 export const PLAYFIELD_STRIP_COL1_ROW11_TILES = 0x494f;
-/** CREDIT_LABEL_GLYPHS (0x496d) — ROM glyph-run source for the fixed CREDIT label drawn beneath the live CREDIT_COUNT value in the two credit HUD panels: drawCreditsDisplay (col6/row10) and draw… [code] */
+/** CREDIT_LABEL_GLYPHS (0x496d) — ROM glyph-run source for the fixed CREDIT label drawn beneath the live CREDIT_COUNT value in the two credit HUD panels: drawCreditsDisplay (col6/row10) and draw… [seen] */
 export const CREDIT_LABEL_GLYPHS = 0x496d;
 /** GAME_OVER_LABEL_GLYPHS (0x49a5) — ROM 9-glyph 'GAME OVER' label strip, walked BACKWARD by copyTileColumn (handed the run's last byte) and stamped down a HUD text column: drawGameOverLabel (col1/… [seen] */
 export const GAME_OVER_LABEL_GLYPHS = 0x49a5;
@@ -1188,7 +1188,7 @@ export const DSW_PORT = 0xb000;
 /** NMI_MASK_LATCH (0xb000) — LS259 control-latch bit0 (WRITE side of 0xB000): 1 arms / 0 masks the vblank NMI. [code] */
 export const NMI_MASK_LATCH = 0xb000;
 /** FLIP_SCREEN_X_LATCH (0xb006) — LS259 mainlatch line 6 (WRITE side of 0xB006): horizontal screen flip
- *  (flipX) + sprite mux; applyDipSwitches writes the decoded cocktail flip bit (low bit latched). [code] */
+ *  (flipX) + sprite mux; applyDipSwitches writes the decoded cocktail flip bit (low bit latched). [seen] */
 export const FLIP_SCREEN_X_LATCH = 0xb006;
 /** FLIP_SCREEN_Y_LATCH (0xb007) — LS259 mainlatch line 7 (WRITE side of 0xB007): vertical screen flip
  *  (flipY); applyDipSwitches writes the decoded cocktail flip bit (low bit latched). [seen] */

@@ -7,3 +7,14 @@
 0x83ff  [stack-scratch] STACK_TOP is return-stack scratch: loadTOS seats SP here discarding the caller frame; never a role read/write. Runbook stack-scratch debt; un-witnessable by any tap.
 0x8240  [structural-bound] SPRITE_STAGING_END is the exclusive upper bound of the 0x8200 sprite-staging wipe and the floor of the stack-only region 0x8240..0x87ff that no routine reads; a loop limit, not a role cell.
 0x9400  [structural-bound] VIDEO_RAM_END_EXCLUSIVE is the one-past-the-end exclusive VRAM bound (outside tilemap 0x9000-0x93ff); a fill loop-limit sentinel, never a real memory access.
+0x8200  [dma-only] SPRITE_STAGING_WIPE_BASE: only writer is clearSpriteStagingBuffer (0x4c21, bulk 64-cell const-0 wipe); the staged sprite records are consumed by hardware sprite DMA, never a CPU role read. Un-witnessable on a good ROM.
+0x8280  [structural] SCORE_READOUT_STRIP: only writer 0x4bcc is a bulk 32-cell const 0x24 blank-fill; staging pad consumed by the strip copy/DMA, no discriminating CPU read across attract+play+bonus+flip+hiscore.
+0x8840  [structural] COLOUR_COLUMN_ANCHOR: sole non-bulk writer 0x471c stamps const 0x02 (column-0 colour); the full-height colour column-fill is bulk, so the anchor never takes a discriminating value and is never read.
+0x93bf  [structural] RIGHT_EDGE_COLUMN_BOTTOM: column terminus (pad below the 28-byte strip); only ever the background tile 0x24 from bulk column-fill, never read.
+0x93e0  [structural] LEFT_EDGE_COLUMN_BOTTOM: column-bottom pad; const 0x24 from bulk fill only, no CPU read.
+0x93f9  [structural] BOOT_TEXT_COLUMN25_BOTTOM: fixed text-column bottom pad; const 0x24 from bulk fill, no read.
+0x93fe  [structural] BOOT_TEXT_COLUMN30_BOTTOM: fixed text-column bottom pad; const 0x24 from bulk fill, no read.
+0x93ff  [structural] VIDEO_RAM_LAST_CELL: tilemap loop upper-bound sentinel (cell <= 0x93ff); const 0x24, structural terminus, never a discriminating read.
+0x9800  [structural] ATTR_SCROLL_RAM_BASE: zeroed by bulk clear 0x4c16; per-column scroll writes target 0x9800+column so the base holds column-0 (=0, no scroll in any captured state), never read.
+0x811f  [locked-mirror] ENEMY3_TWIN_STEP_X: seed-written const 0 by 0x373c; the twin is the +16 locked mirror driven from the PRIMARY step (0x810e), so its own step slot is const-0 by construction and can never take a discriminating value.
+0x8120  [locked-mirror] ENEMY3_TWIN_STEP_Y: seed-written const 0 by 0x373f; locked-mirror structural const, same as 0x811f.
