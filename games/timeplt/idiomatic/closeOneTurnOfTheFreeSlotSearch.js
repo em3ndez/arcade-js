@@ -7,9 +7,9 @@ import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotEl
 const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
 
-export function closeOneTurnOfTheFreeSlotSearch(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function closeOneTurnOfTheFreeSlotSearch(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b) {
   const { regs } = m;
-  const nextB = regs.b - 1;
+  const nextB = b - 1;
   if (nextB !== 0)
     return (regs.ix = ix - RECORD_STRIDE, regs.iy = iy - ENTRY_STRIDE, regs.b = nextB, spawnEnemyIntoFreeSlotElseStepSearch(m));
   return void (regs.ix = ix - RECORD_STRIDE, regs.iy = iy - ENTRY_STRIDE, regs.b = nextB);

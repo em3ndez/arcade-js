@@ -7,9 +7,9 @@ import { flyAndRetireSlotCyclingShapeInEra4 } from "./flyAndRetireSlotCyclingSha
 
 const COUNTDOWN_OFFSET = 0x0e;
 
-export function flyLiveSlotAndTickCountdown(m) {
+export function flyLiveSlotAndTickCountdown(m, ix = m.regs.ix) {
   flyAndRetireSlotCyclingShapeInEra4(m);
-  const countdown = u16(m.regs.ix + COUNTDOWN_OFFSET);
+  const countdown = u16(ix + COUNTDOWN_OFFSET);
   m.mem8[countdown] = m.mem8[countdown] - 1;
   return closeOneTurnOfTheSlotSweep(m);
 }

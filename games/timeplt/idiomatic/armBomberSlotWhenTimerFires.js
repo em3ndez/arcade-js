@@ -10,7 +10,7 @@ import { loc_5942 } from "./loc_5942.js";
 import { FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_ARMED, PLAYER_HEADING, HEADING_SHAPE_TABLE } from "./names.js";
 
 export function armBomberSlotWhenTimerFires(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[FRAME_TICK] & 0x01) return;
 
@@ -29,8 +29,8 @@ export function armBomberSlotWhenTimerFires(m, ix = m.regs.ix, iy = m.regs.iy) {
   // shape record: rotate the heading to an even table offset, take its two bytes
   const shapeIndex = ((index >> 2) | (index << 6)) & 0x3e;
   mem8[u16(iy + 0x31)] = fetchTableByte(m, HEADING_SHAPE_TABLE, shapeIndex);
-  const hl = regs.hl;
-  mem8[u16(iy + 0x00)] = mem8[u16(hl + 1)];
+  const shapeEntry = u16(HEADING_SHAPE_TABLE + shapeIndex);
+  mem8[u16(iy + 0x00)] = mem8[u16(shapeEntry + 1)];
 
   const facing = u8(heading + 0xc0) & 0x80;
   mem8[u16(ix + 0x02)] = facing;

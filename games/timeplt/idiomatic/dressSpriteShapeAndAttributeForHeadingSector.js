@@ -17,9 +17,10 @@ const SECOND_BYTE_IN_ENTRY = 48;
 const HALF_SECTOR = 8;
 
 export function dressSpriteShapeAndAttributeForHeadingSector(m, object = m.regs.ix, sprite = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const sector = u8(mem8[u16(object + HEADING_IN_RECORD)] + HALF_SECTOR) >> 4;
+  const entry = u16(HEADING_SECTOR_SHAPE_TABLE + sector); // where fetchTableByte leaves the table pointer
 
   mem8[u16(sprite + SHAPE_IN_ENTRY)] = fetchTableByte(m, HEADING_SECTOR_SHAPE_TABLE, sector);
-  mem8[u16(sprite + SECOND_BYTE_IN_ENTRY)] = mem8[u16(regs.hl + SECOND_TABLE_GAP)];
+  mem8[u16(sprite + SECOND_BYTE_IN_ENTRY)] = mem8[u16(entry + SECOND_TABLE_GAP)];
 }

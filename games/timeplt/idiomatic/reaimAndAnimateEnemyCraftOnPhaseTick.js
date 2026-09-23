@@ -23,10 +23,9 @@ const TENTHS_30 = 0x30;
 export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   const { regs, mem8 } = m;
   const phase = mem8[LIFE_TICKS_LOW];
-  regs.c = phase;
 
   const tens = phase & 0xf0;
-  if (tens !== TENTHS_00 && tens !== TENTHS_30) return layOutEnemyAimPointsFromScrollAngle(m);
+  if (tens !== TENTHS_00 && tens !== TENTHS_30) return layOutEnemyAimPointsFromScrollAngle(m, phase);
 
   const slot = phase & 0x0f;
   if (slot >= SLOT_COUNT) return;
