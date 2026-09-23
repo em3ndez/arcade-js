@@ -18,3 +18,6 @@
 0x9800  [structural] ATTR_SCROLL_RAM_BASE: zeroed by bulk clear 0x4c16; per-column scroll writes target 0x9800+column so the base holds column-0 (=0, no scroll in any captured state), never read.
 0x811f  [locked-mirror] ENEMY3_TWIN_STEP_X: seed-written const 0 by 0x373c; the twin is the +16 locked mirror driven from the PRIMARY step (0x810e), so its own step slot is const-0 by construction and can never take a discriminating value.
 0x8120  [locked-mirror] ENEMY3_TWIN_STEP_Y: seed-written const 0 by 0x373f; locked-mirror structural const, same as 0x811f.
+0x8070  [write-only-seed] OBJECT_START_STATE_SEED: seedObjectStartState stamps const 1 (pc 0x138a, 11 writes) beside the tracked-object start-state block; 0 reads in any capture. Irreducible write-only seed, no consumer.
+0x809c  [write-only-seed] REACTION_RESET_COMPANION_SEED: resetReactionState stamps const 1 (pc 0x24ed, 11 writes) among the round-start reaction companion bytes; 0 reads. Irreducible write-only seed.
+0x87ff  [vestigial] WORK_RAM_TOP_BOUNDARY: top byte of the 0x8000-0x87ff work-RAM window below colour RAM; 0 reads AND 0 writes in any capture, no idiomatic importer. Genuinely dead boundary cell.

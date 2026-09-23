@@ -33,7 +33,7 @@ import {
   STAGED_DIG_TIMER,
   STAGED_TARGET_X,
   STAGED_TARGET_Y,
-  loc_80be,
+  STAGED_TARGET_X_MIRROR,
 } from "./names.js";
 
 const CARVING_STATE = 48; // dig-object state code for the carving phase
@@ -51,7 +51,7 @@ export function commitDigEntity(m) {
   // Promote the values staged earlier into the live record the carve handler reads.
   const stagedColumn = mem8[STAGED_TARGET_X];
   mem8[HAZARD_X] = stagedColumn;
-  mem8[loc_80be] = stagedColumn; // mirror of the target column
+  mem8[STAGED_TARGET_X_MIRROR] = stagedColumn; // mirror of the target column
   mem8[HAZARD_Y] = mem8[STAGED_TARGET_Y];
   mem8[DIG_OBJ_TIMER] = mem8[STAGED_DIG_TIMER];
 

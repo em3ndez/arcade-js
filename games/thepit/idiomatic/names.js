@@ -749,33 +749,33 @@ export const LOOP_COUNTER = 0x800a;
 // undetermined cells below now carry a loc_<addr> PLACEHOLDER const (allowlisted in names-debt.txt) so
 // the idiomatic layer references them by symbol without inventing a role — each has no reader / no earned
 // name. Promote to a descriptive name only if a consumer is ever found.
-/** loc_800f (0x800f) — write-only once-per-second down-counter (SECONDS_PRESCALER rollover decrements it);
- *  no consumer reads it; vestigial. [guess] (placeholder; names-debt) */
-export const loc_800f = 0x800f;
-/** loc_801d (0x801d) — write-only shadow of the coin-slot id, written alongside GAME_STATE and loc_812d
- *  by bankCreditAndStart; never read. [guess] (placeholder; names-debt) */
-export const loc_801d = 0x801d;
-/** loc_812d (0x812d) — write-only shadow of the coin-slot id, written alongside GAME_STATE and loc_801d
- *  by bankCreditAndStart; never read. [guess] (placeholder; names-debt) */
-export const loc_812d = 0x812d;
-/** loc_8050 (0x8050) — write-only shadow of the decoded cocktail flip-invert DIP bit (dsw&0x10); flip
- *  decode uses a local, not this cell. [guess] (placeholder; names-debt) */
-export const loc_8050 = 0x8050;
-/** loc_8052 (0x8052) — write-only shadow of the decoded cocktail flip-follows-player DIP bit (dsw&0x20);
- *  never read. [guess] (placeholder; names-debt) */
-export const loc_8052 = 0x8052;
-/** loc_8070 (0x8070) — write-only byte in the object start-state seed block, stamped to 1 at round
+/** SECONDS_DOWN_COUNTER (0x800f) — write-only once-per-second down-counter (SECONDS_PRESCALER rollover decrements it);
+ *  no consumer reads it; vestigial. [seen] (placeholder; names-debt) */
+export const SECONDS_DOWN_COUNTER = 0x800f;
+/** GAME_MODE_SHADOW_A (0x801d) — write-only shadow of the coin-slot id, written alongside GAME_STATE and GAME_MODE_SHADOW_B
+ *  by bankCreditAndStart; never read. [seen] (placeholder; names-debt) */
+export const GAME_MODE_SHADOW_A = 0x801d;
+/** GAME_MODE_SHADOW_B (0x812d) — write-only shadow of the coin-slot id, written alongside GAME_STATE and GAME_MODE_SHADOW_A
+ *  by bankCreditAndStart; never read. [seen] (placeholder; names-debt) */
+export const GAME_MODE_SHADOW_B = 0x812d;
+/** COCKTAIL_FLIP_INVERT_SHADOW (0x8050) — write-only shadow of the decoded cocktail flip-invert DIP bit (dsw&0x10); flip
+ *  decode uses a local, not this cell. [seen] (placeholder; names-debt) */
+export const COCKTAIL_FLIP_INVERT_SHADOW = 0x8050;
+/** COCKTAIL_FLIP_FOLLOWS_PLAYER_SHADOW (0x8052) — write-only shadow of the decoded cocktail flip-follows-player DIP bit (dsw&0x20);
+ *  never read. [seen] (placeholder; names-debt) */
+export const COCKTAIL_FLIP_FOLLOWS_PLAYER_SHADOW = 0x8052;
+/** OBJECT_START_STATE_SEED (0x8070) — write-only byte in the object start-state seed block, stamped to 1 at round
  *  (re)init; no reader, role undetermined. [guess] (placeholder; names-debt) */
-export const loc_8070 = 0x8070;
-/** loc_809c (0x809c) — write-only byte set to 1 in the round-start reaction-state reset; no reader, role
+export const OBJECT_START_STATE_SEED = 0x8070;
+/** REACTION_RESET_COMPANION_SEED (0x809c) — write-only byte set to 1 in the round-start reaction-state reset; no reader, role
  *  undetermined. [guess] (placeholder; names-debt) */
-export const loc_809c = 0x809c;
-/** loc_80be (0x80be) — write-only mirror of the staged dig-target column (STAGED_TARGET_X), written by
- *  commitDigEntity; never read. [guess] (placeholder; names-debt) */
-export const loc_80be = 0x80be;
-/** loc_87ff (0x87ff) — highest byte of the 0x8000-0x87FF work-RAM window, directly below colour RAM
+export const REACTION_RESET_COMPANION_SEED = 0x809c;
+/** STAGED_TARGET_X_MIRROR (0x80be) — write-only mirror of the staged dig-target column (STAGED_TARGET_X), written by
+ *  commitDigEntity; never read. [seen] (placeholder; names-debt) */
+export const STAGED_TARGET_X_MIRROR = 0x80be;
+/** WORK_RAM_TOP_BOUNDARY (0x87ff) — highest byte of the 0x8000-0x87FF work-RAM window, directly below colour RAM
  *  (0x8800); unused boundary cell (no reads/writes). [guess] (placeholder; names-debt) */
-export const loc_87ff = 0x87ff;
+export const WORK_RAM_TOP_BOUNDARY = 0x87ff;
 
 /** CREDIT_COUNT (0x8000) — the credit counter: banked from the coin lines (clamp 9), spent on start;
  *  the corruption-watchdog anchor (serviceVblankNmi cold-boots if the mirrors disagree); rearmMachineAndBranchOnCredits
@@ -1201,10 +1201,10 @@ export const SOUND_CMD_LATCH = 0xb800;
 export const LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM = 0x8940;
 /** loc_895f (0x895f) — Colour-RAM cell at column 31 / row 10 written by TWO different features: drawRightEdgeColumn's top 3-cell accent band (bottom cell, colour 7, rows 10/… [guess] (placeholder; names-debt) */
 export const loc_895f = 0x895f;
-/** loc_90c4 (0x90c4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion stamps it to 0xac as the mountain-cap cell one tilemap row above the 0x90e4 head; spaw… [guess] (placeholder; names-debt) */
-export const loc_90c4 = 0x90c4;
-/** loc_90e4 (0x90e4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion checks it for the 0xfe marker then stamps 0xae as the mountain-erosion head cell; spaw… [guess] (placeholder; names-debt) */
-export const loc_90e4 = 0x90e4;
+/** MOUNTAIN_CAP_TILE_CELL (0x90c4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion stamps it to 0xac as the mountain-cap cell one tilemap row above the 0x90e4 head; spaw… [seen] (placeholder; names-debt) */
+export const MOUNTAIN_CAP_TILE_CELL = 0x90c4;
+/** MOUNTAIN_ERODE_HEAD_TILE_CELL (0x90e4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion checks it for the 0xfe marker then stamps 0xae as the mountain-erosion head cell; spaw… [seen] (placeholder; names-debt) */
+export const MOUNTAIN_ERODE_HEAD_TILE_CELL = 0x90e4;
 /** MOUNTAIN_ERODE_VRAM_HEAD (0x9104) — head (top) tilemap cell of the mountain column the Zonker erodes
  *  (VIDEO_RAM_BASE + row8*32 + col4); seedMountainErosion seeds the erosion pointer here, erodeMountain
  *  walks +0x20 down-column. [seen] */

@@ -35,9 +35,9 @@ import {
   START1_SW_ACCUM,
   START2_SW_ACCUM,
   VARIANT,
-  loc_800f,
-  loc_801d,
-  loc_812d,
+  SECONDS_DOWN_COUNTER,
+  GAME_MODE_SHADOW_A,
+  GAME_MODE_SHADOW_B,
 } from "./names.js";
 import { coldBootInit } from "./coldBootInit.js";
 import { showCreditScreen } from "./showCreditScreen.js";
@@ -114,7 +114,7 @@ function tickFrameTimers(m) {
   const downDivider = mem8[SECONDS_PRESCALER] - 1;
   mem8[SECONDS_PRESCALER] = downDivider;
   if (downDivider === 0) {
-    mem8[loc_800f] = mem8[loc_800f] - 1;
+    mem8[SECONDS_DOWN_COUNTER] = mem8[SECONDS_DOWN_COUNTER] - 1;
     mem8[SECONDS_PRESCALER] = 60;
   }
 
@@ -220,8 +220,8 @@ function bankCreditAndStart(m, cost, slot) {
   mem8[CREDIT_MIRROR_A] = remaining;
   mem8[CREDIT_MIRROR_B] = remaining;
   mem8[GAME_STATE] = slot;
-  mem8[loc_801d] = slot;
-  mem8[loc_812d] = slot;
+  mem8[GAME_MODE_SHADOW_A] = slot;
+  mem8[GAME_MODE_SHADOW_B] = slot;
   m.nextMain = () => startGame(m); // warm restart: the engine swaps in the new game
   return true;
 }

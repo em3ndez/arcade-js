@@ -34,13 +34,13 @@ import {
   ENEMY3_Y,
   LEVEL,
   TWIN_ACTOR_COLOUR_ANCHOR,
-  loc_90e4,
+  MOUNTAIN_ERODE_HEAD_TILE_CELL,
 } from "./names.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 // The eight-cell figure: a 4-row x 2-col tile block anchored at its bottom-left cell; rows sit one
 // tilemap row (32 cells) apart, tiles run consecutively from FIRST_TILE.
-const VIDEO_ANCHOR = loc_90e4; // tilemap RAM
+const VIDEO_ANCHOR = MOUNTAIN_ERODE_HEAD_TILE_CELL; // tilemap RAM
 const COLOR_ANCHOR = TWIN_ACTOR_COLOUR_ANCHOR; // colour-attribute RAM
 const ROW_STRIDE = 32; // one tilemap row
 const FIGURE_ROWS = 4;

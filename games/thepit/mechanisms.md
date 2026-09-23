@@ -124,8 +124,8 @@ off by the laser routine each frame.
 - runs **TWO independent /60 dividers**:
   - `0x8007 → 0x8010` — the **live** one: decrements `0x8007` each frame, and on the 60→0 rollover
     **increments `PLAY_PHASE_COUNTER 0x8010`** and reloads `0x8007=0x3c`.
-  - `0x8006 → loc_800f 0x800f` — an **undocumented, vestigial** second divider: it ticks `0x8006` and on
-    rollover decrements a per-second counter `loc_800f 0x800f` — but **no *consumer* reads `0x800f`** in this
+  - `0x8006 → SECONDS_DOWN_COUNTER 0x800f` — an **undocumented, vestigial** second divider: it ticks `0x8006` and on
+    rollover decrements a per-second counter `SECONDS_DOWN_COUNTER 0x800f` — but **no *consumer* reads `0x800f`** in this
     ROM rev (the consumer was removed). Its own divider read-modify-writes it each rollover, so it is
     **not write-only** — it is simply **dead**. `[code]`
 - debounces the two input ports (IN1 `COIN_START_PORT 0xa800 → 0x8015`, IN0 `JOYSTICK_INPUT_PORT 0xa000 → 0x8018`, each latched only on
@@ -558,8 +558,8 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
     `0x8068`, byte3 = work-X `0x806b`; dig-mode moves the player DOWN while work-X increases → work-X =
     screen-vertical). `[seen]` (grounding-2 Z-8).
 - **★ Cocktail / flip — the real value is `0x02`, not `0x40`.** The 180° flip is the hardware LS259
-  flipscreen: `loc_4b55` computes `flipBit = ((activePlayer 0x8002 − 1) & cocktailDSW_bit5 loc_8052 0x8052) ^
-  flipDSW_bit4 loc_8050 0x8050`, writes it to **LS259 `FLIP_SCREEN_X_LATCH 0xb006` (b6 = flipX + input-mux) and `FLIP_SCREEN_Y_LATCH 0xb007` (b7 =
+  flipscreen: `loc_4b55` computes `flipBit = ((activePlayer 0x8002 − 1) & cocktailDSW_bit5 COCKTAIL_FLIP_FOLLOWS_PLAYER_SHADOW 0x8052) ^
+  flipDSW_bit4 COCKTAIL_FLIP_INVERT_SHADOW 0x8050`, writes it to **LS259 `FLIP_SCREEN_X_LATCH 0xb006` (b6 = flipX + input-mux) and `FLIP_SCREEN_Y_LATCH 0xb007` (b7 =
   flipY)**, and sets **`SPRITE_COORD_BIAS 0x8051 = flipBit << 1`.** So the true cocktail value of
   `0x8051` is **`0x02`** — a +2 sprite-Y nudge folded into every sprite record's screen-VERTICAL byte
   (byte3) plus the player's byte0 — NOT the flip itself, and NOT the arbitrary `0x40` a prior round

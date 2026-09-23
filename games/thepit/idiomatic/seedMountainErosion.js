@@ -15,8 +15,8 @@ import {
   MOUNTAIN_ERODE_TIMER,
   MOUNTAIN_ERODE_VRAM_HEAD,
   STEP_TIMER_BASE,
-  loc_90c4,
-  loc_90e4,
+  MOUNTAIN_CAP_TILE_CELL,
+  MOUNTAIN_ERODE_HEAD_TILE_CELL,
 } from "./names.js";
 export function seedMountainErosion(m) {
   const { mem8, mem16 } = m;
@@ -31,7 +31,7 @@ export function seedMountainErosion(m) {
   if (mem8[MOUNTAIN_ERODE_SOUND_MARKER_TILE] === 0x32) requestSound21(m);
 
   // 4. Stamp the two-tile cap only while the head cell still holds its 0xfe marker.
-  if (mem8[loc_90e4] !== 0xfe) return;
-  mem8[loc_90e4] = 0xae; // head cell
-  mem8[loc_90c4] = 0xac; // the cell one row (32 columns) above it
+  if (mem8[MOUNTAIN_ERODE_HEAD_TILE_CELL] !== 0xfe) return;
+  mem8[MOUNTAIN_ERODE_HEAD_TILE_CELL] = 0xae; // head cell
+  mem8[MOUNTAIN_CAP_TILE_CELL] = 0xac; // the cell one row (32 columns) above it
 }

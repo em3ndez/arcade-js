@@ -24,8 +24,8 @@ import {
   SPRITE_COORD_BIAS,
   STARTING_MEN,
   STEP_TIMER_BASE,
-  loc_8050,
-  loc_8052,
+  COCKTAIL_FLIP_INVERT_SHADOW,
+  COCKTAIL_FLIP_FOLLOWS_PLAYER_SHADOW,
 } from "./names.js";
 import { showColourTestScreen } from "./showColourTestScreen.js";
 
@@ -46,8 +46,8 @@ export function applyDipSwitches(m) {
 
   const flipInvert = (dsw & 0x10) ? 1 : 0; // inverts the base screen orientation
   const flipFollowsPlayer = (dsw & 0x20) ? 1 : 0; // cocktail: flip tracks the active player
-  mem8[loc_8050] = flipInvert;
-  mem8[loc_8052] = flipFollowsPlayer;
+  mem8[COCKTAIL_FLIP_INVERT_SHADOW] = flipInvert;
+  mem8[COCKTAIL_FLIP_FOLLOWS_PLAYER_SHADOW] = flipFollowsPlayer;
 
   // Flip for whoever is playing now (cocktail flips for player 2, the invert dip toggles it).
   const activePlayer = mem8[ACTIVE_PLAYER];
