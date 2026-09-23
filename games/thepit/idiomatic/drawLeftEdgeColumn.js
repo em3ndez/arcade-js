@@ -1,4 +1,4 @@
-import { LEFT_EDGE_COLOUR2_LOWER_RUN_BOTTOM, LEFT_EDGE_COLOUR3_RUN_BOTTOM, LEFT_EDGE_COLUMN_BOTTOM, LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM } from "./names.js";
+import { LEFT_EDGE_COLOUR2_LOWER_RUN_BOTTOM, LEFT_EDGE_COLOUR3_RUN_BOTTOM, LEFT_EDGE_COLUMN_BOTTOM, LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM, LEFT_EDGE_COLUMN_TILE_STRIP } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * drawLeftEdgeColumn — stamp the fixed playfield left-edge column: a 32-tile picture strip up
@@ -19,7 +19,7 @@ export function drawLeftEdgeColumn(m) {
   const ROW = 32;
 
   // Copy the 32-byte picture strip up video column 0, bottom cell to top.
-  let source = 0x4aab;
+  let source = LEFT_EDGE_COLUMN_TILE_STRIP;
   let cell = LEFT_EDGE_COLUMN_BOTTOM;
   for (let i = 0; i < 32; i++) {
     mem8[cell] = mem8[source];

@@ -532,6 +532,10 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
   pair and walk both down-column. The display is rotated: **ROT270 is the correct
   upright player view** (ROT90 comes out upside-down). Digging, carving, jewel-blanking, hazard-
   painting, erosion (`0x31`), the ZONK glyph, and the set-piece bake all write here. `[seen]`/`[code]`
+- **Static screen text is drawn from per-column 32-byte picture-strip source tables in ROM**, each
+  copied down one tilemap column: `LEFT_EDGE_COLUMN_TILE_STRIP` (`0x4aab` → `drawLeftEdgeColumn`, video
+  col 0 / dest `0x93e0`) and `BOOT_TEXT_COLUMN30_TILE_STRIP` (`0x4acb` = `0x4aab+0x20`, the next strip →
+  `drawBestScoresTodayLabel`, col 30 / dest `0x93fe`). `[code]`
 - **Sprite records (8 slots, 4 bytes each; `SPRITE_STAGING_BASE 0x8220`–`ENEMY3_TWIN_SPRITE_Y 0x823f`, LDIR'd to sprite RAM `SPRITE_RAM_BASE 0x9840` by the
   NMI):** `[seen]`/`[code]`
   - slot 0 `0x8220` player (attr `OBJECT_SPRITE_ATTR 0x8222`) · slot 1 `0x8224` reaction/laser · **slot 2 `0x8228` falling-hazard**

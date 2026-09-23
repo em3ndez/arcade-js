@@ -1018,6 +1018,10 @@ export const HISCORE_RANK2_LABEL_STRIP = 0x4a7b;
 export const HISCORE_RANK3_LABEL_STRIP = 0x4a8e;
 /** HIGH_SCORE_INITIALS_PROMPT_GLYPHS (0x4aa9) — Fixed 26-glyph ROM tile-code prompt strip (span 0x4a90..0x4aa9), walked BACKWARD by copyTileColumn. runHighScoreInitialsEntry's fixed prompt line, plotted down … [seen] */
 export const HIGH_SCORE_INITIALS_PROMPT_GLYPHS = 0x4aa9;
+/** LEFT_EDGE_COLUMN_TILE_STRIP (0x4aab) — ROM 32-byte picture strip copied up video column 0 by drawLeftEdgeColumn into LEFT_EDGE_COLUMN_BOTTOM (0x93e0) to give the fixed left-edge playfield column its tile image. [code] */
+export const LEFT_EDGE_COLUMN_TILE_STRIP = 0x4aab;
+/** BOOT_TEXT_COLUMN30_TILE_STRIP (0x4acb) — ROM 32-byte picture strip (= 0x4aab + 0x20, the next strip) copied up tilemap column 30 by drawBestScoresTodayLabel into BOOT_TEXT_COLUMN30_BOTTOM (0x93fe). [code] */
+export const BOOT_TEXT_COLUMN30_TILE_STRIP = 0x4acb;
 
 // --- ROM data-table addresses (thepit Class-B hoist; routine-local consts promoted; [code], stage-B grounding pending) ---
 /** PLAYFIELD_TILE_IMAGE_LEVEL_ODD (0x0762) — ROM 0x400-byte (32x32 = 1024-cell) full-screen tilemap image copied into video RAM (0x9000) by paintScreen/loc_0673 to lay the round board; paintScreen selects … [code] */
