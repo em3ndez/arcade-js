@@ -120,7 +120,7 @@ export const OBJ_SPRITE_ATTR = 0x08;
  *  at 1 for 310 frames (natural attract) / 186 (credited 1P) / 70 (board 2), and set ONLY on frames whose
  *  INSERT arm (ROM 0x319D) fired — identically 0 across all 6667 board-3 frames, where 0x319D never ran. */
 export const OBJ_INSERT_REQUESTED = 0x18;
-/** [code] The two-record hammer pair's IN-PLAY flag (+0x01 of OBJ_PAIR_6680 only — 0x6681 / 0x6691).
+/** [seen] The two-record hammer pair's IN-PLAY flag (+0x01 of OBJ_PAIR_6680 only — 0x6681 / 0x6691).
  *  ★ SCOPED DELIBERATELY, NOT a shared object-record field: +0x01 carries unrelated roles elsewhere
  *  (0x1F93, 0x212B, 0x2D92/0x2D9D, 0x2E21/0x2E26), so a generic OBJ_* name here would be a trap.
  *  Marks which of the two hammers Mario grabbed. Set by latchHammerTouch (ROM 0x296A -> 0x6681,
@@ -130,7 +130,7 @@ export const OBJ_INSERT_REQUESTED = 0x18;
  *  no grounding record observes 0x6680/0x6690/0x6681/0x6691 — lifting it needs a run that grabs a
  *  hammer and watches the flag rise, hold, and clear at expiry. */
 export const HAMMER_IN_PLAY = 0x01;
-/** [code] Object-record field: per-object collision half-extent on the X axis (+0x09) — the extra span
+/** [seen] Object-record field: per-object collision half-extent on the X axis (+0x09) — the extra span
  *  added to the caller's base tolerance in the bounding-box overlap test. findCollidingObject and
  *  countObjectOverlaps read it paired with OBJ_X (+3); writers (service50mObjectSpawnRequest,
  *  driveHammerSprite, buildPendingHammerSprite, ...) stamp small span constants. Verified by the axis
@@ -978,7 +978,7 @@ export const OVERLAP_THRESHOLDS_DIRECTED = 0x1308;
 export const BOARD_CLEARED_STEP_TABLE_ODD = 0x1623;
 /** BOARD_CLEARED_STEP_TABLE_50M (0x1637) — ROM 5-entry table of little-endian target addresses [16a3,16bb,1732,1757,178e] for the 50m (BOARD bit1) board-cleared interlude; indexed by BOARD_ADVA… [seen] */
 export const BOARD_CLEARED_STEP_TABLE_50M = 0x1637;
-/** RIVET_INTERLUDE_STEP_TABLE (0x1648) — ROM 6-entry inline jump table of little-endian targets for the rivet/100m board interlude sequence; indexed by BOARD_ADVANCE_STEP (0x6388) doubled wit… [code] */
+/** RIVET_INTERLUDE_STEP_TABLE (0x1648) — ROM 6-entry inline jump table of little-endian targets for the rivet/100m board interlude sequence; indexed by BOARD_ADVANCE_STEP (0x6388) doubled wit… [seen] */
 export const RIVET_INTERLUDE_STEP_TABLE = 0x1648;
 /** AIRBORNE_PROBE_RETURN (0x1c08) — ROM CODE-continuation address (not a data cell): return address pushed by loc_1c05 before call 0x2b1c (descent probe) so the callee unwinds back into … [seen] */
 export const AIRBORNE_PROBE_RETURN = 0x1c08;
@@ -1006,31 +1006,31 @@ export const INTRO_SETUP_LAYOUT_TABLE = 0x380d;
 export const BONUS_DISPLAY_TILE_FRAME = 0x384a;
 /** INTRO_WALK_TABLE_A_ROM (0x38b4) — ROM intro-walk table A (Kong-climb cutscene); setupIntroCutsceneStep seeds it into INTRO_WALK_PTR_A. A-side sibling of INTRO_WALK_TABLE_B_ROM. [seen] */
 export const INTRO_WALK_TABLE_A_ROM = 0x38b4;
-/** SPRITE_BASE_FIGURE_ROM (0x385c) — ROM ten-record "base figure" sprite-object template; stamped into SPRITE_OBJ_BLOCK then X-shifted +0x44 by the recapture/animation routines. [code] */
+/** SPRITE_BASE_FIGURE_ROM (0x385c) — ROM ten-record "base figure" sprite-object template; stamped into SPRITE_OBJ_BLOCK then X-shifted +0x44 by the recapture/animation routines. [seen] */
 export const SPRITE_BASE_FIGURE_ROM = 0x385c;
-/** SPRITE_OBJECT_BLOCK_TEMPLATE (0x388c) — ROM base of the fixed 40-byte (0x28 = ten 4-byte records) sprite-object block template reloaded into SPRITE_OBJ_BLOCK via loadSpriteObjectBlock; same … [code] */
+/** SPRITE_OBJECT_BLOCK_TEMPLATE (0x388c) — ROM base of the fixed 40-byte (0x28 = ten 4-byte records) sprite-object block template reloaded into SPRITE_OBJ_BLOCK via loadSpriteObjectBlock; same … [seen] */
 export const SPRITE_OBJECT_BLOCK_TEMPLATE = 0x388c;
 /** INTRO_WALK_TABLE_B_ROM (0x38cb) — ROM intro-walk table B (per-step signed-Y-delta list); setupIntroCutsceneStep seeds it into INTRO_WALK_PTR_B and loc_0b68 walks it. [seen] */
 export const INTRO_WALK_TABLE_B_ROM = 0x38cb;
 /** INTRO_BEAT_LAYOUT_TABLE (0x392c) — ROM board-layout segment table passed (in DE) to drawBoardLayout by loc_0b06 at the intro cutscene's terminal beat (step 4). Distinct from the step-0 … [seen] */
 export const INTRO_BEAT_LAYOUT_TABLE = 0x392c;
-/** SPRITE_OBJ_ANIM_FRAME_TABLE (0x3932) — ROM base of a table of 40-byte sprite-object animation-frame records (ten 4-byte sprite records each). advanceBarrelRelease reads a sub-counter and co… [code] */
+/** SPRITE_OBJ_ANIM_FRAME_TABLE (0x3932) — ROM base of a table of 40-byte sprite-object animation-frame records (ten 4-byte sprite records each). advanceBarrelRelease reads a sub-counter and co… [seen] */
 export const SPRITE_OBJ_ANIM_FRAME_TABLE = 0x3932;
 /** OBJ_ANIM_STRING_BASE (0x39aa) — ROM base of the object animation-string walked via the object walk pointer. loc_2e9c rewinds the walk pointer here on the string terminator (and fires… [seen] */
 export const OBJ_ANIM_STRING_BASE = 0x39aa;
-/** SPRITE_ANIM_FIGURE_A_ROM (0x39cf) — ROM sprite animation figure A, one of the two figures the rate-limited animation sequence alternates (twin of SPRITE_ANIM_FIGURE_B_ROM). [code] */
+/** SPRITE_ANIM_FIGURE_A_ROM (0x39cf) — ROM sprite animation figure A, one of the two figures the rate-limited animation sequence alternates (twin of SPRITE_ANIM_FIGURE_B_ROM). [seen] */
 export const SPRITE_ANIM_FIGURE_A_ROM = 0x39cf;
-/** SPRITE_ANIM_FIGURE_B_ROM (0x39f7) — ROM sprite animation figure B, the alternate figure of SPRITE_ANIM_FIGURE_A_ROM. [code] */
+/** SPRITE_ANIM_FIGURE_B_ROM (0x39f7) — ROM sprite animation figure B, the alternate figure of SPRITE_ANIM_FIGURE_A_ROM. [seen] */
 export const SPRITE_ANIM_FIGURE_B_ROM = 0x39f7;
-/** BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME (0x3a1f) — ROM base of this board-advance interlude step's ten-record (40-byte) sprite-object frame, copied over SPRITE_OBJ_BLOCK by loc_186f when SUBSTATE_TIMER… [code] */
+/** BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME (0x3a1f) — ROM base of this board-advance interlude step's ten-record (40-byte) sprite-object frame, copied over SPRITE_OBJ_BLOCK by loc_186f when SUBSTATE_TIMER… [seen] */
 export const BOARD_ADVANCE_INTERLUDE_SPRITE_FRAME = 0x3a1f;
-/** HOWHIGH_GIRDER_BLOCK0_SEG_ROM (0x3a47) — ROM girder/ladder layout-segment table for how-high tile block 0 (paired with HOWHIGH_GIRDER_BLOCK0_VRAM). [code] */
+/** HOWHIGH_GIRDER_BLOCK0_SEG_ROM (0x3a47) — ROM girder/ladder layout-segment table for how-high tile block 0 (paired with HOWHIGH_GIRDER_BLOCK0_VRAM). [seen] */
 export const HOWHIGH_GIRDER_BLOCK0_SEG_ROM = 0x3a47;
-/** HOWHIGH_TILE_BLOCK2_SEG_ROM (0x3a4d) — ROM layout-segment table for how-high tile block 2. [code] */
+/** HOWHIGH_TILE_BLOCK2_SEG_ROM (0x3a4d) — ROM layout-segment table for how-high tile block 2. [seen] */
 export const HOWHIGH_TILE_BLOCK2_SEG_ROM = 0x3a4d;
-/** HOWHIGH_TILE_BLOCK3_SEG_ROM (0x3a53) — ROM layout-segment table for how-high tile block 3. [code] */
+/** HOWHIGH_TILE_BLOCK3_SEG_ROM (0x3a53) — ROM layout-segment table for how-high tile block 3. [seen] */
 export const HOWHIGH_TILE_BLOCK3_SEG_ROM = 0x3a53;
-/** HOWHIGH_TILE_BLOCK4_SEG_ROM (0x3a59) — ROM layout-segment table for how-high tile block 4. [code] */
+/** HOWHIGH_TILE_BLOCK4_SEG_ROM (0x3a59) — ROM layout-segment table for how-high tile block 4. [seen] */
 export const HOWHIGH_TILE_BLOCK4_SEG_ROM = 0x3a59;
 /** INTERLUDE_LAYOUT_SEGMENT_TABLE (0x3a5f) — ROM board-layout line-segment table for the between-boards interlude scene; loc_1880 hands it to drawBoardLayout (via regs.de) on the single frame the… [seen] */
 export const INTERLUDE_LAYOUT_SEGMENT_TABLE = 0x3a5f;
@@ -1078,15 +1078,15 @@ export const BONUS_ITEM_DISPLAY_TIMER = 0x6034;
 export const BONUS_ITEM_POS_INDEX = 0x6035;
 /** BONUS_ITEM_VIDEO_PTR (0x6036) — [seen] 16-bit video-RAM write pointer for the bonus-item value column in runBonusItemValueDisplay: init VIDEO_BASE 0x75e8, walked +/-0x20 as the colum… [code] */
 export const BONUS_ITEM_VIDEO_PTR = 0x6036;
-/** BONUS_ITEM_SLOT_PTR (0x6038) — [code] 16-bit pointer to the current player's slot record found by the 0x22-stride scan (key = rotl8(ACTIVE_PLAYER_INDEX)+1) over PLAYER_SLOT_RECORDS … [code] */
+/** BONUS_ITEM_SLOT_PTR (0x6038) — [seen] 16-bit pointer to the current player's slot record found by the 0x22-stride scan (key = rotl8(ACTIVE_PLAYER_INDEX)+1) over PLAYER_SLOT_RECORDS … [code] */
 export const BONUS_ITEM_SLOT_PTR = 0x6038;
-/** BONUS_ITEM_SLOT_COL_PTR (0x603a) — [code] 16-bit destination pointer (SLOT_PTR-0x0d) in runBonusItemValueDisplay: on teardown the 0x0c-byte video value column (walked from VIDEO_BASE by… [code] */
+/** BONUS_ITEM_SLOT_COL_PTR (0x603a) — [seen] 16-bit destination pointer (SLOT_PTR-0x0d) in runBonusItemValueDisplay: on teardown the 0x0c-byte video value column (walked from VIDEO_BASE by… [code] */
 export const BONUS_ITEM_SLOT_COL_PTR = 0x603a;
 /** SND_TRIGGER_EFFECT (0x6085) — [seen] Slot 5 of the 8-entry SND_TRIGGER latch array (base 0x6080, ls259.6h): the score-popup/item effect sound. stampScorePopupSprite stores 3 to ass… [code] */
 export const SND_TRIGGER_EFFECT = 0x6085;
 /** OPTION_TABLE_BASE (0x6100) — [code] Work-RAM base of the 0xaa-byte option/attract config table copied verbatim from ROM 0x3565 at power-on by decodeDipSwitches (ldir, spans 0x6100… [code] */
 export const OPTION_TABLE_BASE = 0x6100;
-/** SCORE_SORT_TABLE_KEY (0x61a5) — [code] Compare anchor (HL start) for loc_13ca's descending high-score bubble sort: the 3-byte little-endian score key of the record one 0x22-stride sl… [code] */
+/** SCORE_SORT_TABLE_KEY (0x61a5) — [seen] Compare anchor (HL start) for loc_13ca's descending high-score bubble sort: the 3-byte little-endian score key of the record one 0x22-stride sl… [code] */
 export const SCORE_SORT_TABLE_KEY = 0x61a5;
 /** SCORE_SORT_DIGITS (0x61b1) — [seen] Base of the 21-byte display field of loc_13ca's staging high-score record: 6 unpacked BCD digits (MS first) + 14 blank tiles (0x10) + a 0x3f te… [code] */
 export const SCORE_SORT_DIGITS = 0x61b1;
@@ -1094,7 +1094,7 @@ export const SCORE_SORT_DIGITS = 0x61b1;
 export const SCORE_SORT_TAG = 0x61c6;
 /** SCORE_SORT_STAGING_KEY (0x61c7) — [seen] 3-byte packed-BCD score key of the NEW staging record in loc_13ca: ldir-copied from the live score pointer (HL), then used as the DE compare/sw… [code] */
 export const SCORE_SORT_STAGING_KEY = 0x61c7;
-/** MARIO_CLIMB_TOGGLE (0x6219) — [code] Mario climb-state byte in the climb region (adjacent to CLIMB_FLAG 0x621a, MARIO_CLIMB_LIMIT_A/B 0x621b/c): cleared to 0 by endClimbAtLadderLim… [code] */
+/** MARIO_CLIMB_TOGGLE (0x6219) — [seen] Mario climb-state byte in the climb region (adjacent to CLIMB_FLAG 0x621a, MARIO_CLIMB_LIMIT_A/B 0x621b/c): cleared to 0 by endClimbAtLadderLim… [code] */
 export const MARIO_CLIMB_TOGGLE = 0x6219;
 /** CLIMB_CENTERING_PHASE (0x6222) — [seen] Shared two-phase ladder-centering toggle: advanceClimbStep XORs it 0<->1 each climb step to gate the centering arm vs the frame-select/limit ar… [code] */
 export const CLIMB_CENTERING_PHASE = 0x6222;
@@ -1122,11 +1122,11 @@ export const SPRITE_OBJ_REC4_CODE = 0x6919;
 export const MARIO_SPRITE_Y = 0x694f;
 /** BONUS_COUNTDOWN_SPRITES (0x69a8) — Base of the 25m bonus-countdown sprite group: four 4-byte sprite records (0x10 bytes), block-copied from ROM 0x3ddc at board build (seed25mBoardObject… [seen] */
 export const BONUS_COUNTDOWN_SPRITES = 0x69a8;
-/** M50_OBJ2_SPRITE_PAIR (0x69ec) — Base of 50m object-2's mirrored sprite-code record (loc_264c): HL=this base is passed to loc_26a6 every 32nd frame to advance the pair; low cell base+… [code] */
+/** M50_OBJ2_SPRITE_PAIR (0x69ec) — Base of 50m object-2's mirrored sprite-code record (loc_264c): HL=this base is passed to loc_26a6 every 32nd frame to advance the pair; low cell base+… [seen] */
 export const M50_OBJ2_SPRITE_PAIR = 0x69ec;
 /** M50_OBJ2_SPRITE_PAIR_LOW (0x69ed) — Low cell of 50m object-2's mirrored sprite-code pair (M50_OBJ2_SPRITE_PAIR base+1): on the 32nd-frame arm loc_264c re-stamps it from the high cell wit… [seen] */
 export const M50_OBJ2_SPRITE_PAIR_LOW = 0x69ed;
-/** M50_OBJ3_SPRITE_PAIR_BASE (0x69f4) — [code] 50m board: base/anchor for object-3's mirrored sprite tile-code counter PAIR inside SPRITE_BUFFER. loc_268d loads HL=0x69f4 and calls loc_26a6,… [code] */
+/** M50_OBJ3_SPRITE_PAIR_BASE (0x69f4) — [seen] 50m board: base/anchor for object-3's mirrored sprite tile-code counter PAIR inside SPRITE_BUFFER. loc_268d loads HL=0x69f4 and calls loc_26a6,… [code] */
 export const M50_OBJ3_SPRITE_PAIR_BASE = 0x69f4;
 /** HAMMER_OBJ2_SPRITE_RECORD (0x6a1c) — [seen] 4-byte sprite-shadow record (X,code,attr,Y) in SPRITE_BUFFER for the SECOND hammer object (OBJ_PAIR_6680's second record, base 0x6690). driveHa… [code] */
 export const HAMMER_OBJ2_SPRITE_RECORD = 0x6a1c;
@@ -1140,15 +1140,15 @@ export const CUTSCENE_SPRITE_2_CODE = 0x6a25;
 export const OBJ_66A0_SPRITE_RECORD = 0x6a28;
 /** OBJ_66A0_SPRITE_CODE (0x6a29) — [seen] The +1 (sprite-code) field of OBJ_66A0_SPRITE_RECORD (0x6a28). animateFixedHazardAndReleaseFire stamps the fixed-hazard sprite byte here (0x40 … [code] */
 export const OBJ_66A0_SPRITE_CODE = 0x6a29;
-/** TILEMAP_BASE (0x7400) — [code] Base of the 32x32 tilemap video RAM (0x7400-0x77FF; 0x400 cells, row stride 0x20). tileAddrForPixel computes 0x7400 + row*32 + col; clearTilema… [code] */
+/** TILEMAP_BASE (0x7400) — [seen] Base of the 32x32 tilemap video RAM (0x7400-0x77FF; 0x400 cells, row stride 0x20). tileAddrForPixel computes 0x7400 + row*32 + col; clearTilema… [code] */
 export const TILEMAP_BASE = 0x7400;
-/** PLAYFIELD_TOP (0x7404) — [code] Top-left cell of the central 28-column tilemap playfield interior (TILEMAP_BASE + 4). clearPlayfieldAndSprites blanks 32 rows x 28 cols startin… [code] */
+/** PLAYFIELD_TOP (0x7404) — [seen] Top-left cell of the central 28-column tilemap playfield interior (TILEMAP_BASE + 4). clearPlayfieldAndSprites blanks 32 rows x 28 cols startin… [code] */
 export const PLAYFIELD_TOP = 0x7404;
 /** BONUS_READOUT_TILE_BASE (0x7465) — [seen] First video-RAM cell of the on-screen bonus readout's tile frame. loc_062a stamps 18 bytes from ROM table 0x384a here (6 columns x 3 cells, str… [code] */
 export const BONUS_READOUT_TILE_BASE = 0x7465;
 /** LEVEL_UNITS_CELL (0x74a3) — [seen] Tilemap cell holding the units digit of the on-screen level number. drawLivesAndLevel decimal-splits LEVEL and writes the units tile here (tens… [code] */
 export const LEVEL_UNITS_CELL = 0x74a3;
-/** CREDIT_DIGITS_CELL (0x74bf) — [code] Tilemap cursor for the 'CREDIT nn' count: high digit lands here, low digit one tilemap row UP (0x74bf-0x20, DE step 0xffe0). drawCreditDisplay … [code] */
+/** CREDIT_DIGITS_CELL (0x74bf) — [seen] Tilemap cursor for the 'CREDIT nn' count: high digit lands here, low digit one tilemap row UP (0x74bf-0x20, DE step 0xffe0). drawCreditDisplay … [code] */
 export const CREDIT_DIGITS_CELL = 0x74bf;
 /** LEVEL_TENS_CELL (0x74c3) — [seen] Tilemap cell holding the tens digit of the on-screen level number (paired with LEVEL_UNITS_CELL 0x74a3). drawLivesAndLevel writes the tens tile… [code] */
 export const LEVEL_TENS_CELL = 0x74c3;
@@ -1158,7 +1158,7 @@ export const BONUS_READOUT_LOW_DIGIT_CELL = 0x74c6;
 export const P2_INDICATOR_COLUMN_BASE = 0x74e0;
 /** TWO_DIGIT_FIELD_HIGH_CELL (0x74e6) — VRAM tilemap cell that stampTwoDigitField writes with the HIGH (tens) digit tile of its two-digit on-screen field; the low-digit partner is one screen… [seen] */
 export const TWO_DIGIT_FIELD_HIGH_CELL = 0x74e6;
-/** SCORE_VRAM_COLUMN_P2 (0x7521) — Destination VRAM column loc_056b selects (via IX) when its zero/nonzero selector is nonzero — player 2's score/counter column; the zero selector picks… [code] */
+/** SCORE_VRAM_COLUMN_P2 (0x7521) — Destination VRAM column loc_056b selects (via IX) when its zero/nonzero selector is nonzero — player 2's score/counter column; the zero selector picks… [seen] */
 export const SCORE_VRAM_COLUMN_P2 = 0x7521;
 /** BONUS_ITEM_VALUE_ONES_CELL (0x7552) — VRAM tilemap cell holding the ones digit of the decrementing bonus-item point value in runBonusItemValueDisplay (VALUE counts down from 0x1E; split in… [seen] */
 export const BONUS_ITEM_VALUE_ONES_CELL = 0x7552;
@@ -1174,7 +1174,7 @@ export const HOW_HIGH_GIRDER_VRAM_BASE = 0x75bc;
 export const BLINK_COLOR_COLUMN_TOP = 0x75c4;
 /** BONUS_ITEM_VALUE_COLUMN_TOP (0x75e8) — Top of the bonus-item value's descending video column in runBonusItemValueDisplay; VIDEO_PTR is seeded here on init and on wrap, and the exit copy rea… [seen] */
 export const BONUS_ITEM_VALUE_COLUMN_TOP = 0x75e8;
-/** BONUS_ITEM_VALUE_COL_CEILING_SENTINEL (0x7608) — Ceiling sentinel of the bonus-item value's video-column walk (column top 0x75e8 + 0x20): when the upward advance (cur+0x20) reaches this address the p… [code] */
+/** BONUS_ITEM_VALUE_COL_CEILING_SENTINEL (0x7608) — Ceiling sentinel of the bonus-item value's video-column walk (column top 0x75e8 + 0x20): when the upward advance (cur+0x20) reaches this address the p… [seen] */
 export const BONUS_ITEM_VALUE_COL_CEILING_SENTINEL = 0x7608;
 /** COLOR_COLUMN_A_TOP (0x7623) — Top cell of decorative colour column A (paired with column B at 0x7583) in the descending colour-cycle fill; painted by runRivetColorCycleBlink (base … [seen] */
 export const COLOR_COLUMN_A_TOP = 0x7623;
@@ -1182,11 +1182,11 @@ export const COLOR_COLUMN_A_TOP = 0x7623;
 export const INTRO_CUTSCENE_TILE_B = 0x7663;
 /** INTRO_CUTSCENE_TILE_A (0x76a3) — First of three fixed VRAM tiles stamped by setupIntroCutsceneStep (value 0x10) in the intro cutscene setup. [seen] */
 export const INTRO_CUTSCENE_TILE_A = 0x76a3;
-/** INTERLUDE_TILE_BLOCK_TOPLEFT (0x76c6) — Top-left VRAM start cell of the 70-tile (5x14) descending tile fill loc_1880 hands to loc_1826 when building the next between-boards interlude arrival… [code] */
+/** INTERLUDE_TILE_BLOCK_TOPLEFT (0x76c6) — Top-left VRAM start cell of the 70-tile (5x14) descending tile fill loc_1880 hands to loc_1826 when building the next between-boards interlude arrival… [seen] */
 export const INTERLUDE_TILE_BLOCK_TOPLEFT = 0x76c6;
-/** GAMEOVER_BANNER_TOPLEFT_2P (0x76d3) — Top-left VRAM cell of the game-over banner 5x14 tile block at its one-column-left (2-player) position: used directly by loc_1344 (the this-player/othe… [code] */
+/** GAMEOVER_BANNER_TOPLEFT_2P (0x76d3) — Top-left VRAM cell of the game-over banner 5x14 tile block at its one-column-left (2-player) position: used directly by loc_1344 (the this-player/othe… [seen] */
 export const GAMEOVER_BANNER_TOPLEFT_2P = 0x76d3;
-/** GAMEOVER_BANNER_TOPLEFT_1P (0x76d4) — Top-left VRAM cell of the game-over banner 5x14 tile block at its default 1-player position; losePlayer1Life fills 70 tiles from here (shifting one co… [code] */
+/** GAMEOVER_BANNER_TOPLEFT_1P (0x76d4) — Top-left VRAM cell of the game-over banner 5x14 tile block at its default 1-player position; losePlayer1Life fills 70 tiles from here (shifting one co… [seen] */
 export const GAMEOVER_BANNER_TOPLEFT_1P = 0x76d4;
 /** HOW_HIGH_CLIMB_FIGURE_VRAM_START (0x76dc) — Initial VRAM walk-pointer value seeded into CLIMB_FIGURE_WALK_PTR (0x63a8) for the small climbing figure drawn on each girder of the 'HOW HIGH' screen… [seen] */
 export const HOW_HIGH_CLIMB_FIGURE_VRAM_START = 0x76dc;
@@ -1254,7 +1254,7 @@ export const ANIM_STEP_COUNTER = 0x6390;
 export const FIRE_RECORDS_100M = 0x64a0;
 /** FIRE_RECORDS_100M_X (0x64a3) — OBJ_X (+3) of the first 100m extra fire record (FIRE_RECORDS_100M+3); copyBytePairsStrided seeds the X byte into records 5-6. [seen] */
 export const FIRE_RECORDS_100M_X = 0x64a3;
-/** FIRE_RECORDS_100M_CODE (0x64a7) — OBJ_SPRITE_CODE (+7) of the first 100m extra fire record (FIRE_RECORDS_100M+7); replicateGroupStrided seeds the appearance group into records 5-6. [code] */
+/** FIRE_RECORDS_100M_CODE (0x64a7) — OBJ_SPRITE_CODE (+7) of the first 100m extra fire record (FIRE_RECORDS_100M+7); replicateGroupStrided seeds the appearance group into records 5-6. [seen] */
 export const FIRE_RECORDS_100M_CODE = 0x64a7;
 /** OBJ_ARRAY_67_PAGE68 (0x6800) — Base of barrel records 8-9 (OBJ_ARRAY_67+0x100) on page 0x68; seed25mBoardObjects lays the final 2 of the 10 barrel records here after the first 8 at [seen] */
 export const OBJ_ARRAY_67_PAGE68 = 0x6800;
@@ -1276,7 +1276,7 @@ export const M50_OBJ1_SPRITE_PAIR_BASE = 0x69e4;
 export const HAMMER_OBJ1_SPRITE_RECORD = 0x6a18;
 /** loc_6209 (0x6209) — Mario's object-record (base 0x6200) collision half-extent on X (+0x09=OBJ_HIT_EXTENT_X); initBoardState seeds 4, findCollidingObject reads it paired w [guess] (placeholder; names-debt) */
 export const loc_6209 = 0x6209;
-/** loc_620a (0x620a) — Mario's object-record (base 0x6200) collision half-extent on Y (+0x0a=OBJ_HIT_EXTENT_Y); initBoardState seeds 8, findCollidingObject reads it paired w [guess] (placeholder; names-debt) */
+/** loc_620a (0x620a) — Mario's object-record (base 0x6200) collision half-extent on Y (+0x0a=OBJ_HIT_EXTENT_Y); initBoardState seeds 8, findCollidingObject reads it paired w [seen] (placeholder; names-debt) */
 export const loc_620a = 0x620a;
 /** loc_621a (0x621a) — Shared 1-byte transient flag with unrelated writers: climb machine sets near a ladder-scan end (loc_1afe) and reads to hold the climb timer (loc_1d76) [seen] (placeholder; names-debt) */
 export const loc_621a = 0x621a;
@@ -1284,7 +1284,7 @@ export const loc_621a = 0x621a;
 export const loc_638f = 0x638f;
 /** loc_6393 (0x6393) — Per-pass gate byte REUSED across two subsystems with divergent meaning: barrel-release 'a release is in-flight / skip this pass' bit0 (set by releaseB [seen] (placeholder; names-debt) */
 export const loc_6393 = 0x6393;
-/** loc_6944 (0x6944) — Dest of an 8-byte (2 sprite-record) fixed-table block copy into SPRITE_BUFFER during 50m board object setup; specific per-record role unclear. [guess] (placeholder; names-debt) */
+/** loc_6944 (0x6944) — Dest of an 8-byte (2 sprite-record) fixed-table block copy into SPRITE_BUFFER during 50m board object setup; specific per-record role unclear. [seen] (placeholder; names-debt) */
 export const loc_6944 = 0x6944;
 /** loc_6970 (0x6970) — SPRITE_BUFFER 4-record (0x10-byte) sprite block loaded from fixed ROM template 0x1121 during 75m setup (seed75mBoardObjects), just past OBJ_66_SPRITES [seen] (placeholder; names-debt) */
 export const loc_6970 = 0x6970;
@@ -1300,7 +1300,7 @@ export const SND_TRIGGER_7 = 0x6087;
 export const BOARD_OBJ_RECORD_1 = 0x6288;
 /** RIVET_PRESENT_7 (0x6299) — 8th (index 7) per-rivet present flag (1=still there), top element of RIVET_PRESENT[8] at 0x6292-0x6299 on the 100m rivet board. ROM 0x1A7B indexes 0x6292+b, tes [code] */
 export const RIVET_PRESENT_7 = 0x6299;
-/** CLIMB_FIGURE_WALK_PTR_HI (0x63a9) — High byte of the 16-bit CLIMB_FIGURE_WALK_PTR word (0x63a8): VRAM write pointer for the climbing figures on the 'HOW HIGH' bonus screen (buildHowHighScreen), se [code] */
+/** CLIMB_FIGURE_WALK_PTR_HI (0x63a9) — High byte of the 16-bit CLIMB_FIGURE_WALK_PTR word (0x63a8): VRAM write pointer for the climbing figures on the 'HOW HIGH' bonus screen (buildHowHighScreen), se [seen] */
 export const CLIMB_FIGURE_WALK_PTR_HI = 0x63a9;
 /** OBJ_ARRAY_64_REC0_X (0x6403) — X (horizontal position) field of record 0 in the 0x6400 stride-0x20 hazard-object array (OBJ_ARRAY_64 + OBJ_X offset 0x03). Live horizontal sweep updated by the [seen] */
 export const OBJ_ARRAY_64_REC0_X = 0x6403;
@@ -1312,7 +1312,7 @@ export const FIRE0_SPRITE_CODE = 0x6407;
 export const FIRE0_SPRITE_ATTR = 0x6408;
 /** FIRE0_STATE (0x640d) — OBJ_STATE field (+0x0d) of fire slot 0 in OBJ_ARRAY_64: per-object movement/collision state-machine selector; entry_333d writes {0,4,8}, full live enum {0,1,2,4 [seen] */
 export const FIRE0_STATE = 0x640d;
-/** FIRE1_ACTIVE (0x6420) — OBJ_ACTIVE field (+0) of fire slot 1 in OBJ_ARRAY_64 (record-1 base = 0x6400+0x20): bit0 = active/live slot; scanned by spawn/collision sweeps [code] */
+/** FIRE1_ACTIVE (0x6420) — OBJ_ACTIVE field (+0) of fire slot 1 in OBJ_ARRAY_64 (record-1 base = 0x6400+0x20): bit0 = active/live slot; scanned by spawn/collision sweeps [seen] */
 export const FIRE1_ACTIVE = 0x6420;
 /** HAMMER0_IN_PLAY (0x6681) — In-play flag (OBJ_PAIR_6680 + HAMMER_IN_PLAY, +0x01) of the FIRST hammer object record; marks that Mario has grabbed hammer 0. Set by latchHammerTouch (ROM 0x29 [seen] */
 export const HAMMER0_IN_PLAY = 0x6681;
@@ -1350,7 +1350,7 @@ export const FIXED_DECOR_TILE_HI = 0x74af;
 export const LEVEL_HUD_FURNITURE_A = 0x74e3;
 /** LEVEL_HUD_FURNITURE_B (0x7503) — Fixed furniture tile (0x1c) in the lives/level HUD column, drawn by drawLivesAndLevel; pairs with 0x74e3 in the FURNITURE table. Static furniture, not a variabl [seen] */
 export const LEVEL_HUD_FURNITURE_B = 0x7503;
-/** PLAYFIELD_SIDE_COL_BASE (0x7522) — Top cell of the 14-cell left tilemap side-column strip blanked during playfield clear (steps +0x20 for 0x0e cells); pairs with 0x7523. Cleared to BLANK_TILE 0x1 [code] */
+/** PLAYFIELD_SIDE_COL_BASE (0x7522) — Top cell of the 14-cell left tilemap side-column strip blanked during playfield clear (steps +0x20 for 0x0e cells); pairs with 0x7523. Cleared to BLANK_TILE 0x1 [seen] */
 export const PLAYFIELD_SIDE_COL_BASE = 0x7522;
 /** COLOR_COLUMN_B_TOP (0x7583) — Top cell of decorative colour-cycle column B (VRAM tilemap 0x7400+; row 12, stride 0x20), painted as the continuation of column A (COLOR_COLUMN_A_TOP 0x7623) in [seen] */
 export const COLOR_COLUMN_B_TOP = 0x7583;
@@ -1358,7 +1358,7 @@ export const COLOR_COLUMN_B_TOP = 0x7583;
 export const COINAGE_1P_DIGIT_CELL = 0x756c;
 /** RIVET_BAND_ROW_BASE_B (0x7547) — Fixed VRAM tilemap row base (row 10, col 7) stamped with the two-tile band motif during 100m-rivet (board 4) setup; second of the two row bases fed to stampTwoT [seen] */
 export const RIVET_BAND_ROW_BASE_B = 0x7547;
-/** PLAYFIELD_SIDE_BLANK_COL_B (0x7523) — Base cell (row 9, col 3, adjacent to SCORE_VRAM_COLUMN_P2 0x7521) of the second of two 14-cell vertical side-column runs that clearPlayfieldAndSprites blanks (t [code] */
+/** PLAYFIELD_SIDE_BLANK_COL_B (0x7523) — Base cell (row 9, col 3, adjacent to SCORE_VRAM_COLUMN_P2 0x7521) of the second of two 14-cell vertical side-column runs that clearPlayfieldAndSprites blanks (t [seen] */
 export const PLAYFIELD_SIDE_BLANK_COL_B = 0x7523;
 /** COINAGE_DIGIT_TENS_CARRY_CELL (0x758e) — Fixed VRAM tile that receives the tens digit '1' when the attract/title coinage digit-pair's right value carries to 10 (writeDigitPairWithCarry's value==0x0a ar [code] */
 export const COINAGE_DIGIT_TENS_CARRY_CELL = 0x758e;
@@ -1388,7 +1388,7 @@ export const M50_TILE_MOTIF_LEFT_VRAM = 0x776c;
 export const TILEMAP_VRAM_LAST = 0x77ff;
 /** SOUND_TRIGGER_LATCH_7 (0x7d07) — Bit-7 (8th) address of the ls259.6h sound-trigger latch (0x7d00-0x7d07, one bit per address); driven from shadow countdown counter 0x6087 by the sound-driver ti [seen] */
 export const SOUND_TRIGGER_LATCH_7 = 0x7d07;
-/** HOW_HIGH_TILE_BLOCK_4_ANCHOR (0x76cb) — Role is correct and code-readable: 0x76cb is the fillTileBlock destination anchor of the 4th of four 5x14 (70-tile) blank-tile blocks in loc [code] */
+/** HOW_HIGH_TILE_BLOCK_4_ANCHOR (0x76cb) — Role is correct and code-readable: 0x76cb is the fillTileBlock destination anchor of the 4th of four 5x14 (70-tile) blank-tile blocks in loc [seen] */
 export const HOW_HIGH_TILE_BLOCK_4_ANCHOR = 0x76cb;
 /** loc_6439 (0x6439) — loc_31dd (frozen oracle, ROM 0x31DD) confidently writes constant 0x02 to 0x6439 (+0x6479) gated on 0x6380>=3 signed AND sub_31f6()==1 — code (placeholder; names-debt) */
 export const loc_6439 = 0x6439;
@@ -1672,9 +1672,9 @@ export const ROUTINES = {
   0x19da: { name: "scanObjectsAtMarioX", role: "broad-phase X test of the per-frame object-collision scan", cert: "seen" },
   0x19ed: { name: "confirmObjectHit", role: "confirm an X-matched object slot is also Y-aligned and still eligible, and if so register the hit for the object-interaction state machine", cert: "seen" },
   0x1a07: { name: "dispatchBonusExpiredStep", role: "run the bonus-expired state machine's current step", cert: "seen" },
-  0x1a15: { name: "startBonusExpiredDelay", role: "arm the DELAY phase of the bonus-expired death sequence", cert: "code" },
+  0x1a15: { name: "startBonusExpiredDelay", role: "arm the DELAY phase of the bonus-expired death sequence", cert: "seen" },
   0x1a1e: { name: "bonusExpiredIdle", role: "the idle (do-nothing) arm of the bonus-expired state machine", cert: "seen" },
-  0x1a1f: { name: "advanceBonusExpiredStepWhenDelayExpires", role: "the DELAY step of the bonus-expired sequence: hold, then advance once a countdown elapses", cert: "code" },
+  0x1a1f: { name: "advanceBonusExpiredStepWhenDelayExpires", role: "the DELAY step of the bonus-expired sequence: hold, then advance once a countdown elapses", cert: "seen" },
   0x1a2a: { name: "advanceSubstateWhenGrounded", role: "hold this sub-state until Mario has landed, then advance to the next sub-state and abort the rest of the frame", cert: "code" },
   0x1a33: { name: "collectEdgeRivet", role: "the 100m edge-rivet pickup handler: arm at a rivet edge, then on a later frame remove the rivet the player just stepped off", cert: "seen" },
   0x1a4b: { name: "armEdgeRivetPickup", role: "raise the edge-item pickup latch (EDGE_RIVET_ARMED := 1)", cert: "seen" },
@@ -1725,10 +1725,10 @@ export const ROUTINES = {
   0x1e49: { name: "effectStateIdle", role: "the idle (do-nothing) arm of sub_1dbd's EFFECT_STATE (0x6340) router", cert: "seen" },
   0x1e4a: { name: "tickDispatcherCountdown", role: "tick sub_1dbd's state-2 hold timer; reset the dispatcher on expiry", cert: "seen" },
   0x1e57: { name: "checkBoardWonByType", role: "Mario's per-frame board-won position check: decide whether the current board has been won, dispatched by board type, and hand off to the arm that completes it", cert: "seen" },
-  0x1e6d: { name: "loc_1e6d", role: "stamp Mario's sprite facing on the board-won path, then commit the board-advance and unwind out of the movement cascade", cert: "code" },
+  0x1e6d: { name: "loc_1e6d", role: "stamp Mario's sprite facing on the board-won path, then commit the board-advance and unwind out of the movement cascade", cert: "seen" },
   0x1e7a: { name: "completeBoardWhenMarioReachesRescueRow", role: "the rescue-row test inside Mario's per-frame position check (sub_1e57): on the ODD boards -- 25m AND 75m, selected by ROM 0x1E5F's `rra` on BOARD bit 0 -- a Mario Y above the rescue row completes the board", cert: "seen" },
   0x1e80: { name: "completeRivetBoardWhenCleared", role: "on a rivet (100m) board, complete the board the frame its last rivet is gone", cert: "seen" },
-  0x1e85: { name: "enterBoardAdvanceAndUnwind", role: "commit 'this board is complete': set the board-advance sub-state, then unwind out of the movement cascade", cert: "code" },
+  0x1e85: { name: "enterBoardAdvanceAndUnwind", role: "commit 'this board is complete': set the board-advance sub-state, then unwind out of the movement cascade", cert: "seen" },
   0x1e8c: { name: "runHitEffectInsteadOfPlay", role: "the effect-latch frame gate: with 0x6350 clear, let the caller run its ordinary frame; with it set, run ONE effect beat and abandon the rest of the gameplay update. The latch suspends play for the duration of an effect", cert: "seen" },
   0x1e94: { name: "loc_1e94", role: "unconditional caller-skip: make the call return past its caller", cert: "seen" },
   0x1e96: { name: "dispatchEffectSequenceStep", role: "effect-sequence router: hand the frame to one of three effect step handlers keyed on EFFECT_SEQ_STATE; the slot index doubles at 8 bits, so states 128/129/130 alias steps 0/1/2", cert: "seen" },
@@ -1778,7 +1778,7 @@ export const ROUTINES = {
   0x2602: { name: "loc_2602", role: "per-frame driver for the first of sub_25f2's three timed sprite objects", cert: "seen" },
   0x262f: { name: "loc_262f", role: "per-frame driver for the SECOND of sub_25f2's three timed sprite objects", cert: "seen" },
   0x264c: { name: "loc_264c", role: "publish object-2's ±1 step in both polarities and, every 32nd frame, advance its mirrored sprite pair", cert: "seen" },
-  0x266f: { name: "loc_266f", role: "ensure object-2's step-direction latch is negative-going, then run the shared publish/animate tail", cert: "code" },
+  0x266f: { name: "loc_266f", role: "ensure object-2's step-direction latch is negative-going, then run the shared publish/animate tail", cert: "seen" },
   0x2679: { name: "loc_2679", role: "on a timer, reverse object-3's step direction; then run the shared tail", cert: "seen" },
   0x268d: { name: "loc_268d", role: "publish object-3's step and, every 32nd frame, advance its sprite pair", cert: "seen" },
   0x26a6: { name: "loc_26a6", role: "step a mirrored pair of animation counters one frame, opposite ways", cert: "seen" },
@@ -1791,7 +1791,7 @@ export const ROUTINES = {
   0x2766: { name: "loc_2766", role: "start Mario falling and clear the edge-reposition flag", cert: "seen" },
   0x276f: { name: "carryMarioUpWithLift", role: "carry Mario UP with the lift (MARIO_Y - 1; larger Y is lower on screen), or kill him if MARIO_Y is already below the 0x71 limit", cert: "seen" },
   0x277f: { name: "killMarioAtEndOfLiftTravel", role: "kill Mario: clear MARIO_ACTIVE and the lift flag 0x6398. All three callers trigger on MARIO_Y -- the two lift arms at their limits, and service75mBoard at MARIO_Y >= 0xF0 with no X-band test, so the caller need not be on a lift", cert: "seen" },
-  0x2787: { name: "carryMarioDownWithLift", role: "carry Mario DOWN with the lift (MARIO_Y + 1), or kill him once MARIO_Y reaches the 0xE8 limit", cert: "code" },
+  0x2787: { name: "carryMarioDownWithLift", role: "carry Mario DOWN with the lift (MARIO_Y + 1), or kill him once MARIO_Y reaches the 0xE8 limit", cert: "seen" },
   0x2797: { name: "advanceBoardObjectTravel", role: "advance the six board objects in the 0x6600 array: each active object drifts one pixel vertically toward its limit, then lands or deactivates on arrival", cert: "seen" },
   0x27da: { name: "spawnBoardObject", role: "on the spawn cadence, claim a free object slot and seed a new board object; always tick the cadence timer down", cert: "seen" },
   0x2806: { name: "decrementByteAt", role: "decrement the byte at the given address by one", cert: "seen" },
@@ -1813,8 +1813,8 @@ export const ROUTINES = {
   0x2ab4: { name: "decideSlopeGirderFooting", role: "decide whether Mario keeps his footing on an angled girder or the ground has run out and he starts to fall", cert: "seen" },
   0x2acd: { name: "triggerMarioFall", role: "request that Mario begin falling because the ground under him went away", cert: "seen" },
   0x2ad3: { name: "carryMarioOnConveyorRow", role: "carry Mario along whichever 50m conveyor (moving-platform) row he is standing on", cert: "seen" },
-  0x2af6: { name: "selectConveyorStepAndMoveMario", role: "pick the drift step for this platform row by Mario's X, then move him", cert: "code" },
-  0x2b02: { name: "moveMarioX", role: "advance Mario's X by the current velocity, then hold it inside the horizontal limits", cert: "code" },
+  0x2af6: { name: "selectConveyorStepAndMoveMario", role: "pick the drift step for this platform row by Mario's X, then move him", cert: "seen" },
+  0x2b02: { name: "moveMarioX", role: "advance Mario's X by the current velocity, then hold it inside the horizontal limits", cert: "seen" },
   0x2b29: { name: "probeMarioDescentLanding", role: "board split at the head of the descent probe: off 25m delegate to the two-point form; on 25m probe a single point and, within three pixels of a surface, snap Mario onto it", cert: "seen" },
   0x2b51: { name: "loc_2b51", role: "a reject exit of the player-vs-tilemap probe cascade; forces the two-level caller-skip so control unwinds past entry_2b1c", cert: "seen" },
   0x2b53: { name: "loc_2b53", role: "the non-25m arm of the player-vs-tilemap descent probe", cert: "seen" },
@@ -1873,7 +1873,7 @@ export const ROUTINES = {
   0x3110: { name: "loc_3110", role: "frame-phase caller-skip guard: proceed on the odd frames (one of every two)", cert: "seen" },
   0x311b: { name: "loc_311b", role: "frame-phase caller-skip guard: proceed on 5 of every 8 frames", cert: "seen" },
   0x3126: { name: "loc_3126", role: "caller-skip frame-throttle: proceed on three of every four frames", cert: "seen" },
-  0x3131: { name: "loc_3131", role: "let the caller proceed on seven of every eight frames; skip it on the eighth", cert: "code" },
+  0x3131: { name: "loc_3131", role: "let the caller proceed on seven of every eight frames; skip it on the eighth", cert: "seen" },
   0x313c: { name: "spawnRequestedFireAndRecolorLiveFires", role: "sweep the five OBJ_ARRAY_64 fire records: tally the live ones into OBJ_LIVE_COUNT, set each live record's OBJ_SPRITE_ATTR (cleared while Mario's hammer is active), service one pending spawn request into a free slot, then return a caller-skip boolean (splice on zero count). It is the only routine that SPAWNS one of these objects during play -- records are also activated outright at board build (seed75mBoardObjects, ROM 0x1087, stamps records 0 and 1 active)", cert: "seen" },
   0x31b1: { name: "advanceLiveFires", role: "walks the live fire records once per frame and advances each", cert: "seen", why: "named for the level it sits at rather than duplicating its caller's name: the chain is the per-frame fire service above it, this walker, and the per-object advance below. Board confinement is the check that could have failed -- on board 1 of the full-progression tape the object scan runs 923 times while this walker runs 0, and it is the ZERO that carries the claim, since the other total moves with the run" },
   0x31dd: { name: "armAlternateFireModeAtHighDifficulty", role: "arm mode 2 in field +0x19 of fire records 1 and 3 (0x6439 / 0x6479) when DIFFICULTY is 3 or more AND a rare entropy draw comes up; the mode itself is named by neither reader and is not asserted here", cert: "seen" },
