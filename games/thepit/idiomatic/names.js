@@ -12,11 +12,12 @@
  * worse than a neutral hex address): every name carries an evidence-source tag —
  * the SAME vocabulary used for routines and in mechanisms.md — saying HOW we know
  * what the cell is:
- *   [seen]  — the cell's role was observed under MAME (a grounding capture / control-
+ *   seen   — the cell's role was observed under MAME (a grounding capture / control-
  *             poke watched THIS address and confirmed what it does).
- *   [code]  — the role is understood from the routines that touch the address:
+ *   code   — the role is understood from the routines that touch the address:
  *             consistent across them, but the cell itself was not observed. (Common.)
- *   [guess] — a single plausible reading, not yet confirmed; treat as a hint, verify.
+ *   guess  — a single plausible reading, not yet confirmed; treat as a hint, verify.
+ *   (each written in brackets as the per-cell evidence tag below.)
  *   keep-hex — no confident name yet, so no const is created (the address stays a bare
  *             literal; the absence of an entry is itself the signal).
  * How broadly a name is corroborated ("used across N routines") lives in each cell's
@@ -803,7 +804,7 @@ export const SOUND_TAIL = 0x801f;
 /** MEN_LEFT (0x802b) — active player's working men/lives count; drawn by drawMenLeftPanel, docked at a
  *  round boundary, seeded from STARTING_MEN. Field 1 of the player record; P1/P2 backups PLAYER1_MEN_BACKUP/PLAYER2_MEN_BACKUP (0x802c/0x802d). [seen] */
 export const MEN_LEFT = 0x802b;
-/** INITIALS_REMAINING (0x804b) — high-score initials-entry down-counter (seeded 3, →0 ends entry). [code] */
+/** INITIALS_REMAINING (0x804b) — high-score initials-entry down-counter (seeded 3, →0 ends entry). [seen] */
 export const INITIALS_REMAINING = 0x804b;
 /** COINS_PER_CREDIT_A (0x804c) — DSW coin cost for coin line 2 (0 = free play). NOT bonus/lives. [seen] */
 export const COINS_PER_CREDIT_A = 0x804c;
@@ -1014,7 +1015,7 @@ export const BONUS_SCREEN_ROW2_TIER15_STRIP = 0x4a55;
 export const HISCORE_RANK0_LABEL_STRIP = 0x4a68;
 /** HISCORE_RANK2_LABEL_STRIP (0x4a7b) — ROM 18-tile label-column strip naming the selector==2 rank (record HIGH_SCORE_TABLE+5) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x4… [seen] */
 export const HISCORE_RANK2_LABEL_STRIP = 0x4a7b;
-/** HISCORE_RANK3_LABEL_STRIP (0x4a8e) — ROM 18-tile label-column strip naming the selector==3 rank (record HIGH_SCORE_TABLE+10) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x… [code] */
+/** HISCORE_RANK3_LABEL_STRIP (0x4a8e) — ROM 18-tile label-column strip naming the selector==3 rank (record HIGH_SCORE_TABLE+10) on the high-score initials-entry screen. loc_4df8 loads it into IX at 0x… [seen] */
 export const HISCORE_RANK3_LABEL_STRIP = 0x4a8e;
 /** HIGH_SCORE_INITIALS_PROMPT_GLYPHS (0x4aa9) — Fixed 26-glyph ROM tile-code prompt strip (span 0x4a90..0x4aa9), walked BACKWARD by copyTileColumn. runHighScoreInitialsEntry's fixed prompt line, plotted down … [seen] */
 export const HIGH_SCORE_INITIALS_PROMPT_GLYPHS = 0x4aa9;
@@ -1036,7 +1037,7 @@ export const HORIZ_STEP_EXPECTED_TILE_TABLE = 0x1b78;
 export const HORIZ_STEP_AHEAD_TILE_TABLE = 0x1ce0;
 /** DIG_REACT_EXPECTED_TILE_TABLE (0x1e48) — 360-byte ROM expected-terrain lookup for the CURRENT cell in the ACTOR dig-reaction arm (triggerDigReaction). Indexed [base + (tileCode-113)*8 + subCell] over d… [seen] */
 export const DIG_REACT_EXPECTED_TILE_TABLE = 0x1e48;
-/** DIG_REACT_NEIGHBOUR_TILE_TABLE (0x1fb0) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell (actorCellPtr+1) in the ACTOR dig-reaction arm (triggerDigReaction), sampled off a cell boundary … [code] */
+/** DIG_REACT_NEIGHBOUR_TILE_TABLE (0x1fb0) — 360-byte ROM expected-terrain lookup for the NEIGHBOURING cell (actorCellPtr+1) in the ACTOR dig-reaction arm (triggerDigReaction), sampled off a cell boundary … [seen] */
 export const DIG_REACT_NEIGHBOUR_TILE_TABLE = 0x1fb0;
 /** VERT_STEP_EXPECTED_TILE_TABLE (0x2118) — 360-byte ROM expected-terrain lookup for the CURRENT cell during the tracked object's VERTICAL climb/dig-carve step (stepObjectAndResolveTile). Indexed [base + … [seen] */
 export const VERT_STEP_EXPECTED_TILE_TABLE = 0x2118;
@@ -1126,7 +1127,7 @@ export const OTHER_SCORE_COLUMN_BASE = 0x90c1;
 export const JEWEL_GLITTER_TILE_5 = 0x90d9;
 /** JEWEL_GLITTER_TILE_6 (0x915d) — Video/tilemap glyph cell for the glitter jewel selected on glitterJewels countdown value 6; read for the animating glyph 0x3b (distinct from the 0x3a … [seen] */
 export const JEWEL_GLITTER_TILE_6 = 0x915d;
-/** HIGH_SCORE_INITIALS_CELL_RANK3 (0x915f) — Video-RAM cell where the entered initial blinks during high-score initials entry for the rank picked by selector/VARIANT==3 (record HIGH_SCORE_TABLE+1… [code] */
+/** HIGH_SCORE_INITIALS_CELL_RANK3 (0x915f) — Video-RAM cell where the entered initial blinks during high-score initials entry for the rank picked by selector/VARIANT==3 (record HIGH_SCORE_TABLE+1… [seen] */
 export const HIGH_SCORE_INITIALS_CELL_RANK3 = 0x915f;
 /** SETUP_COINAGE_A_PLURAL_CELL (0x918e) — Setup-screen video-RAM cell above the first coinage field (COINS_PER_CREDIT_A, column 14): showSetupScreen patches it to glyph 0x24 (=BLANK_TILE 36) o… [seen] */
 export const SETUP_COINAGE_A_PLURAL_CELL = 0x918e;
@@ -1185,7 +1186,7 @@ export const COIN_START_PORT = 0xa800;
 export const SOUND_ENABLE_LATCH = 0xb003;
 /** DSW_PORT (0xb000) — DIP-switch input port (READ side of 0xB000): the LS157-muxed DSW byte applyDipSwitches decodes. [seen] */
 export const DSW_PORT = 0xb000;
-/** NMI_MASK_LATCH (0xb000) — LS259 control-latch bit0 (WRITE side of 0xB000): 1 arms / 0 masks the vblank NMI. [code] */
+/** NMI_MASK_LATCH (0xb000) — LS259 control-latch bit0 (WRITE side of 0xB000): 1 arms / 0 masks the vblank NMI. [seen] */
 export const NMI_MASK_LATCH = 0xb000;
 /** FLIP_SCREEN_X_LATCH (0xb006) — LS259 mainlatch line 6 (WRITE side of 0xB006): horizontal screen flip
  *  (flipX) + sprite mux; applyDipSwitches writes the decoded cocktail flip bit (low bit latched). [seen] */
@@ -1195,12 +1196,12 @@ export const FLIP_SCREEN_X_LATCH = 0xb006;
 export const FLIP_SCREEN_Y_LATCH = 0xb007;
 /** WATCHDOG_KICK (0xb800) — Watchdog reset (READ side of 0xB800): reading it kicks the watchdog. [seen] */
 export const WATCHDOG_KICK = 0xb800;
-/** SOUND_CMD_LATCH (0xb800) — Sound-command latch (WRITE side of 0xB800): the byte handed to the audio Z80. [code] */
+/** SOUND_CMD_LATCH (0xb800) — Sound-command latch (WRITE side of 0xB800): the byte handed to the audio Z80. [seen] */
 export const SOUND_CMD_LATCH = 0xb800;
 /** LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM (0x8940) — Colour-RAM cell at the fixed left playfield edge (col 0, row 10): bottom (starting) cell of the UPPER 9-cell colour-2 tint run drawLeftEdgeColumn paints upward at stride 32 (rows 10..2). [seen] */
 export const LEFT_EDGE_COLOUR2_UPPER_RUN_BOTTOM = 0x8940;
-/** loc_895f (0x895f) — Colour-RAM cell at column 31 / row 10 written by TWO different features: drawRightEdgeColumn's top 3-cell accent band (bottom cell, colour 7, rows 10/… [guess] (placeholder; names-debt) */
-export const loc_895f = 0x895f;
+/** RIGHT_EDGE_ACCENT_HIGH_BOTTOM (0x895f) — Colour-RAM cell at column 31 / row 10 written by TWO different features: drawRightEdgeColumn's top 3-cell accent band (bottom cell, colour 7, rows 10/… [seen] (placeholder; names-debt) */
+export const RIGHT_EDGE_ACCENT_HIGH_BOTTOM = 0x895f;
 /** MOUNTAIN_CAP_TILE_CELL (0x90c4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion stamps it to 0xac as the mountain-cap cell one tilemap row above the 0x90e4 head; spaw… [seen] (placeholder; names-debt) */
 export const MOUNTAIN_CAP_TILE_CELL = 0x90c4;
 /** MOUNTAIN_ERODE_HEAD_TILE_CELL (0x90e4) — Underdetermined dual-writer video-RAM cell: seedMountainErosion checks it for the 0xfe marker then stamps 0xae as the mountain-erosion head cell; spaw… [seen] (placeholder; names-debt) */
@@ -1387,7 +1388,7 @@ export const ROUTINES = {
   0x4c77: { name: "requestSound10", role: "enqueue sound-command 10", cert: "seen" },
   0x4c7b: { name: "requestSound11", role: "enqueue the Pit floor-reveal sound (command 11)", cert: "seen" },
   0x4c7f: { name: "requestSound12", role: "enqueue sound-command 12", cert: "seen" },
-  0x4c83: { name: "requestSound13", role: "enqueue the +1 pickup sound (command 13)", cert: "code" },
+  0x4c83: { name: "requestSound13", role: "enqueue the +1 pickup sound (command 13)", cert: "seen" },
   0x4c8b: { name: "requestSound15", role: "enqueue sound-command 15", cert: "seen" },
   0x4c8f: { name: "requestSound16", role: "enqueue the crystal / jewel-collect flourish (command 16)", cert: "seen" },
   0x4c93: { name: "requestSound17", role: "enqueue the treasure-capture sound (command 17)", cert: "seen" },

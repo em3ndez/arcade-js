@@ -37,7 +37,7 @@ import {
   TILE_COL,
   TILE_ROW,
   VARIANT,
-  loc_895f,
+  RIGHT_EDGE_ACCENT_HIGH_BOTTOM,
 } from "./names.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { blankScreen } from "./blankScreen.js";
@@ -75,7 +75,7 @@ function rankLabelStrip(selector) {
  * blink in, and the colour painted into that cell.
  */
 function rankDisplay(selector) {
-  if (selector === 3) return { record: HIGH_SCORE_TABLE + 10, videoCell: HIGH_SCORE_INITIALS_CELL_RANK3, colourCell: loc_895f, colour: 7 };
+  if (selector === 3) return { record: HIGH_SCORE_TABLE + 10, videoCell: HIGH_SCORE_INITIALS_CELL_RANK3, colourCell: RIGHT_EDGE_ACCENT_HIGH_BOTTOM, colour: 7 };
   if (selector === 2) return { record: HIGH_SCORE_TABLE + 5, videoCell: HISCORE_RANK2_INITIALS_TILE, colourCell: RIGHT_EDGE_ACCENT_MID_BOTTOM, colour: 4 };
   return { record: HIGH_SCORE_TABLE + 0, videoCell: HISCORE_INITIALS_RANK0_CELL, colourCell: RIGHT_EDGE_ACCENT_LOW_BOTTOM, colour: 6 };
 }

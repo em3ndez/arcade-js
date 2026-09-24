@@ -538,6 +538,12 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
   copied down one tilemap column: `LEFT_EDGE_COLUMN_TILE_STRIP` (`0x4aab` → `drawLeftEdgeColumn`, video
   col 0 / dest `0x93e0`) and `BOOT_TEXT_COLUMN30_TILE_STRIP` (`0x4acb` = `0x4aab+0x20`, the next strip →
   `drawBestScoresTodayLabel`, col 30 / dest `0x93fe`). `[code]`
+- **The right playfield edge (video col 31)** is drawn by `drawRightEdgeColumn`: a 28-byte dynamic tile
+  strip from work RAM (`0x8282`) plus three colour-accent bands via `paintColourBand` —
+  `RIGHT_EDGE_ACCENT_HIGH_BOTTOM` (`0x895f`, row 10, colour 7), `RIGHT_EDGE_ACCENT_MID_BOTTOM`
+  (`0x8a7f`, row 19, colour 4) and `RIGHT_EDGE_ACCENT_LOW_BOTTOM` (`0x8b9f`, row 28, colour 6), each the
+  bottom cell of its band and `0x120` (9 rows) apart. `0x895f` also takes colour 7 from the rank-3
+  high-score initials-entry paint (§2.12). `[seen]`
 - **Fixed label text is drawn from back-to-front ROM glyph-run tables**, walked backward by
   `copyTileColumn` / `copyCappedTileColumn` (source pointer = the run's tail; the capped variant
   forces the top cell to a cap tile). `PLAYERS_LABEL_GLYPHS` (`0x49b1`) is the shared 7-glyph

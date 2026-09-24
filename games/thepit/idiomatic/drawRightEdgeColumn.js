@@ -18,7 +18,7 @@ import {
   RIGHT_EDGE_ACCENT_MID_BOTTOM,
   RIGHT_EDGE_COLUMN_BOTTOM,
   RIGHT_EDGE_TILE_STRIP,
-  loc_895f,
+  RIGHT_EDGE_ACCENT_HIGH_BOTTOM,
 } from "./names.js";
 
 export function drawRightEdgeColumn(m) {
@@ -42,7 +42,7 @@ export function drawRightEdgeColumn(m) {
   // Three 3-cell accent bands (rows 26..28, 17..19, 8..10), each painted upward from its bottom cell.
   paintColourBand(mem8, RIGHT_EDGE_ACCENT_LOW_BOTTOM, 6);
   paintColourBand(mem8, RIGHT_EDGE_ACCENT_MID_BOTTOM, 4);
-  paintColourBand(mem8, loc_895f, 7);
+  paintColourBand(mem8, RIGHT_EDGE_ACCENT_HIGH_BOTTOM, 7);
 }
 
 /** Write `colour` into three colour cells starting at `bottom` and stepping upward one row at a time. */
