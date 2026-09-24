@@ -1,0 +1,6 @@
+# dkong grounding-debt: genuinely-irreducible ungrounded items (reviewer-verified, R39). "0xADDR  reason".
+0x6292  [bulk-set/const-clear] RIVET_PRESENT: SET only by the board-build ROM template block-copy (bulk, excluded); CLEARED with const 0 at ROM ~0x1A7B. The write-tap records the value written (0), so no single-PC transition can ever be observed. Role structural.
+0x6299  [bulk-set/const-clear] RIVET_PRESENT_7: clear of const 0 observed at ROM 0x1A81/0x1A84; SET only via the bulk template copy. No write-change witnessable.
+0x6c00  [register-init] STACK_TOP: LD SP,0x6C00 is a Z80 register load, never a RAM write; the write-tap can never observe it.
+0x7808  [boot-one-shot] DMA_MODE: one-shot boot i8257 mode-set (single constant); no change possible.
+0x6100  [boot-bulk-copy] OPTION_TABLE_BASE: boot LDIR verbatim copy from ROM 0x3565 (bulk, excluded); only bulk writer, no role transition.
