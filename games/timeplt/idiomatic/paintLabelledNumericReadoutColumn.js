@@ -39,9 +39,9 @@ export function paintLabelledNumericReadoutColumn(m, hl = m.regs.hl, cursor = m.
   stamp(m, mem8[u16(record + 2)], cursor, pen);
 
   // six-digit field: drop the cursor a pictogram's height and read the digits forward from the source.
-  // the printer takes the source pointer as an argument and the cursor from the machine, and hands both back.
-  m.regs.de = u16(cursor - PICTOGRAM_TO_FIELD);
-  const [fieldPtr, fieldCursor] = paintSixDigitFieldSuppressingLeadingZeros(m, u16(source + 3));
+  // the printer takes the source pointer, the cursor and the pen as arguments and hands the pointer
+  // and cursor back.
+  const [fieldPtr, fieldCursor] = paintSixDigitFieldSuppressingLeadingZeros(m, u16(source + 3), u16(cursor - PICTOGRAM_TO_FIELD), pen);
   cursor = u16(fieldCursor - FIELD_TO_SUFFIX);
   const suffix = u16(fieldPtr + 3);
 
