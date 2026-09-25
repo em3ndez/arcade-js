@@ -19,7 +19,7 @@ const CHECKSUM_LENGTH = 24;
 const CHECKSUM_MATCH = 0xc9;
 
 export function buildCopyrightScreenThenVerifyImage(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   flashCopyrightLine(m);
   stampCopyrightStrip(m);
@@ -33,8 +33,7 @@ export function buildCopyrightScreenThenVerifyImage(m) {
     low = u8(low + 1);
   }
 
-  // seat A and the borrow flag the failure landing reads back, then branch on the match
-  regs.a = fold;
-  regs.sub(CHECKSUM_MATCH);
+  // On a genuine image the fold matches, so the failure landing is never taken; it is a bare throw
+  // that reads nothing, so the register/borrow-flag seat it once read back is dead — dropped.
   return fold !== CHECKSUM_MATCH ? loc_08fa(m) : advanceSequenceSubStep(m);
 }

@@ -28,8 +28,7 @@ export function petWatchdogThroughStartupDelayThenStartMachine(m, value = m.regs
     mem8[SEQUENCE_DELAY] = pass - 1;
   }
 
-  regs.xor(value);
-  sendSoundCommand(m);
+  sendSoundCommand(m, 0);
 
   return (regs.hl = SEQUENCE_DELAY, regs.bc = 0, regs.a = mem8[NMI_ENABLE_BYTE], enableInterruptAndEnterForegroundLoop(m));
 }
