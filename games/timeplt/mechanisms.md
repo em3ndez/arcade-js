@@ -25,143 +25,15 @@ error is invisible once written.
 A wrong role stated confidently is worse than no name at all. Where the code cannot settle
 something, this document says so rather than choosing.
 
-**How this was written.** The method requires this file to be rewritten WHOLE each understanding
-pass, from `gameplay.md`, blind to its previous version — never patched. A patch preserves the
-previous reading's blind spots; a rewrite forces re-derivation. This revision honours that: the
-previous map was not opened, and each of the eight area re-derivations behind it carried an explicit
-prohibition against reading or citing it. Seven returned in time to inform the text; the eighth,
-on the character plane, arrived after §8 had been drafted from adjacent evidence — and checking §8
-against it when it did arrive is what caught a false claim that section was carrying. That is
-recorded in §8 rather than quietly corrected.
+**How this is written.** The body is re-derived WHOLE each understanding pass, from `gameplay.md`,
+blind to its previous version — never patched. A patch preserves the previous reading's blind spots;
+a rewrite forces re-derivation. Each of the area re-derivations behind the sections below carried an
+explicit prohibition against reading or citing the prior map. Grounding that lands **between** passes
+is folded into the section it belongs to rather than held back — so a `[seen]` claim may sit inside a
+section a rewrite produced, and an open question may have been struck off since.
 
-The body stands as that rewrite. Grounding that lands **between** passes is folded into the section
-it belongs to rather than held back for the next one — the same method requires that too — so a
-`[seen]` claim may sit inside a section the rewrite produced, and an open question may have been
-struck off since.
-
-★ **This revision was FOLDED INTO, not rewritten whole, and that is a deviation rather than the
-clause above.** The between-passes clause licenses grounding that arrives between passes; the
-cluster-6 pass is a pass, so it does not cover it. The reason the fold was allowed is narrower and
-worth stating plainly: the standing body rests on eight blind area re-derivations, and a confirmer
-working one cluster is not positioned to reproduce them — replacing them from a single cluster's
-evidence would have destroyed the wider derivation to look tidy. **A whole rewrite is therefore
-OWED, and this note is the record of that debt** rather than a licence to keep folding.
-
-★ **Descriptive-naming pass — pilot landed (2026-08-12).** The idiomatic layer's address-naming
-retrofit is complete: every accessed memory and code address is now a named constant in `names.js`
-(bare placeholders until promoted, with an `_ADDR` suffix for the handful of addresses that are BOTH
-a routine's entry AND read as data by an anti-tamper checksum-over-code). A first PILOT of 13
-addresses has then been promoted to descriptive names through blind two-agent convergence — among
-them the score-award table, the caption-record table, the enemy heading/shape table, the anti-tamper
-checksum total, and the world-scroll vector, whose two halves this pass resolved to native **Y at
-0xA808 and X at 0xA80A**, settling an axis mislabel carried differently by two earlier
-reverse-engineering efforts. None of these names appears in the prose below, so nothing here is out
-of sync — but **the whole rewrite already owed above now also owes weaving the descriptive names
-into the text.** The bulk (~240 remaining addresses/routines) is now rolling in batches; this note
-records that the map has not yet been rebuilt around the names.
-
-Bulk naming progress (running record; the whole-map weave is still owed):
-- **Batch 1** — the sound-request cells plus a few score/sequence-seed cells. The sound codes:
-  ENEMY_LAUNCH_SOUND, PLAYER_SPAWN_FLASH_SOUND, LATE_ERA_PROGRESS_SOUND, ROUND_INTRO_SOUND_1/2/3,
-  ROUND_START_SOUND, ENEMY_WAVE_SOUND, the era-keyed ATTACKER_SPAWN_SOUND_ERA0 / _MID_ERA_1 /
-  _LATE_ERA, INTER_ROUND_SOUND_1, and TWO_SOUND_REQUEST_FIRST_CODE (kept generic — its five sites
-  are mixed hits/kills/retires, not purely fatal). The non-sound cells: SOLO_SCORE_LABEL_INDEX,
-  ABSENT_SCORE_LABEL_INDEX, ATTRACT_SEQUENCE_START_PHASE, NEXT_ROUND_START_SUBSTEP,
-  ROUND_TRANSITION_HOLD_SEED, PLAYER2_SCORE_READOUT_BASE. One cell was left a bare placeholder
-  because its only reader is an unwired routine.
-- **Batch 2** — more sound cells (BONUS_LIFE_SOUND, PLAYER_SHOT_SOUND, COIN_SOUND,
-  MOTHER_SHIP_WARP_SOUND, ENEMY_LAUNCH_SOUND_LATE_ERA, INTER_ROUND_SOUND_2,
-  TWO_SOUND_REQUEST_SECOND_CODE, and OBJECT_STATE_3B_SOUND — named by its state code, not "death",
-  since its callers are one-shot/countdown objects); the player-animation keyframe strip bases and
-  their blit counts (PLAYER_ANIM_STRIP_0..4, PLAYER_ANIM_ROW_COUNT, PLAYER_ANIM_COL_COUNT); the
-  line-wipe count and start cell (BLANK_LINES_COUNT, BLANK_LINE_START_CELL); the attract
-  high-score patch table (HIGH_SCORE_PATCH_TABLE); the credit-insert sequence phase
-  (SEQUENCE_PHASE_ON_CREDIT); and the scripted char-plane column base (CHAR_PLANE_COLUMN_BASE).
-- **Batch 3** — the rest of the scripted char-plane working column anchored at CHAR_PLANE_COLUMN_BASE
-  (the 28-cell column's run-ends, center cells and two flanking 2-cell stub columns), the
-  player-animation blit base, the high-score attract marker cells, the hardware picture latch
-  (VIDEO_ENABLE_LATCH — corrected from a stale "sound latch" proposal), the three anti-tamper ROM
-  checksum bases that feed it / the sequence phase / the pen-route arm, the fresh-round RAM-clear
-  end markers (PLAYER_SHOT_ARRAY_END, PLAYER_STATE_BLOCK_END), and the pen-route start row/column.
-- **Batch 4** — the second hardware sprite-attribute bank (SPRITE_BANK1_BASE + its slot-0 Y), the
-  count/emblem strip bounds (COUNT_PICTOGRAM_STRIP_START, EMBLEM_STRIP_TOP), the char-plane base
-  (CHAR_PLANE_BASE) and the ROM operand words seeding the screen fills (COLOUR_RAM_BASE_WORD,
-  VIDEO_RAM_BASE_WORD), the pen-run interpolation targets (PEN_ROW_TARGET, PEN_COLUMN_TARGET,
-  PEN_RUN_END_CELL), the player-shot slot stride, and a cluster of anti-tamper artifacts — three
-  XOR-guard ROM block bases, three image-checksum words, the copyright-strip check seed, the
-  display-off value, and the tamper-witness sample cell.
-- **Batch 5** — the player-shot velocity table and slot stride/fill bytes, the enemy-wave tables
-  (heading-bias, shape, descriptor), the three inline dispatch jump-tables (era-slot, phase-0
-  sub-step, phase-3 sub-step), the default high-score table, the sequence-substep hand-over seed,
-  the caption colour-band cells, the sampled copyright glyph/colour cells, and two more anti-tamper
-  artifacts (a signature seed and a checksum span). One address — a store target on a dead-code
-  checksum-failure trap path — was left a bare placeholder (no genuine data semantics).
-- **Batch 6** — the caption colour-band's remaining cells (its 3rd scattered cell and the two
-  colour-plane run-bottoms that fold CHAR_PLANE_UPPER/LOWER_RUN_BOTTOM), the digit-glyph table and
-  its leading-zero blank index, sprite bank 0's base and the sprite-raise step floor, the era/rung
-  settings pointer table, the boot-config/seed anti-tamper cells (the RNG seed source and its two
-  guard words, the boot-config checksum base, the default high-score and kill-quota bytes), the
-  attract-restart fold byte, and the per-phase vblank arm dispatch table. Three addresses stay
-  placeholders: a write-only player-record spare cell, and two code addresses read as data (a
-  checksum-over-code span and a called routine that doubles as a data table).
-- **Batch 7** — the enemy-spawn direction/record tables and the mother-ship velocity/warp/stage
-  tables, the two per-heading-sector sprite tables (shape + mirror), two more sequence
-  checksum/phase-tamper spans and two SEQUENCE_SUBSTEP seeds, the single-direction hardware ports
-  (the flip-screen latch and the IN1 / IN2 / DSW0 read ports), and two anti-tamper glyph witness
-  cells. Two dual-mapped ports (0xC300 = NMI-enable on write / IN0 on read; 0xC000 = sound-command
-  on write / scanline counter on read) are deferred to a grouped split-commit alongside 0xC200; one
-  write-only sentinel stays a placeholder.
-- **Batch 8** — sprite slots 19-23 (X in bank 0, Y in bank 1 — the tail slots of the sprite
-  multiplex), the kills-remaining meter (its era-keyed glyph row table and bar start cell), the
-  phase-1 and phase-2 sub-step dispatch tables (completing the phase-0/1/2/3 set), the player /
-  fine / coarse heading-to-shape tables, the mid-band object-phase shape table, the era-4 scenery
-  seed table, and the death-animation shape table.
-- **Batch 9** — more heading/shape tables (the heading-sector shape table, the heading shape-pair
-  table, the per-era sprite-colour table, and the diagonal + octant base-heading tables), the
-  copyright-line colour-check cell, two more anti-tamper checksum blocks (attract and boot
-  self-test), sprite slots 1-2, the score/credit readout base cells (high-score, player-1, credit
-  count), a second digit-glyph table, the readout pictogram table, and the NMI-enable init byte.
-- **Batch 10** — the object shape/animation tables (one-shot, countdown-slot, parachutist flight
-  and award), the command-handler and shape-run pointer tables, the edge-spawn coordinate and
-  wave-run-selector tables, the per-era turn-rate and coinage-value tables, the coin-counter and
-  audio-IRQ hardware latches, and the boot cells (the expansion-socket probe, the sprite-RAM base
-  used as the boot stack seat, and the display-on and NMI-re-enable ROM values). One address — a
-  bare m.call code target — stays a placeholder for the routine-naming pass.
-- **Batch 11** — the remaining phase-2 code-address placeholders. Two of them hold the entry
-  address of a real named idiomatic routine used as a code operand: the vertical-blank service the
-  `push af` entry falls into (`serviceVerticalBlankInterrupt`, `m.call`'d from that entry) and the
-  frame-service epilogue the service `push16`s as its own arm-return slot
-  (`sendOneQueuedSoundThenUnwindTheFrameInterrupt`). Those take the routine's name with the `_ADDR`
-  collision suffix and join the call/return-target group, deep-dissolve deferred to Karl. The rest
-  name no routine — off-map and derail-into-data anti-tamper targets, and intra-routine parked
-  return slots — and stay `loc_` placeholders. This closes the const-placeholder naming.
-- **Dual-port split** — three Konami I/O addresses each name a *different* device by direction, so
-  one `loc_` const misread as one thing. Each becomes two consts at the same address, chosen per
-  call site by read vs write, grounded in `boards/timeplt/memory.js`: 0xC200 → `WATCHDOG_RESET`
-  (write kicks the watchdog) / `DSW1_PORT` (read is dip-bank 1); 0xC300 → `NMI_ENABLE_LATCH` (write
-  is LS259 bit 0, and the base the boot clear-walk steps through) / `IN0_PORT` (read is player-1
-  input); 0xC000 → `SOUND_COMMAND_LATCH` (write hands the audio Z80 a command) / `SCANLINE_COUNTER`
-  (read is the raster counter the sprite multiplexer watches). Both consts of a pair hold the same
-  value, so the split changes only which name a site reads — behaviour is byte-identical, and the
-  suite cannot witness a direction error: the reviewer checks each site's direction by hand.
-- **Routine names, batch 1** — the first of the un-named routines (`name:"loc_XXXX"` in the doc-map)
-  get descriptive names where two blind derivers agreed the entry is a real routine and the record
-  does not already keep it as hex: a bare-transfer trampoline (`trampolineToAdvanceSequenceSubStep`),
-  a do-nothing phase-2 sub-step tail (`noOpSequencePhase2Tail`), and a fixed sound-request burst fired
-  at round transitions (`enqueueTransitionSoundBurst`). The rest stay `loc_`: the anti-tamper and
-  data-as-code derail targets (0x2251, 0x0167, 0x08fa, 0x1f99, 0x1f2e, 0x0f8d — the last two keep
-  their `_ADDR` collision consts); 0x307f, a caption record the translated layer misdecodes as code
-  rather than a real routine; 0x12e2, whose descriptive name was tried and refused in the record
-  because its countdown prologue is an idiom seven sites share and its one tail
-  (`passTurnToOtherPlayerIfLivesElseStepSequence`) already carries the decision; and the entries kept
-  as hex because no absolute reference reaches them — 0x15b5 (a table slot no tape ever dispatches)
-  and 0x10f8, 0x3793 (reached only by an interior branch — a routine-is-a-range, not its own job).
-
-Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
-`[seen]` grounding record lives in refer to the old map by section number, and those were read for
-the observations, which exist nowhere else. So the topics that previously had sections were known;
-their content and wording were not. The structure below follows `gameplay.md`'s outside-in order and
-what the evidence actually turned out to be.
+The structure below follows `gameplay.md`'s outside-in order and what the evidence actually turned
+out to be.
 
 ---
 
@@ -176,7 +48,9 @@ set, and the service turns that bit off on entry and back on in its epilogue. `[
 The service, in the order it runs:
 
 1. **Copy the sprite shadow to the hardware** — first, before anything else, so the picture is
-   written during the blanking interval.
+   written during the blanking interval — **then drain the two deferred-cell display lists** (blank
+   what the last pass painted, paint what is pending now, then copy the pending list wholesale onto
+   the erase list).
 2. **Disarm its own interrupt and kick the watchdog.** Note this happens *after* the sprite copy,
    so the disarm is not protecting it.
 3. **Recompute screen flip** from the cabinet setting and the current player, and drive the
@@ -187,8 +61,10 @@ The service, in the order it runs:
 6. **Run the coin service.**
 7. **Dispatch the sequence machine**, with the epilogue's address pushed as the arm's return.
 
-The epilogue restores both register banks plus the index registers, and does one piece of work of
-its own: hand a single queued byte to the sound CPU and pulse its interrupt line. `[code]`
+The epilogue does one piece of work of its own, and it does it **first**: hand a single queued byte
+to the sound CPU and pulse its interrupt line — so a byte queued anywhere in the service still leaves
+on the same frame. Only then does it restore both register banks plus the index registers, reopening
+the interrupt gate between the two banks. `[code]`
 
 ★ **One routine is the whole of that hand-off, and it is the machine that says so.** A write tap on
 the sound-data latch under MAME, across boot, attract, the demo and driven play, recorded every
@@ -294,8 +170,7 @@ return address as the table base, indexes it by `A`, and `jp (hl)`s. The era/slo
 too, on a RAW sub-step (the doubling wraps at eight bits, so a large index folds onto the head), and
 ends by running a shared tail — the advance-or-free-play epilogue at 0x167b. `[code]`
 
-The registry declined for two passes to say what these sequences were. **They are now established
-by observation of the real machine, in two independent captures:** `[seen]`
+**They are established by observation of the real machine, in two independent captures:** `[seen]`
 
 | phase | what it is |
 |---|---|
@@ -404,8 +279,8 @@ audio queue. `[code]` (`COCKTAIL_MODE`'s exact polarity is MAME-pending.)
 Alongside those, every vblank latches an INVERTED copy of each hardware input port into a mirror the game
 reads instead of the live port: `DIP1_MIRROR` (the 0xC200 dip bank), `IN1_MIRROR` (the main / P1 controls)
 and `IN2_MIRROR` (the cocktail / P2 controls), beside the already-named IN0 / coinage mirrors;
-`readPlayerControls` returns IN1 or IN2 by whether the screen is flipped. The coin cells this batch also
-names — `COIN_ACCEPTED_SLOT_2` / `COIN_PULSE_TIMER_SLOT_2`, the per-slot `COIN_SLOT_1/2_DEBOUNCE` and
+`readPlayerControls` returns IN1 or IN2 by whether the screen is flipped. The coin cells named here —
+`COIN_ACCEPTED_SLOT_2` / `COIN_PULSE_TIMER_SLOT_2`, the per-slot `COIN_SLOT_1/2_DEBOUNCE` and
 `_ACCUMULATOR`, the shared `CREDIT_COUNT`, and `SERVICE_CREDIT_DEBOUNCE` — are the cells the two-slot
 pipeline above runs on. `[code]`
 
@@ -882,6 +757,15 @@ Three subsystems read the same era index and divide it differently:
 The first two are decided in the same chain, at different boundaries, so the
 player's own handling divides the era index two ways by itself.
 
+The turn boundary is concrete: `turnShipTowardTargetHeading` steps `PLAYER_HEADING` toward its
+table-selected target by **three notches — or four once the era's low nibble reaches three**
+(`(ERA_INDEX & 0x0F) >= 3`), before falling into the shared world-scroll tail; the era cell is
+doing double duty as a turn-step selector. Its sibling arm `snapHeadingOntoTheTurnTarget` lands the
+heading exactly on a target where the stepped walk would otherwise overshoot — a three-step walk
+against targets spaced thirty-two apart cannot land clean and must be caught. The turn machinery
+lives in §5; what matters here is that it reads the SAME era cell the pace table does, at a
+different boundary. `[seen]`
+
 Both are consistent with the five rounds the public record describes, and neither implements an era
 as a bundle of settings. The difficulty curve and the scenery curve step at **different rounds**.
 A reader who assumes one era boundary will predict changes that do not happen.
@@ -893,6 +777,36 @@ that arm's list — exactly, at both eras, with each arm's members sitting at ze
 context. Two wrappers belong to the final era and to nothing else. `[seen]`
 
 The rest is `[code]`.
+
+### The round steps the era forward and wraps it; the round count itself does not
+
+Rounds advance through `startNextRound` (`0x2DB8`), and it is where the era index and the round
+ordinal part company. It steps `ROUND_NUMBER` (`0xAD01`) by one and that count **carries on without
+wrapping**, while it rolls `ERA_INDEX` (`0xAD04`) forward and **wraps it to zero after the fifth
+era** — `(era + 1) < 5 ? era + 1 : 0`. The era is therefore the round count folded to five, and the
+second lap through the five eras runs the first lap's speeds and scenery again; nothing in the era
+cell makes the game harder on the second time round. `[code]`
+
+What DOES carry the difficulty forward across the wrap is the round-start rung. `startNextRound`
+reloads `START_RUNG` (`0xAD0A`) from one of three bracket cells chosen by the **unwrapped**
+`ROUND_NUMBER`: rounds under six take `START_RUNG_ROUNDS_1_5`, six through ten take
+`START_RUNG_ROUNDS_6_10`, and eleven and up take `START_RUNG_ROUNDS_11_UP` — the same three bracket
+bytes the cabinet's Difficulty record fills, read below at their difficulty boundaries. `[code]` for
+the bracket selection at round completion; the boundaries at six and eleven, and the three bytes'
+values, were watched under MAME through the DIP experiment below. `[seen]`
+
+It then **refills the kill quota** — `KILLS_REMAINING` (`0xAD02`) reloaded from `KILL_QUOTA`
+(`0xA9CD`) — clears the mother-ship-armed flag (`MOTHER_SHIP_ARMED`, `0xAD0D`) and the round
+transition hold (`ROUND_TRANSITION_HOLD`, `0xACC6`), and sets `ROUND_ARMED` (`0xAD0E`) to 0xFF,
+leaving the next round armed rather than merely counted. The quota is **not** era-, loop- or
+difficulty-keyed: `KILL_QUOTA` took exactly one write in a run covering boot, attract, the demo and a
+driven game — at boot, value 0x38 (56) — so every round of every loop on every DIP setting asks for
+the same count. `[seen]`
+
+The stepper's own action at a round boundary was not itself watched — no captured run here completed
+a round — so the wrap and the bracket pick are read from the code, while the cells they land in were
+each watched being seeded from their context blocks. `[code]` for the transition, `[seen]` for the
+seeded cells.
 
 ### Difficulty also climbs INSIDE an era, on a rung of its own
 
@@ -1167,12 +1081,12 @@ walks the actor band, which the round engine's service list calls unconditionall
 the slot's delay and promote `0xFE` to `0xFF` when that delay has already expired, so "held" and
 "live" are set by one piece of code a few bytes apart. `[code]`
 
-A batch-2 understanding pass named the per-object handlers this array runs: `stepDyingObjectState`
+The per-object handlers this array runs are named: `stepDyingObjectState`
 (the dying dispatch above), `flyLiveSlotAndTickCountdown` for a live slot, and two live-enemy
 steerers — `flyTowardShipStandoffThenEndApproach`, which aims at one of **two fixed standoff points**
 a record bit selects (not the ship's own point) and cuts its approach countdown to zero once both
-axis gaps close, and `steerEnemyTowardShip`, whose turn is the **gentlest rung** of its step table
-(a claim of a "hard" turn was refuted from the ROM). `runOneShotAnimatedObjectSlot` fires once per
+axis gaps close, and `steerEnemyTowardShip`, whose turn is the **gentlest rung** of its step table.
+`runOneShotAnimatedObjectSlot` fires once per
 external arming and does **not** self-retrigger. Scenery has its own pair,
 `driftNearestSceneryTriTile` and `seedSceneryEntriesThenRunScenery`. Each handler's *mechanism* is
 `[seen]`, but the on-screen enemy/object **class stays open**: the two steerers and the one-shot
@@ -1213,6 +1127,19 @@ off — and `flyAndRetireSlotCyclingShapeInEra4` is the fly-then-retire arm with
 alone it advances a fixed shape cycle before the object moves, so a shape written this tick may go out
 in the same breath. `[code]`
 
+★ **The era-0 ballistic bank is walked by a small sweep of stepping routines.**
+`serviceEra0BallisticObjectBank` runs only while `ERA_INDEX 0xAD04` reads 0; it seats the three-slot
+bank (record `0xA8C0`, entry `0xAA28`, count 3) and routes the first slot on its head byte — an empty
+slot to the stepper, a `0xFF` ballistic slot flown one frame then stepped over, any other marker to
+the servicing sweep. `advanceSlotThenSweepObjectBankByHead` is that stepper: it strides one slot on
+(record `+0x10`, entry `+2`), skips empties, flies and steps over ballistic slots, and hands the
+first slot bearing any other marker to `sweepObjectSlotBankServicingFirstSlot`, which services that
+slot's shape-cycle and then routes the rest of the bank the same three ways — empty skip, ballistic
+fly, else service. `sweepObjectSlotBankByHead` is the same body without the leading unconditional
+service. From era 2 up the parallel entry is `sweepEra2PlusObjectBank`: it returns below era 2 or on a
+zero `ATTACKER_SPAWN_SLOT_COUNT` (`0xA8C6`), else seats both cursors and the count and runs the sweep
+body. `[seen]`
+
 ★ **The four actor slots at `0xA810`–`0xA840` have their own per-slot servicer.** `stepFourActorSlots`
 walks the four records in turn and hands each to `dispatchObjectSlotByHeadByte` (`0x3E63`) — a sibling
 of `serviceSlotByHeadByte` above that likewise splits on the record's head byte (`0x00` does nothing)
@@ -1239,12 +1166,39 @@ is never raised by the countdown itself, which reads the step and returns before
 so nothing steps them again until one of the three arming sites fires. `[code]`, and the shared first byte is a property of the table anyone
 can re-derive.
 
+**A separate group of dressers ignores the record timer entirely and cycles a sprite straight off
+the free-running frame counter `0xA980`.** `animateFixedShapeCycle` takes `(FRAME_TICK >> 1) & 7` as
+an eight-step index onto shape base `0x40`, writing the shape to `entry+1` and a fixed control byte
+`0x44` to `entry+0x30`; `animateFixedShapeCycleAtHalfRate` uses the same `(FRAME_TICK >> 1) & 7`
+index off base `0x50` with attribute `0x0A` at `entry+0x30`. Neither reads anything of the object,
+so two entries dressed in the same tick come out identical. `animateSelectedShapeCycle` does read one
+record byte: it takes `(FRAME_TICK >> 2) & 3` as a four-step phase and adds `4 × (record+4 − 1)` to
+base `0xD8` into `entry+1` (attribute `0x61`), so the record's `+4` byte *selects* which four-shape
+block plays; the sum is byte-wide and wraps rather than clamping.
+`dressSpriteFlutterShapesByFrameTickBit` is a two-frame flutter — bit 2 of `FRAME_TICK` picks the pair
+`0xD5`/`0xD4` or `0xD7`/`0xD6` into `entry+1` and `entry+3`, and nothing here advances the bit.
+`[seen]` for `animateFixedShapeCycle`, `animateSelectedShapeCycle` and
+`dressSpriteFlutterShapesByFrameTickBit`; `[code]` for `animateFixedShapeCycleAtHalfRate`.
+
 ### Retiring and hiding are the same store
 
 Two retire helpers do the same job by different idioms — one stores from a zeroed register and also
 clears the sub-pixel fractions, the other stores immediates and leaves them — and their
 caller sets are statically disjoint, which is what makes them two families' helpers rather than two
 versions of one.
+
+The wider family is six routines, each clearing the head and the entry's whole coordinates and then
+leaving a different byte at record `+0x0E` — and that byte's *value* is the regime. `retireSlot`
+zeroes only the integer halves (head, `entry+0`, `entry+0x31`) and leaves `+0x0E` untouched;
+`retireSlotAndSubPixel` does the same and additionally wipes the two sub-pixel fractions at record
+`+0x03`/`+0x05`. Three siblings retire and then *arm* the delay byte: `retireSlotIntoCooldown` writes
+`0xF0`; `retireObjectAndHold` writes `0x80` (and clears a second record's head and the fixed
+`ERA_OBJECT_ENTRY_SLOT1` pair besides); and `retireEntryPairIntoCooldown` writes `0x5F` after clearing
+a **pair** of neighbouring entries (`entry+0`/`+2`/`+0x31`/`+0x33`). The sixth,
+`retireSlotIntoSharedCooldown`, calls `retireSlot` and then loads `+0x0E` from the shared
+`ATTACKER_SPAWN_COOLDOWN_PERIOD` (`0xA8F6`) — one of the six retire sites reading that travelling
+per-era value — so every slot retired that way goes out holding the same cooldown. Zeroing the head
+alone puts nothing on cooldown; the regime is chosen by which retire routine ran. `[seen]`
 
 What actually removes an object from the picture is zeroing the entry's Y: the DMA turns `Y = 0`
 into a hardware value that puts the sprite entirely above the first visible raster line.
@@ -1381,8 +1335,8 @@ What the bit means **outside** that gate is a separate question. The tail return
 sequence cells say a round is running, and outside it the bit is simply the top bit of the encoded
 Y. Whether the multiplexer ever runs outside the gate is not established here.
 
-**There are two versions, and they differ by one byte per block.** Re-verified from the ROM this
-run: the two routines are byte-identical across their whole length except for **eight** bytes, every
+**There are two versions, and they differ by one byte per block.** The two routines are
+byte-identical across their whole length except for **eight** bytes, every
 one at the same offset within its block — the displacement of the branch after the beam test.
 
 - one jumps **forward**: skip a slot whose beam has not arrived
@@ -1394,8 +1348,8 @@ request is serviced before the frame ends. That pairing repeats in each of the r
 them. That contrast is the strongest evidence that the *wait*
 is what the second one is for. `[code]`
 
-**Not claimed:** which twin runs more often. Two agents once produced confident and opposite
-orderings, and the instrument that would settle it cannot count a routine that waits. See §10.
+**Not claimed:** which twin runs more often — the instrument that would settle it cannot count a
+routine that waits. See §10.
 
 ---
 
@@ -1411,11 +1365,17 @@ record is muddled: `[code]`, the rendering and the live heading range `[seen]`
   the *control* is right.
 - **The ship renders thirty-two.** The heading is rounded to the nearest of 32 sectors and drawn
   from sixteen tiles plus a mirror. It never locks to eight.
-- **It fires along all 256.** A shot's velocity is looked up at the **raw** heading byte, not the
-  rounded one.
+- **The heading itself is a full 256-step byte, and only the ship's own motion resolves all of
+  them.** `velocityForHeading` reads the heading **raw** — it samples its era velocity table at the
+  whole 256-step heading and takes the sample a quarter-turn back as the perpendicular partner — so
+  the camera, and with it the world scroll, swings through every one of the 256 values. All 256 were
+  observed live.
 
-So a shot fired mid-turn goes exactly where the ship is pointing, at an angle the sprite cannot
-depict. The heading itself is a full 256-step byte, and all 256 values were observed live.
+The **shot does not inherit that full resolution.** A player shot's velocity is looked up at a
+**32-sector quantized** heading — `(PLAYER_HEADING + 4) >> 3 & 0x1f`, the `+4` rounding to the
+nearest of 32 sectors *before* the `>>3` — which is the exact rounding `dressPlayerSpriteForHeading`
+uses to choose the sprite. So a shot fired mid-turn goes where the sprite is drawn pointing, to the
+nearest of 32; the raw-256 heading resolution belongs to ship *movement*, not to fire. `[code]`
 
 ### ★ The ship can about-face — the public record's contradiction is resolved
 
@@ -1427,6 +1387,12 @@ contains **no special case, no cap and no refusal** — a half-turn difference s
 increasing way. It is *slow*, not impossible: about three quarters of a second in the first three
 eras and just over half a second in the last two. StrategyWiki was most likely describing that
 feel. `[code]`
+
+The wanted heading for each of the eight is not a data table anyone drew: it is routine `loc_1f2e`'s
+own **opcode bytes read as data**. `turnShipTowardTargetHeading` indexes the stick value into the
+bytes at `0x1f2e`, while `advancePlayerAnimationStrip` **jumps into** that same `0x1f2e` as executable
+code on its heading-snap divert. Same address, two uses — a lookup table to the turn law, a routine
+to the divert — so `0x1f2e` must never be treated as pure data. `[code]`
 
 The turn rate is **per era, not per difficulty** — it steps up with the era, and nothing on the
 player's path reads a difficulty setting at all.
@@ -1560,10 +1526,19 @@ The ship is a sprite in flight (above), but at the top of a life it first **mate
 character-plane tiles**, and `advancePlayerAnimationStrip` (`0x2010`) is one frame of that
 materialisation. `dispatchPlayerFrameByState` routes to it while `PLAYER_STATE` is mid-count — a clear
 state means gone, `0xFF` means flying — and hands it the player record in `ix` and the paired sprite
-entry `PLAYER_ENTRY` in `iy`. A single phase byte in the record is the animation clock. On the
-**opening frame** — the phase at or past the cap `0xB4` — the routine clamps the phase to that cap,
-writes the mark `0xFF` into the paired entry's second byte (`PLAYER_ENTRY`+1, the player sprite code),
-and requests the round-intro cues: `requestRoundIntroSoundBurst` always, and
+entry `PLAYER_ENTRY` in `iy`. A single phase byte in the record is the animation clock.
+
+**`PLAYER_STATE` (`0xA800`) is one byte doing two jobs.** The very cell `dispatchPlayerFrameByState`
+reads as a three-way *liveness selector* (`0` / `0xFF` / anything-else) is the byte
+`advancePlayerAnimationStrip` reads as `ix+0` and **clamps and counts down** as its animation phase.
+It is a counter, not a static mode flag — the materialisation writes and decrements it — and the
+transition to the alive value `0xFF` is seeded outside this subsystem by a life-start routine; the
+strip never wraps to `0xFF` on its own, since the dispatcher returns at state `0` before the
+decrement could pass zero. `[code]`
+
+On the **opening frame** — the phase at or past the cap `0xB4` — the routine clamps the phase to that
+cap, writes the mark `0xFF` into the paired entry's second byte (`PLAYER_ENTRY`+1, the player sprite
+code), and requests the round-intro cues: `requestRoundIntroSoundBurst` always, and
 `requestLateEraProgressSound` as well once `ERA_INDEX` is at or past the third era. `[seen]`
 
 Then, still on the opening frame, two anti-tamper witnesses can **divert the whole animation**. The
@@ -1638,17 +1613,41 @@ and hands `destroyTargetsHitByShots` six shots against seven targets; while it i
 Any statement of the form "kills happen in *the* collision routine" is wrong about this machine, and
 a reader who instruments one path will under-count.
 
+### The pass forks on era first, then on frame parity
+
+Before the sweeps, the fork that reaches them: the "per-frame collision pass" the sections around
+this one name is not one routine but a two-level dispatch, and reading it as a flat parity split
+mis-locates three of its four leaves. `dispatchCollisionPassByEra` (`0x4E4F`) — the collision item on
+the round engine's service list — branches on `ERA_INDEX` (`0xAD04`) **first**. Era 4 and era 1 each
+take a **dedicated per-era tail**: era 4 goes to `dispatchEra4CollisionByFrameParity` (`0x4F2A`), era 1
+to `splitCollisionWorkByFrameParity` (`0x4EBC`). **Every other era** falls through to a parity split
+made right here, on the low bit of `FRAME_TICK` (`0xA980`): odd frames to the shot dispatch
+`dispatchShotSweepByMotherShipArmed` (`0x4F35`), even frames to the player chain
+`runAllCollisionSweepsThisFrame` (`0x4E63`). `[code]`
+
+The two special eras keep the **same polarity** as the general path — the odd frame is the
+shot-versus-target dispatch, the even frame the player-collision chain (itself opening on a shot-sweep
+head) — and differ only in run lengths and target tables. Era 4's odd frame sweeps a **nine-** or
+**eleven-long** object run — nine while the Mother-Ship is armed, with a mutual-kill pass following it,
+eleven while it is clear — rather than the seven-target craft run; era 1's even frame opens on a fixed
+single-target shot sweep the general even-frame head replaces with the three-target stage. So the rule
+"shots against targets on odd frames, the player against objects on even frames" holds across all four
+leaves, and because `FRAME_TICK` free-runs one step per vblank the two halves genuinely **alternate** —
+neither runs twice in a frame, and a reader who instruments one leaf on the assumption both fire every
+frame will mis-count. `[code]`
+
 ### The even-frame collision chain opens by spending every shot that reached one fixed target
 
 The odd-frame shot dispatch above has an even-frame counterpart, and its head is a shot sweep of its
-own. `splitCollisionWorkByFrameParity` (`0x4EBC`) divides the per-frame collision work by the low bit
-of `FRAME_TICK`: odd frames run the shot-versus-craft dispatch `dispatchShotSweepByMotherShipArmed`,
-and even frames open the player-collision chain with `destroyFixedTargetHitByShots` (`0x4F7E`) ahead of
-the four player sweeps. That head routine runs **one fixed target against the six-slot player-shot
-array** and destroys the shots that reached it. The target is the era-object record at
-`ERA_OBJECT_RECORD_SLOT0` (`0xA8C0`); its state byte is read **once, ahead of the sweep** — if it is not
-the live value 0xff the routine takes no shot and returns at once, and because the liveness is never
-re-tested inside the loop, a single live target can absorb **several shots in one call**. `[seen]`
+own. `splitCollisionWorkByFrameParity` (`0x4EBC`) — era 1's tail from the tree above — divides its
+slice of the collision work by the low bit of `FRAME_TICK`: odd frames run the shot-versus-craft
+dispatch `dispatchShotSweepByMotherShipArmed`, and even frames open the player-collision chain with
+`destroyFixedTargetHitByShots` (`0x4F7E`) ahead of the four player sweeps. That head routine runs **one
+fixed target against the six-slot player-shot array** and destroys the shots that reached it. The
+target is the era-object record at `ERA_OBJECT_RECORD_SLOT0` (`0xA8C0`); its state byte is read **once,
+ahead of the sweep** — if it is not the live value 0xff the routine takes no shot and returns at once,
+and because the liveness is never re-tested inside the loop, a single live target can absorb **several
+shots in one call**. `[seen]`
 
 Past that guard it walks the six shot slots from `PLAYER_SHOT_ARRAY` (`0xAA80`) at a stride of sixteen,
 skipping any whose occupancy byte is not live. A live slot is tested as a **wrapped window on both
@@ -2288,8 +2287,10 @@ the chaining is enforced from *outside* the routine that benefits from it.
 
 ★ **At the top it wraps and keeps going.** `[seen]`, on the real machine: step 7 posts argument 8,
 step 8 posts argument 1, step 9 posts argument 2. **The step counter keeps incrementing past the
-table; it is the argument that cycles.** A reader assuming the counter saturates would predict the
-top award repeating, and it does not.
+table; it is the argument that cycles** — the argument posted is the step reduced modulo eight,
+plus one, `(step mod 8) + 1`, so the counter can run on while the award walks the eight-long cycle
+again. `[code]` A reader assuming the counter saturates would predict the top award repeating, and
+it does not.
 
 Honest scope: reaching the top of the ramp was **seeded** in that capture, not played. Under the
 same tape unseeded, natural play reached the fourth rung — and that unseeded run was the attract
@@ -2319,6 +2320,31 @@ player fields is the *active* one is decided elsewhere, not here. `[code]`
 That answers a puzzle in the public record: a recorded score of 15,000,000 is fifteen rollovers and
 a scorekeeper, not a wider counter.
 
+### How a suppressed zero is drawn: the blank is a table index, not a literal
+
+The six-digit readout is painted by a small stack of routines, and the leading-zero suppression is
+not a branch on the output — it lives in the *index* into the digit-glyph table. The field painter
+clears one flag and walks the three packed bytes backward: the first four digits go through the
+suppressing single-digit painter, sharing that one flag, and the last two go through a plain painter
+that has no flag to blank them — which is the mechanism behind the last two digits always
+printing. `[seen]`
+
+Inside the suppressing painter a non-zero digit indexes the glyph table by its own value and steps
+the shared flag on; a zero digit indexes glyph-table entry zero once the flag is set, but while the
+flag is still clear it indexes the *blank* entry. ★ **That blank is itself a glyph-table index read
+out of a byte of the program image, not a literal glyph** — and the flag is carried across the whole
+field by the caller, which is why a run of leading zeros blanks as one field rather than cell by
+cell. `[seen]`, on the real machine: a tap logged the same digit-zero painting the blank glyph while
+the flag was clear and the glyph `0` once it was set, the flag turning over exactly at the first
+non-zero digit, so a value of ten thousand read blank, 1, 0, 0, 0, 0 across its six cells.
+
+The plain painter is the informative contrast: it masks the value to its low four bits and always
+paints, so a zero prints `0` — and because four bits carry sixteen values into a ten-entry table,
+the values A–F index *past* the table's end. `[seen]`: driving the displayed field to `0xAB`, `0xCD`
+and `0xEF` walked it to the table's last entry and five bytes beyond, where it painted the real
+blank glyph the table holds and then the opening bytes of the routine sitting just past the table —
+and never a glyph for A–F, because no such glyph exists.
+
 ### ★ Extra lives: the ceiling is real, the "mode" is not
 
 `gameplay.md` records a Wikipedia-only, uncited claim that extra lives stop at 960,000 and the game
@@ -2334,6 +2360,12 @@ image (re-verified independently for this document):
 | alternate | 20,000 then every 60,000 | **980,000** |
 
 These reproduce the manufacturer's own DIP table byte for byte.
+
+The search itself is a table walk for an **exact** equal, not a threshold test: the high byte matches
+only while it is standing on a listed value, and a byte that steps past a mark without ever landing
+on it would not trigger there — which is why the "no single step skips the high byte" fact below is
+load-bearing. Each mark list is a length byte followed by its marks, and a list whose length byte
+reads zero is walked as the full 65,536-long span rather than an empty one. `[code]`
 
 **So the number is right and the framing is wrong.** Past the final entry the search simply misses,
 and the miss path does exactly one thing: it clears the one-shot latch, the same as any other miss.
@@ -2442,6 +2474,27 @@ and not separation, and a change to the hand-over path could expose it. `[code]`
 The screen has two layers. Sprites carry the ship, the enemies and the scenery (§4). **Everything
 else is character cells** — the captions, the score, the round number, the progress meter, the
 player's own shots, and the explosion that plays when the player dies.
+
+### Two planes at one address, and the bit that crosses between them
+
+The character cells are two parallel RAM planes a fixed distance apart. The colour plane begins at
+`COLOUR_PLANE_BASE` (0xA000) and the glyph/character plane at `CHAR_PLANE_BASE` (0xA400) — the same
+address with **bit 10 (`0x400`) set**, so a cell's glyph lives at `colourCell | 0x400` and its
+colour at `glyphCell & ~0x400`. Every painter here crosses between the planes by flipping that one
+bit, and the queueing path builds its cell address up from the 0xA000 base for exactly that reason.
+`[code]` for the two bases and the bit; `[seen]` that the crossing is real — the drain that empties
+the deferred list was watched under MAME setting bit 10 to write the glyph at 0xA4xx and clearing it
+to write the attribute at 0xA0xx, which is what fixes those entries as character cells in both
+planes rather than sprite records.
+
+★ **Coming back from the colour plane is a SET, not a restore, and this is load-bearing.** A painter
+that has just written a colour byte computes that colour address by *clearing* bit 10, and returns
+the cursor to the glyph side with an unconditional OR rather than by remembering where it started. A
+cursor that happened to *arrive* already on the colour side is therefore not restored: its glyph
+gets overwritten by its own colour byte and it is snapped across to the glyph plane anyway. Three
+separate painters do it the same way — `drawTextRun`, `blankNextLine` and
+`paintGlyphOverBlankInColourThenStepCursor` — so a reader who "fixes" it to a save/restore breaks
+the one case the code depends on. `[code]`
 
 ### Captions are glyph runs, with one exception the name does not cover
 
@@ -2682,6 +2735,17 @@ A different ring command draws its strip the same way: command 5's handler
 one address below it, lays the colour beside both in the plane, and steps the cursor (here the glyph is
 passed as `0xF1` too, so both cells come out blank). `[code]`
 
+### The two-tile stamp lets glyph and colour part company
+
+The two-tile painter the fives count drives is `paintDoubleTile`. It lays a two-cell mark from a
+pair of consecutive codes — the caller's code into the cell below the cursor, `code+1` into the cell
+the cursor names — and then colours both cells a plane away by clearing bit 10. The plane arithmetic
+is written out cell by cell rather than folded, precisely so that where the borrow or carry crosses a
+plane the glyph and its colour can land in cells that are not the exact mirror of each other. `[seen]`
+— posting the splitter's ring command with the argument 37 dispatched this painter exactly once, and
+the same write tap the strip section reads above caught it laying codes `0x32`/`0x33` with colour
+`0x11` in the two cells a plane below.
+
 ### A grid of empty boxes runs at power-on, and is wiped before the attract loop
 
 Between the dip-switch read and the first interrupt, one routine tiles 28 of the character plane's
@@ -2714,6 +2778,21 @@ different jobs rather than alternating ones: the blanking walker writes only the
 leaves every colour cell as it was, the painting walker writes both planes with a shared tint bias,
 and their entries start at different offsets, `0xAE84` against `0xAE04`. One list is the edits to
 make, the other a record of last pass's edits to take back. `[code]`
+
+### A moving object queues its own tile block into that same pending list
+
+What fills the pending list for a moving object is `queueTileStampForObject`. It reads two of the
+object's bytes as pixel coordinates and biases each by seven; the **high five bits** of each give the
+cell the 2×2 block starts at — 32 cells to a row, counted up from the 0xA000 colour-plane base — and
+the **low three bits** of each select one of **sixty-four pre-shifted records** in a ROM table at
+`PRESHIFTED_TILE_RECORD_TABLE` (0x53D4), eight bytes to a record, four glyph-and-attribute pairs to a
+block. The sub-pixel shift is therefore baked into the table and resolved by lookup, not computed at
+draw time. A pair whose glyph is zero is skipped, so a block can be partly transparent, and the
+surviving pairs are appended four bytes each — address low half, address high half, glyph, attribute.
+Between the four pairs the cell walks **`[+1, +31, +1]`** — across, down a row, across — and that walk
+happens whether or not the pair was skipped, so a skipped cell still costs its place in the block.
+`[code]` for the table and the walk; `[seen]` that the queued entries land as character cells in both
+planes, proved by the same drain-side write tap the pairing below rests on.
 
 ★ The same two-plane geometry is READ, not only written: `copyThreeTilemapCellsFromBothPlanes`
 (0x4b30) walks a three-record table at 0x0d1b and, for each cell it names, reads both planes — the
@@ -2750,10 +2829,10 @@ proving the tap fires, it has **never once dispatched**. `[seen]`
 
 It is not dead code. It belongs to a screen our instruments never reach.
 
-Its call sites — the character-plane band steps now named `advanceScriptedCharPlaneBandTo2` and
+Its call sites — the character-plane band steps `advanceScriptedCharPlaneBandTo2` and
 `advanceScriptedCharPlaneBandTo4` — sit in two sequence sub-steps that the attract loop never enters,
 confirmed several ways: the sub-step cell never takes either value across a 3602-frame capture, and a
-batch-1 understanding pass reconfirmed zero dispatches of both over a 150 s attract sweep with eleven
+150 s attract sweep reconfirmed zero dispatches of both with eleven
 sibling routines as the positive controls. What arms them is the routine that checkpoints the live
 player block and then writes that sub-step directly (`loseLifeAndHandOver`, and
 `advanceRoundWhenFieldCleared` on the won-round path); the second of the two hands off to the sub-step
@@ -2874,7 +2953,7 @@ derived from the ROM, not watched on a screen.
 | 1 | Is the quota 56 for every era and every loop? | **Yes, always.** One byte, loaded once at boot from ROM. Not era-, loop- or DIP-keyed. The later-round escalation lives in a different cell. |
 | 2 | What counts toward the 56? | **Only the seven ordinary enemy-craft slots.** Not projectiles, not the 1940 bomber, not the Mother-Ship, not the pickup. Projectiles still score. |
 | 3 | Mother-Ship behaviour | Partly. Two-slot object, armed after a delay, per-era speed. **Hits count from any angle**, and the count **never falls below five across appearances** — the first two hits persist, later ones are undone. Which edge it enters from, and whether it fires, are open. |
-| 4 | Does clearing the Mother-Ship pay for the enemies it sweeps? | **Yes** — one post per live slot, and they explode in a ripple. |
+| 4 | Does clearing the Mother-Ship pay for the enemies it sweeps? | **Unsettled — the code shows no such payout.** The shot sweep that kills the Mother-Ship posts one chained-hit score for the ship itself and returns; nothing walks the ordinary slots to pay a post apiece or ripple them apart. What the boss's death does to the standing formation needs the real machine. |
 | 5 | Does ramming credit the points? Can you ram the Mother-Ship and still advance? | **Both yes, by separate mechanisms.** Ramming an enemy craft posts a score; ramming a projectile does not. Ramming the Mother-Ship zeroes its hit counter, so it dies outright. |
 | 6 | The 1940 bomber: three hits or four? | **Four.** The manual is right; StrategyWiki is wrong. |
 | 10 | Parachutists in the final era? | **No.** The manager reads the era index and returns immediately. |
@@ -2913,6 +2992,9 @@ These need the real machine, not more reading: `[code]` is the wrong instrument 
 - **Whether the speed-up is perceptible.** The numbers differ; whether a player can tell is a
   question about eyes.
 - **The Mother-Ship's entry edge and whether it fires.**
+- **What clearing the Mother-Ship does to the formation it stands over.** The shot sweep pays a
+  single post for the boss and nothing for the ordinary slots; whether the machine visibly sweeps or
+  pays them on the boss's death is not something the code decides.
 - ★ **Whether the Mother-Ship really takes seven hits or eight.** The same arithmetic that gives the
   1940 bomber four hits from a counter of three gives the Mother-Ship eight from a counter of
   seven — contradicting the manufacturer. Flagged rather than published.
@@ -3292,37 +3374,89 @@ discriminates rather than merely excusing the two routines it excuses.
 
 ## §11 What is still open, sorted by what would close it
 
-★ **Transcription is essentially complete; understanding is not.** After two corrections to its own
-derivation, an audit of the untranscribed remainder of the ROM found **almost no established real
-code in it** — what is left is very largely data tables, among them several of the velocity tables.
-Not all of those tables are outside the transcription: the lowest one is transcribed in full, by the
-file this section later holds up as the model. And "no code at all" would overstate it, because one
-short block in the remainder decodes cleanly and calls the quota decrement. The distance between
-"we have the ROM in JavaScript" and "we know what the game does" is **not a lifting gap.** It is a
-reading gap and a grounding gap, and sorting the open questions by which one they need is the most
-useful thing this section can do. `[code]`
+★ **Transcription is essentially complete; understanding is not.** An audit of the untranscribed
+remainder of the ROM found **almost no established real code in it** — what is left is very largely
+data tables, among them several of the velocity tables. Not all of those tables are outside the
+transcription: the lowest one is transcribed in full, by the file this section later holds up as the
+model. And "no code at all" would overstate it, because one short block in the remainder decodes
+cleanly and calls the quota decrement. The distance between "we have the ROM in JavaScript" and "we
+know what the game does" is **not a lifting gap.** It is a reading gap and a grounding gap, and
+sorting the open questions by which one they need is the most useful thing this section can do.
+`[code]`
 
-### (i) Answerable from code already lifted — just read it
+### (i) Answerable from code already lifted — just read or trace it
 
 These need someone's attention, not a new capture and not a new lift.
 
-- The meaning of the in-round sub-state cell that most per-frame handlers key on.
+- The meaning of the in-round sub-state cell `SEQUENCE_SUBSTEP` (0xa9ac) that most per-frame handlers
+  key on — which sequence(s) it steps (attract, round intro, or both) is consistent across many
+  routines as an index but is not established from the code alone. (§2)
 - The roles of most handlers on the gameplay call list. Their slot bank and dispatch key are known;
-  what they *are* is not.
-- What the two paired display lists hold. The mechanism is clear, the content is not.
+  what they *are* is not. (§4)
+- What the two paired display lists hold. The mechanism is clear, the content is not — and which
+  producers feed the pending list beyond `queueTileStampForObject` is not enumerated. (§8)
 - Which enemy class each velocity shim serves. The ladder and its call sites are mapped; the
   classes are not, beyond the two identified for the shared sprite picker (the first two eras'
-  common craft).
+  common craft), so which physical era/enemy each animator serves is not decidable from code alone. (§4, §5)
+- Where `PLAYER_STATE` (0xa800) is walked `0xf0 → 0x00` — the player death countdown that actually
+  triggers `loseLifeAndHandOver` — and, from the other end, the life-start routine that seeds
+  `PLAYER_STATE` to `0xff`. Both are outside §5/§6's scope; the likely home is the player-state
+  frame dispatcher. (§5, §6)
+- The meaning of the `SEQUENCE_DELAY = 90` stamp and the `HANDOVER_SUBSTEP_SEED` reseed in
+  `loseLifeAndHandOver` — the post-death hand-off timing, belonging to the round/sequence
+  subsystem. (§6)
+- `record+4`'s overload — flutter quadrant seed vs animation shape-block base vs the Mother-Ship
+  seven-hit counter — and whether any single object kind uses more than one of those meanings at
+  once. (§4)
+- The publish path from the work-RAM entry shadow to the hardware sprite banks. Only part is visible
+  (`spinRemainingSpriteMultiplexSlots`); the shadow-to-hardware copy step was not read. (§4)
+- `velocityForHeading`'s axis mapping — which member of the returned pair is screen-across vs
+  screen-down is decided by the caller/consumer, not settled where the pair is produced. (§5, §12)
+- `applyEraRungSettings`'s twelve scattered destinations. It fans a ten-byte row over twelve cells;
+  the full role of every cell is not closed — two aim-window cells (e.g. 0xa8e6) have non-window
+  readers besides the launch gate. (§3)
+- Which counter drives `drawCountAsPictogramStrip` (the caller's `A`, a parachutist/pilot count in
+  gameplay vocabulary), and whether the four sprite slots `hideCaptionSprites` clears are the
+  copyright-strip pieces or a distinct caption-sprite set. (§8)
+- The 'tamper' cells that divert `advancePlayerAnimationStrip` into `loc_1f2e`, read here only as
+  gate conditions; their broader role belongs to another subsystem. (§5)
+- `flyDemoShipByScript`'s scripted-flight mechanism — dispatched from the player frame but not
+  decompiled in the player-input pass. (§5, §12)
+- Whether `pickScriptAtRandomOrInTurn`'s returned selector lands in `PLAYER_ONE_ERA_INDEX`, the cell
+  `seedDemoAutopilotScript` keys the script choice on — plausibly the same selector chain, but the
+  store between them was not traced. (§12)
+- Whether the non-arm slots of the phase-0 inline table (and the extra phase-2 slots) are deliberate
+  idle rungs or filler for indices the machine never produces — not settled by the code; both
+  shipped tapes never present those sub-steps. (§2)
+
+★ **A conflict flagged for the LEAD.** `steerEnemyTowardShip` (enemy-AI subsystem) writes
+`ERA_INDEX` = 0 then reseats it to 4 as a transient turn-rate index — verified in the routine body,
+which forces the shared rate index to zero while turning and back to four otherwise — which appears
+to clobber the era cell, yet §3's account (and `ERA_INDEX`'s registry entry) describes clean wrapping
+and does not mention this. The likely reconciliation is frame-ordering (the era has already been
+consumed for scroll/scenery that frame), but this was not verified and must be checked against the
+code before the doc is committed. (§3)
 
 ### (ii) Answerable only from code or data not yet read
 
 - **Formation composition, spawn rates, and the bonus window.** The per-era, per-difficulty spawn
   parameter table is a large untranscribed data block. Enemy counts and speeds live there. This is
-  where `gameplay.md`'s questions 8 and 9 go, and neither can be answered without decoding it.
+  where `gameplay.md`'s questions 8 and 9 go, and neither can be answered without decoding it. (§3)
 - **What the difficulty DIP actually changes.** Nothing on the player's path reads it — not speed,
-  not turn rate, not the quota. It must act through the spawn parameters, which is the same block.
+  not turn rate, not the quota. It must act through the spawn parameters, which is the same block. (§3)
 - The one ring command whose handler is real code with no transcribed file. Several other commands
   also lack a file, but they all resolve to the same bare `ret` that §7 already accounts for.
+- The exact peak amplitudes of the three era speed tables (`OPENING` 0x5e00, 0x2e3e, 0x08fa) —
+  asserted to be one curve scaled to roughly 256/306/331, but the ROM bytes were not re-read; tagged
+  `[code]` pending a data read. (§3, §12)
+- The contents of the 0x1f2e joystick direction-table (8-way nibble → target-heading byte) — only
+  the lookup mechanism was confirmed, not the bytes. (§12)
+- The contents of the two bonus-life mark ROM tables (0x4e1b / 0x4e30) — the mapping to the
+  documented award ladder is inferred from the exact-top-byte match logic, not read from the ROM. (§7)
+- The board-record byte layout beyond score and initials (whether `+7` is used) — inferred from
+  `fileScoreIntoHighScoreTable`'s pointer arithmetic, not independently grounded. (§7)
+- The demo era selector → which stages the three autopilot scripts drive — the selector→script table
+  is a ROM-identity fingerprint, but the script bytes were not decoded. (§12)
 
 ### (iii) Answerable only on the real machine
 
@@ -3332,12 +3466,28 @@ These need someone's attention, not a new capture and not a new lift.
   four hits from a counter of three gives the Mother-Ship eight from a counter of seven, which
   contradicts the manufacturer. One capture settles it; until then, do not repeat either number as
   established.
+- The `MOTHER_SHIP_ARMED`-set arms of the collision sweeps (5-slot craft runs, mother-ship passes).
+  Every taped run read `MOTHER_SHIP_ARMED` as zero on every dispatch, so only the unarmed arms are
+  MAME-observed. Likewise `destroyFixedTargetReachedByPlayer`'s three stores never fired on any
+  driven tape, so its four-test conjunction is untested against MAME. (§6)
 - Attract-mode composition — which eras the demo shows. A partial observation says the demo ship
   lives in the second era, consistent with the claim that this set never demos the first, but a
   single short capture is not a whole attract cycle.
 - Whether the ship's **nose** is drawn along its direction of travel. The travel direction itself is
   settled (§5); which way `spriteForHeading` points the sprite for a given heading is not, and a
   16×16 sprite eyeballed off a snapshot is not the instrument for it.
+- `COCKTAIL_MODE`'s exact screen-flip polarity, and the service-bit identity of `IN0` bit 2
+  (`SERVICE_CREDIT_DEBOUNCE`) — both MAME-pending, flagged in `names.js`. (§2)
+- The sprite-entry attribute byte semantics at `entry+0x30`/`+0x32` (colour vs flip vs bank-select
+  bits) — not derivable from the routines that treat it as an opaque per-shape byte. (§4)
+- Whether ring command 5 (posted by `awardBonusLifeAtScoreMark`) is the life-emblem strip painter,
+  as cross-references suggest — the handler body was not read to confirm it repaints life icons —
+  and the glyph-plane geometry of `HIGH_SCORE_INITIALS_CELL_BASE` 0xa531, which carries `[guess]` in
+  `names.js`. (§7)
+- `paintSelfTestScreenPhaseThenStepSequence` (0x4a0f) is unreached by either shipped tape; its
+  self-test-screen role is code-derived only. (§2)
+- Most object routines carry `[code]`, not `[seen]`; a MAME-grounding pass would be needed to promote
+  any of them. (§4)
 - **The per-player colour byte at `0xAD0C`, now named `PEN_COLOUR` from code.** Every reader treats it as a
   colour — three caption handlers at offsets 0, 5 and 10, the round-number digits, a colour-plane fill, a
   straight store into the colour plane — and it is byte 12 of the sixteen-byte per-player context block,
@@ -3350,8 +3500,9 @@ These need someone's attention, not a new capture and not a new lift.
 
 ### The states no instrument has visited
 
-The difficulty tiers, deliberate death, the later eras and the loop wrap. Each is a hole of the
-same shape: code serving it reads as dark.
+The difficulty tiers, deliberate death, the later eras (and the ERA4 scenery seed / the era-4-only
+scenery drift, seen only under an era-held sweep, never by playing through) and the loop wrap. Each
+is a hole of the same shape: code serving it reads as dark.
 
 High-score initials entry is no longer on that list. The recipe is worth recording, because poking
 its own sub-step does not get there: the screen's cursor words are written by the qualification
@@ -3366,7 +3517,7 @@ Two-player alternating play is no longer on that list. A driven MAME run that pr
 start button reaches it: both save blocks arm, the active-player index alternates,
 and the routines that serve the hand-over execute. What the run did NOT reach is a hand-over
 *between eras* — both players stayed in the first two — so the interaction between a swap and an
-era change is still dark.
+era change is still dark. `[seen]`
 
 - **The high half of the sequence sub-step table.** The dispatcher masks the sub-step to four bits
   and jumps through sixteen words, but a tap on its own dispatch byte recorded only nibbles 0-7
