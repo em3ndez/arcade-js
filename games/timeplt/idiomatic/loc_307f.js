@@ -6,10 +6,11 @@
 import { placeTileAtTableSuppliedOffset } from "./placeTileAtTableSuppliedOffset.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { placeDiagonallyAbuttingTile } from "./placeDiagonallyAbuttingTile.js";
+import { u8, u16 } from "../../../core/int.js";
 import { F_S, F_Z, F_H, F_PV, F_F3, F_F5 } from "../../../core/cpu/z80.js";
 
 export function loc_307f(m, hl = m.regs.hl, e = m.regs.e, a = m.regs.a, b = m.regs.b) {
-  const { regs, mem, mem8 } = m;
+  const { regs, mem8 } = m;
   mem8[hl] = e;
 
   // AND (HL): fold the byte just stored into the accumulator. The Z80 AND sets H, clears N and C,
@@ -30,9 +31,12 @@ export function loc_307f(m, hl = m.regs.hl, e = m.regs.e, a = m.regs.a, b = m.re
   const counter = (b - 1) & 0xff;
   if (counter !== 0) return (regs.f = flags, regs.b = counter, placeTileAtTableSuppliedOffset(m));
 
-  // Last slot (counter exhausted to 0): index the word table by the folded byte, bump the byte just
-  // past the entry, then drop two caller-stack bytes into AF and finish the diagonal tile. B ends 0.
+  // Last slot (counter exhausted to 0): index the word table by the folded byte, then INC (HL) the
+  // byte one past that entry -- fetchTableWord left the pointer there, so the target is the entry
+  // start (the fetched pointer stepped by the doubled index) advanced two. Its flags are dead: the
+  // pop below overwrites AF before any read, so only the byte's increment survives. B ends 0.
   fetchTableWord(m, result);
-  regs.incMem8(mem, regs.hl);
+  const entryTail = u16(hl + u8(result + result) + 2);
+  mem8[entryTail] = mem8[entryTail] + 1;
   return (regs.b = counter, regs.af = m.pop16(), placeDiagonallyAbuttingTile(m));
 }
