@@ -11,5 +11,5 @@ const HEADING_CELL = 2;
 
 export function loc_5994(m, object = m.regs.ix) {
   const { mem8 } = m;
-  doubledVelocityForHeading(m, VELOCITY_TABLE, mem8[object + HEADING_CELL]);
+  return doubledVelocityForHeading(m, VELOCITY_TABLE, mem8[object + HEADING_CELL]);
 }

@@ -286,7 +286,7 @@ export function loc_43f0_4734(m, ix = m.regs.ix, iy = m.regs.iy) {
 }
 
 export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy = m.regs.iy) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   mem16[SCRATCH_PTR_A] = recordPtr;
   mem16[SCRATCH_PTR_B] = entryPtr;
@@ -300,43 +300,42 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy
   let aim = (mem8[MOTHER_SHIP_AIM_SIDE_TOGGLE] & 0x01) ? 0x18 : u8(0 - 0x18);
   aim = u8(aim + heading);
 
-  // Carry the mother-ship's own heading/X across the retarget, then re-point ix/iy at the new slot.
+  // Carry the mother-ship's own heading/X across the retarget onto the new slot.
   const spriteHeading = mem8[u16(iy + 0x31)];
   const spriteX = mem8[u16(iy + 0x00)];
-  regs.ix = recordPtr; // retarget at the new entry (a register bridge the frozen stage arm reads back)
-  regs.iy = entryPtr;
   const X = (d) => u16(recordPtr + d);
   const Y = (d) => u16(entryPtr + d);
   mem8[X(0x02)] = aim;
   mem8[Y(0x31)] = spriteHeading;
   mem8[Y(0x00)] = spriteX;
 
-  // Dispatch the era's stage arm directly. The fixed five-word table below the entry names the
-  // slowest-sample arm for the two opening eras and the faster arm for eras two through four; each
-  // arm reads the record's heading and hands the doubled component pair back in E/D/C/B, which is
-  // read out into the record's 0x0a..0x0d cells just below. Later eras name no arm and are surfaced
-  // as a fault, exactly as reaching past the table would.
+  // Dispatch the era's stage arm directly. The slowest-sample arm serves the two opening eras and
+  // the faster arm eras two through four; each reads the record's heading and returns the doubled
+  // component pair, split little-endian into the record's 0x0a..0x0d cells just below. Later eras
+  // name no arm and are surfaced as a fault, exactly as reaching past the table would.
   const era = mem8[ERA_INDEX];
+  let de, bc;
   switch (era) {
     case 0:
     case 1:
-      loc_598e(m);
+      [de, bc] = loc_598e(m, mem8[X(0x02)]);
       break;
     case 2:
     case 3:
     case 4:
-      loc_5994(m);
+      [de, bc] = loc_5994(m, recordPtr);
       break;
     default:
       throw new NotImplemented(`loc_43f0_474c: no stage arm for era ${era}`);
   }
 
-  mem8[X(0x0a)] = regs.e;
-  mem8[X(0x0b)] = regs.d;
-  mem8[X(0x0c)] = regs.c;
-  mem8[X(0x0d)] = regs.b;
+  mem8[X(0x0a)] = de;
+  mem8[X(0x0b)] = de >> 8;
+  mem8[X(0x0c)] = bc;
+  mem8[X(0x0d)] = bc >> 8;
   mem8[Y(0x01)] = 0x4d;
   mem8[Y(SECOND_ENTRY)] = 0x62;
   mem8[X(STATE)] = u8(mem8[X(STATE)] - 1); // 0x00 -> 0xFF: the entry is live
   mem8[BANK_LAUNCH_COOLDOWN] = mem8[BANK_LAUNCH_COOLDOWN_PERIOD]; // re-arm the cooldown
+  return (m.regs.iy = entryPtr, m.regs.ix = recordPtr); // the new slot's record/entry pointers are the live-out
 }
