@@ -1,186 +1,131 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0167 — memory-equivalent to the frozen oracle at ROM 0x0167.
- * GATE: crafted entries — a derail address nothing dispatches — with the pointer aimed at work RAM
- *   so the one bump lands writably. RAM is compared outside the oracle's OWN measured push-scratch,
- *   plus every register, pc and the control latches; the +26 SP drift and the bumped cell are
- *   asserted; teeth. Run: node --test games/timeplt/idiomatic/test/equivalence-0167.test.js
+ * loc_0167 — UNREACHABLE-on-a-genuine-image data-as-code, dissolved to a fault.
+ *
+ * ROM 0x0167 is not a routine: it is a caption record whose bytes only execute as code on the
+ * checksum-mismatch derail arm of armWholePlaneWipeThenDerailOnATamperedImage (ROM 0x019A). That
+ * arm folds a fixed run of the program image into an eight-bit total and calls here ONLY when the
+ * total misses the value a genuine image folds to. A genuine image matches, so the bytes never run
+ * as code; there is no faithful routine to transcribe, and the rewrite raises instead. This gate no
+ * longer byte-replays the junk — it asserts the fault and PROVES the fault stands in for no live
+ * path:
+ *   THROWS    — reaching the derail address raises NotImplemented.
+ *   UNREACHED — over the live tape the caller runs and the derail address is never dispatched, so on
+ *               a genuine image the fault is dead code (positive control: the caller IS counted, so
+ *               the zero at the derail is a real absence, not a tape that never got there).
+ *   GUARD     — the derail is genuinely conditional: the genuine image folds to exactly the value
+ *               the arm subtracts and neither the idiomatic caller nor the frozen oracle reaches the
+ *               derail; a one-byte tamper at either END of the checked run sends BOTH sides to it; a
+ *               byte just past the run sends neither. So the throw is only ever reached on a tamper.
+ *
+ * HOLE: a pair of byte changes that cancel in an eight-bit sum is exactly what the arm cannot see,
+ * and nothing here pretends otherwise — the same hole the oracle has.
+ * Run: node --test games/timeplt/idiomatic/test/equivalence-0167.test.js
  */
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0167 as candidate } from "../loc_0167.js";
-import { loc_0167 as oracle } from "../../translated/loc_0167.js";
-import { loc_0174 as cap0174 } from "../../translated/loc_0174.js";
-import { fetchTableWord } from "../fetchTableWord.js";
-import { sendOneQueuedSoundThenUnwindTheFrameInterrupt as epilogue } from "../sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { u8 } from "../../../../core/int.js";
+import { armWholePlaneWipeThenDerailOnATamperedImage as caller } from "../armWholePlaneWipeThenDerailOnATamperedImage.js";
+import { loc_019a as oracleCaller } from "../../translated/loc_019a.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 
-const TARGET = 0x0167;
-const CONTROL = 0x0174;
-const PENDING_COUNT = 0xac43;
-const FIRST_PENDING = 0xac44;
-const WORK_PAGE = 0xab00;
-const SP_DRIFT = 26;
+const TARGET = 0x0167; // the derail address — caption-record data, not a routine
+const CALLER = 0x019a; // its ONLY caller; arms the derail on a checksum mismatch
+const CHECKED_BLOCK = 0x4ba5;
+const CHECKED_BYTES = 0xf0;
+const GENUINE_TOTAL = 0x11;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
-// ── real machines, then crafted entries ──────────────────────────────────────────────────
+// The checked run is read from a PRIVATE copy of the image per craft, so tampering never poisons
+// the harness's cached image. Guarded like the rest: the ROMs are gitignored.
+const ROM_IMAGE = romsPresent() ? readFileSync(new URL("../../rom/maincpu.bin", import.meta.url)) : null;
 
-let raw = null;
-function rawStates() {
-  if (raw) return raw;
+// ── the captured caller entry ─────────────────────────────────────────────────────────────
+
+let captured = null;
+function entry() {
+  if (captured) return captured;
   const entries = [];
-  const m = makeMachine(new Map([[CONTROL, (mm) => {
-    if (entries.length < 40) entries.push(mm.clone());
-    return cap0174(mm);
+  const m = makeMachine(new Map([[CALLER, (mm) => {
+    entries.push(mm.clone());
+    return oracleCaller(mm);
   }]]));
   const frames = m.runFrames(ENTRY_FRAMES);
   assert.equal(m.stoppedBy, null, `capture run stopped early: ${m.stoppedBy}`);
   assert.equal(frames.length, ENTRY_FRAMES, "capture run ran short");
-  assert.notEqual(entries.length, 0, "vacuous: the tape never reached the control address");
-  raw = entries;
-  return raw;
+  assert.notEqual(entries.length, 0, "vacuous: the tape never reached the caller");
+  captured = entries[0];
+  return captured;
 }
 
-/** A real machine with the accumulator (and so the pointer) aimed at a writable work-RAM cell, and
- * a stale l != a so a twin that drops the pointer load lands elsewhere. */
-function craft(base, aByte, queueCount) {
-  const c = base.clone();
-  c.regs.h = (WORK_PAGE >> 8) & 0xff;
-  c.regs.a = aByte & 0xff;
-  c.regs.l = (aByte ^ 0xff) & 0xff;
-  c.mem8[PENDING_COUNT] = queueCount;
-  for (let i = 0; i < 16; i++) c.mem8[FIRST_PENDING + i] = 0x40 + i;
+/** A clone of the captured caller entry reading a PRIVATE copy of the image with one byte changed. */
+function tampered(at, delta) {
+  const image = Uint8Array.from(ROM_IMAGE);
+  if (delta !== 0) image[at] = (image[at] + delta) & 0xff;
+  const c = entry().clone();
+  c.mem.rom = image;
   return c;
 }
 
-function corpus() {
-  return rawStates().map((b, i) => craft(b, (i * 7 + 3) & 0xff, i % 4));
-}
-
-// ── the masked comparison ─────────────────────────────────────────────────────────────────
-
-/** Oracle vs candidate on clones. The oracle pushes return addresses its dissolved callees no
- * longer do; those exact bytes are recorded and masked. Everything else — RAM, registers, pc and
- * the control/sound latches — is held equal. */
-function compare(cand, machine) {
-  const a = machine.clone();
-  const b = machine.clone();
-  const seat = a.regs.sp;
-  const pushed = new Set();
-  const push = a.push16.bind(a);
-  a.push16 = (v) => { push(v); pushed.add(a.regs.sp); pushed.add((a.regs.sp + 1) & 0xffff); };
-
-  let threw = null;
-  const retO = oracle(a);
-  let retC;
-  try { retC = cand(b); } catch (e) { threw = String(e).slice(0, 60); }
-
-  const da = a.dumpState();
-  const db = b.dumpState();
-  let escaped = null;
-  for (let i = 0; i < da.length && escaped === null; i++) {
-    if (da[i] === db[i]) continue;
-    const addr = a.stateOffsetToAddr(i);
-    if (!pushed.has(addr)) escaped = { addr, o: da[i], c: db[i] };
+/** Whether a caller reaches the derail: the derail faults (the idiomatic side throws NotImplemented,
+ * the oracle side runs the junk and stores through a mis-stepped pointer), so a throw is the signal —
+ * true when it derails, false when the arm returns. */
+function derails(fn, at, delta) {
+  try {
+    fn(tampered(at, delta));
+    return false;
+  } catch {
+    return true;
   }
-  let reg = null;
-  for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) { reg = { k, o: a.regs[k], c: b.regs[k] }; break; }
-  let io = null;
-  for (let bit = 0; bit < 8; bit++) if (a.io.latch[bit] !== b.io.latch[bit]) io = { latch: bit };
-  if (a.io.soundData !== b.io.soundData) io = io || { sound: true };
-  const pcDiff = a.pc === b.pc ? null : { o: a.pc, c: b.pc };
-  return { threw, escaped, reg, io, pcDiff, spDiff: (a.regs.sp - b.regs.sp) & 0xffff,
-    drift: (a.regs.sp - seat) & 0xffff, seat, pushed, ret: retO === retC };
 }
 
-const diverged = (r) => r.threw || r.escaped || r.reg || r.io || r.pcDiff || r.spDiff !== 0;
-const show = (r) => JSON.stringify({ threw: r.threw, escaped: r.escaped, reg: r.reg, io: r.io, pc: r.pcDiff, spDiff: r.spDiff });
+// ── the gate ──────────────────────────────────────────────────────────────────────────────
 
-// ── broken twins ──────────────────────────────────────────────────────────────────────────
+test("THROWS: the derail address raises NotImplemented rather than running caption bytes as code", { skip }, () => {
+  assert.throws(() => candidate(entry().clone()), NotImplemented, "loc_0167 no longer faults when reached");
+  console.log(`  THROWS: ${hex4(TARGET)} raises NotImplemented`);
+});
 
-const noop = () => {};
-const skipInc = (m) => { m.regs.l = m.regs.a; fetchTableWord(m); m.pop16(); m.pop16(); return epilogue(m); };
-const wrongCell = (m) => { m.mem8[m.regs.hl] = u8(m.mem8[m.regs.hl] + 1); fetchTableWord(m); m.pop16(); m.pop16(); return epilogue(m); };
-const onePop = (m) => { m.regs.l = m.regs.a; m.mem8[m.regs.hl] = u8(m.mem8[m.regs.hl] + 1); fetchTableWord(m); m.pop16(); return epilogue(m); };
-const skipEpilogue = (m) => { m.regs.l = m.regs.a; m.mem8[m.regs.hl] = u8(m.mem8[m.regs.hl] + 1); fetchTableWord(m); m.pop16(); m.pop16(); };
-const movesReg = (m) => { candidate(m); m.regs.iy = (m.regs.iy + 1) & 0xffff; };
-
-const TWINS = [
-  ["no-op", noop],
-  ["skip-bump", skipInc],
-  ["wrong-cell", wrongCell],
-  ["short-unwind", onePop],
-  ["no-epilogue", skipEpilogue],
-  ["scribble-register", movesReg],
-];
-
-// ── the gate ────────────────────────────────────────────────────────────────────────────
-
-test("UNREACHED: nothing dispatches this derail address, with a live control", { skip }, () => {
+test("UNREACHED: over the live tape the caller runs and the derail is never dispatched", { skip }, () => {
   for (const [label, opts] of [["coin-start", {}], ["undriven", { tape: [] }]]) {
-    const seen = { [TARGET]: 0, [CONTROL]: 0 };
+    const seen = { [TARGET]: 0, [CALLER]: 0 };
     const m = makeMachine(new Map([
-      [TARGET, (mm) => { seen[TARGET]++; return oracle(mm); }],
-      [CONTROL, (mm) => { seen[CONTROL]++; return cap0174(mm); }],
+      [TARGET, (mm) => { seen[TARGET]++; return candidate(mm); }],
+      [CALLER, (mm) => { seen[CALLER]++; return oracleCaller(mm); }],
     ]), opts);
     m.runFrames(ENTRY_FRAMES);
     assert.equal(m.stoppedBy, null, `the ${label} run stopped early: ${m.stoppedBy}`);
-    assert.ok(seen[CONTROL] > 0, `${label} counted nothing at the control, so the zero means nothing`);
-    assert.equal(seen[TARGET], 0, `${label} now dispatches this address, so plain captures are available`);
-    console.log(`  UNREACHED: ${label} — ${hex4(TARGET)} entered ${seen[TARGET]}, control ${seen[CONTROL]}`);
+    assert.ok(seen[CALLER] > 0, `${label} never ran the caller, so a zero at the derail proves nothing`);
+    assert.equal(seen[TARGET], 0, `${label} dispatched the derail on a genuine image, so it is not dead code`);
+    console.log(`  UNREACHED: ${label} — caller ${hex4(CALLER)} ran ${seen[CALLER]}, derail ${hex4(TARGET)} ${seen[TARGET]}`);
   }
 });
 
-test("CRAFTED: every entry replays identically outside the oracle's own pushes", { skip }, () => {
-  const entries = corpus();
-  for (const e of entries) {
-    const r = compare(candidate, e);
-    assert.ok(!diverged(r), show(r));
+test("GUARD: the derail is reached only when the folded run misses, on caller and oracle alike", { skip }, () => {
+  // The guard math itself: the genuine image folds to exactly the value the arm subtracts.
+  let total = 0;
+  for (let i = 0; i < CHECKED_BYTES; i++) total = (total + ROM_IMAGE[CHECKED_BLOCK + i]) & 0xff;
+  assert.equal(total, GENUINE_TOTAL, "the genuine image no longer sums to the arm's expected value");
+
+  // The genuine image derails neither side — the throw is dead on a clean ROM.
+  assert.equal(derails(caller, CHECKED_BLOCK, 0), false, "the idiomatic caller derails on a genuine image");
+  assert.equal(derails(oracleCaller, CHECKED_BLOCK, 0), false, "the oracle derails on a genuine image");
+
+  // A one-byte tamper at either END of the checked run derails BOTH sides — the guard is live and
+  // its extent is measured, not declared. (A control: only a change inside the run moves the sum.)
+  for (const off of [0, CHECKED_BYTES - 1]) {
+    assert.equal(derails(caller, CHECKED_BLOCK + off, 1), true, `the idiomatic caller missed the derail on a tamper at +${off}`);
+    assert.equal(derails(oracleCaller, CHECKED_BLOCK + off, 1), true, `the oracle missed the derail on a tamper at +${off}`);
   }
-  console.log(`  CRAFTED: ${entries.length} entries identical (RAM, registers, pc, latches), spDiff 0`);
-});
 
-test("SEAT: the stack unwinds 26 bytes on both sides and control resumes together", { skip }, () => {
-  const r = compare(candidate, corpus()[0]);
-  assert.equal(r.drift, SP_DRIFT, "the oracle no longer unwinds the frame this file rests on");
-  assert.equal(r.spDiff, 0, "the rewrite left the stack at a different depth");
-  assert.equal(r.pcDiff, null, "the two sides resume at different addresses");
-  assert.ok(r.ret, "the return values differ");
-  console.log(`  SEAT: ${hex4(r.seat)} -> +${r.drift} on both sides, pc agrees`);
-});
+  // A byte just past the run leaves the sum alone, so neither side derails.
+  assert.equal(derails(caller, CHECKED_BLOCK + CHECKED_BYTES, 1), false, "a byte past the run derailed the idiomatic caller");
+  assert.equal(derails(oracleCaller, CHECKED_BLOCK + CHECKED_BYTES, 1), false, "a byte past the run derailed the oracle");
 
-test("BUMP: the one work-RAM write lands where the accumulator points, and really moves it", { skip }, () => {
-  const e = craft(rawStates()[0], 0x55, 0);
-  const cell = WORK_PAGE | 0x55;
-  const before = e.mem8[cell];
-  const a = e.clone();
-  oracle(a);
-  assert.equal(a.mem8[cell], u8(before + 1), "the oracle no longer bumps the pointed-at cell");
-  const r = compare(candidate, e);
-  assert.ok(!diverged(r), `the bump path diverged — ${show(r)}`);
-  console.log(`  BUMP: ${hex4(cell)} ${before} -> ${u8(before + 1)} on both sides`);
+  console.log(`  GUARD: genuine image folds to ${hex4(GENUINE_TOTAL)} and neither side derails; a tamper at either end derails both, a byte past the run derails neither`);
 });
-
-test("MASK: the push-scratch is masked and a real cell beside it is caught", { skip }, () => {
-  const base = craft(rawStates()[0], 0x50, 0);
-  const pushed = [...compare(candidate, base).pushed];
-  const scribbler = (addr) => (m) => { candidate(m); m.mem8[addr] = (m.mem8[addr] + 1) & 0xff; };
-  assert.ok(!diverged(compare(scribbler(pushed[0]), base)), "a scribble on a pushed byte was caught, so the mask is too narrow");
-  assert.ok(diverged(compare(scribbler(base.regs.sp), base)), "a scribble at the seat was masked, so the mask reaches memory the oracle never wrote");
-  assert.ok(diverged(compare(scribbler(WORK_PAGE | 0x60), base)), "a scribble on a plain work cell was masked");
-  console.log(`  MASK: ${pushed.length} pushed bytes masked; the seat and a work cell caught`);
-});
-
-for (const [label, twin] of TWINS) {
-  test(`TEETH: the ${label} twin is CAUGHT`, { skip }, () => {
-    const entries = corpus();
-    const caught = entries.filter((e) => diverged(compare(twin, e))).length;
-    console.log(`  TEETH/${label}: caught on ${caught}/${entries.length}`);
-    assert.equal(caught, entries.length, `the ${label} twin escaped an entry`);
-  });
-}
