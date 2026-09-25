@@ -4,3 +4,4 @@
 0x6c00  [register-init] STACK_TOP: LD SP,0x6C00 is a Z80 register load, never a RAM write; the write-tap can never observe it.
 0x7808  [boot-one-shot] DMA_MODE: one-shot boot i8257 mode-set (single constant); no change possible.
 0x6100  [boot-bulk-copy] OPTION_TABLE_BASE: boot LDIR verbatim copy from ROM 0x3565 (bulk, excluded); only bulk writer, no role transition.
+0x611c  [bulk-set/const-clear] PLAYER_SLOT_RECORDS: the 5 record bases (0x611c/0x613e/0x6160/0x6182/0x61a4) are written ONLY by the boot bulk template-copy (PC 0x263, excluded) + const-0 clear (PC 0x26d); no code writes the player-key tag (confirmed in 1P, full 4-board, and real 2P with a player switch). Two readers only (loc_141e/loc_1486). Write structurally unwitnessable on a good ROM.

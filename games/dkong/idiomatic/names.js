@@ -627,7 +627,7 @@ export const TASK_RING = 0x60C0;
  *  adds a 3-byte entry from the table at ROM 0x3529 (arg = index). Slot selected by sub_055f
  *  (ROM 0x055F) on 0x600D. Proven: award 5 (+500) landed in 0x60B3, the middle byte. */
 export const P1_SCORE = 0x60B2;
-/** [code] (base = low BCD pair, structurally 0x00 for real scores; own byte only {0xAA attract placeholder, then 0x00 at 2P start} -- neither a live score. The live P2 score is the NEIGHBOR 0x60B6 {0x01}=+100 @f7242, TAP-2P) Player 2 score, same 3-byte little-endian BCD format. sub_055f returns 0x60B5 when 0x600D != 0.
+/** [seen] (base = low BCD pair, structurally 0x00 for real scores; own byte only {0xAA attract placeholder, then 0x00 at 2P start} -- neither a live score. The live P2 score is the NEIGHBOR 0x60B6 {0x01}=+100 @f7242, TAP-2P) Player 2 score, same 3-byte little-endian BCD format. sub_055f returns 0x60B5 when 0x600D != 0.
  *  Attract-mode placeholder is AA AA AA (ROM template 0x01BA). */
 export const P2_SCORE = 0x60B5;
 /** [seen] (own byte took the meaningful low-BCD-pair value 0x50 = the '50' of the 007650 default, {0,0x50} RUN-A -- a real nonzero value on this base, UNLIKE the two score bases; format also control-proven: forcing 990500 -> 00 05 99) High score, same format; default 007650 from ROM template 0x01BA. Updated by the downward
@@ -1044,7 +1044,7 @@ export const WALK_PATH_TABLE_342C = 0x3a8c;
 export const WALK_PATH_TABLE_3478 = 0x3aac;
 /** OBJ_POS_TABLE_MARIOX_CLEAR (0x3ac4) — ROM table of 2-byte (X,Y) position templates used by loc_34b9 when MARIO_X bit7 is CLEAR (Mario in the left screen half); the entry is chosen by SPIN_… [seen] */
 export const OBJ_POS_TABLE_MARIOX_CLEAR = 0x3ac4;
-/** OBJ_POS_TABLE_MARIOX_SET (0x3ad4) — ROM table of 2-byte (X,Y) position templates used by loc_34b9 when MARIO_X bit7 is SET (right screen half); companion to 0x3ac4, same layout, entry ch… [code] */
+/** OBJ_POS_TABLE_MARIOX_SET (0x3ad4) — ROM table of 2-byte (X,Y) position templates used by loc_34b9 when MARIO_X bit7 is SET (right screen half); companion to 0x3ac4, same layout, entry ch… [seen] */
 export const OBJ_POS_TABLE_MARIOX_SET = 0x3ad4;
 /** BOARD_LAYOUT_TABLE_25M (0x3ae4) — ROM board-1 (25m girders) data table, dual-consumed: setup25mGirderBoard passes it (regs.de) to loc_0cc6/drawBoardLayout as line-segments, and loadBoa… [seen] */
 export const BOARD_LAYOUT_TABLE_25M = 0x3ae4;
@@ -1274,7 +1274,7 @@ export const FIRE_SPRITES = 0x69d0;
 export const M50_OBJ1_SPRITE_PAIR_BASE = 0x69e4;
 /** HAMMER_OBJ1_SPRITE_RECORD (0x6a18) — 4-byte sprite-shadow record in SPRITE_BUFFER for the FIRST hammer object (OBJ_PAIR_6680's first record); seedSpriteObjectPair gathers the pair here, d [seen] */
 export const HAMMER_OBJ1_SPRITE_RECORD = 0x6a18;
-/** loc_6209 (0x6209) — Mario's object-record (base 0x6200) collision half-extent on X (+0x09=OBJ_HIT_EXTENT_X); initBoardState seeds 4, findCollidingObject reads it paired w [guess] (placeholder; names-debt) */
+/** loc_6209 (0x6209) — Mario's object-record (base 0x6200) collision half-extent on X (+0x09=OBJ_HIT_EXTENT_X); initBoardState seeds 4, findCollidingObject reads it paired w [seen] (placeholder; names-debt) */
 export const loc_6209 = 0x6209;
 /** loc_620a (0x620a) — Mario's object-record (base 0x6200) collision half-extent on Y (+0x0a=OBJ_HIT_EXTENT_Y); initBoardState seeds 8, findCollidingObject reads it paired w [seen] (placeholder; names-debt) */
 export const loc_620a = 0x620a;
@@ -1360,13 +1360,13 @@ export const COINAGE_1P_DIGIT_CELL = 0x756c;
 export const RIVET_BAND_ROW_BASE_B = 0x7547;
 /** PLAYFIELD_SIDE_BLANK_COL_B (0x7523) — Base cell (row 9, col 3, adjacent to SCORE_VRAM_COLUMN_P2 0x7521) of the second of two 14-cell vertical side-column runs that clearPlayfieldAndSprites blanks (t [seen] */
 export const PLAYFIELD_SIDE_BLANK_COL_B = 0x7523;
-/** COINAGE_DIGIT_TENS_CARRY_CELL (0x758e) — Fixed VRAM tile that receives the tens digit '1' when the attract/title coinage digit-pair's right value carries to 10 (writeDigitPairWithCarry's value==0x0a ar [code] */
+/** COINAGE_DIGIT_TENS_CARRY_CELL (0x758e) — Fixed VRAM tile that receives the tens digit '1' when the attract/title coinage digit-pair's right value carries to 10 (writeDigitPairWithCarry's value==0x0a ar [seen] */
 export const COINAGE_DIGIT_TENS_CARRY_CELL = 0x758e;
-/** INTRO_CLIMB_SCROLL_COL_B_BASE (0x75c0) — Base VRAM/tilemap cell of the second column scrolled up one row per step by scrollClimbGraphicStep in the opening Kong-climb intro cutscene (copyByteDisplaced b [code] */
+/** INTRO_CLIMB_SCROLL_COL_B_BASE (0x75c0) — Base VRAM/tilemap cell of the second column scrolled up one row per step by scrollClimbGraphicStep in the opening Kong-climb intro cutscene (copyByteDisplaced b [seen] */
 export const INTRO_CLIMB_SCROLL_COL_B_BASE = 0x75c0;
 /** BLINK_COLOR_COLUMN_MID (0x75e4) — Middle cell of the shared 3-cell descending colour-cycle VRAM column (top BLINK_COLOR_COLUMN_TOP=0x75c4, stride 0x20 -> 0x75c4/0x75e4/0x7604) filled by the blin [seen] */
 export const BLINK_COLOR_COLUMN_MID = 0x75e4;
-/** INTRO_CLIMB_SCROLL_COL_A_BASE (0x7600) — Base VRAM/tilemap cell of the first column scrolled up one row per step by scrollClimbGraphicStep in the opening Kong-climb intro cutscene (copyByteDisplaced ba [code] */
+/** INTRO_CLIMB_SCROLL_COL_A_BASE (0x7600) — Base VRAM/tilemap cell of the first column scrolled up one row per step by scrollClimbGraphicStep in the opening Kong-climb intro cutscene (copyByteDisplaced ba [seen] */
 export const INTRO_CLIMB_SCROLL_COL_A_BASE = 0x7600;
 /** BLINK_COLOR_COLUMN_BOTTOM (0x7604) — Bottom cell of the shared 3-cell descending colour-cycle VRAM column (0x75c4/0x75e4/0x7604, stride 0x20); painted by the colour-cycle blink driver's leave-as-is [seen] */
 export const BLINK_COLOR_COLUMN_BOTTOM = 0x7604;
@@ -1635,7 +1635,7 @@ export const ROUTINES = {
   0x13bb: { name: "selectPlayer1Context", role: "reset the live player/display context to player 1, single-player, sub-state 0, with the flip-screen latch forced ON", cert: "seen" },
   0x13ca: { name: "loc_13ca", role: "format a packed-BCD score into display digits, then bubble a 3-byte-keyed record up a descending table", cert: "seen" },
   0x141e: { name: "selectPlayerScreenOrAttract", role: "the sub-state-0x14 handler: hold the game-over screen, then bring up the active player's screen or fall back to attract", cert: "seen" },
-  0x144f: { name: "selectPlayer2AndComposeScreen", role: "make player 2 the current player, then compose this player's screen", cert: "code" },
+  0x144f: { name: "selectPlayer2AndComposeScreen", role: "make player 2 the current player, then compose this player's screen", cert: "seen" },
   0x1459: { name: "configureFlipScreenAndComposeScreen", role: "orient the display for the player who is up, step to the next in-game sub-state, and post this screen's draw tasks", cert: "seen" },
   0x1475: { name: "enterAttractMode", role: "reset the machine into attract mode", cert: "seen" },
   0x1486: { name: "runBonusItemValueDisplay", role: "drive the on-board bonus item: its position walk, its animated sprite, and the countdown value shown beside it", cert: "seen" },
@@ -1675,7 +1675,7 @@ export const ROUTINES = {
   0x1a15: { name: "startBonusExpiredDelay", role: "arm the DELAY phase of the bonus-expired death sequence", cert: "seen" },
   0x1a1e: { name: "bonusExpiredIdle", role: "the idle (do-nothing) arm of the bonus-expired state machine", cert: "seen" },
   0x1a1f: { name: "advanceBonusExpiredStepWhenDelayExpires", role: "the DELAY step of the bonus-expired sequence: hold, then advance once a countdown elapses", cert: "seen" },
-  0x1a2a: { name: "advanceSubstateWhenGrounded", role: "hold this sub-state until Mario has landed, then advance to the next sub-state and abort the rest of the frame", cert: "code" },
+  0x1a2a: { name: "advanceSubstateWhenGrounded", role: "hold this sub-state until Mario has landed, then advance to the next sub-state and abort the rest of the frame", cert: "seen" },
   0x1a33: { name: "collectEdgeRivet", role: "the 100m edge-rivet pickup handler: arm at a rivet edge, then on a later frame remove the rivet the player just stepped off", cert: "seen" },
   0x1a4b: { name: "armEdgeRivetPickup", role: "raise the edge-item pickup latch (EDGE_RIVET_ARMED := 1)", cert: "seen" },
   0x1ac3: { name: "dispatchMarioMovement", role: "the movement machine's router: five tests in a fixed priority order (airborne, freeze, hammer, ladder, jump-press, ground). The ORDER is the mechanic -- the hammer arm sits ABOVE both the ladder and jump tests (ROM 0x1AD1 before 0x1AD8 and 0x1ADF) and routes to the ground walk, so those two are never reached and a hammer-carrying Mario can only walk", cert: "seen" },
@@ -1718,7 +1718,7 @@ export const ROUTINES = {
   0x1df5: { name: "pickRandomAwardTier", role: "pick one of three effect-sprite setters from two bits of RANDOM", cert: "seen" },
   0x1e00: { name: "stageAward300Popup", role: "load this effect-sprite's (code, task-message) params and hand off to the shared continuation stageAwardPopupAtHitObject", cert: "seen" },
   0x1e08: { name: "stageAward500Popup", role: "stage this effect's (sprite-code, deferred-task) constants, then run the shared effect handler", cert: "seen" },
-  0x1e10: { name: "stageAward800Popup", role: "effect-sprite setter: load (B, DE) then hand off to the feeder stageAwardPopupAtHitObject", cert: "code" },
+  0x1e10: { name: "stageAward800Popup", role: "effect-sprite setter: load (B, DE) then hand off to the feeder stageAwardPopupAtHitObject", cert: "seen" },
   0x1e15: { name: "stageAwardPopupAtHitObject", role: "post the queued task, fetch the effect sprite's X/Y from an indirect parameter block, then hand off to the record-stamp tail", cert: "seen" },
   0x1e28: { name: "awardScorePopup", role: "award points and stage the floating score glyph over Mario", cert: "seen" },
   0x1e36: { name: "stampScorePopupSprite", role: "stamp a 4-byte sprite record, then cue a board-gated sound", cert: "seen" },
@@ -1753,16 +1753,16 @@ export const ROUTINES = {
   0x2243: { name: "marioReachedTargetColumn", role: "has Mario reached the target position? a three-condition hit test", cert: "seen" },
   0x2257: { name: "reportNoHitAndSkipCaller", role: "the 'no hit' tail of the sub_2243 hit test: abort the caller as well and unwind two levels, back to the grandparent", cert: "seen" },
   0x2259: { name: "slide50mObjectDown", role: "one arm of the dispatch50mObjectState board-object state machine: tick this object's timer, step its position counter UP and mirror it on-screen, advance its state at the bottom of travel (the counter's maximum; larger Y is lower on screen)", cert: "seen" },
-  0x2281: { name: "stepMarioDownInClimbPose", role: "step Mario down one pixel, held in the climb-down pose", cert: "code" },
+  0x2281: { name: "stepMarioDownInClimbPose", role: "step Mario down one pixel, held in the climb-down pose", cert: "seen" },
   0x2299: { name: "advance50mObjectStateOnRandomGate", role: "advance a board object to its next state, on a randomised pacing gate", cert: "seen" },
   0x22a2: { name: "raise50mObjectAndPark", role: "one idle-then-raise tick for a BOARD_OBJ_SCRATCH object, resetting it to state 0 when it reaches the TOP of its travel (counter 0x68, its minimum)", cert: "seen" },
   0x22bd: { name: "publish50mObjectYToSprite", role: "mirror the byte at a source pointer into one of two sprite slots, selected by bit 3 of the pointer", cert: "seen" },
   0x22cb: { name: "loc_22cb", role: "seed one object's velocity fields, choosing the source by mode and difficulty", cert: "seen" },
   0x22e1: { name: "loc_22e1", role: "pick an object's velocity magnitude by level, then commit it", cert: "seen" },
-  0x22f6: { name: "loc_22f6", role: "set an object's velocity from the RNG", cert: "code" },
+  0x22f6: { name: "loc_22f6", role: "set an object's velocity from the RNG", cert: "seen" },
   0x22f9: { name: "loc_22f9", role: "commit a value and its low-bit-derived sign into two object-record fields", cert: "seen" },
-  0x2303: { name: "loc_2303", role: "seed one object's step magnitude and its toward-player step direction (the difficulty-3/4 arm of object-velocity init)", cert: "code" },
-  0x231a: { name: "loc_231a", role: "seed one object's toward-player step code and step delta from the horizontal offset to the player (the difficulty-5 arm of object-velocity init)", cert: "code" },
+  0x2303: { name: "loc_2303", role: "seed one object's step magnitude and its toward-player step direction (the difficulty-3/4 arm of object-velocity init)", cert: "seen" },
+  0x231a: { name: "loc_231a", role: "seed one object's toward-player step code and step delta from the horizontal offset to the player (the difficulty-5 arm of object-velocity init)", cert: "seen" },
   0x2333: { name: "snapYToGirder", entry: "snapYToGirderFromRegisters", role: "nudge a coordinate one pixel along the 25m girder slope", cert: "seen" },
   0x236e: { name: "findOppositeLadderEnd", role: "find a key in the ladder (object-parameter) table and return the paired slot at the other end of that ladder, tagged with which end the caller started from", cert: "seen" },
   0x239c: { name: "stepBallisticMotion", role: "advance an airborne actor one frame along its ballistic arc", cert: "seen" },
@@ -1900,7 +1900,7 @@ export const ROUTINES = {
   0x3f24: { name: "stampFixedTilePair", role: "paint a fixed two-tile decoration into the tilemap", cert: "seen" },
   0x3fa0: { name: "loc_3fa0", role: "board-setup prelude: stamp the 50m-only tiles, then run the board-setup continuation", cert: "seen" },
   0x3fa6: { name: "stamp50mBoardTiles", role: "during board setup, stamp four tilemap cells, but only on the 50m conveyor board (board 2)", cert: "seen" },
-  0x3fc0: { name: "pinMarioClimbPose", role: "pin a fixed climb pose into Mario's hardware sprite record and hand back a pointer to that record's Y field", cert: "code" },
+  0x3fc0: { name: "pinMarioClimbPose", role: "pin a fixed climb pose into Mario's hardware sprite record and hand back a pointer to that record's Y field", cert: "seen" },
 };
 
 // ── Stack scratch ────────────────────────────────────────────────────────────
