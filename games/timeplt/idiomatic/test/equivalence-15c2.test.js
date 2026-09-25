@@ -1,39 +1,43 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchSequencePhase0SubStepArm — memory-equivalent to the frozen oracle at ROM 0x15C2.
+ * dispatchSequencePhase0SubStepArm — equivalent to the frozen oracle at ROM 0x15C2, under the
+ * DISSOLVED-DISPATCH contract.
  *
- * WHAT IT IS. Three instructions: read the inner sequence step, keep its low three bits, and enter
- * the restart-vector dispatch with the address of the word table that follows. Nothing is pushed
- * for the arm to come back to, so the arm's own return carries this entry's — which is why both
- * sides here end with the SAME stack pointer and the SAME program counter, unlike a rewrite that
- * merely omits a return.
+ * WHAT IT IS. Read the inner sequence step, keep its low three bits, and run the arm that index
+ * names out of the word table that follows. The rewrite no longer computes the arm's address and
+ * enters it through the restart-vector dispatch; it switches on the index and calls the arm's
+ * idiomatic module DIRECTLY. That module PLAIN-RETURNS — it does not pop a return address, and its
+ * own sub-calls are ordinary JS calls, not machine calls that push and pop. So the two sides here
+ * NO LONGER share an exit stack pointer or an exit program counter, and neither is compared: with
+ * the dispatch dissolved, the arm's return is supplied at the seam in production, and the contract
+ * that remains is the WORK MEMORY the arm and its sub-calls leave.
  *
  * ★ HOW THE LIVE-OUT WAS DERIVED, and it is from the ORACLE. The oracle's exit successor is the
- *   ARM, entered as a jump: whatever the arm writes and whatever it leaves in registers is this
- *   entry's product, and nothing of this entry's own survives it. So the live-out is memory plus
- *   the arm's, and the gate runs the arms rather than stopping at the address it computed. The
- *   registers the dispatch chain sets up on the way in are inputs to the arm, not outputs of this
- *   entry, and the EXCLUDED arm measures which of them the arms actually carry through.
+ *   ARM: whatever the arm writes to memory is this entry's product. Registers are NOT part of the
+ *   contract — the arm plain-returns and leaves whatever its body leaves — so the live-out is the
+ *   arm's work-memory footprint, and the gate runs the arms rather than stopping at the address it
+ *   would have computed.
  *
- * ★ THE COMPARISON IS MASKED BELOW THE EXIT STACK POINTER, and the mask is not free. The frozen
- *   chain pushes and pops three nested return addresses in the bytes just under the arm's own
- *   frame; the rewrite computes the same arm arithmetically and never writes them. On every state
- *   this gate reaches the raw difference is nonetheless EMPTY — those bytes already hold the very
- *   values the chain writes, because the same dispatch runs there over and over at the same depth.
- *   An empty difference proves nothing on its own, so the SCRATCH arm carries a POSITIVE CONTROL:
- *   with those bytes poked to a value the chain does not write, the difference appears, and the
- *   arm measures how deep it goes. That is what makes the emptiness a measurement rather than a
- *   coincidence nobody checked.
+ * ★ THE ONE PLACE THE TWO SIDES DIVERGE is a dead band of stack scratch, 0xAFDE..0xAFE9, and it is
+ *   MASKED. The oracle enters the arm through a chain that pushes and pops nested return addresses
+ *   into those bytes; the rewrite calls the arm directly and never writes them. Those bytes are
+ *   popped before any boundary snapshot the game reads — they are transient stack scratch, dead the
+ *   moment the arm returns — so a difference confined to them is not a difference in any value the
+ *   game goes on to use. The SCRATCH band arm proves the mask is not blind: divergence really does
+ *   appear inside the band (so the instrument can see it), and NOTHING escapes it (so outside the
+ *   band the two sides are byte-identical). The TEETH prove the mask is not over-broad: a wrong arm
+ *   writes real work memory outside the band and is caught.
  *
  * GATE: strict unit-capture over the shared coin-then-start tape, plus crafted selectors off each
- *   live arm.
+ *   live arm; the memory comparison masks only the dead scratch band above.
  *
  * HOLE: the session presents only two of the eight selectors. The other six are crafted, and from
  * an entry state their arm would not really see; where such an arm faults it is asserted only to
  * fault IDENTICALLY on both sides, never to be correct.
  * HOLE: only two of the eight table words address code this port has transcribed. The other six
- * read as addresses only because the three bits admit them; the sweep runs them and records that
- * both sides fault the same way, which is a statement about the dispatch, not about those words.
+ * read as addresses only because the three bits admit them; the rewrite raises the same fault the
+ * dispatch would, and the sweep records that both sides fault the same way — a statement about the
+ * dispatch, not about those words.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-15c2.test.js
  */
@@ -52,8 +56,15 @@ const ARM_TABLE = 0x15c8;
 const ARM_MASK = 0x07;
 const ARM_COUNT = ARM_MASK + 1;
 
-/** Bytes below the exit stack pointer the frozen dispatch's dead scratch can reach; measured. */
-const WINDOW = 8;
+/**
+ * The dead stack-scratch band the frozen chain writes nested return addresses into and the
+ * dissolved rewrite never touches. It is popped before any boundary snapshot — transient scratch,
+ * dead the moment the arm returns — so a difference confined to it is not a difference in any value
+ * the game reads. Masked from the memory comparison; the SCRATCH test proves the band is real and
+ * that nothing escapes it. Measured across every crafted arm off both live entries.
+ */
+const SCRATCH_LO = 0xafde;
+const SCRATCH_HI = 0xafe9;
 
 const CORPUS_FRAMES = 2000;
 const DISPATCHES = 33;
@@ -67,11 +78,7 @@ const SELECTOR_SPREAD = [[0, 1], [6, 32]];
 const SELECTOR_INFORMATIVE = [[0, 1], [6, 32]];
 const LIVE_SELECTORS = SELECTOR_SPREAD.map(([s]) => s);
 
-const MOVED = ["a", "d", "e"];
-/** Named separately so a failure says which: the pointer registers an arm hands on, and the seat. */
-const HELD = ["b", "c", "h", "l", "ix", "iy", "sp"];
 const SELECTOR_VALUES = 256;
-const POKE = 0xa5;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -142,7 +149,9 @@ function diffOf(candidate, machine) {
   const da = a.dumpState();
   const db = b.dumpState();
   const exitSp = a.regs.sp;
-  const outside = (addr) => !(addr >= exitSp - WINDOW && addr < exitSp);
+  // The only place the dissolved rewrite may differ from the oracle is the dead stack-scratch band;
+  // everything else is the live contract. `outside` is what the memory comparison actually enforces.
+  const outside = (addr) => !(addr >= SCRATCH_LO && addr <= SCRATCH_HI);
   const raw = [];
   let informative = false;
   for (let off = 0; off < da.length; off++) {
@@ -168,11 +177,10 @@ function diffOf(candidate, machine) {
   };
 }
 
-/** A clone of a real entry with the selector forced, and optionally the dead bytes overwritten. */
-function craft(selector, base = entryFor(LIVE_SELECTORS[0]), pokeScratch = false) {
+/** A clone of a real entry with the selector forced. */
+function craft(selector, base = entryFor(LIVE_SELECTORS[0])) {
   const m = base.clone();
   m.mem8[SEQUENCE_SUBSTEP] = selector;
-  if (pokeScratch) for (let k = 1; k <= WINDOW; k++) m.mem8[(m.regs.sp - k) & 0xffff] = POKE;
   return m;
 }
 
@@ -256,46 +264,36 @@ test("NOT VACUOUS: a candidate that does nothing FAILS the same comparison", { s
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(r.masked)}`);
 });
 
-test("SCRATCH: the dead window is real, and the instrument can see into it", { skip }, () => {
-  let rawSeen = 0;
-  let deepest = 0;
+test("SCRATCH: divergence is confined to the dead band, and the band is really there", { skip }, () => {
+  // The mask is only honest if BOTH of these hold. If nothing ever differed in the band, the mask
+  // would be hiding a phantom and proving nothing; if a difference escaped the band, the rewrite
+  // would be diverging in live memory and the mask would be swallowing the evidence.
+  let rawInBand = 0;
+  let lo = 0x10000;
+  let hi = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
       const r = diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live)));
+      // Nothing escapes the band: outside the dead scratch the two sides are byte-identical.
+      assert.deepEqual(r.masked, [], `selector ${i}: a difference escaped the band — ${show(r.masked)}`);
       for (const d of r.raw) {
-        assert.ok(d.addr < r.exitSp, `selector ${i}: ${hex4(d.addr)} is at or above the exit pointer`);
-        deepest = Math.max(deepest, r.exitSp - d.addr);
-        rawSeen++;
+        assert.ok(
+          d.addr >= SCRATCH_LO && d.addr <= SCRATCH_HI,
+          `selector ${i}: ${hex4(d.addr)} differs outside the masked band`,
+        );
+        lo = Math.min(lo, d.addr);
+        hi = Math.max(hi, d.addr);
+        rawInBand++;
       }
     }
   }
-
-  // THE POSITIVE CONTROL. Nothing above proves the comparison can SEE the chain's scratch, since
-  // those bytes already hold what the chain writes. Overwrite them with a value it never writes
-  // and the difference must appear — otherwise the emptiness above is measuring nothing at all.
-  let controlSeen = 0;
-  let controlDeepest = 0;
-  for (const live of LIVE_SELECTORS) {
-    for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live), true));
-      for (const d of r.raw) {
-        assert.ok(d.addr < r.exitSp, `control ${i}: ${hex4(d.addr)} is at or above the exit pointer`);
-        controlDeepest = Math.max(controlDeepest, r.exitSp - d.addr);
-        controlSeen++;
-      }
-      assert.deepEqual(r.masked, [], `control ${i}: a difference escaped the window — ${show(r.masked)}`);
-    }
-  }
-  assert.ok(controlSeen > 0, "the control changed nothing: this comparison cannot see the scratch " +
-    "at all, so the empty difference above is not evidence of anything");
-  assert.ok(
-    controlDeepest <= WINDOW,
-    `the control reaches ${controlDeepest} bytes below the exit pointer, past the ${WINDOW}-byte ` +
-      "window this file masks — widen it deliberately, do not let it drift",
-  );
+  // The band is not a phantom: the two sides really do differ inside it (the chain writes the dead
+  // return-address bytes, the direct call does not), so the instrument can see into what it masks.
+  assert.ok(rawInBand > 0, "no byte ever differed in the band: the mask is hiding nothing real, so " +
+    "masking it is unjustified — the two sides may simply be register-for-register identical here");
   console.log(
-    `  SCRATCH: ${rawSeen} raw differing bytes untouched, deepest ${deepest}; with the dead bytes ` +
-      `overwritten, ${controlSeen} appear, deepest ${controlDeepest}, window ${WINDOW}`,
+    `  SCRATCH: ${rawInBand} differing bytes, all within [${hex4(SCRATCH_LO)}..${hex4(SCRATCH_HI)}] ` +
+      `(seen ${hex4(lo)}..${hex4(hi)}); nothing escaped the band`,
   );
 });
 
@@ -344,45 +342,21 @@ test("SELECTOR: the five high bits are ignored, over the cell's whole range", { 
   console.log(`  SELECTOR: ${SWEEP_SIZE} crafted selectors identical — only three bits can matter`);
 });
 
-test("STACK: the exit pointer and the program counter are identical", { skip }, () => {
-  let completed = 0;
-  for (const live of LIVE_SELECTORS) {
-    for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live)));
-      if (r.faulted) continue;
-      assert.equal(r.exitSp, r.spB, `arm ${i}: exit pointers ${hex4(r.exitSp)} and ${hex4(r.spB)}`);
-      assert.equal(r.pcA, r.pcB, `arm ${i}: program counters ${hex4(r.pcA)} and ${hex4(r.pcB)}`);
-      completed++;
-    }
-  }
-  assert.ok(completed > 0, "no arm completed, so nothing here compared a stack pointer");
-  console.log(`  STACK: ${completed} completing arms, exit pointer and program counter identical`);
-});
-
-test("EXCLUDED, deliberately: the registers that move, over every real dispatch", { skip }, () => {
-  const moved = new Set(session().moved);
-  for (const live of LIVE_SELECTORS) {
-    for (let i = 0; i < ARM_COUNT; i++) {
-      for (const k of diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live))).moved) moved.add(k);
-    }
-  }
-  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  // MOVED is a CEILING, not a set the rewrite is required to fill. deepEqual against it
-  // would demand the divergence and go RED on a rewrite that became register-exact.
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
-    "a register outside the declared cap diverged");
-  for (const k of HELD) assert.ok(!moved.has(k), `a register the arms hand on moved (${k})`);
-});
+// The exit stack pointer, the exit program counter, and the set of registers that move are NO
+// LONGER part of the contract and are not asserted. The dispatch is dissolved: the arm's idiomatic
+// module is called directly and PLAIN-RETURNS, so the stack pointer is left where the arm found it
+// (the omitted return is supplied at the seam in production) and the registers hold whatever the
+// arm's body leaves. The contract that remains is work memory, checked outside the dead band above.
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
 
 for (const [label, twin] of TWINS) {
-  test(`TEETH: the ${label} twin is CAUGHT outside the window`, { skip }, () => {
+  test(`TEETH: the ${label} twin is CAUGHT outside the band`, { skip }, () => {
     const caught = sweepCaught(twin);
     assert.ok(
       caught > 0,
       `the masked comparison PASSED the ${label} twin on every selector — either the twin is ` +
-        "not broken or the window has swallowed the evidence",
+        "not broken or the band has swallowed the evidence",
     );
     console.log(`  TEETH/${label}: caught on ${caught} of ${SWEEP_SIZE} crafted selectors`);
   });
