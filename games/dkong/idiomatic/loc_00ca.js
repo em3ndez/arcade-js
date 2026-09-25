@@ -42,16 +42,30 @@ const DISPATCH_TARGETS = new Set([
   LOC_3E99_ADDR,
 ]);
 
-export function loc_00ca(m, target, site = "the NMI game-state table") {
-  // A rewritten handler is invoked directly, not through the routine table: that is how the
-  // call-bracket seam recognises a computed dispatch. Going through the table would open a frame
-  // this dispatch never opened, and the seam would balance a bracket that is not there.
-  if (m.overrides && m.overrides.has(target)) return m.overrides.get(target)(m);
-
-  if (DISPATCH_TARGETS.has(target)) return m.call(target);
-
+/**
+ * The routing decision, split out so it can be checked without dispatching. The listed targets are
+ * a whitelist (the game has no range check); every accepted target dispatches to itself, so resolve
+ * returns it unchanged. An out-of-range selector is refused by name. Reads and writes nothing, so
+ * every selector can be put to it and its decision compared directly.
+ */
+export function resolveDispatchTarget(target, site = "the NMI game-state table") {
+  if (DISPATCH_TARGETS.has(target)) return target;
   throw new NotImplemented(
     `handler at ROM 0x${target.toString(16).padStart(4, "0")} ` +
       `(reached via rst 0x28 table at ${site})`,
+  );
+}
+
+export function loc_00ca(m, target, site = "the NMI game-state table") {
+  // A dispatch target runs through its installed override. Every shipped config installs one for all
+  // 67 targets, so this is the only path a valid target takes; the gate asserts that coverage.
+  if (m.overrides && m.overrides.has(target)) return m.overrides.get(target)(m);
+
+  // No override: refuse an out-of-table selector by name; a table target reaching here is a missing
+  // override, i.e. a wiring error, not a dispatch this layer performs.
+  const resolved = resolveDispatchTarget(target, site);
+  throw new NotImplemented(
+    `dispatch target 0x${resolved.toString(16).padStart(4, "0")} has no installed override ` +
+      `(reached via rst 0x28 table at ${site}); the idiomatic layer dispatches only through overrides`,
   );
 }

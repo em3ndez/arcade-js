@@ -18,16 +18,11 @@
  * VALUES are the interrupt ABI the direct-call layer drops, and every push/pop lands in the
  * excluded STACK_SCRATCH region (the DK NMI stack never dips below 0x6be0).
  *
- * CAPTURE — 0x00b5 is NOT reached through the m.call registry (entry_0066 falls straight
- * into perFrame with a direct call), so it cannot be hooked via the override map. Instead
- * we wrap the host's fireNmi and MIRROR entry_0066's prologue exactly up to perFrame's
- * entry — accept the NMI (push PC, +11t), then ack / watchdog / sprite-DMA blit / read
- * controls when a game is in play / reserve the 12-byte register frame — clone at that
- * instant (the precise state perFrame is entered with), then run the ORACLE perFrame so the
- * host run proceeds undisturbed. That inlined prologue IS serviceVblankNmi's body minus
- * perFrame (proven equivalent to entry_0066), so the host advances faithfully. Two host
- * runs feed the gate: a plain attract run (GAME_STATE 0/1) and a driven coin+start run
- * (GAME_STATE 2/3), so all four dispatch arms are covered by REAL captured entries.
+ * CAPTURE — 0x00b5 is reached by a direct fall-through from entry_0066, not the override map,
+ * so we wrap fireNmi and mirror entry_0066's prologue up to perFrame's entry (accept NMI, ack,
+ * watchdog, sprite-DMA blit, read controls in play, reserve the 12-byte register frame), clone
+ * that instant, then run the oracle perFrame undisturbed. Two host runs feed the gate — attract
+ * (GAME_STATE 0/1) and driven coin+start (2/3) — covering all four dispatch arms with real entries.
  *
  * Jobs:
  *   1. EQUAL (captured perFrame entries) — over attract + driven captures spanning all
@@ -48,6 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_00b5 as oraclePerFrame } from "../../translated/loc_00b5.js";
 import { perFrame } from "../perFrame.js";
+import { ORACLE_ROUTINES } from "../../routines.js";
 import { blitSpritesViaDma } from "../blitSpritesViaDma.js";
 import { loc_0087 } from "../../translated/loc_0087.js";
 import { Machine } from "../../machine.js";
@@ -167,6 +163,16 @@ const CAPS = ROM_PRESENT
 
 // -- 1. EQUAL (captured perFrame entries) -------------------------------------
 
+// Catch-all override (duck-typed like the Machine's overrides Map) that runs the frozen handler for
+// whatever dispatch target was computed. Installed identically on both sides, so a wrong target still
+// routes to a different handler and diverges RAM — perFrame-body-vs-perFrame-body, as before.
+function oracleCatchAll() {
+  return {
+    has: () => true,
+    get: (target) => (mm) => ORACLE_ROUTINES.get(target)(mm),
+  };
+}
+
 test("EQUAL: real captured perFrame entries — perFrame == oracle (RAM −stack, SP, pc)", () => {
   assert.ok(CAPS.length >= 1, "expected at least one real perFrame entry across the runs");
 
@@ -174,6 +180,8 @@ test("EQUAL: real captured perFrame entries — perFrame == oracle (RAM −stack
   for (const cap of CAPS) {
     const o = cap.clone();
     const c = cap.clone();
+    o.overrides = oracleCatchAll();
+    c.overrides = oracleCatchAll();
     oraclePerFrame(o);
     perFrame(c);
 

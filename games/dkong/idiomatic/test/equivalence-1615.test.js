@@ -55,6 +55,7 @@ import { runRivetBoardInterludeFrame } from "../runRivetBoardInterludeFrame.js";
 import { clearSpriteColumns } from "../clearSpriteColumns.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
+import { ORACLE_ROUTINES } from "../../routines.js";
 import { STACK_SCRATCH, BOARD, BOARD_ADVANCE_STEP } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -109,6 +110,24 @@ function craftEntry(base, board, step) {
 
 // -- 1. FULL-HANDLER (crafted reachable arms) ---------------------------------
 
+// A catch-all override (duck-typed like the Machine's overrides Map) that runs the FROZEN ORACLE
+// handler for whatever target the dispatcher computed, and records that target. Installed IDENTICALLY
+// on the oracle and the candidate so BOTH loc_00ca take the override path (translated line 11,
+// idiomatic line 49) and reach the SAME handler by the SAME direct call. The old FULL-HANDLER ran that
+// handler behind idiomatic loc_00ca's `m.call`; the idiomatic layer no longer has that path, so the
+// handler is reached through the production override seam instead. Both sides use the identical path
+// and handler, so downstream RAM/SP/pc stay a true dispatcher-vs-dispatcher comparison — a wrong arm
+// target or a wrong LIVE-IN handoff still diverges through the full handler, exactly as before.
+function oracleCatchAll(rec) {
+  return {
+    has: () => true,
+    get: (target) => (mm) => {
+      rec.push(target);
+      return ORACLE_ROUTINES.get(target)(mm);
+    },
+  };
+}
+
 test("FULL-HANDLER: dispatchBoardClearedInterlude == oracle on real bases poked to each board arm + reachable step", () => {
   const base = attractBase();
   const cases = [
@@ -122,12 +141,22 @@ test("FULL-HANDLER: dispatchBoardClearedInterlude == oracle on real bases poked 
   for (const { board, step } of cases) {
     const a = craftEntry(base, board, step); // oracle
     const b = craftEntry(base, board, step); // candidate
+    const recA = [], recB = [];
+    a.overrides = oracleCatchAll(recA);
+    b.overrides = oracleCatchAll(recB);
     const before = a.dumpState();
 
     oracle(a);
     dispatchBoardClearedInterlude(b);
 
     const tag = `BOARD=${hx(board)} step=${hx(step)}`;
+
+    // The dispatcher's OWN arm dispatch is rec[0]; later records are nested dispatches the frozen
+    // handler makes. Both sides run the identical handler by the identical path, so the WHOLE dispatch
+    // sequence must match address-for-address — the computed arm target asserted directly.
+    assert.ok(recA.length >= 1, `the dispatcher dispatched nothing on the oracle side (${tag})`);
+    assert.deepEqual(recB.map(hx), recA.map(hx), `dispatch sequence diverged (${tag})`);
+
     const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
     assert.equal(
       ramDiff,
@@ -141,7 +170,7 @@ test("FULL-HANDLER: dispatchBoardClearedInterlude == oracle on real bases poked 
     if (!firstRamDiffExStack(before, a.dumpState(), (o) => a.stateOffsetToAddr(o))) mutatedAll = false;
   }
   assert.ok(mutatedAll, "some case mutated no RAM — the replay is vacuous for it");
-  console.log(`  FULL-HANDLER: ${cases.length} arms (BOARD 1/3 table 0x1623, BOARD 2 table 0x1637, BOARD 4 -> runRivetBoardInterludeFrame) — full oracle handler both sides, RAM(−stack)+pc+SP identical, all non-vacuous`);
+  console.log(`  FULL-HANDLER: ${cases.length} arms (BOARD 1/3 table 0x1623, BOARD 2 table 0x1637, BOARD 4 -> runRivetBoardInterludeFrame) — full oracle handler both sides through the production override seam, target+RAM(−stack)+pc+SP identical, all non-vacuous`);
 });
 
 // -- 2. CRAFTED (exhaustive selector sweep) -----------------------------------

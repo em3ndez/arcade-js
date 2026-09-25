@@ -40,6 +40,7 @@ import { loc_06fe as oracle } from "../../translated/loc_06fe.js";
 import { dispatchInGameSubstate } from "../dispatchInGameSubstate.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
+import { ORACLE_ROUTINES } from "../../routines.js";
 import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -104,7 +105,25 @@ function captureDrivenDispatches(perSub, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured in-game 0x06fe dispatches — RAM(−stack) + pc + SP match", () => {
+// A catch-all override (duck-typed like the Machine's overrides Map) that runs the FROZEN ORACLE
+// handler for whatever sub-state target the dispatcher computed, and records that target. Installed
+// IDENTICALLY on the oracle and the candidate so BOTH loc_00ca take the override path (translated
+// line 11, idiomatic line 49) and reach the SAME handler by the SAME direct call. The old REALISM ran
+// that handler behind idiomatic loc_00ca's `m.call`; the idiomatic layer no longer has that path, so
+// the handler is reached through the production override seam instead. Both sides use the identical
+// path and handler, so downstream RAM/SP/pc stay a true dispatcher-vs-dispatcher comparison — a wrong
+// target or a wrong LIVE-IN handoff still diverges through the handler, exactly as before.
+function oracleCatchAll(rec) {
+  return {
+    has: () => true,
+    get: (target) => (mm) => {
+      rec.push(target);
+      return ORACLE_ROUTINES.get(target)(mm);
+    },
+  };
+}
+
+test("REALISM: real captured in-game 0x06fe dispatches — target + RAM(−stack) + pc + SP match", () => {
   const caps = captureDrivenDispatches(6, 1500);
   assert.ok(caps.length >= 1, "expected at least one real 0x06fe dispatch during a credited game");
 
@@ -114,8 +133,21 @@ test("REALISM: real captured in-game 0x06fe dispatches — RAM(−stack) + pc + 
     seen.add(cap.mem.read8(GAME_SUBSTATE));
     const a = cap.clone(); // oracle
     const b = cap.clone(); // candidate
+    const recA = [], recB = [];
+    a.overrides = oracleCatchAll(recA);
+    b.overrides = oracleCatchAll(recB);
     oracle(a);
     dispatchInGameSubstate(b);
+
+    // The dispatcher's OWN dispatch is rec[0]; later records are nested dispatches the frozen handler
+    // makes. Both sides run the identical handler by the identical path, so the WHOLE dispatch
+    // sequence must match address-for-address — the computed sub-state target asserted directly.
+    assert.ok(recA.length >= 1, "the dispatcher dispatched nothing on the oracle side");
+    assert.deepEqual(
+      recB.map(hx),
+      recA.map(hx),
+      `dispatch sequence diverged (sub-state ${hx(cap.mem.read8(GAME_SUBSTATE))})`,
+    );
 
     const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
     assert.equal(
@@ -131,7 +163,7 @@ test("REALISM: real captured in-game 0x06fe dispatches — RAM(−stack) + pc + 
   assert.ok(seen.size >= 4, `expected several distinct sub-states, saw ${seen.size}`);
   console.log(
     `  REALISM: ${compared} real dispatches over ${seen.size} distinct sub-states ` +
-      `{${[...seen].sort((x, y) => x - y).map(hx).join(", ")}} — RAM(−stack)+pc+SP identical`,
+      `{${[...seen].sort((x, y) => x - y).map(hx).join(", ")}} — target+RAM(−stack)+pc+SP identical`,
   );
 });
 

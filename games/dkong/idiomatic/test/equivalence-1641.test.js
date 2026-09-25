@@ -39,6 +39,7 @@ import { runRivetBoardInterludeFrame } from "../runRivetBoardInterludeFrame.js";
 import { dispatchEffectState } from "../dispatchEffectState.js"; // drop-dispatch teeth twin
 import { dispatchRivetBoardInterludeStep } from "../dispatchRivetBoardInterludeStep.js"; // drop-effect teeth twin
 import { Machine } from "../../machine.js";
+import { ORACLE_ROUTINES } from "../../routines.js";
 import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -69,10 +70,22 @@ function firstNonStackDiff(da, db, m) {
   return null;
 }
 
+// Catch-all override (duck-typed like the Machine's overrides Map) that runs the frozen handler for
+// whatever render-dispatch target was computed (0x17b6 and the step arms). Installed identically on
+// both sides; RAM(−stack) stays the comparison (SP/pc already excluded here).
+function oracleCatchAll() {
+  return {
+    has: () => true,
+    get: (target) => (mm) => ORACLE_ROUTINES.get(target)(mm),
+  };
+}
+
 /** Run oracle and a candidate on independent FRESH clones of one crafted entry; diff RAM. */
 function replay(entry, candidate) {
   const a = entry.clone(); // oracle
   const b = entry.clone(); // candidate
+  a.overrides = oracleCatchAll();
+  b.overrides = oracleCatchAll();
   oracle(a);
   candidate(b);
   return firstNonStackDiff(a.dumpState(), b.dumpState(), a);
@@ -144,6 +157,8 @@ test("FULL-HANDLER: runRivetBoardInterludeFrame == oracle over effect-state {0,1
 
       const a = entry.clone();
       const b = entry.clone();
+      a.overrides = oracleCatchAll();
+      b.overrides = oracleCatchAll();
       oracle(a);
       runRivetBoardInterludeFrame(b);
 

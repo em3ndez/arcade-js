@@ -38,6 +38,7 @@ import { loc_0028 as oracle } from "../../translated/loc_0028.js";
 import { dispatchInlineJumpTable } from "../dispatchInlineJumpTable.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
+import { ORACLE_ROUTINES } from "../../routines.js";
 import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -88,7 +89,26 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured 0x0028 dispatches — RAM(−stack) + pc + SP + return match", () => {
+// A catch-all override (duck-typed like the Machine's overrides Map) that runs the FROZEN ORACLE
+// handler for whatever target the trampoline computed, and records that target. Installed
+// IDENTICALLY on the oracle and the candidate so BOTH loc_00ca take the override path (translated
+// line 11, idiomatic line 49) and reach the SAME handler by the SAME direct call. The old REALISM
+// ran that handler behind idiomatic loc_00ca's `m.call`; the idiomatic layer no longer has that path,
+// so the handler is reached through the production override seam instead. Because both sides use the
+// identical path and handler, downstream RAM/SP/pc/return remain a true dispatcher-vs-dispatcher
+// comparison — a wrong target or a wrong LIVE-IN register handoff still diverges through the handler,
+// exactly as before, while dead handoff bits the handler ignores stay (correctly) invisible.
+function oracleCatchAll(rec) {
+  return {
+    has: () => true,
+    get: (target) => (mm) => {
+      rec.push({ target, sp: mm.regs.sp });
+      return ORACLE_ROUTINES.get(target)(mm);
+    },
+  };
+}
+
+test("REALISM: real captured 0x0028 dispatches — target + RAM(−stack) + pc + SP + return match", () => {
   const caps = captureDispatches(96, 1400);
   assert.ok(caps.length >= 1, "expected at least one real 0x0028 dispatch during attract");
 
@@ -96,8 +116,24 @@ test("REALISM: real captured 0x0028 dispatches — RAM(−stack) + pc + SP + ret
   for (const cap of caps) {
     const a = cap.clone(); // oracle
     const b = cap.clone(); // candidate
+    const recA = [], recB = [];
+    a.overrides = oracleCatchAll(recA);
+    b.overrides = oracleCatchAll(recB);
     const ra = oracle(a);
     const rb = dispatchInlineJumpTable(b);
+
+    // The trampoline's OWN dispatch is recA[0]/recB[0] (the first override hit); any later records
+    // are nested rst-0x28 dispatches the frozen handler itself makes. Both sides run the identical
+    // handler by the identical path, so the WHOLE dispatch sequence — the arithmetic handoff plus
+    // every target the handler reaches from it — must match address-for-address. A wrong target or a
+    // wrong LIVE-IN register handoff diverges the sequence (or the RAM below); the assertion is direct
+    // rather than only inferred from a downstream effect.
+    assert.ok(recA.length >= 1, "the trampoline dispatched nothing on the oracle side");
+    assert.deepEqual(
+      recB.map((r) => hx(r.target)),
+      recA.map((r) => hx(r.target)),
+      `dispatch sequence diverged (entry selector A=${hx(cap.regs.a)}, SP=${hx(cap.regs.sp)})`,
+    );
 
     const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
     assert.equal(
@@ -111,7 +147,10 @@ test("REALISM: real captured 0x0028 dispatches — RAM(−stack) + pc + SP + ret
     assert.equal(rb, ra, `return (skip-boolean) diverged: oracle=${ra} cand=${rb}`);
     compared++;
   }
-  console.log(`  REALISM: ${compared} real dispatches — RAM(−stack)+pc+SP+return identical to the oracle`);
+  console.log(
+    `  REALISM: ${compared} real dispatches — computed target, RAM(−stack), pc, SP and forwarded ` +
+      "return identical to the oracle (handler reached through the production override seam)",
+  );
 });
 
 // -- 2. CRAFTED (exhaustive selector sweep) -----------------------------------
