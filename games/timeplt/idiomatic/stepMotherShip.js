@@ -5,7 +5,10 @@
  * value, tears down and rebuilds the whole fifteen-slot formation; the live phase drifts the pair
  * with the world, dresses it, and — while off cooldown and the player strays into its band — hands a
  * free slot a homing spawn whose heading and stage-vector are computed here. Every callee, the
- * inline jump-table arm included, is reached as a direct call. LIVE-OUT: memory. */
+ * inline jump-table arm included, is reached as a direct call. LIVE-OUT: memory, plus ix/iy (the
+ * record/sprite pointer the frame ends on). The record/sprite pair is threaded explicitly through
+ * the whole recursion; the entry's ix/iy live-out seat rides its return and every arm keeps its
+ * `=m.regs.X` param-default as the frozen-caller bridge. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { NotImplemented } from "../../../boards/timeplt/io.js";
@@ -56,12 +59,14 @@ const ON_SCREEN_Y = 0x20;
 const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors fields 0x00-0x03)
 
 export function stepMotherShip(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const state = mem8[u16(MOTHER_SHIP_STATE + STATE)];
-  // set the record/sprite pair on the dispatch so each callee reads regs.ix/iy by default
-  if (state === 0x00) return (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4535(m)); // idle
-  if (u8(state + 1) !== 0x00) return (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4540(m, u8(state + 1))); // mid-phase (C = phase + 1)
-  return (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4403(m)); // live
+  // Seat the record/sprite pair as the live-out baseline (an arm that does not advance ix/iy leaves
+  // them here) AND pass the pair EXPLICITLY into the arm so no callee reads a stale register. The seat
+  // rides the return, so an advancing arm (46f0/474c/4734) overwrites it before this returns.
+  if (state === 0x00) return (m.regs.ix = MOTHER_SHIP_STATE, m.regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4535(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY)); // idle
+  if (u8(state + 1) !== 0x00) return (m.regs.ix = MOTHER_SHIP_STATE, m.regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4540(m, u8(state + 1), MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY)); // mid-phase (C = phase + 1)
+  return (m.regs.ix = MOTHER_SHIP_STATE, m.regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4403(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY)); // live
 }
 
 export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
@@ -84,24 +89,24 @@ export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
   mem8[Y(0x02)] = mem8[Y(0x00)];
 
   dressSpriteForHeadingOrRetireAtEdge(m);
-  return loc_43f0_46f0(m);
+  return loc_43f0_46f0(m, ix, iy);
 }
 
-export function loc_43f0_4535(m, ix = m.regs.ix) {
+export function loc_43f0_4535(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
-  if (mem8[X(IDLE_DELAY)] === 0x00) return loc_43f0_4663(m);
+  if (mem8[X(IDLE_DELAY)] === 0x00) return loc_43f0_4663(m, ix, iy);
   mem8[X(IDLE_DELAY)] = u8(mem8[X(IDLE_DELAY)] - 1);
 }
 
-export function loc_43f0_4540(m, phase = m.regs.a, ix = m.regs.ix) {
+export function loc_43f0_4540(m, phase = m.regs.a, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
-  if (mem8[X(HOLD_COUNTER)] === 0x00) return loc_43f0_4554(m, phase);
+  if (mem8[X(HOLD_COUNTER)] === 0x00) return loc_43f0_4554(m, phase, ix, iy);
   mem8[X(HOLD_COUNTER)] = u8(mem8[X(HOLD_COUNTER)] - 1);
   mem8[X(STATE)] = 0xff; // back to live
   requestTwoSounds(m);
-  return loc_43f0_4403(m);
+  return loc_43f0_4403(m, ix, iy);
 }
 
 export function loc_43f0_4554(m, phase = m.regs.c, ix = m.regs.ix, iy = m.regs.iy) {
@@ -109,7 +114,7 @@ export function loc_43f0_4554(m, phase = m.regs.c, ix = m.regs.ix, iy = m.regs.i
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
-  if (phase !== REBUILD_TRIGGER) return loc_43f0_45b3(m);
+  if (phase !== REBUILD_TRIGGER) return loc_43f0_45b3(m, ix, iy);
 
   mem8[HITS_REMAINING] = 0x00;
   enqueueTransitionSoundBurst(m);
@@ -166,7 +171,7 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
   }
 
   const state = mem8[X(STATE)];
-  if (state === FLASH_STATE) return loc_43f0_4623(m);
+  if (state === FLASH_STATE) return loc_43f0_4623(m, ix, iy);
   if (state > FLASH_STATE) {
     let sh = u8(state - FLASH_STATE);
     sh = ((sh >> 3) | (sh << 5)) & 0xff; // RRCA x3
@@ -240,14 +245,14 @@ export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
 }
 
 export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem8 } = m;
-  // ix/iy walk the two-slot bank and stay live: on a spawn they carry the current record/entry into
-  // loc_43f0_4734, so each advance writes them back to regs.
+  const { mem8 } = m;
+  // ix/iy walk the two-slot bank as plain locals; on a spawn they carry the current record/entry into
+  // loc_43f0_4734, and on a no-spawn walk-off they are the pointer live-out (folded onto the return).
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
-  if (u8(mem8[X(STATE)] + 1) !== 0x00) return; // not live
-  if (mem8[BANK_LAUNCH_COOLDOWN] !== 0x00) return; // cooling down
+  if (u8(mem8[X(STATE)] + 1) !== 0x00) return; // not live (ix/iy live-out = the seat this arm was handed)
+  if (mem8[BANK_LAUNCH_COOLDOWN] !== 0x00) return; // cooling down (same)
 
   const halfBand = mem8[BANK_LAUNCH_NEAR_HALF_Y]; // D
   const band = u8(halfBand + halfBand); // E
@@ -255,29 +260,29 @@ export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
   do {
     // On screen in both axes, and inside the near band on both axes -> hand a free slot a spawn.
     if (u8(mem8[Y(0x00)] + 0x08) >= ON_SCREEN_X && u8(mem8[Y(0x31)] + 0x10) >= ON_SCREEN_Y) {
-      if (u8(u8(NEAR_X - mem8[Y(0x00)]) + halfBand) >= band) return loc_43f0_4734(m);
-      if (u8(u8(NEAR_Y - mem8[Y(0x31)]) + halfBand) >= band) return loc_43f0_4734(m);
+      if (u8(u8(NEAR_X - mem8[Y(0x00)]) + halfBand) >= band) return loc_43f0_4734(m, ix, iy);
+      if (u8(u8(NEAR_Y - mem8[Y(0x31)]) + halfBand) >= band) return loc_43f0_4734(m, ix, iy);
     }
     ix = u16(ix + 0x10);
     iy = u16(iy + 2);
-    regs.ix = ix;
-    regs.iy = iy;
     count = u8(count - 1);
   } while (count !== 0);
+  return (m.regs.iy = iy, m.regs.ix = ix); // walked off with no spawn: the advanced pair is the live-out
 }
 
-export function loc_43f0_4734(m) {
+export function loc_43f0_4734(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
 
   let recordPtr = ACTOR_RECORD_SLOT2;
   let entryPtr = ACTOR_ENTRY_SLOT2;
   let count = 0x02;
   do {
-    if (mem8[recordPtr] === 0x00) return loc_43f0_474c(m, recordPtr, entryPtr); // a free entry
+    if (mem8[recordPtr] === 0x00) return loc_43f0_474c(m, recordPtr, entryPtr, iy); // a free entry
     recordPtr = u16(recordPtr + 0x10);
     entryPtr = u16(entryPtr + 2);
     count = u8(count - 1);
   } while (count !== 0);
+  return (m.regs.iy = iy, m.regs.ix = ix); // no free slot: keep the mother-ship pair 46f0 handed us as live-out
 }
 
 export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy = m.regs.iy) {
@@ -288,8 +293,9 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy
 
   requestEnemyLaunchSound(m);
 
-  // Aim: the heading at the player, nudged +/-0x18 by an alternating side toggle.
-  const heading = headingToward(m, ENEMY_STANDOFF_AIM_MAIN); // object = iy (mother-ship entry)
+  // Aim: the heading at the player, nudged +/-0x18 by an alternating side toggle. The mother-ship
+  // entry is the threaded iy, passed to headingToward's object slot.
+  const heading = headingToward(m, ENEMY_STANDOFF_AIM_MAIN, iy);
   mem8[MOTHER_SHIP_AIM_SIDE_TOGGLE] = u8(mem8[MOTHER_SHIP_AIM_SIDE_TOGGLE] + 1);
   let aim = (mem8[MOTHER_SHIP_AIM_SIDE_TOGGLE] & 0x01) ? 0x18 : u8(0 - 0x18);
   aim = u8(aim + heading);
@@ -297,7 +303,7 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy
   // Carry the mother-ship's own heading/X across the retarget, then re-point ix/iy at the new slot.
   const spriteHeading = mem8[u16(iy + 0x31)];
   const spriteX = mem8[u16(iy + 0x00)];
-  regs.ix = recordPtr; // retarget at the new entry (live-out; the stage arm reads ix/iy)
+  regs.ix = recordPtr; // retarget at the new entry (a register bridge the frozen stage arm reads back)
   regs.iy = entryPtr;
   const X = (d) => u16(recordPtr + d);
   const Y = (d) => u16(entryPtr + d);
