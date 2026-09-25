@@ -10,7 +10,13 @@
  * its address only, so it wraps inside its own page, while the coordinate cursor steps whole.
  * Both are handed back where the sweep left them, one past the last target — and NOT advanced at
  * all when the mover was already spent, since that path never enters the sweep.
- * LIVE-OUT: memory, plus the two cursors. */
+ * LIVE-OUT: memory, plus the two cursors (occupancy in E, coordinate in IY).
+ *
+ * THREADING RETURN (added for C2 de-register work): also returns the cursor pair as a tuple
+ * { occupancy, entry } so a caller can thread it forward without reading regs.e/regs.iy back. The
+ * register writes above are unchanged and remain the DECLARED live-out; on the spent-mover early
+ * exit neither register is written (contract preserved) and the tuple echoes the un-advanced input
+ * cursors. Both tuple fields are u16-wrapped at the boundary. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { PLAYER_ENTRY, PLAYER_SPRITE_Y, PLAYER_STATE } from "./names.js";
@@ -27,7 +33,9 @@ const COUNT_ZERO_MEANS = 256;
 
 export function destroyPlayerAndObjectsTouchingIt(m, occupancy = m.regs.de, entry = m.regs.iy, slack = m.regs.l, reach = m.regs.h, targets = m.regs.b) {
   const { mem8 } = m;
-  if (mem8[PLAYER_STATE] !== LIVE) return;
+  // Spent mover: neither cursor is written (declared live-out unchanged); the tuple echoes the
+  // un-advanced inputs so a threading caller carries the seated cursor pair forward.
+  if (mem8[PLAYER_STATE] !== LIVE) return { occupancy: u16(occupancy), entry: u16(entry) };
 
   let occupancyAt = occupancy;
   let entryAt = entry;
@@ -45,5 +53,6 @@ export function destroyPlayerAndObjectsTouchingIt(m, occupancy = m.regs.de, entr
     entryAt = u16(entryAt + ENTRY_STRIDE);
   }
 
-  return (m.regs.e = occupancyAt, m.regs.iy = entryAt);
+  // e/iy are the declared live-out, folded into the return: regs.e takes the low byte, the tuple the full pointer.
+  return { occupancy: u16(m.regs.e = occupancyAt), entry: u16(m.regs.iy = entryAt) };
 }

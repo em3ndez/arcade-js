@@ -11,7 +11,13 @@
  * for that single kill. The sweep does NOT stop there and does not re-read the attacker's state,
  * so one attacker can take several targets in one pass and is paid for each. The record cursor
  * advances a record at a time WITHOUT leaving its page; the entry cursor advances a stride.
- * LIVE-OUT: memory, plus the two cursors left where the sweep ended. */
+ * LIVE-OUT: memory, plus the two cursors left where the sweep ended (record in DE, entry in IY).
+ *
+ * THREADING RETURN (added for C2 de-register work): also returns the cursor pair as a tuple
+ * { target, entry } so the final mark can consume the record page/index and entry pointer without
+ * reading regs.de/regs.iy back. The register writes are unchanged and remain the declared live-out;
+ * on the early attacker-not-live exit neither register is written and the tuple echoes the seated
+ * inputs (so the caller's mark sees the un-advanced cursor). Fields are u16-wrapped. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
@@ -33,7 +39,8 @@ const nextRecord = (cursor) => (cursor - (cursor & 0xff)) + u8(cursor + RECORD_S
 
 export function destroyTargetsReachedByFixedAttacker(m, target = m.regs.de, entry = m.regs.iy, targets = m.regs.b, reach = m.regs.l, span = m.regs.h) {
   const { mem8, regs } = m;
-  if (mem8[PLAYER_STATE] !== LIVE) return;
+  // Attacker not live: neither cursor moves (declared live-out); the tuple echoes the seated inputs.
+  if (mem8[PLAYER_STATE] !== LIVE) return { target: u16(target), entry: u16(entry) };
 
   let targetCursor = target;
   let entryCursor = entry;
@@ -58,5 +65,6 @@ export function destroyTargetsReachedByFixedAttacker(m, target = m.regs.de, entr
     left = u8(left - 1);
   } while (left !== 0);
 
-  return (regs.de = targetCursor, regs.iy = entryCursor);
+  // Fold the declared live-out cursor writes into the return, dropping the bare register statements.
+  return { target: u16(regs.de = targetCursor), entry: u16(regs.iy = entryCursor) };
 }

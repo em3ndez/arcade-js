@@ -7,7 +7,12 @@
  * side. A run of zero slots means a full two hundred and fifty-six. Its two threaded cursors are
  * handed back one past the last slot (record steps its low half only, entry whole) for a caller that
  * tail-runs another sweep on the same thread; on the early refusal neither moves.
- * LIVE-OUT: memory, plus the two cursors. */
+ * LIVE-OUT: memory, plus the two cursors (record in E, entry in IY).
+ *
+ * THREADING RETURN (added for C2 de-register work): also returns the cursor pair as a tuple
+ * { record, entry } so a tail-running caller can thread it without reading regs.e/regs.iy back. The
+ * register writes are unchanged and remain the declared behaviour; on the early refusal neither
+ * register is written and the tuple echoes the un-advanced input cursors. Fields are u16-wrapped. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
@@ -27,7 +32,8 @@ const ENTRY_STRIDE = 2;
 
 export function destroySlotsAndPlayerOnContact(m, records = m.regs.de, entries = m.regs.iy, slots = m.regs.b, bias = m.regs.l, width = m.regs.h) {
   const { mem8 } = m;
-  if (mem8[PLAYER_STATE] !== WHOLE) return;
+  // Early refusal: neither cursor moves (declared behaviour); the tuple echoes the seated inputs.
+  if (mem8[PLAYER_STATE] !== WHOLE) return { record: u16(records), entry: u16(entries) };
 
   let record = records;
   let entry = entries;
@@ -49,6 +55,7 @@ export function destroySlotsAndPlayerOnContact(m, records = m.regs.de, entries =
     left = u8(left - 1);
   } while (left !== 0);
 
-  // Hand the threaded cursors back (E only, D untouched; IY whole) for a caller tail-running the same thread.
-  return (m.regs.e = record, m.regs.iy = entry);
+  // Hand the threaded cursors back (E only, D untouched; IY whole) folded into the return, keeping the
+  // declared live-out writes without a bare register statement (assignment yields its RHS pre-mask).
+  return { record: u16(m.regs.e = record), entry: u16(m.regs.iy = entry) };
 }
