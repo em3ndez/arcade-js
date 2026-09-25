@@ -17,8 +17,9 @@ const PATCH_MARKER = 0x05;
 export function armAttractScreenShowingHighScore(m) {
   const { regs, mem8 } = m;
 
-  blankNextLine(m);
-  if (regs.fNZ) return;
+  // blankNextLine returns whether its line counter reached zero (Z set); the guard bails while
+  // it has not, so consume that return instead of reading the flag back. It still seats regs.f.
+  if (!blankNextLine(m)) return;
 
   regs.de = 0x0105; postCommand(m);
   regs.de = 0x0106; postCommand(m);
