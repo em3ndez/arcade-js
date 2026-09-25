@@ -31,13 +31,18 @@ export function fileScoreIntoHighScoreTable(m) {
 
   if (!filed) return (regs.fC = true); // beat nothing
 
-  // records beneath the slot, eight cells each; when the slot is the bottom record none slide
+  // records beneath the slot, eight cells each; when the slot is the bottom record none slide.
+  // Descending copy (highest cell first) so the eight-byte down-shift never clobbers a source
+  // cell before it is read — the byte-for-byte effect an LDDR leaves.
   const slideBytes = (RECORD_COUNT - 1 - rank) * RECORD_STRIDE;
   if (slideBytes > 0) {
-    regs.hl = HIGH_SCORE_SLIDE_SRC;
-    regs.de = HIGH_SCORE_TABLE_END;
-    regs.bc = slideBytes;
-    m.lddrAt(0x4cf4, 0x4cf6); // z80-primitive: LDDR block copy
+    let src = HIGH_SCORE_SLIDE_SRC;
+    let dst = HIGH_SCORE_TABLE_END;
+    for (let n = slideBytes; n > 0; n--) {
+      mem8[dst] = mem8[src];
+      src = u16(src - 1);
+      dst = u16(dst - 1);
+    }
   }
   let slotPtr = u16(HIGH_SCORE_TABLE_END - slideBytes);
 
@@ -48,10 +53,14 @@ export function fileScoreIntoHighScoreTable(m) {
   mem16[SCRATCH_PTR_A] = slotPtr;
 
   slotPtr = u16(slotPtr - 1);
-  regs.hl = scorePtr;
-  regs.de = slotPtr;
-  regs.bc = 3;
-  m.lddrAt(0x4d09, 0x4d0b); // z80-primitive: LDDR copies the three score cells in
+  // copy the three score cells into the freed slot, top cell first (descending), as the LDDR did
+  let src = scorePtr;
+  let dst = slotPtr;
+  for (let n = 3; n > 0; n--) {
+    mem8[dst] = mem8[src];
+    src = u16(src - 1);
+    dst = u16(dst - 1);
+  }
 
   const uncovered = mem8[u16(slotPtr - 3)]; // the rank the copy uncovered
   mem16[SCRATCH_PTR_B] = u16(HIGH_SCORE_INITIALS_CELL_BASE + ((uncovered + uncovered) & 0xff));

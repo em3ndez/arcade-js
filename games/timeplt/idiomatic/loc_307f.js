@@ -6,14 +6,33 @@
 import { placeTileAtTableSuppliedOffset } from "./placeTileAtTableSuppliedOffset.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { placeDiagonallyAbuttingTile } from "./placeDiagonallyAbuttingTile.js";
+import { F_S, F_Z, F_H, F_PV, F_F3, F_F5 } from "../../../core/cpu/z80.js";
 
-export function loc_307f(m, hl = m.regs.hl, e = m.regs.e) {
+export function loc_307f(m, hl = m.regs.hl, e = m.regs.e, a = m.regs.a, b = m.regs.b) {
   const { regs, mem, mem8 } = m;
   mem8[hl] = e;
-  regs.and(mem8[hl]);
-  if (regs.djnz() !== 0) return placeTileAtTableSuppliedOffset(m);
 
-  fetchTableWord(m);
+  // AND (HL): fold the byte just stored into the accumulator. The Z80 AND sets H, clears N and C,
+  // takes S/Z/F3/F5 from the result, and sets PV on even parity -- computed here explicitly.
+  const result = a & mem8[hl];
+  let parity = result ^ (result >> 4);
+  parity ^= parity >> 2;
+  parity ^= parity >> 1;
+  const flags =
+    (result & 0x80 ? F_S : 0) |
+    (result === 0 ? F_Z : 0) |
+    (result & (F_F3 | F_F5)) |
+    F_H |
+    (parity & 1 ? 0 : F_PV);
+
+  // DJNZ: decrement the slot counter (8-bit wrap; DJNZ touches no flag). While it still holds, loop
+  // back through the straight placer, seating the folded byte's flags and the decremented counter.
+  const counter = (b - 1) & 0xff;
+  if (counter !== 0) return (regs.f = flags, regs.b = counter, placeTileAtTableSuppliedOffset(m));
+
+  // Last slot (counter exhausted to 0): index the word table by the folded byte, bump the byte just
+  // past the entry, then drop two caller-stack bytes into AF and finish the diagonal tile. B ends 0.
+  fetchTableWord(m, result);
   regs.incMem8(mem, regs.hl);
-  return (regs.af = m.pop16(), placeDiagonallyAbuttingTile(m));
+  return (regs.b = counter, regs.af = m.pop16(), placeDiagonallyAbuttingTile(m));
 }
