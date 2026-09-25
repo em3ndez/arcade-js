@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/** verifyImageSignatureThenStartAttractDemoOrDerail — a phase-1 attract sub-step arm (computed
+ * dispatch off the phase-1 table at inner sub-step 12, no static call site). It reads the folded
+ * program-image signature the self-check banked at TAMPER_IMAGE_SIGNATURE and compares it against a
+ * fixed byte. On a tampered image the two disagree and the arm derails into the power-on wipe trap
+ * (a data-run-as-code landing) — unreachable on a genuine image, where the signature always matches.
+ *
+ * On the genuine image it starts the attract-mode autopilot demo: it parks the caption sprites,
+ * seeds the demo autopilot heading script, then clears the two-player flag, player two's lives, the
+ * play-active flag and the inner sequence sub-step, stocks player one with one life, and winds the
+ * outer sequence on to its last phase (3) — the phase where the demo actually flies. Because
+ * PLAY_ACTIVE is cleared rather than raised, this is the demo run, not a real game.
+ *
+ * LIVE-OUT: memory only. The arm is reached by computed dispatch and its successor reloads every
+ * register it uses before reading one, so no register is live out. */
+
+import {
+  TAMPER_IMAGE_SIGNATURE,
+  TWO_PLAYER_GAME,
+  PLAYER_TWO_LIVES,
+  PLAY_ACTIVE,
+  SEQUENCE_SUBSTEP,
+  PLAYER_ONE_LIVES,
+  SEQUENCE_PHASE,
+} from "./names.js";
+import { hideCaptionSprites } from "./hideCaptionSprites.js";
+import { seedDemoAutopilotScript } from "./seedDemoAutopilotScript.js";
+import { loc_2530 } from "../translated/loc_2530.js";
+
+// The value a genuine image's self-check fold must land on.
+const EXPECTED_SIGNATURE = 0x76;
+// The outer sequence's last phase — where the attract demo run lives.
+const DEMO_PHASE = 0x03;
+// One life for the autopilot demonstration.
+const DEMO_LIVES = 0x01;
+
+export function verifyImageSignatureThenStartAttractDemoOrDerail(m) {
+  const { mem8 } = m;
+
+  const signature = mem8[TAMPER_IMAGE_SIGNATURE];
+  if (signature !== EXPECTED_SIGNATURE) {
+    // Tampered image: derail into the power-on wipe trap. The trap re-enters these bytes as code and
+    // reads the accumulator and the compare flags, so seat them as the compare did before handing
+    // over (born-live fallback). Unreachable on a genuine image.
+    m.regs.a = signature;
+    m.regs.cp(EXPECTED_SIGNATURE);
+    return loc_2530(m);
+  }
+
+  hideCaptionSprites(m);
+  seedDemoAutopilotScript(m);
+
+  mem8[TWO_PLAYER_GAME] = 0;
+  mem8[PLAYER_TWO_LIVES] = 0;
+  mem8[PLAY_ACTIVE] = 0;
+  mem8[SEQUENCE_SUBSTEP] = 0;
+  mem8[PLAYER_ONE_LIVES] = DEMO_LIVES;
+  mem8[SEQUENCE_PHASE] = DEMO_PHASE;
+}

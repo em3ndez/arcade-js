@@ -1986,6 +1986,11 @@ export const ROUTINES = {
     role: "phase-1 attract sub-step arm (computed dispatch off the phase-1 table, no static call site): each frame restamp the copyright strip and flash its line, then count one frame off SEQUENCE_DELAY and return while it still runs; on the frame it expires verify the copyright line's colours (guard derails on its own), build a caption-cell pointer from a program byte -- the parachutist routine's first opcode (0x47b3) read as data -- and check the glyph there is 0x3b, DERAILING into the anti-tamper trap loc_15ca (data run as code) on a mismatch, else seat one caption cell's glyph and colour into the tamper-witness pair (TAMPER_GLYPH_COPY 0xab43) and step the sequence sub-step. Live-out memory only",
     cert: "code",
   },
+  0x2730: {
+    name: "verifyImageSignatureThenStartAttractDemoOrDerail",
+    role: "phase-1 attract sub-step arm (computed dispatch off the phase-1 table at inner sub-step 12, no static call site): read the folded program-image signature banked at TAMPER_IMAGE_SIGNATURE and compare it against 0x76 -- on a tampered image derail into the power-on wipe trap loc_2530 (data run as code, unreachable on a genuine image), else start the attract-mode autopilot demo -- park the caption sprites, seed the demo autopilot heading script, clear TWO_PLAYER_GAME / PLAYER_TWO_LIVES / PLAY_ACTIVE / SEQUENCE_SUBSTEP, stock player one with one life, and wind the outer sequence on to its last phase (3). Live-out memory only",
+    cert: "code",
+  },
   0x1323: {
     name: "stepRoundStartIntroAnimation",
     role: "phase-14 arm of the sequence dispatchSequenceSubStepArm dispatches off the 0x0F29 table (keyed on SEQUENCE_SUBSTEP & 0x0F): only on alternate frames (bit 1 of FRAME_TICK clear), dispatch on the animation sub-step at 0xA9F0 -- steps 0/1 flash the player ship and advance a scripted char-plane animation, steps 2/3 tick a two-colour animation and run a title-plane pass, step 4 floods the colour plane; the final step sets SEQUENCE_DELAY, hides every sprite, sets up the active player's turn (loadActivePlayerContextAndPostRoundHud) and reloads SEQUENCE_SUBSTEP from ROM byte 0x2750 (=3) to wind the outer sequence on",
