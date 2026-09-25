@@ -35,9 +35,12 @@ const SCRATCH_BYTES = 10;
 
 /** The register-divergence ceiling, measured: the printer's dissolved chain leaves the accumulator
  * and its flags elsewhere on the proceed arm, and the oracle takes a return the rewrite does not.
- * A ceiling, not a demand — a rewrite that moved fewer still passes. */
-const MOVED = ["a", "f", "sp"];
-const SPARE_REG = "d";
+ * D and E are here too: the oracle seats the caption command in DE before each ring post, so it
+ * leaves the last command's bytes standing there; the rewrite passes the command as arguments and
+ * never touches DE. DE is dead scratch after this arm (its live-out is memory only), so a difference
+ * there is not a divergence in the contract. A ceiling, not a demand — a rewrite that moved fewer still passes. */
+const MOVED = ["a", "f", "sp", "d", "e"];
+const SPARE_REG = "b";
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) =>
@@ -279,7 +282,7 @@ test("DISSOLVED: the printer, the enqueue, AND the guard are all called directly
   assert.ok(module.includes('from "./paintHighScoreReadout.js"'), "the module does not import paintHighScoreReadout");
   assert.ok(module.includes("paintHighScoreReadout(m)"), "the module does not call paintHighScoreReadout directly");
   assert.ok(module.includes('from "./postCommand.js"'), "the module does not import postCommand");
-  assert.ok(module.includes("postCommand(m)"), "the module does not call postCommand directly");
+  assert.ok(module.includes("postCommand(m)") || module.includes("postCommand(m,"), "the module does not call postCommand directly");
   assert.ok(module.includes('from "./blankNextLine.js"'), "the module does not import blankNextLine");
   assert.ok(module.includes("blankNextLine(m)"), "the module does not call blankNextLine directly");
   assert.ok(!module.includes("m.call("),

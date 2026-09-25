@@ -15,16 +15,16 @@ const PATCH_COUNT = 6;
 const PATCH_MARKER = 0x05;
 
 export function armAttractScreenShowingHighScore(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // blankNextLine returns whether its line counter reached zero (Z set); the guard bails while
-  // it has not, so consume that return instead of reading the flag back. It still seats regs.f.
+  // it has not, so consume that return instead of reading the flag back.
   if (!blankNextLine(m)) return;
 
-  regs.de = 0x0105; postCommand(m);
-  regs.de = 0x0106; postCommand(m);
-  regs.de = 0x0107; postCommand(m);
-  regs.de = 0x0601; postCommand(m);
+  postCommand(m, 1, 5);
+  postCommand(m, 1, 6);
+  postCommand(m, 1, 7);
+  postCommand(m, 6, 1);
 
   mem8[HIGH_SCORE_MARKER_CELL_LOWER] = CELL_SEED;
   mem8[HIGH_SCORE_MARKER_CELL_UPPER] = CELL_SEED;
@@ -43,5 +43,5 @@ export function armAttractScreenShowingHighScore(m) {
   mem8[SEQUENCE_SUBSTEP] = 2;
   if (mem8[FREE_PLAY] === 0) return;
 
-  return (regs.de = 0x010d, postCommand(m));
+  return postCommand(m, 1, 13);
 }
