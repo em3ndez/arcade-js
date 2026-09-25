@@ -979,6 +979,24 @@ context block (whose saved copies §10 names) carries three more named live fiel
 copied into `ERA_RUNG` at reset), and `ROUND_ARMED` (`0xAD0E`, the 0xFF/0 gate a round arms and the
 intro-sound sequence clears). `[code]`
 
+### The fixed ROM tables the world reads through, now named
+
+The addressing that used to reach these tables as bare hex now names them, one const per table shared by
+every reader. The per-era velocity/pace sample tables are `OPENING_ERA_VELOCITY_TABLE` (`0x5E00`, era 0)
+and two the disassembly leaves era-unpinned, `VELOCITY_TABLE_5C00` / `VELOCITY_TABLE_08FA`; each is indexed
+by heading to yield the world's push (§3). The countdown object reads its sprite frame from
+`NEAR_ERA_SPRITE_FRAME_TABLE` (`0x416E`) below era 4 and `FAR_ERA_SPRITE_FRAME_TABLE` (`0x4183`) at or above
+it. Bonus life reads its score marks from `BONUS_LIFE_MARK_TABLE_BIT0_CLEAR` (`0x4E1B`) or `..._BIT0_SET`
+(`0x4E30`) by the settings bit. A tile stamp indexes `PRESHIFTED_TILE_RECORD_TABLE` (`0x53D4`, 64 records)
+and builds its write address off `COLOUR_PLANE_BASE` (`0xA000`). The demo seed picks one of
+`DEMO_AUTOPILOT_SCRIPT_FIRST/SECOND/THIRD` (`0x218C`/`0x2251`/`0x22FA`); the self-test block parks
+`SELFTEST_CONTROL_BLOCK_PARKED_POINTER` (`0x56F1`); a transition burst reads sound codes from the program
+image at `TRANSITION_SOUND_CODE_CELL_167C/1484/33B4`; the copyright check folds the block at
+`COPYRIGHT_IMAGE_CHECKSUM_BASE` (`0x176A`); the line wipe samples `LINE_WIPE_SAMPLED_CELL` (`0xA5FC`) into
+`LINE_WIPE_SAMPLE_RECORD` (`0xACBE`); the colour flood starts at `COLOUR_FLOOD_FIRST_CELL` (`0xA044`); and
+the settings load copies from `DIFFICULTY_RECORD_TABLE` (`0x186A`). All are ROM/data reads grounded in
+Code.md. `0x08FA` and `0x2251` double as routine entries (loc_08fa, loc_2251), noted at those consts. `[code]`
+
 ---
 
 ## §4 Objects: one array, two tables, and two ways onto the screen

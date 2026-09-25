@@ -7,11 +7,11 @@
  * leave the plane identical. A separate countdown is stepped down by one on the way out.
  * LIVE-OUT: memory only. */
 
-import { ACTIVE_PLAYER, COLOUR_FLOOD_COUNTDOWN, INTRO_ANIMATION_STEP, PLAYER_ONE_PEN_COLOUR, PLAYER_TWO_PEN_COLOUR, SCREEN_UNFLIPPED } from "./names.js";
+import { ACTIVE_PLAYER, COLOUR_FLOOD_COUNTDOWN, COLOUR_FLOOD_FIRST_CELL, INTRO_ANIMATION_STEP, PLAYER_ONE_PEN_COLOUR, PLAYER_TWO_PEN_COLOUR, SCREEN_UNFLIPPED } from "./names.js";
 
 const NEXT_STEP = 5;
 
-const FIRST_CELL = 0xa044;
+const FIRST_CELL = COLOUR_FLOOD_FIRST_CELL;
 const ROW_STRIDE = 32;
 const ROWS = 28;
 const CELLS_PER_ROW = 27;

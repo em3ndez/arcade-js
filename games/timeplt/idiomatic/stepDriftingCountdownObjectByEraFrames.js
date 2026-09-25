@@ -10,14 +10,14 @@ import { stampObjectStateByte3bThenRequestSound } from "./stampObjectStateByte3b
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { retireSlot } from "./retireSlot.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { ERA_INDEX } from "./names.js";
+import { ERA_INDEX, NEAR_ERA_SPRITE_FRAME_TABLE, FAR_ERA_SPRITE_FRAME_TABLE } from "./names.js";
 
 const COUNT = 0;
 const RESET_MARK = 0x3c;
 const WINDOW_FLOOR = 0x1c;
 const FINAL_ERA = 0x04;
-const NEAR_TABLE = 0x416e;
-const FAR_TABLE = 0x4183;
+const NEAR_TABLE = NEAR_ERA_SPRITE_FRAME_TABLE;
+const FAR_TABLE = FAR_ERA_SPRITE_FRAME_TABLE;
 const SPRITE_CODE = 1;
 const SPRITE_STATE = 0x30;
 const NEAR_STATE = 0x0d;

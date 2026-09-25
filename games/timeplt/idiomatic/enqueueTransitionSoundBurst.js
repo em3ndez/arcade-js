@@ -6,10 +6,10 @@
  * played. LIVE-OUT: memory-only. */
 
 import { enqueueSoundUnconditional } from "./enqueueSoundUnconditional.js";
-import { ERA_INDEX } from "./names.js";
+import { ERA_INDEX, TRANSITION_SOUND_CODE_CELL_167C, TRANSITION_SOUND_CODE_CELL_1484, TRANSITION_SOUND_CODE_CELL_33B4 } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
-const FIXED_CODE_SOURCES = [0x167c, 0xa9c, 0x1484, 0xc78, 0x7d3, 0x33b4];
+const FIXED_CODE_SOURCES = [TRANSITION_SOUND_CODE_CELL_167C, 0xa9c, TRANSITION_SOUND_CODE_CELL_1484, 0xc78, 0x7d3, TRANSITION_SOUND_CODE_CELL_33B4];
 const ERA_CODE_BASE = 140;
 
 export function enqueueTransitionSoundBurst(m) {

@@ -9,11 +9,11 @@
 
 import { negateVelocityIntoWorldScrollThenDressSprite } from "./negateVelocityIntoWorldScrollThenDressSprite.js";
 import { velocityForHeading } from "./velocityForHeading.js";
-import { ERA_INDEX, loc_2e3e } from "./names.js";
+import { ERA_INDEX, loc_2e3e, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_08FA } from "./names.js";
 
-const OPENING_ERA_PACE = 0x5e00;
+const OPENING_ERA_PACE = OPENING_ERA_VELOCITY_TABLE;
 const EARLY_ERA_PACE = loc_2e3e;
-const LATER_ERA_PACE = 0x8fa;
+const LATER_ERA_PACE = VELOCITY_TABLE_08FA;
 const FIRST_LATER_ERA = 3;
 
 export function scrollWorldAtTheEraPace(m) {

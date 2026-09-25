@@ -15,14 +15,14 @@
  * LIVE-OUT: memory only — the list and its write pointer. */
 
 import { u16, u8 } from "../../../core/int.js";
-import { DEFERRED_WRITE_CURSOR } from "./names.js";
+import { DEFERRED_WRITE_CURSOR, COLOUR_PLANE_BASE, PRESHIFTED_TILE_RECORD_TABLE } from "./names.js";
 
 const FIRST_AXIS = 4;
 const SECOND_AXIS = 6;
 const PIXEL_BIAS = 7;
 const CELLS_PER_ROW = 32;
-const PLANE_BASE = 0xa000;
-const RECORDS = 0x53d4;
+const PLANE_BASE = COLOUR_PLANE_BASE;
+const RECORDS = PRESHIFTED_TILE_RECORD_TABLE;
 const RECORD_BYTES = 8;
 const SUB_CELLS = 8;
 const SUB_CELL_BITS = SUB_CELLS - 1;

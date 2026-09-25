@@ -7,12 +7,12 @@
  * pre-step count going out with the request. LIVE-OUT: memory. */
 
 import { u16 } from "../../../core/int.js";
-import { ACTIVE_PLAYER, BONUS_LIFE_LATCH, BONUS_LIFE_SETTING, LIVES_REMAINING, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI, PLAY_ACTIVE } from "./names.js";
+import { ACTIVE_PLAYER, BONUS_LIFE_LATCH, BONUS_LIFE_SETTING, BONUS_LIFE_MARK_TABLE_BIT0_CLEAR, BONUS_LIFE_MARK_TABLE_BIT0_SET, LIVES_REMAINING, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI, PLAY_ACTIVE } from "./names.js";
 import { postCommand } from "./postCommand.js";
 import { requestBonusLifeSound } from "./requestBonusLifeSound.js";
 
-const MARKS_WHEN_CLEAR = 0x4e1b;
-const MARKS_WHEN_SET = 0x4e30;
+const MARKS_WHEN_CLEAR = BONUS_LIFE_MARK_TABLE_BIT0_CLEAR;
+const MARKS_WHEN_SET = BONUS_LIFE_MARK_TABLE_BIT0_SET;
 const LATCH_BIT = 0x01;
 const AWARD_COMMAND = 5;
 const A_ZERO_LENGTH_MEANS = 65536;

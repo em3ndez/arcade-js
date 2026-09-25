@@ -4,8 +4,9 @@
  * off the record, and any pointer the caller was holding is discarded. LIVE-OUT: the pair. */
 
 import { doubledVelocityForHeading } from "./doubledVelocityForHeading.js";
+import { VELOCITY_TABLE_5C00 } from "./names.js";
 
-const VELOCITY_TABLE = 0x5c00;
+const VELOCITY_TABLE = VELOCITY_TABLE_5C00;
 const HEADING_CELL = 2;
 
 export function loc_5994(m, object = m.regs.ix) {

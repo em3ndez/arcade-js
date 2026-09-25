@@ -1893,6 +1893,32 @@ export const loc_2cd1 = 0x2cd1; // §code: parked return slot for the diagonal-p
 export const loc_59d7 = 0x59d7; // §code: anti-tamper derail target into data (clearScreenRamAndVerifyImageThenColdInit)
 export const loc_49fa = 0x49fa; // §code: derail into a caption record decoded as code (checkTheCopyrightLineColoursOrDerail)
 
+// Coordinated data-address grounding pass: ROM data-table/cell bases lifted out of routine-local
+// consts / raw hex in the velocity, bonus, sprite-frame, checksum, tile, demo-script, sound and
+// self-test modules. Each value is the raw hex (byte-identical); each is one owner shared by every
+// module that reads it. Grounded in the module's use AND the ROM disassembly (contrib Code.md).
+export const OPENING_ERA_VELOCITY_TABLE = 0x5e00; // ROM velocity/pace sample table the opening era uses (Code.md loc_594e "opening era: use its own velocity table"); also read by loc_59d1/loc_58b6/loc_5854 and scrollWorldAtTheEraPace's era-0 pace
+export const VELOCITY_TABLE_5C00 = 0x5c00; // ROM velocity sample table (Code.md "a velocity table"); era not pinned in the disasm; read by loc_59cb/loc_5994
+export const VELOCITY_TABLE_08FA = 0x08fa; // ROM velocity sample table (Code.md "a velocity table") read by loc_58a4/scrollWorldAtTheEraPace later-era pace; the same address doubles as the anti-tamper checksum-failure landing (routine loc_08fa)
+export const BONUS_LIFE_MARK_TABLE_BIT0_CLEAR = 0x4e1b; // ROM score-mark list used when BONUS_LIFE_SETTING bit0 is clear (Code.md "default to the first mark list") (awardBonusLifeAtScoreMark)
+export const BONUS_LIFE_MARK_TABLE_BIT0_SET = 0x4e30; // ROM score-mark list used when BONUS_LIFE_SETTING bit0 is set (Code.md "otherwise the second mark list") (awardBonusLifeAtScoreMark)
+export const NEAR_ERA_SPRITE_FRAME_TABLE = 0x416e; // ROM sprite-frame lookup table for the near eras (ERA_INDEX < 4) (Code.md "the near-era frame table") (stepDriftingCountdownObjectByEraFrames)
+export const FAR_ERA_SPRITE_FRAME_TABLE = 0x4183; // ROM sprite-frame lookup table for the far eras (ERA_INDEX >= 4) (Code.md "the far-era frame table") (stepDriftingCountdownObjectByEraFrames)
+export const COPYRIGHT_IMAGE_CHECKSUM_BASE = 0x176a; // base of the 24-byte program block XOR-folded as the copyright-screen anti-tamper check (Code.md "point at the program block to verify") (buildCopyrightScreenThenVerifyImage)
+export const LINE_WIPE_SAMPLED_CELL = 0xa5fc; // char-plane cell whose glyph+colour is sampled before the line wipe (parkSpritesAndArmLineWipeThenAdvanceSequence)
+export const LINE_WIPE_SAMPLE_RECORD = 0xacbe; // 2-byte work-RAM record the sampled cell's glyph+colour is copied into (parkSpritesAndArmLineWipeThenAdvanceSequence)
+export const PRESHIFTED_TILE_RECORD_TABLE = 0x53d4; // base of the 64 pre-shifted tile-block records (4 glyph/attr pairs each) (Code.md "the table of pre-shifted tile records") (queueTileStampForObject)
+export const COLOUR_PLANE_BASE = 0xa000; // base (0xA000) of the colour-RAM plane the deferred-write cell address is built from; the drain sets bit 10 to reach the video plane at 0xA4xx (queueTileStampForObject)
+export const DEMO_AUTOPILOT_SCRIPT_FIRST = 0x218c; // ROM heading-command script table, first script (Code.md "the first script's address") (seedDemoAutopilotScript)
+export const DEMO_AUTOPILOT_SCRIPT_SECOND = 0x2251; // ROM heading-command script table, second script (Code.md "the second script's address"); the same address doubles as the readback-fail trap (routine loc_2251) (seedDemoAutopilotScript)
+export const DEMO_AUTOPILOT_SCRIPT_THIRD = 0x22fa; // ROM heading-command script table, third script (Code.md "otherwise take the third script") (seedDemoAutopilotScript)
+export const TRANSITION_SOUND_CODE_CELL_167C = 0x167c; // program-image cell whose byte is read as a sound code (Code.md "a sound code from the program image") (enqueueTransitionSoundBurst)
+export const TRANSITION_SOUND_CODE_CELL_1484 = 0x1484; // program-image cell whose byte is read as a sound code (Code.md "the next code") (enqueueTransitionSoundBurst)
+export const TRANSITION_SOUND_CODE_CELL_33B4 = 0x33b4; // program-image cell whose byte is read as a sound code (Code.md "the next code") (enqueueTransitionSoundBurst)
+export const SELFTEST_CONTROL_BLOCK_PARKED_POINTER = 0x56f1; // ROM pointer parked into the intro/self-test control block's tail two bytes (Code.md "the script pointer 0x56F1") (paintSelfTestScreenPhaseThenStepSequence)
+export const DIFFICULTY_RECORD_TABLE = 0x186a; // base of the fixed 4-byte-record difficulty table copied into the in-force settings cells (Code.md "point at the difficulty-record table") (loadDifficultyRecord)
+export const COLOUR_FLOOD_FIRST_CELL = 0xa044; // first (top-left inset) cell of the colour-plane flood rectangle (Code.md "first cell of the colour-plane rectangle") (floodColourPlaneWithSavedPlayerColour)
+
 export const ROUTINES = {
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "seen" },
   0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "seen" },

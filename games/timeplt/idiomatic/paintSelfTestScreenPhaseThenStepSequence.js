@@ -10,9 +10,9 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, SELFTEST_INTRO_SHAPE_SEED, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
+import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, SELFTEST_INTRO_SHAPE_SEED, SELFTEST_CONTROL_BLOCK_PARKED_POINTER, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
 
-const PARKED_POINTER = 0x56f1;
+const PARKED_POINTER = SELFTEST_CONTROL_BLOCK_PARKED_POINTER;
 const ROW_STEP = -32;
 
 const toColour = (cell) => cell & ~(1 << 10); // clear bit 10: attribute plane -> colour plane

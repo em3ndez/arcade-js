@@ -4,16 +4,16 @@
 
 import { u8 } from "../../../core/int.js";
 import { loc_2251 } from "./loc_2251.js";
-import { DEMO_SCRIPT_DWELL, DEMO_SCRIPT_POINTER_HI, DEMO_SCRIPT_POINTER_LO, PLAYER_ONE_ERA_INDEX, TAMPER_COLOUR_READBACK, TAMPER_GLYPH_READBACK } from "./names.js";
+import { DEMO_AUTOPILOT_SCRIPT_FIRST, DEMO_AUTOPILOT_SCRIPT_SECOND, DEMO_AUTOPILOT_SCRIPT_THIRD, DEMO_SCRIPT_DWELL, DEMO_SCRIPT_POINTER_HI, DEMO_SCRIPT_POINTER_LO, PLAYER_ONE_ERA_INDEX, TAMPER_COLOUR_READBACK, TAMPER_GLYPH_READBACK } from "./names.js";
 
 export function seedDemoAutopilotScript(m) {
   const { mem8 } = m;
 
   const selector = mem8[PLAYER_ONE_ERA_INDEX];
   const script =
-    selector === 0 || selector === 3 ? 0x218c
-    : selector === 1 ? 0x2251
-    : 0x22fa;
+    selector === 0 || selector === 3 ? DEMO_AUTOPILOT_SCRIPT_FIRST
+    : selector === 1 ? DEMO_AUTOPILOT_SCRIPT_SECOND
+    : DEMO_AUTOPILOT_SCRIPT_THIRD;
 
   mem8[DEMO_SCRIPT_DWELL] = u8(mem8[script] + 1); // dwell counter, one past the script's leading byte
   mem8[DEMO_SCRIPT_POINTER_LO] = script;

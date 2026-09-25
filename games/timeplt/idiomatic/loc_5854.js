@@ -3,8 +3,9 @@
  * is the whole of what this entry does; a pointer a caller held on the way in is discarded. LIVE-OUT: memory. */
 
 import { flyAlongHeading } from "./flyAlongHeading.js";
+import { OPENING_ERA_VELOCITY_TABLE } from "./names.js";
 
-const VELOCITY_TABLE = 0x5e00;
+const VELOCITY_TABLE = OPENING_ERA_VELOCITY_TABLE;
 
 export function loc_5854(m) {
   flyAlongHeading(m, VELOCITY_TABLE);

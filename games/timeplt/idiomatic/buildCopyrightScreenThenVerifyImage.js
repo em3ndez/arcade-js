@@ -10,10 +10,11 @@ import { stampCopyrightStrip } from "./stampCopyrightStrip.js";
 import { postCommand } from "./postCommand.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { loc_08fa } from "./loc_08fa.js";
+import { COPYRIGHT_IMAGE_CHECKSUM_BASE } from "./names.js";
 
 const CAPTION_COMMAND = 1;
 const CAPTION_ARGUMENTS = [0, 1, 3, 4, 5, 6, 7, 20, 21];
-const CHECKSUM_BLOCK = 0x176a;
+const CHECKSUM_BLOCK = COPYRIGHT_IMAGE_CHECKSUM_BASE;
 const CHECKSUM_LENGTH = 24;
 const CHECKSUM_MATCH = 0xc9;
 

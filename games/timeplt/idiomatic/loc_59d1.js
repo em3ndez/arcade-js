@@ -3,8 +3,9 @@
  * pace one fixed table of samples sets; choosing that table is all this entry does. LIVE-OUT: the pair. */
 
 import { doubledVelocityForHeading } from "./doubledVelocityForHeading.js";
+import { OPENING_ERA_VELOCITY_TABLE } from "./names.js";
 
-const VELOCITY_TABLE = 0x5e00;
+const VELOCITY_TABLE = OPENING_ERA_VELOCITY_TABLE;
 
 export function loc_59d1(m, heading = m.regs.a) {
   return doubledVelocityForHeading(m, VELOCITY_TABLE, heading);

@@ -9,9 +9,10 @@ import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { armLineWipeFromFifthLine } from "./armLineWipeFromFifthLine.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { sampleCellGlyphAndColour } from "./sampleCellGlyphAndColour.js";
+import { LINE_WIPE_SAMPLED_CELL, LINE_WIPE_SAMPLE_RECORD } from "./names.js";
 
-const SAMPLED_CELL = 0xa5fc;
-const SAMPLE_RECORD = 0xacbe;
+const SAMPLED_CELL = LINE_WIPE_SAMPLED_CELL;
+const SAMPLE_RECORD = LINE_WIPE_SAMPLE_RECORD;
 
 export function parkSpritesAndArmLineWipeThenAdvanceSequence(m) {
   hideAllSprites(m);

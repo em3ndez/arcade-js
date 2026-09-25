@@ -6,9 +6,9 @@
 
 import { offsetAddress } from "./offsetAddress.js";
 import { u8 } from "../../../core/int.js";
-import { START_RUNG_ROUNDS_1_5 } from "./names.js";
+import { START_RUNG_ROUNDS_1_5, DIFFICULTY_RECORD_TABLE } from "./names.js";
 
-const RECORD_TABLE = 0x186a;
+const RECORD_TABLE = DIFFICULTY_RECORD_TABLE;
 const RECORD_BYTES = 4;
 
 export function loadDifficultyRecord(m, index = m.regs.a) {
