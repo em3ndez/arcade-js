@@ -8,8 +8,10 @@
  * inline jump-table arm included, is reached as a direct call. LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
+import { NotImplemented } from "../../../boards/timeplt/io.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { fetchTableWord } from "./fetchTableWord.js";
+import { loc_598e } from "./loc_598e.js";
+import { loc_5994 } from "./loc_5994.js";
 import { postCommand } from "./postCommand.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { headingToward } from "./headingToward.js";
@@ -22,7 +24,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
-import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, MOTHER_SHIP_WARP_SHAPE_TABLE, MOTHER_SHIP_STAGE_ARM_TABLE } from "./names.js";
+import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, MOTHER_SHIP_WARP_SHAPE_TABLE } from "./names.js";
 
 const SLOT_STRIDE = 0x10;
 const SLOT_COUNT = 0x0f;
@@ -303,11 +305,25 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy
   mem8[Y(0x31)] = spriteHeading;
   mem8[Y(0x00)] = spriteX;
 
-  // Dispatch the era's stage arm; it hands the stage vector back in E/D/C/B.
-  const arm = fetchTableWord(m, mem8[ERA_INDEX], MOTHER_SHIP_STAGE_ARM_TABLE); // stage-vector arms sit inline below the table
-  regs.de = regs.hl;
-  regs.hl = arm;
-  m.call(arm); // dispatch to the stage's arm directly
+  // Dispatch the era's stage arm directly. The fixed five-word table below the entry names the
+  // slowest-sample arm for the two opening eras and the faster arm for eras two through four; each
+  // arm reads the record's heading and hands the doubled component pair back in E/D/C/B, which is
+  // read out into the record's 0x0a..0x0d cells just below. Later eras name no arm and are surfaced
+  // as a fault, exactly as reaching past the table would.
+  const era = mem8[ERA_INDEX];
+  switch (era) {
+    case 0:
+    case 1:
+      loc_598e(m);
+      break;
+    case 2:
+    case 3:
+    case 4:
+      loc_5994(m);
+      break;
+    default:
+      throw new NotImplemented(`loc_43f0_474c: no stage arm for era ${era}`);
+  }
 
   mem8[X(0x0a)] = regs.e;
   mem8[X(0x0b)] = regs.d;

@@ -11,6 +11,8 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { stepMotherShip as candidate } from "../stepMotherShip.js";
+import { loc_598e } from "../loc_598e.js";
+import { loc_5994 } from "../loc_5994.js";
 import { loc_43f0 as oracle } from "../../translated/loc_43f0.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -222,4 +224,33 @@ test("TEETH: broken twins are caught in memory on every writing arm", { skip }, 
     assert.ok(biteInMemory(scribbleData, c), `the data-scribble twin escaped ${label}`);
   }
   console.log(`  TEETH: no-op and data-scribble caught on all ${rows.length} writing entries`);
+});
+
+// The launch path picks one of two stage arms by the era and lands the pair it hands back into the
+// spawned record's 0x0a..0x0d cells. Those cells are ordinary work RAM the EQUAL comparison covers,
+// so a dispatch that ran the wrong arm would land the wrong pair and fail EQUAL on one of the two
+// live-spawn entries. This is the positive control that the two arms are genuinely different: pointed
+// at the same heading they hand back different pairs, so choosing between them is observable and the
+// EQUAL check above has teeth over the choice. If they ever agreed, EQUAL could not catch a swap.
+const STAGE_HEADINGS = [0x08, 0x20, 0x40, 0x60, 0x80, 0xa0, 0xc0, 0xe0];
+test("STAGE ARMS DIFFER: the two era arms hand back different vectors, so the dispatch is observable", { skip }, () => {
+  const vec = (arm, heading) => {
+    const m = bases()[0].clone();
+    m.regs.ix = RECORD;
+    m.mem8[RECORD + 0x02] = heading;
+    arm(m);
+    return [m.regs.e, m.regs.d, m.regs.c, m.regs.b];
+  };
+  let differing = 0;
+  for (const h of STAGE_HEADINGS) {
+    const a = vec(loc_598e, h);
+    const b = vec(loc_5994, h);
+    if (a.some((v, i) => v !== b[i])) differing++;
+  }
+  assert.ok(
+    differing > 0,
+    "the two stage arms handed back the same vector on every heading tried, so a dispatch that " +
+      "picked the wrong arm could never be caught by the EQUAL memory comparison",
+  );
+  console.log(`  STAGE ARMS DIFFER: ${differing} of ${STAGE_HEADINGS.length} headings distinguish the two arms`);
 });
