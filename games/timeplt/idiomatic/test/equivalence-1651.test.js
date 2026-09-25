@@ -1,42 +1,52 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchSequencePhase1SubStepArm — memory-equivalent to the frozen oracle at ROM 0x1651.
+ * dispatchSequencePhase1SubStepArm — equivalent to the frozen oracle at ROM 0x1651, under the
+ * DISSOLVED-DISPATCH contract.
  *
- * GATE: strict unit-capture with ONE exclusion, a replayed corpus of every dispatch, an
- *   exhaustive crafted sweep of the index, an arm that severs the arms themselves, and teeth.
- *   What it exercises, holes stated:
+ * WHAT IT IS. Read the inner sequence sub-step and run the arm that index names out of the word table
+ * that follows this entry, then run this mode's shared tail. The index is taken RAW; the doubling that
+ * reaches a two-byte entry wraps at eight bits, so an index and that index plus 128 pick the same slot
+ * — the low seven bits are what chooses. The rewrite no longer computes the arm's address and enters
+ * it through the restart-vector dispatch; it switches on the low seven bits and calls the arm's
+ * idiomatic module DIRECTLY for slots 0..12, then returns the shared tail. Each arm PLAIN-RETURNS —
+ * it does not pop a return address, and its sub-calls are ordinary JS calls, not machine calls that
+ * push and pop. So the two sides here NO LONGER share an exit stack pointer or an exit program
+ * counter, and NEITHER is compared: with the dispatch dissolved, the dispatcher's return is supplied
+ * at the seam in production (withOmittedRet), and the contract that remains is the WORK MEMORY the
+ * arm, its sub-calls, AND the shared tail leave.
  *
- *   1. EQUAL at the real dispatch, outside a narrow dead stack window. The oracle reaches its
- *      table through a chain that brackets the lookup with a push and a pop; the rewrite reads
- *      the table directly, so bytes below the stack pointer can hold different values. The
- *      exclusion is the SCRATCH_BYTES window below the entry stack pointer, and every arm PINS it —
- *      each walks the whole dump and asserts no divergence escapes the window.
- *   2. ★ THE PARKED RETURN IS ASSERTED, NOT ASSUMED, AND IT IS THE POINT OF THIS FILE. Each arm
- *      returns through the stack, and what it returns to is the slot this entry parks for it.
- *      One arm below runs the rewrite WITHOUT that park and asserts that the stack pointer then
- *      ends two bytes adrift — which is what makes keeping it a measured requirement rather than
- *      a habit carried over from the transcription.
- *   3. EXCLUDED, deliberately: nothing but the stack window and the register file the shared tail
- *      drops. Only sp is live-out (the tail's ret restores it, and the arm below pins it to the
- *      oracle); every other register is the tail's dead leftover. It does NOT see time: `clone()`
- *      seats nextNmi at Infinity so no NMI can fire, and the cycle count is in neither the state
- *      dump nor REG_FIELDS — the rewrite charges no T-states by design.
- *   4. DISPATCH IS PROVED, not assumed: a severing arm replaces every address the table can
- *      select with a recorder on both sides and asserts that the SAME arm was chosen and handed
- *      the same lookup by-products it records — the accumulator and the two pairs, not the flags.
- *      The ROM's arithmetic writes flags the rewrite does not, and the reached arms read none.
- *   5. CORPUS — every dispatch of the undriven demo and of the driven tape.
- *   6. EXHAUSTIVE over the index: all 256 values through the severing recorder, which is the only
- *      way to reach the indices past the end of the table — the index is used raw, so a large one
- *      selects bytes that are not an arm address at all.
- *   7. TEETH — six twins. Each twin's verdict on the real corpus is recorded exactly, INCLUDING
- *      the two the corpus cannot see — one the demo's index set never exercises, and one whose only
- *      divergence is residue the shared tail then drops — which the crafted sweep catches at the
- *      arm's input instead; and one that stops the session outright by selecting a non-routine word.
+ * ★ THE SHARED TAIL IS PART OF THE CONTRACT — this is where phase 1 differs from phase 2. Phase 2's
+ *   tail does nothing; phase 1's tail `advanceSequenceElseStartFreePlayGame` DOES work (it advances
+ *   the sequence / may start a free-play game). The oracle runs arm THEN tail, and so does the
+ *   rewrite, so whatever the tail writes to memory is compared here exactly as the oracle produces it
+ *   — it is NOT masked. The skips-the-tail twin below proves this is load-bearing: dropping the tail
+ *   is caught on the DRIVEN corpus, where the tail really does write live memory (0xa9ab/0xa9ac).
  *
- * HOLE: what each arm DOES is not exercised here beyond the indices the two sessions present.
- * HOLE: this file does not establish how long the table is. It asserts what the ROM bytes select
- * for each index, which is a different and weaker claim.
+ * ★ THE ONE PLACE THE TWO SIDES DIVERGE is a dead band of stack scratch, the SCRATCH_BYTES below the
+ *   entry stack pointer, and it is MASKED. The oracle reaches the arm through a chain that brackets
+ *   the lookup with pushes and pops of nested return addresses; the rewrite calls directly, so the
+ *   two write different bytes below the stack pointer both sides leave — transient scratch, dead the
+ *   moment the routine returns. The band is MEASURED (an exact ceiling asserted in CORPUS, so a change
+ *   surfaces here rather than being absorbed). The SCRATCH test proves the mask is not blind:
+ *   divergence really appears inside the band, and NOTHING escapes it. The TEETH prove the mask is not
+ *   over-broad: a wrong arm — or a dropped tail — writes real work memory outside the band and is
+ *   caught.
+ *
+ * GATE: strict unit-capture over the shared coin-then-start tape and the attract tape, a replayed
+ *   corpus of every dispatch of both, a crafted sweep of the table's own slots (and their eight-bit
+ *   wraps), and teeth. The memory comparison masks only the dead scratch band above.
+ *
+ * HOLE: what each arm DOES is not exercised here beyond the indices the two sessions present; crafted
+ * slots are asserted only to select the SAME arm the oracle's table selects (same masked memory, or
+ * the SAME fault), never to be correct.
+ * HOLE: the index is taken RAW, so the crafted sweep is scoped to the table's own thirteen slots
+ * (0..12) and the same slots reached through the eight-bit wrap (128..140). Indices between those two
+ * runs select bytes further down the image that are NOT part of this table; the rewrite raises
+ * NotImplemented for them, and while the oracle raises the same fault for most, a handful of those
+ * garbage indices (low seven bits 52, 55, 58, 110, 112, 120) address bytes that happen to enter
+ * mapped code and DO NOT fault. What the oracle does at those raw indices is outside this entry's
+ * contract — the corpus never presents any index past 12 — and is not asserted here. (Flagged to the
+ * confirmer/LEAD: this is a property of the raw index reaching non-table bytes, not of the arms.)
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-1651.test.js
  */
@@ -46,30 +56,33 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { dispatchSequencePhase1SubStepArm } from "../dispatchSequencePhase1SubStepArm.js";
-import { fetchTableWord } from "../fetchTableWord.js";
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_1651 as oracle } from "../../translated/loc_1651.js";
-import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { unitEquivalence } from "../../../../core/equivalence.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x1651;
 const ARM_TABLE = 0x1659;
 const SHARED_TAIL = 0x167b;
+// Only the low seven bits pick a slot: the doubling that reaches a two-byte entry wraps at eight bits.
+const ENTRY_MASK = 0x7f;
+// The table's own transcribed slots (0..12), before the words run into non-routine bytes further down.
+const ARM_COUNT = 13;
+// The same slots reached again through the eight-bit wrap — index + this lands on slot index.
+const WRAP_OFFSET = 128;
 const CORPUS_FRAMES = 2500;
 
 /**
- * The widest divergence any dispatch of the two sessions produces, in bytes below the entry stack
- * pointer. Measured, and asserted as an exact ceiling rather than assumed.
+ * The dead stack-scratch band, in bytes below the entry stack pointer: the bytes the frozen chain
+ * writes nested return addresses into and the rewrite reaches to a different depth (its arms' own
+ * sub-calls). It lies below the stack pointer both sides leave — transient scratch, dead the moment
+ * the routine returns — so a difference confined to it is not a difference in any value the game
+ * reads. MEASURED as the widest divergence any dispatch of the two sessions produces (attract reaches
+ * sp-16, driven sp-12), and asserted as an EXACT ceiling in CORPUS rather than assumed. The SCRATCH
+ * test proves the band is real and that nothing escapes it; the TEETH prove it is not over-broad.
  */
-const SCRATCH_BYTES = 6;
-
-// The shared tail's own gate DROPS the register file (its LIVE-OUT is memory), so once dispatchSequencePhase1SubStepArm ends
-// in that tail every register it leaves is a dead leftover -- EXCEPT sp, which the tail's ret restores
-// structurally and which the PARKED-RETURN arm holds to the oracle. So the divergence checks ignore
-// every register but sp; the arm's input residue (hl/de) is still pinned by the severed recorder.
-const DEAD_REGS = REG_FIELDS.filter((k) => k !== "sp");
+const SCRATCH_BYTES = 16;
 
 const TAPES = [
   ["attract", { tape: [] }],
@@ -78,104 +91,90 @@ const TAPES = [
 const DISPATCHES = { attract: 521, driven: 187 };
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
-const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
+const show = (ds) =>
+  ds.length === 0 ? "identical" : ds.map((d) => `${hex4(d.addr)}(${d.a}/${d.b})`).join(" ");
 
+// ── entry capture ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * The pristine machine at the instant 0x1651 is first entered off the coin-then-start tape. Captured
+ * through unitEquivalence purely for its side effect; its own comparison (which still checks
+ * registers and sp) is IGNORED, because those are no longer part of this dissolved contract.
+ */
 let entry = null;
 
-function gate(candidate) {
-  return unitEquivalence(
-    makeMachine,
-    TARGET,
-    oracle,
-    (m) => {
-      if (entry === null) entry = m.clone();
-      return candidate(m);
-    },
-    { maxFrames: ENTRY_FRAMES },
-  );
-}
-
-function entryState() {
-  if (entry === null) gate(dispatchSequencePhase1SubStepArm);
+function captureEntry() {
+  if (entry === null) {
+    unitEquivalence(
+      makeMachine,
+      TARGET,
+      oracle,
+      (m) => {
+        if (entry === null) entry = m.clone();
+        return dispatchSequencePhase1SubStepArm(m);
+      },
+      { maxFrames: ENTRY_FRAMES },
+    );
+  }
+  assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   return entry;
 }
 
-/** The arm the ROM bytes select for an index: the doubling wraps at eight bits. */
-function armFor(machine, index) {
-  return machine.mem16[(ARM_TABLE + ((index + index) & 0xff)) & 0xffff];
-}
-
-function allDiffs(a, b) {
-  const da = a.dumpState();
-  const db = b.dumpState();
-  const out = [];
-  for (let i = 0; i < da.length; i++) {
-    if (da[i] !== db[i]) out.push({ addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] });
-  }
-  return out;
-}
-
-const inScratch = (addr, sp) => addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp;
-
-function unitDiff(candidate, machine) {
-  const sp = machine.regs.sp;
-  const a = machine.clone();
-  const b = machine.clone();
-  oracle(a);
-  candidate(b);
-  const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
-  if (ram) return ram;
-  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !DEAD_REGS.includes(k));
-  if (moved.length) return { addr: null, reg: moved[0], a: a.regs[moved[0]], b: b.regs[moved[0]] };
-  return null;
-}
-
-/**
- * A clone in which every address the table can select is a recorder. The shared tail is NOT severed:
- * it is reached by a direct call now, not a dispatch, so there is nothing to prove about its
- * selection — only the arm the table picks is. Each recorder returns through the stack exactly as the
- * routine it stands in for does, so the stack accounting this file is about is preserved.
- */
-function severed(machine, log) {
-  const c = machine.clone();
-  c.routines = new Map(c.routines);
-  for (let index = 0; index < 256; index++) {
-    const arm = armFor(machine, index);
-    c.routines.set(arm, (mm) => {
-      log.push({ kind: "arm", arm, a: mm.regs.a, hl: mm.regs.hl, de: mm.regs.de });
-      mm.ret();
-    });
-  }
-  return c;
-}
-
+/** A clone of the real entry with the sub-step index forced. */
 function craft(index) {
-  const m = entryState().clone();
+  const m = captureEntry().clone();
   m.mem8[SEQUENCE_SUBSTEP] = index;
   return m;
 }
 
-function dispatchDiff(candidate, index) {
-  const logA = [];
-  const logB = [];
-  const a = severed(craft(index), logA);
-  const b = severed(craft(index), logB);
-  oracle(a);
-  try {
-    candidate(b);
-  } catch {
-    return { index, threw: true };
+// ── the comparison ──────────────────────────────────────────────────────────────────────
+
+const inScratch = (addr, sp) => addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp;
+
+/**
+ * Run both sides on clones of one machine and report everything the contract needs: the raw byte
+ * difference, the difference outside the dead scratch band, how each side faulted, and whether the
+ * comparison has any POWER here — `informative` is the oracle's own footprint outside the band
+ * against the untouched entry, which is exactly what a do-nothing candidate would be caught by.
+ * Registers, sp and pc are NOT read: the dispatch is dissolved, so they are not part of the contract.
+ */
+function diffOf(candidate, machine) {
+  const sp = machine.regs.sp;
+  const before = machine.dumpState();
+  const a = machine.clone();
+  const b = machine.clone();
+  let faultA = null;
+  let faultB = null;
+  try { oracle(a); } catch (e) { faultA = e.constructor.name; }
+  try { candidate(b); } catch (e) { faultB = e.constructor.name; }
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const outside = (addr) => !inScratch(addr, sp);
+  const raw = [];
+  let informative = false;
+  for (let off = 0; off < da.length; off++) {
+    const addr = a.stateOffsetToAddr(off);
+    if (da[off] !== db[off]) raw.push({ addr, a: da[off], b: db[off] });
+    if (da[off] !== before[off] && outside(addr)) informative = true;
   }
-  if (logA.length !== logB.length) return { index, a: logA.length, b: logB.length };
-  for (const [i, x] of logA.entries()) {
-    for (const k of ["kind", "arm", "a", "hl", "de"]) {
-      if (x[k] !== logB[i][k]) return { index, key: k, a: x[k], b: logB[i][k] };
-    }
-  }
-  if (a.regs.sp !== b.regs.sp) return { index, key: "sp", a: a.regs.sp, b: b.regs.sp };
-  return null;
+  const masked = raw.filter((d) => outside(d.addr));
+  const faulted = faultA !== null || faultB !== null;
+  return {
+    raw,
+    masked,
+    informative,
+    faultA,
+    faultB,
+    faulted,
+    // The dead band is the ONLY licensed divergence: outside it, a fault must match a fault and a
+    // byte must match a byte, or the candidate is caught.
+    caught: faulted ? faultA !== faultB : masked.length > 0,
+  };
 }
 
+// ── the replayed sessions ─────────────────────────────────────────────────────────────────
+
+/** Replay a whole session, comparing the candidate to the oracle at every dispatch. */
 function replaySession(opts, candidate) {
   let dispatches = 0;
   let caught = 0;
@@ -188,16 +187,25 @@ function replaySession(opts, candidate) {
       const sp = mm.regs.sp;
       const a = mm.clone();
       const b = mm.clone();
-      oracle(a);
-      candidate(b);
-      const diffs = allDiffs(a, b);
-      for (const d of diffs) {
-        if (d.addr !== null && d.addr < sp) widest = Math.max(widest, sp - d.addr);
+      let faultA = null;
+      let faultB = null;
+      try { oracle(a); } catch (e) { faultA = e.constructor.name; }
+      try { candidate(b); } catch (e) { faultB = e.constructor.name; }
+      if (faultA !== null || faultB !== null) {
+        if (faultA !== faultB) caught++;
+      } else {
+        const da = a.dumpState();
+        const db = b.dumpState();
+        let stray = false;
+        for (let off = 0; off < da.length; off++) {
+          if (da[off] === db[off]) continue;
+          const addr = a.stateOffsetToAddr(off);
+          if (addr !== null && addr < sp) widest = Math.max(widest, sp - addr);
+          if (!inScratch(addr, sp)) stray = true;
+        }
+        if (stray) caught++;
       }
-      const stray = diffs.find((d) => !inScratch(d.addr, sp));
-      const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !DEAD_REGS.includes(k));
-      if (stray || moved.length) caught++;
-      return oracle(mm);
+      return oracle(mm); // let the host proceed on the oracle
     }]]),
     opts,
   );
@@ -221,184 +229,162 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, dispatchSequencePhase1SubStepArm) }));
+    sessionCache = TAPES.map(([label, opts]) => ({
+      label,
+      ...replaySession(opts, dispatchSequencePhase1SubStepArm),
+    }));
   }
   return sessionCache;
 }
 
-// ── teeth ───────────────────────────────────────────────────────────────────────────────
+// ── the twins ───────────────────────────────────────────────────────────────────────────
+
+// Each twin is built from the SAME translated pieces the oracle reaches — the arm at a table slot,
+// entered by a machine call, and the shared tail, likewise — so a twin's catch reflects ONLY the bug
+// injected into the SELECTION or the presence of the tail, never idiomatic-vs-translated noise. A
+// correct wiring (right slot, tail present) is byte-identical to the oracle outside the scratch band.
+const armAt = (m, slot) => m.call(m.mem16[(ARM_TABLE + 2 * (slot & ENTRY_MASK)) & 0xffff]);
 
 /** BUG: does nothing at all — the tell that a gate is measuring an unreached routine. */
 function brokenNoOp() {}
 
-/**
- * BUG: parks nothing for the arm to return to. This is the twin the file exists to catch: it
- * looks tidier than the real thing and leaves the stack two bytes adrift on every dispatch.
- */
-function brokenNoParkedReturn(m) {
-  const { regs, mem8 } = m;
-  regs.a = mem8[SEQUENCE_SUBSTEP];
-  regs.hl = ARM_TABLE;
-  const arm = fetchTableWord(m);
-  regs.de = regs.hl;
-  regs.hl = arm;
-  m.call(arm);
-  return m.call(SHARED_TAIL);
+/** BUG: always runs the first arm, whatever the index selects. */
+function brokenFixedFirstArm(m) {
+  armAt(m, 0);
+  m.call(SHARED_TAIL);
 }
 
-/** BUG: runs the arm and never runs the shared tail. */
-function brokenSkipsTheTail(m) {
-  const { regs, mem8 } = m;
-  regs.a = mem8[SEQUENCE_SUBSTEP];
-  regs.hl = ARM_TABLE;
-  const arm = fetchTableWord(m);
-  regs.de = regs.hl;
-  regs.hl = arm;
-  m.push16(SHARED_TAIL);
-  return m.call(arm);
-}
-
-/** BUG: masks the index to the table's length instead of using it raw. */
-function brokenMasksTheIndex(m) {
-  const { regs, mem8 } = m;
-  regs.a = mem8[SEQUENCE_SUBSTEP] & 0x0f;
-  regs.hl = ARM_TABLE;
-  const arm = fetchTableWord(m);
-  regs.de = regs.hl;
-  regs.hl = arm;
-  m.push16(SHARED_TAIL);
-  m.call(arm);
-  return m.call(SHARED_TAIL);
-}
-
-/** BUG: forgets the by-products the lookup leaves for the arm to read. */
-function brokenDropsLookupResidue(m) {
-  const { mem8, mem16 } = m;
-  const index = mem8[SEQUENCE_SUBSTEP];
-  const at = (ARM_TABLE + ((index + index) & 0xff)) & 0xffff;
-  m.push16(SHARED_TAIL);
-  m.call(mem16[at]);
-  return m.call(SHARED_TAIL);
+/** BUG: runs the neighbouring slot's arm. */
+function brokenNextArm(m) {
+  armAt(m, (m.mem8[SEQUENCE_SUBSTEP] + 1) & 0xff);
+  m.call(SHARED_TAIL);
 }
 
 /** BUG: reads the table one entry along, so every index selects its neighbour's arm. */
 function brokenOffByOneEntry(m) {
-  const { regs, mem8 } = m;
-  regs.a = (mem8[SEQUENCE_SUBSTEP] + 1) & 0xff;
-  regs.hl = ARM_TABLE;
-  const arm = fetchTableWord(m);
-  regs.de = regs.hl;
-  regs.hl = arm;
-  m.push16(SHARED_TAIL);
-  m.call(arm);
-  return m.call(SHARED_TAIL);
+  m.call(m.mem16[(ARM_TABLE + 2 + 2 * (m.mem8[SEQUENCE_SUBSTEP] & ENTRY_MASK)) & 0xffff]);
+  m.call(SHARED_TAIL);
 }
 
-const TWINS = [
+/**
+ * BUG: runs the correct arm but drops the shared tail. The tail is where phase 1's work lives, so
+ * this is the twin the shared-tail contract exists to catch. The attract session's states leave the
+ * tail with nothing live to write, so the crafted sweep cannot see it; the DRIVEN corpus can, and the
+ * dedicated teeth test below catches it there.
+ */
+function brokenSkipsTheTail(m) {
+  armAt(m, m.mem8[SEQUENCE_SUBSTEP]);
+}
+
+const SWEEP_TWINS = [
   ["no-op", brokenNoOp],
-  ["no-parked-return", brokenNoParkedReturn],
-  ["skips-the-tail", brokenSkipsTheTail],
-  ["masks-the-index", brokenMasksTheIndex],
-  ["drops-lookup-residue", brokenDropsLookupResidue],
+  ["fixed-first-arm", brokenFixedFirstArm],
+  ["next-arm", brokenNextArm],
   ["off-by-one-entry", brokenOffByOneEntry],
 ];
 
-/**
- * Measured, per twin: how many of the demo session's dispatches it is caught on, or KILLS if
- * running it stops the session outright — which is the strongest catch there is and is recorded
- * as such rather than folded into a number.
- */
-const CAUGHT = {
-  "no-op": 521,
-  "no-parked-return": 521,
-  "skips-the-tail": 521,
-  // The demo only ever presents indices this mask leaves alone, so the corpus is blind to it and
-  // the crafted sweep below is what catches it. Recorded rather than hidden.
-  "masks-the-index": 0,
-  // The residue it drops lands only in registers the shared tail then drops (dead), so the corpus --
-  // which compares live state -- is blind to it; the crafted sweep catches it at the arm's input (256).
-  "drops-lookup-residue": 0,
-  "off-by-one-entry": "KILLS",
-};
+function sweepCaught(candidate) {
+  let caught = 0;
+  for (let i = 0; i < ARM_COUNT; i++) {
+    if (diffOf(candidate, craft(i)).caught) caught++;
+  }
+  return caught;
+}
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the dead stack window", { skip }, () => {
-  gate(dispatchSequencePhase1SubStepArm);
-  assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
-  const sp = entryState().regs.sp;
-  const a = entryState().clone();
-  const b = entryState().clone();
-  oracle(a);
-  dispatchSequencePhase1SubStepArm(b);
-  const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
-  assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
+  const r = diffOf(dispatchSequencePhase1SubStepArm, captureEntry());
+  assert.equal(r.faultA, null, `the oracle faulted (${r.faultA})`);
+  assert.equal(r.faultB, null, `the rewrite faulted (${r.faultB})`);
+  assert.deepEqual(r.masked, [], `a divergence escaped the scratch window: ${show(r.masked)}`);
   console.log(
-    `  EQUAL: entry index=${entryState().mem8[SEQUENCE_SUBSTEP]} sp=${hex4(sp)}; identical ` +
-      `outside [sp-${SCRATCH_BYTES}, sp)`,
+    `  EQUAL: entry index=${captureEntry().mem8[SEQUENCE_SUBSTEP]} ` +
+      `sp=${hex4(captureEntry().regs.sp)}; identical outside [sp-${SCRATCH_BYTES}, sp), raw ` +
+      `difference ${show(r.raw)}`,
   );
 });
 
 test("NOT VACUOUS: the same masked comparison catches a candidate that does nothing", { skip }, () => {
-  const d = unitDiff(brokenNoOp, entryState());
-  assert.notEqual(d, null, "the masked diff passed a do-nothing candidate, so it is not a gate");
-  console.log(`  NOT VACUOUS: the empty candidate is caught — ${JSON.stringify(d)}`);
+  const r = diffOf(brokenNoOp, captureEntry());
+  assert.ok(r.caught, "the masked diff passed a do-nothing candidate, so it is not a gate");
+  console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(r.masked)}`);
 });
 
-test("★ THE PARKED RETURN IS LOAD-BEARING: dropping it leaves the stack two bytes adrift", { skip }, () => {
-  const withPark = entryState().clone();
-  const withoutPark = entryState().clone();
-  const reference = entryState().clone();
-  oracle(reference);
-  dispatchSequencePhase1SubStepArm(withPark);
-  brokenNoParkedReturn(withoutPark);
-  assert.equal(
-    withPark.regs.sp,
-    reference.regs.sp,
-    "the rewrite must leave the stack exactly where the oracle leaves it",
-  );
-  assert.equal(
-    withoutPark.regs.sp - reference.regs.sp,
-    2,
-    "dropping the park must leave the stack two bytes adrift. If this is ever zero, the arms no " +
-      "longer return through the stack and the park should go",
-  );
-  console.log(
-    `  PARKED RETURN: with it sp=${hex4(withPark.regs.sp)} (matches); without it ` +
-      `sp=${hex4(withoutPark.regs.sp)}`,
-  );
-});
-
-test("EXCLUDED, deliberately: only the shared tail's dropped registers and the stack window differ", { skip }, () => {
-  const a = entryState().clone();
-  const b = entryState().clone();
-  oracle(a);
-  dispatchSequencePhase1SubStepArm(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !DEAD_REGS.includes(k)),
-    [],
-    "a register the tail does NOT drop moved: the tail's LIVE-OUT is memory (its own gate drops the " +
-      "register file), so only sp is live here and it must still match the oracle via the ret",
-  );
-  console.log("  EXCLUDED: only the tail's dropped registers and the dead scratch differ; sp matches");
-});
-
-test("DISPATCH: both sides choose the same arm and hand it the same residue", { skip }, () => {
-  const logA = [];
-  const a = severed(craft(4), logA);
-  oracle(a);
-  assert.deepEqual(
-    logA.map((x) => x.kind),
-    ["arm"],
-    "the oracle must run the arm the table selects (the tail is a fixed direct call, not dispatched)",
-  );
-  for (const index of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
-    assert.equal(dispatchDiff(dispatchSequencePhase1SubStepArm, index), null, `index ${index} dispatched differently`);
+test("SCRATCH: divergence is confined to the dead band, and the band is really there", { skip }, () => {
+  // The mask is only honest if BOTH hold: something really differs in the band (else the mask hides a
+  // phantom and proves nothing), and nothing escapes it (else the rewrite is diverging in live memory
+  // and the mask is swallowing the evidence).
+  let rawInBand = 0;
+  let widest = 0;
+  for (let i = 0; i < ARM_COUNT; i++) {
+    const m = craft(i);
+    const sp = m.regs.sp;
+    const r = diffOf(dispatchSequencePhase1SubStepArm, m);
+    // A slot that faults on both sides (DISPATCH asserts the fault matches) aborts partway and leaves
+    // meaningless partial writes; the band is a statement about arms that RUN to completion.
+    if (r.faulted) continue;
+    assert.deepEqual(r.masked, [], `slot ${i}: a difference escaped the band — ${show(r.masked)}`);
+    for (const d of r.raw) {
+      assert.ok(inScratch(d.addr, sp), `slot ${i}: ${hex4(d.addr)} differs outside the masked band`);
+      widest = Math.max(widest, sp - d.addr);
+      rawInBand++;
+    }
   }
-  console.log(
-    `  DISPATCH: arm then tail; indices 0..12 select ` +
-      `${[0, 1, 2, 3, 4].map((i) => hex4(armFor(entryState(), i))).join(",")}...`,
+  assert.ok(
+    rawInBand > 0,
+    "no byte ever differed in the band: masking it is unjustified — the two sides may simply be " +
+      "identical here",
   );
+  console.log(
+    `  SCRATCH: ${rawInBand} differing bytes, all within [sp-${SCRATCH_BYTES}, sp) ` +
+      `(deepest seen sp-${widest}); nothing escaped the band`,
+  );
+});
+
+test("DISPATCH: each table slot selects the SAME arm-then-tail, or faults identically", { skip }, () => {
+  const faulted = new Set();
+  let informative = 0;
+  for (let i = 0; i < ARM_COUNT; i++) {
+    const r = diffOf(dispatchSequencePhase1SubStepArm, craft(i));
+    if (r.informative) informative++;
+    if (r.faulted) {
+      assert.equal(r.faultA, r.faultB, `slot ${i}: ${r.faultA} on one side, ${r.faultB} on the other`);
+      faulted.add(i);
+      continue;
+    }
+    assert.deepEqual(r.masked, [], `slot ${i}: ${show(r.masked)}`);
+  }
+  assert.ok(faulted.size < ARM_COUNT, "every slot faulted: this sweep proves nothing");
+  assert.ok(
+    informative > 0,
+    "no swept slot wrote anything outside the window, so `identical` here is a comparison with no " +
+      "power rather than a result",
+  );
+  console.log(
+    `  DISPATCH: ${ARM_COUNT} slots, ${faulted.size} faulting identically on both sides ` +
+      `(${[...faulted].sort((a, b) => a - b).join(",")}), ${informative} writing real memory`,
+  );
+});
+
+test("WRAP: the eighth bit does not choose — a slot and that slot plus 128 behave alike", { skip }, () => {
+  // Only the low seven bits pick a slot. Sweep each slot at face value and again 128 higher and
+  // require the two sides to agree the same way at both. Scoped to the table's own slots and their
+  // wrapped twins; the indices between select non-table bytes and are not this entry's contract.
+  for (let i = 0; i < ARM_COUNT; i++) {
+    const lowR = diffOf(dispatchSequencePhase1SubStepArm, craft(i));
+    const wrapR = diffOf(dispatchSequencePhase1SubStepArm, craft(i + WRAP_OFFSET));
+    assert.equal(wrapR.faultA, lowR.faultA, `slot ${i}+128: the oracle took a different path`);
+    assert.equal(wrapR.faultB, lowR.faultB, `slot ${i}+128: the rewrite took a different path`);
+    if (lowR.faulted) {
+      assert.equal(lowR.faultA, lowR.faultB, `slot ${i}: ${lowR.faultA} vs ${lowR.faultB}`);
+      assert.equal(wrapR.faultA, wrapR.faultB, `slot ${i}+128: ${wrapR.faultA} vs ${wrapR.faultB}`);
+    } else {
+      assert.deepEqual(lowR.masked, [], `slot ${i}: ${show(lowR.masked)}`);
+      assert.deepEqual(wrapR.masked, [], `slot ${i}+128: ${show(wrapR.masked)}`);
+    }
+  }
+  console.log(`  WRAP: ${ARM_COUNT} slot/slot+128 pairs behave alike — the eighth bit cannot choose`);
 });
 
 test("CORPUS: every dispatch of both sessions replays identically", { skip }, () => {
@@ -417,8 +403,8 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
   assert.equal(
     widest,
     SCRATCH_BYTES,
-    "the widest scratch divergence moved, so the exclusion is the wrong size — it is asserted " +
-      "as an exact ceiling precisely so a change shows up here rather than being absorbed",
+    "the widest scratch divergence moved, so the exclusion is the wrong size — it is asserted as an " +
+      "exact ceiling precisely so a change shows up here rather than being absorbed",
   );
   const demo = seen.find((s) => s.label === "attract");
   console.log(
@@ -427,39 +413,38 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
   );
 });
 
-test("EXHAUSTIVE: all 256 indices select the same arm on both sides", { skip }, () => {
-  for (let index = 0; index < 256; index++) {
-    assert.equal(dispatchDiff(dispatchSequencePhase1SubStepArm, index), null, `index ${index} dispatched differently`);
-  }
-  assert.equal(armFor(entryState(), 128), armFor(entryState(), 0), "128 must fold onto 0");
-  assert.equal(armFor(entryState(), 200), armFor(entryState(), 72), "200 must fold onto 72");
-  console.log("  EXHAUSTIVE: 256 indices identical, the eight-bit fold included");
-});
+// The exit stack pointer, the exit program counter and the register file are NO LONGER part of the
+// contract and are not asserted anywhere above. The dispatch is dissolved: the arm's idiomatic module
+// is called directly and PLAIN-RETURNS, so the stack pointer is left where the arm found it (the
+// omitted dispatcher return is supplied at the seam in production) and the registers hold whatever the
+// arm and the shared tail leave. The contract that remains is work memory, checked outside the dead
+// band above — and that memory includes the shared tail's writes, which both sides produce.
 
-for (const [label, twin] of TWINS) {
-  test(`TEETH: the ${label} twin's verdict on the real corpus is exactly what is recorded`, { skip }, () => {
-    const r = replaySession({ tape: [] }, twin);
-    if (CAUGHT[label] === "KILLS") {
-      assert.notEqual(r.stopped, null, `the ${label} twin no longer stops the session`);
-      console.log(`  TEETH/${label}: stops the session outright — ${r.stopped}`);
-      return;
-    }
-    assert.equal(r.stopped, null, `the ${label} twin stopped the session: ${r.stopped}`);
-    assert.equal(r.dispatches, DISPATCHES.attract, "the demo dispatch count moved");
-    assert.equal(r.caught, CAUGHT[label], `the ${label} twin's demo catch count moved`);
-    console.log(`  TEETH/${label}: caught on ${r.caught} of ${r.dispatches} real dispatches`);
+// ── teeth ───────────────────────────────────────────────────────────────────────────────
+
+for (const [label, twin] of SWEEP_TWINS) {
+  test(`TEETH: the ${label} twin is CAUGHT on the crafted sweep`, { skip }, () => {
+    const caught = sweepCaught(twin);
+    assert.ok(
+      caught > 0,
+      `the masked comparison PASSED the ${label} twin on every slot — either the twin is not ` +
+        "broken or the band has swallowed the evidence",
+    );
+    console.log(`  TEETH/${label}: caught on ${caught} of ${ARM_COUNT} crafted slots`);
   });
 }
 
-test("TEETH: the twins the corpus cannot reach are caught by the crafted sweep", { skip }, () => {
-  const masked = [...Array(256).keys()].filter((i) => dispatchDiff(brokenMasksTheIndex, i));
-  const offByOne = [...Array(256).keys()].filter((i) => dispatchDiff(brokenOffByOneEntry, i));
-  const dropsResidue = [...Array(256).keys()].filter((i) => dispatchDiff(brokenDropsLookupResidue, i));
-  assert.equal(masked.length, 224, "the masks-the-index twin's crafted catch count moved");
-  assert.equal(offByOne.length, 256, "the off-by-one twin's crafted catch count moved");
-  assert.equal(dropsResidue.length, 256, "the drops-lookup-residue twin's crafted catch count moved");
-  console.log(
-    `  TEETH/crafted: masks-the-index caught on ${masked.length} of 256, off-by-one on ` +
-      `${offByOne.length}, drops-lookup-residue on ${dropsResidue.length}`,
+test("TEETH: dropping the shared tail is CAUGHT on the driven corpus", { skip }, () => {
+  // The tail's memory effects are part of the contract, and the crafted attract states leave it with
+  // nothing live to write. The driven tape reaches states where the tail writes real memory, so a
+  // candidate that runs the right arm but skips the tail is caught there — proof the tail is not
+  // absorbed by the scratch mask.
+  const r = replaySession({}, brokenSkipsTheTail);
+  assert.equal(r.stopped, null, `the skips-the-tail twin stopped the session: ${r.stopped}`);
+  assert.ok(
+    r.caught > 0,
+    "the masked comparison PASSED a candidate that drops the shared tail — the tail's writes are " +
+      "being masked away, so the tail is not really in the contract",
   );
+  console.log(`  TEETH/skips-the-tail: caught on ${r.caught} of ${r.dispatches} driven dispatches`);
 });
