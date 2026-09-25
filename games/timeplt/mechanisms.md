@@ -574,6 +574,28 @@ role and wrong about the cell — and any claim of the form "nothing else writes
 Enumerate every writer before naming a cell in this game; the power-on clear of work RAM counts as
 a writer too, for every cell inside it.
 
+★ **Two attract-sequence arms carry that witness idiom end to end.** Both are table-dispatched tails of
+the copyright/attract sequence machine — nothing `call`s either statically — and both guard the screen
+twice before they step the sequence on. `paintReadoutsThenSampleWitnessOrDerail` (`0x176A`) first checks
+the copyright line's colours (deferring to the guard, which derails on its own), then reads the caption
+glyph at `TAMPER_GLYPH_SOURCE_CELL` (`0xA67C`): unless it still holds `0x7C` the arm hands off to the
+mother-ship warp/flash handler (`stepMotherShipWarpFlashFrame`, `0x459B`) through its *misaligned*
+anti-tamper prologue — the "wrong-glyph derail" — and on a clean image it queues one caption command,
+repaints the five labelled numeric readouts, copies `TAMPER_SAMPLE_GLYPH_CELL`/`TAMPER_SAMPLE_COLOUR_CELL`
+(`0xA5DC`/`0xA1DC`) into the readback pair (`0xADFB`/`0xADFC`) read back later by the demo start, and steps
+the sub-step. `[code]`
+
+★ **The other arm derives its check pointer from a program byte, which is the tamper mechanism itself.**
+`holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail` (`0x178C`) restamps and flashes the copyright line
+every frame, counting `SEQUENCE_DELAY` down and returning while it runs; on the frame it expires it checks
+the copyright colours and then builds a caption-cell pointer from the *first opcode of the parachutist
+routine* read as data (`runParachutistSlot_ADDR`, `0x47B3`: `+2` for the low byte, `+0x6A` for the high),
+which lands on cell `0xA63C` only on an untouched image, and the glyph there must read `0x3B` (the 'N' of
+"(c) KONAMI 1982"). A modified opcode moves the read off the caption cell and the glyph test fails, DERAILING
+into the anti-tamper trap `loc_15ca` (data run as code); on the genuine image it seats one caption cell's
+glyph and colour into `TAMPER_GLYPH_COPY` (`0xAB43`) and steps the sub-step, so the derail is unreachable in
+normal play. `[code]`
+
 ### The generator's register has two writers, and the second one lays a seed
 
 The pseudo-random generator's seventeen-byte shift register is the worked case for that instruction,

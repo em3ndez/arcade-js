@@ -1362,6 +1362,12 @@ export const TAMPER_GLYPH_READBACK = 0xadfb;
 /** Tile-image tamper tripwire: the colour read back from cell 0xA1DC; the demo proceeds only if it is 0x10 or 0x05. [seen] */
 export const TAMPER_COLOUR_READBACK = 0xadfc;
 
+/** Tile-image tamper witness source: the glyph copied to TAMPER_GLYPH_READBACK (0xadfb) and later read back to gate the demo. [seen] */
+export const TAMPER_SAMPLE_GLYPH_CELL = 0xa5dc;
+
+/** Colour twin of 0xa5dc, copied to TAMPER_COLOUR_READBACK (0xadfc); also the 8th guarded copyright colour cell. [seen] */
+export const TAMPER_SAMPLE_COLOUR_CELL = 0xa1dc;
+
 /**
  * Head of the deferred-PAINT list -- 4-byte records {addr lo, addr hi, tile, colour} that DEFERRED_WRITE_CURSOR 0xae00
  * fills and paintDeferredCells drains into both planes; a cursor still == this head means the list is empty. [seen]
@@ -1741,6 +1747,7 @@ export const loc_a801 = 0xa801; // proposal: resetPlayfieldAndArmNewRound cleare
 export const ERA_RUNG_SETTINGS_POINTER_TABLE = 0x1b04; // ROM table indexed (era<<4)+rung via fetchTableWord -> pointer to a ~10-byte settings row scattered into spawn/launch cells (applyEraRungSettings)
 export const ATTRACT_RESTART_FOLD_BYTE = 0x4901; // ROM byte folded with PLAYER_ANIM_COL_COUNT to recompute SEQUENCE_SUBSTEP (nets to 0 on a genuine image) -- anti-tamper (restartAttractSequence) [guess]
 export const loc_178c = 0x178c; // proposal: seatCaptionPenFromEraFoldingTamperIntoPhase IMAGE_BLOCK
+export const runParachutistSlot_ADDR = 0x47b3; // §3 collision: routine 0x47b3's own first opcode (0x3A) read as data -- a caption-cell pointer seed by holdCopyright's anti-tamper glyph check [seen]
 export const BOOT_CONFIG_CHECKSUM_BASE = 0x086b; // base of the 16-byte boot-config ROM block (holds the RNG seed guard words + default kill quota) summed as a tamper tripwire (seatEraSceneryRowThenClearAndRunScenery) [guess]
 export const loc_3176 = 0x3176; // proposal: seatEraSceneryRowThenClearAndRunScenery ROW_TABLE
 
@@ -1968,6 +1975,16 @@ export const ROUTINES = {
     name: "buildCopyrightScreenThenVerifyImage",
     role: "title/attract copyright-screen layout arm (table-dispatched, no static call site): request the flashing copyright line, stamp the copyright caption strip, post caption commands (command 1, arguments 0,1,3..7,20,21) to the command ring, then XOR-fold the 24-byte program block at 0x176A and step the sequence sub-step when the fold matches 0xC9, else transfer to the checksum-failure landing",
     cert: "seen",
+  },
+  0x176a: {
+    name: "paintReadoutsThenSampleWitnessOrDerail",
+    role: "one arm of the copyright/attract sequence machine (table-dispatched tail, no static call site): check the copyright line's colours (deferring to the guard, which derails on its own if any cell is wrong), then unless caption cell TAMPER_GLYPH_SOURCE_CELL (0xa67c) still holds glyph 0x7c hand off to the mother-ship warp/flash handler (stepMotherShipWarpFlashFrame) through its misaligned anti-tamper entry -- the wrong-glyph derail; on a clean image queue one caption command (1, 0x13), repaint the five labelled numeric readouts, copy one cell's glyph and colour into the tamper readback pair (0xadfb/0xadfc), and step the sequence sub-step. Live-out memory only",
+    cert: "code",
+  },
+  0x178c: {
+    name: "holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail",
+    role: "phase-1 attract sub-step arm (computed dispatch off the phase-1 table, no static call site): each frame restamp the copyright strip and flash its line, then count one frame off SEQUENCE_DELAY and return while it still runs; on the frame it expires verify the copyright line's colours (guard derails on its own), build a caption-cell pointer from a program byte -- the parachutist routine's first opcode (0x47b3) read as data -- and check the glyph there is 0x3b, DERAILING into the anti-tamper trap loc_15ca (data run as code) on a mismatch, else seat one caption cell's glyph and colour into the tamper-witness pair (TAMPER_GLYPH_COPY 0xab43) and step the sequence sub-step. Live-out memory only",
+    cert: "code",
   },
   0x1323: {
     name: "stepRoundStartIntroAnimation",
