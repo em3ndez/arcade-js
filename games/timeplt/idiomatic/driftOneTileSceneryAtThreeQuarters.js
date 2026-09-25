@@ -6,7 +6,8 @@
 import { advanceToNextSlot } from "./advanceToNextSlot.js";
 import { driftAtThreeQuartersWorldScroll } from "./driftAtThreeQuartersWorldScroll.js";
 
-export function driftOneTileSceneryAtThreeQuarters(m) {
-  driftAtThreeQuartersWorldScroll(m);
-  advanceToNextSlot(m);
+export function driftOneTileSceneryAtThreeQuarters(m, record = m.regs.ix, entry = m.regs.iy) {
+  // The drift reads the starting slot; seed it, then advance both cursors from that same slot.
+  driftAtThreeQuartersWorldScroll(m, record, entry);
+  advanceToNextSlot(m, record, entry);
 }

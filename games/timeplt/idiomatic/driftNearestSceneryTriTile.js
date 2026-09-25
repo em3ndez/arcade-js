@@ -7,9 +7,11 @@ import { placeAbuttingTile } from "./placeAbuttingTile.js";
 import { placeDiagonallyAbuttingTile } from "./placeDiagonallyAbuttingTile.js";
 import { advanceToNextSlot } from "./advanceToNextSlot.js";
 
-export function driftNearestSceneryTriTile(m) {
-  driftAtFiveQuartersWorldScroll(m);
-  placeAbuttingTile(m);
+export function driftNearestSceneryTriTile(m, record = m.regs.ix, entry = m.regs.iy) {
+  // The drift and the abutting tile both read the starting slot; seed both. That tile advances the
+  // cursors, so the cornering tile and the closing step read them onward.
+  driftAtFiveQuartersWorldScroll(m, record, entry);
+  placeAbuttingTile(m, entry, record);
   placeDiagonallyAbuttingTile(m);
   advanceToNextSlot(m);
 }

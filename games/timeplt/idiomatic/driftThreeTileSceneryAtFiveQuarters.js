@@ -9,8 +9,11 @@ import { placeAbuttingTile } from "./placeAbuttingTile.js";
 
 const FURTHER_TILES = 2;
 
-export function driftThreeTileSceneryAtFiveQuarters(m) {
-  driftAtFiveQuartersWorldScroll(m);
-  for (let tile = 0; tile < FURTHER_TILES; tile++) placeAbuttingTile(m);
+export function driftThreeTileSceneryAtFiveQuarters(m, record = m.regs.ix, entry = m.regs.iy) {
+  // The drift and the first tile both read the starting slot; seed both. The placed tile then advances
+  // the cursors, so the further tiles and the closing step read them onward.
+  driftAtFiveQuartersWorldScroll(m, record, entry);
+  placeAbuttingTile(m, entry, record);
+  for (let tile = 1; tile < FURTHER_TILES; tile++) placeAbuttingTile(m);
   advanceToNextSlot(m);
 }

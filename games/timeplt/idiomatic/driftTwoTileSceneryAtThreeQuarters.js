@@ -8,8 +8,10 @@ import { advanceToNextSlot } from "./advanceToNextSlot.js";
 import { driftAtThreeQuartersWorldScroll } from "./driftAtThreeQuartersWorldScroll.js";
 import { placeAbuttingTile } from "./placeAbuttingTile.js";
 
-export function driftTwoTileSceneryAtThreeQuarters(m) {
-  driftAtThreeQuartersWorldScroll(m);
-  placeAbuttingTile(m);
+export function driftTwoTileSceneryAtThreeQuarters(m, record = m.regs.ix, entry = m.regs.iy) {
+  // The drift and the tile both read the starting slot; seed both. The placed tile advances the
+  // cursors, so the closing step reads them onward.
+  driftAtThreeQuartersWorldScroll(m, record, entry);
+  placeAbuttingTile(m, entry, record);
   advanceToNextSlot(m);
 }
