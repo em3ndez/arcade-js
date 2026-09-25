@@ -17,6 +17,7 @@ import { armAttractScreenShowingHighScore } from "../armAttractScreenShowingHigh
 import { loc_15fe as oracle } from "../../translated/loc_15fe.js";
 import { paintHighScoreReadout } from "../paintHighScoreReadout.js";
 import { postCommand } from "../postCommand.js";
+import { blankNextLine } from "../blankNextLine.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -138,8 +139,8 @@ const cursorAfter = (machine) => { const c = machine.clone(); oracle(c); return 
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
 // A faithful re-run of the routine with one behaviour swapped, transferring the way the module
-// transfers -- m.call over push16 for the still-frozen guard, direct calls to postCommand and
-// paintHighScoreReadout -- so a twin's divergence shows at a real cell rather than hiding in the masked scratch.
+// transfers -- a direct call to the dissolved guard blankNextLine, and direct calls to postCommand
+// and paintHighScoreReadout -- so a twin's divergence shows at a real cell rather than hiding in the masked scratch.
 // `null` is the baseline.
 
 function variant(bug) {
@@ -147,7 +148,7 @@ function variant(bug) {
     const { regs, mem8 } = m;
     if (bug === "noop") return;
     if (bug !== "no-guard") {
-      m.push16(0x1601); m.call(0x01c2);
+      blankNextLine(m);
       if (regs.fNZ) return;
     }
     regs.de = 0x0105; postCommand(m);
@@ -273,21 +274,22 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
     `ceiling ${MOVED.join(", ")}; control also moves ${SPARE_REG}`);
 });
 
-test("DISSOLVED: the printer and the enqueue are called directly, only the guard stays wired", () => {
+test("DISSOLVED: the printer, the enqueue, AND the guard are all called directly", () => {
   const module = readFileSync(new URL("../armAttractScreenShowingHighScore.js", import.meta.url), "utf8");
   assert.ok(module.includes('from "./paintHighScoreReadout.js"'), "the module does not import paintHighScoreReadout");
   assert.ok(module.includes("paintHighScoreReadout(m)"), "the module does not call paintHighScoreReadout directly");
   assert.ok(module.includes('from "./postCommand.js"'), "the module does not import postCommand");
   assert.ok(module.includes("postCommand(m)"), "the module does not call postCommand directly");
-  assert.ok(!module.includes("m.call(ENQUEUE)"),
-    "an enqueue still goes through the registry; it should be a direct postCommand");
-  assert.ok(!module.includes("m.call(0x"), "a raw-hex m.call survived; the frozen guard goes by name");
-  assert.ok(module.includes("m.call(blankNextLine_ADDR)"),
-    "the still-frozen guard is no longer reached through the registry");
+  assert.ok(module.includes('from "./blankNextLine.js"'), "the module does not import blankNextLine");
+  assert.ok(module.includes("blankNextLine(m)"), "the module does not call blankNextLine directly");
+  assert.ok(!module.includes("m.call("),
+    "an m.call survived; the guard is now a direct call, so nothing should reach the registry");
+  assert.ok(!module.includes("m.push16("),
+    "a push16 survived; the guard's dissolved direct call takes no ROM return, so its return-address push is gone");
   // the text check can tell files apart: a sibling that does not call the printer must fail it.
   assert.ok(!readFileSync(new URL("../paintSixDigitFieldSuppressingLeadingZeros.js", import.meta.url), "utf8").includes("paintHighScoreReadout(m)"),
     "a sibling that does not call paintHighScoreReadout passes the same check, so it proves nothing");
-  console.log("  DISSOLVED: paintHighScoreReadout and postCommand called directly; the guard stays m.call by name");
+  console.log("  DISSOLVED: paintHighScoreReadout, postCommand, and blankNextLine all called directly; no m.call, no push16");
 });
 
 test("BASELINE: the twin factory with no bug is itself memory-equivalent", { skip }, () => {

@@ -2,8 +2,18 @@
 /**
  * armMotherShipOrStep against the frozen oracle: one booted machine, cloned and poked to land each of the five
  * exits — wave-hold set, a special already live, an off-phase frame, an occupied bank, and the spawn.
- * Every arm compares the whole work-RAM dump; registers, the flag byte and the stack pointer are
- * excluded, and the teeth below prove each gate condition is independently load-bearing.
+ * Every arm compares the whole work-RAM dump, the stack scratch both sides push masked off; registers,
+ * the flag byte and the stack pointer are excluded, and the teeth below prove each gate condition is
+ * independently load-bearing.
+ *
+ * DISSOLVED FORM: the active arm's `m.call(loc_43f0)` is dissolved to a direct `stepMotherShip(m)`
+ * (frogger call=0 form). The caller no longer dispatches the stepper through the routine map, so this
+ * arm can no longer be stubbed via the registry — it runs the REAL stepper on both sides and compares
+ * work RAM with the stack scratch masked (the ROM's call pushes a return frame the direct JS call does
+ * not). The stepper's own byte-equivalence is proven by equivalence-43f0.test.js; here we only prove the
+ * caller reaches it and returns its result. Its scratch registers (a,f,b,c,d,e,h,l + shadows, sp) are the
+ * dissolved-form live-out excluded set for that arm; ix/iy — the stepper's real pointer live-out — are
+ * still held.
  */
 
 import test from "node:test";
@@ -33,16 +43,16 @@ const OCCUPIED = 0x99;
 const A_LIVE = 0x42;
 const FIRE_WRONG = 0x06;
 
-/** A cell no arm of the routine touches, written by the stepper stub so a missed tail shows up. */
-const STEP_SENTINEL = 0xacff;
-const STEP_MARK = 0x5a;
-
 const BOOT_FRAMES = 700;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
 
 const EXCLUDED = ["a", "f", "sp"];
+/** The active arm delegates to the deep stepper, whose scratch registers legitimately move; ix/iy —
+ *  its real pointer live-out — stay held (proven by equivalence-43f0.test.js). */
+const STEPPER_EXCLUDED = ["a", "f", "sp", "b", "c", "d", "e", "h", "l",
+  "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 const ARM_NAMES = ["hold", "active", "phase", "occupied", "spawn"];
 
 // ── one booted machine, cloned per arm ────────────────────────────────────────────────────────
@@ -58,8 +68,6 @@ function captureBase() {
   return base;
 }
 
-const stepProbe = (mm) => { mm.mem8[STEP_SENTINEL] = STEP_MARK; };
-
 /** A booted clone poked so the routine reaches the spawn: hold clear, no live special, on phase, bank empty. */
 function spawnReady() {
   const m = captureBase().clone();
@@ -72,27 +80,27 @@ function spawnReady() {
   return m;
 }
 
-/** Give this machine (and every clone of it) its own registry with the stepper stubbed. */
-function withStub(m) {
-  const reg = new Map(m.routines);
-  reg.set(STEP_ACTIVE, stepProbe);
-  m.routines = reg;
-  return m;
-}
-
 function craftArm(name) {
   const m = spawnReady();
   if (name === "hold") m.mem8[WAVE_HOLD] = HELD;
-  else if (name === "active") { m.mem8[SPECIAL_ACTIVE] = A_LIVE; withStub(m); }
+  else if (name === "active") m.mem8[SPECIAL_ACTIVE] = A_LIVE;
   else if (name === "phase") m.mem8[FRAME_TICK] = PHASE_OFF;
   else if (name === "occupied") m.mem8[RECORD] = OCCUPIED;
   return m;
 }
 
-/** Whole-dump oracle-vs-candidate on independent clones; identical throws count as equal. */
+/** Whole-dump oracle-vs-candidate on independent clones, the stack scratch both sides push masked off
+ * (the active arm's ROM `call` pushes a return frame the dissolved direct call does not; every other arm
+ * pushes nothing, so its scratch set is empty and the diff is exact). Identical throws count as equal. */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
+  const scratch = new Set();
+  const track = (mm) => {
+    const push = mm.push16.bind(mm);
+    mm.push16 = (v) => { const sp = (mm.regs.sp - 2) & 0xffff; scratch.add(sp).add((sp + 1) & 0xffff); push(v); };
+  };
+  track(a); track(b);
   let ea, eb;
   try { oracle(a); } catch (e) { ea = e; }
   try { candidate(b); } catch (e) { eb = e; }
@@ -100,7 +108,7 @@ function unitDiff(candidate, machine) {
     if (ea && eb && String(ea) === String(eb)) return null;
     return { addr: null, a: ea ? `threw ${ea.message}` : "returned", b: eb ? `threw ${eb.message}` : "returned" };
   }
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off), (addr) => scratch.has(addr));
 }
 
 function footprint(machine) {
@@ -145,14 +153,16 @@ test("REAL TAIL: the live-special arm runs the true stepper and still agrees", {
   console.log("  REAL TAIL: the true stepper subtree ran on both sides, byte-identical");
 });
 
-test("EXCLUDED, deliberately: only a, f and sp differ, with a working register instrument", { skip }, () => {
-  const moved = new Set();
+test("EXCLUDED, deliberately: the caller-owned arms move only a, f and sp; the delegated arm holds ix/iy", { skip }, () => {
+  const escaped = [];
   for (const arm of ARM_NAMES) {
+    // the active arm delegates to the deep stepper — its scratch registers legitimately move, ix/iy held.
+    const excl = arm === "active" ? STEPPER_EXCLUDED : EXCLUDED;
     const a = craftArm(arm);
     const b = a.clone();
     oracle(a);
     armMotherShipOrStep(b);
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
+    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k] && !excl.includes(k)) escaped.push(`${arm}:${k}`);
   }
   const control = new Set();
   const a = craftArm("spawn");
@@ -162,8 +172,8 @@ test("EXCLUDED, deliberately: only a, f and sp differ, with a working register i
   b.regs.h = (b.regs.h + 1) & 0xff; // ★ a spare register the routine never touches
   for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) control.add(k);
   assert.ok(control.has("h"), "the register instrument is blind, so the clean reading proves nothing");
-  assert.deepEqual([...moved].filter((k) => !EXCLUDED.includes(k)).sort(), [], "a register moved outside the excluded set");
-  console.log(`  EXCLUDED: moved ${[...moved].sort().join(", ")}; control also moves h`);
+  assert.deepEqual(escaped.sort(), [], "a register moved outside its arm's excluded set");
+  console.log(`  EXCLUDED: no register escaped its arm's set (active holds ix/iy); control also moves h`);
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────────

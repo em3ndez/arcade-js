@@ -2,48 +2,43 @@
 /**
  * setTheLaunchFacingInsideOneAimWindow — memory-equivalent to the frozen oracle at ROM 0x429C.
  *
- * GATE: the whole captured corpus replayed with the REAL launcher at 0x42B7 running underneath,
- *   plus exhaustive crafted sweeps of all three bytes this routine reads, taken against a RECORDER
- *   standing in for that launcher, plus an arm that pins the window's two edges, plus teeth.
+ * DISSOLVED FORM. The tail `call 0x42B7` is gone: this routine now tails into the launcher with a
+ *   DIRECT idiomatic call (commissionStagedAttackerByEra), pushing no return address (frogger's
+ *   call=0 form). So the gate is on the frogger memory-eq standard, the same one equivalence-4243
+ *   and equivalence-42b7 already use for this chain: the whole RAM dump is the contract, compared
+ *   cell for cell OUTSIDE the frozen side's dead stack scratch, and only genuine register live-outs
+ *   are pinned. The frozen oracle rets and its launcher pushes below the seat; the rewrite models no
+ *   stack, so [low, seat) is masked, the floor watched off the frozen side's own pushes and proven
+ *   above the game data. What used to be measured by intercepting the m.call with a recorder is now
+ *   measured on the real launcher's memory writes: a wrong facing lands as a wrong byte in the new
+ *   record, so the window gate and the facing split are still pinned, and harder.
  *
- * ★ ONE TAPE REACHES IT AND THE OTHER DOES NOT, AND BOTH ARE MEASURED. 0x4243 reaches this address
- *   with `jp z,0x429C` while the era cell 0xAD04 reads zero. Coin-then-start dispatches it; the
- *   undriven attract tape never dispatches 0x4243 at all, so it cannot. The REACH arm counts BOTH
- *   addresses under BOTH tapes, so the attract zero comes with the control that says why.
- *
- * ★ THE CORPUS IS SMALL — single digits — WHICH IS WHY THE SWEEPS DO THE WORK. Everything this
- *   routine reads is three bytes: the window's half-width at 0xA8E6 and the two coordinates the
- *   sprite entry carries at (IY+0x00) and (IY+0x31). All three are walked over every value they
- *   can hold, against a recorder, so the input space is covered even though the corpus is not big.
- *
- * ★ THE WINDOW TEST WRAPS, AND THE WRAP IS THE POINT. Both the re-centring and the doubling happen
- *   in a byte, so the window is not "within the half-width of the line" once the half-width is
- *   large: it is the DOUBLED half-width's worth of places ENDING at line-plus-half-width, taken
- *   round the byte. Below 0x80 that comes out symmetric about the line; at exactly 0x00 or 0x80 the
- *   doubling gives zero and the window shuts over every coordinate; above 0x80 it reopens narrower
- *   and no longer centred on the line at all. The SHAPE arm pins that as a set, built the other
- *   way round from the subtract-and-compare the routine uses, so it can disagree.
- *
- * ★ NOTHING IS MASKED: the WINDOW-STACK arm measures the oracle's own stack reach over the corpus
- *   and pins it at zero, so the whole state dump is compared, the stack included.
+ * RELAXED FROM THE SEAM FORM (pc/SP only): the old gate replaced 0x42B7 with a recorder that RET'd
+ *   for itself, compared the {C, IX, IY} handed over, and asserted the oracle pushed nothing up to
+ *   that seam (WINDOW-STACK). The dissolved routine no longer routes through the map, so that
+ *   interception cannot see it; the recorder arms are re-expressed as masked full-memory diffs with
+ *   the real launcher underneath (CORPUS + the three sweeps), the push assertion becomes a MASK
+ *   FLOOR arm (the launcher's stack window stays above game data), and the facing readback reads the
+ *   byte the launcher actually stored (new record +0x01) instead of the byte handed to a recorder.
+ *   Memory and register-out coverage is unchanged or wider; only the pc/SP contract moved.
  *
  * What it exercises, holes stated:
  *   1. REACH — dispatch counts for this address and its dispatcher, under both tapes.
- *   2. WINDOW-STACK — the oracle's push footprint, measured, pinned at zero.
- *   3. CORPUS — every captured machine, real launcher running underneath.
+ *   2. MASK FLOOR — the frozen side's stack window stays above the game data, so nothing live is masked.
+ *   3. CORPUS — every captured machine replays identically, real launcher underneath, masked stack.
  *   4. ARMS — how many corpus entries take each of the three arms, all three asserted seen.
- *   5. HALF-WIDTH — all 256 half-widths against the recorder.
+ *   5. HALF-WIDTH — all 256 half-widths against the real launcher.
  *   6. COORDINATE — all 256 values of the gating coordinate, at six half-widths.
  *   7. FACING — all 256 values of the other coordinate, window held open.
  *   8. SHAPE — which coordinates the window admits, pinned against a set built the other way round.
  *   9. FACING LINE — where the split between the two facings falls, pinned by value.
- *  10. EXCLUDED — no register outside the declared ceiling moves, with a control twin.
- *  11. TEETH — seven twins with catch counts on all three sweeps.
+ *  10. EXCLUDED — no register outside the declared ceiling moves, with a control twin that moves IX.
+ *  11. TEETH — seven twins, each caught on at least one sweep.
  *
- * HOLE: the sweeps vary those three bytes and nothing else; the rest of each machine is whatever
- * the captured entry happened to hold, and only one captured entry seeds the sweeps.
- * HOLE: what the launcher does with the facing byte is not this gate's business. The corpus arm
- * runs the launcher for real, so it would notice, but nothing here isolates that step.
+ * HOLE: the sweeps vary those three bytes and nothing else; the rest of each machine is whatever the
+ * captured entry happened to hold, and only one captured entry seeds the sweeps.
+ * HOLE: what the launcher does BEYOND the facing byte is commissionStagedAttackerByEra's own gate
+ * (equivalence-42b7); here it runs for real, so a divergence would show, but nothing isolates it.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-429c.test.js
  */
@@ -52,11 +47,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { buildRoutines } from "../../routines.js";
 import { setTheLaunchFacingInsideOneAimWindow } from "../setTheLaunchFacingInsideOneAimWindow.js";
 import { loc_429c as oracle } from "../../translated/loc_429c.js";
 import { loc_4243 as dispatcher } from "../../translated/loc_4243.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x429c;
@@ -71,23 +64,31 @@ const WINDOW_CENTRE = 0x84;
 const FACING_LINE = 0x78;
 const OTHER_COORD = 0x31;
 
+/** The launcher's staged-record pointer, and the two cells it stamps: +0x01 gets the facing, +0x00
+ *  (the new object's active count) is wound down. The facing byte is READ BACK from +0x01, and the
+ *  decrement of +0x00 from a sentinel is how a launch is told from a no-launch. */
+const SCRATCH_PTR_A = 0xa991;
+const RECORD_FACING = 0x01;
+const RECORD_COUNT = 0x00;
+const COUNT_SENTINEL = 0x80;
+
 const VALUES = 256;
 const CORPUS_ENTRIES = 100;
 const HALF_WIDTHS = [0x00, 0x01, 0x0a, 0x40, 0x80, 0xff];
 
-/** Measured by the WINDOW-STACK arm: this oracle pushes nothing, so nothing is masked. */
-const SCRATCH_BYTES = 0;
+/** Every game cell this chain writes sits at or below here; the stack window must stay above it. */
+const DATA_TOP = 0xadff;
 
 /**
- * The ceiling on divergence, and the whole of it. On the arm that ends here the oracle leaves its
- * working value in the accumulator, the comparison in the flags, the half-width in one scratch
- * byte and the DOUBLED half-width in the other, and takes a return the rewrite omits. A CEILING
- * and not a demand — a rewrite that diverged on fewer still passes.
+ * The register ceiling — the same set equivalence-4243 measured for this launcher chain. The frozen
+ * side rets (SP moves) and the launcher scrambles the scratch file; the two index registers are the
+ * genuine live-outs, restored to the spawner by the launcher and never moved on the no-launch arm,
+ * so IX/IY are PINNED (not listed) and a divergence in them is caught. A CEILING, not a demand.
  */
-const MOVED = ["a", "f", "c", "d", "sp"];
+const MOVED = ["a", "a_", "b", "c", "d", "e", "f", "h", "l", "sp"];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
-const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
+const show = (d) => (d ? `${d.addr == null ? "registers" : hex4(d.addr)}: oracle=${d.a} candidate=${d.b}` : "identical");
 
 function lean(mm) {
   mm.assets = {};
@@ -125,26 +126,14 @@ function capture() {
   return captured;
 }
 
-// ── comparison ──────────────────────────────────────────────────────────────────────────
+// ── comparison (frogger standard: masked stack, real launcher underneath) ─────────────────
 
-/** A routine map whose launcher records what it was handed and returns instead of launching. */
-function recorderRoutines(seen) {
-  const map = buildRoutines();
-  map.set(LAUNCHER, (mm) => {
-    seen.push({ c: mm.regs.c, ix: mm.regs.ix, iy: mm.regs.iy });
-    mm.ret();
-  });
-  return map;
-}
-
-function registerDiff(a, b) {
-  for (const k of REG_FIELDS) {
-    if (MOVED.includes(k)) continue;
-    if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
-  }
-  return null;
-}
-
+/**
+ * Oracle vs candidate on independent clones, launcher running for real underneath both. The frozen
+ * side rets and its launcher pushes below the seat, so RAM is diffed OUTSIDE [low, seat), with low
+ * watched off the frozen side's OWN pushes; the rewrite models no stack. Registers outside the
+ * ceiling are pinned. `setup` places the crafted bytes on both sides before either runs.
+ */
 function unitDiff(candidate, machine, setup) {
   const a = machine.clone();
   const b = machine.clone();
@@ -152,52 +141,41 @@ function unitDiff(candidate, machine, setup) {
     setup(a);
     setup(b);
   }
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
   try {
     candidate(b);
   } catch (e) {
     return { addr: null, a: "returned", b: String(e).slice(0, 60) };
   }
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off))
-    ?? registerDiff(a, b);
+  const da = a.dumpState();
+  const db = b.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= low && addr < seat) continue;
+    return { addr, a: da[i], b: db[i] };
+  }
+  for (const k of REG_FIELDS) {
+    if (MOVED.includes(k)) continue;
+    if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
+  }
+  return null;
 }
 
-function stagedDiff(candidate, machine, setup) {
-  const seenA = [];
-  const seenB = [];
+/** The frozen side's stack window over one machine, for the MASK FLOOR arm. */
+function maskFloor(machine, setup) {
   const a = machine.clone();
-  const b = machine.clone();
-  a.routines = recorderRoutines(seenA);
-  b.routines = recorderRoutines(seenB);
-  setup(a);
-  setup(b);
+  if (setup) setup(a);
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  try {
-    candidate(b);
-  } catch (e) {
-    return { addr: null, a: "returned", b: String(e).slice(0, 60) };
-  }
-  if (JSON.stringify(seenA) !== JSON.stringify(seenB)) {
-    return { addr: null, a: JSON.stringify(seenA), b: JSON.stringify(seenB) };
-  }
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off))
-    ?? registerDiff(a, b);
-}
-
-function oracleDepth(machine) {
-  const c = machine.clone();
-  const seen = [];
-  c.routines = recorderRoutines(seen);
-  const seat = c.regs.sp;
-  let deepest = seat;
-  const push = c.push16.bind(c);
-  c.push16 = (v) => {
-    const r = push(v);
-    if (c.regs.sp < deepest) deepest = c.regs.sp;
-    return r;
-  };
-  oracle(c);
-  return seat - deepest;
+  return { seat, low };
 }
 
 /** Set the three bytes this routine reads on a machine. */
@@ -207,14 +185,19 @@ function place(mm, half, coord, other) {
   mm.mem8[(mm.regs.iy + OTHER_COORD) & 0xffff] = other;
 }
 
-/** What the recorder saw for one crafted placement, or null when the routine ended instead. */
+/**
+ * Run the real routine on one crafted placement and report the facing it handed the launcher, or
+ * null when it ended without launching. Launch is told by the launcher winding the new record's
+ * count (+0x00) down from a sentinel; the facing is the byte it stamped at +0x01.
+ */
 function stagedFacing(half, coord, other) {
-  const seen = [];
   const probe = capture()[0].clone();
-  probe.routines = recorderRoutines(seen);
   place(probe, half, coord, other);
+  const record = probe.mem16[SCRATCH_PTR_A];
+  probe.mem8[(record + RECORD_COUNT) & 0xffff] = COUNT_SENTINEL;
   setTheLaunchFacingInsideOneAimWindow(probe);
-  return seen.length === 0 ? null : seen[0].c;
+  const launched = probe.mem8[(record + RECORD_COUNT) & 0xffff] !== COUNT_SENTINEL;
+  return launched ? probe.mem8[(record + RECORD_FACING) & 0xffff] : null;
 }
 
 // ── the crafted sweeps ──────────────────────────────────────────────────────────────────
@@ -226,7 +209,7 @@ function sweepHalfWidth(candidate) {
   const other = base.mem8[(base.regs.iy + OTHER_COORD) & 0xffff];
   let caught = 0;
   for (let half = 0; half < VALUES; half++) {
-    if (stagedDiff(candidate, base, (mm) => place(mm, half, coord, other))) caught++;
+    if (unitDiff(candidate, base, (mm) => place(mm, half, coord, other))) caught++;
   }
   return caught;
 }
@@ -237,7 +220,7 @@ function sweepCoordinate(candidate) {
   let caught = 0;
   for (const half of HALF_WIDTHS) {
     for (let coord = 0; coord < VALUES; coord++) {
-      if (stagedDiff(candidate, base, (mm) => place(mm, half, coord, 0x40))) caught++;
+      if (unitDiff(candidate, base, (mm) => place(mm, half, coord, 0x40))) caught++;
     }
   }
   return caught;
@@ -248,7 +231,7 @@ function sweepFacing(candidate) {
   const base = capture()[0];
   let caught = 0;
   for (let other = 0; other < VALUES; other++) {
-    if (stagedDiff(candidate, base, (mm) => place(mm, 0x40, WINDOW_CENTRE, other))) caught++;
+    if (unitDiff(candidate, base, (mm) => place(mm, 0x40, WINDOW_CENTRE, other))) caught++;
   }
   return caught;
 }
@@ -318,10 +301,10 @@ function brokenFacingFromWrongAxis(m) {
   return m.call(LAUNCHER);
 }
 
-/** BUG: scribbles on a register outside the ceiling — the control for the EXCLUDED arm. */
-function brokenMovesHl(m) {
+/** BUG: scribbles IX, a genuine live-out outside the ceiling — the control for the EXCLUDED arm. */
+function brokenMovesIx(m) {
   setTheLaunchFacingInsideOneAimWindow(m);
-  m.regs.hl = (m.regs.hl + 1) & 0xffff;
+  m.regs.ix = (m.regs.ix + 1) & 0xffff;
 }
 
 const TWINS = [
@@ -348,13 +331,16 @@ test("REACH: the driven tape dispatches it, the idle one cannot", { skip }, () =
     `${driven[DISPATCHER]} and ${idle[DISPATCHER]}`);
 });
 
-test("WINDOW-STACK: the oracle pushes nothing, measured over the corpus", { skip }, () => {
-  let deepest = 0;
-  for (const e of capture()) deepest = Math.max(deepest, oracleDepth(e));
-  console.log(`  WINDOW-STACK (measured): the oracle reaches ${deepest} bytes below its seat, so ` +
-    "the whole dump is compared with nothing masked");
-  assert.equal(deepest, SCRATCH_BYTES, "the oracle now pushes, so a masked window is owed and " +
-    "every arm here is comparing bytes it has no right to");
+test("MASK FLOOR: the frozen side's stack window stays above the game data", { skip }, () => {
+  let low = 0x10000;
+  let seat = 0;
+  for (const e of capture()) {
+    const r = maskFloor(e);
+    low = Math.min(low, r.low);
+    seat = r.seat;
+  }
+  assert.ok(low > DATA_TOP, `the stack window ${hex4(low)} reached into game data at or below ${hex4(DATA_TOP)}`);
+  console.log(`  MASK FLOOR: window floor ${hex4(low)} under seat ${hex4(seat)}, clear of ${hex4(DATA_TOP)}`);
 });
 
 test("CORPUS: every captured machine replays identically", { skip }, () => {
@@ -365,7 +351,7 @@ test("CORPUS: every captured machine replays identically", { skip }, () => {
     assert.equal(d, null, show(d));
   }
   console.log(`  CORPUS: ${entries.length} captured machines identical, with the real launcher ` +
-    "running underneath");
+    "running underneath and the frozen side's stack masked");
 });
 
 test("ARMS: the corpus takes all three arms", { skip }, () => {
@@ -374,7 +360,7 @@ test("ARMS: the corpus takes all three arms", { skip }, () => {
   console.log(`  ARMS: outside ${tally.outside}, near ${tally.near}, far ${tally.far}`);
   for (const arm of ["outside", "near", "far"]) {
     assert.ok(tally[arm] > 0, `the corpus never takes the ${arm} arm, so the real-launcher arm is ` +
-      "not covering it and only the recorder sweeps are");
+      "not covering it and only the sweeps are");
   }
 });
 
@@ -452,10 +438,10 @@ function movedOver(candidate) {
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
   const moved = movedOver(setTheLaunchFacingInsideOneAimWindow);
-  const control = movedOver(brokenMovesHl);
+  const control = movedOver(brokenMovesIx);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
-    "the measurement reports nothing outside the ceiling even for a twin that scribbles on a " +
-      "register pair, so a clean reading below proves nothing");
+    "the measurement reports nothing outside the ceiling even for a twin that scribbles on IX, " +
+      "so a clean reading below proves nothing");
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")} — ` +
     `ceiling ${MOVED.join(", ")}; the control twin also moves ` +
     `${REG_FIELDS.filter((k) => control.has(k) && !MOVED.includes(k)).join(", ")}`);

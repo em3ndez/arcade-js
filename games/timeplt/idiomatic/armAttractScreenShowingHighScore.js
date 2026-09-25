@@ -7,7 +7,8 @@
 
 import { paintHighScoreReadout } from "./paintHighScoreReadout.js";
 import { postCommand } from "./postCommand.js";
-import { FREE_PLAY, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, blankNextLine_ADDR, HIGH_SCORE_PATCH_TABLE, loc_1601, HIGH_SCORE_MARKER_CELL_UPPER, HIGH_SCORE_MARKER_CELL_LOWER } from "./names.js";
+import { blankNextLine } from "./blankNextLine.js";
+import { FREE_PLAY, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, HIGH_SCORE_PATCH_TABLE, HIGH_SCORE_MARKER_CELL_UPPER, HIGH_SCORE_MARKER_CELL_LOWER } from "./names.js";
 
 const CELL_SEED = 0x13;
 const PATCH_COUNT = 6;
@@ -16,8 +17,7 @@ const PATCH_MARKER = 0x05;
 export function armAttractScreenShowingHighScore(m) {
   const { regs, mem8 } = m;
 
-  m.push16(loc_1601);
-  m.call(blankNextLine_ADDR);
+  blankNextLine(m);
   if (regs.fNZ) return;
 
   regs.de = 0x0105; postCommand(m);

@@ -8,7 +8,8 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { F_C, F_H, F_N, F_PV, F_S, F_Z, F_F3, F_F5 } from "../../../core/cpu/z80.js";
-import { ATTACKER_SPAWN_AIM_WINDOW_HALF, commissionStagedAttackerByEra_ADDR } from "./names.js";
+import { commissionStagedAttackerByEra } from "./commissionStagedAttackerByEra.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF } from "./names.js";
 
 const WINDOW_CENTRE = 0x84;
 const FACING_LINE = 0x78;
@@ -36,6 +37,6 @@ export function setTheLaunchFacingInsideOneAimWindow(m, entry = m.regs.iy) {
   }
 
   const facing = mem8[u16(entry + ENTRY_OTHER_COORD)] > FACING_LINE ? 1 : 0;
-  // The launcher at commissionStagedAttackerByEra is still crufty, so the call is left as a seam and reads C.
-  return (m.regs.c = facing, m.call(commissionStagedAttackerByEra_ADDR));
+  // Hand the facing to the launcher in C (its live-in) and continue straight into it.
+  return (m.regs.c = facing, commissionStagedAttackerByEra(m));
 }

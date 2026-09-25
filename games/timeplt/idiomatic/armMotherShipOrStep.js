@@ -6,6 +6,7 @@
  */
 
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
+import { stepMotherShip } from "./stepMotherShip.js";
 import {
   FRAME_TICK,
   KILLS_REMAINING,
@@ -13,7 +14,6 @@ import {
   MOTHER_SHIP_ENTRY,
   MOTHER_SHIP_STATE,
   ROUND_TRANSITION_HOLD,
-  loc_43f0,
 } from "./names.js";
 
 const RECORD_STRIDE = 0x10;
@@ -28,7 +28,7 @@ export function armMotherShipOrStep(m) {
 
   if (mem8[ROUND_TRANSITION_HOLD] === HELD) return;
 
-  if (mem8[MOTHER_SHIP_ARMED] !== 0) return m.call(loc_43f0);
+  if (mem8[MOTHER_SHIP_ARMED] !== 0) return stepMotherShip(m);
 
   if ((mem8[FRAME_TICK] & PHASE_MASK) !== PHASE_DUE) return;
 
