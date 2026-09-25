@@ -370,37 +370,95 @@ export const UNWIRED = {
     "scanObjRamTestRampAndFinishSelfTest.js":
       "self-test ramp scan + final-pass boot seeding, direct-called by fillObjRamTestRamp. Not oracle-served.",
   },
+  dkong: {
+    // Reconciled from DEBT once the legacy-retrofit campaign dissolved dkong's dispatch seams into direct JS
+    // calls. Each module below has an idiomatic twin reached by a ROUTINES-wired sibling's direct `import` +
+    // JS call (or is unreached); its ROM address is never a live dispatch target, so the frozen oracle is
+    // never served for it. Each was independently grounded with a positive control (addr absent from ROUTINES
+    // and from loc_00ca's DISPATCH_TARGETS/every jump table; reached only by direct JS import).
+    "loc_00ca.js":
+      "the far-end computed-dispatch primitive: runs a resolved rst-0x28 jump-table target's installed " +
+      "idiomatic override (m.overrides.get(target)(m)) and refuses an out-of-whitelist selector by name. " +
+      "Direct-called as JS by four ROUTINES-wired dispatcher siblings -- dispatchInlineJumpTable (0x0028), " +
+      "dispatchInGameSubstate (0x06fe), dispatchBoardClearedInterlude (0x1615), dispatchRivetBoardInterludeStep " +
+      "(0x1644). Its own addr 0x00ca is never dispatched: absent from ROUTINES and every jump/rst table (0x00ca " +
+      "appears only as a table-base data pointer and a return-address push in the frozen translated loc_00b5 " +
+      "that the wired perFrame supersedes); no m.call(0x00ca) exists. Not oracle-served.",
+    "loc_02e3.js":
+      "the task-ring consumer: releases the slot, advances TASK_HEAD, switches the doubled opcode to a task " +
+      "handler. In ROM reached only by mainLoop's internal jr, never a call. Direct-called as JS by sibling " +
+      "mainLoop.js (the JS override for 0x02bd, which boot delegates to). addr 0x02e3 never dispatched -- absent " +
+      "from ROUTINES and loc_00ca DISPATCH_TARGETS; the task ring carries opcodes, not this ROM address. Not oracle-served.",
+    "loc_0400.js":
+      "a colour-cycle driver with an idiomatic twin that is NEVER invoked in the live game: 0 idiomatic sibling " +
+      "imports, and 0x0400 is never a dispatch target (absent from DISPATCH_TARGETS, ROUTINES, every task-ring/rst " +
+      "table; CREDIT_DISPLAY_TASK=0x0400 is a packed task-word opcode, not a ROM jump). In-game the ROM at 0x0400 " +
+      "runs only as the straight-line tail of loc_03fb. Positive control: equivalence-0400.test.js hooks a Machine " +
+      "override at 0x0400 over a 1300-frame coin+start run and asserts count==0 (fails if ever dispatched). Unreached; not oracle-served.",
+    "loc_202f.js":
+      "low-X arm of the rolling-barrel fall setup: stamps the leftward per-frame 16-bit step into the motion record " +
+      "and tail-calls loc_2038. Direct-called as JS by sibling advanceRollingBarrel.js. addr 0x202f never dispatched " +
+      "-- absent from DISPATCH_TARGETS (a dispatch there would throw NotImplemented) and ROUTINES; reached only by direct JS import. Not oracle-served.",
+    "loc_2038.js":
+      "the barrel fall-arm record writer: stamps initial velocity/counters/ARM_SELECT into one OBJ record and " +
+      "tail-calls publishBarrelSprite. Direct-called as JS by siblings advanceRollingBarrel.js (0x1ff6, wired) and " +
+      "loc_202f.js; live reach all JS: advanceBarrelMotion(0x1f93,wired) -> stepBarrelLeft/Right(wired) -> " +
+      "advanceRollingBarrel(wired) -> loc_2038. addr 0x2038 absent from all dispatch tables and ROUTINES. Not " +
+      "oracle-served (the equivalence-2038 'attract dispatches' are oracle-corpus captures, not live).",
+    "loc_2079.js":
+      "the retire-record arm of the 25m barrel sweep: zeroes OBJ_ACTIVE/OBJ_X and tail-continues into " +
+      "publishBarrelSprite. Direct-called as JS by sibling loc_2053.js, reached by direct JS import through " +
+      "serviceBarrelSlotIfLive(0x1f83) -> advanceBarrelMotion(0x1f93) -> loc_2053(0x2053). addr 0x2079 never " +
+      "dispatched -- absent from ROUTINES and DISPATCH_TARGETS; no 0x2079 literal in the non-test idiomatic layer. " +
+      "The dispatch seam was dissolved to a direct call (equivalence-2079 skipped, recorded). Not oracle-served.",
+    "loc_2083.js":
+      "the girder-contact sub-state machine of the barrel sweep: advances the step counter, runs steps 1/2 " +
+      "(loc_20a2/loc_20c3), then publishes the walk-select and hands to publishBarrelSprite. Direct-called as JS by " +
+      "sibling loc_2053.js (the wired arc-travel override reached from advanceBarrelMotion). addr 0x2083 never " +
+      "dispatched-to-oracle: not in ROUTINES/the override map, not in DISPATCH_TARGETS; the only m.call(0x2083) is " +
+      "in the frozen translated loc_2053 (unused live); a 2000-frame probe recorded routines.get(0x2083)=0 while " +
+      "logging 10201 dispatches elsewhere. Not oracle-served.",
+    "loc_20a2.js":
+      "the barrel arm that, when an airborne object's fall is arrested, decides whether it turns and hands the " +
+      "record to loc_20b5 or loc_20c3. Direct-called as JS by sibling loc_2083.js (step==1); chain all direct JS: " +
+      "advanceBarrelMotion(0x1f93,wired) -> loc_2053(0x2053,wired) -> loc_2083 -> loc_20a2. addr 0x20a2 never " +
+      "dispatched -- absent from DISPATCH_TARGETS and ROUTINES; no live m.call(0x20a2). The equivalence-20a2 " +
+      "standalone-dispatch arm was retired (takes the cursor from its caller). Not oracle-served.",
+    "loc_20b5.js":
+      "a barrel motion arm: forwards to loc_20e1 if the whole-pixel step byte is nonzero, else writes a 1px/frame " +
+      "leftward step and falls into loc_20c3. Direct-called as JS by sibling loc_20a2.js; live reach " +
+      "advanceBarrelMotion -> loc_2053(wired) -> loc_2083 -> loc_20a2 -> loc_20b5, all direct JS. addr 0x20b5 never " +
+      "dispatched -- absent from DISPATCH_TARGETS and ROUTINES, so m.overrides.get(0x20b5) is undefined; invoked only " +
+      "as the JS call loc_20b5(m,cur). Not oracle-served.",
+    "loc_20c3.js":
+      "reflects an object's vertical arc at a quarter speed, restarts from a whole-pixel position, tails into " +
+      "publishBarrelSprite. Direct-imported + JS-called by 4 siblings in the OBJ_ARRAY_67 sweep: loc_2083, loc_20a2, " +
+      "loc_20b5, loc_20e1 (chain rooted at the wired loc_2053). addr 0x20c3 never dispatched -- absent from all " +
+      "dispatch tables and ROUTINES; the only m.call(0x20c3) sites are frozen translated siblings unused live. Not oracle-served.",
+    "loc_20e1.js":
+      "the rightward arm of the barrel launch: writes +1.0px/frame horizontal velocity and tail-calls loc_20c3. " +
+      "Direct-called as JS by sibling loc_20b5.js; subtree all direct JS off wired roots serviceBarrelSlotIfLive" +
+      "(0x1f83) -> advanceBarrelMotion(0x1f93) -> loc_2053(0x2053) -> loc_2083 -> loc_20a2 -> loc_20b5 -> loc_20e1. " +
+      "addr 0x20e1 absent from names.js entirely (so not in ROUTINES or DISPATCH_TARGETS); a dispatch there would " +
+      "throw, yet the game runs. Not oracle-served.",
+    "loc_29af.js":
+      "resolves an airborne Mario overlapping a moving object in board 3's array: runs the loc_2a22 overlap search " +
+      "and judges land/die/side-on. Direct-called as JS by sibling loc_2b1c.js (a ROUTINES-wired dispatch target " +
+      "0x2b1c reached via loc_1c05). addr 0x29af never dispatched -- absent from DISPATCH_TARGETS, from every _ADDR " +
+      "constant in names.js, and from the loc_02e3 task table; grep finds 0x29af only in loc_2b1c's direct import/call. Not oracle-served.",
+  },
 };
 
 /**
- * DEBT: modules ALREADY unwired the first time this guard ran for a game. Recorded, not blessed.
+ * DEBT: modules ALREADY unwired the first time this guard ran for a game. Recorded, not blessed --
+ * a temporary allowlist that a game must empty (each entry wired into ROUTINES or reconciled into
+ * UNWIRED with a not-oracle-served reason) before it can be DONE.
  *
- * ★ THE FINDING, not just a list. Every module below is COMMITTED, carries a green
- * equivalence-<addr> gate, is named by no ROUTINES entry, and is imported by no idiomatic sibling,
- * so nothing but its own test ever calls it and the frozen oracle runs at each address instead --
- * this is the Donkey Kong batch the method doc describes as accumulating unnoticed, still unwired.
- * Green gates are WHY it survived: a gate imports its module rather than dispatching to it.
- *
- * ★ NOT ESTABLISHED: what each one NEEDS. Some are leaves to wire, some should dissolve into the
- * caller that still m.calls them, and two -- loc_00ca, loc_02e3 -- are the computed-jp dispatchers
- * this game's override seam reaches outside `Machine.call`, where wiring may be wrong. No entry is
- * a verdict. Donkey Kong is a finished port; clearing this is a unit of work and Karl's to open.
+ * dkong's block (12 modules) was CLEARED 2026-09-24: the legacy-retrofit campaign dissolved its
+ * dispatch seams into direct JS calls, and each module was independently grounded (positive control:
+ * its ROM address is never a live dispatch target) and moved into UNWIRED.dkong above. No game
+ * currently carries wiring debt.
  *
  * Checked as a SUBSET: a new one fails, removing an old one does not. Re-derive, never hand-edit.
  */
-export const DEBT = {
-  dkong: [
-    "loc_00ca.js",
-    "loc_02e3.js",
-    "loc_0400.js",
-    "loc_202f.js",
-    "loc_2038.js",
-    "loc_2079.js",
-    "loc_2083.js",
-    "loc_20a2.js",
-    "loc_20b5.js",
-    "loc_20c3.js",
-    "loc_20e1.js",
-    "loc_29af.js",
-  ],
-};
+export const DEBT = {};
