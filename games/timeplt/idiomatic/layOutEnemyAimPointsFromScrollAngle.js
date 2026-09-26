@@ -28,9 +28,11 @@ function plot(m, base, term, centre, off8, off16, mirror) {
 }
 
 export function layOutEnemyAimPointsFromScrollAngle(m, c = m.regs.c) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   if ((c & SUBMODE_MASK) !== SUBMODE) return;
-  const base = (regs.ix = ENEMY_AIM_ANCHOR_Y);
+  // The base is a fixed anchor; the index register it once rode through is dead past this routine,
+  // so a plain constant reproduces the field writes.
+  const base = ENEMY_AIM_ANCHOR_Y;
 
   const [deQuarter, bcQuarter] = loc_59d1(m, u8(mem8[PLAYER_HEADING] + QUARTER_TURN));
   plot(m, base, deQuarter, ACROSS, 0x10, 0x12, true);

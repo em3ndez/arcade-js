@@ -23,9 +23,13 @@ const skip = romsPresent() ? false : "ROM images are gitignored; none assembled"
 // The oracle takes its own trailing ret (sp += 2) where the rewrite leaves it to the dispatch seam,
 // computes flags the rewrite skips, and its ex-de-hl parks the velocity-table pointer in DE; a is
 // dead scratch, and hl is the velocity high-byte scratch the rewrite folds into JS locals (live-out
-// is fields 0x10-0x1b only; the 0x31b4 caller keeps just ix/iy). All checked as a ceiling, never
-// asserted equal.
-const EXCLUDED = ["sp", "f", "d", "e", "a", "h", "l"];
+// is fields 0x10-0x1b only). ix is the oracle's `ld ix,0xac64` field base, and it too is dead: the
+// only caller (reaimAndAnimate at 0x31b4) tail-calls this routine, so its ret unwinds to the
+// per-frame dispatcher loc_1199, whose next routine 0x1edf reloads ix (`ld ix,0xa800`) before any
+// read -- so the rewrite folding the base into a JS constant leaves ix unwritten with no observer.
+// All excluded regs are checked as a ceiling, never asserted equal; memory + the other registers
+// keep teeth (see the TEETH twins below, which a wrong memory write still trips).
+const EXCLUDED = ["sp", "f", "d", "e", "a", "h", "l", "ix"];
 
 const hex = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
