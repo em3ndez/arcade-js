@@ -3,7 +3,8 @@
  * flyLiveSlotAndTickCountdown — memory-equivalent to the frozen oracle at ROM 0x418B.
  * GATE: crafted entries (real sweep-body states with one slot forced into this arm — marker full,
  *   countdown live, era not the fourth), the dead stack scratch below the seat masked out, the SP
- *   drift asserted per arm (+2 on the ending arm, 0 on the looping one), registers minus the callee's
+ *   drift asserted per arm (+2 on both: the rewrite omits the sweep's one ret whether this turn ends
+ *   the sweep or its close runs the remaining turns as direct calls), registers minus the callee's
  *   dead scratch, and teeth. Run: node --test games/timeplt/idiomatic/test/equivalence-418b.test.js
  */
 
@@ -210,16 +211,17 @@ test("ENDING ARM: crafted entries equivalent, the return popped, the mask above 
   console.log(`  ENDING ARM: ${scenarios().length} entries identical, ${footprints} with a footprint`);
 });
 
-test("LOOPING ARM: with turns left the whole sweep runs and the return balances", { skip }, () => {
+test("LOOPING ARM: with turns left the whole sweep runs, its one ret omitted as on the ending arm", { skip }, () => {
   let compared = 0;
   for (const e of captured()) {
     const r = compare(candidate, craft(e, { count: 3 }));
     assert.equal(r.escaped, null, r.escaped && `escaped: ${JSON.stringify(r.escaped)}`);
-    assert.equal(r.spDiff, 0, "the looping arm re-enters the sweep and its ret balances the seat");
+    assert.equal(r.spDiff, 2, "the remaining turns run as direct calls, so the oracle pops the " +
+      "sweep's return and the rewrite does not, exactly as on the ending arm");
     compared++;
   }
   assert.ok(compared > 0, "no state to loop");
-  console.log(`  LOOPING ARM: ${compared} entries identical, spDiff 0`);
+  console.log(`  LOOPING ARM: ${compared} entries identical, spDiff 2`);
 });
 
 test("ERA: the third era also reaches this arm; the fourth is diverted before it", { skip }, () => {

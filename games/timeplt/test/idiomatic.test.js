@@ -14,6 +14,9 @@
 //     neither the interrupt subtree nor any frame of the foreground moves the stack pointer. A layer
 //     that still leans on a guest return slot -- an arm that returns through the interrupt's pushed
 //     word -- walks SP up out of the stack and into sprite RAM, and this is where that shows.
+//   * a LONG run stays placeable: attract and a driven session each run many thousands of NMIs, deep
+//     enough that the era advances past the first two and the era-2+ object sweep runs -- the
+//     time-accumulated paths the 600-ordinal arms never reach (runbook §4 "Driving coverage").
 // Each live assertion carries a matching UNDRIVEN control (idle run): the coin never banks, play never
 // starts, the credit state is never entered. That is what gives the gate teeth -- a mutant that clamps
 // a cell to 0 fails the live arm; a mutant that pins it high unconditionally fails the idle arm.
@@ -34,6 +37,8 @@ import {
   PLAY_ACTIVE,
   SEQUENCE_PHASE,
   BCD_FRAME_COUNTER,
+  ERA_INDEX,
+  ATTACKER_SPAWN_SLOT_COUNT,
 } from "../idiomatic/names.js";
 import { runIdiomaticGame } from "../../../core/frame-stepped.js";
 
@@ -74,7 +79,7 @@ function inputAt(n, live) {
 // Drive the whole wired idiomatic machine from reset for NMIS frames, folding the tape in when `live`.
 // Returns the run result plus the whole-machine observations the assertions read. `mutate(mm, f)` is an
 // OPTIONAL per-frame hook used ONLY by the teeth proof (below); production callers pass none.
-async function runIdiomatic(live, mutate = null) {
+async function runIdiomatic(live, mutate = null, nmis = NMIS) {
   const overrides = await resolveAllIdiomatic(new URL("../machine.js", import.meta.url));
   const m = await Machine.create(ROM, { overrides });
 
@@ -89,6 +94,20 @@ async function runIdiomatic(live, mutate = null) {
     spFaults: [], // SP moved between two frame boundaries
     nmiFaults: [], // an NMI left SP somewhere other than where it found it
     spSeen: new Set(),
+    eraMax: 0, // the highest ERA_INDEX seen at a frame boundary
+    sweepEntries: 0, // times the era-2+ object sweep got past both of its guards (read below)
+  };
+
+  // The era-2+ sweep's entry reads the bank's slot count only after its era guard has passed, and runs
+  // the per-slot sweep exactly when that read is nonzero. The count cell has other readers, so a read
+  // is attributed to the sweep entry by the host call stack -- a rename of that entry turns this
+  // positive control RED rather than silently vacuous.
+  const realRead8 = m.mem.read8.bind(m.mem);
+  m.mem.read8 = (addr) => {
+    const v = realRead8(addr);
+    if ((addr & 0xffff) === ATTACKER_SPAWN_SLOT_COUNT && v !== 0 &&
+        new Error().stack.includes("sweepEra2PlusObjectBank")) obs.sweepEntries++;
+    return v;
   };
 
   const hex = (v) => `0x${(v & 0xffff).toString(16).padStart(4, "0")}`;
@@ -103,7 +122,7 @@ async function runIdiomatic(live, mutate = null) {
 
   const run = runIdiomaticGame(m, {
     nmiReturnPC,
-    maxFrames: NMIS,
+    maxFrames: nmis,
     onFrame: (mm, f) => {
       if (f < 1) return;
       mm.io.inputAssert = inputAt(f - 1, live);
@@ -117,6 +136,7 @@ async function runIdiomatic(live, mutate = null) {
       if (phase === 2) obs.phaseCreditEver = true;
       obs.phases.add(phase);
       obs.bcdVals.add(mm.mem.read8(BCD_FRAME_COUNTER));
+      obs.eraMax = Math.max(obs.eraMax, mm.mem.read8(ERA_INDEX));
       const sp = mm.regs.sp;
       obs.spSeen.add(sp);
       if (prevSp !== null && sp !== prevSp) obs.spFaults.push(`frame ${f}: ${hex(prevSp)} -> ${hex(sp)}`);
@@ -216,5 +236,31 @@ test("SP stays inert: the interrupt is a direct call and nothing walks the stack
     assert.equal(obs.nmiFaults.length, 0, `${who}: the vblank NMI subtree moved SP: ${brief(obs.nmiFaults)}`);
     assert.equal(obs.spFaults.length, 0, `${who}: SP moved across a frame boundary: ${brief(obs.spFaults)}`);
     assert.equal(obs.spSeen.size, 1, `${who}: SP took ${obs.spSeen.size} values across the run`);
+  }
+});
+
+// The long runs, in NMI ordinals. Attract crosses into the third era (ERA_INDEX 2) near ordinal 5000 and
+// the driven tape near 12500 -- measured, and the positive controls below re-measure it every run. Both
+// budgets leave thousands of ordinals of era-2+ play after that, which is where the object sweep runs.
+const LONG_ATTRACT_NMIS = 12000;
+const LONG_DRIVEN_NMIS = 30000;
+const SWEPT_ERA = 2;
+
+test("a long run stays placeable: attract and a driven session run deep, the era-2+ sweep included", async () => {
+  const brief = (xs) => (xs.length <= 6 ? xs.join("; ") : `${xs.slice(0, 6).join("; ")} ... (${xs.length} in all)`);
+  for (const [live, nmis] of [[false, LONG_ATTRACT_NMIS], [true, LONG_DRIVEN_NMIS]]) {
+    const { run, obs } = await runIdiomatic(live, null, nmis);
+    const who = live ? "driven" : "attract";
+    // A dispatch that pops its caller's return slot surfaces here as the seam's placement error.
+    assert.equal(run.stopError, null, `${who} long run failed at frame ${run.frames}: ${run.stop}`);
+    assert.equal(run.frames, nmis, `${who}: the long run stopped at frame ${run.frames} of ${nmis}: ${run.stop}`);
+    assert.equal(obs.nmiFaults.length, 0, `${who}: the vblank NMI subtree moved SP: ${brief(obs.nmiFaults)}`);
+    assert.equal(obs.spFaults.length, 0, `${who}: SP moved across a frame boundary: ${brief(obs.spFaults)}`);
+    assert.equal(obs.spSeen.size, 1, `${who}: SP took ${obs.spSeen.size} values across the run`);
+    // Positive controls: the run reached the era whose sweep this arm exists for, and the sweep really
+    // ran. Without them a run that never left the first eras would pass having proven nothing.
+    assert.ok(obs.eraMax >= SWEPT_ERA, `${who}: ERA_INDEX peaked at ${obs.eraMax}; the run never reached era ${SWEPT_ERA}`);
+    assert.ok(obs.sweepEntries > 0, `${who}: the era-2+ object sweep was never entered past its guards`);
+    console.log(`  LONG/${who}: ${run.frames} frames, era peak ${obs.eraMax}, sweep entered ${obs.sweepEntries} times`);
   }
 });

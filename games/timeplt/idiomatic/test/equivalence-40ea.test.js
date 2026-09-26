@@ -11,8 +11,10 @@
  *
  * ★ WHY THE LIVE REGISTRY. Under the pure translated table the oracle reaches translated callees while
  *   the rewrite reaches their idiomatic modules directly, and every callee's own register ceiling would
- *   be charged to this routine. Under the live table both sides reach the same wired modules; the
- *   sweep body itself is removed from it so nested turns run the oracle on BOTH sides.
+ *   be charged to this routine. Under the live table both sides reach the same wired modules. The
+ *   sweep body itself is removed from it, so the oracle's nested turns run the oracle; the rewrite's
+ *   turn-closer runs the next turn as a direct call, so its nested turns run the rewrite, and a
+ *   looping count compares the whole rewritten sweep against the whole oracle sweep.
  *
  * ★ A AND F ARE DEAD. On the ending turn the only reader after the sweep is the sprite multiplexer,
  *   which reads C and F; the F it inherits is already outside the turn-closer's own ceiling (the
@@ -21,7 +23,8 @@
  * What it exercises, holes stated:
  *   1. REACHABILITY — the tapes' dispatch count, with the sweep's entry as the positive control.
  *   2. CORPUS — every poked-run dispatch, real.
- *   3. ARMS — each arm crafted, turn count 1 (ends) and 3 (loops round through the oracle).
+ *   3. ARMS — each arm crafted, turn count 1 (ends) and 3 (loops round: oracle turns against rewrite
+ *      turns, still exactly one net ret through the seam on the rewrite's side).
  *   4. DRIFTING MARKERS — the non-full marker values across the drifting object's own thresholds.
  *   5. EXCLUDED — nothing outside A/F diverges, with a control twin that can be seen.
  *   6. TEETH — broken twins, each caught on the arm it breaks.

@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * sweepEra2PlusObjectBank — memory-equivalent to the frozen oracle at ROM 0x40d6.
- * GATE: strict full-RAM diff + return value. Every real dispatch is era 0, so the tape exercises
- * only the era guard; crafted era>=2 entries over an occupied bank exercise the sweep body. SP is
- * excluded and asserted separately: the early return omits the oracle's ret (2-byte drift), the
- * full path pops through the sweep body (no drift).
+ * GATE: full-RAM diff + return value, with the dead stack scratch below the seat masked: the
+ * oracle's sweep body pushes return words there that the rewrite's direct calls never write. The
+ * window is measured per entry off the oracle's own pushes and asserted to stay above game data.
+ * Every real dispatch is era 0, so the tape exercises only the era guard; crafted era>=2 entries
+ * over an occupied bank exercise the sweep body. SP is excluded and asserted separately: every path
+ * omits the oracle's one ret (a uniform 2-byte drift) -- the sweep body's turns are direct calls, so
+ * the routine is one plain function on all three paths, which is what lets its caller call it
+ * without a return seat.
  * HOLE: the crafted entries force the era, the count and the bank heads, so the body runs against a
  * state the cabinet reaches only after deeper play, not a captured one.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-40d6.test.js
@@ -48,17 +52,42 @@ function captureDispatches() {
   return captured;
 }
 
-// Whole RAM dump plus the return value; neither side writes below its seat differently, so no mask.
+// Measured: the stack reach floor sits in the 0xAFxx page and game data tops out far below; a window
+// bounded above this can never hide a real write. Asserted against the live floor per entry.
+const DATA_TOP = 0xadff;
+
+/** How far below its seat the oracle's own pushes reach, on one entry state. */
+function oracleDepth(machine) {
+  const c = machine.clone();
+  const seat = c.regs.sp;
+  let deepest = seat;
+  const push = c.push16.bind(c);
+  c.push16 = (v) => {
+    const r = push(v);
+    if (c.regs.sp < deepest) deepest = c.regs.sp;
+    return r;
+  };
+  oracle(c);
+  return seat - deepest;
+}
+
+// Whole RAM dump plus the return value, the oracle's dead stack scratch below the seat masked.
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
+  const seat = machine.regs.sp;
+  const floor = seat - oracleDepth(machine);
+  assert.ok(floor > DATA_TOP, `the stack window ${hex4(floor)} reached into game data`);
   let ra, rb;
   try { ra = oracle(a); } catch (e) { return { addr: null, a: `oracle threw ${e}`, b: "" }; }
   try { rb = candidate(b); } catch (e) { return { addr: null, a: "returned", b: String(e).slice(0, 40) }; }
   const da = a.dumpState();
   const db = b.dumpState();
   for (let i = 0; i < da.length; i++) {
-    if (da[i] !== db[i]) return { addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] };
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= floor && addr < seat) continue;
+    return { addr, a: da[i], b: db[i] };
   }
   if (ra !== rb) return { addr: null, a: `ret ${ra}`, b: `ret ${rb}` };
   return null;
@@ -182,7 +211,7 @@ test("CRAFTED SWEEP: era>=2 over an occupied bank runs the body identically", { 
   console.log(`  CRAFTED: era 2/3/4 identical, footprint ${footprint(craftSweep(base, 3))} bytes`);
 });
 
-test("SP: the omitted ret drifts on the early return and not on the full sweep", { skip }, () => {
+test("SP: every path omits the oracle's one ret, the full sweep included", { skip }, () => {
   const base = captureDispatches()[0];
   const eo = base.clone();
   const ec = base.clone();
@@ -194,7 +223,8 @@ test("SP: the omitted ret drifts on the early return and not on the full sweep",
   const fc = fo.clone();
   oracle(fo);
   sweepEra2PlusObjectBank(fc);
-  assert.equal(fo.regs.sp, fc.regs.sp, "the full path no longer pops through the sweep body");
+  assert.equal(fo.regs.sp - fc.regs.sp, 2, "the full path pops a return slot again, so a caller " +
+    "that calls this as a plain function loses its own return address (the 0x1199 seam fault)");
   console.log(`  SP: early drift ${eo.regs.sp - ec.regs.sp}, full drift ${fo.regs.sp - fc.regs.sp}, seat ${hex4(seat)}`);
 });
 

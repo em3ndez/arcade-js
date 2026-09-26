@@ -88,6 +88,13 @@ const SCRATCH_BYTES = 0;
  */
 const MOVED = ["f", "sp"];
 
+/**
+ * The whole-loop arm runs the turn body too, and the oracle's body leaves in A the record byte it
+ * tested; the rewrite's body tests it without loading A. A is dead where the sweep returns: its one
+ * caller, 0x1199, calls 0x0F97 next, whose first instruction loads A. Still a ceiling.
+ */
+const WHOLE_LOOP_MOVED = [...MOVED, "a"];
+
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
 
@@ -147,16 +154,16 @@ function recorderRoutines(seen) {
   return map;
 }
 
-function registerDiff(a, b) {
+function registerDiff(a, b, moved = MOVED) {
   for (const k of REG_FIELDS) {
-    if (MOVED.includes(k)) continue;
+    if (moved.includes(k)) continue;
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
   return null;
 }
 
 /** Oracle vs candidate on independent clones, real pass head: the whole dump plus the registers. */
-function unitDiff(candidate, machine, setup) {
+function unitDiff(candidate, machine, setup, moved = MOVED) {
   const a = machine.clone();
   const b = machine.clone();
   if (setup) {
@@ -170,7 +177,7 @@ function unitDiff(candidate, machine, setup) {
     return { addr: null, a: "returned", b: String(e).slice(0, 60) };
   }
   return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off))
-    ?? registerDiff(a, b);
+    ?? registerDiff(a, b, moved);
 }
 
 /** The same comparison with the pass head replaced by a recorder, so the STEP is what is compared. */
@@ -211,6 +218,13 @@ function oracleDepth(machine) {
   oracle(c);
   return seat - deepest;
 }
+
+/**
+ * The rewrite with its next turn routed through the machine's own map, which is where the oracle's
+ * back edge finds the pass head and where the recorder sits. The rewrite runs the turn body as a
+ * direct call; its `nextTurn` parameter is how the staged arms put the recorder in its place.
+ */
+const staged = (mm) => closeOneTurnOfTheSlotSweep(mm, mm.regs.ix, mm.regs.iy, mm.regs.b, (x) => x.call(PASS_HEAD));
 
 // ── the crafted sweeps ──────────────────────────────────────────────────────────────────
 
@@ -408,33 +422,33 @@ test("ARMS: which arm the corpus takes, and which it never does", { skip }, () =
 });
 
 test("COUNTER: all 256 counter values, both arms", { skip }, () => {
-  assert.equal(sweepCounter(closeOneTurnOfTheSlotSweep), 0, "a counter value diverged");
+  assert.equal(sweepCounter(staged), 0, "a counter value diverged");
   const seen = [];
   const probe = capture()[0].clone();
   probe.routines = recorderRoutines(seen);
   probe.regs.b = 0;
-  closeOneTurnOfTheSlotSweep(probe);
+  staged(probe);
   assert.equal(seen.length, 1, "a counter of zero must go round again, not end the sweep");
   assert.equal(seen[0].b, 0xff, "a counter of zero must come down to 255 inside a byte");
   console.log(`  COUNTER: ${SWEEP_RUNS.counter} values identical, zero coming down to 255`);
 });
 
 test("CURSORS: both cursors across their own wrap", { skip }, () => {
-  assert.equal(sweepCursors(closeOneTurnOfTheSlotSweep), 0, "a cursor seed diverged");
+  assert.equal(sweepCursors(staged), 0, "a cursor seed diverged");
   const seen = [];
   const probe = capture()[0].clone();
   probe.routines = recorderRoutines(seen);
   probe.regs.b = 4;
   probe.regs.ix = 0xfff8;
   probe.regs.iy = 0xffff;
-  closeOneTurnOfTheSlotSweep(probe);
+  staged(probe);
   assert.equal(seen[0].ix, 0x0008, "the record cursor must wrap in sixteen bits");
   assert.equal(seen[0].iy, 0x0001, "the entry cursor must wrap in sixteen bits");
   console.log(`  CURSORS: ${SWEEP_RUNS.cursors} seed pairs identical, both wraps included`);
 });
 
 test("SCRATCH-PAIR: the stride is written, not inherited", { skip }, () => {
-  assert.equal(sweepScratchPair(closeOneTurnOfTheSlotSweep), 0, "a scratch-pair seed diverged");
+  assert.equal(sweepScratchPair(staged), 0, "a scratch-pair seed diverged");
   const inherited = new Set(capture().map((e) => e.regs.de));
   assert.deepEqual([...inherited], [RECORD_STRIDE], "the corpus no longer arrives with the stride " +
     "already in the pair, so the reason this arm exists has changed and should be re-stated");
@@ -446,7 +460,7 @@ test("WHOLE-LOOP: the real pass head, from crafted counters", { skip }, () => {
   const entries = capture().slice(0, 40);
   for (const counter of SMALL_COUNTERS) {
     for (const e of entries) {
-      const d = unitDiff(closeOneTurnOfTheSlotSweep, e, (mm) => { mm.regs.b = counter; });
+      const d = unitDiff(closeOneTurnOfTheSlotSweep, e, (mm) => { mm.regs.b = counter; }, WHOLE_LOOP_MOVED);
       assert.equal(d, null, `counter=${counter}: ${show(d)}`);
     }
   }

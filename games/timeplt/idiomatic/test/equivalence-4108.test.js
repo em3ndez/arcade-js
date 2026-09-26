@@ -4,7 +4,9 @@
  * GATE: real dispatches captured when the era-poked tape reaches this arm, plus crafted entries
  *   (captured sweep-body states with the head slot's marker forced to a live count, across the
  *   countdown bands and eras 2-4); the dead stack scratch below the seat masked out; the SP drift
- *   pinned per arm (+2 ending, 0 looping); the oracle-derived live-out registers asserted; teeth.
+ *   pinned per arm (+2 on both: the rewrite omits the sweep's one ret whether this turn ends the
+ *   sweep or its close runs the remaining turns as direct calls); the oracle-derived live-out
+ *   registers asserted; teeth.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-4108.test.js
  */
 
@@ -185,18 +187,19 @@ test("ENDING ARM: crafted entries equivalent, the return popped, the mask above 
   console.log(`  ENDING ARM: ${scenarios().length} entries identical, ${footprints} with a footprint`);
 });
 
-test("LOOPING ARM: with turns left the whole sweep runs and the return balances", { skip }, () => {
+test("LOOPING ARM: with turns left the whole sweep runs, its one ret omitted as on the ending arm", { skip }, () => {
   let compared = 0;
   for (const e of captured().sweeps) {
     for (const era of ERAS) {
       const r = compare(candidate, craft(e, { era, count: 0x30, turns: 3 }));
       assert.equal(r.escaped, null, r.escaped && `escaped: ${JSON.stringify(r.escaped)}`);
-      assert.equal(r.spDiff, 0, "the looping arm re-enters the sweep and its ret balances the seat");
+      assert.equal(r.spDiff, 2, "the remaining turns run as direct calls, so the oracle pops the " +
+        "sweep's return and the rewrite does not, exactly as on the ending arm");
       compared++;
     }
   }
   assert.ok(compared > 0, "no state to loop");
-  console.log(`  LOOPING ARM: ${compared} entries identical, spDiff 0`);
+  console.log(`  LOOPING ARM: ${compared} entries identical, spDiff 2`);
 });
 
 for (const [label, twin] of TWINS) {

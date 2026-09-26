@@ -1,4 +1,5 @@
-import { ATTACKER_SPAWN_SLOT_COUNT, ERA_INDEX, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, loc_40ea } from "./names.js";
+import { ATTACKER_SPAWN_SLOT_COUNT, ERA_INDEX, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
+import { loc_40ea } from "./loc_40ea.js";
 import { F_S, F_Z, F_H, F_PV, F_N, F_C, F_F3, F_F5 } from "../../../core/cpu/z80.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /** sweepEra2PlusObjectBank — enter the per-slot sweep of an object bank: below the first swept era, or with the bank's
@@ -34,5 +35,5 @@ export function sweepEra2PlusObjectBank(m) {
     return (m.regs.ix = ERA_OBJECT_RECORD_SLOT0, m.regs.iy = ERA_OBJECT_ENTRY_SLOT0, m.regs.a = count, m.regs.f = F_Z | F_H | F_PV, undefined);
   }
 
-  return (m.regs.ix = ERA_OBJECT_RECORD_SLOT0, m.regs.iy = ERA_OBJECT_ENTRY_SLOT0, m.regs.b = count, m.call(loc_40ea));
+  return (m.regs.ix = ERA_OBJECT_RECORD_SLOT0, m.regs.iy = ERA_OBJECT_ENTRY_SLOT0, m.regs.b = count, loc_40ea(m));
 }
