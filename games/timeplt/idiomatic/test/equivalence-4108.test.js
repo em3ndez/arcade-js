@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4108 — memory-equivalent to the frozen oracle at ROM 0x4108.
+ * stepCountdownSlotThenCloseTurn — memory-equivalent to the frozen oracle at ROM 0x4108.
  * GATE: real dispatches captured when the era-poked tape reaches this arm, plus crafted entries
  *   (captured sweep-body states with the head slot's marker forced to a live count, across the
  *   countdown bands and eras 2-4); the dead stack scratch below the seat masked out; the SP drift
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4108 as candidate } from "../loc_4108.js";
+import { stepCountdownSlotThenCloseTurn as candidate } from "../stepCountdownSlotThenCloseTurn.js";
 import { loc_4108 as oracle } from "../../translated/loc_4108.js";
 import { loc_40ea as sweepBody } from "../../translated/loc_40ea.js";
 import { stepDriftingCountdownObjectByEraFrames } from "../stepDriftingCountdownObjectByEraFrames.js";

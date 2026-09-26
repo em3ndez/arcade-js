@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_40ea — memory-equivalent to the frozen oracle at ROM 0x40EA.
+ * serviceSlotByMarkerThenCloseSweepTurn — memory-equivalent to the frozen oracle at ROM 0x40EA.
  *
  * GATE: real dispatches captured under an era poke, plus crafted entries that force the head slot into
  *   each of the five arms at both an ending and a looping turn count, compared under the LIVE registry
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { resolveAllIdiomatic, withOmittedRet } from "../../machine.js";
 import { ROUTINES } from "../../routines.js";
-import { loc_40ea as candidate } from "../loc_40ea.js";
+import { serviceSlotByMarkerThenCloseSweepTurn as candidate } from "../serviceSlotByMarkerThenCloseSweepTurn.js";
 import { loc_40ea as oracle } from "../../translated/loc_40ea.js";
 import { loc_40d6 as sweepEntry } from "../../translated/loc_40d6.js";
 import { closeOneTurnOfTheSlotSweep } from "../closeOneTurnOfTheSlotSweep.js";

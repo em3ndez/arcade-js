@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_08b4 — memory-equivalent to the frozen oracle at ROM 0x08B4.
+ * erasePenRouteThenOpenInitialsEntry — memory-equivalent to the frozen oracle at ROM 0x08B4.
  * GATE: the arm is reached only when a score files into the high-score table, which the shipped
  *   tape may never do, so any real dispatch the tape makes is captured AND entries are sourced at
  *   0x0201 (the pen-run sub-call the arm opens with, heavily dispatched). Three branches:
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_08b4 as candidate } from "../loc_08b4.js";
+import { erasePenRouteThenOpenInitialsEntry as candidate } from "../erasePenRouteThenOpenInitialsEntry.js";
 import { loc_08b4 as oracle } from "../../translated/loc_08b4.js";
 import { loc_0201 as oracle0201 } from "../../translated/loc_0201.js";
 import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
@@ -230,7 +230,7 @@ function branchOf(machine) {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every default matches loc_08b4. */
+/** The rewrite with one deliberate defect each; every default matches erasePenRouteThenOpenInitialsEntry. */
 function build({
   gate = "nz", fold = 0x30, derail = true, captions = [0x13, 0x00, 0x14, 0x15, 0x0c], readouts = true,
   runLen = 5, terminator = 3, glyphIndex = 4, cellOffset = 0, plane = 0x400, saveColour = true, step = true,

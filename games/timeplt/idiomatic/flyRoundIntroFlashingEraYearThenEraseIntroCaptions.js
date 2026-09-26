@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_16af — one frame of a sequence sub-step that flies the ship over the scenery on a timer.
+/** flyRoundIntroFlashingEraYearThenEraseIntroCaptions — one frame of a sequence sub-step that flies the ship over the scenery on a timer.
  * It first folds a 256-byte program-image block into SEQUENCE_PHASE (a subtract-fold, then a fixed
  * xor, which nets out on a genuine image), then runs the player frame and the scenery between the
  * sprite fixup passes and closes with the full multiplex pass. On odd frames SEQUENCE_DELAY counts
@@ -15,9 +15,8 @@ import { runSceneryForEra } from "./runSceneryForEra.js";
 import { multiplexSpriteSlots } from "./multiplexSpriteSlots.js";
 import { postCommand } from "./postCommand.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { ERA_INDEX, FRAME_TICK, ROUND_ARMED, SEQUENCE_DELAY, SEQUENCE_PHASE } from "./names.js";
+import { ERA_INDEX, FRAME_TICK, ROUND_ARMED, SEQUENCE_DELAY, SEQUENCE_PHASE, loc_4d9f } from "./names.js";
 
-const PHASE_FOLD_BLOCK = 0x4d9f;
 const FOLD_BYTES = 256;
 const FOLD_KEY = 0xa2;
 
@@ -36,11 +35,11 @@ function spriteFixup(m) {
   multiplexSpriteSlotsSkipping(m);
 }
 
-export function loc_16af(m) {
+export function flyRoundIntroFlashingEraYearThenEraseIntroCaptions(m) {
   const { mem8 } = m;
 
   let fold = mem8[SEQUENCE_PHASE];
-  for (let i = 0; i < FOLD_BYTES; i++) fold = u8(fold - mem8[PHASE_FOLD_BLOCK + i]);
+  for (let i = 0; i < FOLD_BYTES; i++) fold = u8(fold - mem8[loc_4d9f + i]);
   mem8[SEQUENCE_PHASE] = fold ^ FOLD_KEY;
 
   spriteFixup(m);

@@ -8,12 +8,12 @@
  * sweep's own turn body unless a gate stands a recorder in for it. LIVE-OUT: memory, the two
  * cursors, the counter and that scratch pair. */
 
-import { loc_40ea } from "./loc_40ea.js";
+import { serviceSlotByMarkerThenCloseSweepTurn } from "./serviceSlotByMarkerThenCloseSweepTurn.js";
 
 const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
 
-export function closeOneTurnOfTheSlotSweep(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b, nextTurn = loc_40ea) {
+export function closeOneTurnOfTheSlotSweep(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b, nextTurn = serviceSlotByMarkerThenCloseSweepTurn) {
   b = b - 1;
   return (m.regs.de = RECORD_STRIDE, m.regs.ix = ix + RECORD_STRIDE, m.regs.iy = iy + ENTRY_STRIDE, m.regs.b = b, b === 0 ? undefined : nextTurn(m));
 }

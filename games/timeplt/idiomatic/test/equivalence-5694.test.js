@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5694 vs the frozen oracle at ROM 0x5694 — a phase-3 sequence arm: fold, services, delay, fold, step.
+ * flyEnemyFreeLeadInThenStepSequence vs the frozen oracle at ROM 0x5694 — a phase-3 sequence arm: fold, services, delay, fold, step.
  * GATE: capture-clone-replay. Both tapes dispatch it through the sub-step table; every capture is
  * replayed on independent clones and compared on RAM (outside the stack scratch both sides push
  * into), pc and SP. The rewrite runs through the game's withOmittedRet seam, which completes the
@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_5694 as candidate } from "../loc_5694.js";
+import { flyEnemyFreeLeadInThenStepSequence as candidate } from "../flyEnemyFreeLeadInThenStepSequence.js";
 import { loc_5694 as oracle } from "../../translated/loc_5694.js";
 import { multiplexSpriteSlotsSkipping } from "../multiplexSpriteSlotsSkipping.js";
 import { dispatchPlayerFrameByState } from "../dispatchPlayerFrameByState.js";

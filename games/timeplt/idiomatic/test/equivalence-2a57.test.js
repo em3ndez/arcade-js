@@ -28,7 +28,7 @@
  * second register into the object's sprite-entry control byte and the first into its tile code;
  * refreshSecondEraSpriteFromHeading stores the same two, each stepped by a constant, into the same two cells. Nothing else
  * the oracle leaves behind survives: both callers overwrite the accumulator on their next step,
- * neither branches on a flag, and their own callers loc_2927 and loc_294c either return at once
+ * neither branches on a flag, and their own callers loc_2927 and serviceEra1EnemyCraftSlot either return at once
  * or go on to loc_4243, which loads the accumulator and both address pairs before reading any of
  * them. That is an argument, so the SUBSTITUTION arm is the falsifiable version — it wires the
  * rewrite, which never touches those registers, into a whole driven session.

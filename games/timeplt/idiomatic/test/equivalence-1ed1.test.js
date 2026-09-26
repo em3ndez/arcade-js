@@ -10,7 +10,7 @@
  *   null for EVERY candidate, a no-op included, and the BLIND test asserts that outright rather
  *   than leaving it as an unstated hole. The live-out is derived from the three call sites, not
  *   from the instruction stream: loc_1edf masks the result with 0x0F and branches, loc_23e3
- *   rotates bit 4 of it into a shift register, loc_18c3 rotates bits 0, 1, 4 and 5 of it into
+ *   rotates bit 4 of it into a shift register, stepHighScoreInitialsEntry rotates bits 0, 1, 4 and 5 of it into
  *   four one-bit histories. All three read the accumulator and nothing else — no caller
  *   consumes a flag, an address pair or the stack — so LIVE_OUT is {a} and EXCLUDED is
  *   {f, h, l, sp}, and the sweep pins that shape so "excluded" cannot quietly widen.

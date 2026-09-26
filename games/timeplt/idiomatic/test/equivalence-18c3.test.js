@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_18c3 — memory-equivalent to the frozen oracle at ROM 0x18C3 (high-score initials entry).
+ * stepHighScoreInitialsEntry — memory-equivalent to the frozen oracle at ROM 0x18C3 (high-score initials entry).
  *
  * WHAT IT IS. One frame of the initials-entry screen. Even frames roll four panel controls into
  * press histories and act on a fresh press (commit a letter, step the shown letter either way) or
@@ -46,7 +46,7 @@ import { makeMachine, COIN_FRAME, COIN_START_TAPE, romsPresent } from "./_harnes
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { loc_18c3 } from "../loc_18c3.js";
+import { stepHighScoreInitialsEntry } from "../stepHighScoreInitialsEntry.js";
 import { loc_18c3 as oracle } from "../../translated/loc_18c3.js";
 import {
   CREDIT_COUNT, FRAME_TICK, FREE_PLAY, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, PLAYER_ONE_LIVES,
@@ -326,7 +326,7 @@ function wholeRun(candidate, tape, frames) {
 
 // ── the teeth: source mutants of the rewrite ────────────────────────────────────────────
 
-const SOURCE = readFileSync(new URL("../loc_18c3.js", import.meta.url), "utf8");
+const SOURCE = readFileSync(new URL("../stepHighScoreInitialsEntry.js", import.meta.url), "utf8");
 const IDIOMATIC = new URL("../", import.meta.url).href;
 const CORE = new URL("../../../../core/", import.meta.url).href;
 
@@ -336,18 +336,18 @@ async function mutant(from, to) {
     .replaceAll('from "./', `from "${IDIOMATIC}`)
     .replaceAll('from "../../../core/', `from "${CORE}`);
   const mod = await import("data:text/javascript;base64," + Buffer.from(src).toString("base64"));
-  return mod.loc_18c3;
+  return mod.stepHighScoreInitialsEntry;
 }
 
 const MUTANTS = [
   ["fresh-press-any-bit", "(history & LAST_THREE_SAMPLES) === FRESH_PRESS", "(history & FRESH_PRESS) !== 0"],
   ["forward-wraps-late", "next > LAST_LETTER ? 0 : next", "next > LETTER_COUNT ? 0 : next"],
   ["back-wraps-to-first", "next < WRAPPED_BELOW ? next : LAST_LETTER", "next < WRAPPED_BELOW ? next : 0"],
-  ["forward-never-rearmed", "rearmHeldControlRepeat(m, FORWARD_HISTORY);", ";"],
+  ["forward-never-rearmed", "rearmHeldControlRepeat(m, INITIALS_FORWARD_PRESS_HISTORY);", ";"],
   ["back-rearmed-at-ff", "=== BACK_SATURATED", "=== FORWARD_SATURATED"],
-  ["other-commit-ignored", "isFreshPress(mem8[OTHER_COMMIT_HISTORY]) || ", ""],
-  ["histories-swapped", "rollHistory(mem8, BACK_HISTORY, controls & BACK_BIT);", "rollHistory(mem8, BACK_HISTORY, controls & FORWARD_BIT);"],
-  ["locked-colour-constant", "= mem8[LOCKED_LETTER_COLOUR];", "= CURSOR_COLOUR;"],
+  ["other-commit-ignored", "isFreshPress(mem8[INITIALS_ALT_COMMIT_PRESS_HISTORY]) || ", ""],
+  ["histories-swapped", "rollHistory(mem8, INITIALS_BACK_PRESS_HISTORY, controls & BACK_BIT);", "rollHistory(mem8, INITIALS_BACK_PRESS_HISTORY, controls & FORWARD_BIT);"],
+  ["locked-colour-constant", "= mem8[INITIALS_LOCKED_LETTER_COLOUR];", "= CURSOR_COLOUR;"],
   ["copy-not-stepped", "mem16[SCRATCH_PTR_A] = copy + 1;", "mem16[SCRATCH_PTR_A] = copy;"],
   ["cursor-plane-not-snapped", "advanceCharCursor(m, cursor | COLOUR_PLANE_BIT)", "advanceCharCursor(m, cursor)"],
   ["last-slot-keeps-going", "if (commitLetter(m)) return true;", "commitLetter(m);"],
@@ -367,7 +367,7 @@ test("NATURAL: every real dispatch in both sessions replays identically", { skip
   for (const [label] of SESSIONS) {
     const { entries } = corpus()[label];
     assert.equal(entries.length, DISPATCHES[label], `the ${label} session's dispatch count moved`);
-    const { caught, first } = caughtOver(loc_18c3, entries);
+    const { caught, first } = caughtOver(stepHighScoreInitialsEntry, entries);
     console.log(`  NATURAL/${label}: ${entries.length} dispatches, ${caught} diverge`);
     assert.equal(caught, 0, `${label}: ${show(first)}`);
   }
@@ -396,7 +396,7 @@ test("CRAFTED SCAN: ticks, facings, controls, histories, letters, slots, clock, 
   let first = null;
   for (const m of scanEntries()) {
     n++;
-    const d = unitDiff(loc_18c3, m);
+    const d = unitDiff(stepHighScoreInitialsEntry, m);
     if (d) {
       caught++;
       first ??= d;
@@ -413,7 +413,7 @@ test("CRAFTED START: lives, free play, credits and start buttons reach every gam
   let started = 0;
   for (const m of startEntries()) {
     n++;
-    const d = unitDiff(loc_18c3, m);
+    const d = unitDiff(stepHighScoreInitialsEntry, m);
     if (d) {
       caught++;
       first ??= d;
@@ -429,9 +429,9 @@ test("CRAFTED START: lives, free play, credits and start buttons reach every gam
 
 test("REGISTERS: only scratch registers differ, over natural and crafted entries", { skip }, () => {
   const moved = new Set();
-  for (const m of allNatural()) movedRegisters(loc_18c3, m, moved);
-  for (const m of scanEntries()) movedRegisters(loc_18c3, m, moved);
-  for (const m of startEntries()) movedRegisters(loc_18c3, m, moved);
+  for (const m of allNatural()) movedRegisters(stepHighScoreInitialsEntry, m, moved);
+  for (const m of scanEntries()) movedRegisters(stepHighScoreInitialsEntry, m, moved);
+  for (const m of startEntries()) movedRegisters(stepHighScoreInitialsEntry, m, moved);
   const list = REG_FIELDS.filter((k) => moved.has(k));
   console.log(`  REGISTERS (measured): ${list.join(", ")}`);
   assert.deepEqual(list.filter((k) => !MOVED.includes(k)), [], "a register outside the scratch set diverged");
@@ -439,7 +439,7 @@ test("REGISTERS: only scratch registers differ, over natural and crafted entries
 
 for (const [label, tape, frames] of SESSIONS) {
   test(`WHOLE-MACHINE/${label}: the wired rewrite changes nothing but dead stack`, { skip }, () => {
-    const r = wholeRun(loc_18c3, tape, frames);
+    const r = wholeRun(stepHighScoreInitialsEntry, tape, frames);
     console.log(`  WHOLE-MACHINE/${label}: ${r.frames} frames, ${r.fired} dispatches, ${r.cells.length} cells`);
     assert.equal(r.fired, DISPATCHES[label], "the wired session's dispatch count moved");
     assert.deepEqual(r.lengths, [frames, frames], "a session ran short");
@@ -449,7 +449,7 @@ for (const [label, tape, frames] of SESSIONS) {
 
 test("SP-TOOTH: the rewrite is seam-placeable; a stray push is not", { skip }, async () => {
   const entry = baseEntry();
-  assert.equal(seamPlaceable(withOmittedRet, loc_18c3, TARGET, entry.clone()).placeable, true);
+  assert.equal(seamPlaceable(withOmittedRet, stepHighScoreInitialsEntry, TARGET, entry.clone()).placeable, true);
   const [, from, to] = MUTANTS.find(([l]) => l === "stray-push");
   const broken = await mutant(from, to);
   assert.equal(seamPlaceable(withOmittedRet, broken, TARGET, entry.clone()).placeable, false,

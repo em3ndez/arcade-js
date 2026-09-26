@@ -48,7 +48,6 @@ timeplt 0x2cd1
 timeplt 0x2e3e
 timeplt 0x2f01
 timeplt 0x3176
-timeplt 0x40ea
 timeplt 0x43f0
 timeplt 0x49fa
 timeplt 0x59d7
@@ -59,6 +58,9 @@ timeplt 0xc600
 timeplt 0xde00
 timeplt 0xf1eb
 timeplt 0xf1f1
+timeplt 0x4d9f  # anti-tamper fold span of phase-3 sub-step-5 arm; fold mechanism [code], arm-context prefix ungrounded (derivers diverged: ROUND_INTRO vs ROUND_OPENING); promote at grounding
+timeplt 0x0831  # first anti-tamper fold span of phase-3 sub-step-6 arm (every frame); arm-context prefix ungrounded (PLAY_LEADIN vs PRE_PLAY); promote at grounding
+timeplt 0x12a7  # second anti-tamper fold span of phase-3 sub-step-6 arm (delay expiry); arm-context prefix ungrounded (PLAY_LEADIN vs PRE_PLAY); promote at grounding
 pooyan 0x8905  # role unknown; touched by loc_191c, promote at [code]->grounding
 pooyan 0x8906  # role unknown; touched by loc_191c, promote at [code]->grounding
 pooyan 0x89e3  # role unknown; promote to a descriptive name at grounding

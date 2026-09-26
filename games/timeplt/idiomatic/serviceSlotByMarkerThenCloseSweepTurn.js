@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_40ea — one turn of the per-slot sweep over an object bank: pick the slot's handler from its
+/** serviceSlotByMarkerThenCloseSweepTurn — one turn of the per-slot sweep over an object bank: pick the slot's handler from its
  * marker byte and let that handler close the turn. A free slot (marker zero) is passed over; any
  * marker other than full is a drifting countdown object, stepped and then passed; a full marker is
  * a chased object whose handler turns on the era and on the record's countdown — the final era runs
@@ -21,7 +21,7 @@ const FREE = 0x00;
 const FULL = 0xff;
 const FINAL_ERA = 4;
 
-export function loc_40ea(m, ix = m.regs.ix) {
+export function serviceSlotByMarkerThenCloseSweepTurn(m, ix = m.regs.ix) {
   const { mem8 } = m;
   const marker = mem8[u16(ix + MARKER)];
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_18c3 — one frame of high-score initials entry. On even frames the facing panel's four
+/** stepHighScoreInitialsEntry — one frame of high-score initials entry. On even frames the facing panel's four
  * controls are rolled into their press histories; a fresh commit locks the shown letter into the
  * next slot (and, on the last slot, finishes the entry), a fresh forward/back press steps the
  * shown letter round its 27-value ring, and a history that has saturated is emptied so a held
@@ -22,19 +22,10 @@ import { startTwoPlayerGame } from "./startTwoPlayerGame.js";
 import { startGameOnFreePlay } from "./startGameOnFreePlay.js";
 import {
   CREDIT_COUNT, FRAME_TICK, FREE_PLAY, IN0_MIRROR, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES,
-  SCRATCH_PTR_A, SCRATCH_PTR_B, SEQUENCE_DELAY,
+  SCRATCH_PTR_A, SCRATCH_PTR_B, SEQUENCE_DELAY, INITIALS_LOCKED_LETTER_COLOUR, INITIALS_BACK_PRESS_HISTORY,
+  INITIALS_FORWARD_PRESS_HISTORY, INITIALS_COMMIT_PRESS_HISTORY, INITIALS_ALT_COMMIT_PRESS_HISTORY,
+  INITIALS_LETTER_INDEX, INITIALS_SLOTS_LEFT, INITIALS_CURSOR_FLASH_TIMER, INITIALS_LETTER_GLYPH_TABLE,
 } from "./names.js";
-
-// Initials-entry work cells and the letter-glyph table.
-const LOCKED_LETTER_COLOUR = 0xa990;
-const BACK_HISTORY = 0xa995;
-const FORWARD_HISTORY = 0xa996;
-const COMMIT_HISTORY = 0xa997;
-const OTHER_COMMIT_HISTORY = 0xa998;
-const LETTER_INDEX = 0xa999;
-const SLOTS_LEFT = 0xa99a;
-const FLASH_PHASE = 0xa99c;
-const LETTER_GLYPHS = 0x12c7;
 
 const BACK_BIT = 0x01;
 const FORWARD_BIT = 0x02;
@@ -69,7 +60,7 @@ function rollHistory(mem8, cell, pressed) {
 }
 
 /** Look the shown letter's glyph up; the lookup leaves its entry pointer behind. */
-const letterGlyph = (m) => fetchTableByte(m, LETTER_GLYPHS, m.mem8[LETTER_INDEX]);
+const letterGlyph = (m) => fetchTableByte(m, INITIALS_LETTER_GLYPH_TABLE, m.mem8[INITIALS_LETTER_INDEX]);
 
 /** Stamp the shown letter at the cursor, colour its cell as the cursor, and stop the flash. */
 function redrawCursorLetter(m) {
@@ -77,7 +68,7 @@ function redrawCursorLetter(m) {
   const cursor = mem16[SCRATCH_PTR_B];
   mem8[cursor] = letterGlyph(m);
   mem8[cursor & ~COLOUR_PLANE_BIT] = CURSOR_COLOUR;
-  mem8[FLASH_PHASE] = 0;
+  mem8[INITIALS_CURSOR_FLASH_TIMER] = 0;
 }
 
 /** Lock the shown letter into both copies and step both on; true once no slot is left. */
@@ -88,12 +79,12 @@ function commitLetter(m) {
   const cursor = mem16[SCRATCH_PTR_B];
   mem8[cursor] = glyph;
   mem8[copy] = glyph;
-  mem8[cursor & ~COLOUR_PLANE_BIT] = mem8[LOCKED_LETTER_COLOUR];
+  mem8[cursor & ~COLOUR_PLANE_BIT] = mem8[INITIALS_LOCKED_LETTER_COLOUR];
   mem16[SCRATCH_PTR_A] = copy + 1;
   mem16[SCRATCH_PTR_B] = advanceCharCursor(m, cursor | COLOUR_PLANE_BIT);
-  mem8[SLOTS_LEFT] = u8(mem8[SLOTS_LEFT] - 1);
-  if (mem8[SLOTS_LEFT] === 0) return true;
-  mem8[LETTER_INDEX] = 0;
+  mem8[INITIALS_SLOTS_LEFT] = u8(mem8[INITIALS_SLOTS_LEFT] - 1);
+  if (mem8[INITIALS_SLOTS_LEFT] === 0) return true;
+  mem8[INITIALS_LETTER_INDEX] = 0;
   return false;
 }
 
@@ -101,31 +92,31 @@ function commitLetter(m) {
 function scanControls(m) {
   const { mem8 } = m;
   const controls = readPlayerControls(m);
-  rollHistory(mem8, BACK_HISTORY, controls & BACK_BIT);
-  rollHistory(mem8, FORWARD_HISTORY, controls & FORWARD_BIT);
-  rollHistory(mem8, COMMIT_HISTORY, controls & COMMIT_BIT);
-  rollHistory(mem8, OTHER_COMMIT_HISTORY, controls & OTHER_COMMIT_BIT);
+  rollHistory(mem8, INITIALS_BACK_PRESS_HISTORY, controls & BACK_BIT);
+  rollHistory(mem8, INITIALS_FORWARD_PRESS_HISTORY, controls & FORWARD_BIT);
+  rollHistory(mem8, INITIALS_COMMIT_PRESS_HISTORY, controls & COMMIT_BIT);
+  rollHistory(mem8, INITIALS_ALT_COMMIT_PRESS_HISTORY, controls & OTHER_COMMIT_BIT);
 
-  if (isFreshPress(mem8[OTHER_COMMIT_HISTORY]) || isFreshPress(mem8[COMMIT_HISTORY])) {
+  if (isFreshPress(mem8[INITIALS_ALT_COMMIT_PRESS_HISTORY]) || isFreshPress(mem8[INITIALS_COMMIT_PRESS_HISTORY])) {
     if (commitLetter(m)) return true;
     redrawCursorLetter(m);
     return false;
   }
 
-  if (mem8[FORWARD_HISTORY] === FORWARD_SATURATED) {
-    rearmHeldControlRepeat(m, FORWARD_HISTORY);
-  } else if (isFreshPress(mem8[FORWARD_HISTORY])) {
-    const next = u8(mem8[LETTER_INDEX] + 1);
-    mem8[LETTER_INDEX] = next > LAST_LETTER ? 0 : next;
+  if (mem8[INITIALS_FORWARD_PRESS_HISTORY] === FORWARD_SATURATED) {
+    rearmHeldControlRepeat(m, INITIALS_FORWARD_PRESS_HISTORY);
+  } else if (isFreshPress(mem8[INITIALS_FORWARD_PRESS_HISTORY])) {
+    const next = u8(mem8[INITIALS_LETTER_INDEX] + 1);
+    mem8[INITIALS_LETTER_INDEX] = next > LAST_LETTER ? 0 : next;
     redrawCursorLetter(m);
     return false;
   }
 
-  if (mem8[BACK_HISTORY] === BACK_SATURATED) {
-    rearmHeldControlRepeat(m, BACK_HISTORY);
-  } else if (isFreshPress(mem8[BACK_HISTORY])) {
-    const next = u8(mem8[LETTER_INDEX] - 1);
-    mem8[LETTER_INDEX] = next < WRAPPED_BELOW ? next : LAST_LETTER;
+  if (mem8[INITIALS_BACK_PRESS_HISTORY] === BACK_SATURATED) {
+    rearmHeldControlRepeat(m, INITIALS_BACK_PRESS_HISTORY);
+  } else if (isFreshPress(mem8[INITIALS_BACK_PRESS_HISTORY])) {
+    const next = u8(mem8[INITIALS_LETTER_INDEX] - 1);
+    mem8[INITIALS_LETTER_INDEX] = next < WRAPPED_BELOW ? next : LAST_LETTER;
     redrawCursorLetter(m);
   }
   return false;
@@ -149,8 +140,8 @@ function finishEntry(m) {
 
 function flashCursor(m) {
   const { mem8, mem16 } = m;
-  const phase = u8(mem8[FLASH_PHASE] + 1);
-  mem8[FLASH_PHASE] = phase;
+  const phase = u8(mem8[INITIALS_CURSOR_FLASH_TIMER] + 1);
+  mem8[INITIALS_CURSOR_FLASH_TIMER] = phase;
   mem8[mem16[SCRATCH_PTR_B] & ~COLOUR_PLANE_BIT] = phase & FLASH_BIT ? CURSOR_FLASH_COLOUR : CURSOR_COLOUR;
 }
 
@@ -175,7 +166,7 @@ function startNextGameIfAsked(m) {
   else startTwoPlayerGame(m);
 }
 
-export function loc_18c3(m) {
+export function stepHighScoreInitialsEntry(m) {
   const { mem8 } = m;
   if ((mem8[FRAME_TICK] & EVERY_OTHER_FRAME) !== 0) {
     flashCursor(m);

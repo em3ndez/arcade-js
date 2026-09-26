@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0774 — round-start sequence arm: verify a fixed program span, post the round-start caption
+/** postRoundStartCaptionsAndResetPlayfield — round-start sequence arm: verify a fixed program span, post the round-start caption
  * commands, repaint the kill meter, reset the playfield for the new round, and step the sequence
  * sub-index.
  * The span is XOR-folded; any total but the genuine one advances the outer sequence phase first.
@@ -13,9 +13,8 @@ import { postCommand } from "./postCommand.js";
 import { drawKillMeter } from "./drawKillMeter.js";
 import { resetPlayfieldAndArmNewRound } from "./resetPlayfieldAndArmNewRound.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PLAY_ACTIVE, ACTIVE_PLAYER, ROUND_ARMED } from "./names.js";
+import { PLAY_ACTIVE, ACTIVE_PLAYER, ROUND_ARMED, ROUND_START_CHECKSUM_BASE } from "./names.js";
 
-const GUARD_SPAN_BASE = 0x4c99;
 const GUARD_SPAN_BYTES = 256;
 const GUARD_GENUINE_FOLD = 0x6b;
 
@@ -24,11 +23,11 @@ const DEFAULT_ARGUMENT = 2;
 const PLAYER_ARGUMENT = 9;
 const ARMED_COMMAND = 7;
 
-export function loc_0774(m) {
+export function postRoundStartCaptionsAndResetPlayfield(m) {
   const { mem8 } = m;
 
   let fold = 0;
-  for (let i = 0; i < GUARD_SPAN_BYTES; i++) fold ^= mem8[GUARD_SPAN_BASE + i];
+  for (let i = 0; i < GUARD_SPAN_BYTES; i++) fold ^= mem8[ROUND_START_CHECKSUM_BASE + i];
   if (fold !== GUARD_GENUINE_FOLD) advanceSequencePhase(m);
 
   if (mem8[PLAY_ACTIVE] === 0) {

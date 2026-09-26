@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_294c — memory-equivalent to the frozen oracle at ROM 0x294C, run through the dispatch seam so SP
+ * serviceEra1EnemyCraftSlot — memory-equivalent to the frozen oracle at ROM 0x294C, run through the dispatch seam so SP
  * and pc are compared for equality. GATE: the undriven attract run is what reaches this arm (the era
  * index turns to 1 there; the coin-start tape holds era 0 and never dispatches it), so every real
  * dispatch of an attract replay is compared, plus capped buckets of every status class the run
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { buildRoutines } from "../../routines.js";
-import { loc_294c } from "../loc_294c.js";
+import { serviceEra1EnemyCraftSlot } from "../serviceEra1EnemyCraftSlot.js";
 import { loc_294c as oracle } from "../../translated/loc_294c.js";
 import { steerTowardAimHeading } from "../steerTowardAimHeading.js";
 import { loc_5854 } from "../loc_5854.js";
@@ -178,10 +178,10 @@ function brokenHeldAsDying(m) {
   return activeArm(m);
 }
 /** BUG: scribbles the slot pointer on the way out -- memory-invisible, the register arm must see it. */
-function brokenMovesIx(m) { const r = loc_294c(m); m.regs.ix = (m.regs.ix + 1) & 0xffff; return r; }
+function brokenMovesIx(m) { const r = serviceEra1EnemyCraftSlot(m); m.regs.ix = (m.regs.ix + 1) & 0xffff; return r; }
 /** BUG: leaves the wrong accumulator on the refreshed path -- only the A/F arm can see it. */
 function brokenLeavesA(m) {
-  const r = loc_294c(m);
+  const r = serviceEra1EnemyCraftSlot(m);
   if (m.mem8[m.regs.ix] === ACTIVE) m.regs.a = (m.regs.a ^ 0x01) & 0xff;
   return r;
 }
@@ -199,8 +199,8 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("REACHED: attract dispatches this arm; the coin-start tape (held in era 0) does not", { skip }, () => {
-  const attract = replaySession(ATTRACT, REPLAY_FRAMES, loc_294c);
-  const driven = replaySession({}, ENTRY_FRAMES, loc_294c);
+  const attract = replaySession(ATTRACT, REPLAY_FRAMES, serviceEra1EnemyCraftSlot);
+  const driven = replaySession({}, ENTRY_FRAMES, serviceEra1EnemyCraftSlot);
   assert.ok(attract.dispatches > 0, "vacuous: the attract replay never reached the routine");
   assert.equal(attract.caught, 0, `the rewrite diverged on ${attract.caught} real dispatches: ${show(attract.first)}`);
   assert.equal(driven.dispatches, 0,
@@ -214,7 +214,7 @@ test("EQUAL at every captured entry of every class; a no-op FAILS the same compa
   for (const k of CLASSES) {
     assert.ok(buckets[k].length > 0, `vacuous: no ${k} entry captured`);
     for (const entry of buckets[k]) {
-      const d = unitDiff(loc_294c, entry, k === "active");
+      const d = unitDiff(serviceEra1EnemyCraftSlot, entry, k === "active");
       assert.equal(d, null, `a ${k} entry diverged: ${show(d)}`);
     }
   }

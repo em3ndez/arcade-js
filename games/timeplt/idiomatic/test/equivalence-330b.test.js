@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_330b — memory-equivalent to the frozen oracle at ROM 0x330B.
+ * fileScoreAfterGameOverHoldElsePassTurn — memory-equivalent to the frozen oracle at ROM 0x330B.
  * GATE: capture-clone-replay on two real tapes plus crafted branch entries.
  *   - tapes/game-over.poke.json reaches this arm (sub-step 8) for the whole game-over hold and its
  *     expiry, where the score beats no standing record (the unfiled branch).
@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_330b as candidate } from "../loc_330b.js";
+import { fileScoreAfterGameOverHoldElsePassTurn as candidate } from "../fileScoreAfterGameOverHoldElsePassTurn.js";
 import { loc_330b as oracle } from "../../translated/loc_330b.js";
 import { fileScoreIntoHighScoreTable } from "../fileScoreIntoHighScoreTable.js";
 import { postCommand } from "../postCommand.js";
@@ -152,7 +152,7 @@ const scenario = (label) => scenarios().find(([l]) => l === label)[1];
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every default matches loc_330b. */
+/** The rewrite with one deliberate defect each; every default matches fileScoreAfterGameOverHoldElsePassTurn. */
 function twin({ tick = true, command = 3, args = [0x09, 0x0b], seed = SEED, passTurn = true,
                invert = false, sound = true, colour = 0, glyph = 0xf1, arm = true,
                genuine = GENUINE_TOTAL, phase = true, step = true } = {}) {

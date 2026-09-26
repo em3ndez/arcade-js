@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0774 — memory-equivalent to the frozen oracle at ROM 0x0774.
+ * postRoundStartCaptionsAndResetPlayfield — memory-equivalent to the frozen oracle at ROM 0x0774.
  * GATE: real dispatches (reached only by computed dispatch off the sub-step table) plus crafted
  *   branch entries — second player up, play inactive, an occupied command ring, and a tampered
  *   image built by patching a private copy of the ROM; RAM compared with the dead stack scratch
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0774 as candidate } from "../loc_0774.js";
+import { postRoundStartCaptionsAndResetPlayfield as candidate } from "../postRoundStartCaptionsAndResetPlayfield.js";
 import { loc_0774 as oracle } from "../../translated/loc_0774.js";
 import { advanceSequencePhase } from "../advanceSequencePhase.js";
 import { postCommand } from "../postCommand.js";
@@ -137,7 +137,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every parameter matches loc_0774 by default. */
+/** The rewrite with one deliberate defect each; every parameter matches postRoundStartCaptionsAndResetPlayfield by default. */
 function twin({ guard = true, player = true, armedCmd = 7, armedBranch = true, inactiveArg = 2, meter = true, reset = true, substep = true }) {
   return (m) => {
     const { mem8 } = m;

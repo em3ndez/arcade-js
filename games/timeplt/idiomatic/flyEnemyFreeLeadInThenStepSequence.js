@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_5694 — a round-engine sequence arm. Folds a 256-byte program block into SEQUENCE_PHASE (a
+/** flyEnemyFreeLeadInThenStepSequence — a round-engine sequence arm. Folds a 256-byte program block into SEQUENCE_PHASE (a
  * subtract-fold closed by a fixed XOR, net zero on a genuine image), runs the per-frame round
  * services, then counts SEQUENCE_DELAY down. While the delay is still running it stops there; once it
  * reaches zero it folds a second program block into SEQUENCE_PHASE the same way and steps the
@@ -12,11 +12,9 @@ import { fireAndSweepPlayerShots } from "./fireAndSweepPlayerShots.js";
 import { multiplexSpriteSlots } from "./multiplexSpriteSlots.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
-import { SEQUENCE_DELAY, SEQUENCE_PHASE } from "./names.js";
+import { SEQUENCE_DELAY, SEQUENCE_PHASE, loc_0831, loc_12a7 } from "./names.js";
 
 // The two program blocks folded into the phase.
-const FIRST_FOLD_BLOCK = 0x0831;
-const SECOND_FOLD_BLOCK = 0x12a7;
 const FOLD_LENGTH = 256;
 
 /** Subtract every byte of one block from SEQUENCE_PHASE, close with the block's XOR key, store it back. */
@@ -27,12 +25,12 @@ function foldIntoPhase(m, base, key) {
   mem8[SEQUENCE_PHASE] = sum ^ key;
 }
 
-export function loc_5694(m) {
+export function flyEnemyFreeLeadInThenStepSequence(m) {
   const { mem8 } = m;
   // This callee returns through a stack word, so the call site supplies one; the value is a filler.
   const spriteFixup = () => { m.push16(0); multiplexSpriteSlotsSkipping(m); };
 
-  foldIntoPhase(m, FIRST_FOLD_BLOCK, 0xc2);
+  foldIntoPhase(m, loc_0831, 0xc2);
 
   spriteFixup();
   dispatchPlayerFrameByState(m);
@@ -45,6 +43,6 @@ export function loc_5694(m) {
   mem8[SEQUENCE_DELAY] = delay;
   if (delay !== 0) return;
 
-  foldIntoPhase(m, SECOND_FOLD_BLOCK, 0x59);
+  foldIntoPhase(m, loc_12a7, 0x59);
   return advanceSequenceSubStep(m);
 }
