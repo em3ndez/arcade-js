@@ -2,8 +2,10 @@
 /** verifyImageSignatureThenStartAttractDemoOrDerail — a phase-1 attract sub-step arm (computed
  * dispatch off the phase-1 table at inner sub-step 12, no static call site). It reads the folded
  * program-image signature the self-check banked at TAMPER_IMAGE_SIGNATURE and compares it against a
- * fixed byte. On a tampered image the two disagree and the arm derails into the power-on wipe trap
- * (a data-run-as-code landing) — unreachable on a genuine image, where the signature always matches.
+ * fixed byte. The two agree on a genuine image, where the self-check fold always lands on that byte,
+ * so the mismatch arm is dead: it is only ever reached on a tampered image, and there it derails
+ * into a data-run-as-code landing that destroys control rather than reporting. There is no faithful
+ * transcription of that landing as a routine, so this arm raises where it would derail instead.
  *
  * On the genuine image it starts the attract-mode autopilot demo: it parks the caption sprites,
  * seeds the demo autopilot heading script, then clears the two-player flag, player two's lives, the
@@ -25,7 +27,7 @@ import {
 } from "./names.js";
 import { hideCaptionSprites } from "./hideCaptionSprites.js";
 import { seedDemoAutopilotScript } from "./seedDemoAutopilotScript.js";
-import { loc_2530 } from "../translated/loc_2530.js";
+import { NotImplemented } from "../../../boards/timeplt/io.js";
 
 // The value a genuine image's self-check fold must land on.
 const EXPECTED_SIGNATURE = 0x76;
@@ -39,12 +41,10 @@ export function verifyImageSignatureThenStartAttractDemoOrDerail(m) {
 
   const signature = mem8[TAMPER_IMAGE_SIGNATURE];
   if (signature !== EXPECTED_SIGNATURE) {
-    // Tampered image: derail into the power-on wipe trap. The trap re-enters these bytes as code and
-    // reads the accumulator and the compare flags, so seat them as the compare did before handing
-    // over (born-live fallback). Unreachable on a genuine image.
-    m.regs.a = signature;
-    m.regs.cp(EXPECTED_SIGNATURE);
-    return loc_2530(m);
+    throw new NotImplemented(
+      "verifyImageSignatureThenStartAttractDemoOrDerail: the image-signature self-check fold reached " +
+        "its mismatch arm; a genuine image always matches, so this is a tampered image",
+    );
   }
 
   hideCaptionSprites(m);

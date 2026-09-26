@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * verifyImageSignatureThenStartAttractDemoOrDerail — memory-equivalent to the frozen oracle at ROM
- * 0x2730, a phase-1 attract sub-step arm (inner sub-step 12 of the phase-1 dispatch table).
+ * 0x2730 on the genuine path, and a FAULT on the tamper derail.
  *
  * WHAT IT IS. It reads the folded program-image signature the self-check banked at
- * TAMPER_IMAGE_SIGNATURE and compares it against 0x76. On a tampered image it DERAILS into the
- * power-on wipe trap (loc_2530, data run as code). On a genuine image — where the signature always
- * reads 0x76 — it starts the attract-mode autopilot demo: park the caption sprites, seed the demo
- * autopilot script, clear the two-player flag / player-two lives / play-active flag / inner
+ * TAMPER_IMAGE_SIGNATURE and compares it against 0x76. On a genuine image — where the signature
+ * always reads 0x76 — it starts the attract-mode autopilot demo: park the caption sprites, seed the
+ * demo autopilot script, clear the two-player flag / player-two lives / play-active flag / inner
  * sub-step, stock player one with one life, and wind the outer sequence on to its last phase (3).
+ * On a tampered image the two disagree and the arm DERAILS into the power-on wipe trap — data run as
+ * code that destroys control. There is no faithful transcription of that junk as a routine, so the
+ * module RAISES NotImplemented where it would derail; this gate no longer byte-replays the junk. The
+ * genuine path is still a real transcription and is held oracle-exact.
  *
  * ★ WHERE THE LIVE-OUT COMES FROM. The arm is reached by computed dispatch off the phase-1 table
  *   and the phase-3 successor reloads every register it uses before reading one, so NO register is
@@ -25,11 +28,12 @@
  *
  * ★ ONE NATURAL DISPATCH. An undriven attract session dispatches this arm exactly once (~frame 554),
  *   on a genuine image, so the signature reads 0x76 and the genuine path is taken. The derail is
- *   unreachable in normal play, so it is exercised by poking the signature identically on both sides.
+ *   unreachable in normal play, so the fault is dead code there and is exercised by crafting a
+ *   tampered signature.
  *
  * What it exercises, holes stated:
  *   1. EQUAL      — identical across the whole state dump outside the measured window, at the one
- *                   natural dispatch.
+ *                   natural dispatch (genuine path only — the derail no longer byte-matches).
  *   2. REACHED    — attract dispatches the arm and the harness produces a verdict.
  *   3. WINDOW     — the oracle's own deepest push, measured and PINNED.
  *   4. BOUNDARY   — a planted divergence one byte BELOW the window is caught, one AT the seat is
@@ -37,13 +41,15 @@
  *   5. EXCLUDED   — no register outside the declared ceiling moves, with an index-scribbling control.
  *   6. STARTS     — on a poisoned entry the arm parks the sprites, seeds the demo, clears the four
  *                   cells, stocks one life and winds the phase to 3.
- *   7. DERAIL     — a tampered signature takes the power-on wipe trap identically on both sides, and
- *                   a twin that starts the demo instead of derailing is caught there.
- *   8. TEETH      — twins, each caught.
+ *   7. DERAIL     — a genuine signature does NOT throw (the fault is dead on a clean image, positive
+ *                   control that the entry really is genuine); a crafted tampered signature raises
+ *                   NotImplemented; and a no-derail twin that starts the demo on a tamper is CAUGHT
+ *                   there (it fails to raise). So the throw is genuinely conditional on a tamper.
+ *   8. TEETH      — genuine-path twins, each caught.
  *
  * HOLE: the two callees are gated by their own files (equivalence for hideCaptionSprites and
  * seedDemoAutopilotScript). What this file gates is that both are reached and which cells the arm
- * itself writes.
+ * itself writes, plus that the tamper arm faults rather than transcribing junk.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-2730.test.js
  */
@@ -55,10 +61,10 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { verifyImageSignatureThenStartAttractDemoOrDerail } from "../verifyImageSignatureThenStartAttractDemoOrDerail.js";
 import { hideCaptionSprites } from "../hideCaptionSprites.js";
 import { seedDemoAutopilotScript } from "../seedDemoAutopilotScript.js";
-import { loc_2530 } from "../../translated/loc_2530.js";
 import { loc_2730 as oracle } from "../../translated/loc_2730.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 import {
   TAMPER_IMAGE_SIGNATURE,
   TWO_PLAYER_GAME,
@@ -180,7 +186,7 @@ function genuineEntry() {
   return e;
 }
 
-// ── broken twins (built the way the module is built — direct callee calls) ────────────────
+// ── broken twins (built the way the module is built — direct callee calls, tamper faults) ──
 
 function brokenNoOp() {}
 
@@ -190,9 +196,7 @@ function makeStarter(omit) {
     const { mem8 } = m;
     const signature = mem8[TAMPER_IMAGE_SIGNATURE];
     if (signature !== EXPECTED_SIGNATURE) {
-      m.regs.a = signature;
-      m.regs.cp(EXPECTED_SIGNATURE);
-      return loc_2530(m);
+      throw new NotImplemented("twin tamper derail");
     }
     if (omit !== "hide") hideCaptionSprites(m);
     if (omit !== "seed") seedDemoAutopilotScript(m);
@@ -334,8 +338,6 @@ test("STARTS: the arm parks sprites, seeds the demo, clears the cells and winds 
   assert.equal(m.mem8[PLAYER_ONE_LIVES], DEMO_LIVES, "player one was not stocked with one life");
   assert.equal(m.mem8[SEQUENCE_PHASE], DEMO_PHASE, "the outer sequence was not wound to its last phase");
   // the demo autopilot seed cells were written (not left poisoned) — the seed step ran
-  const seeded = e.clone();
-  seedDemoAutopilotScript(seeded);
   const oracleOut = e.clone();
   oracle(oracleOut);
   assert.deepEqual(allDiffs(oracleOut, m).filter((d) => !inScratch(d.addr, e.regs.sp)), [],
@@ -343,25 +345,29 @@ test("STARTS: the arm parks sprites, seeds the demo, clears the cells and winds 
   console.log("  STARTS: sprites parked, four cells cleared, one life, phase -> 3, oracle-exact");
 });
 
-test("DERAIL: a tampered signature takes the power-on wipe trap identically on both sides", { skip }, () => {
-  const e = genuineEntry().clone();
-  e.mem8[TAMPER_IMAGE_SIGNATURE] = (EXPECTED_SIGNATURE + 1) & 0xff; // move the signature off 0x76
+test("DERAIL: genuine does not fault, a tampered signature raises, and a no-derail twin is caught", { skip }, () => {
+  const base = genuineEntry();
 
-  const a = e.clone();
-  const b = e.clone();
-  let oracleErr = null;
-  let candErr = null;
-  try { oracle(a); } catch (err) { oracleErr = String(err.message ?? err); }
-  try { verifyImageSignatureThenStartAttractDemoOrDerail(b); } catch (err) { candErr = String(err.message ?? err); }
-  assert.equal(candErr, oracleErr, `the derail arm diverged: oracle=${oracleErr} candidate=${candErr}`);
-  if (oracleErr === null) {
-    const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, e.regs.sp));
-    assert.deepEqual(strays, [], `the derail arm's state diverged: ${show(strays[0])}`);
+  // A genuine image does NOT reach the fault — it is dead code on a clean ROM. Positive control:
+  // the entry really presents the genuine signature, so a no-throw here is a real absence.
+  assert.equal(base.mem8[TAMPER_IMAGE_SIGNATURE], EXPECTED_SIGNATURE, "vacuous: this entry is not genuine");
+  assert.doesNotThrow(() => verifyImageSignatureThenStartAttractDemoOrDerail(base.clone()),
+    "the genuine image faulted — the derail is no longer conditional on a tamper");
+
+  // A crafted tampered signature (off 0x76) raises NotImplemented rather than transcribing the
+  // wipe-trap junk. Both neighbours of the genuine value are tried so the throw is not pinned to one.
+  for (const delta of [1, -1, 0x80]) {
+    const e = base.clone();
+    e.mem8[TAMPER_IMAGE_SIGNATURE] = (EXPECTED_SIGNATURE + delta) & 0xff;
+    assert.notEqual(e.mem8[TAMPER_IMAGE_SIGNATURE], EXPECTED_SIGNATURE, "vacuous: the crafted signature is still genuine");
+    assert.throws(() => verifyImageSignatureThenStartAttractDemoOrDerail(e), NotImplemented,
+      `a tampered signature (+${delta}) did not raise the tamper fault`);
   }
-  // the trap must NOT wind the sequence phase to 3 — the demo start path is not taken.
-  assert.notEqual(b.mem8[SEQUENCE_PHASE], DEMO_PHASE, "the derail arm still started the demo");
 
-  // A twin that starts the demo instead of derailing is CAUGHT here.
+  // TEETH: a twin that starts the demo unconditionally instead of derailing does NOT raise on a
+  // tamper — it would be CAUGHT here, so the throw is load-bearing, not decorative.
+  const e = base.clone();
+  e.mem8[TAMPER_IMAGE_SIGNATURE] = (EXPECTED_SIGNATURE + 1) & 0xff;
   const noDerailTwin = (m) => {
     const { mem8 } = m;
     hideCaptionSprites(m);
@@ -373,11 +379,9 @@ test("DERAIL: a tampered signature takes the power-on wipe trap identically on b
     mem8[PLAYER_ONE_LIVES] = DEMO_LIVES;
     mem8[SEQUENCE_PHASE] = DEMO_PHASE;
   };
-  const c = e.clone();
-  let twinErr = null;
-  try { noDerailTwin(c); } catch (err) { twinErr = String(err.message ?? err); }
-  assert.notEqual(twinErr, oracleErr, "the no-derail twin was NOT caught: it must not match the trap");
-  console.log(`  DERAIL: tampered signature => oracle ${oracleErr ? "trap" : "seat"}; the no-derail twin is caught`);
+  assert.doesNotThrow(() => noDerailTwin(e.clone()),
+    "the no-derail twin raised, so the tamper teeth cannot distinguish it from the module");
+  console.log("  DERAIL: genuine does not fault; a tampered signature raises NotImplemented; the no-derail twin is caught");
 });
 
 for (const [label, twin] of TWINS) {
