@@ -1927,6 +1927,46 @@ export const DIFFICULTY_RECORD_TABLE = 0x186a; // base of the fixed 4-byte-recor
 export const COLOUR_FLOOD_FIRST_CELL = 0xa044; // first (top-left inset) cell of the colour-plane flood rectangle (Code.md "first cell of the colour-plane rectangle") (floodColourPlaneWithSavedPlayerColour)
 
 export const ROUTINES = {
+  0x0774: {
+    name: "loc_0774",
+    role: "round-start sequence arm (entry 4 of the table at 0x0F29, keyed on SEQUENCE_SUBSTEP & 0x0F): XOR-fold the 256 program bytes at 0x4C99 and advance the sequence phase (advanceSequencePhase) unless the fold is 0x6B; then post caption commands through postCommand. With PLAY_ACTIVE clear it posts (2,2). With it set it posts (2,9), or (2,10) when ACTIVE_PLAYER is nonzero, followed by (7, that same argument) when ROUND_ARMED is nonzero, else by (2,2). Then it runs drawKillMeter and resetPlayfieldAndArmNewRound and steps the sequence sub-index (advanceSequenceSubStep)",
+    cert: "code",
+  },
+  0x08b4: {
+    name: "loc_08b4",
+    role: "inner sequence-dispatch arm (table 0x0f29 index 9, reached after the high-score filing arm steps the sub-index): advance the interpolated pen run and return unless it reseated to a zero row integer; XOR-fold the 256 program bytes from 0x4880 and derail into the frame service at 0x00d9 unless they fold to 0x30; otherwise post caption commands (1,0x13/0x00/0x14/0x15/0x0c) to the ring, paint the five labelled readouts, zero 0xa995-0xa999 and seat 3 in 0xa99a, stamp glyph ROM[0x12c7+(0xa999)] at the cell SCRATCH_PTR_B names, save that cell's colour-plane byte to 0xa990, then step the sequence sub-index",
+    cert: "code",
+  },
+  0x16af: {
+    name: "loc_16af",
+    role: "phase-3 sub-step-5 arm (entry 5 of the 0x0F29 table dispatched by dispatchSequenceSubStepArm): subtract-folds the 256-byte image block at 0x4D9F into SEQUENCE_PHASE (0xA9AB) then xors 0xA2 (nets out on a genuine image), runs the player frame and the era scenery between two sprite-fixup passes and closes with the full multiplex pass; on odd FRAME_TICK (0xA980) frames it counts SEQUENCE_DELAY (0xA9EB) down, and on expiry posts commands (3,0x09),(3,0x0e),(3,0x1a), clears ROUND_ARMED (0xAD0E), re-arms the delay to 0x2A and advances the sub-step; otherwise, while ROUND_ARMED is set, FRAME_TICK's low nibble 0/5/10 posts command 2/0x0a/0x0b with argument ERA_INDEX(0xAD04)+0x1A",
+    cert: "code",
+  },
+  0x18c3: {
+    name: "loc_18c3",
+    role: "high-score initials entry, one frame (arm 10 of the sub-step table dispatchSequenceSubStepArm reads): on even frames roll the facing panel's back/forward/two commit controls into their press histories (0xA995-0xA998); a fresh commit stamps the shown letter's glyph through both write pointers (SCRATCH_PTR_A/B), paints its colour from 0xA990 and steps both on, finishing on the last slot (0xA99A); a fresh forward/back steps the letter index 0xA999 round 0..26 and redraws the cursor; a saturated forward/back history is emptied through rearmHeldControlRepeat so a held control repeats; on odd frames flash the cursor cell's colour off 0xA99C bit 4; every eighth frame tick SEQUENCE_DELAY and finish when it runs out. Finishing re-arms SEQUENCE_DELAY=60, queues enqueueTransitionSoundBurst and steps the sequence sub-step. Then, with both players out of lives, a held start button starts the next game: on free play via startGameOnFreePlay, else with one credit only the one-player start (startOnePlayerGame), with more either start (startTwoPlayerGame for the two-player bit), hiding every sprite first",
+    cert: "code",
+  },
+  0x294c: {
+    name: "loc_294c",
+    role: "era-1 per-object update dispatched by index 1 of the rst-0x30 era table at 0x2914: on the object status byte at (ix+0) it leaves an empty slot (0), releases a held object (0xFE), steps a dying one (any other value), or steers and flies an active craft (0xFF) at the 0x5E00 velocity table, retiring it the frame it reaches the line, else giving it one gated enemy-launch attempt and refreshing its sprite from its heading in the second era's own shape bank and tint",
+    cert: "code",
+  },
+  0x330b: {
+    name: "loc_330b",
+    role: "phase-3 sub-step 8 arm (the game-over hold, reached by computed dispatch from dispatchSequenceSubStepArm): tick SEQUENCE_DELAY down and return while it is nonzero; on expiry try fileScoreIntoHighScoreTable -- a score that beats no record queues command 3 with arguments 9 then 0x0b, reseats SEQUENCE_SUBSTEP from the program byte at 0x0843 (0x0b) and tails into passTurnToOtherPlayerIfLivesElseStepSequence; a filed score requests the 0x583a sound, sets PEN_COLOUR=0 / PEN_GLYPH=0xf1 (blanking), re-arms the pen route, folds the 256 program bytes at 0x01F1 into an eight-bit total (advanceSequencePhase on anything but 0x19), then steps the sub-step",
+    cert: "code",
+  },
+  0x40ea: {
+    name: "loc_40ea",
+    role: "one turn of the per-slot sweep over an object bank: branch on the slot's marker byte (ix+0) -- a free slot (0) is passed straight to the turn-closer; a non-full marker is a drifting countdown object, stepped then passed; a full marker (0xFF) goes to the final-era approach/breakaway handler when the era is 4, else to fly-and-tick when the record's countdown at +0x0e is live, else to one chase frame and then the turn-closer. Every arm ends by closing the turn, which re-enters this body while turns remain",
+    cert: "code",
+  },
+  0x4108: {
+    name: "loc_4108",
+    role: "service one counting slot of the per-slot object sweep (marker byte neither free 0x00 nor full 0xFF, so the marker is the object's own countdown): run the object one frame on that countdown, which covers re-stamp at the reset mark, drift with the world, count down, retire at zero, and an era-chosen animation frame inside the window. Then close the turn of the sweep",
+    cert: "code",
+  },
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "seen" },
   0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "seen" },
   0x31b4: { name: "reaimAndAnimateEnemyCraftOnPhaseTick", role: "on the 00s and 30s tenths of the packed-decimal life counter 0xad05, service enemy-craft slot (units digit, only slots 0-6 whose record head at 0xa850 reads 0xff): advance that record's shape animation, then unless the state byte at ix+8 is 0x10 re-aim its heading toward a point the state byte indexes out of the aim table at 0xac65 -- state 0x11 aims at the table base, stores heading+0x80 into ix+1 and resets the record to state 0x10, every other state stores the heading straight into ix+1; on every other tenth hand off to layOutEnemyAimPointsFromScrollAngle", cert: "seen" },
@@ -1941,6 +1981,11 @@ export const ROUTINES = {
   0x29d5: { name: "serviceEra4EnemyCraftSlot", role: "era-4 (ERA_INDEX 0xad04=4) per-object slot service, index 4 of the 0x2914 rst-0x30 table: on the slot's lifecycle byte at (ix+0) it returns when free (0), releases when held (0xfe), steps the dying animation for any other value, and when live (0xff) steers the slot toward the ship then either retires it once it reaches a retire line or animates its shape, runs the gated launch attempt, and launches an attacker into a free slot", cert: "seen" },
   0x0069: { name: "clearWorkRamAndSpriteBanksThenColdInit", role: "cold-start clear reached once at boot via 0x07B1: kicks the watchdog four times, zeroes the 0xB410 sprite-bank run and the whole 2 KB work RAM, sums the fixed 256-byte program run at 0x00D8 and runs the frame service out of band on a non-genuine total, then hands off to the screen-RAM clear and image verify", cert: "seen" },
   0x210e: { name: "seedDemoAutopilotScript", role: "seeds the attract-demo autopilot: picks a heading-command script by the demo selector (0xad14), writes its dwell counter to 0xadf2 and little-endian pointer to 0xadf3/4, then on a failed tile-image tamper readback (0xadfb/0xadfc) tail-jumps into the trap", cert: "seen" },
+  0x5694: {
+    name: "loc_5694",
+    role: "phase-3 sequence arm (sub-step 6 of the inline table dispatchSequenceSubStepArm reads): subtract-fold the 256-byte program block at 0x0831 into SEQUENCE_PHASE closed with xor 0xC2 (net zero at phase 3 on a genuine image), run the sprite fixup, the player frame, the sprite fixup again, the era scenery, the player shots and the sprite multiplex, then count SEQUENCE_DELAY down; while it is nonzero return, else fold the block at 0x12A7 the same way (xor 0x59) and step the sequence sub-step",
+    cert: "code",
+  },
   0x5866: { name: "clearScreenRamAndVerifyImageThenColdInit", role: "cold-start clear then ROM tamper check: fill colour RAM 0xA000-0xA3FF with 0x10 and video RAM 0xA400-0xA7FF with 0xf1 (bases from ROM pointers at 0x2581/0x4A37), sum the whole program ROM 0x0000-0x5FFF and test the total against 0xAF, kicking the watchdog after the first fill and once per summed byte; a genuine image tail-calls cold-start init, a tampered one derails into data at 0x59D7", cert: "seen" },
   0x4bdc: { name: "paintFiveLabelledNumericReadouts", role: "paint five labelled numeric readouts up the tile plane: seat each of five source records (0xab08, stride 8), its tile-plane cursor cell (0xa711, stride 2) and its pen colour, then hand to the column painter paintLabelledNumericReadoutColumn; writes tile/colour cells 0xa0f1-0xa719", cert: "code" },
   0x19f0: { name: "resetPlayfieldAndArmNewRound", role: "reset the whole playfield for a new round: clear scroll/control cells, seat the ship sprite + shot slots, retire every object slot (hold/shared-cooldown/cooldown/sub-pixel variants), clear four sprite entries, seat the era scenery band via seatEraSceneryRowThenClearAndRunScenery, then scatter one era-selected 10-byte record from the 0x1B04 word table into the cells that arm the round", cert: "seen" },
