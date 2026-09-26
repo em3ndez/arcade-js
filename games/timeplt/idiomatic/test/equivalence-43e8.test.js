@@ -8,11 +8,19 @@
  *   1. ★ THE ROUTINE TRANSFERS INTO A CHAIN THAT DOES NOT COME BACK HERE, so most arms replace
  *      that chain with a recorder on BOTH sides. What is then compared is this entry's own work:
  *      the total it computes, the pointer it leaves, and the whole machine it hands over. That is
- *      a narrowing and it is stated rather than implied.
+ *      a narrowing and it is stated rather than implied. The rewrite enters the chain by a DIRECT
+ *      call (its `handOn` continuation, the parking step by default), so the registry cannot sever
+ *      it; the severed arms hand the rewrite a continuation that goes through the registry instead
+ *      (ROUTED below), which is where the oracle's own `jp 0x07AD` goes and where the recorder sits.
  *   2. EQUAL at the real dispatch, with the chain severed — RAM, every register, and the state
  *      handed to the continuation all identical.
  *   3. EQUAL at the real dispatch with the chain RUNNING, which is the arm that proves the
- *      severing did not hide anything: the two sides are compared after the whole chain has run.
+ *      severing did not hide anything: the two sides are compared after the whole chain has run --
+ *      once ROUTED into the frozen chain (every register identical, SP included) and once with the
+ *      rewrite's own DIRECT hand-on into the decompiled chain, where it must leave SP unmoved (it
+ *      pops no slot; the vertical-blank service that reaches it lays none down), land SP where the
+ *      oracle does when placed through the dispatch seam, and match RAM outside the dead stack
+ *      scratch the oracle's own pushes reach below the entry seat.
  *   4. EXCLUDED, deliberately: with the continuation severed, the flag byte alone — the flags
  *      the additions leave are not reproduced. With the chain RUNNING nothing is excluded at
  *      all, not even the stack pointer, because the chain returns on both sides.
@@ -37,6 +45,7 @@ import { sumImageBlockForTheTamperCheck } from "../sumImageBlockForTheTamperChec
 import { loc_43e8 as oracle } from "../../translated/loc_43e8.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { withOmittedRet } from "../../machine.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -58,6 +67,10 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 
 let entry = null;
 
+/** The rewrite, handing on through the registry -- the one change the severed arms make, the same
+ *  transfer the oracle's `jp 0x07AD` makes, so the recorder severs both sides at the same place. */
+const routed = (m) => sumImageBlockForTheTamperCheck(m, undefined, undefined, (mm) => mm.call(CONTINUATION));
+
 function gate(candidate) {
   return unitEquivalence(
     makeMachine,
@@ -72,7 +85,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(sumImageBlockForTheTamperCheck);
+  if (entry === null) gate(routed);
   return entry;
 }
 
@@ -151,7 +164,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, sumImageBlockForTheTamperCheck) }));
+    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, routed) }));
   }
   return sessionCache;
 }
@@ -220,18 +233,18 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch, chain severed: total, pointer and handover identical", { skip }, () => {
-  gate(sumImageBlockForTheTamperCheck);
+  gate(routed);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const logA = [];
   const logB = [];
   const a = severed(entryState(), logA);
   const b = severed(entryState(), logB);
   oracle(a);
-  sumImageBlockForTheTamperCheck(b);
+  routed(b);
   assert.equal(logA.length, 1, "vacuous: the oracle did not reach the continuation");
   assert.equal(logB.length, 1, "the rewrite did not reach the continuation");
   assert.deepEqual(logB[0], logA[0], "the state handed to the continuation differs");
-  assert.equal(unitDiff(sumImageBlockForTheTamperCheck, entryState()), null, "the contract diverged");
+  assert.equal(unitDiff(routed, entryState()), null, "the contract diverged");
   console.log(
     `  EQUAL: pointer=${hex4(REAL_BASE)} length=${entryState().regs.b}; hands on total=` +
       `${logA[0].a} pointer=${hex4(logA[0].hl)}`,
@@ -239,15 +252,42 @@ test("EQUAL at the real dispatch, chain severed: total, pointer and handover ide
 });
 
 test("EQUAL with the chain RUNNING: the severing hid nothing", { skip }, () => {
-  const r = gate(sumImageBlockForTheTamperCheck);
+  const r = gate(routed);
   assert.equal(r.ram, null, `RAM diverged with the chain running — ${show(r.ram)}`);
   assert.equal(r.regs, null, `a register diverged with the chain running — ${JSON.stringify(r.regs)}`);
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  sumImageBlockForTheTamperCheck(b);
-  assert.equal(a.regs.sp, b.regs.sp, "the chain returns on both sides, so even sp must agree");
-  console.log("  CHAIN RUNNING: RAM and every register identical, sp included");
+  routed(b);
+  assert.equal(a.regs.sp, b.regs.sp, "the frozen chain returns on both sides, so even sp must agree");
+  console.log("  CHAIN RUNNING (routed): RAM and every register identical, sp included");
+});
+
+test("EQUAL with the chain RUNNING through the rewrite's own direct hand-on", { skip }, () => {
+  const e = entryState();
+  const seat = e.regs.sp;
+  const a = e.clone();
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
+  const raw = e.clone();
+  const put = e.clone();
+  const own = e.clone();
+  oracle(a);
+  sumImageBlockForTheTamperCheck(raw);
+  withOmittedRet(sumImageBlockForTheTamperCheck, TARGET)(put);
+  sumImageBlockForTheTamperCheck(own);
+  own.ret();
+  const inDeadStack = (addr) => addr != null && addr >= low && addr < seat;
+  const d = firstStateDiff(a.dumpState(), raw.dumpState(), (off) => a.stateOffsetToAddr(off), inDeadStack);
+  assert.equal(d, null, `RAM diverged outside the dead stack window [${hex4(low)}, ${hex4(seat)}) — ${show(d)}`);
+  assert.ok(seat - low <= 16, `the oracle's dead stack window ${seat - low} bytes is wider than a short chain's`);
+  assert.equal(raw.regs.sp, seat, "called directly, the rewrite moved SP -- it popped a slot nobody laid down");
+  assert.equal(put.regs.sp, a.regs.sp, "placed through the seam, SP did not land where the oracle's chain leaves it");
+  assert.equal(put.pc, a.pc, "placed through the seam, control did not resume where the oracle's ret sends it");
+  // The control: a hand-on that performs its own ret is seen by the neutrality check above.
+  assert.equal((own.regs.sp - seat) & 0xffff, 2, "the own-return control did not move SP, so the check is blind");
+  console.log(`  CHAIN RUNNING (direct): RAM identical outside [${hex4(low)}, ${hex4(seat)}); SP unmoved directly, = oracle placed`);
 });
 
 test("EXCLUDED, deliberately: with the chain severed, only the flag byte moves", { skip }, () => {
@@ -256,7 +296,7 @@ test("EXCLUDED, deliberately: with the chain severed, only the flag byte moves",
   const a = severed(entryState(), logA);
   const b = severed(entryState(), logB);
   oracle(a);
-  sumImageBlockForTheTamperCheck(b);
+  routed(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     ["f"],
@@ -285,13 +325,13 @@ test("CORPUS: every real dispatch replays identically, on a one-argument corpus"
 });
 
 test("EXHAUSTIVE: every crafted length, the zero-length full run included", { skip }, () => {
-  assert.equal(sweepCaught(sumImageBlockForTheTamperCheck), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(routed), 0, "the rewrite diverged somewhere in the crafted space");
   const logA = [];
   const logB = [];
   const a = severed(craft(REAL_BASE, 0), logA);
   const b = severed(craft(REAL_BASE, 0), logB);
   oracle(a);
-  sumImageBlockForTheTamperCheck(b);
+  routed(b);
   assert.equal(logA[0].hl, (REAL_BASE + 256) & 0xffff, "zero must walk a full 256 bytes");
   assert.equal(logB[0].hl, logA[0].hl, "the rewrite must walk the same full run");
   console.log(`  EXHAUSTIVE: ${LENGTH_SWEEP.length} crafted lengths identical`);

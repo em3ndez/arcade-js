@@ -55,6 +55,6 @@ export function drawInterpolatedPenRun(m) {
   mem8[PEN_COLUMN_POS + 1] = word >> 8;
 
   // A carries the new row integer; the AND-with-itself seats the flags -- Z when the row integer is
-  // zero -- that callers branch on via regs.fNZ.
-  return (regs.a = rowInt, regs.f = andFlags(rowInt), m.ret(10));
+  // zero -- that callers branch on via regs.fNZ. The original's return is this function's own return.
+  return (regs.a = rowInt, regs.f = andFlags(rowInt));
 }

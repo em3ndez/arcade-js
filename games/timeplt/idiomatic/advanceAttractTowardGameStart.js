@@ -3,11 +3,11 @@
  * sub-step/phase on a pending flag, or on free-play + two input bits hide the sprites and start a game.
  * Every early bail leaves the byte it tested in the accumulator and the flags that AND-with-itself
  * set; the reset bail leaves the phase byte it stored and the flags a cleared accumulator set.
- * LIVE-OUT: memory + stack + the accumulator and flags each bail leaves behind. */
+ * LIVE-OUT: memory + the accumulator and flags each bail leaves behind. */
 import { F_H, F_PV, F_S, F_Z, F_F3, F_F5 } from "../../../core/cpu/z80.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startGameOnFreePlay } from "./startGameOnFreePlay.js";
-import { CREDIT_COUNT, FREE_PLAY, IN0_MIRROR, PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, loc_0f6d, SEQUENCE_PHASE_ON_CREDIT } from "./names.js";
+import { CREDIT_COUNT, FREE_PLAY, IN0_MIRROR, PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, SEQUENCE_PHASE_ON_CREDIT } from "./names.js";
 
 const parity8 = (v) => {
   let bits = 0;
@@ -40,10 +40,7 @@ export function advanceAttractTowardGameStart(m) {
   const inputBits = mem8[IN0_MIRROR] & 0x18;
   if (inputBits === 0) return (m.regs.a = inputBits, m.regs.f = andFlags(inputBits));
 
-  // the park is the dissolved sprite-hide call's return slot; the first ret pops it, the last the caller's.
-  m.push16(loc_0f6d);
+  // hide the sprites, then start the game; the start is the tail, so its return is this arm's.
   hideAllSprites(m);
-  m.ret();
-  startGameOnFreePlay(m);
-  return m.ret();
+  return startGameOnFreePlay(m);
 }

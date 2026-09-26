@@ -3,7 +3,13 @@
  * advanceAttractTowardGameStart — memory-equivalent to the frozen oracle at ROM 0x0F54.
  * GATE: every real dispatch (all take the play-active bail), plus crafted entries for the four
  *   other branches, plus a handoff-path SP arm. Live-out is work-RAM; a/f/sp are dead (the dropped
- *   ret and its dead accumulator). Teeth: six twins, each caught on an exact scenario count.
+ *   ret and its dead accumulator). The handoff performs no ROM `ret` of its own and parks no return
+ *   slot: the whole arm is reached by a direct call from the vertical-blank service, which lays down no
+ *   guest return slot, so called directly it must leave SP where it found it; placed through the
+ *   game's dispatch seam (withOmittedRet) the seam supplies the ret and SP lands where the oracle's
+ *   does. RAM is compared outside the dead stack scratch the oracle's own pushes reach below the
+ *   entry SP (the parked slot and the frozen callees' return words), and nowhere else.
+ *   Teeth: six twins, each caught on an exact scenario count, plus the own-return control on SP.
  */
 
 import test from "node:test";
@@ -14,6 +20,7 @@ import { advanceAttractTowardGameStart } from "../advanceAttractTowardGameStart.
 import { loc_0f54 as oracle } from "../../translated/loc_0f54.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { withOmittedRet } from "../../machine.js";
 
 const TARGET = 0x0f54;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
@@ -54,17 +61,27 @@ function captureReal() {
   return real;
 }
 
-/** Oracle vs candidate on independent clones: whole RAM dump, then every non-excluded register. */
+/** Oracle vs candidate on independent clones: RAM outside the oracle's dead stack scratch, then every
+ *  non-excluded register. The window is [lowest SP the oracle's own pushes reach, entry SP) -- the
+ *  parked slot and the frozen callees' return words, dead the moment they are popped. */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => {
+    push(v);
+    if (a.regs.sp < low) low = a.regs.sp;
+  };
   oracle(a);
   try {
     candidate(b);
   } catch (e) {
     return { addr: null, a: "survived", b: String(e).slice(0, 40) };
   }
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off),
+    (addr) => addr != null && addr >= low && addr < seat);
   if (ram) return ram;
   for (const k of REG_FIELDS) {
     if (EXCLUDED.includes(k)) continue;
@@ -151,15 +168,13 @@ function brokenSkipsHandoff(m) {
   if ((M[IN0] & INPUT_BITS) === 0) return;
 }
 
-/** BUG: hands off without parking the slot the first callee pops, so the stack unwinds too far. */
-function brokenDropsPush(m) {
-  const M = m.mem8;
-  if (M[PLAY_ACTIVE] !== 0) return;
-  if (M[PENDING_RESET] !== 0) { M[SUBSTEP] = 0; M[PHASE] = M[PHASE_CONST]; return; }
-  if (M[FREE_PLAY] === 0) return;
-  if ((M[IN0] & INPUT_BITS) === 0) return;
-  m.call(0x15b6);
-  return m.call(0x1690);
+/** BUG: hands off and then performs a ROM `ret` of its own -- the pre-dissolution form. Memory-identical,
+ *  so only the SP arm can see it: called directly, as the vertical-blank service calls it, it pops a
+ *  return slot nobody laid down. */
+function brokenOwnReturn(m) {
+  const r = advanceAttractTowardGameStart(m);
+  m.ret();
+  return r;
 }
 
 /** Twin, and the exact number of the five scenarios (A..E) its catch must cover. */
@@ -169,7 +184,6 @@ const TWINS = [
   ["wrong-phase", brokenWrongPhase, ["B"]],
   ["ignores-input-guard", brokenIgnoresInputGuard, ["D"]],
   ["skips-handoff", brokenSkipsHandoff, ["E"]],
-  ["drops-push", brokenDropsPush, ["E"]],
 ];
 
 // ── the gate ──────────────────────────────────────────────────────────────────────────────
@@ -200,19 +214,24 @@ test("CRAFTED BRANCHES: the four unreached branches replay identically", { skip 
   console.log(`  CRAFTED: B moves ${footprint(sc.B)}, E moves ${footprint(sc.E)}, C and D bail`);
 });
 
-test("HANDOFF SP: the parked slot returns the stack to its seat", { skip }, () => {
-  const a = scenarios().E.clone();
-  const b = scenarios().E.clone();
-  const c = scenarios().E.clone();
+test("HANDOFF SP: SP-neutral when called directly; placed through the seam, level with the oracle", { skip }, () => {
+  const E = scenarios().E;
+  const seat = E.regs.sp;
+  const a = E.clone();
+  const b = E.clone();
+  const p = E.clone();
+  const c = E.clone();
   oracle(a);
   advanceAttractTowardGameStart(b);
-  brokenDropsPush(c);
-  assert.equal(b.regs.sp, a.regs.sp, "the rewrite left the stack pointer off its seat on the handoff");
-  // ★ Without the parked slot the still-frozen callee pops the wrong word: measured drift proves
-  //   the arm has teeth and is not asserting an equality that holds either way.
-  assert.notEqual(c.regs.sp, a.regs.sp, "dropping the parked push left sp on its seat too, so this " +
-    "arm would pass a rewrite that omits the push");
-  console.log(`  HANDOFF SP: seat ${hex4(a.regs.sp)}; drop-push drifts to ${hex4(c.regs.sp)}`);
+  withOmittedRet(advanceAttractTowardGameStart, TARGET)(p);
+  brokenOwnReturn(c);
+  assert.equal(b.regs.sp, seat, "called directly the handoff moved SP -- it popped a return slot nobody laid down");
+  assert.equal(p.regs.sp, a.regs.sp, "placed through the seam the handoff left SP off the oracle's");
+  assert.equal(p.pc, a.pc, "placed through the seam control did not resume where the oracle's ret sends it");
+  // ★ The control: a handoff that performs its own ret is SEEN by the neutrality check, so the
+  //   equality above is not one that holds either way.
+  assert.equal((c.regs.sp - seat) & 0xffff, 2, "the own-return control left SP on its seat too, so this arm is blind");
+  console.log(`  HANDOFF SP: seat ${hex4(seat)} unmoved directly; placed = oracle ${hex4(a.regs.sp)}; own-return drifts to ${hex4(c.regs.sp)}`);
 });
 
 test("EXCLUDED, deliberately: only a/f/sp/h/l move, and the check still sees a register", { skip }, () => {

@@ -14,6 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { withOmittedRet } from "../../machine.js";
 import { blankCaptionThenAdvancePenRunStep as candidate } from "../blankCaptionThenAdvancePenRunStep.js";
 import { loc_5bd7 as oracle } from "../../translated/loc_5bd7.js";
 import { blankFourteenCharCells } from "../blankFourteenCharCells.js";
@@ -215,13 +216,20 @@ test("PATHS: both branches equivalent, and the full path steps the sub-index", {
   console.log(`  PATHS: ${scenarios().length} scenarios equivalent; branches ${both.join(", ")}`);
 });
 
-test("SP and RETURN: the dissolved ret nets to zero drift and both return the same", { skip }, () => {
+// The rewrite performs no ROM `ret` of its own -- the pen run it opens with no longer pops one either --
+// so called directly it leaves SP where it found it, and placed through the game's dispatch seam
+// (withOmittedRet, which completes an omitted ret) it lands SP exactly where the oracle does.
+test("SP and RETURN: SP-neutral when called directly, level with the oracle when placed, same return", { skip }, () => {
+  const placed = withOmittedRet(candidate, TARGET);
   for (const [label, m] of scenarios()) {
-    const r = compare(candidate, m);
-    assert.equal(r.spDiff, 0, `${label}: the dissolved pen-run ret did not net out`);
+    const raw = m.clone();
+    candidate(raw);
+    assert.equal(raw.regs.sp, m.regs.sp, `${label}: called directly the rewrite moved SP -- it popped a return slot`);
+    const r = compare(placed, m);
+    assert.equal(r.spDiff, 0, `${label}: placed through the seam, SP did not land where the oracle leaves it`);
     assert.equal(r.retOracle, r.retCand, `${label}: the return value diverged`);
   }
-  console.log("  SP: 0 drift on every scenario; return values identical");
+  console.log("  SP: unmoved when called directly; 0 drift against the oracle when placed; return values identical");
 });
 
 for (const [label, twin, expected] of TWINS) {

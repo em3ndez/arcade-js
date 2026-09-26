@@ -9,7 +9,11 @@
 //   * play actually starts (PLAY_ACTIVE reaches its in-play 0xff -- the ONE cell that separates real
 //     play from the attract demo, which runs the same round engine with the flag clear);
 //   * gameplay ADVANCES (SEQUENCE_PHASE reaches the input-gated credit state 2, and the free-running
-//     BCD frame counter takes many distinct values across the run).
+//     BCD frame counter takes many distinct values across the run);
+//   * SP stays INERT: the vblank NMI is fired as a direct JS call (no guest push, no call/ret seam), so
+//     neither the interrupt subtree nor any frame of the foreground moves the stack pointer. A layer
+//     that still leans on a guest return slot -- an arm that returns through the interrupt's pushed
+//     word -- walks SP up out of the stack and into sprite RAM, and this is where that shows.
 // Each live assertion carries a matching UNDRIVEN control (idle run): the coin never banks, play never
 // starts, the credit state is never entered. That is what gives the gate teeth -- a mutant that clamps
 // a cell to 0 fails the live arm; a mutant that pins it high unconditionally fails the idle arm.
@@ -82,7 +86,20 @@ async function runIdiomatic(live, mutate = null) {
     phaseCreditEver: false, // SEQUENCE_PHASE reached the credit / push-start state (2)
     phases: new Set(),
     bcdVals: new Set(),
+    spFaults: [], // SP moved between two frame boundaries
+    nmiFaults: [], // an NMI left SP somewhere other than where it found it
+    spSeen: new Set(),
   };
+
+  const hex = (v) => `0x${(v & 0xffff).toString(16).padStart(4, "0")}`;
+  const realFire = m.fireNmi.bind(m);
+  m.fireNmi = function () {
+    const before = m.regs.sp;
+    const r = realFire();
+    if (m.regs.sp !== before) obs.nmiFaults.push(`${hex(before)} -> ${hex(m.regs.sp)}`);
+    return r;
+  };
+  let prevSp = null;
 
   const run = runIdiomaticGame(m, {
     nmiReturnPC,
@@ -100,6 +117,10 @@ async function runIdiomatic(live, mutate = null) {
       if (phase === 2) obs.phaseCreditEver = true;
       obs.phases.add(phase);
       obs.bcdVals.add(mm.mem.read8(BCD_FRAME_COUNTER));
+      const sp = mm.regs.sp;
+      obs.spSeen.add(sp);
+      if (prevSp !== null && sp !== prevSp) obs.spFaults.push(`frame ${f}: ${hex(prevSp)} -> ${hex(sp)}`);
+      prevSp = sp;
     },
   });
 
@@ -181,4 +202,19 @@ test("gameplay advances: the input-gated credit state is entered and the frame c
     played.obs.bcdVals.size > 32,
     `BCD_FRAME_COUNTER took only ${played.obs.bcdVals.size} distinct values across ${NMIS} frames; the main loop is not advancing per frame`,
   );
+});
+
+test("SP stays inert: the interrupt is a direct call and nothing walks the stack pointer", async () => {
+  const brief = (xs) => (xs.length <= 6 ? xs.join("; ") : `${xs.slice(0, 6).join("; ")} ... (${xs.length} in all)`);
+  for (const live of [true, false]) {
+    const { m, run, obs } = await runIdiomatic(live);
+    const who = live ? "driven" : "undriven";
+    assert.equal(run.stopError, null, `${who} run failed: ${run.stop}`);
+    // Non-vacuity: the engine really took the direct-call branch, and the interrupt really fired.
+    assert.equal(m.idiomaticNmi, true, "runIdiomaticGame did not select the direct-call interrupt");
+    assert.ok(m.nmiCount >= NMIS - 1, `${who}: only ${m.nmiCount} interrupts fired`);
+    assert.equal(obs.nmiFaults.length, 0, `${who}: the vblank NMI subtree moved SP: ${brief(obs.nmiFaults)}`);
+    assert.equal(obs.spFaults.length, 0, `${who}: SP moved across a frame boundary: ${brief(obs.spFaults)}`);
+    assert.equal(obs.spSeen.size, 1, `${who}: SP took ${obs.spSeen.size} values across the run`);
+  }
 });

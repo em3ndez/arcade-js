@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** saveAccumulatorForFrameInterrupt — the frame interrupt lands here: stack the accumulator and its flags, then fall on
- * into the body that saves everything else and does the frame's work. The two bytes stacked sit
- * in work memory, so they are part of what the machine leaves behind. LIVE-OUT: memory. */
+/** saveAccumulatorForFrameInterrupt — the frame interrupt lands here and runs the vertical-blank service.
+ * In the original this entry is the one byte `push af` that opens the service's register save; the service
+ * body follows it directly. Saving the interrupted code's registers is bookkeeping for the CPU, not a
+ * fact about the game — the interrupted foreground holds none of its state in registers across the
+ * interrupt — so the save is not represented and this entry is simply the service. The same entry is
+ * what the two boot-time image checks fall into on a tampered image, running one frame's service out of
+ * band. LIVE-OUT: memory, the control latches and the sound send, all the service's. */
 
-import { serviceVerticalBlankInterrupt_ADDR } from "./names.js";
+import { serviceVerticalBlankInterrupt } from "./serviceVerticalBlankInterrupt.js";
 
-export function saveAccumulatorForFrameInterrupt(m, af = m.regs.af) {
-  m.push16(af);
-  return m.call(serviceVerticalBlankInterrupt_ADDR);
+export function saveAccumulatorForFrameInterrupt(m) {
+  return serviceVerticalBlankInterrupt(m);
 }

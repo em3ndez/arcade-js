@@ -11,12 +11,13 @@
  * the only way the frozen form does — through the dispatch registry, where nothing is registered
  * and the transfer RAISES. That is reproduced, not repaired.
  *
- * ★ TWO SEAM SHAPES IN ONE ROUTINE, and the gate asserts both. The free-play arm ends in a
- *   dissolved call, so the rewrite omits the ROM `ret` and comes back with SP where it found it.
- *   Every other arm ends by transferring into a chain that is still frozen from 0x07AD on, and
- *   that chain performs the `ret` itself — so on those arms the rewrite comes back with SP UP TWO
- *   and pc on the caller's return address, exactly as the oracle does. A dispatch seam that
- *   assumed either shape for the whole routine would be wrong half the time.
+ * ★ ONE SEAM SHAPE ON EVERY ARM. The free-play arm ends in a dissolved call; every other arm ends
+ *   by handing the folded block down the tail chain from 0x07AD on, and that chain is now entered
+ *   by a direct call too, so it no longer performs a ROM `ret` of its own. On every arm the rewrite
+ *   therefore omits the `ret` and comes back with SP and pc where it found them — which is what the
+ *   vertical-blank service needs, since it calls this arm directly and lays down no guest return
+ *   slot for anything to pop. Placed through the game's dispatch seam (withOmittedRet) the seam
+ *   supplies the `ret`, and SP and pc land exactly where the oracle's do.
  *
  * ★ THE ORACLE PUSHES AND THE REWRITE DOES NOT, so DEAD STACK SCRATCH is left below the seat. The
  *   window is MEASURED — the WINDOW arm instruments the oracle's own `push16` over this file's
@@ -35,7 +36,7 @@
  *
  *   1. EQUAL      — identical across the whole state dump outside the measured window, at the real
  *                   dispatch and over every crafted arm.
- *   2. SEAM       — the two shapes above, asserted per arm.
+ *   2. SEAM       — the one shape above, asserted per arm, with an own-return control.
  *   3. WINDOW     — the oracle's own deepest push, measured over the whole sweep and PINNED.
  *   4. BOUNDARY   — the exclusion is exactly as wide as it declares: one byte BELOW the window is
  *                   caught, one AT the entry seat is caught, one INSIDE is masked.
@@ -45,10 +46,12 @@
  *   6. ARMS ARE DISTINGUISHABLE — the frame counter's two parities and the ring cell's two states
  *                   really change what the ORACLE writes, so the arms scored on them are not
  *                   scored on a difference that does not exist.
- *   7. THE BLOCK HANDED ON — measured at the 0x07AD seam into still-frozen code: the total and the
- *                   end pointer the rewrite hands on are the oracle's own, flipping a byte INSIDE
- *                   the block moves that total on both sides alike, and flipping either flanking
- *                   byte moves neither. That is the block's extent measured rather than read off
+ *   7. THE BLOCK HANDED ON — the oracle's total and end pointer measured at its 0x07AD seam; the
+ *                   rewrite's measured by what it READS of the image (a read tap over the block
+ *                   and both flanking bytes: exactly the oracle's block, every byte of it) and by
+ *                   the VERDICT the total decides (flipping a byte INSIDE the block moves the
+ *                   oracle's total and turns both sides' verdict alike; flipping either flanking
+ *                   byte moves neither). That is the block's extent measured rather than read off
  *                   the module.
  *   8. EXCLUDED   — no register outside the declared CEILING moves, with a two-sided control.
  *   9. CALLS, NOT RESTATES — the module's text: it must name each callee's file and call it rather
@@ -82,8 +85,9 @@ import { postCommand } from "../postCommand.js";
 import { stampCopyrightStrip } from "../stampCopyrightStrip.js";
 import { sumImageBlockForTheTamperCheck } from "../sumImageBlockForTheTamperCheck.js";
 import { loc_2d3f as oracle } from "../../translated/loc_2d3f.js";
-import { COMMAND_RING, FRAME_TICK, FREE_PLAY } from "../names.js";
+import { COMMAND_RING, FRAME_TICK, FREE_PLAY, SEQUENCE_SUBSTEP } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { withOmittedRet } from "../../machine.js";
 
 const TARGET = 0x2d3f;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -396,27 +400,28 @@ test("EQUAL at every real dispatch and over every crafted arm", { skip }, () => 
   );
 });
 
-test("SEAM: the chain arm returns for itself, the free-play arm does not", { skip }, () => {
-  const e = entryState();
-  const chainO = e.clone();
-  const chainC = e.clone();
-  oracle(chainO);
-  showCreditLine(chainC);
-  assert.equal(chainC.regs.sp, chainO.regs.sp, "on the chain arm the rewrite must come back with " +
-    "the stack where the oracle leaves it, because the still-frozen chain performs the return");
-  assert.equal(chainC.pc, chainO.pc, "on the chain arm the rewrite must come back on the same pc");
-  assert.equal(chainC.regs.sp, (e.regs.sp + 2) & 0xffff, "the chain arm did not pop a slot at all");
-
-  const free = craft({ freePlay: 1 });
-  const freeC = free.clone();
-  showCreditLine(freeC);
-  assert.equal(freeC.regs.sp, free.regs.sp, "on the free-play arm the rewrite must leave the " +
-    "stack pointer where it found it, so a dispatch seam knows to supply the return");
-  assert.equal(freeC.pc, free.pc, "the free-play arm stepped, so it is not ret-free after all");
-  console.log(
-    `  SEAM: chain arm sp ${hex4(e.regs.sp)} -> ${hex4(chainC.regs.sp)} pc ${hex4(chainC.pc)}; ` +
-      `free-play arm sp unmoved at ${hex4(freeC.regs.sp)}`,
-  );
+test("SEAM: every arm is ret-free when called directly and level with the oracle when placed", { skip }, () => {
+  const placed = withOmittedRet(showCreditLine, 0x2d3f);
+  const arms = [["chain", entryState()], ["free-play", craft({ freePlay: 1 })]];
+  for (const [label, e] of arms) {
+    const raw = e.clone();
+    const put = e.clone();
+    const ref = e.clone();
+    const own = e.clone();
+    showCreditLine(raw);
+    placed(put);
+    oracle(ref);
+    showCreditLine(own);
+    own.ret();
+    assert.equal(raw.regs.sp, e.regs.sp, `on the ${label} arm the rewrite moved SP -- it popped a return ` +
+      "slot, which a direct caller never lays down");
+    assert.equal(raw.pc, e.pc, `the ${label} arm stepped, so it is not ret-free after all`);
+    assert.equal(put.regs.sp, ref.regs.sp, `placed through the seam, the ${label} arm left SP off the oracle's`);
+    assert.equal(put.pc, ref.pc, `placed through the seam, the ${label} arm resumed somewhere the oracle's ret does not`);
+    // The control: a form that performs its own ret is seen by the neutrality check above.
+    assert.equal((own.regs.sp - e.regs.sp) & 0xffff, 2, `the ${label} own-return control did not move SP, so the check is blind`);
+  }
+  console.log(`  SEAM: both arms leave sp ${hex4(entryState().regs.sp)} unmoved directly; placed, sp/pc = the oracle's`);
 });
 
 test("WINDOW: the oracle's own deepest push, measured over the whole sweep", { skip }, () => {
@@ -485,28 +490,58 @@ test("ARMS ARE DISTINGUISHABLE: parity and ring state change what is written", {
     "keeps its own when occupied");
 });
 
-test("THE BLOCK HANDED ON, measured at the seam into still-frozen code", { skip }, () => {
+/** The image addresses in [lo, hi] a side READS while it runs, in address order. */
+function imageReads(fn, machine, lo, hi) {
+  const m = machine.clone();
+  const read8 = m.mem.read8.bind(m.mem);
+  const seen = new Set();
+  m.mem.read8 = (addr, ...rest) => {
+    if (addr >= lo && addr <= hi) seen.add(addr);
+    return read8(addr, ...rest);
+  };
+  runSide(fn, m);
+  return [...seen].sort((x, y) => x - y);
+}
+
+/** The verdict the folded total decides, read off the sequence cursor the genuine exit advances. */
+function verdict(fn, machine) {
+  const m = machine.clone();
+  const threw = runSide(fn, m);
+  return threw === null ? m.mem8[SEQUENCE_SUBSTEP] : `threw ${threw.slice(0, 40)}`;
+}
+
+test("THE BLOCK HANDED ON: the oracle's total at its seam; the rewrite's by what it reads and the verdict it turns", { skip }, () => {
   const base = entryState();
   const fromOracle = seamRegs(oracle, base);
-  const fromRewrite = seamRegs(showCreditLine, base);
   assert.notEqual(fromOracle, null, "the oracle never reached the chain, so nothing was measured");
-  assert.notEqual(fromRewrite, null, "the rewrite never reached the chain");
-  assert.equal(fromRewrite.a, fromOracle.a, "the total handed on differs, so the rewrite folded " +
-    "a different block, or folded it differently");
   const endPointer = (s) => (s.h << 8) | s.l;
-  assert.equal(endPointer(fromRewrite), endPointer(fromOracle), "the end pointer differs");
   assert.equal(endPointer(fromOracle), BLOCK_START + BLOCK_BYTES, "the oracle's own end pointer " +
     "is not where this gate says the block ends");
 
+  // Extent, by reads: over the block and one flanking byte each side, both sides read exactly the
+  // block -- every byte of it, and neither flank.
+  const lo = BLOCK_START - 1, hi = BLOCK_START + BLOCK_BYTES;
+  const block = Array.from({ length: BLOCK_BYTES }, (_, i) => BLOCK_START + i);
+  const readO = imageReads(oracle, base, lo, hi);
+  const readR = imageReads(showCreditLine, base, lo, hi);
+  assert.deepEqual(readO, block, "the oracle does not read exactly the declared block, so the gate's block is wrong");
+  assert.deepEqual(readR, readO, "the rewrite reads a different run of the image than the oracle folds");
+
+  // The total, by the verdict it decides: genuine -> both advance alike; a byte flipped INSIDE the
+  // block moves the oracle's total and turns both verdicts alike; a flanking flip moves neither.
+  const genuine = verdict(oracle, base);
+  assert.equal(verdict(showCreditLine, base), genuine, "on the genuine image the two verdicts differ");
   const inside = [BLOCK_START, BLOCK_START + BLOCK_BYTES - 1];
   const flanking = [BLOCK_START - 1, BLOCK_START + BLOCK_BYTES];
   for (const addr of inside) {
     withFlippedImageByte(addr, () => {
       const o = seamRegs(oracle, base);
-      const r = seamRegs(showCreditLine, base);
       assert.notEqual(o.a, fromOracle.a, `flipping ${hex4(addr)} did not move the total, ` +
         "so that byte is not in the folded block and the block is narrower than declared");
-      assert.equal(r.a, o.a, `flipping ${hex4(addr)} moved the two totals apart`);
+      const vo = verdict(oracle, base);
+      const vr = verdict(showCreditLine, base);
+      assert.notEqual(vo, genuine, `flipping ${hex4(addr)} moved the total but not the oracle's verdict, so the verdict cannot witness the total`);
+      assert.equal(vr, vo, `flipping ${hex4(addr)} turned the two verdicts apart`);
     });
   }
   for (const addr of flanking) {
@@ -514,11 +549,12 @@ test("THE BLOCK HANDED ON, measured at the seam into still-frozen code", { skip 
       const o = seamRegs(oracle, base);
       assert.equal(o.a, fromOracle.a, `flipping ${hex4(addr)} DID move the total, so the ` +
         "block reaches past where this gate says it ends");
+      assert.equal(verdict(showCreditLine, base), genuine, `flipping flanking ${hex4(addr)} turned the rewrite's verdict`);
     });
   }
   console.log(
-    `  BLOCK: total ${fromOracle.a} and end pointer ${hex4(endPointer(fromOracle))} agree; ` +
-      `${inside.map(hex4).join(" ")} move the total, ${flanking.map(hex4).join(" ")} do not`,
+    `  BLOCK: oracle total ${fromOracle.a}, end ${hex4(endPointer(fromOracle))}; both read exactly ${hex4(BLOCK_START)}..${hex4(hi - 1)}; ` +
+      `${inside.map(hex4).join(" ")} turn both verdicts alike, ${flanking.map(hex4).join(" ")} turn neither`,
   );
 });
 

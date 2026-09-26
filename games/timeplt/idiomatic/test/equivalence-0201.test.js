@@ -16,8 +16,13 @@
  *   3. LIVE-OUT is the Z flag. Both caller families return conditionally on it, so it is checked
  *      against the oracle on every dispatch, and a control twin that flips only that flag is caught
  *      while its memory stays identical — the proof the flag arm is not blind.
- *   4. THE RETURN IS LOAD-BEARING: the rewrite performs its own return, and a twin that drops it
- *      leaves the stack pointer two bytes adrift, asserted rather than assumed.
+ *   4. THE RETURN IS THE SEAM'S: the rewrite performs no return of its own and leaves the stack
+ *      pointer where it found it -- every caller reaches it by a direct call, and the vertical-blank
+ *      service that runs it is itself a direct call with no guest return slot, so a rewrite that
+ *      popped one would walk SP out of the stack. Placed through the game's dispatch seam
+ *      (withOmittedRet, the authority on stack placement) the seam supplies the ROM `ret`, so every
+ *      comparison against the oracle below runs the rewrite PLACED. A control twin that performs its
+ *      own return (the pre-dissolution form) is caught moving SP by two, asserted rather than assumed.
  *   5. CORPUS — every dispatch of the undriven demo and of the driven tape; the widest scratch
  *      divergence is pinned as an exact ceiling.
  *   6. TEETH — seven twins, each with its catch count on the real corpus recorded exactly.
@@ -38,6 +43,7 @@ import { loc_0201 as oracle } from "../../translated/loc_0201.js";
 import { plotPenCell } from "../plotPenCell.js";
 import { fetchTableWord } from "../fetchTableWord.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { withOmittedRet } from "../../machine.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -68,12 +74,14 @@ const CAUGHT = {
   "step-unsigned": 78,
   "swap-row-col": 104,
   "no-run-index-inc": 106,
-  "no-final-return": 106,
   "forgot-report": 105,
   "flip-z-control": 106,
 };
 
 const hex = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
+
+/** A routine as the game dispatches it: through the seam, which completes an omitted ROM `ret`. */
+const placed = (fn) => withOmittedRet(fn, TARGET);
 
 // ── captures ────────────────────────────────────────────────────────────────────────────
 
@@ -103,7 +111,7 @@ function diverge(candidate, entry) {
   const b = entry.clone();
   oracle(a);
   try {
-    candidate(b);
+    placed(candidate)(b);
   } catch {
     return { reason: "threw" };
   }
@@ -125,7 +133,7 @@ function movedRegisters(candidate, entry) {
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  candidate(b);
+  placed(candidate)(b);
   return REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
 }
 
@@ -226,17 +234,12 @@ function brokenNoRunIndexInc(m) {
   m.ret(10);
 }
 
-/** BUG: leaves the stack pointer two bytes adrift by never returning. */
-function brokenNoFinalReturn(m) {
-  const { regs, mem8 } = m;
-  drawRun(m);
-  loadNextRun(m);
-  mem8[ROW_POS] = 0;
-  mem8[ROW_POS + 1] = regs.e;
-  mem8[COL_POS] = 0;
-  mem8[COL_POS + 1] = regs.d;
-  regs.a = regs.e;
-  regs.and(regs.a);
+/** BUG: performs its own return -- the pre-dissolution form. Memory-identical, and the seam accepts
+ *  it (it lands pc on the caller's slot), so only the SP-neutrality check below can see it: called
+ *  directly, as the interrupt path calls it, it pops a return slot nobody laid down. */
+function brokenOwnReturn(m) {
+  drawInterpolatedPenRun(m);
+  m.ret(10);
 }
 
 /** BUG: reports the flag off the leftover accumulator instead of the new row integer. */
@@ -263,7 +266,6 @@ const TWINS = [
   ["step-unsigned", brokenStepUnsigned],
   ["swap-row-col", brokenSwapRowCol],
   ["no-run-index-inc", brokenNoRunIndexInc],
-  ["no-final-return", brokenNoFinalReturn],
   ["forgot-report", brokenForgotReport],
   ["flip-z-control", brokenFlipZControl],
 ];
@@ -296,23 +298,33 @@ test("LIVE-OUT: the Z flag agrees, and the flag arm catches a twin that flips on
   const a = anEntry().clone();
   const b = anEntry().clone();
   oracle(a);
-  drawInterpolatedPenRun(b);
+  placed(drawInterpolatedPenRun)(b);
   assert.equal(b.regs.f, a.regs.f, "the rewrite's flag byte differs from the oracle's");
   const control = diverge(brokenFlipZControl, anEntry());
   assert.equal(control?.reason, "reg:f", "flipping only the Z flag was not caught by the flag arm");
   console.log(`  LIVE-OUT: Z ${(a.regs.f & Z_FLAG) === 0 ? "clear" : "set"} on both; the flag-flip control is caught`);
 });
 
-test("THE RETURN IS LOAD-BEARING: dropping it leaves the stack two bytes adrift", { skip }, () => {
-  const ref = anEntry().clone();
-  const kept = anEntry().clone();
-  const dropped = anEntry().clone();
-  oracle(ref);
-  drawInterpolatedPenRun(kept);
-  brokenNoFinalReturn(dropped);
-  assert.equal(kept.regs.sp, ref.regs.sp, "the rewrite must leave the stack where the oracle does");
-  assert.equal((ref.regs.sp - dropped.regs.sp) & 0xffff, 2, "dropping the return must leave sp adrift");
-  console.log(`  RETURN: with it sp=${hex(kept.regs.sp)} (matches); without it sp=${hex(dropped.regs.sp)}`);
+test("THE RETURN IS THE SEAM'S: the rewrite leaves SP where it found it; placed, it lands where the oracle does", { skip }, () => {
+  let n = 0;
+  for (const e of driven()) {
+    const seat = e.regs.sp;
+    const ref = e.clone();
+    const raw = e.clone();
+    const put = e.clone();
+    const own = e.clone();
+    oracle(ref);
+    drawInterpolatedPenRun(raw);
+    placed(drawInterpolatedPenRun)(put);
+    brokenOwnReturn(own);
+    assert.equal(raw.regs.sp, seat, "called directly the rewrite must not move SP -- it has no return slot to pop");
+    assert.equal(put.regs.sp, ref.regs.sp, "placed through the seam the rewrite must leave SP where the oracle does");
+    assert.equal(put.pc, ref.pc, "placed through the seam control must resume where the oracle's ret sends it");
+    // The control: the neutrality check SEES a rewrite that pops a slot of its own.
+    assert.equal((own.regs.sp - seat) & 0xffff, 2, "the own-return control did not move SP, so the check above is blind");
+    n++;
+  }
+  console.log(`  RETURN: ${n} dispatches -- raw SP unmoved, placed SP = oracle SP; the own-return control moves SP by 2`);
 });
 
 test("CORPUS: every dispatch of both sessions replays identically", { skip }, () => {
@@ -326,7 +338,7 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
       const a = e.clone();
       const b = e.clone();
       oracle(a);
-      drawInterpolatedPenRun(b);
+      placed(drawInterpolatedPenRun)(b);
       const da = a.dumpState();
       const db = b.dumpState();
       for (let i = 0; i < da.length; i++) {
