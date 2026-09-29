@@ -5,6 +5,9 @@
 0x0f8d  [anti-tamper] names.js role: image-checksum tamper trap -- drops four return words to unwind t
 0x08fa  [anti-tamper] names.js role: checksum-failure landing whose bytes are really a read-as-data ta
 0x0167  [anti-tamper] names.js role: caption-record data run as code on the checksum-MISMATCH derail a
-0x1f2e  [dead-code] names.js role: the direction table's bytes DECODED AS CODE; never reached from t
-0x1f99  [dead-code] names.js role: direction-table bytes decoded as code; 'no input tape dispatches 
-0x15b5  [dead-code] names.js role: a single ROM byte `ret`, slot 15 of the 0x0F29 substep dispatch t
+0x1f2e  [anti-tamper] direction-table bytes entered as code only by the jp 0x1F2E at 0x2063, taken iff TAMPER_GLYPH_STRIP 0xABFE != 0xA5 or TAMPER_COLOUR_STRIP 0xABFF not 0x05/0x10; on a good ROM those cells only ever hold A5 and 05/10, so 0x2063 never executes
+0x1f99  [anti-tamper] direction-table bytes decoded as code, entered only via the jr nz at 0x1F37 inside the 0x1F2E table, itself reached only through the tamper derail jp 0x1F2E at 0x2063 (0xABFE != 0xA5 or 0xABFF not 0x05/0x10), which never fires on a genuine image
+0x15b5  [dead-code] slot 15 of the 0x0F29 sub-step table: SEQUENCE_SUBSTEP reaches 15 only transiently inside arm 14 (0x1323 -> 4c75 -> inc at 0x0F1D), which overwrites it with 03 at 0x1363 in the same NMI with NMI disabled, so no dispatch ever reads 15
+0x315b  [anti-tamper] entered only by the jp nz at 0x30E9/0x30F5 in clearSceneryEntriesThenRunEraScenery, taken iff TAMPER_GLYPH_KONAMI 0xACC7 != 0x3B or 0xACC8 not 0x05/0x10; 0x1620/0x1623 seed 3B/05 and 0x175A/0x4B44 copy the KONAMI glyph at 0xA63C only while the copyright strip is displayed; every capture reads 3B and 05|10, so the jumps are never taken
+0x3114  [anti-tamper] entered only by the jp nz at 0x311D/0x3129 in seedSceneryEntriesThenRunScenery, taken iff TAMPER_WITNESS 0xAD39 != 0x68 or 0xAD3A not 0x10/0x05; the only good-ROM writer is the boot patch-list copy (0x1620/0x1623) seating 68/05, and the other writer sits on a checksum-failed arm that never runs on a genuine image
+0x307f  [anti-tamper] its only code entry is the jp 0x307F at 0x3114, itself reachable only through the 0x3117 TAMPER_WITNESS derail (see 0x3114); no fall-through into it (0x307C is jp 0x309B) and the other ROM reference is caption-table data, so it runs only on a patched image

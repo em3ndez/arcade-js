@@ -18,13 +18,13 @@
  */
 
 /**
- * INNER index of the two-level sequence machine. [code]
+ * INNER index of the two-level sequence machine. [seen]
  *
  * One reader masks this to its low nibble and dispatches through a word table on the result, so
  * it is an index rather than a count. One routine's only job is to increment it; another clears
  * it to restart the sequence. Touched across nineteen transcribed routines, consistently as an
- * index. Not yet observed under a capture, so the *identity* is code-derived: which sequence it
- * steps (attract, round intro, or both) is NOT established and this name does not claim it.
+ * index. Under MAME every phase's dispatcher reads it as its sub-step index, attract and play
+ * alike.
  */
 export const SEQUENCE_SUBSTEP = 0xa9ac;
 
@@ -233,7 +233,7 @@ export const CHAIN_STEP = 0xa99e;
 export const ERA_RUNG = 0xacc0;
 
 /**
- * Per-round enemy-craft quota: how many craft a round should field. [code]
+ * Per-round enemy-craft quota: how many craft a round should field. [seen]
  *
  * Written by the era/rung config scatter from record byte 4 (resetPlayfieldAndArmNewRound stores
  * mem[src+4]; applyEraRungSettings and cold init reach the same cell), and read as the wave spawn
@@ -244,7 +244,7 @@ export const ERA_RUNG = 0xacc0;
 export const ROUND_CRAFT_COUNT = 0xacc1;
 
 /**
- * Descriptor-table selector for the current inline wave: (2 * era) + a random parity bit. [code]
+ * Descriptor-table selector for the current inline wave: (2 * era) + a random parity bit. [seen]
  *
  * driveEnemyWaveForLifePhase computes it as 2*ERA_INDEX + one drawn bit, then multiplies by sixteen to
  * stride into the wave descriptor table at 0x397b (two-byte entries, one consumed per filled slot), so it
@@ -262,7 +262,7 @@ export const WAVE_DESCRIPTOR_INDEX = 0xacc3;
 export const SCRIPT_PICK_THRESHOLD = 0xacc4;
 
 /**
- * Nonzero while a round / wave / Mother-Ship transition sequence is underway. [code]
+ * Nonzero while a round / wave / Mother-Ship transition sequence is underway. [seen]
  *
  * Cleared to zero when a fresh round arms (resetPlayfieldAndArmNewRound, cold init) and when the field-cleared
  * advancer completes a round (advanceRoundWhenFieldCleared writes ROM[0x07d1]=0x00, disarming the hold); raised
@@ -277,7 +277,7 @@ export const SCRIPT_PICK_THRESHOLD = 0xacc4;
 export const ROUND_TRANSITION_HOLD = 0xacc6;
 
 /**
- * How many more qualifying kills until the current wave's shared claim fires. [code]
+ * How many more qualifying kills until the current wave's shared claim fires. [seen]
  *
  * The inline wave builder tallies filled slots into this cell, then -- unless five or more slots filled, in
  * which case the tally itself stands -- overwrites it with ROUND_CRAFT_COUNT; from then on
@@ -299,7 +299,7 @@ export const WAVE_KILL_COUNTDOWN = 0xa811;
 export const WAVE_CLAIM_TIMER = 0xa812;
 
 /**
- * The shared "last of the wave" token, holding one claimant at a time. [code]
+ * The shared "last of the wave" token, holding one claimant at a time. [seen]
  *
  * The kill that empties WAVE_KILL_COUNTDOWN writes its own slot ordinal here with the top bit set; driveObjectAppearanceByPhaseBand
  * keeps alive whichever object's record number matches the low seven bits -- a "named request" -- holding a
@@ -359,13 +359,12 @@ export const LIFE_TICKS_LOW = 0xad05;
 export const LIFE_TICKS_MID = 0xad06;
 
 /**
- * High place of that counter, stepped once per wrap of LIFE_TICKS_MID. [code]
+ * High place of that counter, stepped once per wrap of LIFE_TICKS_MID. [seen]
  *
  * The chain's third place. It is reached only through a pointer walk, so the address appears in no
- * instruction operand anywhere in the image. NOT OBSERVED TO MOVE: across 72000 frames of four tapes
- * the middle place never got past 0x55, so this cell took no step at all and only the life-start
- * routine's zeroing was ever seen. The mechanism is the same as its two siblings'; that it ever
- * carries is not established.
+ * instruction operand anywhere in the image. Natural tapes never carried the middle place past
+ * 0x55, but with LIFE_TICKS_MID seated at 0x59 in a poked capture, advanceSexagesimalDigit wrapped
+ * the middle place 0x60->0x00 and stepped this cell 0x00->0x01 under MAME.
  */
 export const LIFE_TICKS_HIGH = 0xad07;
 
@@ -444,7 +443,7 @@ export const SCREEN_UNFLIPPED = 0xa987;
 export const ERA_INDEX = 0xad04;
 
 /**
- * Enemies still to destroy before the Mother-Ship appears -- the manual's 56. [code]
+ * Enemies still to destroy before the Mother-Ship appears -- the manual's 56. [seen]
  *
  * Counts DOWN. Loaded from a cell that is itself loaded once at boot from a single ROM byte whose
  * value is 56, and it is not era-keyed, loop-keyed or difficulty-keyed: the quota is the same in
@@ -658,7 +657,7 @@ export const KILL_QUOTA = 0xa9cd;
 export const HITS_REMAINING = 0xa8dc;
 
 /**
- * Which round is being played, counting on without wrapping. [code]
+ * Which round is being played, counting on without wrapping. [seen]
  *
  * ★ NOT the same thing as ERA_INDEX, and the difference is the whole reason this cell exists. The
  * era is this count wrapped to five; this one keeps going, which is what lets the game get harder
@@ -668,10 +667,10 @@ export const HITS_REMAINING = 0xa8dc;
  * argument of a ring command whose handler decomposes a value into counts of thirty, ten, five and
  * one.
  *
- * It is per player. Watched under MAME the only writes in a whole run came from the sixteen-byte
- * context copy that swaps a player's block into 0xAD00, which seeded it to 2 for the attract demo
- * and 1 for a real game; the routine that steps it needs a completed round, and no watched run
- * completed one.
+ * It is per player. Watched under MAME it is written by the sixteen-byte context copy that swaps a
+ * player's block into 0xAD00, which seeded it to 2 for the attract demo and 1 for a real game, and
+ * stepped by startNextRound's own increment at 0x2DBB -- naturally in deep play, and in poked
+ * round-clear captures that carried it past five.
  */
 export const ROUND_NUMBER = 0xad01;
 
@@ -837,20 +836,20 @@ export const PLAYER_TWO_ROUND_NUMBER = 0xad21;
 /** Player two's copy of KILLS_REMAINING; the twin of PLAYER_ONE_KILLS_REMAINING, seeded from KILL_QUOTA. [seen] */
 export const PLAYER_TWO_KILLS_REMAINING = 0xad22;
 
-/** Player two's copy of the bonus-life award latch; the twin of PLAYER_ONE_BONUS_LIFE_LATCH. [code] */
+/** Player two's copy of the bonus-life award latch; the twin of PLAYER_ONE_BONUS_LIFE_LATCH. [seen] */
 export const PLAYER_TWO_BONUS_LIFE_LATCH = 0xad23;
 
-/** Player two's copy of ERA_INDEX; the twin of PLAYER_ONE_ERA_INDEX (the caption-pen era key). [code] */
+/** Player two's copy of ERA_INDEX; the twin of PLAYER_ONE_ERA_INDEX (the caption-pen era key). [seen] */
 export const PLAYER_TWO_ERA_INDEX = 0xad24;
 
 /** Player two's copy of LIFE_TICKS_MID; the twin of PLAYER_ONE_LIFE_TICKS_MID (mem16 clears the mid/high
- * pair 0xAD26/0xAD27). [code] */
+ * pair 0xAD26/0xAD27). [seen] */
 export const PLAYER_TWO_LIFE_TICKS_MID = 0xad26;
 
 /** Player two's copy of the round start rung; the twin of PLAYER_ONE_START_RUNG. [seen] */
 export const PLAYER_TWO_START_RUNG = 0xad2a;
 
-/** Player two's copy of MOTHER_SHIP_ARMED; the twin of PLAYER_ONE_MOTHER_SHIP_ARMED. [code] */
+/** Player two's copy of MOTHER_SHIP_ARMED; the twin of PLAYER_ONE_MOTHER_SHIP_ARMED. [seen] */
 export const PLAYER_TWO_MOTHER_SHIP_ARMED = 0xad2d;
 
 /** Player two's copy of the round-armed gate; the twin of PLAYER_ONE_ROUND_ARMED. [seen] */
@@ -877,7 +876,7 @@ export const PLAYER_TWO_PEN_GLYPH = 0xad2b;
  * reads when ACTIVE_PLAYER selects player one. [seen] */
 export const PLAYER_ONE_PEN_COLOUR = 0xad1c;
 
-/** Player two's saved copy of PEN_COLOUR; the twin of PLAYER_ONE_PEN_COLOUR. [code] */
+/** Player two's saved copy of PEN_COLOUR; the twin of PLAYER_ONE_PEN_COLOUR. [seen] */
 export const PLAYER_TWO_PEN_COLOUR = 0xad2c;
 
 /**
@@ -936,15 +935,15 @@ export const PEN_COLUMN_STEP = 0xa9e9;
  * paintSelfTestScreenPhaseThenStepSequence reuses 0xA9F0-0xA9F8 as an eight-byte scratch control block (offset 0 =
  * a shape byte) within the same sequence subsystem -- so the "step" reading holds for the intro, while those bytes
  * are transient object scratch during the self-test phase, where that routine keeps its own local CONTROL_BLOCK
- * alias for the base rather than this name. [code] */
+ * alias for the base rather than this name. [seen] */
 export const INTRO_ANIMATION_STEP = 0xa9f0;
 
 /** Frame tick of the player-ship white flash (intro step 0/1): bit 0 alternates the sprite colour; at tick 8 it
- * advances INTRO_ANIMATION_STEP and requests the spawn-flash sound. Wraps at eight bits. [code] */
+ * advances INTRO_ANIMATION_STEP and requests the spawn-flash sound. Wraps at eight bits. [seen] */
 export const PLAYER_FLASH_TICK = 0xa9f1;
 
 /** Per-pass countdown for advanceScriptedCharPlaneBandTo2 (bit 0 selects a blank vs draw pass), decremented each
- * pass and zeroed at the script's end, which sets INTRO_ANIMATION_STEP to 2. [code] */
+ * pass and zeroed at the script's end, which sets INTRO_ANIMATION_STEP to 2. [seen] */
 export const BAND_TO2_PASS_COUNTDOWN = 0xa9f2;
 
 /** Countdown driving a sprite's colour field during the colour-cycle step (bit 2 holds each colour four frames);
@@ -952,15 +951,15 @@ export const BAND_TO2_PASS_COUNTDOWN = 0xa9f2;
 export const SPRITE_COLOUR_CYCLE_COUNTDOWN = 0xa9f3;
 
 /** Per-pass countdown for advanceScriptedCharPlaneBandTo4 (bit 0 selects blank vs draw), zeroed at the script's
- * end, which sets INTRO_ANIMATION_STEP to 4. [code] */
+ * end, which sets INTRO_ANIMATION_STEP to 4. [seen] */
 export const BAND_TO4_PASS_COUNTDOWN = 0xa9f4;
 
 /** Countdown stepped down once as floodColourPlaneWithSavedPlayerColour finishes painting the colour plane
- * (intro step 4). [code] */
+ * (intro step 4). [seen] */
 export const COLOUR_FLOOD_COUNTDOWN = 0xa9f6;
 
 /** 16-bit cursor walking the char-plane band script (a byte per plane cell); shared by the band-to-2 / band-to-4
- * drawers and stepThirteenScriptedGlyphCells, left where it ended. [code] */
+ * drawers and stepThirteenScriptedGlyphCells, left where it ended. [seen] */
 export const BAND_SCRIPT_CURSOR = 0xa9f7;
 
 /**
@@ -1010,10 +1009,11 @@ export const START_RUNG_ROUNDS_1_5 = 0xa9d3;
 export const START_RUNG_ROUNDS_6_10 = 0xa9d4;
 
 /**
- * The same, for round eleven and up. [code]
+ * The same, for round eleven and up. [seen]
  *
- * Third byte of the same record, on the same terms as the cell above and unread for the same
- * reason. Its observed values are 6, 7, 8, 10, 12, 13, 14, 15 -- at or above the second bracket's
+ * Third byte of the same record; startNextRound reads it when the round number is 11 or more, and
+ * MAME round-clear captures at rounds 13 and 34 read it there and store it in START_RUNG, which the
+ * playfield reset copies into ERA_RUNG. Its observed values are 6, 7, 8, 10, 12, 13, 14, 15 -- at or above the second bracket's
  * at every position, so the three together are a ladder in rounds as well as in the DIP.
  */
 export const START_RUNG_ROUNDS_11_UP = 0xa9d5;
@@ -1203,7 +1203,7 @@ export const ERA_OBJECT_RECORD_SLOT0 = 0xa8c0;
 /** Era-object bank slot 1's record head (second of the grouped three). [seen] */
 export const ERA_OBJECT_RECORD_SLOT1 = 0xa8d0;
 
-/** Era-object bank slot 2's record head; also doubles as the aimed-spawn era "bank B" record seat. [code] */
+/** Era-object bank slot 2's record head; also doubles as the aimed-spawn era "bank B" record seat. [seen] */
 export const ERA_OBJECT_RECORD_SLOT2 = 0xa8e0;
 
 /** The parachutist's record head (array slot 15); its +7 is PARACHUTIST_RUNG 0xa8f7. [seen] */
@@ -1238,7 +1238,7 @@ export const ERA_OBJECT_ENTRY_SLOT0 = 0xaa28;
 /** Era-object bank slot 1's sprite entry. [seen] */
 export const ERA_OBJECT_ENTRY_SLOT1 = 0xaa2a;
 
-/** Era-object bank slot 2's sprite entry; also the aimed-spawn "bank B" entry seat. [code] */
+/** Era-object bank slot 2's sprite entry; also the aimed-spawn "bank B" entry seat. [seen] */
 export const ERA_OBJECT_ENTRY_SLOT2 = 0xaa2c;
 
 /** The parachutist's sprite entry (array slot 15), paired with PARACHUTIST_RECORD. [seen] */
@@ -1267,7 +1267,7 @@ export const PLAYER_SPRITE_Y = 0xaa41;
  * SLOT0 = array slot 16, SLOT3 = array slot 19 (the two publishSpriteShadow run heads). See mechanisms.md §4.
  */
 
-/** Scenery record base, scenery slot 0 (array slot 16); the ix cursor runSceneryForEra seats (paired with SCENERY_ENTRY_SLOT0). [code] */
+/** Scenery record base, scenery slot 0 (array slot 16); the ix cursor runSceneryForEra seats (paired with SCENERY_ENTRY_SLOT0). [seen] */
 export const SCENERY_RECORD_SLOT0 = 0xa900;
 
 /** Scenery sprite-entry X seat, scenery slot 0 (array slot 16); base of publishSpriteShadow's bank-0 head run [.,6] (slots 16-18). [seen] */
@@ -1337,20 +1337,20 @@ export const ROUND_ARMED = 0xad0e;
 /**
  * Two-player-game flag: 0xFF for a two-player game, 0x00 for one player / attract. Written alongside PLAY_ACTIVE by every
  * start path; awardScoreToPlayer reads it to draw the 2-UP readout. A boolean -- distinct from ACTIVE_PLAYER 0xad32, the
- * current player index. [code]
+ * current player index. [seen]
  */
 export const TWO_PLAYER_GAME = 0xad31;
 
 /**
  * Attract-demo autopilot: the packed dwell/steer byte -- low 6 bits are the frame countdown, top 2 bits the steering
- * command; reloaded from the next script byte when the dwell expires. [code]
+ * command; reloaded from the next script byte when the dwell expires. [seen]
  */
 export const DEMO_SCRIPT_DWELL = 0xadf2;
 
-/** Attract-demo autopilot: low byte of the little-endian cursor into the ROM heading-command script. [code] */
+/** Attract-demo autopilot: low byte of the little-endian cursor into the ROM heading-command script. [seen] */
 export const DEMO_SCRIPT_POINTER_LO = 0xadf3;
 
-/** Attract-demo autopilot: high byte of the DEMO_SCRIPT_POINTER_LO cursor. [code] */
+/** Attract-demo autopilot: high byte of the DEMO_SCRIPT_POINTER_LO cursor. [seen] */
 export const DEMO_SCRIPT_POINTER_HI = 0xadf4;
 
 /**
@@ -1389,7 +1389,7 @@ export const DEFERRED_BLANK_LIST = 0xae84;
 
 /**
  * The folded byte-signature of a program-image block (the self-check's checksum); written by the image-fold step and
- * read once at ROM 0x2730 as cp 0x76, deraling to the power-on wipe on mismatch -- an anti-tamper cell. [code]
+ * read once at ROM 0x2730 as cp 0x76, deraling to the power-on wipe on mismatch -- an anti-tamper cell. [seen]
  * (The same RAM byte is reused IY-indexed as a scenery sprite byte in-round; that use is not a bare literal.)
  */
 export const TAMPER_IMAGE_SIGNATURE = 0xaa6f;
@@ -1514,7 +1514,7 @@ export const ENEMY_AIM_ANCHOR_Y = 0xac64;
 export const ENEMY_STANDOFF_AIM_SET_Y = 0xac74;
 
 /** The last byte (base + 0x0F) of that sixteen-byte aim-coordinate record; used only as the inclusive
- * terminator of armRoundStart's 0x80 clear loop `cell <= 0xAC83`. [code] */
+ * terminator of armRoundStart's 0x80 clear loop `cell <= 0xAC83`. [seen] */
 export const ENEMY_STANDOFF_AIM_BLOCK_END = 0xac83;
 
 /*
@@ -1668,8 +1668,8 @@ export const CHAR_PLANE_LOWER_RUN_BOTTOM = 0xa7b1; // bottom cell (row29,col0x11
 // except 0x00D8 (routine saveAccumulatorForFrameInterrupt), which is LEFT as a routine-local const in
 // clearWorkRamAndSpriteBanksThenColdInit -- flagged for the coordinator (see report).
 export const VIDEO_ENABLE_LATCH = 0xc308; // hardware LS259 picture-enable latch (board LATCH_VIDEO_ENABLE); write-only on/off; anti-tamper checksums fold into it to blank a patched image
-export const DISPLAY_LATCH_CHECKSUM_BASE = 0x1550; // base of a 256-byte ROM anti-tamper block XOR-folded into VIDEO_ENABLE_LATCH on the mid-game round arm [guess]
-export const SEQUENCE_PHASE_CHECKSUM_BASE = 0x3310; // base of a 256-byte ROM anti-tamper block subtract-folded into SEQUENCE_PHASE on the fresh-round arm [guess]
+export const DISPLAY_LATCH_CHECKSUM_BASE = 0x1550; // base of a 256-byte ROM anti-tamper block XOR-folded into VIDEO_ENABLE_LATCH on the mid-game round arm [seen]
+export const SEQUENCE_PHASE_CHECKSUM_BASE = 0x3310; // base of a 256-byte ROM anti-tamper block subtract-folded into SEQUENCE_PHASE on the fresh-round arm [seen]
 export const PLAYER_SHOT_ARRAY_END = 0xaadf; // inclusive top of the player-shot RAM block cleared from PLAYER_SHOT_ARRAY on a fresh round
 export const PLAYER_STATE_BLOCK_END = 0xa97f; // inclusive top of the player/actor-state RAM block cleared from PLAYER_STATE on a fresh round
 export const PEN_ROUTE_START_ROW = 0x0d45; // ROM word (8.8) copied into PEN_ROW_POS to reset the pen to its route's first-point row
@@ -1745,7 +1745,7 @@ export const SPRITE_BANK0_BASE = 0xb010; // base of hardware sprite-attribute ba
 export const SPRITE_RAISE_STEP_FLOOR = 0x0832; // ROM byte: lower bound of the sub-step window in which publishSpriteShadow raises 8 sprites' top bit
 export const loc_a801 = 0xa801; // proposal: resetPlayfieldAndArmNewRound cleared player cell
 export const ERA_RUNG_SETTINGS_POINTER_TABLE = 0x1b04; // ROM table indexed (era<<4)+rung via fetchTableWord -> pointer to a ~10-byte settings row scattered into spawn/launch cells (applyEraRungSettings)
-export const ATTRACT_RESTART_FOLD_BYTE = 0x4901; // ROM byte folded with PLAYER_ANIM_COL_COUNT to recompute SEQUENCE_SUBSTEP (nets to 0 on a genuine image) -- anti-tamper (restartAttractSequence) [guess]
+export const ATTRACT_RESTART_FOLD_BYTE = 0x4901; // ROM byte folded with PLAYER_ANIM_COL_COUNT to recompute SEQUENCE_SUBSTEP (nets to 0 on a genuine image) -- anti-tamper (restartAttractSequence) [seen]
 export const loc_178c = 0x178c; // proposal: seatCaptionPenFromEraFoldingTamperIntoPhase IMAGE_BLOCK
 export const runParachutistSlot_ADDR = 0x47b3; // §3 collision: routine 0x47b3's own first opcode (0x3A) read as data -- a caption-cell pointer seed by holdCopyright's anti-tamper glyph check [seen]
 export const BOOT_CONFIG_CHECKSUM_BASE = 0x086b; // base of the 16-byte boot-config ROM block (holds the RNG seed guard words + default kill quota) summed as a tamper tripwire (seatEraSceneryRowThenClearAndRunScenery) [guess]
@@ -1824,7 +1824,7 @@ export const COPYRIGHT_LINE_FIRST_COLOUR_CELL = 0xa2bc; // first colour-RAM cell
 // against ROUTINES keys: no collision. Existing entries (0x0c50, ACTIVE_PLAYER, DIFFICULTY_SETTING,
 // 0xc200/0xc302/0xc000, the sprite-slot loc_b4xx/loc_b0xx, 0xa501, 0x0dcc) are reused, not re-added.
 export const ATTRACT_CHECKSUM_BLOCK_BASE = 0x4aa0; // base of a 256-byte ROM anti-tamper block summed vs 0xb8 -> derail (erasePenRouteThenAdvanceStep, attract phase-1 arm)
-export const HIGH_SCORE_INITIALS_CELL_BASE = 0xa531; // glyph-plane base of per-rank high-score initials cells (stride 2*rank), saved to SCRATCH_PTR_B (fileScoreIntoHighScoreTable) [guess]
+export const HIGH_SCORE_INITIALS_CELL_BASE = 0xa531; // glyph-plane base of per-rank high-score initials cells (stride 2*rank), saved to SCRATCH_PTR_B (fileScoreIntoHighScoreTable) [seen]
 export const FLIPSCREEN_INIT_BYTE = 0x0c3e; // fixed ROM byte written to FLIPSCREEN_LATCH at cold start (finishBootSelfTestAndColdStart)
 export const BOOT_SELFTEST_CHECKSUM_BASE = 0x27de; // base of the boot self-test 256-byte ROM anti-tamper block summed vs 0xc5 -> derail (finishBootSelfTestAndColdStart)
 export const DIAGONAL_HEADING_TABLE = 0x341d; // 4-entry ROM table of the diagonal headings for equal-leg targets (headingToward)
@@ -1921,19 +1921,19 @@ export const COLOUR_FLOOD_FIRST_CELL = 0xa044; // first (top-left inset) cell of
 
 // High-score initials entry and its sequence arms (understanding pass: stage-A [code] reading of
 // erasePenRouteThenOpenInitialsEntry / stepHighScoreInitialsEntry and the phase-3 sub-step arms 4-9).
-export const INITIALS_LOCKED_LETTER_COLOUR = 0xa990; // colour a committed initial is painted in: the first entry cell's colour-plane byte, captured when the entry opens and written onto each letter's colour cell as it locks, replacing the cursor's flash colour [code]
-export const INITIALS_BACK_PRESS_HISTORY = 0xa995; // press history of the facing panel's LEFT control, shifted in every even frame of initials entry: a fresh press steps the letter back round its 27-letter ring, at 0x7F (held) it is emptied through rearmHeldControlRepeat so a held LEFT auto-repeats; zeroed when the entry opens [code]
-export const INITIALS_FORWARD_PRESS_HISTORY = 0xa996; // press history of the facing panel's RIGHT control during initials entry: a fresh press steps the letter forward (26 wraps to 0), at 0xFF it is emptied through rearmHeldControlRepeat so a held RIGHT auto-repeats; zeroed when the entry opens [code]
-export const INITIALS_COMMIT_PRESS_HISTORY = 0xa997; // press history of the facing panel's FIRE button during initials entry: a fresh press locks the shown letter into the next slot; never re-armed, so a held FIRE commits once; zeroed when the entry opens [code]
-export const INITIALS_ALT_COMMIT_PRESS_HISTORY = 0xa998; // press history of the panel's bit-0x20 control (not bound in this cabinet's input map) during initials entry: a fresh press locks the letter exactly like FIRE and is tested first; zeroed when the entry opens [code]
-export const INITIALS_LETTER_INDEX = 0xa999; // index (0..26) of the letter shown at the initials cursor, selecting its glyph from INITIALS_LETTER_GLYPH_TABLE: zeroed when the entry opens, stepped by forward/back, reset to 0 after each committed letter [code]
-export const INITIALS_SLOTS_LEFT = 0xa99a; // count of initials still to enter: set to 3 when the entry opens, decremented on each committed letter; reaching 0 finishes the entry [code]
-export const INITIALS_CURSOR_FLASH_TIMER = 0xa99c; // initials cursor blink counter: incremented every odd frame of the entry, bit 4 picks the cursor cell's colour (0x14 over 0x10); zeroed whenever the cursor letter is redrawn [code]
-export const INITIALS_LETTER_GLYPH_TABLE = 0x12c7; // 27-entry ROM table mapping INITIALS_LETTER_INDEX to the glyph drawn at the entry cursor and locked into the saved initials: A..Z in order, then one final non-letter mark (glyph 0x1a, a small low bar) [code]
-export const ROUND_START_CHECKSUM_BASE = 0x4c99; // base of a 256-byte ROM anti-tamper block XOR-folded by the round-start sequence arm (sub-step 4); any fold but 0x6b advances the outer sequence phase [code]
-export const INITIALS_ENTRY_CHECKSUM_BASE = 0x4880; // base of a 256-byte ROM anti-tamper block XOR-folded by the initials-entry setup arm (sub-step 9); any fold but 0x30 derails into the frame service [code]
-export const HIGH_SCORE_FILED_CHECKSUM_BASE = 0x01f1; // base of a 256-byte ROM anti-tamper block summed to 8 bits by the game-over hold arm on the path where the score was filed; any total but 0x19 advances the outer sequence phase [code]
-export const SKIP_INITIALS_SUBSTEP_SEED = 0x0843; // ROM code byte (0x0b, operand of the call at 0x0841) read as a value: seeds SEQUENCE_SUBSTEP when the finished score beats no high-score record, so the sequence bypasses the initials setup (sub-step 9) and entry (sub-step 10) [code]
+export const INITIALS_LOCKED_LETTER_COLOUR = 0xa990; // colour a committed initial is painted in: the first entry cell's colour-plane byte, captured when the entry opens and written onto each letter's colour cell as it locks, replacing the cursor's flash colour [seen]
+export const INITIALS_BACK_PRESS_HISTORY = 0xa995; // press history of the facing panel's LEFT control, shifted in every even frame of initials entry: a fresh press steps the letter back round its 27-letter ring, at 0x7F (held) it is emptied through rearmHeldControlRepeat so a held LEFT auto-repeats; zeroed when the entry opens [seen]
+export const INITIALS_FORWARD_PRESS_HISTORY = 0xa996; // press history of the facing panel's RIGHT control during initials entry: a fresh press steps the letter forward (26 wraps to 0), at 0xFF it is emptied through rearmHeldControlRepeat so a held RIGHT auto-repeats; zeroed when the entry opens [seen]
+export const INITIALS_COMMIT_PRESS_HISTORY = 0xa997; // press history of the facing panel's FIRE button during initials entry: a fresh press locks the shown letter into the next slot; never re-armed, so a held FIRE commits once; zeroed when the entry opens [seen]
+export const INITIALS_ALT_COMMIT_PRESS_HISTORY = 0xa998; // press history of the panel's bit-0x20 control (not bound in this cabinet's input map) during initials entry: a fresh press locks the letter exactly like FIRE and is tested first; zeroed when the entry opens [seen]
+export const INITIALS_LETTER_INDEX = 0xa999; // index (0..26) of the letter shown at the initials cursor, selecting its glyph from INITIALS_LETTER_GLYPH_TABLE: zeroed when the entry opens, stepped by forward/back, reset to 0 after each committed letter [seen]
+export const INITIALS_SLOTS_LEFT = 0xa99a; // count of initials still to enter: set to 3 when the entry opens, decremented on each committed letter; reaching 0 finishes the entry [seen]
+export const INITIALS_CURSOR_FLASH_TIMER = 0xa99c; // initials cursor blink counter: incremented every odd frame of the entry, bit 4 picks the cursor cell's colour (0x14 over 0x10); zeroed whenever the cursor letter is redrawn [seen]
+export const INITIALS_LETTER_GLYPH_TABLE = 0x12c7; // 27-entry ROM table mapping INITIALS_LETTER_INDEX to the glyph drawn at the entry cursor and locked into the saved initials: A..Z in order, then one final non-letter mark (glyph 0x1a, a small low bar) [seen]
+export const ROUND_START_CHECKSUM_BASE = 0x4c99; // base of a 256-byte ROM anti-tamper block XOR-folded by the round-start sequence arm (sub-step 4); any fold but 0x6b advances the outer sequence phase [seen]
+export const INITIALS_ENTRY_CHECKSUM_BASE = 0x4880; // base of a 256-byte ROM anti-tamper block XOR-folded by the initials-entry setup arm (sub-step 9); any fold but 0x30 derails into the frame service [seen]
+export const HIGH_SCORE_FILED_CHECKSUM_BASE = 0x01f1; // base of a 256-byte ROM anti-tamper block summed to 8 bits by the game-over hold arm on the path where the score was filed; any total but 0x19 advances the outer sequence phase [seen]
+export const SKIP_INITIALS_SUBSTEP_SEED = 0x0843; // ROM code byte (0x0b, operand of the call at 0x0841) read as a value: seeds SEQUENCE_SUBSTEP when the finished score beats no high-score record, so the sequence bypasses the initials setup (sub-step 9) and entry (sub-step 10) [seen]
 export const loc_4d9f = 0x4d9f; // base of a 256-byte ROM block subtract-folded into SEQUENCE_PHASE then XORed with 0xa2 by the phase-3 sub-step-5 arm; nets out on a genuine image (anti-tamper); context of the arm ungrounded [guess]
 export const loc_0831 = 0x0831; // base of the first 256-byte ROM block the phase-3 sub-step-6 arm subtract-folds into SEQUENCE_PHASE (closed by XOR 0xc2) every frame; nets out on a genuine image (anti-tamper); context of the arm ungrounded [guess]
 export const loc_12a7 = 0x12a7; // base of the second 256-byte ROM block the phase-3 sub-step-6 arm subtract-folds into SEQUENCE_PHASE (closed by XOR 0x59) on the frame SEQUENCE_DELAY expires; nets out on a genuine image (anti-tamper); context of the arm ungrounded [guess]
@@ -1942,49 +1942,49 @@ export const ROUTINES = {
   0x0774: {
     name: "postRoundStartCaptionsAndResetPlayfield",
     role: "round-start arm of the phase-3 sub-step table (entry 4 of 0x0F29): post the round-start captions to the command ring, repaint the kill meter (drawKillMeter), reset the playfield for the new round (resetPlayfieldAndArmNewRound), then step the sequence sub-index (advanceSequenceSubStep). With PLAY_ACTIVE clear it posts caption 2 (' READY ') only. With PLAY_ACTIVE set it posts caption 9 or 10 ('PLAYER 1' or 'PLAYER 2', chosen by ACTIVE_PLAYER). That is followed by command 7 (drawRoundNumberCaption) when ROUND_ARMED is set, or by ' READY ' again when it is clear. Before this, an XOR fold of the 256 program bytes at 0x4C99 must come to 0x6B, or the arm advances the sequence phase. This anti-tamper guard does nothing on a genuine image.",
-    cert: "code",
-    why: "the name claims the arm posts the round-start captions and then resets the playfield, and the ROM could have refuted either half: command table 0x0BBC slot 2 is drawCaptionInPenColour and slot 7 drawRoundNumberCaption, and caption records 2/9/10 in the 0x0C50 table decode consistently to READY / PLAYER 1 / PLAYER 2 (the shared R/E/A/Y letters, and R/E/D against the CREDIT record 8), while the call that follows is resetPlayfieldAndArmNewRound; the anti-tamper fold and the sub-step tail are shared by every arm and left out. Code-level reading; MAME grounding of the on-screen text is pending",
+    cert: "seen",
+    why: "the name claims the arm posts the round-start captions and then resets the playfield, and the ROM could have refuted either half: command table 0x0BBC slot 2 is drawCaptionInPenColour and slot 7 drawRoundNumberCaption, and caption records 2/9/10 in the 0x0C50 table decode consistently to READY / PLAYER 1 / PLAYER 2 (the shared R/E/A/Y letters, and R/E/D against the CREDIT record 8), while the call that follows is resetPlayfieldAndArmNewRound; the anti-tamper fold and the sub-step tail are shared by every arm and left out. Under MAME the branch selection on PLAY_ACTIVE, ACTIVE_PLAYER and ROUND_ARMED and the callees are observed; the on-screen glyph text of the captions remains a code-level reading",
   },
   0x08b4: {
     name: "erasePenRouteThenOpenInitialsEntry",
     role: "phase-3 sub-step arm 9 (dispatch table 0x0f29), between the score-filing hold (arm 8, which sets the pen to the blanking glyph 0xF1 and re-arms the pen route) and the per-frame initials entry stepHighScoreInitialsEntry (arm 10). Each frame it runs one leg of the pen route through drawInterpolatedPenRun, so the route is erased, and returns until the route reseats to a zero row. It then XOR-folds the 256 program bytes at 0x4880 and derails on anything but 0x30 (anti-tamper; this never fires on a genuine image). It lays out the initials-entry screen: posts caption commands (1,0x13/0x00/0x14/0x15/0x0c) and paints the five labelled readouts. It seats the entry state stepHighScoreInitialsEntry consumes: the control press histories 0xA995-0xA998 are cleared, the letter index 0xA999 is set to 0 and the slots-left count 0xA99A to 3 (three initials). It stamps letter 0's glyph (ROM 0x12c7) at the new record's initials cell held in SCRATCH_PTR_B, saves that cell's colour-plane byte to 0xA990 (the colour committed letters are painted in), and steps the sequence sub-step.",
-    cert: "code",
-    why: "the pen-run gate could have been a DRAW rather than an ERASE, and the preceding arm settles it: fileScoreAfterGameOverHoldElsePassTurn (arm 8) sets PEN_GLYPH=0xF1 (the blanking glyph) and PEN_COLOUR=0 right before re-arming the pen route and nothing between the two arms changes PEN_GLYPH, the same pattern as the sibling erasePenRouteThenAdvanceStep; 'OpenInitialsEntry' is refutable by the next arm, and stepHighScoreInitialsEntry (arm 10) consumes every cell this seeds -- the four press histories, INITIALS_LETTER_INDEX, INITIALS_SLOTS_LEFT=3 and INITIALS_LOCKED_LETTER_COLOUR. Code-level reading; what the erased route covers on screen is not MAME-checked",
+    cert: "seen",
+    why: "the pen-run gate could have been a DRAW rather than an ERASE, and the preceding arm settles it: fileScoreAfterGameOverHoldElsePassTurn (arm 8) sets PEN_GLYPH=0xF1 (the blanking glyph) and PEN_COLOUR=0 right before re-arming the pen route and nothing between the two arms changes PEN_GLYPH, the same pattern as the sibling erasePenRouteThenAdvanceStep; 'OpenInitialsEntry' is refutable by the next arm, and stepHighScoreInitialsEntry (arm 10) consumes every cell this seeds -- the four press histories, INITIALS_LETTER_INDEX, INITIALS_SLOTS_LEFT=3 and INITIALS_LOCKED_LETTER_COLOUR. Under MAME this arm writes those cells and stepHighScoreInitialsEntry then reads them; what the erased route covers on screen is not MAME-checked",
   },
   0x16af: {
     name: "flyRoundIntroFlashingEraYearThenEraseIntroCaptions",
     role: "round-intro hold, entry 5 of the phase-3 sub-step table at 0x0F29 (between the round-start arm 0x0774 and the enemy-free lead-in 0x5694): each frame it subtract-folds the 256-byte image block at 0x4D9F into SEQUENCE_PHASE and xors 0xA2 (nets out on a genuine image), then flies the ship over the era scenery with no enemy or collision service (dispatchPlayerFrameByState and runSceneryForEra between two sprite-fixup passes, closed by multiplexSpriteSlots). While ROUND_ARMED is set, FRAME_TICK low nibble 0/5/10 repaints the era's year caption (A.D. 1910/1940/1970/1982/2001, index 0x1A+ERA_INDEX) through the +0/+5/+10 shared-colour painters, so it flashes. SEQUENCE_DELAY counts down on odd frames; on expiry it erases the PLAYER-n line (caption 9), STAGE (0x0E) and the year line (0x1A), clears ROUND_ARMED, re-arms SEQUENCE_DELAY to 0x2A and advances the sequence sub-step",
-    cert: "code",
-    why: "'EraYear' could have been refuted by the caption data: the records at 0x1A-0x1E of the 0x0C50 caption table share a prefix and differ only in a four-glyph digit run, and the digit glyphs 0x96='1' and 0x9b='2' are fixed independently by captions 9 and 10 (PLAYER 1 / PLAYER 2), so the flashed caption indexed by 0x1A+ERA_INDEX is the era's year; 'EraseIntroCaptions' is the expiry path's command 3 on captions 9, 0x0E and 0x1A; the flight runs only the player-side services, no enemy or collision service. Code-level reading",
+    cert: "seen",
+    why: "'EraYear' could have been refuted by the caption data: the records at 0x1A-0x1E of the 0x0C50 caption table share a prefix and differ only in a four-glyph digit run, and the digit glyphs 0x96='1' and 0x9b='2' are fixed independently by captions 9 and 10 (PLAYER 1 / PLAYER 2), so the flashed caption indexed by 0x1A+ERA_INDEX is the era's year; 'EraseIntroCaptions' is the expiry path's command 3 on captions 9, 0x0E and 0x1A; the flight runs only the player-side services, no enemy or collision service. Under MAME the flight calls and the expiry path's caption commands are observed",
   },
   0x18c3: {
     name: "stepHighScoreInitialsEntry",
     role: "one frame of the high-score initials-entry screen (arm 10 of the phase-3 sub-step table): on even FRAME_TICK frames roll the facing panel's back/forward/two commit controls into their press histories (INITIALS_BACK/FORWARD/COMMIT/ALT_COMMIT_PRESS_HISTORY); a fresh commit locks the shown letter's glyph (INITIALS_LETTER_GLYPH_TABLE indexed by INITIALS_LETTER_INDEX) into the filed record's initials cell (SCRATCH_PTR_A) and the on-screen cursor cell (SCRATCH_PTR_B), colours it from INITIALS_LOCKED_LETTER_COLOUR, steps both on and counts down INITIALS_SLOTS_LEFT (seeded to 3), finishing on the last slot; a fresh forward/back steps the letter index round 0..26 and redraws the cursor; a saturated history is emptied through rearmHeldControlRepeat so a held control repeats; on odd frames flash the cursor colour (INITIALS_CURSOR_FLASH_TIMER bit 4); every eighth frame tick SEQUENCE_DELAY, and when it runs out blank the cursor cell (0xF1) and finish. Finishing re-arms SEQUENCE_DELAY=60, queues the transition sounds and steps the sequence sub-step. Otherwise, with both players out of lives, a held start button with credit (or free play) hides all sprites and starts the next game",
-    cert: "code",
+    cert: "seen",
     why: "the dominant live-outs are glyph writes through SCRATCH_PTR_A/B, which fileScoreIntoHighScoreTable parks at the filed record's initials cells and the initials-glyph VRAM row, and every cell it steps is seeded by erasePenRouteThenOpenInitialsEntry (arm 9) -- three slots, zeroed press histories, letter 0; the entry ends by stepping the sub-step after the third commit or on timeout. 'step' matches the sibling sequence arms (stepCopyrightScreenAwaitingStart); the start-next-game poll at the tail is a secondary shared poll and stays out of the name",
   },
   0x294c: {
     name: "serviceEra1EnemyCraftSlot",
     role: "era-1 per-slot enemy-craft update, index 1 of the era table at 0x2914 (ERA_INDEX&7 == 1). It branches on the slot's status byte at (ix+0): 0 (empty) returns; 0xFE (held) releases the held object; any other value except 0xFF steps the dying state; 0xFF (active) steers toward the aim heading and flies one step at the 0x5E00 velocity-table pace. If the craft has reached the retire line it retires the slot; otherwise it makes one gated enemy-launch attempt and redraws the sprite from its heading in the second era's shape bank and tint",
-    cert: "code",
+    cert: "seen",
     why: "'Era1' is refutable by the dispatch and was not refuted: this is index 1 of the era table at 0x2914, it has the same 0/0xFE/other/0xFF status ladder as the named siblings serviceEra0/2/3/4EnemyCraftSlot, its flight step uses the 0x5E00 velocity table where era 0 calls 0x5840, and its final callee refreshSecondEraSpriteFromHeading is dispatched only at era 1 under MAME (that callee's own why)",
   },
   0x330b: {
     name: "fileScoreAfterGameOverHoldElsePassTurn",
     role: "phase-3 sub-step 8 arm (entry 8 of the 0x0F29 table): count SEQUENCE_DELAY down and return while it is nonzero, so the GAME OVER banner stays up for the hold postGameOverBanner armed; on expiry file the score (fileScoreIntoHighScoreTable). A score that beats no record posts command 3 (eraseTextRunByIndex) for captions 9 (PLAYER) and 11 (GAME OVER), reseats SEQUENCE_SUBSTEP to 0x0B (program byte at 0x0843) and tails into passTurnToOtherPlayerIfLivesElseStepSequence. A filed score requests a sound (loc_583a), sets PEN_COLOUR=0 / PEN_GLYPH=0xF1 (blanking) and re-arms the pen route so it erases, checks that the 256 program bytes at 0x01F1 sum to 0x19 (advanceSequencePhase otherwise), then steps to sub-step 9, the start of initials entry",
-    cert: "code",
+    cert: "seen",
     why: "'GameOverHold' is refutable by the arm that arms the delay: serviceRoundThenResolvePlayerState leads to postGameOverBanner (0x1253), which posts the GAME OVER captions, sets SEQUENCE_DELAY to 0xB4 and steps sub-step 7 to 8, so this countdown is that banner's hold; 'fileScore' is fileScoreIntoHighScoreTable on expiry; 'ElsePassTurn' is the carry-set path, which erases captions 9 and 11 (PLAYER, GAME OVER), seeds SEQUENCE_SUBSTEP past the initials arms from ROM 0x0843 (=0x0B) and tails into passTurnToOtherPlayerIfLivesElseStepSequence. A countdown-only name is refused (loc_12e2's why). Only the entry path from 0x1253 was checked",
   },
   0x40ea: {
     name: "serviceSlotByMarkerThenCloseSweepTurn",
     role: "the turn body of the object-bank sweep, entered by sweepEra2PlusObjectBank with the record cursor, the sprite-entry cursor and the turn count already set, and run again by closeOneTurnOfTheSlotSweep while turns remain. It branches on the slot's marker byte (ix+0). A free slot (0x00) goes straight to the turn-closer. Any marker other than 0xFF is the object's own countdown: the slot is stepped by stepDriftingCountdownObjectByEraFrames and the turn is then closed by closeOneTurnOfTheSlotSweep. A full marker (0xFF) goes to stepSlotApproachThenBreakawayRetire when ERA_INDEX is 4. Otherwise it goes to flyLiveSlotAndTickCountdown when the record's countdown at +0x0e is nonzero, or to one chaseOneAimPointAndRetireAtTheLine frame and then the turn-closer. Every arm ends by closing the turn, so one call services this slot and every slot after it in the bank",
-    cert: "code",
+    cert: "seen",
     why: "every arm ends by closing the turn: the free-slot arm jumps to 0x410b, the countdown arm goes through stepCountdownSlotThenCloseTurn which falls through into the closer, and the full-marker arms each end at closeOneTurnOfTheSlotSweep, which re-enters this body while turns remain -- so one call services this slot and every slot after it, which a per-slot 'handler' name would miss. The era-2 gate belongs to the entry (sweepEra2PlusObjectBank), not this body, whose only era test is ERA_INDEX==4, so the name carries no era",
   },
   0x4108: {
     name: "stepCountdownSlotThenCloseTurn",
     role: "service one counting slot of the per-slot object sweep (marker byte ix+0 neither free 0x00 nor full 0xFF, so the marker is the object's own countdown): run the object one frame via stepDriftingCountdownObjectByEraFrames (re-stamp and sound at the reset mark, drift with the world, count down, retire at zero, era-chosen animation frame inside the window), then close the turn -- advance the record cursor by 0x10 and the sprite cursor by 2, and run the next turn while the count remains",
-    cert: "code",
+    cert: "seen",
     why: "the body is exactly one stepDriftingCountdownObjectByEraFrames frame followed by the byte-for-byte fall-through into closeOneTurnOfTheSlotSweep (0x410b: stride, djnz back to 0x40ea), and its only entrant is serviceSlotByMarkerThenCloseSweepTurn's marker 1..0xFE arm (`inc a / jr nz,0x4108` after `and a / jp z,0x410b`) -- the marker being the object's own countdown. Whether the object is debris or an explosion is not settled by the code, so the name stays 'countdown slot'",
   },
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "seen" },
@@ -2004,11 +2004,11 @@ export const ROUTINES = {
   0x5694: {
     name: "flyEnemyFreeLeadInThenStepSequence",
     role: "phase-3 sub-step-6 arm (entry 6 of the table dispatchSequenceSubStepArm reads), the timed lead-in between the caption hold (sub-step 5) and the round engine (sub-step 7, serviceRoundThenResolvePlayerState). Each dispatch runs only the player-side services: sprite fixup, the player frame (dispatchPlayerFrameByState), sprite fixup again, the era scenery (runSceneryForEra), the player shots (fireAndSweepPlayerShots) and the sprite multiplex. No enemy-wave, object-slot, collision or round-resolution service runs, so the ship flies and fires over a field whose object slots were retired at the round arm. It then counts SEQUENCE_DELAY down once per dispatch, with no frame-parity gate, and returns while the delay is nonzero. On expiry it steps the sub-step into the round engine. Both ends subtract-fold a 256-byte program block into SEQUENCE_PHASE (0x0831 closed with xor 0xC2, then 0x12A7 closed with xor 0x59). This anti-tamper fold nets to zero on a genuine image.",
-    cert: "code",
-    why: "'EnemyFree' is refutable by comparing service lists: the next arm, serviceRoundThenResolvePlayerState (sub-step 7), runs a strict superset of this arm's calls, adding the enemy-craft, wave, parachutist, era object-bank, collision, bonus-life and kill-meter services this arm leaves out, and resetPlayfieldAndArmNewRound (sub-step 4) retires every object slot before it. Code-level reading; MAME has not confirmed the screen shows no enemies, and the arm also runs in the attract demo",
+    cert: "seen",
+    why: "'EnemyFree' is refutable by comparing service lists: the next arm, serviceRoundThenResolvePlayerState (sub-step 7), runs a strict superset of this arm's calls, adding the enemy-craft, wave, parachutist, era object-bank, collision, bonus-life and kill-meter services this arm leaves out, and resetPlayfieldAndArmNewRound (sub-step 4) retires every object slot before it. Under MAME the service list is observed -- the player-side calls only, no enemy, slot or collision call -- though the on-screen absence of enemies is not pixel-checked; the arm also runs in the attract demo",
   },
   0x5866: { name: "clearScreenRamAndVerifyImageThenColdInit", role: "cold-start clear then ROM tamper check: fill colour RAM 0xA000-0xA3FF with 0x10 and video RAM 0xA400-0xA7FF with 0xf1 (bases from ROM pointers at 0x2581/0x4A37), sum the whole program ROM 0x0000-0x5FFF and test the total against 0xAF, kicking the watchdog after the first fill and once per summed byte; a genuine image tail-calls cold-start init, a tampered one derails into data at 0x59D7", cert: "seen" },
-  0x4bdc: { name: "paintFiveLabelledNumericReadouts", role: "paint five labelled numeric readouts up the tile plane: seat each of five source records (0xab08, stride 8), its tile-plane cursor cell (0xa711, stride 2) and its pen colour, then hand to the column painter paintLabelledNumericReadoutColumn; writes tile/colour cells 0xa0f1-0xa719", cert: "code" },
+  0x4bdc: { name: "paintFiveLabelledNumericReadouts", role: "paint five labelled numeric readouts up the tile plane: seat each of five source records (0xab08, stride 8), its tile-plane cursor cell (0xa711, stride 2) and its pen colour, then hand to the column painter paintLabelledNumericReadoutColumn; writes tile/colour cells 0xa0f1-0xa719", cert: "seen" },
   0x19f0: { name: "resetPlayfieldAndArmNewRound", role: "reset the whole playfield for a new round: clear scroll/control cells, seat the ship sprite + shot slots, retire every object slot (hold/shared-cooldown/cooldown/sub-pixel variants), clear four sprite entries, seat the era scenery band via seatEraSceneryRowThenClearAndRunScenery, then scatter one era-selected 10-byte record from the 0x1B04 word table into the cells that arm the round", cert: "seen" },
   0x3b94: { name: "advanceHitSoakingObjectThenAnimateDeath", role: "advance one hit-soaking object: while HITS_REMAINING (0xa8dc) is left, spend one, force the record head live (0xff) and re-request its sound pair before the ordinary two-tile move; once no hits remain, run the record head down (capped at 0x61) toward a retire-and-hold at 0, drift it with the world scroll, and at head 0x40 post a command / on 8-step boundaries above 0x40 reseat the sprite shape from the 0x3c09 table", cert: "seen" },
   0x3b77: { name: "advanceTwoTileObjectThenTryAimedSpawn", role: "advance a two-tile object one frame: fly it along its stored velocity, then seat its second tile directly under the first (same X, Y+0x10); if hasReachedBoundaryBandSelectedByHeading answers it has reached a boundary retire it, otherwise dress the pair by heading and run the aimed-spawn attempt", cert: "seen" },
@@ -2045,22 +2045,22 @@ export const ROUTINES = {
   0x176a: {
     name: "paintReadoutsThenSampleWitnessOrDerail",
     role: "one arm of the copyright/attract sequence machine (table-dispatched tail, no static call site): check the copyright line's colours (deferring to the guard, which derails on its own if any cell is wrong), then unless caption cell TAMPER_GLYPH_SOURCE_CELL (0xa67c) still holds glyph 0x7c hand off to the mother-ship warp/flash handler (stepMotherShipWarpFlashFrame) through its misaligned anti-tamper entry -- the wrong-glyph derail; on a clean image queue one caption command (1, 0x13), repaint the five labelled numeric readouts, copy one cell's glyph and colour into the tamper readback pair (0xadfb/0xadfc), and step the sequence sub-step. Live-out memory only",
-    cert: "code",
+    cert: "seen",
   },
   0x178c: {
     name: "holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail",
     role: "phase-1 attract sub-step arm (computed dispatch off the phase-1 table, no static call site): each frame restamp the copyright strip and flash its line, then count one frame off SEQUENCE_DELAY and return while it still runs; on the frame it expires verify the copyright line's colours (guard derails on its own), build a caption-cell pointer from a program byte -- the parachutist routine's first opcode (0x47b3) read as data -- and check the glyph there is 0x3b, DERAILING into the anti-tamper trap loc_15ca (data run as code) on a mismatch, else seat one caption cell's glyph and colour into the tamper-witness pair (TAMPER_GLYPH_COPY 0xab43) and step the sequence sub-step. Live-out memory only",
-    cert: "code",
+    cert: "seen",
   },
   0x2730: {
     name: "verifyImageSignatureThenStartAttractDemoOrDerail",
     role: "phase-1 attract sub-step arm (computed dispatch off the phase-1 table at inner sub-step 12, no static call site): read the folded program-image signature banked at TAMPER_IMAGE_SIGNATURE and compare it against 0x76 -- on a tampered image derail into the power-on wipe trap loc_2530 (data run as code, unreachable on a genuine image), else start the attract-mode autopilot demo -- park the caption sprites, seed the demo autopilot heading script, clear TWO_PLAYER_GAME / PLAYER_TWO_LIVES / PLAY_ACTIVE / SEQUENCE_SUBSTEP, stock player one with one life, and wind the outer sequence on to its last phase (3). Live-out memory only",
-    cert: "code",
+    cert: "seen",
   },
   0x1323: {
     name: "stepRoundStartIntroAnimation",
     role: "phase-14 arm of the sequence dispatchSequenceSubStepArm dispatches off the 0x0F29 table (keyed on SEQUENCE_SUBSTEP & 0x0F): only on alternate frames (bit 1 of FRAME_TICK clear), dispatch on the animation sub-step at 0xA9F0 -- steps 0/1 flash the player ship and advance a scripted char-plane animation, steps 2/3 tick a two-colour animation and run a title-plane pass, step 4 floods the colour plane; the final step sets SEQUENCE_DELAY, hides every sprite, sets up the active player's turn (loadActivePlayerContextAndPostRoundHud) and reloads SEQUENCE_SUBSTEP from ROM byte 0x2750 (=3) to wind the outer sequence on",
-    cert: "code",
+    cert: "seen",
   },
   0x189e: {
     name: "startTwoPlayerGame",
@@ -2130,7 +2130,7 @@ export const ROUTINES = {
   0x4a42: {
     name: "paintCaptionColourBandAndStepSequence",
     role: "continue a caption's colour band from the caller's HL cursor: lay the caller's A over one cell, a 13-cell run of the caller's C and a 4-cell tail (0x0e), then fill two colour-RAM rows and six scattered colour cells from the base colour at 0xAD0C (each value base+offset), then seed the saved pen from the era and step the sequence sub-step; A/C/HL/DE left scratch",
-    cert: "code",
+    cert: "seen",
   },
   0x4d72: {
     name: "drawEmblemStripThenGuardImage",
@@ -2304,7 +2304,7 @@ export const ROUTINES = {
   0x0066: {
     name: "enterVblankInterrupt",
     role: "the per-frame (vblank) interrupt vector: hardware dispatches it once per interrupt and it transfers straight to the frame-service handler at 0x00d8, writing nothing of its own",
-    cert: "code",
+    cert: "seen",
   },
   0x0d73: {
     name: "paintSixDigitFieldSuppressingLeadingZeros",
@@ -2346,7 +2346,7 @@ export const ROUTINES = {
   0x0f1f: {
     name: "dispatchSequenceSubStepArm",
     role: "the inner level of the two-level sequence machine for one outer mode: run the arm the LOW NIBBLE of the inner index selects out of a sixteen-word table laid inline just after this entry, then one fixed block; the arm returns through a slot this entry parks for it",
-    cert: "code",
+    cert: "seen",
   },
   0x10fd: {
     name: "spinRemainingSpriteMultiplexSlots",
@@ -2366,7 +2366,7 @@ export const ROUTINES = {
   0x0f54: {
     name: "advanceAttractTowardGameStart",
     role: "guarded tail of the phase-3 image-service step, reached as dispatchSequenceSubStepArm's pushed continuation: returns while the play-active flag (0xAD30) is set; on a nonzero credit count (0xA986) it zeroes the sequence sub-step (0xA9AC) and reloads the phase (0xA9AB) from the ROM constant at 0x1736; otherwise, only when the free-play flag (0xA9C0) is set and one of two input bits (0xA9AE & 0x18) is held, it zero-fills the work table 0x15b6 clears and tail-calls loc_1690",
-    cert: "code",
+    cert: "seen",
   },
   0x1253: {
     name: "postGameOverBanner",
@@ -2377,7 +2377,7 @@ export const ROUTINES = {
   0x1271: {
     name: "advanceRoundWhenFieldCleared",
     role: "gated two-arm state transition: fires only when 0xad02=0, 0xacc6!=0 and all 15 slots at 0xa810 are empty, then queues the fixed sound set and runs one of two arms on 0xad30 — disarm+reset a cell cluster, or clear a strided run and copy a 16-byte record into 0xad10/0xad20",
-    cert: "code",
+    cert: "seen",
   },
   0x12e7: {
     name: "passTurnToOtherPlayerIfLivesElseStepSequence",
@@ -2399,22 +2399,22 @@ export const ROUTINES = {
   0x1393: {
     name: "cyclePlayerSpriteColourThenAdvanceStepAtZero",
     role: "one tick of a two-colour animation inside the round engine's step-14 sub-sequence: step a count down by one and, from a single bit of that count, drive the colour field of the shadow byte that the sprite publisher copies into the player ship's sprite attribute, so a colour holds for four consecutive ticks; the top two bits of that byte, which carry the sprite's mirroring, are left alone. The tick that finds the count already at zero also moves the sub-sequence's step cell on to 3, and the count still steps on that tick, wrapping below zero. Its one call site is that sub-sequence's step 2, which follows it with one other routine",
-    cert: "code",
+    cert: "seen",
   },
   0x13cc: {
     name: "floodColourPlaneWithSavedPlayerColour",
     role: "the step-4 arm of the round engine's step-14 sub-sequence: flood a fixed block of the colour plane with one byte, and hand the sub-sequence the step whose arm winds it up. The byte comes from one of two parallel cells — the same offset in each of the two per-player save blocks — chosen by the active-player index, so it is a saved value rather than the live one. The block is twenty-eight rows of twenty-seven cells: every row the driver leaves visible, and all but five of the plane's thirty-two columns. When the picture is turned round the painting runs from the far corner backwards, which changes the ORDER the cells are touched in and not WHICH, so the two directions leave the plane identical. A separate count is stepped down by one on the way out",
-    cert: "code",
+    cert: "seen",
   },
   0x14c5: {
     name: "advanceScriptedCharPlaneBandTo4",
     role: "one pass of a cursor-scripted character-plane animation that runs during the inter-round / player-change transition — NOT the title (the title logo is a caption strip, and this arm is dispatched only from the life-loss / round-advance path and is reach-0 across attract): erases two columns + six loose cells on even passes, refills/steps them from the script on odd passes, ends the script by clearing the counter, advancing the stage to 4 and requesting sounds; decrements the pass counter otherwise",
-    cert: "code",
+    cert: "seen",
   },
   0x142a: {
     name: "advanceScriptedCharPlaneBandTo2",
     role: "advance one frame of a script-driven character-plane animation: bit 0 of a countdown cell alternates a blanking pass (fill two thirteen-cell columns and six lead cells with one tile code) with a drawing pass (restore the working column from its saved run, nudge four counters by the low bit of the next two script bytes, step the band up then back down, and gather the column back); a terminator byte instead clears the countdown, arms the next sequence step and rewinds the script pointer one, ending early, and every non-terminating call then decrements the countdown",
-    cert: "code",
+    cert: "seen",
   },
   0x15b5: {
     name: "loc_15b5",
@@ -2591,7 +2591,7 @@ export const ROUTINES = {
   0x3deb: {
     name: "serviceSlotByHeadByte",
     role: "service one slot, splitting three ways on the head byte of its record: zero does nothing at all, all-ones flies the object one step along the velocity it carries and retires it into the shared cooldown only once that step has put it on a retire line, and any OTHER value retires it on the spot without moving it first",
-    cert: "code",
+    cert: "seen",
   },
   0x3e6c: {
     name: "flyAndRetireSlotCyclingShapeInEra4",
@@ -2669,8 +2669,8 @@ export const ROUTINES = {
   0x2d62: {
     name: "driftOneTileSceneryAtThreeQuarters",
     role: "drift one scenery object at three quarters of the frame's world scroll, lay no further tile, and step both cursors onto the next slot",
-    cert: "code",
-    why: "same family, same falsifiable arithmetic as driftThreeTileSceneryAtFiveQuarters: this is the one-tile member, so the era-4 arm that calls it twice can reach the band's eight slots only if it lays exactly one -- 2+2+1+1+1+1 -- and any second tile would overrun the band. Its callee driftAtThreeQuartersWorldScroll is already grounded to the scenery slots, and driftTwoTileSceneryAtThreeQuarters' entry lists this shape as its 'three quarters with one tile' sibling. NOT GROUNDED, and the reason is specific: it sits in the dispatcher's fifth-era arm, and no tape we can drive reaches the fifth era by playing -- four played tapes gave it zero dispatches while an era-held sweep arm gave it 31634, so cert stays code",
+    cert: "seen",
+    why: "same family, same falsifiable arithmetic as driftThreeTileSceneryAtFiveQuarters: this is the one-tile member, so the era-4 arm that calls it twice can reach the band's eight slots only if it lays exactly one -- 2+2+1+1+1+1 -- and any second tile would overrun the band. Its callee driftAtThreeQuartersWorldScroll is already grounded to the scenery slots, and driftTwoTileSceneryAtThreeQuarters' entry lists this shape as its 'three quarters with one tile' sibling. It sits in the dispatcher's fifth-era arm, and under MAME the deep and era-advance captures reach it there; its only own writes are return-stack scratch vectoring back into its own body, consistent with laying no further tile",
   },
   0x2d68: {
     name: "driftOneTileSceneryAtHalf",
@@ -2755,7 +2755,7 @@ export const ROUTINES = {
   0x3ecb: {
     name: "stampObjectStateByte3bThenRequestTwoSounds",
     role: "force the head byte of the record the index register points at to one fixed value and hand over; what that byte held is discarded unread, so this is a clamp and not a step",
-    cert: "code",
+    cert: "seen",
   },
   0x3faf: {
     name: "dressSpriteShapeAndAttributeForHeadingSector",
@@ -2849,19 +2849,19 @@ export const ROUTINES = {
   0x1319: {
     name: "fillCellRun",
     role: "fill a fixed-length run of character cells with one byte, stepping a cell at a time along the line",
-    cert: "code",
+    cert: "seen",
     why: "its callers pass video-RAM starts with the blanking character and colour-RAM starts with a computed colour, so the unit it steps is the tilemap cell in both planes rather than a byte address; the stride is the one batch 1's advanceCharCursor established as one cell along a line",
   },
   0x1563: {
     name: "restoreColumnFromSavedRun",
     role: "put a saved thirty-two cell picture back onto the character plane: twenty-eight bytes down one column of cells a row apart, then four into two two-cell columns beside it. Every address is fixed here -- the run it reads, the column it lays and the two stubs are all this entry's choice, not a caller's -- and it overwrites the cells whole rather than merging into them",
-    cert: "code",
-    why: "the direction is what a name has to get right, and it is fixed by two things outside the routine. First, the run it reads from, 0xA400-0xA41F, is the first row of the character plane, and MAME's driver puts the visible window at rows 2 through 29 (`set_visarea(0, 32*8-1, 2*8, 30*8-1)` over a 32x32 TILEMAP_SCAN_ROWS map) -- so the run is thirty-two cells of video RAM that are never displayed, which is a backing store and not a picture. Second, both call sites bracket their tick with the pair: advanceScriptedCharPlaneBandTo2 and advanceScriptedCharPlaneBandTo4 each call THIS entry near the top and its inverse 0x158C near the bottom, mutating cells of the same column in between (advanceScriptedCharPlaneBandTo2 does `inc (0xa5f0)` on one of the four stubs). Read run-first-save-last, the column is the working copy and the hidden row is where it survives whatever else draws over the screen; read the other way round, the two calls would cancel and the mutation would never persist. On the glass the geometry is a line, not a column: under the rotation mechanisms.md measured -- display_x = 239 - native_y, display_y = native_x -- a fixed video-RAM column is a constant display_y, so the twenty-eight cells at column 17 spanning rows 2-29 are a full-width horizontal line at display_y 136-143, and the four stub cells at columns 16 and 18, rows 15 and 16, are sixteen-pixel segments at display_x 104-119, centred, one line above the run and one below. NOT GROUNDED, and the reason is specific: its callers sit at inner steps 1, 2 and 3 of the sequence whose outer phase cell is 0xA9AC, dispatched as entry 14 of the `rst 0x30` table at ROM 0x0F29, and no run reached it -- 0x1323, the phase handler itself, took ZERO dispatches across 480 emulated seconds of attract and 400 of driven play, as did 0x142a, 0x14c5 and 0x158c. A blind poke of 0xA9AC/0xA9F0 to that phase does NOT settle it: the poked machine ran off into video RAM within seconds (program counter observed at 0xA41F), because the phase's script pointer at 0xA9F7 is part of the state being faked",
+    cert: "seen",
+    why: "the direction is what a name has to get right, and it is fixed by two things outside the routine. First, the run it reads from, 0xA400-0xA41F, is the first row of the character plane, and MAME's driver puts the visible window at rows 2 through 29 (`set_visarea(0, 32*8-1, 2*8, 30*8-1)` over a 32x32 TILEMAP_SCAN_ROWS map) -- so the run is thirty-two cells of video RAM that are never displayed, which is a backing store and not a picture. Second, both call sites bracket their tick with the pair: advanceScriptedCharPlaneBandTo2 and advanceScriptedCharPlaneBandTo4 each call THIS entry near the top and its inverse 0x158C near the bottom, mutating cells of the same column in between (advanceScriptedCharPlaneBandTo2 does `inc (0xa5f0)` on one of the four stubs). Read run-first-save-last, the column is the working copy and the hidden row is where it survives whatever else draws over the screen; read the other way round, the two calls would cancel and the mutation would never persist. On the glass the geometry is a line, not a column: under the rotation mechanisms.md measured -- display_x = 239 - native_y, display_y = native_x -- a fixed video-RAM column is a constant display_y, so the twenty-eight cells at column 17 spanning rows 2-29 are a full-width horizontal line at display_y 136-143, and the four stub cells at columns 16 and 18, rows 15 and 16, are sixteen-pixel segments at display_x 104-119, centred, one line above the run and one below. Its callers sit at inner steps 1, 2 and 3 of the sequence whose outer phase cell is 0xA9AB, dispatched as entry 14 of the `rst 0x30` table at ROM 0x0F29. Under MAME the round-clear captures reach it: it reads the whole hidden row 0xA400-0xA41F and writes the column cells and the four stub cells",
   },
   0x158c: {
     name: "gatherCharColumnIntoBackingRun",
     role: "gather one column of the character plane into a thirty-two byte run -- the column's twenty-eight cells a row apart, then the two two-cell columns beside it -- overwriting the run whole rather than merging into it; it is the exact inverse of 0x1563 over the same cells in the same order",
-    cert: "code",
+    cert: "seen",
   },
   0x15b6: {
     name: "hideAllSprites",
@@ -2920,7 +2920,7 @@ export const ROUTINES = {
   0x4bd9: {
     name: "trampolineToSelectFoldBlock",
     role: "a bare transfer to 0x08AE and no return; no cell is read or written and no register moves",
-    cert: "code",
+    cert: "seen",
   },
   0x4dcf: {
     name: "paintGlyphOverBlankInColourThenStepCursor",
@@ -3001,12 +3001,12 @@ export const ROUTINES = {
   0x580b: {
     name: "requestMotherShipWarpSound",
     role: "read the byte at 0x49EE and request it as a sound code, only while a game is being played",
-    cert: "code",
+    cert: "seen",
   },
   0x5811: {
     name: "requestPlayerSpawnFlashSound",
     role: "read the byte at 0x07A9 and request it as a sound code, only while a game is being played",
-    cert: "code",
+    cert: "seen",
   },
   0x5817: {
     name: "requestEnemyWaveSound",
@@ -3131,8 +3131,8 @@ export const ROUTINES = {
   0x5211: {
     name: "destroyTargetsHitByShots",
     role: "destroy every target a live shot has reached, spending the shot with them, and post the score for each; the sweep does not stop at the first, so one shot can take several in a pass",
-    cert: "code",
-    why: "every caller fixes the outer array at the six-slot table fireAndSweepPlayerShots owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one stepDyingObjectState converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision, which is why nothing here is [seen]",
+    cert: "seen",
+    why: "every caller fixes the outer array at the six-slot table fireAndSweepPlayerShots owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one stepDyingObjectState converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision",
   },
   0x58a4: {
     name: "loc_58a4",
@@ -3182,12 +3182,12 @@ export const ROUTINES = {
   0x181d: {
     name: "noOpSequencePhase2Tail",
     role: "an arrival point with nothing to do: no cell is read or written and no register moves",
-    cert: "code",
+    cert: "seen",
   },
   0x3ce1: {
     name: "hasReachedHorizontalEdgeWindow",
     role: "answer whether the byte at the head of a sprite entry has reached its wrap point, testing a four-wide window that straddles zero -- so it measures a wrapped distance rather than bounding a range, which is what lets a byte stepping several units at a time land inside the window instead of over it",
-    cert: "code",
+    cert: "seen",
   },
   0x5854: {
     name: "loc_5854",
@@ -3243,7 +3243,7 @@ export const ROUTINES = {
   0x17b9: {
     name: "guardBlockOrBlankDisplay",
     role: "fold a block of the program image and let the sequence step on only if it still adds up; otherwise switch the display off and copy one character cell into TAMPER_WITNESS",
-    cert: "code",
+    cert: "seen",
     why: "two things outside the routine could have refuted it and did not. The block it folds is 51 bytes from 0x0B06, which is the entry of stampCopyrightStrip -- the guard covers a routine, not an arbitrary span -- and the fold over the real image comes to exactly the value compared, while shifting the seed by one takes the other arm. Its address also sits in the word table at 0x1659 that dispatchSequencePhase1SubStepArm dispatches, at the eighth entry, so the sequence really is what it gates",
   },
   0x308a: {
@@ -3326,7 +3326,7 @@ export const ROUTINES = {
   0x0d57: {
     name: "paintPlayerOneScoreReadout",
     role: "enter the shared packed-decimal digit routine at 0x0D73 with one fixed triple -- first cell 0xA781, the three-byte field whose high end is 0xAD35, and a fixed colour; choosing that triple is the whole entry and whatever the caller held is discarded",
-    cert: "code",
+    cert: "seen",
   },
   0x0d61: {
     name: "paintPlayerTwoScoreReadout",
@@ -3336,7 +3336,7 @@ export const ROUTINES = {
   0x0d6b: {
     name: "paintHighScoreReadout",
     role: "enter the shared packed-decimal digit routine at 0x0D73 with a third fixed triple -- first cell 0xA641, the field whose high end is 0xA98D, and a fixed colour; the routine walks the field downward, so the high end is where it starts",
-    cert: "code",
+    cert: "seen",
   },
   0x0daf: {
     name: "paintSuppressedDigit",
@@ -3347,8 +3347,8 @@ export const ROUTINES = {
   0x0e70: {
     name: "paintQuadTile",
     role: "lay one four-tile block into the character plane from a base code the caller fixes, give all four the caller's colour a plane below, and leave the cursor clear of the block for the next one",
-    cert: "code",
-    why: "'quad' is the discriminating claim, and the caller could have contradicted it: the routine that decomposes a value into counts of thirty, ten, five and one calls a DIFFERENT painter per denomination and chains the cursor between them -- one tile for the units, two for the fives, and this one for both the tens and the thirties with only the base code and the colour differing. So what this entry contributes is the block SIZE and not a denomination, and the four codes are the caller's base plus 0..3 rather than anything a table selects. Not reached by either MAME sweep, which is a fact about the states those sweeps drove: TWO sites post its caller's ring command, and the second passes ROUND_NUMBER rather than a constant -- a cell stepped on the same path that steps ERA_INDEX, and tested against 6 and 11 elsewhere, so arguments of ten and more are anticipated and ten is the smallest that gives the tens a non-zero count",
+    cert: "seen",
+    why: "'quad' is the discriminating claim, and the caller could have contradicted it: the routine that decomposes a value into counts of thirty, ten, five and one calls a DIFFERENT painter per denomination and chains the cursor between them -- one tile for the units, two for the fives, and this one for both the tens and the thirties with only the base code and the colour differing. So what this entry contributes is the block SIZE and not a denomination, and the four codes are the caller's base plus 0..3 rather than anything a table selects. Under MAME it is reached, laying one four-tile block per call at the caller's base with the caller's colour one plane below, in the captures that seat ROUND_NUMBER at ten or more -- states the fixed tapes never drove: TWO sites post its caller's ring command, and the second passes ROUND_NUMBER rather than a constant -- a cell stepped on the same path that steps ERA_INDEX, and tested against 6 and 11 elsewhere, so arguments of ten and more are anticipated and ten is the smallest that gives the tens a non-zero count",
   },
   0x323a: {
     name: "stepShapeAnimation",
@@ -3387,7 +3387,7 @@ export const ROUTINES = {
   0x4a9d: {
     name: "stepThirteenScriptedGlyphCells",
     role: "step thirteen cells of the character plane on by one shape each, but only where a script says so, walking that script through one shared cursor cell that is left wherever the walk ended; two bits of one incoming byte set the directions independently -- the low bit reads the script backwards and steps the shape DOWN, the next bit takes the cells a row up instead of a row down",
-    cert: "code",
+    cert: "seen",
   },
   0x4acc: {
     name: "unpackCoinage",
@@ -3398,8 +3398,8 @@ export const ROUTINES = {
   0x4b19: {
     name: "stepSequenceUnderChecksum",
     role: "step the sequence's inner sub-step on, folding a block of the program image on the way; a total that does not match advances the outer phase instead, which derails the sequence rather than halting it",
-    cert: "code",
-    why: "the name says the mismatch arm cannot run on a genuine image, and a measurement could have contradicted it: read taps under MAME counted zero dispatches at advanceSequencePhase's entry across both runs while this routine's own entry was reached in both, and the fold over the real image comes to exactly the byte it is compared with. This entry has no static call site anywhere in the image -- it is reached only as the eleventh entry of the word table at 0x1659 that dispatchSequencePhase1SubStepArm dispatches -- so what it is FOR is fixed by that table and by nothing that could be mistaken for a caller",
+    cert: "seen",
+    why: "the name says the mismatch arm cannot run on a genuine image, and a measurement could have contradicted it: under MAME this routine's own entry is reached, yet its `call nz` at 0x4B2A is never taken (no return address is ever pushed at that PC), and the fold over the real image comes to exactly the byte it is compared with. This entry has no static call site anywhere in the image -- it is reached only as the eleventh entry of the word table at 0x1659 that dispatchSequencePhase1SubStepArm dispatches -- so what it is FOR is fixed by that table and by nothing that could be mistaken for a caller",
   },
   0x51b3: {
     name: "markObjectsTouchingPlayer",
@@ -3410,7 +3410,7 @@ export const ROUTINES = {
   0x5634: {
     name: "enqueueTransitionSoundBurst",
     role: "queue seven sound codes back to back with no play test: six fetched one each from its own cell of the program image, so an edit to the image changes what is asked for, and a seventh formed by adding the era index to a fixed base",
-    cert: "code",
+    cert: "seen",
   },
   0x5683: {
     name: "requestTwoSounds",
@@ -3511,8 +3511,8 @@ export const ROUTINES = {
   0x3252: {
     name: "guardBlockOrDerailSequence",
     role: "fold a fixed span of the program image and let the sequence's inner step go on if it still adds up; a span that does not fold to the expected value throws the sequence a whole phase forward instead, which derails it rather than halting it",
-    cert: "code",
-    why: "named after guardBlockOrBlankDisplay, whose name states its failure arm, because the failure arm is what separates the four members of this family and this one's could have gone either way. Two of them jump at data or outside the image and simply kill the machine; stepSequenceUnderChecksum takes BOTH arms, advancing the phase and then always stepping the sub-step. This one is a tail jump to one or the other and never both. Its pass arm is advanceSequenceSubStep and its failure arm advanceSequencePhase, and read taps under MAME reached this entry on all three sweeps while advanceSequencePhase's own entry took zero dispatches on every one -- which is what an arm that cannot run on a genuine image looks like from outside",
+    cert: "seen",
+    why: "named after guardBlockOrBlankDisplay, whose name states its failure arm, because the failure arm is what separates the four members of this family and this one's could have gone either way. Two of them jump at data or outside the image and simply kill the machine; stepSequenceUnderChecksum takes BOTH arms, advancing the phase and then always stepping the sub-step. This one is a tail jump to one or the other and never both. Its pass arm is advanceSequenceSubStep and its failure arm advanceSequencePhase, and under MAME this entry is reached while its failure jump at 0x3266 is never taken -- the pass tail at 0x3269 runs every time -- which is what an arm that cannot run on a genuine image looks like from outside",
   },
   0x3ce9: {
     name: "mirrorTwoTileObjectByHeading",
@@ -3523,8 +3523,8 @@ export const ROUTINES = {
   0x41f1: {
     name: "animateFixedShapeCycleAtHalfRate",
     role: "give one sprite entry the current frame of an eight-frame shape cycle from a fixed base, and one fixed byte beside it; the frame is picked from bits one to three of the free-running counter, so the cycle turns over once every sixteen counts. Nothing about the object is read, so two entries written in one tick get the same shape",
-    cert: "code",
-    why: "'AtHalfRate' is a rank against exactly one sibling and the two bodies settle it: animateFixedShapeCycle takes its frame from the counter's LOW three bits and this one from bits one to three, so this cycle advances on every second count and its sibling's on every count -- same eight frames, half the speed. 'Fixed' is the other half and it is refutable: neither body reads anything of the object, which is why two entries dressed in one tick cannot be told apart. Reachability was measured rather than assumed: read taps on the real ROM under MAME counted ZERO dispatches across an undriven attract run reaching eras 0-3, a driven run in era 0 and a driven run with the kill quota forced empty, and 2618 in a run holding ERA_INDEX at 4 -- which is the gate its two callers sit behind. cert stays code because the rate is read off the two bodies; no capture watched the shapes on the glass",
+    cert: "seen",
+    why: "'AtHalfRate' is a rank against exactly one sibling and the two bodies settle it: animateFixedShapeCycle takes its frame from the counter's LOW three bits and this one from bits one to three, so this cycle advances on every second count and its sibling's on every count -- same eight frames, half the speed. 'Fixed' is the other half and it is refutable: neither body reads anything of the object, which is why two entries dressed in one tick cannot be told apart. Reachability was measured rather than assumed: read taps on the real ROM under MAME counted ZERO dispatches across an undriven attract run reaching eras 0-3, a driven run in era 0 and a driven run with the kill quota forced empty, and 2618 in a run holding ERA_INDEX at 4 -- which is the gate its two callers sit behind. Under MAME the era-4 captures watched it write the full eight-frame shape cycle and the fixed byte beside it; the shapes on the glass are not pixel-checked",
   },
   0x4201: {
     name: "steerTowardAimOneUnitAFrame",
@@ -3557,8 +3557,8 @@ export const ROUTINES = {
   0x4831: {
     name: "postNextParachutistBonus",
     role: "post the next rung of the rescue award to the command ring and step the per-life rung count on; the first four rungs each take their own value from a four-entry table and every rung after them takes the same top value, so the ladder rises and then caps",
-    cert: "code",
-    why: "the ladder is the claim and it is decodable outside this routine, through a table this routine never touches: the four bytes it posts are arguments to ring command 4, whose handler indexes a packed-decimal table and adds the result to the player's score, and decoding all five gives 1,000 / 2,000 / 3,000 / 4,000 then 5,000 for ever -- monotone, round, and capping, where any non-monotone or non-round decode would have killed the name. mechanisms.md derives the same ladder and the same cap independently. ★ 'per-life' was measured rather than assumed: under MAME the rung cell took writes from this routine's increment with the values 1, 2, 3 and from the life-start routine resetting it, five times on one tape and ten on another. The observed rungs are the first four only -- the capped arm was never taken on any tape, so the top value stays code-derived. Its caller returns early in the final era, which is the one era mechanisms.md records as having no parachutists",
+    cert: "seen",
+    why: "the ladder is the claim and it is decodable outside this routine, through a table this routine never touches: the four bytes it posts are arguments to ring command 4, whose handler indexes a packed-decimal table and adds the result to the player's score, and decoding all five gives 1,000 / 2,000 / 3,000 / 4,000 then 5,000 for ever -- monotone, round, and capping, where any non-monotone or non-round decode would have killed the name. mechanisms.md derives the same ladder and the same cap independently. ★ 'per-life' was measured rather than assumed: under MAME the rung cell took writes from this routine's increment with the values 1, 2, 3 and from the life-start routine resetting it, five times on one tape and ten on another. A poked capture also took the capped arm under MAME -- rung 4 read, 0x040F posted, the rung written 5 -- so both halves of the ladder are observed. Its caller returns early in the final era, which is the one era mechanisms.md records as having no parachutists",
   },
   0x4853: {
     name: "spawnAtEdgeAhead",
@@ -3631,8 +3631,8 @@ export const ROUTINES = {
   0x507e: {
     name: "destroyFixedTargetReachedByPlayer",
     role: "destroy one fixed target and the player with it when the two touch, zero the target's HITS_REMAINING so the contact kills it outright rather than costing it a hit, and tail-transfer to the scoring routine; four tests must all pass, so nothing at all is written unless every one of them does",
-    cert: "code",
-    why: "the reference it measures the target against is what the name adds, and it is fixed outside this routine: it reads the same sprite-entry pair three sibling sweeps use, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship that held one screen position while the world scrolled past. NOT GROUNDED, and the reason is specific: across two MAME write-tap runs none of its three stores ever fired, so the four-test conjunction was never satisfied on any tape we have driven",
+    cert: "seen",
+    why: "the reference it measures the target against is what the name adds, and it is fixed outside this routine: it reads the same sprite-entry pair three sibling sweeps use, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship that held one screen position while the world scrolled past. The fixed tapes never satisfy the four-test conjunction, but under MAME a poked capture that brings the ship onto a fixed target does, and all three of its stores fire, followed by the player's and the target's deaths",
   },
   0x5152: {
     name: "destroySlotsAndPlayerOnContact",
@@ -3769,7 +3769,7 @@ export const ROUTINES = {
   0x00d8: {
     name: "saveAccumulatorForFrameInterrupt",
     role: "one byte, `push af`, falling into the register-save prologue at 0x00D9 that owns the rest of the frame service and the frame's work; the two bytes it stacks land in work RAM, so they are part of what the machine leaves behind",
-    cert: "code",
+    cert: "seen",
     why: "named saveAccumulatorForFrameInterrupt for the one thing this entry does that 0x00D9 does not -- the `push af` that opens the prologue 0x00D9 owns. The frozen layer heads this address ROM 0x00D8-0x00D8 and gives 0x00D9-0x015E to a separate routine, so the name is deliberately about the accumulator save and is NOT of the form 'enter the frame interrupt', which would put the frame service's identity on the one byte that is not the service. ★ A SECOND objection was proposed and is WITHDRAWN, recorded here so it is not proposed again: it ran that an interrupt name is false at the sites that crash into this address, and that the epilogue then unwinds bytes that were never pushed. Neither half survives. There are THREE code-shaped arrivals, not four -- `c3 d8 00` at 0x0066, the NMI vector, and `c4 d8 00` at 0x00A2 and at 0x49D0; the fourth code-shaped hit, `21 d8 00` at 0x0098, is a `ld hl` that seeds a checksum and is not an arrival, and the remaining four occurrences of the word -- 0x0940, 0x0AB2, 0x5C16 and 0x5DE8 -- each carry a 0x00 byte in front of them rather than a transfer opcode, so none of them is code-shaped either. And the stack BALANCES: 0x00D9 pushes nine words on top of this one's, ten in all, 0x0174 pops exactly those ten in mirror order, and a `call nz` deposits its return address in the slot the NMI's pushed program counter would occupy -- equivalence-0174.test.js's SEAT arm measures SP landing exactly 22 above where it started, which is those ten words plus that return and cannot be reconciled with anything unwound that was never given. Both guarding sums pass on the shipped image, sum(0x00D8,256) = 0x87 against the `sub 0x87` at 0x00A0 and sum(0x27DE,256) = 0xC5 against the `sub 0xc5` at 0x49CE, so what a patched image buys at those two sites is one whole frame service run out of band and returned from normally: corruption, not a crash",
   },
   0x019a: {
@@ -3805,7 +3805,7 @@ export const ROUTINES = {
   0x19da: {
     name: "checkTheCopyrightLineColoursOrDerail",
     role: "walk the thirteen colour cells under the copyright line and derail on the first one that has been changed: starting at 0xA2BC and stepping back 32 a cell, every cell must hold one of exactly two colours, and the first that holds anything else transfers into bytes that carry no routine and never come back. ★ The two accepted colours are the COLOUR BYTES OF THE LINE'S TWO RECORDS, which differ in nothing else -- 0x10 in the record at 0x086B and 0x05 in the record at 0x4900, both carrying destination 0xA6BC and the same thirteen glyphs -- so the pair is what the line's own flashing writes, and not a wipe colour beside a pen colour. Thirteen good cells return having done nothing",
-    cert: "code",
+    cert: "seen",
     why: "the identification is arithmetic and it is a strict coincidence test with no slack in it. The copyright line's record is reached through the table at 0x0C50, whose first word is 0x086B; that record's destination is 0xA6BC and it holds thirteen glyphs before drawTextRun's 0xB9 terminator, and advanceCharCursor steps the cursor by -32 a cell, so the line's character cells are 0xA6BC, 0xA69C … 0xA53C and their colour twins (& ~0x0400) are 0xA2BC, 0xA29C … 0xA13C. I generated both lists and compared them: same start, same stride, same direction, same count of thirteen. The line is TWO records and not one, which is what makes 'record zero' under-determined and the colour pair explicable: record 31, pointer 0x4900, carries the same destination and the same thirteen glyphs `30 f1 7c 68 3b a5 38 fd f1 96 5d 17 9b`, and differs from record 0 in exactly one byte, the colour. drawCaptionInPenColour masks its colour with `& 0x0F` and so could never write 0x10 at all, which rules the pen out as the source of the second value. 'Derail': 0x49FA is CAPTION RECORD 4 -- pointer at 0x0C58, destination 0xA6EE, colour 0x14, seventeen glyphs and a 0xB9 terminator at 0x4A0E -- so what the transfer enters is text, and the offending colour, the cell it came from and the count still owed are DEBRIS those bytes happen to consume rather than an argument to anything. Two static call sites reach this entry, `call 0x19da` at 0x176A and at 0x1797, so no role here may say 'the caller'",
   },
   0x1f3e: {
@@ -3847,7 +3847,7 @@ export const ROUTINES = {
   0x410b: {
     name: "closeOneTurnOfTheSlotSweep",
     role: "close one turn of the per-slot sweep over an object bank: step the record cursor on one whole sixteen-byte record and the sprite-entry cursor on one two-byte entry, strike one off the turn count and go round again while any remain, ending the sweep when the count runs out; several arms of the sweep's body converge here rather than one, and the record stride is left standing in the wide scratch pair on the way out",
-    cert: "code",
+    cert: "seen",
     why: "'sweep' against closeOneTurnOfTheFreeSlotSearch's 'search' is the discriminating word, and the two bodies are opposite in both polarity and termination: 0x40EA opens `ld a,(ix+0x00) / and a / jp z,0x410b`, so a FREE slot is skipped to the tail and a live one is serviced, and no arm returns early -- every arm converges here and the count alone ends the sweep -- where 0x37D6 skips the occupied slot and returns the moment it fills a free one. The convergence is a scan result and here are the arms: `jp z,0x410b` at 0x40EE, `jr 0x410b` at 0x4106, `jp 0x410b` at 0x4191, 0x41A1 and 0x41B5, `jp nc,0x410b` at 0x41AF, plus the fall-through after the `call 0x413c` at 0x4108; a sixth occurrence of the word, at 0x2A86, sits inside a data run and is not a transfer. That is why the name says 'close one turn' and not 'return from the handler'. The count is not a constant either: the sweep's entry at 0x40D6 is `ld a,(0xad04) / cp 0x02 / ret c`, then `ld ix,0xa8c0 / ld iy,0xaa28`, then `ld a,(0xa8c6) / and a / ret z / ld b,a`, and 0xA8C6 is the third destination of applyEraRungSettings's scatter, at 0x1ACE. ★ advanceToNextSlot (0x309B) is `ld de,0x0010 / add ix,de / inc iy / inc iy / ret`, byte-identical up to the ending, so these two names must differ by the loop and by nothing else",
   },
   0x429c: {
