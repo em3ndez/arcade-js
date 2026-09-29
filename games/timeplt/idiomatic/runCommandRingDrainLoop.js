@@ -40,8 +40,8 @@ function runCommand(m, slot, argument) {
     case 7: return drawRoundNumberCaption(m);
     case 10: return drawCaptionFivePastSharedColour(m, argument);
     case 11: return drawCaptionTenPastSharedColour(m, argument);
-    // The other seven slots name bytes this port has not transcribed as a handler; running one would
-    // run untranscribed code, so surface the fault rather than assume what it does.
+    // Seven slots have no case. Slot 0's handler is not written here; slots 8, 9 and 12-15 would only
+    // return at once, and they raise too, so every slot without a case fails the same way.
     default:
       throw new NotImplemented(`runCommandRingDrainLoop: command slot ${slot} names no transcribed handler`);
   }

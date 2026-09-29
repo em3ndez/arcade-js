@@ -1761,8 +1761,7 @@ export const DEFAULT_KILL_QUOTA = 0x0874; // ROM boot-default byte copied into K
 export const RANDOM_REGISTER_SEED_SOURCE = 0x4b84; // base of the fixed 17-byte ROM seed run copied into RANDOM_REGISTER (seedRandomRegister)
 export const RANDOM_SEED_GUARD_WORD0 = 0x086d; // ROM word (1st of two) summed into seedRandomRegister's image-tamper guard total (must net to 0)
 export const RANDOM_SEED_GUARD_WORD1 = 0x0870; // ROM word (2nd) of the same seed image-tamper guard total
-export const SEQUENCE_PHASE_ARM_TABLE = 0x015f; // 4-word ROM table of per-phase arm-handler code addresses, indexed by SEQUENCE_PHASE&3 and m.call'd each vblank (serviceVerticalBlankInterrupt)
-export const MOTHER_SHIP_VELOCITY_ARM_TABLE = 0x46c4; // ROM word dispatch table, m.call'd arm by era&7 (setMotherShipVelocityFromHeading); each arm sets the velocity vector
+export const SEQUENCE_PHASE_ARM_TABLE = 0x015f; // 4-word ROM table of per-phase arm-handler code addresses, indexed by SEQUENCE_PHASE&3; the vblank service runs the selected arm each frame (serviceVerticalBlankInterrupt)
 export const ENEMY_SPAWN_DIRECTION_INDEX_TABLE = 0x39fb; // ROM byte table: spawn direction (scroll angle+jitter, 0-63) -> *4 record index into ENEMY_SPAWN_RECORD_TABLE (spawnEnemyIntoFreeSlot...)
 export const ENEMY_SPAWN_RECORD_TABLE = 0x3a3b; // ROM stride-4 enemy records (shape/facing/velocity) selected by ENEMY_SPAWN_DIRECTION_INDEX_TABLE or random
 export const SPRITE_SHAPE_BY_SECTOR_TABLE = 0x2a77; // 16-entry ROM table: sprite shape code by heading sector (+8 on alternate frames) (spriteForHeading)
@@ -1770,7 +1769,7 @@ export const SPRITE_MIRROR_BY_SECTOR_TABLE = 0x2a87; // 16-entry ROM table paral
 export const WIPE_SUBSTEP_SEED = 0x1749; // ROM byte (=0x06, a code operand reused as data) seeding SEQUENCE_SUBSTEP for the whole-plane wipe (startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase)
 export const SEQUENCE_PHASE_TAMPER_SPAN_BASE = 0x5648; // base of a 256-byte ROM block sub-folded into SEQUENCE_PHASE then XOR 0x4e -- anti-tamper (corrupts the phase on a modified image)
 export const MOTHER_SHIP_WARP_SHAPE_TABLE = 0x461b; // 8-entry ROM shape table for the mother-ship warp/flash animation (stepMotherShip/stepMotherShipWarpFlashFrame)
-export const MOTHER_SHIP_STAGE_ARM_TABLE = 0x478b; // ROM word dispatch table, per-era stage arms m.call'd by stepMotherShip
+export const MOTHER_SHIP_STAGE_ARM_TABLE = 0x478b; // ROM word dispatch table of the Mother-Ship's per-era stage arms (stepMotherShip)
 export const INTRO_SUBSTEP_RELOAD = 0x2750; // ROM byte (=3) reloading SEQUENCE_SUBSTEP after the round-start intro animation (stepRoundStartIntroAnimation)
 export const SEQUENCE_CHECKSUM_SPAN_BASE = 0x0bcc; // base of the 256-byte ROM block summed vs EXPECTED_CHECKSUM_TOTAL -> derail on mismatch (stepSequenceUnderChecksum)
 export const EXPECTED_CHECKSUM_TOTAL = 0x1a50; // anti-tamper reference total; stepSequenceUnderChecksum derails if the 256-byte sum from SEQUENCE_CHECKSUM_SPAN_BASE mismatches
@@ -1843,7 +1842,7 @@ export const NMI_ENABLE_BYTE = 0x4c87; // fixed ROM byte (=0x01) read at startup
 export const PARACHUTIST_BONUS_ARG_TABLE = 0x484f; // 4-entry ROM table of per-step argument bytes for the parachutist-bonus sound command run (postNextParachutistBonus)
 export const COIN_COUNTER_0_LATCH = 0xc30a; // hardware LS259 bit 5 = slot-1 mechanical coin counter (board LATCH_COIN_COUNTER_0); write-only pulse (pulseSlot1CoinCounter)
 export const COIN_COUNTER_1_LATCH = 0xc30c; // hardware LS259 bit 6 = slot-2 coin counter (LATCH_COIN_COUNTER_1); write-only pulse (pulseSlot2CoinCounter)
-export const COMMAND_HANDLER_TABLE = 0x0bbc; // 16-entry ROM word table of ring-command handler code addresses, indexed by command&0x0f and m.call'd (runCommandRingDrainLoop)
+export const COMMAND_HANDLER_TABLE = 0x0bbc; // 16-entry ROM word table of ring-command handler code addresses, indexed by command&0x0f; the drain loop runs the selected handler with the argument byte (runCommandRingDrainLoop)
 
 // Batch 9 (final data batch): data-address bases lifted out of routine-local consts / raw hex in 17 files.
 // Each is a ROM-image table/data-block base loaded into regs.hl then read by a table helper, a cell walked
@@ -1875,12 +1874,7 @@ export const COINAGE_VALUE_TABLE = 0x4b95; // 16-entry ROM table turning a DIP c
 // trap / parked-return slots) named loc_<addr>. Every value is the raw hex; behaviour is unchanged.
 export const blankNextLine_ADDR = 0x01c2; // §code: routine 0x01c2 as a call/return target (deep-dissolve deferred to Karl)
 export const advanceAttractTowardGameStart_ADDR = 0x0f54; // §code: routine 0x0f54 as a call/return target (deep-dissolve deferred to Karl)
-export const fileTwoPairsIntoObjectRecordHighByteFirst_ADDR = 0x46ce; // §code: routine 0x46ce as a call/return target (deep-dissolve deferred to Karl)
 export const advanceSequenceElseStartFreePlayGame_ADDR = 0x167b; // §code: routine 0x167b as a call/return target (deep-dissolve deferred to Karl)
-export const enterCommandRingDrain_ADDR = 0x0b90; // §code: routine 0x0b90 as a call/return target (deep-dissolve deferred to Karl)
-export const runCommandRingDrainLoop_ADDR = 0x0b93; // §code: routine 0x0b93 as a call/return target (deep-dissolve deferred to Karl)
-export const armMotherShipOrStep_ADDR = 0x43b7; // §code: routine 0x43b7 as a call/return target (deep-dissolve deferred to Karl)
-export const clearWorkRamAndSpriteBanksThenColdInit_ADDR = 0x0069; // §code: routine 0x0069 as a call/return target (dissolve reverted -- the equivalence seam measures the m.call)
 export const commissionStagedAttackerByEra_ADDR = 0x42b7; // §code: routine 0x42b7 as a call/return target (dissolve reverted -- the equivalence seam measures the m.call)
 export const parkTheImageTotalForTheTamperVerdict_ADDR = 0x07ad; // §code: routine 0x07ad as a call/return target (dissolve reverted -- the equivalence seam measures the m.call)
 export const serviceVerticalBlankInterrupt_ADDR = 0x00d9; // §code: routine 0x00d9 as an m.call target -- the vblank service the push-af at 0x00d8 falls into (deep-dissolve deferred to Karl)
@@ -1896,7 +1890,6 @@ export const loc_0f6d = 0x0f6d; // §code: parked return slot for the dissolved 
 export const loc_1fcf = 0x1fcf; // §code: parked return slot for the off-map transfer (loc_1f99)
 export const serviceSlotByMarkerThenCloseSweepTurn_ADDR = 0x40ea; // §code: routine 0x40ea as a code target -- the object-bank sweep body (sweepEra2PlusObjectBank)
 export const loc_2e3e = 0x2e3e; // §code: tamper-trap transfer target carrying no routine (showCreditLine)
-export const loc_2cd1 = 0x2cd1; // §code: parked return slot for the diagonal-pair scenery step (runSceneryForEra)
 export const loc_59d7 = 0x59d7; // §code: anti-tamper derail target into data (clearScreenRamAndVerifyImageThenColdInit)
 export const loc_49fa = 0x49fa; // §code: derail into a caption record decoded as code (checkTheCopyrightLineColoursOrDerail)
 

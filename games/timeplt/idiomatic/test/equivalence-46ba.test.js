@@ -26,8 +26,10 @@
  *                   return; the figure is pinned. Besides the stack pointer only the arm's own
  *                   walking scratch (a/f/h/l) may differ: the frozen arms walk the table in them,
  *                   the rewrite's arms hand back only the pair. The continuation reloads a and
- *                   the flags before reading them and hands h/l back untouched through a save and
- *                   restore, so the set is pinned and cannot quietly widen.
+ *                   the flags before reading them. h/l are not read either: the caller's tail
+ *                   saves and restores them, they pass unread out through 0x43B7, and the round
+ *                   service's next call overwrites them (0x28A1 -> 0x290E, rst 0x30, pop hl). The set is pinned
+ *                   and cannot quietly widen.
  *   5. ★ LIVE     — against the dispatch the live game ran before this rewrite, the table word
  *                   dispatched through the seam into the lifted arms with a slot parked for it:
  *                   every register, the stack pointer included, and all RAM outside that dead

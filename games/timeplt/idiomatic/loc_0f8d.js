@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** loc_0f8d — the image-checksum tamper trap: pop four return words to unwind the caller chain, then
- * fall into the sprite fixup pass. LIVE-OUT: sp past the four words, the fourth's flags carry into
- * the pass, b=2, and the accumulator/C/flags the pass itself leaves. */
+ * run the sprite fixup pass (the fourth word's low byte carries into it) and return through a fifth.
+ * LIVE-OUT: sp past all five words, pc from the fifth, b=2, and the accumulator/C/flags the pass leaves. */
 
 import { multiplexSpriteSlotsSkipping as spriteFixupPass } from "./multiplexSpriteSlotsSkipping.js";
 
