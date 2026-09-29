@@ -3,16 +3,14 @@
  * serviceVblankNmi — the vblank NMI handler: one frame of interrupt service. In order:
  * acknowledge (clear the interrupt-enable latch, blocking re-entry), kick the watchdog by
  * reading the input port and reject the SERVICE switch, DMA-blit the sprite shadow buffer,
- * read+debounce the controls when a game is in play (ATTRACT == 0), then reserve the 12-byte
- * register-save stack frame the hardware prologue pushed and run the per-frame work + epilogue.
+ * read+debounce the controls when a game is in play (ATTRACT == 0), then run the per-frame work.
  *
- * The stack reserve keeps the epilogue's pops in mapped RAM: SP and the return address stay
- * faithful while the popped register values are dead scratch.
+ * Fired as a plain JS call once per vblank: the register save/restore and the interrupt return
+ * the hardware brackets the handler with carry no game state, so none of it is modelled here.
  *
  * LIVE-OUT: memory-only — the work, sprite and video RAM the frame produces.
  */
 
-import { u16 } from "../../../core/int.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import {
   ATTRACT,
@@ -24,7 +22,7 @@ import { blitSpritesViaDma } from "./blitSpritesViaDma.js";
 import { readControls } from "./readControls.js";
 import { perFrame } from "./perFrame.js";
 
-export function serviceVblankNmi(m, sp = m.regs.sp) {
+export function serviceVblankNmi(m) {
   const { mem8 } = m;
 
   // Acknowledge the NMI (and lock out re-entry until the tail re-enables it).
@@ -44,6 +42,5 @@ export function serviceVblankNmi(m, sp = m.regs.sp) {
     readControls(m);
   }
 
-  // Reserve the 12-byte register-save frame the hardware prologue pushed, then run the tail.
-  perFrame(m, u16(sp - 12));
+  perFrame(m);
 }

@@ -2,80 +2,31 @@
 //
 // idiomatic — the Donkey Kong go-live gates. Tests 1 and 2 run the ASSEMBLED game under the cycle-free
 // coroutine engine (core/frame-stepped.js runIdiomaticGame) and compare it against the pure-
-// translated oracle run under runCycleFree with the SAME frame boundary — the vblank wait at ROM
-// 0x02BD — so both runs cross vblank at the same logical point. Test 3 runs no game at all (it is a
-// structural check on the Machine) and test 4 runs only the oracle. ROM-guarded (skips without the
-// BYO ROM). FOUR tests, each exercising something different; read this list before trusting a green
-// run, because two of them are deliberately narrow:
+// translated oracle under runCycleFree, both crossing vblank at the wait at ROM 0x02BD. Test 3 is a
+// structural check on the Machine; test 4 runs only the oracle. ROM-guarded.
 //
-//   1. "the idiomatic spine reproduces the translated oracle"
-//      Wires exactly ONE override: the boot generator at 0x0000, which delegates into the mainLoop
-//      generator with `yield*`. Everything else — the vblank NMI, every leaf — stays TRANSLATED.
-//      Coverage claim, stated exactly because it is easy to overstate: this proves the idiomatic
-//      control SPINE drives the assembled game and reproduces the oracle over 600 attract frames.
-//      It contains ZERO translated->idiomatic leaf transitions (the engine enters the generator
-//      directly and opens no call bracket), so it says NOTHING about the layer seam. It could not
-//      have caught, and did not catch, the seam's return-address leak; test 2 is what covers that.
+//   1. "the idiomatic spine reproduces the translated oracle" — the override MAP holds only the boot
+//      generator at 0x0000; the layer's direct imports run as JS and the engine fires the idiomatic
+//      vblank handler directly (idiomaticNmi). 600 attract frames vs the oracle.
 //
-//   2. "the FULL FLIP: all idiomatic routines live, guest stack balanced every frame"
-//      Wires resolveAllIdiomatic() — every routine in idiomatic/names.js ROUTINES — which is the
-//      configuration web/worker.js ships and the only one that exercises the translated->idiomatic
-//      SEAM. Asserts, per vblank yield: SP equals the previous yield's, and SP never falls below
-//      the STACK_SCRATCH floor the state-diff exclusion assumes; plus that the vblank NMI subtree
-//      is stack-neutral on its own, and that the flip still reproduces the oracle on every live
-//      cell. Also asserts the run REACHES its frame budget, which "green" did not previously imply:
-//      before the seam fix this run died at frame 237 and no test failed.
+//   2. "the FULL FLIP" — resolveAllIdiomatic(), the configuration web/worker.js ships. Asserts SP is
+//      INERT (runbook §4, "Retiring SP"): it never moves from its power-on value on any sample and
+//      the direct-call NMI never touches it. Nothing resets SP any more, so a stray push/pop anywhere
+//      in the frame shows as a persistent move (the old per-frame epilogue reset that absorbed
+//      in-NMI deltas is gone). Also asserts the run reaches its budget and reproduces the oracle on
+//      every live cell.
 //
-//      ★★ KNOWN COVERAGE BOUNDARY — this gate is SP-BLIND INSIDE THE NMI SUBTREE, and that limit is
-//      measured, not suspected. The SP assertion samples at the vblank YIELD, i.e. at frame
-//      boundaries. `perFrame`'s epilogue forces SP = frameBase + 12 before that point, so any stack
-//      delta introduced INSIDE the NMI subtree is absorbed before the gate ever looks.
-//      THE EVIDENCE, non-vacuous: idiomatic loc_07cb's FINISH arm returns before the oracle leaf
-//      loc_3f24 supplies a +2, so wiring it into runAttractState's slot 6 produces a REAL 2-byte
-//      delta in the SHIPPED configuration — and this gate reports spFaults=0. It was caught only by
-//      replaying equivalence-073c's own captures at STRIDE 1 (1 mismatch in 3990; the routine's
-//      stride-16 sampling steps over the single frame that differs).
-//      ★ AN EARLIER VERSION OF THIS PARAGRAPH cited a different injection (swapping
-//      dispatchEffectState's loc_1e4a import) as passing "THREE gates". That citation was itself
-//      vacuous and is withdrawn: under this test's config that routine takes state 2 ZERO times in
-//      20000 frames, and `swap_check --all` at the quoted 3000-frame budget never dispatches it
-//      either (it does at 6000, and is still TRANSPARENT). Only equivalence-1dbd genuinely drove the
-//      swapped code. A gate that never executes the change is not a gate that failed to catch it.
-//      So: "guest stack balanced every frame" means balanced AT THE FRAME BOUNDARY. Do not read a
-//      green run here as a stack proof for ANY subtree — including the main-loop/task subtree: the
-//      0x0F56 dissolve in this same commit was once described as "proven safe" that way, and that
-//      was false (all 3 of its invocations are inNmi=true; injecting a delta there passes 4/4).
-//      For a stack question, measure the call site in situ; this gate does not answer it.
-//      Its budget is 6000. That WAS a wall (the pure-signature wiring class, at frame 710); it is now
-//      a review decision — see FLIP_FRAMES for the measured headroom and why the number stands.
+//   3. "with no overrides the seam is not installed at all" — an empty override map carries no own
+//      push16/pop16/call, so every oracle run (incl. `runOracle` here) is the untouched prototype
+//      path. Says nothing about the shipped player (test 2). Carries its own teeth.
 //
-//   3. "with no overrides the seam is not installed at all"
-//      A STRUCTURAL proof, not a numeric one: a Machine built with an empty override map carries no
-//      own push16/pop16/call, so the pure-oracle path — every oracle suite and every convergence
-//      baseline, including the `runOracle` side of tests 1 and 2 — runs the identical prototype
-//      methods it always did. It says NOTHING about the SHIPPED player, which is an
-//      overridden Machine (manifest.runtime === "idiomatic"); test 2 is that one. Carries its own
-//      teeth case (the properties MUST appear once an override is wired).
+//   4. "the seam's stack-effect tables still match the frozen oracle" — re-derives SEAM_CALLER_SKIP /
+//      SEAM_TAIL_NO_RET from an instrumented attract run; entries attract never reaches are not
+//      checked, and the count is reported.
 //
-//   4. "the seam's stack-effect tables still match the frozen oracle"
-//      Re-derives machine.js's SEAM_CALLER_SKIP / SEAM_TAIL_NO_RET from an instrumented pure-oracle
-//      run and diffs them against the committed tables, so the seam cannot drift away from the
-//      oracle it models. Coverage claim: the ATTRACT sequence only — it checks every table entry
-//      the attract run actually reaches and reports the count; entries it never reaches are NOT
-//      checked and the test says so rather than implying otherwise.
-//
-// THE MEMORY-EQUIVALENCE CONTRACT the comparisons use: byte-for-byte on every LIVE cell of the
-// dumped state — work RAM 0x6000-0x6BFF, sprite RAM 0x7000-0x73FF, video RAM 0x7400-0x77FF
-// (the rendered output) — excluding only the dead stack scratch [0x6BE0, 0x6C00), where a
-// direct-called idiomatic leaf simply never writes the oracle's transient push16/ret bytes. That
-// exclusion is sound only while SP stays at or above the scratch floor, which is exactly what test
-// 2's second assertion now proves instead of assuming.
-//
-// COVERAGE SCOPE (every test here): the ATTRACT sequence, whose task handlers all ret promptly to
-// 0x02BD (one yield per frame). GAMEPLAY is NOT covered — a gameplay handler could itself wait for
-// vblank and would need its own yield. Before wiring gameplay leaves under these gates, add a
-// gameplay input-tape run (see manifest.convergence). The three main-loop paths (dispatch, fZ-spin
-// once, new-frame) ARE all hit by attract.
+// CONTRACT: byte-for-byte on every LIVE cell (work, sprite and video RAM), excluding only the dead
+// stack scratch [0x6BE0, 0x6C00), which the idiomatic side never writes (test 2 proves SP inert).
+// SCOPE: the ATTRACT sequence only; gameplay live-cell parity is NOT asserted here.
 
 import nodeTest from "node:test";
 import assert from "node:assert/strict";
@@ -97,48 +48,10 @@ const test = ROM_PRESENT
 
 const FRAMES = 600; // enough to boot and run the attract sequence
 
-// The full flip's budget is 700, and the reason it is not higher is a REAL DEFECT, not a safety
-// margin. Two blockers have fallen in turn, each one exposing the next:
-//   frame 599 — `translated/loc_3e99.js:66` invoked ROM 0x3EC3 as `m.call(0x3ec3)` with no second
-//     argument while `countObjectOverlaps` destructures one. FIXED by wiring an idiomatic loc_3e99.
-//   frame 607 — a live-cell divergence in one OBJ_ARRAY_67 record and its mirrored sprite. FIXED
-//     by 0x2A2F, which returned a JS boolean without writing `regs.a` while both its callers are
-//     still translated and read the verdict out of the accumulator (`and a / jp nz` at
-//     translated/loc_2053.js and loc_20ec.js). Bisected: 0x2A2F alone clears frame 607.
-//     0x298C had the SAME defect and was fixed alongside it — its single caller
-//     translated/loc_3202.js uses `cp 0x01` rather than `and a / jp nz` — but on its own it does
-//     NOT clear 607; it is a correctness fix, not the one that moved this wall.
-//     A dropped register live-out at a translated-caller boundary — invisible to a per-routine gate
-//     that compares RAM and the oracle's residual A, but never checks the value lands where the
-//     caller looks.
-//   frame 710 — the PURE-SIGNATURE WIRING CLASS: `snapYToGirder` (0x2333) is a PURE function
-//     `(x, y, step)` registered at a ROM address. The seam dispatches it as `fn(m)`, so `x` is the
-//     Machine and the rest `undefined`; `x % 16` is NaN and it silently degrades to a no-op that
-//     happens to match the oracle's frequent early-out. Over a 1500-frame run the oracle moves L
-//     on 71 of 1301 dispatches; the wired idiomatic version moves it on 0 of 1146. (The zero is the
-//     load-bearing half; the dispatch counts differ between the two runs and are quoted with their
-//     budget so they can be re-derived.) It was a CLASS, not one routine: five ROUTINES entries
-//     exported non-machine signatures, and 0x3009 hung the process outright when dispatched that way.
-//     FIXED by the `entry` field in idiomatic/names.js: each of the five now names a machine-shaped ABI
-//     wrapper beside its pure function, and the resolvers take the export from `entry ?? name`
-//     (machine.js resolveAllIdiomatic, tools/swap_check.mjs). Gate:
-//     idiomatic/test/seam-entry-abi.test.js, which dispatches every one of them through
-//     `m.call(ADDR)` — the path that was broken — and carries the pure-wired registry as its teeth.
-//
-// ★ THIS BUDGET IS NOW A COVERAGE CHOICE, NOT A DEFECT. With that class fixed there is no known
-// wall at any budget. Raised to 6000 on measurement, by the lead, on review — not as a side effect
-// of the fix: the full flip under runIdiomaticGame was compared live-cell against the oracle for
-// 6000 frames with ZERO divergences and SP pinned at 0x6C00 on every frame (distinct SP values
-// observed: exactly one), and `swap_check --all` is TRANSPARENT to 12000. 6000 costs ~0.6s against
-// ~0.26s at 700, so the coverage is nearly free; raise it further if a defect is ever suspected to
-// live deeper. If you ever LOWER it, say why in the same breath — and never lower it to make a
-// failure go away.
-//
-// ★ WHY THIS TEST EXISTS. All three blockers above were invisible to per-routine equivalence gates:
-// a leaked stack word, a register live-out dropped at the layer boundary, and an ABI mismatch at the
-// dispatch seam are properties of the SEAM, not of any routine in isolation. Every one of those
-// routines passed its own gate while the assembled game was wrong. This test, and swap_check, are
-// the only things that see them.
+// A coverage choice, not a wall: the flip was measured live-cell identical to the oracle at 6000
+// frames. The earlier walls (a leaked stack word, a register live-out dropped at the layer boundary,
+// a pure-signature routine dispatched as fn(m)) were all invisible to per-routine gates — properties
+// of the assembled game, which is why this test exists. Never lower it to make a failure go away.
 const FLIP_FRAMES = 6000;
 
 const { pollPCs, stateExclude, idiomatic } = manifest.convergence;
@@ -175,7 +88,8 @@ test("the idiomatic spine reproduces the translated oracle (coroutine go-live)",
   // into the mainLoop generator with `yield*` (idiomatic/boot.js imports it directly), so mainLoop
   // needs no registry override — an override at 0x02BD would be inert here, and m.call of a
   // generator returns an undriven generator (a silent no-op), so it is deliberately NOT registered.
-  // The vblank NMI and every leaf routine stay translated in THIS test; the full flip is test 2.
+  // Only the registry holds a single entry here; the vblank NMI still fires the idiomatic handler
+  // directly (the engine sets idiomaticNmi). The full override map is test 2.
   const overrides = await resolveOverrides({
     "0": { module: "./idiomatic/boot.js", export: "boot" },
   });
@@ -217,7 +131,7 @@ test("the idiomatic spine reproduces the translated oracle (coroutine go-live)",
   }
 });
 
-test("the FULL FLIP: all idiomatic routines live, guest stack balanced every frame", async () => {
+test("the FULL FLIP: all idiomatic routines live, guest SP inert every frame", async () => {
   // THE CONFIGURATION THAT SHIPS. resolveAllIdiomatic() wires every routine in ROUTINES as an
   // override — the same call web/worker.js makes — which is the ONLY configuration that exercises
   // the translated->idiomatic seam: a frozen translated caller emits `push16(RET)` before its
@@ -230,10 +144,8 @@ test("the FULL FLIP: all idiomatic routines live, guest stack balanced every fra
   const mi = new Machine(ROM, { overrides });
   installEntropyPin(mi, manifest.entropyPin);
 
-  // Belt and braces on top of the per-frame check: the vblank NMI subtree must be stack-neutral on
-  // its own. This localises a fault to the NMI chain instead of only showing up as a frame-boundary
-  // delta, and it is a tighter net — before the seam fix the NMI epilogue's six register `pop`s
-  // restored orphaned return addresses into IY/IX/HL/DE/BC on EVERY frame.
+  // The vblank NMI is a direct JS call in this engine: it must not touch SP at all. This localises a
+  // fault to the NMI chain instead of only showing up as a moved SP at the next sample.
   const nmiFaults = [];
   const realFire = mi.fireNmi.bind(mi);
   mi.fireNmi = function () {
@@ -243,30 +155,16 @@ test("the FULL FLIP: all idiomatic routines live, guest stack balanced every fra
   };
 
   const idi = [];
-  let prevSp = null;
+  const SP_RESET = mi.regs.sp; // power-on value; nothing in the idiomatic layer seats or moves SP
   const spFaults = [];
-  const floorFaults = [];
   const ri = runIdiomaticGame(mi, {
     bootAddr: 0x0000,
     nmiReturnPC,
     maxFrames: FLIP_FRAMES,
     onFrame: (m, frame) => {
       idi.push(Buffer.from(m.dumpState()));
-      // Frame 0 is the power-on sample, taken before a single instruction runs — SP is still 0
-      // there and boot's `ld sp,0x6c00` has not happened yet, so the invariant starts at frame 1.
-      if (frame === 0) return;
-      const sp = m.regs.sp;
-      // THE ASSERTION. The main loop's vblank yield is a fixed point of the guest's stack
-      // discipline — the pure oracle holds SP at 0x6C00 there on every frame — so any unbalanced
-      // push/pop anywhere in the frame shows as a non-zero delta on the FIRST frame it happens.
-      if (prevSp !== null && sp !== prevSp) {
-        spFaults.push(`frame ${frame}: ${hex(prevSp)} -> ${hex(sp)}`);
-      }
-      // ...and this makes the STACK_SCRATCH exclusion SELF-POLICING: excluding [0x6BE0,0x6C00) from
-      // the state diff is sound only while SP stays above the floor, so the gate now proves its own
-      // premise instead of assuming it.
-      if (sp < STACK_LO) floorFaults.push(`frame ${frame}: SP ${hex(sp)}`);
-      prevSp = sp;
+      // THE ASSERTION. SP is retired: it must sit at its reset value on EVERY sample, frame 0 included.
+      if (m.regs.sp !== SP_RESET) spFaults.push(`frame ${frame}: SP ${hex(m.regs.sp)}`);
     },
   });
 
@@ -277,16 +175,10 @@ test("the FULL FLIP: all idiomatic routines live, guest stack balanced every fra
 
   assert.equal(
     spFaults.length, 0,
-    "guest SP moved across a frame boundary — an unbalanced push/pop at the translated/idiomatic " +
-      "seam (a translated caller's push16 that no idiomatic callee consumed, or an over-pop): " +
-      brief(spFaults),
+    `guest SP moved off its reset value ${hex(SP_RESET)} — a push/pop or SP seat survives in the ` +
+      `idiomatic layer: ${brief(spFaults)}`,
   );
-  assert.equal(
-    floorFaults.length, 0,
-    `SP fell below the STACK_SCRATCH floor ${hex(STACK_LO)}: the state-diff exclusion ` +
-      `[${hex(STACK_LO)},${hex(STACK_HI)}) is no longer sound — ${brief(floorFaults)}`,
-  );
-  assert.equal(nmiFaults.length, 0, `the vblank NMI subtree changed SP: ${brief(nmiFaults)}`);
+  assert.equal(nmiFaults.length, 0, `the vblank NMI changed SP: ${brief(nmiFaults)}`);
 
   // COVERAGE, ASSERTED. "It died at frame 237" was not previously a test failure at all; these two
   // are what make a truncated run red instead of quietly short.

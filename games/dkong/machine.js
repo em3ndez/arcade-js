@@ -16,6 +16,7 @@ import { makeIndexedView } from "../../core/mem-views.js";
 import { loc_0000 as romReset } from "./translated/loc_0000.js";
 import { bootOnly } from "./translated/bootOnly.js";
 import { loc_0066 } from "./translated/loc_0066.js";
+import { serviceVblankNmi } from "./idiomatic/serviceVblankNmi.js";
 import { ORACLE_ROUTINES, buildRoutines } from "./routines.js";
 import {
   buildPalette, CYCLES_PER_LINE, decodeSprites, decodeTiles, drawSprites,
@@ -150,7 +151,9 @@ function seamWrap(addr, fn, seam) {
   if (fn.constructor && fn.constructor.name === "GeneratorFunction") return fn;
   const skips = SEAM_CALLER_SKIP.has(addr);
   const tailRets = !SEAM_TAIL_NO_RET.has(addr);
-  return function seamed(mm, ...args) {
+  seamed.unbracketed = fn; // the bare body, for a dispatch whose caller opened no bracket
+  return seamed;
+  function seamed(mm, ...args) {
     const spEntry = mm.regs.sp;
     const top = seam.frames[seam.frames.length - 1];
     const own = top !== undefined && !top.taken && top.spEntry === spEntry ? top : undefined;
@@ -173,7 +176,7 @@ function seamWrap(addr, fn, seam) {
     }
     if (r === false && skips) consumeBracketAtSp(mm, seam);
     return r;
-  };
+  }
 }
 
 /**
@@ -350,10 +353,17 @@ export class Machine {
 
   /**
    * Vector the vblank NMI as the Z80 does: push the current PC, jump to 0x0066.
+   * Under the idiomatic engine (idiomaticNmi) it is a direct call to serviceVblankNmi: no push, SP inert.
    * The pushed PC lands in diffed work RAM, so an unknown PC throws rather than guesses.
    * No reentrancy guard: the handler clears the NMI mask (0x7d84) itself.
    */
   fireNmi() {
+    if (this.idiomaticNmi) {
+      // Idiomatic engine: the vblank handler is pure JS, fired directly -- no guest push, no
+      // call/ret seam, so SP is unused. The cycle-driven path below keeps the real Z80 entry.
+      this.nmiCount += 1;
+      return serviceVblankNmi(this);
+    }
     if (!this.pcKnown) {
       throw new Error(
         `NMI accepted at cycle ${this.cycles} but the ROM PC is unknown: the ` +

@@ -1495,7 +1495,7 @@ export const ROUTINES = {
   0x2153: { name: "loc_2153", role: "clear an object record fractional X/Y remainders and airborne counter", cert: "seen" },
   0x215f: { name: "loc_215f", role: "stage the grader inputs for one object, run the grader, fall into the sprite tail", cert: "seen" },
   0x2b1c: { name: "loc_2b1c", role: "probe Mario descent landing; on a normal result run the board-gated follow-up", cert: "seen" },
-  0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
+  0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC: mask vblank, then clearRamAndInitHardware), then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "seen" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "seen" },
   0x0010: { name: "marioActiveGuard", role: "caller-skip guard: proceed only while Mario is alive", cert: "seen" },
   0x0018: { name: "tickSubstateTimer", role: "tick the sub-state countdown, report expiry", cert: "seen" },

@@ -17,7 +17,10 @@
 //   • the coin is accepted (CREDITS increments 0->1, GAME_STATE reaches the credited state 2);
 //   • play starts          (GAME_STATE reaches the in-game state 3, ATTRACT clears);
 //   • gameplay ADVANCES    (the in-game sub-state dispatcher steps GAME_SUBSTATE through the
-//                           opening cutscene, and the per-frame SUBSTATE_TIMER countdown drains).
+//                           opening cutscene, and the per-frame SUBSTATE_TIMER countdown drains);
+//   • SP stays INERT       (the guest SP never moves from its power-on value: the vblank NMI is a
+//                           direct JS call and no idiomatic routine seats, pushes or pops a stack —
+//                           runbook §4 "Retiring SP").
 //
 // TEETH (null-mutant proven, see games/dkong/test/idiomatic.test.js commit notes): clamping any
 // one driving cell to 0 in a scratch copy trips exactly the matching assertion while the run still
@@ -80,7 +83,9 @@ async function driveWholeGame() {
     attractClearedInGame: false,
     inGameSubMax: 0,
     timerDrainCount: 0, // frames on which the per-frame countdown actually moved while in-game
+    spMoves: [], // frames whose sampled SP differs from the power-on value
   };
+  const spReset = mi.regs.sp;
   let prevTimer = null;
 
   const ri = runIdiomaticGame(mi, {
@@ -88,6 +93,7 @@ async function driveWholeGame() {
     maxFrames: FRAMES,
     onFrame: (m, frame) => {
       m.applyInputs(frame); // assert the coin/start bits for this frame's IN2 reads
+      if (m.regs.sp !== spReset) obs.spMoves.push(`frame ${frame}: 0x${m.regs.sp.toString(16)}`);
 
       const gs = m.mem.read8(GAME_STATE);
       const credit = m.mem.read8(CREDITS);
@@ -142,5 +148,11 @@ test("the whole idiomatic game boots, takes a coin, starts, and advances (all ro
   assert.ok(
     obs.timerDrainCount > 0,
     "the per-frame SUBSTATE_TIMER countdown never moved while in-game (the frame loop is not ticking)",
+  );
+
+  // 6. SP INERT across the whole credited run, attract and in-game dispatch alike.
+  assert.equal(
+    obs.spMoves.length, 0,
+    `guest SP moved off its power-on value (${obs.spMoves.length} frames): ${obs.spMoves.slice(0, 4).join("; ")}`,
   );
 });

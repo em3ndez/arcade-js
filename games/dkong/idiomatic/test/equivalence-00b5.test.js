@@ -8,15 +8,14 @@
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. perFrame WRITES RAM everywhere (frame counter, PRNG, coin/credit and
  * sound/task state, and whatever the GAME_STATE handler dispatches), so every case uses a
- * FRESH clone per side. The contract compared is:
+ * FRESH clone per side. The contract compared is the DISSOLVED form:
  *
- *     RAM (dumpState, minus STACK_SCRATCH)  +  SP  +  pc.
+ *     RAM (dumpState, minus STACK_SCRATCH)  +  io latches  +  perFrame's SP unmoved from entry.
  *
- * Like serviceVblankNmi's gate, SP and pc ARE faithful and part of the contract here:
- * perFrame's epilogue restores the interrupted SP (entry SP + 14) and pops the interrupted
- * PC (from entry SP + 12). Only the register FILE is excluded — the oracle's saved-register
- * VALUES are the interrupt ABI the direct-call layer drops, and every push/pop lands in the
- * excluded STACK_SCRATCH region (the DK NMI stack never dips below 0x6be0).
+ * perFrame is the tail of a vblank handler the idiomatic engine fires as a DIRECT JS call, so it
+ * carries no interrupt-return epilogue: the oracle's register-frame discard and `ret` (and every
+ * push/pop in its subtree) land in the excluded STACK_SCRATCH region, and its SP/pc are the
+ * interrupt ABI the direct call drops. What IS asserted is that perFrame never touches SP.
  *
  * CAPTURE — 0x00b5 is reached by a direct fall-through from entry_0066, not the override map,
  * so we wrap fireNmi and mirror entry_0066's prologue up to perFrame's entry (accept NMI, ack,
@@ -26,13 +25,16 @@
  *
  * Jobs:
  *   1. EQUAL (captured perFrame entries) — over attract + driven captures spanning all
- *      four GAME_STATE arms, oracle vs perFrame leave identical RAM(−stack) + SP + pc. The
+ *      four GAME_STATE arms, oracle vs perFrame leave identical RAM(−stack) and io
+ *      latches, SP untouched. The
  *      FULL oracle GAME_STATE handler runs on both sides, so a wrong dispatch target or a
  *      live register/flag handoff would surface as divergent RAM.
  *   2. TEETH A (the frame decrement) — a twin that OMITS `dec (FRAME)` MUST be caught
- *      (at FRAME 0x601A, the routine's headline side effect).
- *   3. TEETH B (the epilogue unwind) — a twin that discards one register too few (SP set
- *      to frameBase+10, not +12, before `ret`) MUST be caught at SP/pc.
+ *      in RAM.
+ *   3. TEETH B (SP-inert) — a twin that keeps the interrupt-return epilogue (discard the
+ *      register frame, `ret`) MUST be caught at SP, with RAM still equal.
+ *   4. TEETH C (the NMI re-arm) — a twin that never re-arms the NMI MUST be caught at
+ *      io.nmiMask (the enable latch is an io output, not RAM).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-00b5.test.js
  */
@@ -84,12 +86,25 @@ const COIN_START_TAPE = [
 
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
+// The board-output latches (the NMI enable, flip, banks, sound) live in io, not in the RAM dump.
+const IO_FIELDS = ["nmiMask", "flipScreen", "spriteBank", "paletteBank", "audioIrq", "soundLatch3d"];
+function ioDiff(ma, mb) {
+  for (const k of IO_FIELDS) {
+    if (ma.io[k] !== mb.io[k]) return { kind: "io", field: k, a: ma.io[k], b: mb.io[k] };
+  }
+  for (let i = 0; i < 8; i++) {
+    if (ma.io.latch6h[i] !== mb.io.latch6h[i]) return { kind: "io", field: `latch6h[${i}]`, a: ma.io.latch6h[i], b: mb.io.latch6h[i] };
+  }
+  return null;
+}
+
 /**
- * First divergence on the go-forward contract, or null: RAM (dumpState, minus the dead
- * STACK_SCRATCH region), then SP, then pc. One masked forward scan (the oracle leaves many
- * benign dead-stack diffs — the register-save frame it writes and this layer does not).
+ * First divergence on the dissolved contract, or null: RAM (dumpState, minus the dead
+ * STACK_SCRATCH region), then the io latches, then perFrame's SP against its entry value
+ * `sp0`. One masked forward scan (the oracle leaves many benign dead-stack diffs — the
+ * register-save frame it writes and this layer does not).
  */
-function contractDiff(ma, mb) {
+function contractDiff(ma, mb, sp0) {
   const a = ma.dumpState();
   const b = mb.dumpState();
   const n = Math.min(a.length, b.length);
@@ -99,9 +114,17 @@ function contractDiff(ma, mb) {
     if (inDeadStack(addr)) continue;
     return { kind: "ram", addr, a: a[off], b: b[off] };
   }
-  if (ma.regs.sp !== mb.regs.sp) return { kind: "sp", a: ma.regs.sp, b: mb.regs.sp };
-  if (ma.pc !== mb.pc) return { kind: "pc", a: ma.pc, b: mb.pc };
+  const io = ioDiff(ma, mb);
+  if (io) return io;
+  if (mb.regs.sp !== sp0) return { kind: "sp", a: sp0, b: mb.regs.sp };
   return null;
+}
+
+/** One line for a contract diff. */
+function describe(d) {
+  if (d.kind === "ram") return `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`;
+  if (d.kind === "io") return `io.${d.field} diff: oracle=${d.a} idiomatic=${d.b}`;
+  return `SP moved: entry=${hx(d.a)} idiomatic=${hx(d.b)}`;
 }
 
 /**
@@ -164,8 +187,9 @@ const CAPS = ROM_PRESENT
 // -- 1. EQUAL (captured perFrame entries) -------------------------------------
 
 // Catch-all override (duck-typed like the Machine's overrides Map) that runs the frozen handler for
-// whatever dispatch target was computed. Installed identically on both sides, so a wrong target still
-// routes to a different handler and diverges RAM — perFrame-body-vs-perFrame-body, as before.
+// whatever dispatch target was computed. Both sides run the same frozen handler for a target (the
+// idiomatic side through the bracketed copy below), so a wrong target still routes to a different
+// handler and diverges RAM — perFrame-body-vs-perFrame-body.
 function oracleCatchAll() {
   return {
     has: () => true,
@@ -173,7 +197,20 @@ function oracleCatchAll() {
   };
 }
 
-test("EQUAL: real captured perFrame entries — perFrame == oracle (RAM −stack, SP, pc)", () => {
+// Idiomatic side's copy: perFrame's dispatchers push no continuation, so seat one for the frozen
+// handler's `ret` and restore the entry SP after; perFrame's SP check then sees only perFrame.
+function bracketedOracleCatchAll() {
+  return {
+    has: () => true,
+    get: (target) => (mm) => {
+      const sp0 = mm.regs.sp;
+      mm.push16(0x0000);
+      try { return ORACLE_ROUTINES.get(target)(mm); } finally { mm.regs.sp = sp0; }
+    },
+  };
+}
+
+test("EQUAL: real captured perFrame entries — perFrame == oracle (RAM −stack), SP untouched", () => {
   assert.ok(CAPS.length >= 1, "expected at least one real perFrame entry across the runs");
 
   const states = new Set();
@@ -181,19 +218,15 @@ test("EQUAL: real captured perFrame entries — perFrame == oracle (RAM −stack
     const o = cap.clone();
     const c = cap.clone();
     o.overrides = oracleCatchAll();
-    c.overrides = oracleCatchAll();
+    c.overrides = bracketedOracleCatchAll();
     oraclePerFrame(o);
     perFrame(c);
 
-    const d = contractDiff(o, c);
+    const d = contractDiff(o, c, cap.regs.sp);
     assert.equal(
       d,
       null,
-      d &&
-        (d.kind === "ram"
-          ? `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} ` +
-            `(GAME_STATE ${hx(cap.mem.read8(GAME_STATE))})`
-          : `${d.kind} diff: oracle=${hx(d.a)} idiomatic=${hx(d.b)}`),
+      d && describe(d),
     );
     states.add(cap.mem.read8(GAME_STATE));
   }
@@ -204,7 +237,7 @@ test("EQUAL: real captured perFrame entries — perFrame == oracle (RAM −stack
   assert.ok(states.has(1), "expected a GAME_STATE 1 (attract) capture");
   assert.ok(states.has(3), "expected a GAME_STATE 3 (in-game) capture from the driven run");
   console.log(
-    `  EQUAL: ${CAPS.length} perFrame entries identical (RAM −stack, SP, pc); ` +
+    `  EQUAL: ${CAPS.length} perFrame entries identical (RAM −stack), SP untouched; ` +
       `GAME_STATE seen={${[...states].sort().join(",")}}`,
   );
 });
@@ -214,16 +247,13 @@ test("EQUAL: real captured perFrame entries — perFrame == oracle (RAM −stack
 // Broken twin: identical to perFrame but OMITS `dec (FRAME)`. Everything else — services,
 // dispatch, epilogue — is faithful, so the divergence is the un-advanced frame clock.
 function brokenNoFrameDec(m) {
-  const { regs, mem } = m;
-  const frameBase = regs.sp;
+  const { mem } = m;
   // BUG: no `mem.write8(FRAME, (mem.read8(FRAME) - 1) & 0xff)`.
   stirRandomSeed(m);
   serviceCoinInput(m);
   soundDriverTick(m);
   NMI_GAME_STATE[mem.read8(GAME_STATE)](m);
   mem.write8(NMI_ENABLE, 1);
-  regs.sp = (frameBase + 12) & 0xffff;
-  m.ret();
 }
 
 test("TEETH A: omitting the frame decrement is CAUGHT", () => {
@@ -233,37 +263,56 @@ test("TEETH A: omitting the frame decrement is CAUGHT", () => {
   const c = base.clone();
   oraclePerFrame(o);
   brokenNoFrameDec(c);
-  const d = contractDiff(o, c);
+  const d = contractDiff(o, c, base.regs.sp);
   assert.notEqual(d, null, "the gate FAILED to catch an omitted frame decrement — it is worthless");
   console.log(`  TEETH A: omitted dec (FRAME) caught (${d.kind} @ ${hx(d.addr ?? d.a)})`);
 });
 
-// -- 3. TEETH B (the epilogue unwind) -----------------------------------------
+// -- 3. TEETH B (perFrame is SP-inert) ---------------------------------------
 
-// Broken twin: identical to perFrame but discards one register too few in the epilogue —
-// SP set to frameBase+10 (not +12) before `ret`, so `ret` pops the wrong PC and SP lands
-// two low. Everything else is faithful, so it must be caught at SP/pc.
-function brokenEpilogueOffByOne(m) {
-  const { regs, mem } = m;
-  const frameBase = regs.sp;
+// Broken twin: the correct perFrame, then the interrupt-return epilogue the direct call dropped —
+// discard the 12-byte register frame and `ret`. Memory-identical, so only the SP check sees it.
+function brokenKeepsEpilogue(m) {
+  perFrame(m);
+  m.regs.sp = (m.regs.sp + 12) & 0xffff;
+  m.ret();
+}
+
+test("TEETH B: a perFrame that still unwinds the interrupt frame is CAUGHT at SP (RAM equal)", () => {
+  const base = CAPS[0];
+  const o = base.clone();
+  const c = base.clone();
+  oraclePerFrame(o);
+  brokenKeepsEpilogue(c);
+  const d = contractDiff(o, c, base.regs.sp);
+  assert.notEqual(d, null, "the gate FAILED to catch an SP-moving perFrame — the inertness check is worthless");
+  assert.equal(d.kind, "sp", `expected the catch at SP (RAM equal), got ${d.kind}`);
+  console.log(`  TEETH B: SP-moving twin caught (entry=${hx(d.a)} broken=${hx(d.b)})`);
+});
+
+// -- 4. TEETH C (the NMI re-arm) ----------------------------------------------
+
+// Broken twin: identical to perFrame but never re-arms the NMI. The enable latch is an io output, not
+// RAM, so only the io comparison sees it.
+function brokenNoRearm(m) {
+  const { mem } = m;
   mem.write8(FRAME, (mem.read8(FRAME) - 1) & 0xff);
   stirRandomSeed(m);
   serviceCoinInput(m);
   soundDriverTick(m);
   NMI_GAME_STATE[mem.read8(GAME_STATE)](m);
-  mem.write8(NMI_ENABLE, 1);
-  regs.sp = (frameBase + 10) & 0xffff; // BUG: should be +12
-  m.ret();
+  // BUG: no `mem.write8(NMI_ENABLE, 1)`.
 }
 
-test("TEETH B: an off-by-one epilogue unwind is CAUGHT at SP/pc", () => {
+test("TEETH C: a perFrame that never re-arms the NMI is CAUGHT in io", () => {
   const base = CAPS[0];
   const o = base.clone();
   const c = base.clone();
   oraclePerFrame(o);
-  brokenEpilogueOffByOne(c);
-  const d = contractDiff(o, c);
-  assert.notEqual(d, null, "the gate FAILED to catch an off-by-one epilogue unwind — it is worthless");
-  assert.ok(d.kind === "sp" || d.kind === "pc", `expected an SP/pc catch, got ${d.kind}`);
-  console.log(`  TEETH B: off-by-one epilogue caught (${d.kind}: oracle=${hx(d.a)} broken=${hx(d.b)})`);
+  brokenNoRearm(c);
+  const d = contractDiff(o, c, base.regs.sp);
+  assert.notEqual(d, null, "the gate FAILED to catch a missing NMI re-arm");
+  assert.equal(d.kind, "io", `expected the catch in io, got ${d.kind}`);
+  assert.equal(d.field, "nmiMask");
+  console.log(`  TEETH C: missing re-arm caught at io.${d.field} (oracle=${d.a} broken=${d.b})`);
 });

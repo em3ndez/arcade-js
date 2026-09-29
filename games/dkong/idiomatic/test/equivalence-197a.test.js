@@ -2,20 +2,20 @@
 /**
  * runGameplayFrame — memory-equivalent to the frozen oracle at ROM 0x197A: one frame of play,
  * the fixed-order subsystem update with its three abandon gates and its death hand-off.
- * GATE:  real captures + crafted arms on top of real captures + live-wire, ATTRACT ONLY for the
- *        real dispatches. Every natural dispatch in an 8000-frame attract run is replayed
+ * GATE:  real captures + crafted arms on top of real captures + live-wire. The captured
+ *        replays are ATTRACT ONLY: every natural dispatch in an 8000-frame attract run is replayed
  *        inline, oracle against rewrite on byte-identical clones, compared on RAM −
  *        STACK_SCRATCH and the return value. ALL of them enter through the attract task at ROM
  *        0x1977; none enters through the in-game dispatch (ROM 0x00CA's game-state-3 arm),
- *        because attract never enters that state — THE IN-GAME ENTRY PATH IS THEREFORE NOT
- *        COVERED, and both counts are asserted in the gate rather than only stated here.
+ *        because attract never enters that state — both counts are asserted in the gate. The
+ *        in-game entry path is covered only by the live-wire arm's whole-run comparison.
  *        Attract reaches three of the five arms; the board-won and bonus-expired abandons it
  *        never reaches are driven by poking one or two bytes onto REAL captured entries.
  *
  * The routine's own contribution is a fixed call ORDER, three gates that can abandon the rest of
  * the frame, and a death hand-off at the end; the arithmetic all belongs to the twenty-six
- * callees, each of which is gated separately (twenty-five are idiomatic and direct-called here;
- * ROM 0x1F72 is still the frozen oracle on both sides and is therefore not under test).
+ * callees, each of which is gated separately and all of which are idiomatic and direct-called
+ * here (ROM 0x1F72 is the idiomatic update25mBarrels).
  *
  *   1. CAPTURE + INLINE REPLAY — an 8000-frame attract run with 0x197A hooked. EVERY dispatch is
  *      replayed, not a sample: at each one the entry state is cloned twice, the oracle runs on one
@@ -38,20 +38,17 @@
  *      the ORACLE's call sequence that the poke really did land the intended arm — a crafted arm
  *      that silently failed to arm would otherwise read as coverage.
  *
- *   3. LIVE-WIRE — runGameplayFrame drives a whole attract run under the coroutine engine, against a
- *      REFERENCE that differs in exactly one thing. The reference is NOT an all-oracle machine:
- *      this routine direct-calls twenty-four idiomatic callees, so the honest control is the
- *      shipping configuration (resolveAllIdiomatic — every routine in ROUTINES wired) with 0x197A
- *      REMOVED from that map, so it alone runs the frozen oracle. The removal is asserted to have
- *      removed something, so the control cannot silently become a second copy of the candidate.
- *      A second control hooks the same seam with the ORACLE
- *      to show the hook itself moves nothing. Both sides cross vblank at the same logical point
- *      under runIdiomaticGame, so there is no NMI to shift and no cycle cost to restore.
+ *   3. LIVE-WIRE — runGameplayFrame drives a whole CREDITED run under the coroutine engine on the
+ *      shipping map (resolveAllIdiomatic), entered through the in-game dispatcher — the one live
+ *      entry that still goes through the installed override (attract reaches it by a direct call
+ *      from runAttractDemoFrame). The control is the same run with the frozen oracle behind the
+ *      same override, its callee subtree frozen with it; every live cell must match, the dispatch
+ *      counts must match, and the rewrite must never move the guest SP.
  *
  *   4. TEETH — five broken twins, and the arm that catches each is asserted, not assumed. One is
  *      caught only by a crafted arm (attract never reaches the board-won abandon, so the natural
  *      captures are shown to MISS it); one is invisible to RAM and caught only by the return
- *      assertion; one is invisible to BOTH and caught only by the live-wire run's stack balance.
+ *      assertion; the dropped-bracket twin is retired (see its skip).
  *
  * Isolated replays use clone(), whose frame machinery is neutralised (nextNmi / nextBoundary =
  * Infinity), so an m.step inside the oracle cannot trip a live NMI whose handler would write RAM
@@ -86,7 +83,7 @@ const TARGET = 0x197a;
 const CAPTURE_FRAMES = 8000; // the attract capture + inline replay run
 const CRAFT_FRAMES = 2000; // the shorter run the crafted arms take their real entry states from
 const CRAFT_ENTRIES = 120; // how many real entry states the crafted arms are built on
-const LIVE_FRAMES = 3000; // the live-wire run and its two references
+const LIVE_FRAMES = 3000; // the live-wire run and its frozen control
 
 const { nmiReturnPC } = manifest.convergence.idiomatic;
 const hx = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -310,39 +307,50 @@ test("CRAFTED ARMS: the two abandons attract never reaches, and the death hand-o
 
 // -- 3. LIVE-WIRE -------------------------------------------------------------
 
-/**
- * The shipping override map with 0x197A TAKEN OUT, so the address alone runs the frozen oracle
- * while every other routine in ROUTINES stays wired. 0x197A is itself in ROUTINES now, so the
- * removal is what makes `liveRun(overrides, null)` a real control rather than a second copy of
- * the candidate; the assertion is there so a future map that no longer carries the address turns
- * this into a failure instead of a silent no-op.
- */
-// The 0x197A gameplay-frame subtree's barrel/object callees. Freezing 0x197A to oracle while these
-// stay idiomatic leaves oracle-0x197A opening push brackets its idiomatic callees never ret-consume —
-// a HALF-WIRED SP artifact (the same one ARM 1 excludes above), not a routine defect. So the honest
-// control freezes the whole subtree together: internally bracket-consistent on both sides, and 0x1F72
-// (twin-e's dropped-bracket tooth) is frozen oracle either way, so that tooth is preserved.
+// The 0x197A gameplay-frame subtree's barrel/object callees. The frozen control's oracle calls these
+// through the registry; left wired, their idiomatic bodies never consume the call brackets the oracle
+// opens -- a HALF-WIRED stack artifact, not a routine defect. So both arms freeze the whole subtree
+// together. 0x1F72 is not in the list: the rewrite calls update25mBarrels directly, and the frozen
+// control's call to it is bracketed and consumed like any other wired override.
 const TARGET_SUBTREE = [
   0x062a, 0x1c05, 0x1f8d, 0x1fac, 0x2053, 0x2101, 0x2118, 0x2146, 0x2153, 0x215f, 0x2b1c,
 ];
-async function shippingWithTargetFrozen() {
-  const overrides = await resolveAllIdiomatic();
-  assert.equal(overrides.has(TARGET), true, "0x197A should be in ROUTINES — the control removes it");
-  overrides.delete(TARGET);
-  for (const a of TARGET_SUBTREE) overrides.delete(a);
-  return overrides;
-}
+// Coin then 1P start (IN2 bit7 / bit2), then walk right and jump so play is not idle.
+const IN2 = 0x7d00, IN0 = 0x7c00;
+const CREDITED_TAPE = [
+  { frame: 200, port: IN2, bits: 0x80, dur: 8 },
+  { frame: 300, port: IN2, bits: 0x04, dur: 8 },
+  { frame: 600, port: IN0, bits: 0x01, dur: 400 },
+  { frame: 1100, port: IN0, bits: 0x10, dur: 4 },
+];
+const GUEST_SP = 0x6c00; // seated for the frozen control only: the idiomatic engine never uses a guest stack
 
 /**
- * One attract run under the coroutine engine, with `candidate` wired at 0x197A on top of the FULL
- * idiomatic override map. `candidate === null` leaves 0x197A frozen — that is the reference.
+ * One CREDITED run under the coroutine engine on the shipping map (resolveAllIdiomatic) with the
+ * subtree frozen and `candidate` wired at 0x197A behind a dispatch counter. In play the in-game
+ * dispatcher reaches 0x197A through the installed override -- the one live entry that still goes
+ * through the registry, since attract calls runAttractDemoFrame -> runGameplayFrame directly. The
+ * frozen oracle `ret`s into a continuation, so its arm pushes one (`bracket`) and restores the entry
+ * SP after; the guest SP is seated once at power-on. The rewrite neither pushes nor pops, and its SP
+ * is asserted unmoved -- the control's is harness-managed, so only the candidate's is evidence.
  */
-function liveRun(overrides, candidate, frames = LIVE_FRAMES) {
-  const ov = new Map(overrides);
+async function liveRun(candidate, bracket, frames = LIVE_FRAMES) {
+  const ov = await resolveAllIdiomatic();
+  assert.equal(ov.has(TARGET), true, "0x197A should be in ROUTINES");
+  for (const a of TARGET_SUBTREE) ov.delete(a);
   let dispatches = 0;
-  if (candidate !== null) ov.set(TARGET, (mm) => { dispatches++; return candidate(mm); });
+  ov.set(TARGET, (mm) => {
+    dispatches++;
+    if (!bracket) return candidate(mm);
+    // The frozen control: open the continuation its `ret` consumes, then restore the entry SP, since
+    // an oracle arm that tail-jumps onward (no `ret` of its own) leaves that word unconsumed.
+    const sp0 = mm.regs.sp;
+    mm.push16(0x0000);
+    try { return candidate(mm); } finally { mm.regs.sp = sp0; }
+  });
   const m = new Machine(ROM, { overrides: ov });
   installEntropyPin(m, manifest.entropyPin);
+  m.inputTape = CREDITED_TAPE.map((t) => ({ ...t }));
   const trace = [];
   const sps = new Set();
   const r = runIdiomaticGame(m, {
@@ -350,8 +358,10 @@ function liveRun(overrides, candidate, frames = LIVE_FRAMES) {
     nmiReturnPC,
     maxFrames: frames,
     onFrame: (mm, frame) => {
+      if (frame === 0) mm.regs.sp = GUEST_SP;
+      mm.applyInputs(frame);
       trace.push(Buffer.from(mm.dumpState()));
-      if (frame > 0) sps.add(mm.regs.sp); // frame 0 is sampled before boot sets SP
+      sps.add(mm.regs.sp);
     },
   });
   return { m, trace, dispatches, sps, run: r };
@@ -372,49 +382,30 @@ function firstTraceDiff(base, other, offToAddr) {
   return { full, live: null };
 }
 
-test("LIVE-WIRE: runGameplayFrame drives a whole attract run identically to the shipping configuration", async () => {
-  const overrides = await shippingWithTargetFrozen();
-  assert.ok(overrides.size > 300, `expected the whole idiomatic layer wired, got ${overrides.size}`);
+test("LIVE-WIRE: runGameplayFrame, dispatched by the in-game table, drives a credited run identically to the frozen oracle", async () => {
+  const ctl = await liveRun(oracle, true);
+  assert.equal(ctl.run.stopError, null, `frozen-control run errored: ${ctl.run.stop}`);
+  assert.ok(ctl.run.frames >= LIVE_FRAMES, `frozen control covered only ${ctl.run.frames}/${LIVE_FRAMES} frames`);
 
-  const ref = liveRun(overrides, null);
-  assert.equal(ref.run.stopError, null, `reference run errored: ${ref.run.stop}`);
-  assert.ok(ref.run.frames >= LIVE_FRAMES, `reference covered only ${ref.run.frames}/${LIVE_FRAMES} frames`);
-
-  // CONTROL: the same seam, hooked with the ORACLE. If this moved anything, a difference below
-  // could be the harness rather than the rewrite.
-  const ctl = liveRun(overrides, oracle);
-  const ctlDiff = firstTraceDiff(ref.trace, ctl.trace, (o) => ref.m.stateOffsetToAddr(o));
-  assert.equal(
-    ctlDiff.full, null,
-    ctlDiff.full && `hooking the oracle through the seam already changed the trace at frame ${ctlDiff.full.frame}, ${hx(ctlDiff.full.addr)}`,
-  );
-
-  const cand = liveRun(overrides, runGameplayFrame);
+  const cand = await liveRun(runGameplayFrame, false);
   assert.equal(cand.run.stopError, null, `live-wire run errored: ${cand.run.stop}`);
   assert.ok(cand.run.frames >= LIVE_FRAMES, `live-wire run covered only ${cand.run.frames}/${LIVE_FRAMES} frames`);
   // Without this the arm can pass while the routine never runs at all.
   assert.ok(cand.dispatches > 0, "the override was never dispatched — this arm would be vacuous");
   assert.equal(cand.dispatches, ctl.dispatches, "the rewrite ran a different number of times than the oracle did");
 
-  // THE STACK ASSERTION. In the shipping configuration the guest's stack discipline is a fixed
-  // point at the vblank yield, so an unbalanced push/pop anywhere — including a dropped return
-  // bracket around the one still-frozen callee — shows up here on the first frame it happens.
-  assert.deepEqual(
-    [...cand.sps], [...ref.sps],
-    `guest SP at the vblank yield moved: reference ${[...ref.sps].map(hx).join(",")} vs live-wire ${[...cand.sps].map(hx).join(",")}`,
-  );
+  // THE STACK ASSERTION. The rewrite must leave the guest SP exactly where it was seated.
+  assert.deepEqual([...cand.sps], [GUEST_SP], `live-wire moved the guest SP: ${[...cand.sps].map(hx).join(",")}`);
 
-  const d = firstTraceDiff(ref.trace, cand.trace, (o) => ref.m.stateOffsetToAddr(o));
+  const d = firstTraceDiff(ctl.trace, cand.trace, (o) => ctl.m.stateOffsetToAddr(o));
   assert.equal(
     d.live, null,
-    d.live && `frame ${d.live.frame} diverged at ${hx(d.live.addr)}: reference=${d.live.a} live-wire=${d.live.b}`,
+    d.live && `frame ${d.live.frame} diverged at ${hx(d.live.addr)}: frozen=${d.live.a} live-wire=${d.live.b}`,
   );
   console.log(
-    `  LIVE-WIRE: ${cand.dispatches} dispatches over ${LIVE_FRAMES} frames against the ${overrides.size}-routine ` +
-      `shipping configuration — every live cell identical, SP pinned at ${[...cand.sps].map(hx).join(",")} on every ` +
-      `frame. The dissolved call brackets DO leave the dead stack scratch different` +
-      (d.full ? ` (first at frame ${d.full.frame}, ${hx(d.full.addr)}: ${d.full.a} vs ${d.full.b})` : " (no difference seen)") +
-      ", which is why that region is excluded here and only SP is asserted across it.",
+    `  LIVE-WIRE: ${cand.dispatches} in-game dispatches over ${LIVE_FRAMES} credited frames — every live cell ` +
+      "identical to the frozen oracle, guest SP never moved" +
+      (d.full ? ` (dead stack scratch differs, first at frame ${d.full.frame}, ${hx(d.full.addr)})` : ""),
   );
 });
 

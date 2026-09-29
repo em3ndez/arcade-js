@@ -5,11 +5,8 @@
  * handler, so it is gated by capture/clone/replay, not an exhaustive-leaf sweep:
  *   1. EQUAL (real captured dispatches) — clone at a strided set of true 0x073C dispatches;
  *      run the oracle on one clone and runAttractState on another; assert RAM(−STACK_SCRATCH)
- *      identical. No-credit dispatches also assert SP/pc match the oracle (the callee's `ret`
- *      sets them) for every sub-state EXCEPT death (4): slot 4 tail-dispatches the now-DISSOLVED
- *      dispatchDeathAnimationPhase, which no longer seats the oracle's rst-0x28 guest return, so
- *      its SP/pc differ while RAM stays identical — perFrame resets SP and the whole-game
- *      SP-inertness tests carry that guard.
+ *      identical, and that runAttractState (with its directly-called idiomatic sub-state
+ *      handler) leaves SP untouched — the oracle's `ret`-set SP/pc are call ABI it drops.
  *   2. EQUAL (crafted) — forces CREDIT and every sub-state 0-7 on one captured entry, RAM-equal
  *      both sides; the CREDIT arm also asserts runAttractState leaves SP/pc unchanged from entry.
  *   3. TEETH — a twin reading the index from GAME_STATE (0x6005) not GAME_SUBSTATE (0x600A) must
@@ -35,13 +32,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x073c;
-// Attract sub-state 4 (runDeathAnimationSubstate) is the ONE dispatch whose handler chain
-// reaches the now-DISSOLVED dispatchDeathAnimationPhase. The oracle's rst-0x28 death dispatch
-// seats a guest-stack return (SP -2 transiently); the de-seamed direct call does not, so SP/pc
-// legitimately differ there while RAM stays identical (perFrame owns/resets SP every frame).
-// Empirically confirmed the SOLE diverging slot: over a full attract loop only sub-state 4
-// diverges in SP/pc (RAM clean on every slot); every other slot still matches the oracle.
-const DEATH_SUBSTATE = 4;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
@@ -130,18 +120,10 @@ test("EQUAL (captured): runAttractState == oracle on real attract dispatches (di
       bad && `game-visible RAM diff at ${hx(bad.addr)} (oracle=${bad.a} idiomatic=${bad.b}) ` +
         `on sub-state ${sub}`,
     );
-    // No-credit is a TAIL dispatch: the callee's own `ret` sets SP/pc identically on both
-    // sides, so the dispatch branch's SP/pc MATCH the oracle exactly — for every sub-state
-    // EXCEPT the death sub-state (4). Sub-state 4 tail-dispatches through
-    // dispatchDeathAnimationPhase, which has been DISSOLVED to a direct call: it no longer
-    // seats the oracle's rst-0x28 guest-stack return, so SP is transiently -2 vs the oracle
-    // (and pc differs) on that branch alone. SP is not a live-out here — perFrame owns and
-    // resets it every frame, RAM is identical, and the whole-game SP-inertness tests carry
-    // the SP guard — so the SP/pc check is skipped ONLY for sub-state 4.
-    if (sub !== DEATH_SUBSTATE) {
-      assert.equal(b.regs.sp, a.regs.sp, `SP must match the oracle on the dispatch branch (${hx(b.regs.sp)} vs ${hx(a.regs.sp)})`);
-      assert.equal(b.pc, a.pc, `pc must match the oracle on the dispatch branch (${hx(b.pc)} vs ${hx(a.pc)})`);
-    }
+    // No-credit is a TAIL dispatch to an idiomatic sub-state handler, called as JS: neither
+    // runAttractState nor the handler models the oracle's `ret`, so the idiomatic side must leave
+    // SP exactly where it found it (the oracle's SP/pc are the call ABI the direct call drops).
+    assert.equal(b.regs.sp, entry.regs.sp, `SP must be untouched on the dispatch branch (${hx(entry.regs.sp)} -> ${hx(b.regs.sp)}) on sub-state ${sub}`);
 
     // The oracle's stack activity must land inside STACK_SCRATCH, so excluding it
     // cannot mask a real diff (its rst push16(0x0748) writes just below entry SP).
@@ -153,7 +135,7 @@ test("EQUAL (captured): runAttractState == oracle on real attract dispatches (di
   assert.ok(seen.size >= 4, `captured sweep should span several sub-states, saw ${[...seen].sort((x, y) => x - y).join(",")}`);
   console.log(
     `  EQUAL/captured: ${caps.length} real dispatches over sub-states {${[...seen].sort((x, y) => x - y).join(",")}} — ` +
-      "game-visible RAM identical, SP/pc match the oracle",
+      "game-visible RAM identical, SP untouched",
   );
 });
 
@@ -182,8 +164,8 @@ test("EQUAL (crafted): CREDIT and every sub-state 0-7 forced on a real entry mat
   }
 
   // Every sub-state 0-7, forced deterministically (some are rare or unreached in a
-  // bounded attract run). Both sides call the SAME oracle handler on the SAME poked
-  // state, so game-visible RAM must be identical.
+  // bounded attract run). The oracle runs its frozen handler, runAttractState the idiomatic
+  // one, on the SAME poked state, so game-visible RAM must be identical.
   for (let s = 0; s <= 7; s++) {
     const a = entry.clone(); const b = entry.clone();
     a.mem.write8(GAME_SUBSTATE, s); b.mem.write8(GAME_SUBSTATE, s);
@@ -196,7 +178,7 @@ test("EQUAL (crafted): CREDIT and every sub-state 0-7 forced on a real entry mat
       bad && `sub-state ${s}: game-visible RAM diff at ${hx(bad.addr)} (oracle=${bad.a} idiomatic=${bad.b})`,
     );
   }
-  console.log("  EQUAL/crafted sub-states: 0-7 all dispatch to the oracle handler — game-visible RAM identical");
+  console.log("  EQUAL/crafted sub-states: 0-7 each match the oracle handler — game-visible RAM identical");
 });
 
 // -- 3. TEETH -----------------------------------------------------------------

@@ -33,8 +33,10 @@
  *    by the exhaustive routing sweep and by the whole-run live wiring below.
  *  - THE OVERRIDE PRE-CHECK (dispatch an installed override directly, never through the routine table)
  *    is covered by one focused check with a non-retting, idiomatic-shaped handler installed. It
- *    asserts loc_00ca consults the routine table ZERO times and leaves the guest stack where the
- *    oracle does — the structural guarantee that replaced the old routine-table dispatch.
+ *    asserts loc_00ca consults the routine table ZERO times. The guest stack has two contracts:
+ *    called from JS (the live game — no continuation pushed) it runs the bare handler body and
+ *    leaves SP untouched; entered through the rst-0x28 trampoline (`bracketed`, frozen caller)
+ *    it closes the bracket and leaves SP where the oracle does.
  *  - LIVE-OUT is covered over a whole attract run with the rewrite wired into the dispatch position
  *    at every computed jump (the production override path), byte-compared frame by frame to a pure
  *    oracle run.
@@ -370,7 +372,7 @@ const ENTRY_073C = ROM_PRESENT ? captureOneEntry(0x073c) : null;
  * the routine table (`m.call`) was consulted at all — it must not be: the idiomatic layer dispatches
  * only through the override.
  */
-function dispatchWithInstalledHandler(fn, target) {
+function dispatchWithInstalledHandler(fn, target, bracketed = false) {
   let fired = 0;
   const m = rehost(ENTRY_073C, {
     overrides: {
@@ -388,7 +390,7 @@ function dispatchWithInstalledHandler(fn, target) {
     return base(addr, ...rest);
   };
   const spBefore = m.regs.sp;
-  const r = outcome(fn, m, target);
+  const r = bracketed ? outcome((mm, t, site) => fn(mm, t, site, true), m, target) : outcome(fn, m, target);
   return { fired, consulted, spBefore, spAfter: m.regs.sp, mark: m.mem.read8(STUB_MARK), ...r };
 }
 
@@ -396,17 +398,25 @@ test("EQUAL: an installed handler is dispatched directly, never through the rout
   assert.ok(ENTRY_073C !== null, "no entry state was captured — this check would be vacuous");
   const o = dispatchWithInstalledHandler(oracle, 0x073c);
   const c = dispatchWithInstalledHandler(loc_00ca, 0x073c);
+  const t = dispatchWithInstalledHandler(loc_00ca, 0x073c, true);
 
   assert.equal(o.fired, 1, "the installed handler never ran on the oracle side — nothing is being observed");
   assert.equal(o.mark, 0x5a, "the installed handler left no mark — it is indistinguishable from no handler");
-  assert.equal(c.consulted.length, 0, "the rewrite consulted the routine table — it must dispatch only through overrides");
-  assert.deepEqual(
-    { fired: c.fired, consulted: c.consulted, sp: c.spAfter, mark: c.mark, returned: c.returned },
-    { fired: o.fired, consulted: o.consulted, sp: o.spAfter, mark: o.mark, returned: o.returned },
-  );
+  assert.notEqual(o.spAfter, o.spBefore, "the oracle closed no bracket here — the two stack contracts are indistinguishable");
+  for (const [label, x] of [["JS caller", c], ["trampoline", t]]) {
+    assert.equal(x.consulted.length, 0, `${label}: the rewrite consulted the routine table — it must dispatch only through overrides`);
+    assert.deepEqual(
+      { fired: x.fired, consulted: x.consulted, mark: x.mark, returned: x.returned },
+      { fired: o.fired, consulted: o.consulted, mark: o.mark, returned: o.returned },
+      label,
+    );
+  }
+  // From JS the guest stack is untouched; through the trampoline it matches the oracle's bracket close.
+  assert.equal(c.spAfter, c.spBefore, `JS caller moved SP ${hx(c.spBefore)} -> ${hx(c.spAfter)}`);
+  assert.equal(t.spAfter, o.spAfter, `trampoline SP ${hx(t.spAfter)} != oracle ${hx(o.spAfter)}`);
   console.log(
-    `  EQUAL/pre-check: handler ran ${o.fired}x, routine table consulted ` +
-      `${o.consulted.length}x, guest stack ${hx(o.spBefore)} -> ${hx(o.spAfter)}, forwarded ${o.returned}`,
+    `  EQUAL/pre-check: handler ran ${o.fired}x, routine table consulted ${o.consulted.length}x, ` +
+      `forwarded ${o.returned}; guest stack: oracle/trampoline ${hx(o.spBefore)} -> ${hx(o.spAfter)}, JS caller untouched`,
   );
 });
 

@@ -12,18 +12,22 @@
  * span is overwritten regardless of prior contents.
  *
  * The oracle sets SP to 0x6C00, `push16`es the 0x02B8 return address, then `call`s
- * 0x011C (silenceSound) whose `ret` pops it, so SP nets back to 0x6C00 and the pushed
- * bytes land at 0x6BFE/0x6BFF — inside the dead STACK_SCRATCH [0x6be0,0x6c00), which
- * the memory-equivalence contract excludes. clearRamAndInitHardware dissolves that bracket into a
- * direct silenceSound(m) call and sets SP itself, so SP matches with no ret modelling.
+ * 0x011C (silenceSound) whose `ret` pops it, so the pushed bytes land at 0x6BFE/0x6BFF —
+ * inside the dead STACK_SCRATCH [0x6be0,0x6c00), which the memory-equivalence contract
+ * excludes. clearRamAndInitHardware dissolves that bracket into a direct silenceSound(m)
+ * call and does not seat SP at all: the idiomatic layer fires the vblank NMI as a direct
+ * JS call and uses no guest stack, so the seat is vestigial (runbook §4, "Retiring SP").
  *
- * The contract compared here is RAM − STACK_SCRATCH, pc, SP, the io device state (the
- * display/sound hardware latches bootInit sets are board outputs, not RAM), and the
- * discard-write counter (proving the faithful 0x6C00-0x6FFF over-run).
+ * The contract compared here is RAM − STACK_SCRATCH, pc, the io device state (the
+ * display/sound hardware latches bootInit sets are board outputs, not RAM), the
+ * discard-write counter (proving the faithful 0x6C00-0x6FFF over-run), and the
+ * candidate's SP unmoved from entry (SP-inert).
  *
  *   1. REACHABILITY — the real boot path (bootOnly) runs bootInit last and leaves its
  *      invariants (blank-tile VRAM, empty task queue, flip-screen + NMI enabled).
- *   2. EQUAL — clearRamAndInitHardware == oracle over power-on / mid-attract / dirtied entries.
+ *   2. EQUAL — clearRamAndInitHardware == oracle over power-on / mid-attract / dirtied entries,
+ *      and boot's bootInit (mask vblank + this routine) == the translated bootOnly (ROM
+ *      0x0000-0x02BC) over the same entries.
  *   3. TEETH — three broken twins the same contract MUST catch:
  *        (a) blank-tile twin (VRAM zeroed, not 0x10) — caught in RAM at 0x7400.
  *        (b) flip-screen twin (0x7D82 left off) — caught in io.flipScreen.
@@ -40,6 +44,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0266 as oracle } from "../../translated/loc_0266.js";
 import { bootOnly } from "../../translated/bootOnly.js";
 import { clearRamAndInitHardware } from "../clearRamAndInitHardware.js";
+import { bootInit } from "../boot.js";
 import { silenceSound } from "../silenceSound.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, TASK_TAIL, TASK_HEAD, TASK_RING } from "../names.js";
@@ -94,29 +99,23 @@ function ioDiffs(o, c) {
   return out;
 }
 
-/** Run the ORACLE on a fresh clone (no overrides → m.call(0x011c) is the translated sub_011c). */
-function runOracle(entry) {
-  const c = entry.clone();
-  oracle(c);
-  return c;
-}
-
-/** Run a candidate on a fresh clone. clearRamAndInitHardware falls through (no ret), so pc/SP need no modelling. */
+/** Run a candidate on a fresh clone. clearRamAndInitHardware falls through (no ret) and never touches SP. */
 function runCandidate(entry, fn) {
   const c = entry.clone();
   fn(c);
   return c;
 }
 
-/** Full contract diff: RAM − STACK_SCRATCH, pc, SP, io device state, discard counter. */
-function contractDiffs(entry, fn) {
-  const o = runOracle(entry);
+/** Full contract diff: RAM − STACK_SCRATCH, pc, io device state, discard counter, candidate SP unmoved. */
+function contractDiffs(entry, fn, oracleFn = oracle) {
+  const o = entry.clone();
+  oracleFn(o);
   const c = runCandidate(entry, fn);
   const diffs = [];
   const ram = firstRamDiff(o, c);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
+  if (c.regs.sp !== entry.regs.sp) diffs.push(`SP moved: entry=${hx(entry.regs.sp)} cand=${hx(c.regs.sp)}`);
   if (o.mem.discardedWrites !== c.mem.discardedWrites) {
     diffs.push(`discardedWrites oracle=${o.mem.discardedWrites} cand=${c.mem.discardedWrites}`);
   }
@@ -186,10 +185,25 @@ test("EQUAL: clearRamAndInitHardware == oracle over power-on / mid-attract / dir
     const c = runCandidate(entry, clearRamAndInitHardware);
     assert.equal(c.mem.read8(0x7400), 0x10, `${name}: video RAM not filled`);
     assert.equal(c.mem.read8(TASK_RING), 0xff, `${name}: task ring not marked free`);
-    assert.equal(c.regs.sp, 0x6c00, `${name}: SP not set to 0x6c00`);
     assert.equal(c.io.flipScreen, 1, `${name}: flip-screen not set`);
   }
   console.log("  EQUAL: 3 entries (power-on, mid-attract, dirtied) identical to the oracle");
+});
+
+test("EQUAL: boot's bootInit == translated bootOnly (ROM 0x0000-0x02BC) over the same entries", () => {
+  const entries = [
+    ["power-on", powerOn()],
+    ["mid-attract", attractBase()],
+    ["dirtied", dirtied()],
+  ];
+  for (const [name, entry] of entries) {
+    const diffs = contractDiffs(entry, bootInit, bootOnly);
+    assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
+  }
+  // Teeth: the io snapshot carries nmiMask, so a twin that leaves vblank masked is caught there.
+  const noRearm = contractDiffs(powerOn(), (m) => { bootInit(m); m.mem.write8(0x7d84, 0); }, bootOnly);
+  assert.ok(noRearm.some((d) => d.startsWith("io.nmiMask")), `no-re-arm twin escaped: ${noRearm.join("; ")}`);
+  console.log("  EQUAL: bootInit == bootOnly on 3 entries; a twin leaving vblank masked is caught at io.nmiMask");
 });
 
 // -- 3. TEETH -----------------------------------------------------------------
@@ -208,7 +222,7 @@ function twinNoFlip(m) {
 
 /** Broken twin (c): the full routine EXCEPT the silenceSound call is omitted. */
 function twinNoSilence(m) {
-  const { regs, mem } = m;
+  const { mem } = m;
   for (let a = 0x6000; a < 0x7000; a++) mem.write8(a, 0);
   for (let a = 0x7000; a < 0x7400; a++) mem.write8(a, 0);
   for (let a = 0x7400; a < 0x7800; a++) mem.write8(a, 0x10);
@@ -219,7 +233,6 @@ function twinNoSilence(m) {
   mem.write8(0x7d86, 0);
   mem.write8(0x7d87, 0);
   mem.write8(0x7d82, 1);
-  regs.sp = 0x6c00;
   // BUG: silenceSound(m) omitted — the sound latches keep their prior contents.
   mem.write8(0x7d84, 1);
 }

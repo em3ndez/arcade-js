@@ -2,14 +2,13 @@
 /**
  * perFrame — the per-frame service + game-state dispatch tail of the vblank NMI: decrement
  * FRAME (releasing the main loop's vblank spin), run the three service routines, dispatch the
- * top-level GAME_STATE to its handler, then re-enable the NMI and return from the interrupt.
+ * top-level GAME_STATE to its handler, then re-enable the NMI.
  *
- * LIVE-OUT: memory — FRAME, the PRNG seed, the coin/credit and sound/task state, and whatever
- * the dispatched handler writes — plus the restored stack pointer and program counter. No
- * register or flag is live: the interrupted main loop reloads from memory.
+ * LIVE-OUT: memory-only — FRAME, the PRNG seed, the coin/credit and sound/task state, and
+ * whatever the dispatched handler writes. No register or flag is live: the interrupted main
+ * loop reloads from memory.
  */
 
-import { u16 } from "../../../core/int.js";
 import {
   FRAME,
   GAME_STATE,
@@ -33,12 +32,8 @@ const NMI_GAME_STATE = [
   dispatchInGameSubstate, // 3 — in-game sub-state dispatch
 ];
 
-export function perFrame(m, sp = m.regs.sp) {
-  const { regs, mem8 } = m;
-
-  // Snapshot the entry stack pointer: the dispatch does not reliably restore it, but is
-  // stack-neutral overall, so the epilogue is a pure function of this value.
-  const frameBase = sp;
+export function perFrame(m) {
+  const { mem8 } = m;
 
   mem8[FRAME] = (mem8[FRAME] - 1);
 
@@ -55,8 +50,6 @@ export function perFrame(m, sp = m.regs.sp) {
   }
   handler(m);
 
-  // Re-enable the NMI, then return. The saved registers are dead, so drop the 12-byte frame
-  // as one stack-pointer adjustment ridden onto the return; the return pops the interrupted PC.
+  // Re-arm the NMI for the next vblank.
   mem8[NMI_ENABLE] = 1;
-  return (regs.sp = u16(frameBase + 12), m.ret());
 }

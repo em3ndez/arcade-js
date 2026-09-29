@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Power-on setup: wipe all RAM, seed an empty task queue, set the display
- * hardware bits, silence the sound, and hand the game its stack. Runs cold
- * with vblank masked, reads no work RAM, and writes only constants.
+ * hardware bits, silence the sound, and re-arm vblank. Runs cold with vblank
+ * masked, reads no work RAM, and writes only constants. No guest stack is
+ * seated: nothing in this layer uses one.
  *
- * LIVE-OUT: memory, the display/sound hardware latches, and the stack pointer.
+ * LIVE-OUT: memory and the display/sound hardware latches.
  */
 
 import { silenceSound } from "./silenceSound.js";
@@ -18,7 +19,6 @@ import {
   NMI_ENABLE,
   PALETTE_BANK_BIT0,
   PALETTE_BANK_BIT1,
-  STACK_TOP,
   SPRITE_RAM_BASE,
   TILEMAP_BASE,
   DMA_CH0_ADDR,
@@ -51,5 +51,6 @@ export function clearRamAndInitHardware(m) {
   mem8[PALETTE_BANK_BIT1] = 0;
   mem8[FLIPSCREEN] = 1;
 
-  return (m.regs.sp = STACK_TOP, silenceSound(m), (mem8[NMI_ENABLE] = 1));
+  silenceSound(m);
+  mem8[NMI_ENABLE] = 1;
 }

@@ -9,24 +9,24 @@
 
 import { CREDITS, GAME_STATE, GAME_SUBSTATE } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { loc_0779 } from "../translated/loc_0779.js";
-import { loc_0763 } from "../translated/loc_0763.js";
-import { loc_123c } from "../translated/loc_123c.js";
-import { loc_1977 } from "../translated/loc_1977.js";
+import { composeAttractTitleScreen } from "./composeAttractTitleScreen.js";
+import { restartAttractDemoAt25m } from "./restartAttractDemoAt25m.js";
+import { seedMarioActorRecord } from "./seedMarioActorRecord.js";
+import { runAttractDemoFrame } from "./runAttractDemoFrame.js";
 import { runDeathAnimationSubstate } from "./runDeathAnimationSubstate.js";
-import { loc_07c3 } from "../translated/loc_07c3.js";
-import { loc_07cb } from "../translated/loc_07cb.js";
-import { loc_084b } from "../translated/loc_084b.js";
+import { clearScreenAndAdvanceSubstate } from "./clearScreenAndAdvanceSubstate.js";
+import { loc_07cb } from "./loc_07cb.js";
+import { clearSubstateWhenTimerExpires } from "./clearSubstateWhenTimerExpires.js";
 
 const ATTRACT_SUBSTATE = [
-  loc_0779, // 0  draw the attract screen
-  loc_0763, // 1  timed advance
-  loc_123c, // 2  seed the demo sprite record
-  loc_1977, // 3  the demo-gameplay cascade
+  composeAttractTitleScreen, // 0  draw the attract screen
+  restartAttractDemoAt25m, // 1  timed advance
+  seedMarioActorRecord, // 2  seed the demo sprite record
+  runAttractDemoFrame, // 3  the demo-gameplay cascade
   runDeathAnimationSubstate, // 4  the death animation
-  loc_07c3, // 5
+  clearScreenAndAdvanceSubstate, // 5
   loc_07cb, // 6  countdown animation
-  loc_084b, // 7  timed gate; clears the sub-state
+  clearSubstateWhenTimerExpires, // 7  timed gate; clears the sub-state
   null, // 8  unused
   null, // 9  unused
 ];

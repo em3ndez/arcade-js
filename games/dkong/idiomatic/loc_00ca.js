@@ -56,10 +56,15 @@ export function resolveDispatchTarget(target, site = "the NMI game-state table")
   );
 }
 
-export function loc_00ca(m, target, site = "the NMI game-state table") {
+export function loc_00ca(m, target, site = "the NMI game-state table", bracketed = false) {
   // A dispatch target runs through its installed override. Every shipped config installs one for all
   // 67 targets, so this is the only path a valid target takes; the gate asserts that coverage.
-  if (m.overrides && m.overrides.has(target)) return m.overrides.get(target)(m);
+  // A JS caller opened no call bracket, so it runs the bare body; only the rst-0x28 trampoline,
+  // entered from frozen code that pushed its continuation, takes the bracket-closing form.
+  if (m.overrides && m.overrides.has(target)) {
+    const handler = m.overrides.get(target);
+    return (bracketed ? handler : (handler.unbracketed ?? handler))(m);
+  }
 
   // No override: refuse an out-of-table selector by name; a table target reaching here is a missing
   // override, i.e. a wiring error, not a dispatch this layer performs.

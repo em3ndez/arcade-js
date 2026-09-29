@@ -2,23 +2,20 @@
 /**
  * Memory-equivalence test for serviceVblankNmi (ROM 0x0066) — the vblank NMI handler:
  * ack the interrupt, kick the watchdog / reject SERVICE, DMA-blit the sprites, read the
- * controls when a game is in play, then run the per-frame work + epilogue (loc_00b5).
+ * controls when a game is in play, then run the per-frame work (perFrame).
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. serviceVblankNmi WRITES RAM everywhere (frame counter, RNG, sound
  * and task rings, the input latch, and whatever the GAME_STATE handler dispatches), so
- * every case uses a FRESH clone per side. The go-forward contract compared here is:
+ * every case uses a FRESH clone per side. The contract compared here is the DISSOLVED form:
  *
- *     RAM (dumpState, minus STACK_SCRATCH)  +  SP  +  pc.
+ *     RAM (dumpState, minus STACK_SCRATCH)  +  io latches  +  the idiomatic side's SP unmoved from entry.
  *
- * Unlike a leaf whose oracle ends in a modelled `ret`, this routine's SP and pc are
- * FAITHFUL to the oracle — serviceVblankNmi reserves the 12-byte register-save frame
- * that loc_00b5's epilogue pops (see the routine header), so loc_00b5's SP arithmetic
- * and its final `ret` land byte-identically. So SP and pc ARE part of the contract here
- * (which also makes the reserve testable — TEETH B). Only the register FILE is excluded:
- * the oracle's saved-register VALUES are the interrupt ABI the direct-call layer drops,
- * and every push/pop lands in the excluded STACK_SCRATCH region (the DK stack never dips
- * below 0x6be0 — measured min SP over a 2600-frame run == 0x6be0).
+ * The idiomatic engine fires this handler as a DIRECT JS call (machine.js fireNmi, idiomaticNmi):
+ * no PC push, no register save, no `retn`. The oracle's stack traffic (the pushed PC, the 12-byte
+ * register frame, the epilogue pops) all lands in the excluded STACK_SCRATCH region, so no diffed
+ * cell depends on it; its SP/pc are the interrupt ABI the direct call drops and are not compared.
+ * What IS asserted is the stronger invariant the direct call needs: the handler never touches SP.
  *
  * CAPTURE — 0x0066 is NOT reached through the m.call registry (fireNmi calls entry_0066
  * DIRECTLY), so it cannot be hooked via the override map like other routines. Instead we
@@ -30,15 +27,18 @@
  *   1. EQUAL (captured NMI entries) — sample ~64 real NMI entries across a 2600-frame
  *      attract run (title frames, GAME_STATE 0 and 1, and demo frames with moving
  *      sprites so the blit is non-trivial); on each, oracle vs serviceVblankNmi leave
- *      identical RAM(−stack) + SP + pc.
+ *      identical RAM(−stack) and io latches, and serviceVblankNmi leaves SP where it found it.
  *   2. CRAFTED (game-in-play arm) — attract keeps ATTRACT (0x6007) != 0, so the
- *      loc_0087 arm is never taken naturally. Poke ATTRACT = 0 identically on both
- *      sides so both route through loc_0087, and confirm the arm is equivalent.
+ *      controls-read arm is never taken naturally. Poke ATTRACT = 0, hold an input on
+ *      IN0 and seat a sentinel at the input latch, identically on both sides; confirm
+ *      the oracle overwrote the sentinel and both sides match.
  *   3. TEETH A (the ATTRACT gate) — a twin that INVERTS the gate (reads input during
  *      attract) MUST be caught. On a capture where the oracle leaves the input-latch
  *      sentinel untouched, the inverted twin overwrites it — caught at 0x6010.
- *   4. TEETH B (the reserve is load-bearing) — a twin that OMITS the 12-byte SP reserve
- *      MUST break: loc_00b5's epilogue pops then overrun past 0x6C00. Caught as a throw.
+ *   4. TEETH B (SP-inert) — a twin that keeps the interrupt return (pops a return
+ *      PC) MUST be caught by the SP check, with RAM still equal.
+ *   5. TEETH C (the controls read) — a twin that never reads the controls MUST be
+ *      caught on the crafted in-play entry, at the input latch 0x6010.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-0066.test.js
  */
@@ -50,10 +50,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0066 as oracleNmi } from "../../translated/loc_0066.js";
 import { serviceVblankNmi } from "../serviceVblankNmi.js";
 import { blitSpritesViaDma } from "../blitSpritesViaDma.js";
-import { loc_0087 } from "../../translated/loc_0087.js";
-import { loc_00b5 } from "../../translated/loc_00b5.js";
+import { readControls } from "../readControls.js";
+import { perFrame } from "../perFrame.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, ATTRACT } from "../names.js";
+import { STACK_SCRATCH, ATTRACT, IN0_PORT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -73,17 +73,25 @@ const SENTINEL = 0x5a; // a value loc_0087 can NEVER leave at 0x6010 -> unambigu
 
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
+// The board-output latches (the NMI enable, flip, banks, sound) live in io, not in the RAM dump.
+const IO_FIELDS = ["nmiMask", "flipScreen", "spriteBank", "paletteBank", "audioIrq", "soundLatch3d"];
+function ioDiff(ma, mb) {
+  for (const k of IO_FIELDS) {
+    if (ma.io[k] !== mb.io[k]) return { kind: "io", field: k, a: ma.io[k], b: mb.io[k] };
+  }
+  for (let i = 0; i < 8; i++) {
+    if (ma.io.latch6h[i] !== mb.io.latch6h[i]) return { kind: "io", field: `latch6h[${i}]`, a: ma.io.latch6h[i], b: mb.io.latch6h[i] };
+  }
+  return null;
+}
+
 /**
- * First divergence on the go-forward contract, or null: RAM (dumpState, minus the dead
- * STACK_SCRATCH region), then SP, then pc. Returns a tagged diff for reporting.
- *
- * A single forward pass that simply SKIPS dead-stack addresses — unlike the blit test's
- * subarray-restart helper, which cannot be reused here: entry_0066 leaves MANY dead-stack
- * diffs (the 12-byte register-save frame the oracle writes and the idiomatic side does
- * not, plus the offset stack traffic), and skipping them one subarray at a time is both
- * quadratic and easy to get wrong. One masked scan is correct and O(n).
+ * First divergence on the dissolved contract, or null: RAM (dumpState, minus the dead
+ * STACK_SCRATCH region), then the io latches, then the idiomatic side's SP against its
+ * entry value `sp0`. One masked forward scan: the oracle leaves many dead-stack diffs (the
+ * pushed PC and the 12-byte register-save frame it writes and the idiomatic side does not).
  */
-function contractDiff(ma, mb) {
+function contractDiff(ma, mb, sp0) {
   const a = ma.dumpState();
   const b = mb.dumpState();
   const n = Math.min(a.length, b.length);
@@ -93,9 +101,17 @@ function contractDiff(ma, mb) {
     if (inDeadStack(addr)) continue;
     return { kind: "ram", addr, a: a[off], b: b[off] };
   }
-  if (ma.regs.sp !== mb.regs.sp) return { kind: "sp", a: ma.regs.sp, b: mb.regs.sp };
-  if (ma.pc !== mb.pc) return { kind: "pc", a: ma.pc, b: mb.pc };
+  const io = ioDiff(ma, mb);
+  if (io) return io;
+  if (mb.regs.sp !== sp0) return { kind: "sp", a: sp0, b: mb.regs.sp };
   return null;
+}
+
+/** One line for a contract diff. */
+function describe(d) {
+  if (d.kind === "ram") return `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`;
+  if (d.kind === "io") return `io.${d.field} diff: oracle=${d.a} idiomatic=${d.b}`;
+  return `SP moved: entry=${hx(d.a)} idiomatic=${hx(d.b)}`;
 }
 
 /**
@@ -139,7 +155,7 @@ function blitIsNonTrivial(cap) {
 
 // -- 1. EQUAL (captured NMI entries) ------------------------------------------
 
-test("EQUAL: real captured NMI entries — serviceVblankNmi == oracle (RAM −stack, SP, pc)", () => {
+test("EQUAL: real captured NMI entries — serviceVblankNmi == oracle (RAM −stack), SP untouched", () => {
   assert.ok(CAPS.length >= 1, "expected at least one real NMI entry in the attract window");
 
   let attractSkips = 0, nonTrivial = 0;
@@ -150,13 +166,11 @@ test("EQUAL: real captured NMI entries — serviceVblankNmi == oracle (RAM −st
     oracleNmi(o);
     serviceVblankNmi(c);
 
-    const d = contractDiff(o, c);
+    const d = contractDiff(o, c, cap.regs.sp);
     assert.equal(
       d,
       null,
-      d && (d.kind === "ram"
-        ? `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`
-        : `${d.kind} diff: oracle=${hx(d.a)} idiomatic=${hx(d.b)}`),
+      d && describe(d),
     );
 
     if (cap.mem.read8(ATTRACT) !== 0) attractSkips += 1;
@@ -164,7 +178,7 @@ test("EQUAL: real captured NMI entries — serviceVblankNmi == oracle (RAM −st
     states.add(cap.mem.read8(0x6005));
   }
   console.log(
-    `  EQUAL: ${CAPS.length} NMI entries identical (RAM −stack, SP, pc); ` +
+    `  EQUAL: ${CAPS.length} NMI entries identical (RAM −stack), SP untouched; ` +
       `attract(skip-input)=${attractSkips}, non-trivial blit=${nonTrivial}, ` +
       `GAME_STATE seen={${[...states].sort().join(",")}}`,
   );
@@ -172,54 +186,66 @@ test("EQUAL: real captured NMI entries — serviceVblankNmi == oracle (RAM −st
 
 // -- 2. CRAFTED (game-in-play arm: loc_0087) ------------------------------
 
-test("CRAFTED: game-in-play arm — poke ATTRACT=0, both route through loc_0087, equal", () => {
+const PRESSED = 0x11; // IN0: right + jump — a nonzero read, so the cooked word differs from the sentinel
+
+/** A crafted in-play entry: ATTRACT=0, a held input on IN0, and the sentinel at the input latch. */
+function inPlayEntry(base) {
+  const m = base.clone();
+  m.mem.write8(ATTRACT, 0);
+  m.mem.write8(P1_INPUT, SENTINEL);
+  m.io.inputAssert = { [IN0_PORT]: PRESSED };
+  return m;
+}
+
+test("CRAFTED: game-in-play arm — ATTRACT=0 with a held input, both read the controls, equal", () => {
   const base = CAPS.find((c) => c.mem.read8(ATTRACT) !== 0) ?? CAPS[0];
-  const o = base.clone();
-  const c = base.clone();
-  // Identical surgical nudge: force a credited game so BOTH sides take the loc_0087
-  // arm attract never reaches. (No input asserted, so loc_0087' bit-6 soft-reset
-  // path is not tripped.)
-  o.mem.write8(ATTRACT, 0);
-  c.mem.write8(ATTRACT, 0);
+  const o = inPlayEntry(base);
+  const c = inPlayEntry(base);
 
   oracleNmi(o);
   serviceVblankNmi(c);
 
-  const d = contractDiff(o, c);
-  assert.equal(
-    d,
-    null,
-    d && (d.kind === "ram"
-      ? `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`
-      : `${d.kind} diff: oracle=${hx(d.a)} idiomatic=${hx(d.b)}`),
-  );
+  const d = contractDiff(o, c, base.regs.sp);
+  assert.equal(d, null, d && describe(d));
 
-  // Non-vacuous: the arm choice is observable — the ATTRACT=0 result differs from the
-  // attract skip-path result on the same base (loc_0087 ran, and/or the dispatch
-  // saw a different ATTRACT), so this exercised a genuinely different code path.
-  const skip = base.clone(); // ATTRACT left != 0 -> loc_0087 skipped
-  serviceVblankNmi(skip);
-  assert.notEqual(
-    contractDiff(c, skip),
-    null,
-    "poking ATTRACT=0 produced an identical machine to the skip path — the arm was not exercised",
-  );
-  console.log("  CRAFTED: ATTRACT=0 -> both route through loc_0087; RAM/SP/pc identical; arm is observable");
+  // Non-vacuous: the ORACLE really read the controls — it overwrote the sentinel at the input latch.
+  assert.notEqual(o.mem.read8(P1_INPUT), SENTINEL, "the oracle left the input latch untouched — the arm was not exercised");
+  console.log(`  CRAFTED: ATTRACT=0 + held input -> input latch ${hx(o.mem.read8(P1_INPUT))} on both sides; RAM/io identical, SP untouched`);
+});
+
+// Broken twin: the controls are never read, even in a credited game.
+function brokenNoControls(m) {
+  const { mem } = m;
+  mem.write8(NMI_ENABLE, 0);
+  if (mem.read8(IN2_WATCHDOG) & 0x01) throw new Error("service");
+  blitSpritesViaDma(m, DMA_SETUP_BLOCK);
+  perFrame(m); // BUG: readControls(m) dropped
+}
+
+test("TEETH C: a handler that never reads the controls is CAUGHT at the input latch", () => {
+  const base = CAPS.find((c) => c.mem.read8(ATTRACT) !== 0) ?? CAPS[0];
+  const o = inPlayEntry(base);
+  const c = inPlayEntry(base);
+  oracleNmi(o);
+  brokenNoControls(c);
+  const d = contractDiff(o, c, base.regs.sp);
+  assert.notEqual(d, null, "the gate FAILED to catch a dropped controls read");
+  assert.equal(d.kind, "ram");
+  assert.equal(d.addr, P1_INPUT, `expected the catch at ${hx(P1_INPUT)}, got ${hx(d.addr ?? 0)}`);
+  console.log(`  TEETH C: dropped controls read caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
 // -- 3. TEETH A (the ATTRACT gate) --------------------------------------------
 
 // Broken twin: the ATTRACT gate is INVERTED — it reads the controls DURING attract and
-// skips them in a credited game. Everything else (blit, reserve, loc_00b5) is faithful.
+// skips them in a credited game. Everything else (blit, per-frame tail) is faithful.
 function brokenInvertedGate(m) {
-  const { regs, mem } = m;
+  const { mem } = m;
   mem.write8(NMI_ENABLE, 0);
   if (mem.read8(IN2_WATCHDOG) & 0x01) throw new Error("service");
-  regs.hl = DMA_SETUP_BLOCK;
-  blitSpritesViaDma(m);
-  if (mem.read8(ATTRACT) !== 0) loc_0087(m); // BUG: should be === 0
-  regs.sp = (regs.sp - 12) & 0xffff;
-  loc_00b5(m);
+  blitSpritesViaDma(m, DMA_SETUP_BLOCK);
+  if (mem.read8(ATTRACT) !== 0) readControls(m); // BUG: should be === 0
+  perFrame(m);
 }
 
 test("TEETH A: an inverted ATTRACT gate (reads input during attract) is CAUGHT", () => {
@@ -244,38 +270,30 @@ test("TEETH A: an inverted ATTRACT gate (reads input during attract) is CAUGHT",
   oracleNmi(o); // correct: skips loc_0087, sentinel survives
   brokenInvertedGate(c); // wrong: reads input in attract, overwrites the sentinel
 
-  const d = contractDiff(o, c);
+  const d = contractDiff(o, c, CAPS[idx].regs.sp);
   assert.notEqual(d, null, "the gate FAILED to catch an inverted ATTRACT gate — it is worthless");
   assert.equal(d.kind, "ram");
   assert.equal(d.addr, P1_INPUT, `expected the catch at the input latch ${hx(P1_INPUT)}, got ${hx(d.addr ?? 0)}`);
   console.log(`  TEETH A: inverted ATTRACT gate caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
-// -- 4. TEETH B (the 12-byte SP reserve is load-bearing) ----------------------
+// -- 4. TEETH B (the handler is SP-inert) -------------------------------------
 
-// Broken twin: identical to serviceVblankNmi but OMITS `regs.sp -= 12`. loc_00b5's
-// epilogue then pops the register-save frame + return PC from too high a stack and
-// overruns past the top of work RAM (0x6C00) — an unmapped read.
-function brokenNoReserve(m) {
-  const { regs, mem } = m;
-  mem.write8(NMI_ENABLE, 0);
-  if (mem.read8(IN2_WATCHDOG) & 0x01) throw new Error("service");
-  regs.hl = DMA_SETUP_BLOCK;
-  blitSpritesViaDma(m);
-  if (mem.read8(ATTRACT) === 0) loc_0087(m);
-  // BUG: no `regs.sp -= 12` — loc_00b5's epilogue pops will overrun.
-  loc_00b5(m);
+// Broken twin: the correct handler, then the interrupt return the direct call dropped — pop a
+// return PC. Memory-identical, so only the SP check sees it.
+function brokenKeepsEpilogue(m) {
+  serviceVblankNmi(m);
+  m.ret();
 }
 
-test("TEETH B: omitting the 12-byte SP reserve overruns the stack — CAUGHT (throws)", () => {
+test("TEETH B: a handler that still unwinds an interrupt frame is CAUGHT at SP (RAM equal)", () => {
   const base = CAPS[0];
-  // The correct routine runs clean on this same state...
-  serviceVblankNmi(base.clone());
-  // ...and the reserve-less twin overruns loc_00b5's pops past 0x6C00.
-  assert.throws(
-    () => brokenNoReserve(base.clone()),
-    /unmapped read|0x6c00/i,
-    "the reserve-less twin did NOT overrun — the 12-byte reserve is not actually load-bearing here",
-  );
-  console.log("  TEETH B: dropping the SP reserve overruns loc_00b5's epilogue past 0x6C00 (throws) — reserve is load-bearing");
+  const o = base.clone();
+  const c = base.clone();
+  oracleNmi(o);
+  brokenKeepsEpilogue(c);
+  const d = contractDiff(o, c, base.regs.sp);
+  assert.notEqual(d, null, "the gate FAILED to catch an SP-moving handler — the inertness check is worthless");
+  assert.equal(d.kind, "sp", `expected the catch at SP (RAM equal), got ${d.kind}`);
+  console.log(`  TEETH B: SP-moving twin caught (entry=${hx(d.a)} broken=${hx(d.b)})`);
 });

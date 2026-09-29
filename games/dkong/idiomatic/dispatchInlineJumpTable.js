@@ -20,5 +20,5 @@ export function dispatchInlineJumpTable(m, site = "the NMI game-state table", a 
   const entryAddr = u16(base + offset);
   const target = mem8[entryAddr] | (mem8[u16(entryAddr + 1)] << 8);
 
-  return loc_00ca(m, target, site);
+  return loc_00ca(m, target, site, true);
 }
