@@ -16,19 +16,28 @@
  *   it before either is read; that sibling reads the SAME gate cell and so closes too, and the
  *   chain's own return lands on a call whose target opens `ld a,(0xB411)` / `bit 7,a`. Nothing on
  *   either successor path reads D, E, H or L. So the live-out of the closed exit is memory alone,
- *   and the EXCLUDED arm measures the register set rather than declaring it.
+ *   and the EXCLUDED arm measures the register set rather than declaring it. On the open exit
+ *   that set also takes B, C and A', because the rewrite runs the lifted handler, which leaves its
+ *   scratch registers otherwise than the transcribed one does.
+ *   DEAD AT EXIT checks that reading on the oracle itself rather than trusting it: every bit of
+ *   every register in the ceiling below is flipped on the FROZEN game at each of this entry's
+ *   exits, for each whole session, and not one frame of state changes, while the same instrument
+ *   does hear a one-record shift of the record register on its way into the handler.
  *
  * ★ THE CLOSED EXIT IS CRAFTED-ONLY, AND THE REACH ARM PROVES IT. Both tapes present the gate byte
  *   as zero at EVERY dispatch, so no real dispatch takes it; it is reached by poking that one cell
- *   on a real captured machine, identically on both sides. A, F and the return itself therefore
- *   differ on no real dispatch at all — the EXCLUDED ceiling carries A and F for the crafted arm.
+ *   on a real captured machine, identically on both sides. The conditional return itself therefore
+ *   runs on no real dispatch at all.
  *
  * ★ THE STACK COMPARISON IS MASKED BELOW THE ENTRY POINTER, AND THE CAUSE ARM ESTABLISHES WHY. The
  *   frozen 0x290E chain reaches its arm through a restart vector, pushing and popping nested return
  *   addresses in the bytes just under the frame; the rewrite computes the same arm arithmetically
  *   and writes none of that. A PROBE — this entry's own gate and two loads, then the FROZEN chain —
- *   leaves ZERO raw difference, unmasked, on every real dispatch and every crafted entry. That
- *   identifies the dissolved chain as the whole of the masked difference.
+ *   leaves ZERO raw difference, unmasked, on every real dispatch and every crafted entry, which
+ *   identifies the chain's share. The rest is the arm's own: the rewrite runs the lifted handler,
+ *   which reaches its helpers by direct call, where the frozen handler's calls park return
+ *   addresses deeper in the same free stack. Every masked byte lies below the entry pointer, in
+ *   stack the machine has already given back, and SCRATCH measures the depth.
  *
  * ★ SP AND pc BELONG TO THE DISPATCH SEAM, AND THIS ROUTINE TAKES BOTH SHAPES. Open, the oracle nets
  *   one return through the arm; closed, it performs its own. The rewrite performs neither.
@@ -53,12 +62,16 @@
  *   8. CROSS — two captured bases crossed with four gate-byte values and all 256 era values.
  *   9. ARMS — the eight words of the handler table, with the two this port has not transcribed
  *      required to fault IDENTICALLY on both sides rather than to be correct.
- *  10. EXCLUDED — the registers that move, bounded by a CEILING asserted as a subset; the pair, both
- *      scratch registers and SP asserted held; and a positive control that the instrument catches a
- *      held register being clobbered.
- *  11. WHOLE-MACHINE — a wired session of each tape, differing only in dead stack bytes.
- *  12. WHOLE-MACHINE TEETH — the same instrument shown catching a do-nothing twin.
- *  13. TEETH — ten twins, each with an exact crafted catch count and an exact real count per
+ *  10. SP-TOOTH — the seam places the rewrite on every completing crafted entry, open and closed,
+ *      and refuses a rewrite that parks a word nothing lifts or lifts one it was never given.
+ *  11. DEAD AT EXIT — the ceiling, poisoned on the frozen game at every exit of each whole session,
+ *      changes nothing, beside a control the same instrument does hear.
+ *  12. EXCLUDED — the registers that move, bounded by a CEILING asserted as a subset; the pair and
+ *      SP asserted held; and a positive control that the instrument catches a held register being
+ *      clobbered.
+ *  13. WHOLE-MACHINE — a wired session of each tape, differing only in dead stack bytes.
+ *  14. WHOLE-MACHINE TEETH — the same instrument shown catching a do-nothing twin.
+ *  15. TEETH — ten twins, each with an exact crafted catch count and an exact real count per
  *      session. THREE are blind to real dispatches and are recorded rather than left to look like
  *      coverage: the twin that drops the gate altogether is caught by ZERO real dispatches in
  *      EITHER session, which follows from the gate byte never being raised in either; and the twin
@@ -86,6 +99,8 @@ import { dispatchSeatedSlotByEraIndex } from "../dispatchSeatedSlotByEraIndex.js
 import { loc_28ee as oracle } from "../../translated/loc_28ee.js";
 import { ERA_INDEX, MOTHER_SHIP_ARMED, MOTHER_SHIP_STATE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { seamPlaceable } from "../../../../core/equivalence.js";
+import { heard, heardAs, poisonedRun } from "./_deadAtExit.js";
 
 const TARGET = 0x28ee;
 const HANDLER = 0x290e;
@@ -98,8 +113,8 @@ const SPRITE_ENTRY = 0xaa24;
 const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
 
-/** Bytes below the entry stack pointer the dissolved chain's dead scratch reaches; measured. */
-const WINDOW = 8;
+/** Bytes below the entry stack pointer the frozen chain's and frozen handler's dead scratch reach; measured. */
+const WINDOW = 12;
 
 const CORPUS_FRAMES = 2500;
 const SESSIONS = [["coin-start", {}], ["demo", { tape: [] }]];
@@ -112,18 +127,20 @@ const REAL_GATE_BYTES = [0];
 
 /**
  * A CEILING on the registers that may differ, not a pin: asserted as a subset, so a rewrite that
- * happens to agree on one of these still passes. A and F are on it for the crafted closed exit
- * only; over the real corpus they move on no dispatch. What is asserted positively is HELD.
+ * happens to agree on one of these still passes. What is asserted positively is HELD.
  */
-const MAY_MOVE = ["a", "f", "d", "e", "h", "l"];
-const HELD = ["b", "c", "ix", "iy", "sp"];
+const MAY_MOVE = ["a", "f", "b", "c", "d", "e", "h", "l", "a_"];
+const HELD = ["ix", "iy", "sp"];
 
 /** Gate-byte values crossed against every era. Only the first occurs in real play. */
 const GATE_VALUES = [0, 1, 0x80, 0xff];
 const ERA_VALUES = 256;
 
-/** Measured: the dead stack cells a whole wired session leaves differing, as a CEILING. */
-const SESSION_SCRATCH = [0xafdc, 0xafdd, 0xaffd, 0xaffe];
+/**
+ * Measured: the dead stack cells a whole wired session leaves differing, as a CEILING — the
+ * handler's own scratch below the entry pointer, and the two a shifted interrupt leaves.
+ */
+const SESSION_SCRATCH = [0xafd6, 0xafd7, 0xafd8, 0xafd9, 0xafda, 0xafdb, 0xafdc, 0xafdd, 0xaffd, 0xaffe];
 const STACK_FLOOR = 0xaf00;
 const STACK_TOP = 0xb000;
 
@@ -413,7 +430,7 @@ function brokenGateOnTheEraCell(m) {
 /** NOT A TWIN OF THIS ROUTINE: the positive control for the held-register instrument. */
 function clobbersAHeldRegister(m) {
   seatMotherShipSlotThenDispatchByEraUnlessArmed(m);
-  m.regs.b = (m.regs.b + 1) & 0xff;
+  m.regs.iy = (m.regs.iy + 2) & 0xffff;
 }
 
 /** Measured: crafted catches, then real catches per session in SESSIONS order. */
@@ -607,6 +624,71 @@ test("ARMS: the untranscribed handler words fault identically, the rest run", { 
     `${words.filter((_u, i) => missing[i]).map(hex4).join(" ") || "none"}, faulting alike`);
 });
 
+/** SP MUTANT: the rewrite exactly, after parking a word nothing will lift. */
+function mutantParksAWord(m) {
+  m.push16(TARGET);
+  return seatMotherShipSlotThenDispatchByEraUnlessArmed(m);
+}
+
+/** SP MUTANT: the rewrite exactly, after lifting a word it was never given. */
+function mutantLiftsAWord(m) {
+  m.pop16();
+  return seatMotherShipSlotThenDispatchByEraUnlessArmed(m);
+}
+
+test("SP-TOOTH: the seam places the rewrite, and refuses one that parks or lifts a word", { skip }, () => {
+  let placed = 0;
+  for (const [label] of SESSIONS) {
+    for (const gate of GATE_VALUES) {
+      for (let era = 0; era < ARM_COUNT; era++) {
+        if (diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, craft(label, gate, era)).faulted) continue;
+        const good = seamPlaceable(withOmittedRet, seatMotherShipSlotThenDispatchByEraUnlessArmed, TARGET, craft(label, gate, era));
+        assert.equal(good.placeable, true, `${label} gate ${gate} era ${era}: the seam could not place the rewrite: ${good.error}`);
+        for (const [shape, mutant] of [["parks", mutantParksAWord], ["lifts", mutantLiftsAWord]]) {
+          const bad = seamPlaceable(withOmittedRet, mutant, TARGET, craft(label, gate, era));
+          assert.equal(bad.placeable, false, `${label} gate ${gate} era ${era}: the seam placed a rewrite that ${shape} a word`);
+          assert.ok(diffOf(mutant, craft(label, gate, era)).caught, `${label} gate ${gate} era ${era}: the gate passed a rewrite that ${shape} a word`);
+        }
+        placed++;
+      }
+    }
+  }
+  assert.ok(placed > 0, "no crafted entry completed, so the seam placed nothing here");
+  console.log(`  SP-TOOTH: ${placed} completing crafted entries placed; both stack mutants refused on every one`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
+  let controlSees = 0;
+  let exitSees = 0;
+  for (const [label, opts] of SESSIONS) {
+    const dead = poisonedRun({ at: TARGET, poison: MAY_MOVE, tape: opts.tape, frames: CORPUS_FRAMES });
+    assert.equal(dead.threw, null, `${label}: the poisoned run threw: ${dead.threw}`);
+    assert.equal(dead.stopped, null, `${label}: the poisoned run stopped early: ${dead.stopped}`);
+    assert.equal(dead.frames, CORPUS_FRAMES, `${label}: compared ${dead.frames} of ${CORPUS_FRAMES} frames`);
+    assert.equal(dead.poisoned, DISPATCHES[label], `${label}: poisoned ${dead.poisoned} of ${DISPATCHES[label]} dispatches`);
+    assert.deepEqual(dead.cells.map(hex4), [], `${label}: a register in the ceiling was read after this entry handed back`);
+    // POSITIVE CONTROL, same instrument: shift the record register one record on, on this entry's
+    // way INTO the handler, where it is read. Silence at the exit means something only if this is heard.
+    const control = poisonedRun({
+      at: HANDLER, poison: ["ix"], flip: { ix: RECORD_STRIDE }, before: true,
+      tape: opts.tape, frames: CORPUS_FRAMES, only: (m) => m.regs.ix === CRAFT_RECORD,
+    });
+    assert.ok(control.poisoned > 0, `${label}: the control never reached this entry's handler`);
+    if (heard(control)) controlSees++;
+    // EXIT-SIDE CONTROL, same instrument and exit: flip SP where this entry hands back. The ROM
+    // returns through the stack, so an exit poison that lands has to be heard.
+    const exitControl = poisonedRun({ at: TARGET, poison: ["sp"], flip: { sp: 2 }, tape: opts.tape, frames: CORPUS_FRAMES });
+    if (heard(exitControl)) exitSees++;
+    console.log(`  DEAD AT EXIT/${label}: ${dead.poisoned} exits poisoned (${MAY_MOVE.join(", ")}), ` +
+      `nothing differs; the entry control ${heard(control) ? `is heard (${heardAs(control)})` : "is not heard"}; ` +
+      `the exit control ${heard(exitControl) ? `is heard (${heardAs(exitControl)})` : "is not heard"}`);
+  }
+  assert.ok(controlSees > 0, "the control shifted the record on its way into the handler and no session " +
+    "noticed, so the silence at the exit proves nothing");
+  assert.ok(exitSees > 0, "the control flipped SP at this entry's exit and no session noticed, so the " +
+    "exit poison never lands and its silence proves nothing");
+});
+
 test("EXCLUDED: the registers that move, bounded by a ceiling; the pair is held", { skip }, () => {
   const moved = new Set();
   const realMoved = new Set();
@@ -631,7 +713,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; the pair is held"
   for (const [label] of SESSIONS) {
     for (const k of diffOf(clobbersAHeldRegister, entryFor(label)).moved) control.add(k);
   }
-  assert.ok(control.has("b"), "the register instrument cannot see a held register being clobbered, " +
+  assert.ok(control.has("iy"), "the register instrument cannot see a held register being clobbered, " +
     "so the assertion above proves nothing");
   console.log(`  EXCLUDED control: the same instrument reports ${[...control].join(", ")} on a clobbered twin`);
 });

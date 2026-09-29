@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchSeatedSlotByEraIndex — memory-equivalent to the frozen oracle at ROM 0x290E.
+ * dispatchSeatedSlotByEraIndex — equivalent to the frozen oracle at ROM 0x290E, under the
+ * DISSOLVED-DISPATCH contract.
  *
  * WHAT IT IS. Three instructions: read the era index, keep its low three bits, and enter the
  * restart-vector dispatch with the address of the word table that follows. Nothing is pushed for
- * the arm to come back to, so the arm's own return carries this entry's — which is why both sides
- * end with the SAME stack pointer and the SAME program counter, unlike a rewrite that merely omits
- * a return.
+ * the arm to come back to, so the arm's own return carries this entry's. The rewrite switches on the
+ * three bits and calls each slot's idiomatic module DIRECTLY with the seated record; the module
+ * PLAIN-RETURNS, so it no longer pops this entry's return slot. Production reaches this entry
+ * through the dispatch seam (`withOmittedRet`), which supplies that `ret`, so every candidate here is
+ * run THROUGH the seam — and then both sides end with the SAME stack pointer and the SAME program
+ * counter, compared exactly. A candidate that left a stray word on the stack makes the seam throw
+ * (SP-TOOTH proves it with a mutant).
  *
  * ★ HOW THE LIVE-OUT WAS DERIVED, and it is from the ORACLE. Its exit successor is the ARM,
  *   entered as a jump: whatever the arm writes and whatever it leaves behind is this entry's
@@ -19,9 +24,13 @@
  *   rather than assuming it. The frozen chain pushes and pops three nested return addresses in the
  *   bytes just under the arm's own frame, and hands the arm different flag bits besides; the
  *   rewrite computes the same arm arithmetically and writes none of that. A PROBE TWIN that
- *   reproduces exactly that stack traffic and hand-off — and nothing else — leaves ZERO raw
- *   difference on every dispatch of both sessions. That is what identifies the dead scratch as the
- *   whole of the difference, instead of a story told about a number.
+ *   reproduces exactly that stack traffic and hand-off over the frozen arms — and nothing else —
+ *   leaves ZERO raw difference on every dispatch of both sessions, which identifies the chain's
+ *   share of the dead scratch. The rest is the arms': the rewrite runs the idiomatic slot modules,
+ *   whose own sub-calls reach the stack to different depths than the frozen ones. That share is
+ *   pinned from the other side by DIRECT, which compares the rewrite UNMASKED, register file
+ *   included, against the idiomatic module the slot names called straight — so the dispatch adds
+ *   nothing of its own, and the mask covers only arm-internal scratch.
  *
  * GATE: strict unit-capture over two sessions, plus crafted selectors off each live arm. What it
  *   exercises, holes stated:
@@ -38,9 +47,13 @@
  *   6. CORPUS — every dispatch of both sessions replayed.
  *   7. ARMS — all eight table entries off each captured entry, identical or faulting identically.
  *   8. SELECTOR — all 256 values of the era cell, so the five ignored bits are measured.
- *   9. STACK — exit pointer and program counter identical on every arm that completes.
- *  10. EXCLUDED — the registers that move, pinned to a set.
- *  11. TEETH — each twin required to be caught OUTSIDE the window, so the mask cannot be what is
+ *   9. STACK — exit pointer and program counter identical on every arm that completes, seated.
+ *  10. SP-TOOTH — the seam places the rewrite and refuses a mutant that parks a stray word.
+ *  11. DIRECT — the rewrite is byte- and register-identical, UNMASKED, to the named slot module.
+ *  12. DEAD AT EXIT — the ceiling, poisoned on the frozen game at every exit of each whole session,
+ *      changes nothing, beside a control the same instrument does hear.
+ *  13. EXCLUDED — the registers that move against the frozen arms, pinned to a ceiling.
+ *  14. TEETH — each twin required to be caught OUTSIDE the window, so the mask cannot be what is
  *      passing it.
  *
  * HOLE: the sessions present eras 0, 1 and 2 and no other. The remaining five selectors are
@@ -61,14 +74,26 @@ import { dispatchSeatedSlotByEraIndex } from "../dispatchSeatedSlotByEraIndex.js
 import { ERA_INDEX } from "../names.js";
 import { loc_290e as oracle } from "../../translated/loc_290e.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { withOmittedRet } from "../../machine.js";
+import { seamPlaceable } from "../../../../core/equivalence.js";
+import { heard, heardAs, poisonedRun } from "./_deadAtExit.js";
+import { serviceEra0EnemyCraftSlot } from "../serviceEra0EnemyCraftSlot.js";
+import { serviceEra1EnemyCraftSlot } from "../serviceEra1EnemyCraftSlot.js";
+import { serviceEra2EnemyCraftSlot } from "../serviceEra2EnemyCraftSlot.js";
+import { serviceEra3EnemyCraftSlot } from "../serviceEra3EnemyCraftSlot.js";
+import { serviceEra4EnemyCraftSlot } from "../serviceEra4EnemyCraftSlot.js";
+import { stepRoundStartIntroAnimation } from "../stepRoundStartIntroAnimation.js";
 
 const TARGET = 0x290e;
 const ARM_TABLE = 0x2914;
 const ARM_MASK = 0x07;
 const ARM_COUNT = ARM_MASK + 1;
 
-/** Bytes below the exit stack pointer the frozen dispatch's dead scratch reaches; measured. */
-const WINDOW = 8;
+/**
+ * Bytes below the exit stack pointer the dead scratch reaches — the frozen chain's own, plus the
+ * depth the idiomatic slot modules' sub-calls reach differently from the frozen arms; measured.
+ */
+const WINDOW = 14;
 
 const SHARED_FRAMES = 2000;
 const ATTRACT_FRAMES = 6000;
@@ -99,9 +124,28 @@ const SESSIONS = [
 ];
 const LIVE_SELECTORS = [0, 1, 2];
 
-const MOVED = ["d", "e", "h", "l"];
+/**
+ * Against the FROZEN arms the register file past the arm is the arm's, and the idiomatic slot modules
+ * leave the scratch registers differently from their transcriptions; none of these is read across the
+ * slot chain (the next seat reloads the record pair and the next dispatch reloads the selector),
+ * which DEAD AT EXIT checks on the oracle rather than trusting. A CEILING, measured. What this entry
+ * itself must not disturb is HELD, and DIRECT pins the rest.
+ */
+const MOVED = ["a", "f", "b", "c", "d", "e", "h", "l", "a_"];
 /** Named separately so a failure says which: the pointer registers an arm hands on, and the seat. */
-const HELD = ["a", "b", "c", "ix", "iy", "sp"];
+const HELD = ["ix", "iy", "sp"];
+
+/** The slot module each of the eight table words names; null where the word addresses no program. */
+const SLOT_MODULES = [
+  (m) => serviceEra0EnemyCraftSlot(m, m.regs.ix),
+  (m) => serviceEra1EnemyCraftSlot(m, m.regs.ix),
+  (m) => serviceEra2EnemyCraftSlot(m, m.regs.ix),
+  (m) => serviceEra3EnemyCraftSlot(m, m.regs.ix),
+  (m) => serviceEra4EnemyCraftSlot(m, m.regs.ix),
+  null,
+  null,
+  (m) => stepRoundStartIntroAnimation(m),
+];
 const SELECTOR_VALUES = 256;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -184,7 +228,7 @@ function diffOf(candidate, machine) {
   let faultA = null;
   let faultB = null;
   try { oracle(a); } catch (e) { faultA = e.constructor.name; }
-  try { candidate(b); } catch (e) { faultB = e.constructor.name; }
+  try { withOmittedRet(candidate, TARGET)(b); } catch (e) { faultB = e.constructor.name; }
   const moved = faultA || faultB ? [] : REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
 
   const da = a.dumpState();
@@ -212,7 +256,7 @@ function diffOf(candidate, machine) {
     faultA,
     faultB,
     faulted,
-    caught: faulted ? faultA !== faultB : masked.length > 0,
+    caught: faulted ? faultA !== faultB : masked.length > 0 || exitSp !== b.regs.sp || a.pc !== b.pc,
   };
 }
 
@@ -354,10 +398,11 @@ test("SCRATCH: the whole raw difference lies below the exit pointer, inside the 
   }
   assert.ok(seen > 0, "no raw difference anywhere: the mask is not measuring anything, so it " +
     "cannot be what makes this gate pass and should be removed");
-  assert.ok(
-    deepest <= WINDOW,
-    `the deepest difference is ${deepest} bytes below the exit pointer, past the ${WINDOW}-byte ` +
-      "window this file masks — widen it deliberately, do not let it drift",
+  assert.equal(
+    deepest,
+    WINDOW,
+    `the deepest difference is ${deepest} bytes below the exit pointer against a ${WINDOW}-byte ` +
+      "window — an exact ceiling, so a change is seen here rather than absorbed by the mask",
   );
   console.log(`  SCRATCH: raw differences seen, deepest ${deepest} below the exit pointer, ` +
     `window ${WINDOW}, none at or above it`);
@@ -439,6 +484,108 @@ test("STACK: the exit pointer and the program counter are identical", { skip }, 
   }
   assert.ok(completed > 0, "no arm completed, so nothing here compared a stack pointer");
   console.log(`  STACK: ${completed} completing arms, exit pointer and program counter identical`);
+});
+
+/**
+ * SP MUTANT: the rewrite exactly, but with a stray word parked first — the shape of a caller-side
+ * return slot the dissolved slot modules no longer pop. It lands in dead scratch, where a memory diff
+ * cannot see it; only the seam can.
+ */
+function mutantParksAStrayWord(m) {
+  m.push16(ARM_TABLE);
+  return dispatchSeatedSlotByEraIndex(m);
+}
+
+test("SP-TOOTH: the seam places the rewrite, and REFUSES one that leaves a stray word", { skip }, () => {
+  let placed = 0;
+  for (const live of LIVE_SELECTORS) {
+    for (let i = 0; i < ARM_COUNT; i++) {
+      if (SLOT_MODULES[i] === null) continue;
+      const good = seamPlaceable(withOmittedRet, dispatchSeatedSlotByEraIndex, TARGET, craft(i, entryFor(live)));
+      assert.equal(good.placeable, true, `era ${live} slot ${i}: the seam could not place the rewrite — ${good.error}`);
+      const bad = seamPlaceable(withOmittedRet, mutantParksAStrayWord, TARGET, craft(i, entryFor(live)));
+      assert.equal(bad.placeable, false, `era ${live} slot ${i}: the seam placed a rewrite that leaves a word behind`);
+      assert.ok(diffOf(mutantParksAStrayWord, craft(i, entryFor(live))).caught, `slot ${i}: the stray word escaped the gate`);
+      placed++;
+    }
+  }
+  console.log(`  SP-TOOTH: ${placed} completing slots placed; the stray-word mutant refused on every one`);
+});
+
+test("DIRECT: UNMASKED, registers included, the rewrite is exactly the slot module the table names", { skip }, () => {
+  let compared = 0;
+  let faults = 0;
+  for (const live of LIVE_SELECTORS) {
+    for (const v of everySelector) {
+      const base = craft(v, entryFor(live));
+      const a = base.clone();
+      const b = base.clone();
+      const expected = SLOT_MODULES[v & ARM_MASK];
+      let faultA = null;
+      let faultB = null;
+      try {
+        if (expected === null) throw new Error("no slot module");
+        expected(a);
+      } catch (e) { faultA = e; }
+      try { dispatchSeatedSlotByEraIndex(b); } catch (e) { faultB = e; }
+      if (expected === null) {
+        assert.notEqual(faultB, null, `selector ${v}: a word that addresses no program did not fault`);
+        assert.equal(faultB.constructor.name, "NotImplemented", `selector ${v}: ${faultB}`);
+        faults++;
+        continue;
+      }
+      assert.equal(String(faultB), String(faultA), `selector ${v}: the fault differs`);
+      if (faultA !== null) { faults++; continue; }
+      assert.deepEqual(REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]), [], `selector ${v}: a register differs`);
+      const da = a.dumpState();
+      const db = b.dumpState();
+      let diff = -1;
+      for (let off = 0; off < da.length && diff < 0; off++) if (da[off] !== db[off]) diff = off;
+      assert.equal(diff, -1, `selector ${v}: memory differs at ${diff < 0 ? "" : hex4(a.stateOffsetToAddr(diff))}`);
+      compared++;
+    }
+  }
+  assert.ok(compared > 0, "no selector compared anything");
+  // Teeth: the same unmasked comparison refuses a neighbouring module.
+  const a = craft(0, entryFor(0));
+  const b = a.clone();
+  SLOT_MODULES[1](a);
+  dispatchSeatedSlotByEraIndex(b);
+  const da = a.dumpState();
+  const db = b.dumpState();
+  assert.ok(da.some((x, off) => x !== db[off]) || REG_FIELDS.some((k) => a.regs[k] !== b.regs[k]),
+    "the unmasked comparison cannot tell slot 0 from slot 1, so it is not a gate");
+  console.log(`  DIRECT: ${compared} selectors byte- and register-identical, ${faults} faulting identically`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
+  let controlSees = 0;
+  let exitSees = 0;
+  for (const spec of SESSIONS) {
+    const dead = poisonedRun({ at: TARGET, poison: MOVED, tape: spec.tape, frames: spec.frames });
+    assert.equal(dead.threw, null, `${spec.label}: the poisoned run threw: ${dead.threw}`);
+    assert.equal(dead.stopped, null, `${spec.label}: the poisoned run stopped early: ${dead.stopped}`);
+    assert.equal(dead.frames, spec.frames, `${spec.label}: compared ${dead.frames} of ${spec.frames} frames`);
+    assert.equal(dead.poisoned, spec.dispatches, `${spec.label}: poisoned ${dead.poisoned} of ${spec.dispatches} dispatches`);
+    assert.deepEqual(dead.cells.map(hex4), [], `${spec.label}: a register in the ceiling was read after this entry handed back`);
+    // POSITIVE CONTROL, same instrument: shift the seated record one record on at ENTRY, where the
+    // arm reads it. Silence at the exit means something only if this is heard.
+    const control = poisonedRun({
+      at: TARGET, poison: ["ix"], flip: { ix: 0x10 }, before: true, tape: spec.tape, frames: spec.frames,
+    });
+    if (heard(control)) controlSees++;
+    // EXIT-SIDE CONTROL, same instrument and exit: flip SP where this entry hands back. The ROM
+    // returns through the stack, so an exit poison that lands has to be heard.
+    const exitControl = poisonedRun({ at: TARGET, poison: ["sp"], flip: { sp: 2 }, tape: spec.tape, frames: spec.frames });
+    if (heard(exitControl)) exitSees++;
+    console.log(`  DEAD AT EXIT/${spec.label}: ${dead.poisoned} exits poisoned (${MOVED.join(", ")}), ` +
+      `nothing differs; the entry control ${heard(control) ? `is heard (${heardAs(control)})` : "is not heard"}; ` +
+      `the exit control ${heard(exitControl) ? `is heard (${heardAs(exitControl)})` : "is not heard"}`);
+  }
+  assert.ok(controlSees > 0, "the control shifted the seated record at entry and no session noticed, " +
+    "so the silence at the exit proves nothing");
+  assert.ok(exitSees > 0, "the control flipped SP at this entry's exit and no session noticed, so the " +
+    "exit poison never lands and its silence proves nothing");
 });
 
 test("EXCLUDED, deliberately: the registers that move, over every real dispatch", { skip }, () => {

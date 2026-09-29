@@ -153,17 +153,14 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   driftWithWorldScroll(m);
 
-  // Dress the pair unless its heading or Y is out of range -> flag 0xFF instead. b holds the
-  // heading (or, past the first gate, the Y) -- a genuine live-in threaded to the warp/flash tail.
+  // Dress the pair unless its heading or Y is out of range -> flag 0xFF instead.
   const heading = mem8[Y(0x31)];
-  let b = heading;
   let flatten = false;
   if (u8(heading + 0x13) < 0x03) {
     flatten = true;
   } else {
     mem8[Y(0x33)] = u8(heading + 0x10);
     const yval = mem8[Y(0x00)];
-    b = yval;
     if (u8(yval + 0x08) < 0x28) flatten = true;
     else mem8[Y(0x02)] = yval;
   }
@@ -185,7 +182,7 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   const spent = u8(mem8[X(STATE)] - 1);
   mem8[X(STATE)] = spent;
-  if (spent === 0x00) return loc_43f0_4646(m, ix, b);
+  if (spent === 0x00) return loc_43f0_4646(m, ix);
   if (mem8[X(STATE)] !== SPENT_HOLD) return;
   mem8[Y(0x01)] = 0xff;
   mem8[Y(0x03)] = 0xff;
@@ -206,7 +203,7 @@ export function loc_43f0_4623(m, ix = m.regs.ix, iy = m.regs.iy) {
   return postCommand(m, WARP_COMMAND, WARP_ARGUMENT);
 }
 
-export function loc_43f0_4646(m, ix = m.regs.ix, b = m.regs.b) {
+export function loc_43f0_4646(m, ix = m.regs.ix) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
 
@@ -217,7 +214,7 @@ export function loc_43f0_4646(m, ix = m.regs.ix, b = m.regs.b) {
     if (next === RESTART_LOW) return;
     if (next === RESTART_HIGH) return;
   }
-  return stepMotherShipWarpFlashFrame(m, b);
+  return stepMotherShipWarpFlashFrame();
 }
 
 export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {

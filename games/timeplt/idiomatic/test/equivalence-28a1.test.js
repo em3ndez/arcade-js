@@ -21,11 +21,11 @@
  *   computes nothing of its own. Which registers those are is MEASURED by the EXCLUDED arm rather
  *   than declared, and bounded by a ceiling.
  *
- * ★ THE RESUME POINTS ARE A DEBT, AND THE STACK ARMS ARE WHAT MAKE IT VISIBLE. Each sibling's
- *   handler is entered as a transfer and takes a return the direct call never supplies, so the
- *   rewrite lays one value down per call — except for the two siblings that stand down while the
- *   mother-ship cell is set, which reach no handler and take nothing. Both halves are asserted:
- *   the PARKS-ALWAYS and PARKS-NEVER twins get that wrong in each direction and are caught.
+ * ★ NOTHING IS LAID ON THE STACK. Each sibling, and the era-keyed handler it runs, is a direct
+ *   call that leaves the stack where it found it, so the rewrite lays no resume point down for any
+ *   of them. The two stack twins are the old shapes: PARKS-LIKE-THE-ROM lays one down wherever the
+ *   frozen chain does, and PARKS-ALWAYS lays one down for every link; nothing lifts either, and
+ *   both are caught.
  *
  * ★ SP AND pc BELONG TO THE DISPATCH SEAM. The oracle nets one return; the rewrite performs none.
  *   The candidate is run THROUGH `withOmittedRet` here, as an assembled run reaches it, and SP and
@@ -50,6 +50,11 @@
  *      the instrument can report a difference.
  *   8. EXCLUDED — the registers that move, bounded by a CEILING asserted as a subset so a rewrite
  *      that agrees MORE closely cannot fail, plus a positive control.
+ *   8a. LIVE — against the chain the live game ran before this rewrite (resume points parked, the
+ *      handler reached through the call seam into the lifted handlers), EVERY register is
+ *      identical: the ceiling above is the frozen handlers' scratch, not this rewrite's.
+ *   8b. DEAD AT EXIT — every register in that ceiling, poisoned on the frozen game at every exit
+ *      of each whole session, changes nothing, beside a control the same instrument does hear.
  *   9. WHOLE-MACHINE — a wired session of each tape through a shim that also restores the oracle's
  *      T-state cost, differing only in dead stack bytes; and the same instrument shown catching a
  *      do-nothing twin.
@@ -87,10 +92,19 @@ import { seatCraftSlot6ThenDispatchByEraUnlessArmed } from "../seatCraftSlot6The
 import { loc_28a1 as oracle } from "../../translated/loc_28a1.js";
 import { ERA_INDEX, MOTHER_SHIP_ARMED } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { heard, heardAs, poisonedRun } from "./_deadAtExit.js";
+import { serviceEra0EnemyCraftSlot } from "../serviceEra0EnemyCraftSlot.js";
+import { serviceEra1EnemyCraftSlot } from "../serviceEra1EnemyCraftSlot.js";
+import { serviceEra2EnemyCraftSlot } from "../serviceEra2EnemyCraftSlot.js";
+import { serviceEra3EnemyCraftSlot } from "../serviceEra3EnemyCraftSlot.js";
+import { serviceEra4EnemyCraftSlot } from "../serviceEra4EnemyCraftSlot.js";
+import { stepRoundStartIntroAnimation } from "../stepRoundStartIntroAnimation.js";
 
 const TARGET = 0x28a1;
-const ARM_TABLE = 0x2914;
-const ARM_COUNT = 8;
+/** The era-keyed dispatch each sibling hands its seated pair to. */
+const HANDLER = 0x290e;
+/** The inline table of handler words the siblings dispatch through. */
+const HANDLER_TABLE = 0x2914;
 
 /** The chain the oracle runs: the sibling, its resume point, and whether it can stand down. */
 const LINKS = [
@@ -121,13 +135,15 @@ const ERA_VALUES = 256;
 
 /**
  * A CEILING on the registers that may differ, not a pin: asserted as a subset, so a rewrite that
- * happens to agree on one of these still passes. What is asserted positively is HELD.
+ * happens to agree on one of these still passes. What is asserted positively is HELD. The ceiling
+ * is the frozen handlers' own scratch: the LIVE arm shows the rewrite matching, on every register,
+ * the chain the live game ran into the lifted handlers.
  */
-const MAY_MOVE = ["a", "f", "d", "e", "h", "l"];
-const HELD = ["b", "c", "ix", "iy", "sp"];
+const MAY_MOVE = ["a", "f", "b", "c", "d", "e", "h", "l", "a_"];
+const HELD = ["ix", "iy", "sp"];
 
 /** Measured: the dead stack cells a whole wired session leaves differing, as a CEILING. */
-const SESSION_SCRATCH = [0xafdc, 0xafdd, 0xaffd, 0xaffe];
+const SESSION_SCRATCH = [0xafd6, 0xafd7, 0xafd8, 0xafd9, 0xafda, 0xafdb, 0xafdc, 0xafdd];
 const STACK_FLOOR = 0xaf00;
 const STACK_TOP = 0xb000;
 const RET_TSTATES = 10;
@@ -206,20 +222,24 @@ function pushDepth(fn, machine) {
 // ── the order instrument ────────────────────────────────────────────────────────────────
 
 /**
- * The cursor pairs the era-keyed handler is entered with, IN ORDER, taken by watching every
- * dispatch to a word of the handler table. The same instrument reads both sides: the oracle
- * reaches its arm through a restart vector and the rewrite computes it, but both arrive by the
- * machine's own dispatch, which is what makes one probe fair to both.
+ * The cursor pairs the era-keyed handler is entered with, IN ORDER, taken by watching every read
+ * of the era selector — the one read the handler's dispatch makes on entry, on both sides. The
+ * oracle reaches its arm through a restart vector and the rewrite calls it directly, but both read
+ * the selector through the machine's own memory, which is what makes one probe fair to both. Only
+ * the seven seated pairs count, and a repeated read under the same pair is one entry, so a handler
+ * that reads the selector again deeper in, on a cursor it has stepped, cannot pad the list.
  */
 function armOrder(fn, machine) {
+  const SEATED = new Set(SEAT_PAIRS.map(([r, e]) => `${r}/${e}`));
   const c = machine.clone();
-  const arms = new Set();
-  for (let i = 0; i < ARM_COUNT; i++) arms.add(c.mem16[ARM_TABLE + 2 * i]);
   const seq = [];
-  const call = c.call.bind(c);
-  c.call = (addr, ...args) => {
-    if (arms.has(addr)) seq.push(`${hex4(c.regs.ix)}/${hex4(c.regs.iy)}`);
-    return call(addr, ...args);
+  const read8 = c.mem.read8.bind(c.mem);
+  c.mem.read8 = (addr, ...rest) => {
+    if (addr === ERA_INDEX && SEATED.has(`${c.regs.ix}/${c.regs.iy}`)) {
+      const pair = `${hex4(c.regs.ix)}/${hex4(c.regs.iy)}`;
+      if (seq[seq.length - 1] !== pair) seq.push(pair);
+    }
+    return read8(addr, ...rest);
   };
   let faulted = null;
   try { fn(c); } catch (e) { faulted = e.constructor.name; }
@@ -317,8 +337,8 @@ function cross() {
 
 // ── the twins ───────────────────────────────────────────────────────────────────────────
 
-/** The chain in a given order, with each sibling's own resume point. */
-function chain(order, parking = "gated") {
+/** The chain in a given order; a twin may also lay down each sibling's old resume point. */
+function chain(order, parking = "never") {
   return (m) => {
     for (const i of order) {
       const [link, resumePoint, standsDown] = LINKS[i];
@@ -337,7 +357,7 @@ function brokenNoOp() {}
 /** NOT A TWIN OF THIS ROUTINE: the positive control for the held-register instrument. */
 function clobbersAHeldRegister(m) {
   stepSevenCraftSlots(m);
-  m.regs.b = (m.regs.b + 1) & 0xff;
+  m.regs.ix = (m.regs.ix + 1) & 0xffff;
 }
 
 /**
@@ -352,8 +372,8 @@ const TWINS = [
   ["swap-first-two", chain([1, 0, 2, 3, 4, 5, 6]), 0, 2048, [0, 863], [0, 1379]],
   ["drops-the-fifth", chain([0, 1, 2, 3, 5, 6]), 128, 1536, [614, 863], [1012, 1379]],
   ["repeats-the-first", chain([0, 0, 2, 3, 4, 5, 6]), 0, 1536, [0, 863], [311, 1379]],
-  ["parks-always", chain([0, 1, 2, 3, 4, 5, 6], "always"), 1152, 1152, [0, 0], [0, 0]],
-  ["parks-never", chain([0, 1, 2, 3, 4, 5, 6], "never"), 1536, 1536, [863, 863], [1379, 1379]],
+  ["parks-like-the-rom", chain([0, 1, 2, 3, 4, 5, 6], "gated"), 1536, 1536, [863, 863], [1379, 1379]],
+  ["parks-always", chain([0, 1, 2, 3, 4, 5, 6], "always"), 1536, 1536, [863, 863], [1379, 1379]],
 ];
 
 const craftedCaught = (twin) => cross().filter((c) => diffOf(twin, craft(...c)).caught).length;
@@ -382,6 +402,59 @@ function realTwinCounts() {
     realTwinCache = new Map(SESSIONS.map(([label, opts]) => [label, realCaught(label, opts, TWINS)]));
   }
   return realTwinCache;
+}
+
+// ── the live dispatch this rewrite replaced ─────────────────────────────────────────────
+
+/** The handler each table word named in the live game, lifted, keyed by the word. */
+const LIFTED_HANDLERS = [
+  [0x2927, serviceEra0EnemyCraftSlot], [0x294c, serviceEra1EnemyCraftSlot],
+  [0x2984, serviceEra2EnemyCraftSlot], [0x29b0, serviceEra3EnemyCraftSlot],
+  [0x29d5, serviceEra4EnemyCraftSlot], [0x1323, stepRoundStartIntroAnimation],
+];
+
+/** The cursor pair each sibling seats, in chain order. */
+const SEAT_PAIRS = [
+  [0xa850, 0xaa1a], [0xa860, 0xaa1c], [0xa870, 0xaa1e], [0xa880, 0xaa20],
+  [0xa890, 0xaa22], [0xa8a0, 0xaa24], [0xa8b0, 0xaa26],
+];
+
+/** A machine whose handler words dispatch to the lifted handlers, as the live game's did. */
+function liveMachine(machine) {
+  const m = machine.clone();
+  m.routines = new Map(m.routines);
+  for (const [addr, fn] of LIFTED_HANDLERS) m.routines.set(addr, withOmittedRet(fn, addr));
+  return m;
+}
+
+/**
+ * The chain as the live game ran it before this rewrite: for each sibling that does not stand
+ * down, park its resume point, seat the two cursors, and send the handler word through the call
+ * seam into the lifted handler, which the seam returns from.
+ */
+function previousLiveChain(m) {
+  LINKS.forEach(([, resumePoint, standsDown], i) => {
+    if (standsDown && m.mem8[MOTHER_SHIP_ARMED] !== 0) return;
+    m.push16(resumePoint);
+    [m.regs.ix, m.regs.iy] = SEAT_PAIRS[i];
+    m.call(m.mem16[HANDLER_TABLE + 2 * (m.mem8[ERA_INDEX] & 0x07)]);
+  });
+}
+
+function liveDiff(candidate, machine) {
+  const sp = machine.regs.sp;
+  const a = liveMachine(machine);
+  const b = machine.clone();
+  let faultA = null;
+  let faultB = null;
+  try { seam(previousLiveChain)(a); } catch (e) { faultA = e.constructor.name; }
+  try { seam(candidate)(b); } catch (e) { faultB = e.constructor.name; }
+  if (faultA !== null || faultB !== null) return { faulted: true, faultA, faultB, masked: [], moved: [] };
+  return {
+    faulted: false,
+    masked: allDiffs(a, b).filter((d) => !inWindow(d.addr, sp)),
+    moved: [...REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]), ...(a.pc !== b.pc ? ["pc"] : [])],
+  };
 }
 
 // ── the whole machine ───────────────────────────────────────────────────────────────────
@@ -602,9 +675,67 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; the cursors are h
   for (const [label] of SESSIONS) {
     for (const k of diffOf(clobbersAHeldRegister, entryFor(label)).moved) control.add(k);
   }
-  assert.ok(control.has("b"), "the register instrument cannot see a held register being clobbered, " +
+  assert.ok(control.has("ix"), "the register instrument cannot see a held register being clobbered, " +
     "so the assertion above proves nothing");
   console.log(`  EXCLUDED control: the same instrument reports ${[...control].join(", ")} on a clobbered twin`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
+  let controlSees = 0;
+  let exitSees = 0;
+  for (const [label, opts] of SESSIONS) {
+    const dead = poisonedRun({ at: TARGET, poison: MAY_MOVE, tape: opts.tape, frames: CORPUS_FRAMES });
+    assert.equal(dead.threw, null, `${label}: the poisoned run threw: ${dead.threw}`);
+    assert.equal(dead.stopped, null, `${label}: the poisoned run stopped early: ${dead.stopped}`);
+    assert.equal(dead.frames, CORPUS_FRAMES, `${label}: compared ${dead.frames} of ${CORPUS_FRAMES} frames`);
+    assert.equal(dead.poisoned, DISPATCHES[label], `${label}: poisoned ${dead.poisoned} of ${DISPATCHES[label]} dispatches`);
+    assert.deepEqual(dead.cells.map(hex4), [], `${label}: a register in the ceiling was read after this entry handed back`);
+    // POSITIVE CONTROL, same instrument: shift the seated record one record on as the chain hands
+    // it to the era-keyed dispatch, where it is read. Silence at the exit means something only if
+    // this is heard.
+    const control = poisonedRun({
+      at: HANDLER, poison: ["ix"], flip: { ix: 0x10 }, before: true, tape: opts.tape, frames: CORPUS_FRAMES,
+    });
+    if (heard(control)) controlSees++;
+    // EXIT-SIDE CONTROL, same instrument and exit: flip SP where this entry hands back. The ROM
+    // returns through the stack, so an exit poison that lands has to be heard.
+    const exitControl = poisonedRun({ at: TARGET, poison: ["sp"], flip: { sp: 2 }, tape: opts.tape, frames: CORPUS_FRAMES });
+    if (heard(exitControl)) exitSees++;
+    console.log(`  DEAD AT EXIT/${label}: ${dead.poisoned} exits poisoned (${MAY_MOVE.join(", ")}), ` +
+      `nothing differs; the entry control ${heard(control) ? `is heard (${heardAs(control)})` : "is not heard"}; ` +
+      `the exit control ${heard(exitControl) ? `is heard (${heardAs(exitControl)})` : "is not heard"}`);
+  }
+  assert.ok(controlSees > 0, "the control shifted a seated record and no session noticed, so the " +
+    "silence at the exit proves nothing");
+  assert.ok(exitSees > 0, "the control flipped SP at this entry's exit and no session noticed, so the " +
+    "exit poison never lands and its silence proves nothing");
+});
+
+test("LIVE: identical to the chain the live game ran before, every register included", { skip }, () => {
+  let compared = 0;
+  let faulted = 0;
+  for (const c of cross()) {
+    const r = liveDiff(stepSevenCraftSlots, craft(...c));
+    if (r.faulted) {
+      assert.equal(r.faultA, r.faultB, `${c}: ${r.faultA} on one side, ${r.faultB} on the other`);
+      faulted++;
+      continue;
+    }
+    assert.deepEqual(r.masked, [], `${c}: ${show(r.masked[0])}`);
+    assert.deepEqual(r.moved, [], `${c}: a register differs from the live chain`);
+    compared++;
+  }
+  for (const [label] of SESSIONS) {
+    const r = liveDiff(stepSevenCraftSlots, entryFor(label));
+    assert.deepEqual(r.masked, [], `${label}: ${show(r.masked[0])}`);
+    assert.deepEqual(r.moved, [], `${label}: a register differs from the live chain`);
+  }
+  assert.ok(compared > 0, "every crafted entry faulted, so this arm compared nothing");
+  // POSITIVE CONTROL, same breath: the arm claims a register match, so show it seeing a clobber.
+  const control = liveDiff(clobbersAHeldRegister, entryFor(SESSIONS[0][0]));
+  assert.ok(control.moved.includes("ix"), "the live comparison cannot see a clobbered register");
+  console.log(`  LIVE: ${compared} crafted entries and both sessions identical to the live chain, ` +
+    `every register; ${faulted} fault alike`);
 });
 
 test("WHOLE-MACHINE: a wired session of each tape differs only in dead stack bytes", { skip }, () => {

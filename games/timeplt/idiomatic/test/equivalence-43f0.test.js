@@ -3,6 +3,11 @@
  * either tape (a live control proves the run counts), so it runs on CRAFTED entries poked onto real
  * captured machines to force every state-byte arm, full work-RAM compared with the dead stack scratch
  * masked off both sides' pushes, index registers held, and broken twins caught in memory.
+ * The spent-sequence tamper gate (TAMPER_GLYPH_COPY) has its own DERAIL arm: when it fails the oracle
+ * falls into the warp/flash step's misaligned prologue (0x459b), which has no routine form, so the
+ * rewrite raises there and the two are compared AT the transfer (test/_tamperDerail.js). On a genuine
+ * image the gate always passes: every writer of the pair seats the "K" glyph 0x7c and one of the
+ * copyright line's two colours (the ROM patch list at 0x163f, and the copies taken off the drawn line).
  * Run: node --test games/timeplt/idiomatic/test/equivalence-43f0.test.js */
 
 import test from "node:test";
@@ -11,10 +16,12 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { stepMotherShip as candidate } from "../stepMotherShip.js";
+import { stepMotherShipWarpFlashFrame } from "../stepMotherShipWarpFlashFrame.js";
 import { loc_598e } from "../loc_598e.js";
 import { loc_5994 } from "../loc_5994.js";
 import { loc_43f0 as oracle } from "../../translated/loc_43f0.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { stopAtDerails, faultClass } from "./_tamperDerail.js";
 
 const TARGET = 0x43f0;
 const ANCHOR = 0x43b7; // reached on the tape; seats this object's bank
@@ -50,7 +57,6 @@ const WRITING = [
   ["below-trigger", 0x30, (c) => { c.mem8[RECORD + 0x04] = 0; }],
   ["above-trigger", 0xc4, (c) => { c.mem8[RECORD + 0x04] = 0; }],
   ["spend-idle", 0x01, (c) => { c.mem8[RECORD + 0x04] = 0; }],
-  ["spend-warp", 0x01, (c) => { c.mem8[RECORD + 0x04] = 0; c.mem8[0xab43] = 0x00; }], // 4646 -> 459b tail
   ["reach-5a", 0x5b, (c) => { c.mem8[RECORD + 0x04] = 0; }],
   ["live-cooldown", 0xff, (c) => { c.mem8[COOLDOWN] = 0x01; }],
   ["live-nofree", 0xff, (c) => { liveProximity(c); c.mem8[0xa830] = 0x11; c.mem8[0xa840] = 0x22; }],
@@ -58,6 +64,9 @@ const WRITING = [
   ["live-spawn-s2", 0xff, (c) => { liveProximity(c); c.mem8[0xa830] = 0x00; c.mem8[0xad04] = 0x02; }], // stage 2 arm
   ["live-noprox", 0xff, (c) => { c.mem8[COOLDOWN] = 0; c.mem8[SPRITE + 0] = 0; c.mem8[SPRITE + 0x31] = 0; }],
 ];
+// The spent sequence on a tampered copy of the glyph pair: 4646 falls into the 0x459b landing.
+const TAMPER_GLYPH_COPY = 0xab43;
+const SPEND_WARP = ["spend-warp", 0x01, (c) => { c.mem8[RECORD + 0x04] = 0; c.mem8[TAMPER_GLYPH_COPY] = 0x00; }];
 // An arm that only reads and returns — its live-out is that it writes nothing.
 const EARLY = ["idle-locked", 0x00, (c) => { c.mem8[RECORD + 0x0e] = 0; c.mem8[0xacc6] = 0x01; }];
 
@@ -253,4 +262,82 @@ test("STAGE ARMS DIFFER: the two era arms hand back different vectors, so the di
       "picked the wrong arm could never be caught by the EQUAL memory comparison",
   );
   console.log(`  STAGE ARMS DIFFER: ${differing} of ${STAGE_HEADINGS.length} headings distinguish the two arms`);
+});
+
+// ── the tamper derail ───────────────────────────────────────────────────────────────────
+
+/**
+ * Both sides on clones of `machine`, the oracle stopped on entry to a tamper landing. Returns each
+ * side's fault class (null when it returned) and the first memory difference outside both sides'
+ * push scratch — the two stop at the same program point, so the work before it must match.
+ */
+function compareToDerail(cand, machine) {
+  const a = stopAtDerails(machine.clone()), b = machine.clone();
+  const scratch = new Set();
+  for (const mm of [a, b]) {
+    const push = mm.push16.bind(mm);
+    mm.push16 = (v) => { const sp = (mm.regs.sp - 2) & 0xffff; scratch.add(sp).add((sp + 1) & 0xffff); push(v); };
+  }
+  let fa = null, fb = null;
+  try { oracle(a); } catch (e) { fa = faultClass(e); }
+  try { cand(b); } catch (e) { fb = faultClass(e); }
+  const da = a.dumpState(), db = b.dumpState();
+  let escaped = null;
+  for (let i = 0; i < da.length && escaped === null; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (!scratch.has(addr)) escaped = { addr, oracle: da[i], candidate: db[i] };
+  }
+  return { fa, fb, escaped };
+}
+
+/** BUG: ignores the tamper gate and ends the spent sequence cleanly. */
+const noDerail = (m) => { m.mem8[TAMPER_GLYPH_COPY] = 0x7c; m.mem8[TAMPER_GLYPH_COPY + 1] = 0x10; candidate(m); };
+/** BUG: takes the right landing, but before the spent sequence goes back to idle. */
+const derailsEarly = () => stepMotherShipWarpFlashFrame();
+
+test("DERAIL: a tampered glyph copy stops both sides at 0x459b after the same work", { skip }, () => {
+  let n = 0;
+  for (const base of bases()) {
+    const c = craft(base, SPEND_WARP[1], SPEND_WARP[2]);
+    const r = compareToDerail(candidate, c);
+    assert.equal(r.fa, "derail@0x459b", "the oracle did not fall into the 0x459b landing");
+    assert.equal(r.fb, "derail@0x459b", `the rewrite did not raise at 0x459b (${r.fb})`);
+    assert.equal(r.escaped, null, `escaped at ${r.escaped && hex4(r.escaped.addr)} oracle=${r.escaped && r.escaped.oracle} rewrite=${r.escaped && r.escaped.candidate}`);
+    // The work before the transfer is real: the spent sequence goes idle and holds the round.
+    assert.ok(footprintToDerail(c).size > 0, "the oracle wrote nothing before the transfer, so the memory check has no power");
+    n++;
+  }
+  // The same bases with the pair intact end the sequence cleanly (the spend-idle arm), so the gate,
+  // not the state byte, is what sends control to the landing.
+  for (const base of bases()) {
+    const c = craft(base, ...pick("spend-idle"));
+    assert.equal(compareToDerail(candidate, c).fa, null, "the untampered spend reached a landing");
+  }
+  console.log(`  DERAIL: ${n} tampered spends stop at 0x459b on both sides after the same work`);
+});
+
+function footprintToDerail(machine) {
+  const before = machine.dumpState().slice();
+  const a = stopAtDerails(machine.clone());
+  try { oracle(a); } catch { /* stopped at the landing */ }
+  const now = a.dumpState();
+  const cells = new Set();
+  for (let i = 0; i < now.length; i++) {
+    const addr = a.stateOffsetToAddr(i);
+    if (now[i] !== before[i] && addr < STACK_FLOOR) cells.add(addr);
+  }
+  return cells;
+}
+
+test("TEETH: a twin that skips the tamper gate, or derails early, is CAUGHT", { skip }, () => {
+  for (const base of bases()) {
+    const c = craft(base, SPEND_WARP[1], SPEND_WARP[2]);
+    const skipped = compareToDerail(noDerail, c);
+    assert.notEqual(skipped.fa, skipped.fb, "the twin that ignores the tamper gate was not caught");
+    const early = compareToDerail(derailsEarly, c);
+    assert.equal(early.fb, early.fa, "the early twin must reach the same landing, so only memory can catch it");
+    assert.notEqual(early.escaped, null, "a twin that derails before the idle work was not caught in memory");
+  }
+  console.log(`  TEETH/derail: the gate-skipping and early-derail twins caught on ${bases().length} bases`);
 });

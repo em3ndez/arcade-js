@@ -8,22 +8,24 @@
  * re-derived here. Asserts, per tape: the JS side reaches the schedule's `responded` state, and
  * every declared routine runs from that frame to the end of the compared window.
  *
- * TEETH. Each declared routine has a mutant that must turn this red: an override-dispatched routine
- * is UNWIRED (its address falls back to the translated twin, so the idiomatic routine never runs);
- * a directly-called one (render-lib.js DIRECT_PROBES) is made a NO-OP in a copy of the idiomatic tree.
- * Removing a tape's pokes must also turn it red. `DISTANT_REACH_MUTANT=<routine>` applies that
- * routine's mutant to the main arm, to watch it go red.
+ * The instrument counts a routine at its own BODY however it is entered (render-lib.js): an
+ * override-map dispatch, a direct call from another idiomatic module, or the vblank subtree machine.js
+ * fires directly.
+ *
+ * TEETH. Each declared routine has a mutant that must turn this red: its body is made a NO-OP in the
+ * copied idiomatic tree (an inlined arm instead loses its call in the routine it is inlined into). A
+ * routine no idiomatic module imports is also UNWIRED (its address falls back to the translated twin,
+ * so the idiomatic routine never runs), which must turn it red too; one an idiomatic module calls
+ * directly must still count when unwired -- that is the direct-entry path being seen. A routine whose
+ * only entry is cut, body left intact, must count 0. Removing a tape's pokes must also turn it red.
+ * `DISTANT_REACH_MUTANT=<routine>` applies that routine's no-op mutant to the main arm, to watch it go red.
  */
 
 import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import {
-  existsSync, cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, mkdirSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 import {
   GAME_DIR, DIRECT_PROBES, parseRenderArgs, createRenderMachine, runGeneratorFrames,
@@ -64,47 +66,38 @@ function suiteArgv(file) {
   return JSON.parse(out);
 }
 
-// ── mutant idiomatic trees: a COPY of idiomatic/ with one module edited; everything else linked ──
-const trees = [];
-function mutantTree(file, edit) {
-  const root = mkdtempSync(join(tmpdir(), "tp-reach-"));
-  trees.push(root);
-  for (const e of readdirSync(REPO)) if (e !== "games") symlinkSync(join(REPO, e), join(root, e));
-  const g = join(root, "games", "timeplt");
-  mkdirSync(g, { recursive: true });
-  for (const e of readdirSync(GAME_DIR)) if (e !== "idiomatic") symlinkSync(join(GAME_DIR, e), join(g, e));
-  // Copied, not linked: the loader resolves a link to its real path, and a linked sibling would
-  // import the REAL module this copy exists to replace.
-  cpSync(join(GAME_DIR, "idiomatic"), join(g, "idiomatic"), { recursive: true });
-  const path = join(g, "idiomatic", file);
-  const before = readFileSync(path, "utf8");
-  const after = edit(before);
-  assert.notEqual(after, before, `mutant edit of ${file} changed nothing -- the mutant is vacuous`);
-  writeFileSync(path, after);
-  return pathToFileURL(join(g, "machine.js"));
-}
-nodeTest.after(() => { for (const t of trees) rmSync(t, { recursive: true, force: true }); });
+// ── mutants: edits to the copied idiomatic tree render-lib.js runs the reach from ──
 
-/** A no-op body for `name`, keeping the module's other exports. */
-const noOp = (name) => (src) =>
-  src.replace(`export function ${name}(`, `function __replaced_${name}(`) +
-  `\nexport function ${name}() { return undefined; }\n`;
+const IDIOMATIC = join(GAME_DIR, "idiomatic");
+const MODULES = readdirSync(IDIOMATIC).filter((f) => f.endsWith(".js"));
+/** Idiomatic modules that import `name` (so enter it directly, not through the override map). */
+const importers = (name) => MODULES.filter((f) => f !== `${name}.js` &&
+  readFileSync(join(IDIOMATIC, f), "utf8").includes(`from "./${name}.js"`));
 
-/** The mutant for one declared routine: { idiomaticBase } or { editOverrides }. */
+/** A no-op body for `name` (a generator stays one), keeping the module's other exports. */
+const noOp = (name) => (src) => {
+  const gen = new RegExp(`^export function\\*\\s*${name}\\s*\\(`, "m").test(src);
+  return src.replace(new RegExp(`^export function(\\*?)\\s*${name}\\s*\\(`, "m"), `function$1 __replaced_${name}(`) +
+    `\nexport function${gen ? "*" : ""} ${name}() { return undefined; }\n`;
+};
+
+/** The mutant for one declared routine: its body never runs. */
 function mutantFor(name) {
-  if (name in DIRECT_PROBES && DIRECT_PROBES[name].fn === name) {
-    return { idiomaticBase: mutantTree(`${name}.js`, noOp(name)) };
-  }
   if (name === "stepCountdownSlotThenCloseTurn") {
     // inlined into the sweep: the mutant drops the sweep's drifting-countdown arm
     return {
-      idiomaticBase: mutantTree("serviceSlotByMarkerThenCloseSweepTurn.js",
-        (s) => s.replace("    stepDriftingCountdownObjectByEraFrames(m);\n", "")),
+      idiomaticEdits: {
+        "serviceSlotByMarkerThenCloseSweepTurn.js": (s) => s.replace("    stepDriftingCountdownObjectByEraFrames(m);\n", ""),
+      },
     };
   }
-  const addr = ADDR.get(name);
-  return { editOverrides: (ov) => { assert.ok(ov.delete(addr), `${name} was not in the override map`); } };
+  return { idiomaticEdits: { [`${name}.js`]: noOp(name) } };
 }
+
+/** Unwire `name` from the override map: its address falls back to the translated twin. */
+const unwire = (name) => ({
+  editOverrides: (ov) => { assert.ok(ov.delete(ADDR.get(name)), `${name} was not in the override map`); },
+});
 
 /** Render one tape; return { stop, respondedAt, missing[], hits{} }. */
 async function runTape(file, { mutant = {}, dropPokes = false, extraPokes = [], reachNames } = {}) {
@@ -174,6 +167,20 @@ for (const [name, file] of MUTANT_CASES) {
     assert.ok(r.missing.includes(name), `mutant of ${name} still counted ${r.hits[name]} hit(s) -- the reach ` +
       "check cannot fail for it");
   });
+  if (name in DIRECT_PROBES) continue; // an inlined arm has no map entry of its own to unwire
+  if (!importers(name).length) {
+    romTest(`mutant: ${name} unwired -> ${SCHED[file].name} reports it NOT reached (the translated twin counts nothing)`, async () => {
+      const r = await runTape(file, { mutant: unwire(name) });
+      assert.ok(r.missing.includes(name), `unwired ${name} still counted ${r.hits[name]} hit(s) -- the translated ` +
+        "twin is being counted as the idiomatic routine");
+    });
+  } else {
+    romTest(`control: ${name} unwired -> ${SCHED[file].name} STILL counts it (entered directly by ${importers(name).join(", ")})`, async () => {
+      const r = await runTape(file, { mutant: unwire(name) });
+      assert.ok(!r.missing.includes(name), `unwired ${name} counted nothing, yet ${importers(name).join(", ")} ` +
+        "call it directly -- the instrument is blind to direct entry");
+    });
+  }
 }
 
 romTest("control: removing a tape's pokes turns it red", async () => {
@@ -197,4 +204,30 @@ romTest("control: the inlined 0x4108 arm's probe fires on a planted drifting mar
   assert.equal(plain.hits.stepCountdownSlotThenCloseTurn, 0, "the arm is reached by the tape itself -- declare it");
   const mut = await runTape(file, { extraPokes: plant, reachNames: names, mutant: mutantFor("stepCountdownSlotThenCloseTurn") });
   assert.equal(mut.hits.stepCountdownSlotThenCloseTurn, 0, "arm mutant still counted hits");
+});
+
+romTest("control: a routine whose only entry is cut (body intact) counts 0, while its siblings still count", async () => {
+  // postRoundStartCaptionsAndResetPlayfield is entered only as arm 4 of dispatchSequenceSubStepArm's switch
+  // (asserted) or through its map entry. Unwire the entry and route arm 4 to the TRANSLATED twin the way
+  // the frozen dispatch did (resume slot parked, then the ROM arm): the game runs the arm's ROM body and
+  // plays on, but the idiomatic body is never entered and is left untouched -- so a nonzero count would
+  // be the instrument inventing an execution.
+  const name = "postRoundStartCaptionsAndResetPlayfield";
+  const file = "boss-armed.poke.json";
+  assert.deepEqual(importers(name), ["dispatchSequenceSubStepArm.js"], `${name} gained another direct caller`);
+  const hex = (n) => `0x${n.toString(16)}`;
+  const before = `    case 4: ${name}(m); break;\n`;
+  const cut = (s) => {
+    assert.ok(s.includes(before), "arm 4 of the switch moved -- update this control");
+    return s.replace(before, `    case 4: m.push16(${hex(ADDR.get("advanceAttractTowardGameStart"))}); m.call(${hex(ADDR.get(name))}); break;\n`);
+  };
+  const r = await runTape(file, {
+    mutant: { idiomaticEdits: { "dispatchSequenceSubStepArm.js": cut }, ...unwire(name) },
+  });
+  assert.equal(r.stop, null, `render stopped: ${r.stop}`);
+  assert.notEqual(r.respondedAt, null, "vacuous: the tape never reached its responded state");
+  assert.equal(r.hits[name], 0, `${name} counted ${r.hits[name]} with every entry to it cut`);
+  for (const sibling of ["flyRoundIntroFlashingEraYearThenEraseIntroCaptions", "flyEnemyFreeLeadInThenStepSequence"]) {
+    assert.ok(r.hits[sibling] > 0, `positive control: ${sibling} (same switch, same run) counted nothing`);
+  }
 });

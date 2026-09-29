@@ -1,13 +1,33 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence for stepMotherShipWarpFlashFrame, a warp/flash sequence step nothing dispatches — no tape ever branches
- * into it (a dispatcher, 0x176A, does run in attract, but its jump here is never taken). So states
- * come from the drift site 0x2B60, which the body calls with the same object ix / sprite iy, plus
- * crafts that walk the state byte through every
- * branch. The dissolved calls drop their ROM pushes and the exit `ret` is gone, so [push, push+2) is
- * masked; the frogger standard applies — RAM is the contract and only genuine register live-outs are
- * pinned beside it, and this step has none, so memory is the whole of it. Teeth bite in memory. HOLE:
- * the misaligned prologue's conditional life-loss is unreachable in real play, forced synthetically.
+ * stepMotherShipWarpFlashFrame — the misaligned entry at ROM 0x459B, dissolved to a fault.
+ *
+ * 0x459B is entered on exactly two transfers, both anti-tamper derails: 0x176A jumps here when a
+ * caption glyph read off the screen is not the genuine one, and 0x43F0 (at 0x4646) jumps here when
+ * the tamper-witness pair does not hold the genuine values. Entered here, the prologue pops the
+ * caller's return slot as data, steps SP by one, pops again out of step, and every exit returns
+ * through a slot at an odd offset from the frame — control is destroyed rather than handed back. The
+ * object's genuine warp/flash step is entered past this prologue (0x45B3) and is gated elsewhere.
+ * So the rewrite raises NotImplemented at this entry, and this gate no longer byte-replays the body
+ * that runs on a broken stack — it asserts the fault and PROVES the fault stands in for no live path:
+ *
+ *   THROWS    — the entry raises NotImplemented, before writing a byte, on every captured and
+ *               crafted state the old gate replayed; the pre-fault form (the frozen body) is the
+ *               control that this arm can fail.
+ *   LANDING   — why raising is the faithful form: on every one of those states the frozen body ends
+ *               with SP an ODD distance from its seat, so its return is read out of step.
+ *   UNREACHED — over the coin-start tape and a long undriven run the target is never dispatched,
+ *               while its two dispatchers and the drift site are (the positive controls).
+ *   GENUINE   — the two guards' inputs, measured over the same runs: at every 0x176A dispatch the
+ *               glyph cell holds the genuine glyph; every write to the witness pair after the boot's
+ *               plant holds a genuine value, and that plant lands before the first 0x43F0 dispatch.
+ *   TAMPER    — each guard is genuinely conditional: the idiomatic 0x176A arm raises THIS fault on a
+ *               poked glyph (and the frozen 0x176A reaches this address), and returns on the genuine
+ *               one; the idiomatic 0x4646 arm raises THIS fault on a zeroed witness and returns on
+ *               each genuine witness pair.
+ *
+ * HOLE: GENUINE is measured over the runs named, not derived symbolically — the glyph and witness
+ * cells are RAM painted and sampled at run time.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-459b.test.js
  */
 import test from "node:test";
@@ -16,24 +36,30 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { stepMotherShipWarpFlashFrame } from "../stepMotherShipWarpFlashFrame.js";
+import { paintReadoutsThenSampleWitnessOrDerail } from "../paintReadoutsThenSampleWitnessOrDerail.js";
+import { loc_43f0_4646 } from "../stepMotherShip.js";
 import { loc_459b as oracle } from "../../translated/loc_459b.js";
+import { loc_176a as oracle176a } from "../../translated/loc_176a.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 
 const TARGET = 0x459b;
 const DRIFT_SITE = 0x2b60;
-const DISPATCHERS = [0x176a, 0x43f0];
+const GLYPH_DISPATCHER = 0x176a;
+const WITNESS_DISPATCHER = 0x43f0;
+const DISPATCHERS = [GLYPH_DISPATCHER, WITNESS_DISPATCHER];
 const LOSE_LIFE = 0x11ed;
-const STACK_FLOOR = 0xae00;
+
+const GLYPH_CELL = 0xa67c;
+const GENUINE_GLYPH = 0x7c;
+const WITNESS = 0xab43;
+const WITNESS_GLYPH = 0x7c;
+const WITNESS_COLOURS = [0x10, 0x05];
+const LONG_UNDRIVEN_FRAMES = 6000;
+
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
-
-/** The frogger standard: RAM (masked over the frozen side's stack scratch) is the contract, and only
- *  the routine's genuine named register live-outs are pinned beside it. Every register this step
- *  writes is dead-after-return scratch — the sole caller (loc_43f0_4646, a tail call) reads none, and
- *  its own gate (equivalence-43f0) excludes the whole main register file — so there are none to pin. */
-const GENUINE_LIVE_OUTS = [];
-
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
-const show = (d) =>
-  d ? `${d.addr == null ? "registers" : hex4(d.addr)}: frozen=${d.a} rewrite=${d.b}` : "identical";
+
+// ── captured states: the drift site the body calls, with the same object ix / sprite iy ───────────
 
 let drifts = null;
 function captureDrifts() {
@@ -48,46 +74,10 @@ function captureDrifts() {
   assert.equal(m.stoppedBy, null, `the drift run stopped early: ${m.stoppedBy}`);
   assert.equal(frames.length, ENTRY_FRAMES, "the drift run ran short");
   assert.ok(entries.length > 0, "vacuous: the drift site was never dispatched, so there is no state");
-  drifts = entries;
+  // A copy: clones share the capture hook, so later arms that run the frozen body would otherwise
+  // keep appending to the very set they iterate.
+  drifts = [...entries];
   return drifts;
-}
-
-/** Oracle vs candidate on independent clones: memory outside the exact bytes the frozen side's
- *  pushes wrote, then registers outside the ceiling. */
-function unitDiff(candidate, machine) {
-  const a = machine.clone();
-  const b = machine.clone();
-  const scratch = new Set();
-  const push = a.push16.bind(a);
-  a.push16 = (v) => {
-    const sp = (a.regs.sp - 2) & 0xffff;
-    scratch.add(sp).add((sp + 1) & 0xffff);
-    push(v);
-  };
-  try { oracle(a); } catch (e) { return { addr: null, a: `frozen threw ${String(e).slice(0, 30)}`, b: "-" }; }
-  try { candidate(b); } catch (e) { return { addr: null, a: "returned", b: String(e).slice(0, 30) }; }
-  for (const off of scratch) if (off < STACK_FLOOR) throw new Error(`scratch ${hex4(off)} reached data`);
-  const da = a.dumpState(), db = b.dumpState();
-  for (let i = 0; i < da.length; i++) {
-    if (da[i] === db[i]) continue;
-    const addr = a.stateOffsetToAddr(i);
-    if (scratch.has(addr)) continue;
-    return { addr, a: da[i], b: db[i] };
-  }
-  for (const k of GENUINE_LIVE_OUTS) {
-    if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
-  }
-  return null;
-}
-
-function footprint(machine) {
-  const before = machine.dumpState().slice();
-  const after = machine.clone();
-  oracle(after);
-  const now = after.dumpState();
-  let n = 0;
-  for (let i = 0; i < now.length; i++) if (now[i] !== before[i]) n++;
-  return n;
 }
 
 /** A real drift-site machine with the object's state byte forced, to walk every branch. */
@@ -98,8 +88,7 @@ function craft(stateByte, mut) {
   return c;
 }
 
-/** The misaligned prologue's `adc a,b` carries when a popped word's high byte plus b overflow;
- *  force both so the unreachable life-loss branch runs. */
+/** The prologue's `adc a,b` carries when a popped word's high byte plus b overflow. */
 function craftLoseLife() {
   const c = captureDrifts()[0].clone();
   const sp = c.regs.sp & 0xffff;
@@ -116,110 +105,217 @@ const CRAFTS = [
   ["above-trigger", () => craft(0xc4)],
   ["spends-to-idle", () => craft(0x01)],
   ["down-to-0x5a", () => craft(0x5b)],
+  ["life-loss", craftLoseLife],
 ];
 
-test("UNREACHED: no tape branches into this address, with a live control", { skip }, () => {
-  for (const [label, opts] of [["coin-start", {}], ["undriven", { tape: [] }]]) {
-    const seen = { [TARGET]: 0, [DRIFT_SITE]: 0 };
-    for (const d of DISPATCHERS) seen[d] = 0;
-    const map = new Map();
-    for (const addr of Object.keys(seen).map(Number)) {
-      const real = TRANSLATED.get(addr);
-      map.set(addr, (mm) => { seen[addr]++; return real(mm); });
+function states() {
+  return [...captureDrifts().map((m, i) => [`drift-${i}`, m]), ...CRAFTS.map(([l, make]) => [l, make()])];
+}
+
+/** Whether a side raises NotImplemented before writing anything; else what it did. */
+function faultsClean(fn, machine) {
+  const c = machine.clone();
+  const before = c.dumpState().slice();
+  try {
+    fn(c);
+  } catch (e) {
+    if (!(e instanceof NotImplemented)) return `raised ${String(e).slice(0, 40)}`;
+    const after = c.dumpState();
+    for (let i = 0; i < after.length; i++) {
+      if (after[i] !== before[i]) return `wrote ${hex4(c.stateOffsetToAddr(i))} before raising`;
     }
-    const m = makeMachine(map, opts);
-    m.runFrames(ENTRY_FRAMES);
-    assert.equal(m.stoppedBy, null, `the ${label} run stopped early: ${m.stoppedBy}`);
-    // control: the drift site always fires, and a dispatcher reaches its own jump-here in attract,
-    // yet the target stays zero -- the jump is simply never taken.
-    assert.ok(seen[DRIFT_SITE] + DISPATCHERS.reduce((s, d) => s + seen[d], 0) > 0,
-      `${label} counted nothing anywhere, so the target zero means nothing`);
-    assert.equal(seen[TARGET], 0, `${label} now dispatches ${hex4(TARGET)}; capture plain entries instead`);
-    console.log(`  UNREACHED: ${label} — target ${seen[TARGET]}, dispatchers ${DISPATCHERS.map((d) => seen[d]).join("/")}, control ${seen[DRIFT_SITE]}`);
+    return null;
   }
-});
+  return "returned";
+}
 
-test("REALISTIC: the drift-site captures, identical outside the ceiling", { skip }, () => {
-  const entries = captureDrifts();
-  for (const e of entries) assert.equal(unitDiff(stepMotherShipWarpFlashFrame, e), null, () => show(unitDiff(stepMotherShipWarpFlashFrame, e)));
-  const prints = entries.slice(0, 5).map(footprint);
-  assert.ok(prints.every((n) => n > 0), "a capture moved no memory, so a no-op rewrite would pass");
-  console.log(`  REALISTIC: ${entries.length} captures identical; footprints ${prints.join(", ")}`);
-});
+/** The frozen body with the life-loss handover probed out, so the arm stays on the unit. */
+function frozen(mm) {
+  const real = mm.routines.get(LOSE_LIFE);
+  mm.routines = new Map(mm.routines);
+  mm.routines.set(LOSE_LIFE, () => {});
+  try { return oracle(mm); } finally { mm.routines.set(LOSE_LIFE, real); }
+}
 
-test("BRANCHES: every state-byte path, identical outside the ceiling", { skip }, () => {
-  for (const [label, make] of CRAFTS) {
-    const d = unitDiff(stepMotherShipWarpFlashFrame, make());
-    assert.equal(d, null, `${label} diverged — ${show(d)}`);
-    console.log(`  BRANCH ${label}: footprint ${footprint(make())} bytes`);
+// ── broken twins ───────────────────────────────────────────────────────────────────────────
+
+/** BUG: the pre-fault form — runs the body on the broken stack. */
+const brokenRunsTheBody = frozen;
+/** BUG: returns quietly instead of raising. */
+const brokenNoOp = () => {};
+/** BUG: raises, but a plain error rather than the untranscribed-code fault. */
+const brokenPlainError = () => { throw new Error("tampered"); };
+/** BUG: raises the right fault, but after a write. */
+const brokenWritesFirst = (m) => { m.mem8[m.regs.ix & 0xffff] ^= 0xff; throw new NotImplemented("late"); };
+
+const TWINS = [
+  ["runs-the-body", brokenRunsTheBody],
+  ["no-op", brokenNoOp],
+  ["plain-error", brokenPlainError],
+  ["writes-first", brokenWritesFirst],
+];
+
+// ── the gate ───────────────────────────────────────────────────────────────────────────────
+
+test("THROWS: the entry raises NotImplemented before writing a byte, on every state", { skip }, () => {
+  const all = states();
+  for (const [label, s] of all) {
+    assert.equal(faultsClean(stepMotherShipWarpFlashFrame, s), null, `${label}: the entry did not fault cleanly`);
   }
+  console.log(`  THROWS: ${all.length} states (${captureDrifts().length} captured, ${CRAFTS.length} crafted) raise NotImplemented, nothing written`);
 });
 
-test("GARBAGE PATH: the forced life-loss branch writes identical memory", { skip }, () => {
-  let fired = false;
-  const probe = (mm) => {
-    const real = mm.routines.get(LOSE_LIFE);
-    mm.routines.set(LOSE_LIFE, (x) => { fired = true; return real(x); });
-    try { return oracle(mm); } finally { mm.routines.set(LOSE_LIFE, real); }
+test("LANDING: the frozen body ends every state with SP an odd distance from its seat", { skip }, () => {
+  const offsets = new Set();
+  for (const [label, s] of states()) {
+    const c = s.clone();
+    const seat = c.regs.sp;
+    frozen(c);
+    const moved = (c.regs.sp - seat) & 0xffff;
+    assert.equal(moved & 1, 1, `${label}: the frozen body left SP ${moved} from its seat — not out of step`);
+    offsets.add(moved);
+  }
+  console.log(`  LANDING: every frozen exit reads its return out of step (SP moved ${[...offsets].join("/")})`);
+});
+
+/** One run's counts and the guards' inputs, under a read and write tap on the witness pair. Every
+ *  tapped event and every counted dispatch takes the next tick, so their order is known. */
+function measure(opts, frames) {
+  const seen = { [TARGET]: 0, [DRIFT_SITE]: 0, [GLYPH_DISPATCHER]: 0, [WITNESS_DISPATCHER]: 0 };
+  const glyphs = [];
+  const events = [];
+  let tick = 0;
+  let firstWitnessDispatch = Infinity;
+  const map = new Map();
+  for (const addr of Object.keys(seen).map(Number)) {
+    const real = TRANSLATED.get(addr);
+    map.set(addr, (mm) => {
+      seen[addr]++;
+      tick++;
+      if (addr === GLYPH_DISPATCHER) glyphs.push(mm.mem8[GLYPH_CELL]);
+      if (addr === WITNESS_DISPATCHER && firstWitnessDispatch === Infinity) firstWitnessDispatch = tick;
+      return real(mm);
+    });
+  }
+  const m = makeMachine(map, opts);
+  const inPair = (addr) => addr === WITNESS || addr === WITNESS + 1;
+  const note = (kind, addr, v) => { if (inPair(addr)) events.push({ at: ++tick, kind, addr, v: v & 0xff }); };
+  const { read8, write8, write16 } = m.mem;
+  m.mem.read8 = (addr, ...rest) => { const v = read8.call(m.mem, addr, ...rest); note("read", addr, v); return v; };
+  m.mem.write8 = (addr, v, ...rest) => { note("write", addr, v); return write8.call(m.mem, addr, v, ...rest); };
+  m.mem.write16 = (addr, v, ...rest) => {
+    note("write", addr, v);
+    note("write", (addr + 1) & 0xffff, v >> 8);
+    return write16.call(m.mem, addr, v, ...rest);
   };
-  const base = craftLoseLife();
-  assert.equal(unitDiff(probe, base), null, "the forced life-loss path is vacuous or diverged");
-  assert.ok(fired, "the craft did not actually reach the life-loss branch");
-  assert.equal(unitDiff(stepMotherShipWarpFlashFrame, base), null, () => show(unitDiff(stepMotherShipWarpFlashFrame, base)));
-  assert.ok(footprint(base) > 20, "the life-loss path moved little memory; the craft is wrong");
-  console.log(`  GARBAGE PATH: life-loss fired, footprint ${footprint(base)} bytes, identical`);
-}); // probe restores the shared registry so later arms are unaffected
+  m.runFrames(frames);
+  return { seen, glyphs, events, firstWitnessDispatch, stopped: m.stoppedBy };
+}
 
-// ── teeth ─────────────────────────────────────────────────────────────────────────────────
-const noOp = () => {};
-const skipDrift = (mm) => {
-  const real = mm.routines.get(DRIFT_SITE);
-  mm.routines.set(DRIFT_SITE, () => {});
-  try { return oracle(mm); } finally { mm.routines.set(DRIFT_SITE, real); }
-};
-const scribbleData = (mm) => { stepMotherShipWarpFlashFrame(mm); mm.mem8[0xa878] ^= 0xff; };
-// A register-only twin: with no genuine register live-outs it is DELIBERATELY not flagged.
-const scribbleScratchReg = (mm) => { stepMotherShipWarpFlashFrame(mm); mm.regs.b = (mm.regs.b + 1) & 0xff; };
+let runs = null;
+function measured() {
+  runs ??= [["coin-start", measure({}, ENTRY_FRAMES)], ["long-undriven", measure({ tape: [] }, LONG_UNDRIVEN_FRAMES)]];
+  return runs;
+}
 
-/** memory-only catch, so a broad register ceiling cannot be what is doing the biting. */
-function caughtInMemory(twin, machine) {
-  const a = machine.clone(), b = machine.clone();
-  const scratch = new Set();
-  const push = a.push16.bind(a);
-  a.push16 = (v) => { const sp = (a.regs.sp - 2) & 0xffff; scratch.add(sp).add((sp + 1) & 0xffff); push(v); };
-  oracle(a);
-  try { twin(b); } catch { return true; }
-  const da = a.dumpState(), db = b.dumpState();
-  for (let i = 0; i < da.length; i++) {
-    if (da[i] === db[i]) continue;
-    if (scratch.has(a.stateOffsetToAddr(i))) continue;
-    return true;
+test("UNREACHED: no run branches into this address, with live controls", { skip }, () => {
+  for (const [label, r] of measured()) {
+    assert.equal(r.stopped, null, `the ${label} run stopped early: ${r.stopped}`);
+    assert.ok(r.seen[DRIFT_SITE] > 0, `${label}: the drift site never ran, so the zero below means nothing`);
+    assert.equal(r.seen[TARGET], 0, `${label} dispatched ${hex4(TARGET)} on a genuine image`);
+    console.log(`  UNREACHED: ${label} — target 0, dispatchers ${DISPATCHERS.map((d) => r.seen[d]).join("/")}, drift ${r.seen[DRIFT_SITE]}`);
+  }
+  for (const d of DISPATCHERS) {
+    assert.ok(measured().some(([, r]) => r.seen[d] > 0), `no run dispatched ${hex4(d)}, so its zero transfers mean nothing`);
+  }
+});
+
+test("GENUINE: both guards' inputs hold genuine values whenever they can be read", { skip }, () => {
+  let gateReads = 0;
+  let glyphReads = 0;
+  for (const [label, r] of measured()) {
+    assert.deepEqual(r.glyphs.filter((g) => g !== GENUINE_GLYPH), [], `${label}: a glyph dispatch read a non-genuine glyph`);
+    glyphReads += r.glyphs.length;
+    const plant = r.events.find((e) => e.kind === "write" && e.addr === WITNESS && e.v === WITNESS_GLYPH);
+    assert.ok(plant, `${label}: the witness was never planted`);
+    // Before the plant the pair holds the cold-start clear; nothing past the first witness dispatch
+    // may read it until the plant lands.
+    const early = r.events.filter((e) => e.kind === "read" && e.at > r.firstWitnessDispatch && e.at < plant.at);
+    assert.deepEqual(early, [], `${label}: the witness pair was read after its dispatcher started and before the plant`);
+    const after = r.events.filter((e) => e.at > plant.at);
+    const bad = after.filter((e) => (e.addr === WITNESS ? e.v !== WITNESS_GLYPH : !WITNESS_COLOURS.includes(e.v)));
+    assert.deepEqual(bad, [], `${label}: after the plant the witness pair held a non-genuine value`);
+    const reads = after.filter((e) => e.kind === "read").length;
+    gateReads += reads;
+    console.log(`  GENUINE: ${label} — ${r.glyphs.length} glyph read(s) genuine; ${after.length} witness ` +
+      `access(es) after the plant (${reads} read), all genuine`);
+  }
+  // Positive controls: the guards' inputs were actually read somewhere, so the zeros above count.
+  assert.ok(glyphReads > 0, "no run read the glyph guard's input");
+  assert.ok(gateReads > 0, "no run read the witness pair after the plant");
+});
+
+let glyphEntry = null;
+function captureGlyphDispatch() {
+  if (glyphEntry) return glyphEntry;
+  const m = makeMachine(new Map([[GLYPH_DISPATCHER, (mm) => {
+    glyphEntry ??= mm.clone();
+    return oracle176a(mm);
+  }]]), { tape: [] });
+  m.runFrames(ENTRY_FRAMES);
+  assert.notEqual(glyphEntry, null, "vacuous: the glyph dispatcher never ran");
+  return glyphEntry;
+}
+
+function raisesHere(fn) {
+  try {
+    fn();
+  } catch (e) {
+    return e instanceof NotImplemented && String(e.message).includes("stepMotherShipWarpFlashFrame");
   }
   return false;
 }
 
-test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught", { skip }, () => {
-  // No genuine register live-outs, so a twin that only scribbles a scratch register after the routine
-  // is DELIBERATELY not flagged — and the same measurement must still catch a scribbled RAM cell, or
-  // the clean read on the register twin would be worthless.
-  const states = [captureDrifts()[0], ...CRAFTS.map(([, make]) => make())];
-  for (const s of states) {
-    assert.equal(unitDiff(scribbleScratchReg, s), null,
-      "a scratch-register scribble was flagged, but this step has no genuine register live-outs to pin");
-    const d = unitDiff(scribbleData, s);
-    assert.notEqual(d, null, "the RAM measurement missed a scribbled cell, so it has no teeth");
-    assert.notEqual(d.addr, null, "the RAM scribble must be caught on a cell, not a register");
+test("TAMPER: each guard reaches this fault only on a tampered value", { skip }, () => {
+  // The glyph guard: the idiomatic arm raises THIS fault on a poked glyph, runs clean on the genuine
+  // one, and the frozen arm really transfers here.
+  const genuine = captureGlyphDispatch();
+  assert.equal(genuine.mem8[GLYPH_CELL], GENUINE_GLYPH, "the captured glyph is not the genuine one");
+  assert.ok(!raisesHere(() => paintReadoutsThenSampleWitnessOrDerail(genuine.clone())), "the genuine glyph raised");
+  const poked = genuine.clone();
+  poked.mem8[GLYPH_CELL] = GENUINE_GLYPH ^ 0x01;
+  assert.ok(raisesHere(() => paintReadoutsThenSampleWitnessOrDerail(poked.clone())), "a poked glyph did not raise this fault");
+  const probed = poked.clone();
+  probed.routines = new Map(probed.routines);
+  let landed = 0;
+  probed.routines.set(TARGET, () => { landed++; });
+  oracle176a(probed);
+  assert.equal(landed, 1, "the frozen glyph arm did not transfer to this address on a poked glyph");
+
+  // The witness gate: genuine pairs return, a zeroed witness raises THIS fault.
+  const d = captureDrifts()[0];
+  const ix = d.regs.ix & 0xffff;
+  for (const colour of WITNESS_COLOURS) {
+    const c = d.clone();
+    c.mem8[WITNESS] = WITNESS_GLYPH;
+    c.mem8[WITNESS + 1] = colour;
+    assert.ok(!raisesHere(() => loc_43f0_4646(c, ix)), `the genuine witness (colour ${colour}) raised`);
   }
-  console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on all ${states.length}`);
+  for (const [glyph, colour] of [[0x00, 0x05], [WITNESS_GLYPH, 0x00]]) {
+    const c = d.clone();
+    c.mem8[WITNESS] = glyph;
+    c.mem8[WITNESS + 1] = colour;
+    assert.ok(raisesHere(() => loc_43f0_4646(c, ix)), `a tampered witness ${glyph}/${colour} did not raise this fault`);
+  }
+  console.log("  TAMPER: glyph guard and witness gate each raise this fault only on a tampered value; " +
+    "the frozen glyph arm is seen transferring here");
 });
 
-test("TEETH: broken twins are caught", { skip }, () => {
-  const states = [captureDrifts()[0], ...CRAFTS.map(([, make]) => make())];
-  const bites = (twin) => states.filter((s) => unitDiff(twin, s) !== null).length;
-  assert.equal(bites(noOp), states.length, "the no-op twin escaped");
-  assert.equal(bites(skipDrift), states.length, "the skip-drift twin escaped");
-  assert.equal(bites(scribbleData), states.length, "the data-scribble twin escaped");
-  assert.ok(states.every((s) => caughtInMemory(noOp, s)), "the no-op twin is not caught in memory");
-  assert.ok(states.every((s) => caughtInMemory(skipDrift, s)), "the skip-drift twin is not caught in memory");
-  console.log(`  TEETH: no-op, skip-drift, data-scribble caught on ${states.length}/${states.length}`);
-});
+for (const [label, twin] of TWINS) {
+  test(`TEETH: the ${label} twin is CAUGHT`, { skip }, () => {
+    const all = states();
+    const caught = all.filter(([, s]) => faultsClean(twin, s) !== null).length;
+    console.log(`  TEETH/${label}: caught on ${caught}/${all.length}`);
+    assert.equal(caught, all.length, `the ${label} twin escaped THROWS on some state`);
+  });
+}

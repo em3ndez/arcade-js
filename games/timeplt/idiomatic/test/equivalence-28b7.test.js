@@ -16,15 +16,27 @@
  *   register. So no register carries back across the seam, and the live-out is memory plus the
  *   arm's. The EXCLUDED arm below MEASURES which registers survive rather than declaring it, and
  *   it is a CEILING: nothing outside the declared set may diverge, and the set is not required to
- *   be filled.
+ *   be filled. The ceiling holds the scratch registers because the rewrite runs the LIFTED arms,
+ *   which leave them otherwise than the transcribed ones do. That they are dead is not argued from
+ *   the ROM alone: DEAD AT EXIT flips every bit of every register in the ceiling on the FROZEN game
+ *   at each of this entry's exits, for each whole session, and not one frame of state changes,
+ *   while the same instrument does hear a one-record shift of the record register on the way in.
  *
- * ★ THE COMPARISON IS MASKED BELOW THE EXIT STACK POINTER, and the CAUSE arm establishes the mask
- *   rather than assuming it. The frozen dispatch chain pushes and pops nested return addresses in
- *   the bytes just under the arm's frame and hands the arm different pointer bits besides; the
- *   rewrite reaches the same arm arithmetically and writes none of that. A PROBE TWIN that
- *   reproduces exactly that stack traffic and hand-off — and nothing else — leaves ZERO raw
- *   difference at every dispatch of all three sessions. That is what identifies the dead scratch
- *   as the whole of the difference instead of a story told about a number.
+ * ★ THE COMPARISON IS MASKED BELOW THE EXIT STACK POINTER, and the mask is accounted for rather
+ *   than assumed. Two things write there on the frozen side and not on the rewrite's. The frozen
+ *   dispatch chain pushes and pops nested return addresses just under the arm's frame; a PROBE
+ *   TWIN that reproduces exactly that stack traffic and hand-off, over the frozen arms, leaves ZERO
+ *   raw difference at every dispatch of all three sessions, so the chain's share is identified
+ *   rather than told. The rest is the arms' own: the rewrite runs the lifted arm, which reaches its
+ *   helpers by direct call, where the frozen arm's calls park return addresses deeper in the same
+ *   free stack. Every masked byte lies strictly below the exit pointer, in stack the machine has
+ *   already given back, and SCRATCH asserts both that and the measured depth.
+ *
+ * ★ SP AND pc BELONG TO THE DISPATCH SEAM. The oracle nets exactly one return, through the arm's
+ *   own; the rewrite and the lifted arm perform none. Every candidate is therefore run THROUGH
+ *   `withOmittedRet`, the way the registry wires this entry, and exit pointer and program counter
+ *   are then compared for EQUALITY. SP-TOOTH shows the seam placing the rewrite and refusing a
+ *   rewrite that parks a word nothing lifts, or lifts one it was never given.
  *
  * ★ THIS ENTRY HAS THREE NEAR-NEIGHBOURS OF THE SAME SHAPE AND TWO THAT ONLY LOOK LIKE IT, and
  *   that is asserted here rather than assumed. Reading the family as one thing is how a gate that
@@ -50,21 +62,31 @@
  *   6. ARMS — all eight table entries off every kept entry, identical or faulting identically.
  *   7. SELECTOR — all 256 values of the era cell, so the five ignored bits are measured.
  *   8. GUARD — the two-sided control described above.
- *   9. STACK — exit pointer and program counter identical on every arm that completes.
- *  10. EXCLUDED — a ceiling on the registers that may diverge, plus the ones asserted HELD.
- *  11. WHOLE RUN — the rewrite dispatched for a whole session, cycle-matched, must leave the
- *      per-frame state byte-identical; uncompensated it may differ only in stack bytes.
- *  12. TEETH — twelve twins, each with an exact catch count per session and a recorded whole-run
+ *   9. STACK — exit pointer and program counter identical on every arm that completes, and on
+ *      every real dispatch, the candidate run through the seam.
+ *  10. SP-TOOTH — the seam places the rewrite on every completing arm and refuses two mutants.
+ *  11. DEAD AT EXIT — the ceiling below, poisoned on the frozen game at every exit of each whole
+ *      session, changes nothing, beside a control the same instrument does hear.
+ *  12. EXCLUDED — a ceiling on the registers that may diverge, plus the ones asserted HELD.
+ *  13. WHOLE RUN — the rewrite dispatched through the seam for a whole session, cycle-matched, must
+ *      leave the per-frame state byte-identical; uncompensated it may differ only in stack bytes.
+ *  14. TEETH — twelve twins, each with an exact catch count per session and a recorded whole-run
  *      verdict. Several are caught by NO dispatch of the played sessions and are held by the
  *      attract session alone; the verdicts record that instead of glossing it.
+ *  15. ATTRACT WHOLE RUN — the attract tape, where this record is live, replayed whole: the rewrite
+ *      differs only in dead stack inside the window below a measured exit pointer, and the
+ *      do-nothing twin is seen outside it.
  *
  * HOLE: the sessions present eras 0, 1 and 2 and no other; the remaining selectors are crafted off
  * entries their era would not really produce, and where such an arm faults it is asserted only to
  * fault IDENTICALLY on both sides, never to be correct.
  * HOLE: two of the eight table words address nothing this port has transcribed, so of those two
  * the sweep can say only that both sides fault the same way.
- * HOLE: this address has no registry entry, so nothing DISPATCHES the rewrite outside this file;
- * the WHOLE RUN arm wires it by hand for the length of one session and no further.
+ * HOLE: the WHOLE RUN arm replays the coin-start tape, and the attract tape only for the do-nothing
+ * twin; the other twins' whole-run verdicts are for the coin-start tape alone.
+ * HOLE: every session that presents era 0 finds this record idle, and era 0 crafted onto the busy
+ * entries leaves the era-0 and era-1 arms doing the same thing, so this file cannot tell which of
+ * those two arms era 0 selects (measured: a dispatch with the two swapped passes here).
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-28b7.test.js
  */
@@ -78,8 +100,13 @@ import { dispatchSeatedSlotByEraIndex } from "../dispatchSeatedSlotByEraIndex.js
 import { ERA_INDEX } from "../names.js";
 import { loc_28b7 as oracle } from "../../translated/loc_28b7.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { withOmittedRet } from "../../machine.js";
+import { seamPlaceable } from "../../../../core/equivalence.js";
+import { heard, heardAs, poisonedRun } from "./_deadAtExit.js";
 
 const TARGET = 0x28b7;
+/** The era-keyed dispatch this entry hands its seated pair to. */
+const HANDLER = 0x290e;
 
 /** The two immediates this entry loads. */
 const CRAFT_RECORD = 0xa850;
@@ -97,8 +124,8 @@ const RECORD_STRIDE = 0x10;
 const ENTRY_STRIDE = 2;
 const SELECTOR_VALUES = 256;
 
-/** Bytes below the exit stack pointer the frozen dispatch's dead scratch reaches; measured. */
-const WINDOW = 8;
+/** Bytes below the exit stack pointer the frozen chain's and frozen arm's dead scratch reach; measured. */
+const WINDOW = 12;
 /** The slot the frozen caller parked for this entry, measured at every dispatch. */
 const EXIT_PC = 0x28a4;
 
@@ -117,6 +144,9 @@ const FIRE_FRAME = 620;
 const DRIVEN_FRAMES = 4000;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
+
+/** A candidate as an assembled run reaches it: through the seam that supplies the omitted return. */
+const seam = (candidate) => withOmittedRet(candidate, TARGET);
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (ds) =>
@@ -167,9 +197,13 @@ const SESSIONS = [
   },
 ];
 
-const MOVED = ["d", "e", "h", "l"];
-/** Named separately so a failure says which: the two cursors, the seat, and the arm's own scratch. */
-const HELD = ["a", "b", "c", "ix", "iy", "sp"];
+/**
+ * A CEILING, measured: the chain's hand-off registers, and the scratch registers the lifted arms
+ * leave otherwise than the transcribed ones. DEAD AT EXIT shows every one dead at this entry's exit.
+ */
+const MOVED = ["a", "f", "b", "c", "d", "e", "h", "l", "a_"];
+/** Named separately so a failure says which: the two cursors and the seat. */
+const HELD = ["ix", "iy", "sp"];
 
 // ── the twins ───────────────────────────────────────────────────────────────────────────
 
@@ -215,8 +249,8 @@ function brokenFirstArmAlways(m) {
  * zero rather than dropped — the zero says which session is blind to it, which is the point.
  */
 const TWINS = [
-  ["no-op", brokenNoOp, [0, 1122, 0], true],
-  ["arm-not-run", brokenArmNotRun, [0, 1122, 0], true],
+  ["no-op", brokenNoOp, [0, 1122, 0], false],
+  ["arm-not-run", brokenArmNotRun, [0, 1122, 0], false],
   ["pointers-not-set", brokenPointersNotSet, [62, 2025, 157], true],
   ["record-only", aimedAt(CRAFT_RECORD, undefined), [0, 1014, 0], false],
   ["entry-only", aimedAt(undefined, DISPLAY_ENTRY), [62, 2025, 157], true],
@@ -280,7 +314,7 @@ function diffOf(candidate, machine) {
   let faultA = null;
   let faultB = null;
   try { oracle(a); } catch (e) { faultA = e.constructor.name; }
-  try { candidate(b); } catch (e) { faultB = e.constructor.name; }
+  try { seam(candidate)(b); } catch (e) { faultB = e.constructor.name; }
   const moved = faultA || faultB ? [] : REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
 
   const da = a.dumpState();
@@ -308,7 +342,7 @@ function diffOf(candidate, machine) {
     faultA,
     faultB,
     faulted,
-    caught: faulted ? faultA !== faultB : masked.length > 0,
+    caught: faulted ? faultA !== faultB : masked.length > 0 || exitSp !== b.regs.sp || a.pc !== b.pc,
   };
 }
 
@@ -337,6 +371,7 @@ function runSession(spec) {
   const moved = new Set();
   const caught = new Map(CANDIDATES.map(([label]) => [label, 0]));
   const exitPcs = new Set();
+  const exitSps = new Set();
   let dispatches = 0;
   let deepest = 0;
   let escaped = 0;
@@ -356,6 +391,7 @@ function runSession(spec) {
       keep(spec.label, era, r.informative, mm);
       for (const k of r.moved) moved.add(k);
       exitPcs.add(r.pcA);
+      exitSps.add(r.exitSp);
       if (r.exitSp !== r.spB || r.pcA !== r.pcB) stackMoved++;
       for (const d of r.raw) {
         if (d.addr >= r.exitSp) escaped++;
@@ -367,7 +403,7 @@ function runSession(spec) {
   const frames = m.runFrames(spec.frames);
   assert.equal(m.stoppedBy, null, `the ${spec.label} session stopped early: ${m.stoppedBy}`);
   assert.equal(frames.length, spec.frames, `the ${spec.label} session ran short`);
-  return { dispatches, spread, informative, moved, caught, deepest, escaped, probeRawBytes, stackMoved, exitPcs };
+  return { dispatches, spread, informative, moved, caught, deepest, escaped, probeRawBytes, stackMoved, exitPcs, exitSps };
 }
 
 function session(spec) {
@@ -408,45 +444,52 @@ function craft(base, era, guard) {
 
 // ── the whole run ───────────────────────────────────────────────────────────────────────
 
-let baselineRun = null;
-function baseline() {
-  if (!baselineRun) {
-    const base = makeMachine();
-    const frames = base.runFrames(WHOLE_FRAMES);
-    assert.equal(base.stoppedBy, null, `the baseline run stopped early: ${base.stoppedBy}`);
-    baselineRun = { frames, offsetToAddr: (o) => base.stateOffsetToAddr(o) };
+const baselineRuns = new Map();
+function baseline(spec) {
+  if (!baselineRuns.has(spec.label)) {
+    const base = makeMachine(undefined, spec.tape === undefined ? {} : { tape: spec.tape });
+    const frames = base.runFrames(spec.frames);
+    assert.equal(base.stoppedBy, null, `the ${spec.label} baseline run stopped early: ${base.stoppedBy}`);
+    baselineRuns.set(spec.label, { frames, offsetToAddr: (o) => base.stateOffsetToAddr(o) });
   }
-  return baselineRun;
+  return baselineRuns.get(spec.label);
 }
+
+/** The session the whole-run arms replay unless told otherwise. */
+const WHOLE_SESSION = { label: "whole", tape: undefined, frames: WHOLE_FRAMES };
+/** The session in which this entry's record is live; see the attract row of SESSIONS. */
+const LIVE_WHOLE_SESSION = { ...SESSIONS.find((spec) => spec.label === "attract"), label: "attract-whole" };
 
 /**
  * Dispatch `candidate` in place of the frozen entry for a whole session and collect every cell
  * whose per-frame trace differs from the all-frozen baseline. `matchCycles` spends the cycles the
  * frozen side would have spent, which is the difference between measuring the rewrite and
- * measuring the absence of its T-states.
+ * measuring the absence of its T-states. The candidate is dispatched through the seam, as the
+ * registry wires it.
  */
-function wholeRun(candidate, matchCycles) {
-  const base = baseline();
+function wholeRun(candidate, matchCycles, spec = WHOLE_SESSION) {
+  const base = baseline(spec);
   let fired = 0;
   let overspent = 0;
+  const seated = seam(candidate);
   const host = makeMachine(new Map([[TARGET, (mm) => {
     fired++;
-    if (!matchCycles) return candidate(mm);
+    if (!matchCycles) return seated(mm);
     const probe = mm.clone();
     const probeBefore = probe.cycles;
     oracle(probe);
     const owed = probe.cycles - probeBefore;
     const before = mm.cycles;
-    const r = candidate(mm);
+    const r = seated(mm);
     const spent = mm.cycles - before;
     if (owed < spent) overspent++;
     else mm.tick(owed - spent);
     return r;
-  }]]));
+  }]]), spec.tape === undefined ? {} : { tape: spec.tape });
   let frames = [];
   let threw = null;
   try {
-    frames = host.runFrames(WHOLE_FRAMES);
+    frames = host.runFrames(spec.frames);
   } catch (e) {
     threw = e.constructor.name;
   }
@@ -627,6 +670,69 @@ test("STACK: the exit pointer and the program counter are identical", { skip }, 
     `program counter identical, counter ${hex4(EXIT_PC)}`);
 });
 
+/** SP MUTANT: the rewrite exactly, after parking a word nothing will lift. */
+function mutantParksAWord(m) {
+  m.push16(EXIT_PC);
+  return seatCraftSlot0ThenDispatchByEra(m);
+}
+
+/** SP MUTANT: the rewrite exactly, after lifting a word it was never given. */
+function mutantLiftsAWord(m) {
+  m.pop16();
+  return seatCraftSlot0ThenDispatchByEra(m);
+}
+
+test("SP-TOOTH: the seam places the rewrite, and refuses one that parks or lifts a word", { skip }, () => {
+  let placed = 0;
+  for (const [label, base] of bases()) {
+    for (let i = 0; i < ARM_COUNT; i++) {
+      if (diffOf(seatCraftSlot0ThenDispatchByEra, craft(base, i)).faulted) continue;
+      const good = seamPlaceable(withOmittedRet, seatCraftSlot0ThenDispatchByEra, TARGET, craft(base, i));
+      assert.equal(good.placeable, true, `${label} arm ${i}: the seam could not place the rewrite: ${good.error}`);
+      for (const [shape, mutant] of [["parks", mutantParksAWord], ["lifts", mutantLiftsAWord]]) {
+        const bad = seamPlaceable(withOmittedRet, mutant, TARGET, craft(base, i));
+        assert.equal(bad.placeable, false, `${label} arm ${i}: the seam placed a rewrite that ${shape} a word`);
+        assert.ok(diffOf(mutant, craft(base, i)).caught, `${label} arm ${i}: the gate passed a rewrite that ${shape} a word`);
+      }
+      placed++;
+    }
+  }
+  assert.ok(placed > 0, "no arm completed, so the seam placed nothing here");
+  console.log(`  SP-TOOTH: ${placed} completing arms placed; both stack mutants refused on every one`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
+  let controlSees = 0;
+  let exitSees = 0;
+  for (const spec of SESSIONS) {
+    const dead = poisonedRun({ at: TARGET, poison: MOVED, tape: spec.tape, frames: spec.frames });
+    assert.equal(dead.threw, null, `${spec.label}: the poisoned run threw: ${dead.threw}`);
+    assert.equal(dead.stopped, null, `${spec.label}: the poisoned run stopped early: ${dead.stopped}`);
+    assert.equal(dead.frames, spec.frames, `${spec.label}: compared ${dead.frames} of ${spec.frames} frames`);
+    assert.equal(dead.poisoned, spec.dispatches, `${spec.label}: poisoned ${dead.poisoned} of ${spec.dispatches} dispatches`);
+    assert.deepEqual(dead.cells.map(hex4), [], `${spec.label}: a register in the ceiling was read after this entry handed back`);
+    // POSITIVE CONTROL, same instrument: shift the record register one record on, on this entry's
+    // way INTO the arm, where it is read. Silence at the exit means something only if this is heard.
+    const control = poisonedRun({
+      at: HANDLER, poison: ["ix"], flip: { ix: RECORD_STRIDE }, before: true,
+      tape: spec.tape, frames: spec.frames, only: (m) => m.regs.ix === CRAFT_RECORD,
+    });
+    assert.ok(control.poisoned > 0, `${spec.label}: the control never reached this entry's arm`);
+    if (heard(control)) controlSees++;
+    // EXIT-SIDE CONTROL, same instrument and exit: flip SP where this entry hands back. The ROM
+    // returns through the stack, so an exit poison that lands has to be heard.
+    const exitControl = poisonedRun({ at: TARGET, poison: ["sp"], flip: { sp: 2 }, tape: spec.tape, frames: spec.frames });
+    if (heard(exitControl)) exitSees++;
+    console.log(`  DEAD AT EXIT/${spec.label}: ${dead.poisoned} exits poisoned (${MOVED.join(", ")}), ` +
+      `nothing differs; the entry control ${heard(control) ? `is heard (${heardAs(control)})` : "is not heard"}; ` +
+      `the exit control ${heard(exitControl) ? `is heard (${heardAs(exitControl)})` : "is not heard"}`);
+  }
+  assert.ok(controlSees > 0, "the control shifted the record on its way into the arm and no session " +
+    "noticed, so the silence at the exit proves nothing");
+  assert.ok(exitSees > 0, "the control flipped SP at this entry's exit and no session noticed, so the " +
+    "exit poison never lands and its silence proves nothing");
+});
+
 test("EXCLUDED, deliberately: a CEILING on the registers that may diverge", { skip }, () => {
   const moved = new Set();
   for (const [, s] of allSessions()) for (const k of s.moved) moved.add(k);
@@ -682,3 +788,23 @@ for (const [label, twin, perSession, wholeRunSees] of TWINS) {
     assert.equal(sees, wholeRunSees, `the whole run's verdict on the ${label} twin changed`);
   });
 }
+
+test("TEETH: a whole run of the attract tape, where this record is live, sees the no-op twin", { skip }, () => {
+  // The lifted handler leaves the frozen handler's own stack scratch unwritten, so here, where
+  // the arms really run, those bytes may differ: only inside the window below an exit pointer a
+  // real dispatch was measured at, which is stack the machine has already given back.
+  const exitSps = new Set(allSessions().flatMap(([, s]) => [...s.exitSps]));
+  const scratch = (cell) => [...exitSps].some((sp) => cell >= sp - WINDOW && cell < sp);
+  const good = wholeRun(seatCraftSlot0ThenDispatchByEra, true, LIVE_WHOLE_SESSION);
+  assert.equal(good.threw, null, `the rewrite's attract run threw: ${good.threw}`);
+  assert.equal(good.overspent, 0, "the rewrite spent MORE cycles than the frozen side at some dispatch");
+  assert.deepEqual(good.cells.filter((c) => !scratch(c)).map(hex4), [],
+    "the rewrite's cycle-matched attract run diverged outside the dead scratch below the exit pointer");
+  const bad = wholeRun(brokenNoOp, true, LIVE_WHOLE_SESSION);
+  assert.ok(bad.fired > 0, "vacuous: the twin never dispatched");
+  const escaped = bad.cells.filter((c) => !scratch(c));
+  assert.ok(bad.threw !== null || escaped.length > 0, "the attract whole run is blind to a candidate that does nothing");
+  console.log(`  TEETH/no-op (attract whole run): the rewrite differs only in ` +
+    `[${good.cells.map(hex4).join(" ")}], below exit pointer ${[...exitSps].map(hex4).join(" ")}; ` +
+    `the twin ${bad.threw ?? escaped.length + " cells outside it"}`);
+});

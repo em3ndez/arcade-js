@@ -230,6 +230,46 @@ def game_runtime(game):
     return m.group(1) if m else None
 
 
+# A relative ES import (static or dynamic) of a .js/.mjs module.
+LOCAL_IMPORT = re.compile(r"""(?:\bfrom|\bimport)\s*\(?\s*["'](\.{1,2}/[^"']+\.m?js)["']""")
+# A USE of the override resolver -- a call, not its definition in machine.js.
+OVERRIDE_USE = re.compile(r"(?<!function )\bresolveAllIdiomatic\s*\(")
+
+
+def renderer_has_override_path(game):
+    """Does the renderer -- `render.js` plus the modules of its own `tools/` dir it imports,
+    transitively -- CALL `resolveAllIdiomatic`?
+
+    ⚠ render.js alone was the old test, and it went FALSE the day timeplt's machine setup moved
+    into `tools/render-lib.js` (shared with a standing test): the caveat then told every timeplt
+    PASS it "renders the ORACLE" while the suite ran the idiomatic layer. Only modules inside the
+    game's `tools/` dir are followed: `machine.js` DEFINES the resolver, so following imports out of
+    `tools/` would find it for a game whose renderer never calls it.
+    """
+    tools_dir = os.path.realpath(os.path.join(REPO, "games", game, "tools"))
+    entry = os.path.join(tools_dir, "render.js")
+    todo, seen = [entry], set()
+    while todo:
+        f = os.path.realpath(todo.pop())
+        if f in seen:
+            continue
+        seen.add(f)
+        try:
+            with open(f, encoding="utf-8") as fh:
+                src = fh.read()
+        except OSError:
+            if f == entry:
+                return False
+            continue
+        if OVERRIDE_USE.search(src):
+            return True
+        for rel in LOCAL_IMPORT.findall(src):
+            dep = os.path.realpath(os.path.join(os.path.dirname(f), rel))
+            if os.path.dirname(dep) == tools_dir:
+                todo.append(dep)
+    return False
+
+
 def suite_renders_idiomatic(game):
     """Does THIS game's suite actually render the idiomatic layer?
 
@@ -240,14 +280,12 @@ def suite_renders_idiomatic(game):
     mutation-tested in `_selftest_predicate_terms`, which the corpus cannot do.
     """
     suite = os.path.join(REPO, "games", game, "tools", "pixel_suite.py")
-    render = os.path.join(REPO, "games", game, "tools", "render.js")
     try:
         with open(suite, encoding="utf-8") as fh:
             passes_flag = "--idiomatic" in fh.read()
-        with open(render, encoding="utf-8") as fh:
-            has_path = "resolveAllIdiomatic" in fh.read()
     except OSError:
         return False
+    has_path = renderer_has_override_path(game)
     # ★ A CONJUNCTION, all three terms INDEPENDENT: a suite can pass the flag whether or not its
     # renderer honours it, and appends it only when `runtime()` reads "idiomatic". Dropping the
     # manifest term would silence the caveat for a translated game rendering the ORACLE.
@@ -537,8 +575,22 @@ def _fixture_game(root, game, *, flag, path, runtime):
         fh.write(f'export default {{\n  board: "{game}board",\n  runtime: "{runtime}",\n}};\n')
     with open(os.path.join(tdir, "pixel_suite.py"), "w", encoding="utf-8") as fh:
         fh.write('cmd += ["--idiomatic"]\n' if flag else "# renders the oracle\n")
+    # `path`: True = render.js calls the resolver; "lib" = a tools/ module render.js imports calls
+    # it; "machine" = only ../machine.js (outside tools/) mentions it, defining it; False = none.
+    render = {
+        True: "await resolveAllIdiomatic();\n",
+        "lib": 'import { build } from "./render-lib.js";\nawait build();\n',
+        "machine": 'import { Machine } from "../machine.js";\nbuildRoutines();\n',
+        False: "buildRoutines();\n",
+    }[path]
     with open(os.path.join(tdir, "render.js"), "w", encoding="utf-8") as fh:
-        fh.write("await resolveAllIdiomatic();\n" if path else "buildRoutines();\n")
+        fh.write(render)
+    if path == "lib":
+        with open(os.path.join(tdir, "render-lib.js"), "w", encoding="utf-8") as fh:
+            fh.write("export async function build() { return layer.resolveAllIdiomatic(); }\n")
+    if path == "machine":
+        with open(os.path.join(gdir, "machine.js"), "w", encoding="utf-8") as fh:
+            fh.write("export async function resolveAllIdiomatic(base) { return new Map(); }\n")
 
 
 def _selftest_predicate_terms():
@@ -554,6 +606,8 @@ def _selftest_predicate_terms():
         ("all three terms true", True, True, "idiomatic", True),
         ("suite never passes the flag", False, True, "idiomatic", False),
         ("renderer has no override path", True, False, "idiomatic", False),
+        ("override path in a tools/ module render.js imports", True, "lib", "idiomatic", True),
+        ("only the imported machine.js defines the resolver", True, "machine", "idiomatic", False),
         ("manifest declares translated", True, True, "translated", False),
     ]
     with tempfile.TemporaryDirectory() as root:

@@ -36,6 +36,14 @@
  *   corpus of every dispatch of both, a crafted sweep of the table's own slots (and their eight-bit
  *   wraps), and teeth. The memory comparison masks only the dead scratch band above.
  *
+ * ★ A TAMPER TRANSFER IS COMPARED WHERE IT HAPPENS. A crafted slot can run an arm on a state its
+ *   screen was never drawn for, so the arm's anti-tamper guard fails. The oracle then transfers into
+ *   a landing with no routine form (the warp/flash step's misaligned prologue 0x459b, or the caption
+ *   record 0x49fa run as code) and faults somewhere inside it; the rewrite raises NotImplemented at
+ *   the transfer. The oracle is stopped on entry to either landing (test/_tamperDerail.js), and the
+ *   two sides must reach the SAME landing after the SAME work outside the band. A genuine image
+ *   never takes these transfers; only the crafted sweep does.
+ *
  * HOLE: what each arm DOES is not exercised here beyond the indices the two sessions present; crafted
  * slots are asserted only to select the SAME arm the oracle's table selects (same masked memory, or
  * the SAME fault), never to be correct.
@@ -59,6 +67,7 @@ import { dispatchSequencePhase1SubStepArm } from "../dispatchSequencePhase1SubSt
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_1651 as oracle } from "../../translated/loc_1651.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
+import { stopAtDerails, faultClass } from "./_tamperDerail.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -141,12 +150,12 @@ const inScratch = (addr, sp) => addr !== null && addr >= sp - SCRATCH_BYTES && a
 function diffOf(candidate, machine) {
   const sp = machine.regs.sp;
   const before = machine.dumpState();
-  const a = machine.clone();
+  const a = stopAtDerails(machine.clone());
   const b = machine.clone();
   let faultA = null;
   let faultB = null;
-  try { oracle(a); } catch (e) { faultA = e.constructor.name; }
-  try { candidate(b); } catch (e) { faultB = e.constructor.name; }
+  try { oracle(a); } catch (e) { faultA = faultClass(e); }
+  try { candidate(b); } catch (e) { faultB = faultClass(e); }
   const da = a.dumpState();
   const db = b.dumpState();
   const outside = (addr) => !inScratch(addr, sp);
@@ -159,6 +168,9 @@ function diffOf(candidate, machine) {
   }
   const masked = raw.filter((d) => outside(d.addr));
   const faulted = faultA !== null || faultB !== null;
+  // Both sides stopped at the same tamper transfer: that is the same program point, so the work
+  // done before it must also match. Any other fault aborts mid-arm and leaves partial writes.
+  const derailed = faulted && faultA === faultB && faultA.startsWith("derail@");
   return {
     raw,
     masked,
@@ -168,7 +180,8 @@ function diffOf(candidate, machine) {
     faulted,
     // The dead band is the ONLY licensed divergence: outside it, a fault must match a fault and a
     // byte must match a byte, or the candidate is caught.
-    caught: faulted ? faultA !== faultB : masked.length > 0,
+    caught: faulted ? faultA !== faultB || (derailed && masked.length > 0) : masked.length > 0,
+    derailed,
   };
 }
 
@@ -185,12 +198,12 @@ function replaySession(opts, candidate) {
       dispatches++;
       indices.add(mm.mem8[SEQUENCE_SUBSTEP]);
       const sp = mm.regs.sp;
-      const a = mm.clone();
+      const a = stopAtDerails(mm.clone());
       const b = mm.clone();
       let faultA = null;
       let faultB = null;
-      try { oracle(a); } catch (e) { faultA = e.constructor.name; }
-      try { candidate(b); } catch (e) { faultB = e.constructor.name; }
+      try { oracle(a); } catch (e) { faultA = faultClass(e); }
+      try { candidate(b); } catch (e) { faultB = faultClass(e); }
       if (faultA !== null || faultB !== null) {
         if (faultA !== faultB) caught++;
       } else {
@@ -344,12 +357,17 @@ test("SCRATCH: divergence is confined to the dead band, and the band is really t
 
 test("DISPATCH: each table slot selects the SAME arm-then-tail, or faults identically", { skip }, () => {
   const faulted = new Set();
+  const derailed = new Set();
   let informative = 0;
   for (let i = 0; i < ARM_COUNT; i++) {
     const r = diffOf(dispatchSequencePhase1SubStepArm, craft(i));
     if (r.informative) informative++;
     if (r.faulted) {
       assert.equal(r.faultA, r.faultB, `slot ${i}: ${r.faultA} on one side, ${r.faultB} on the other`);
+      if (r.derailed) {
+        assert.deepEqual(r.masked, [], `slot ${i}: both reach ${r.faultA}, after different work: ${show(r.masked)}`);
+        derailed.add(i);
+      }
       faulted.add(i);
       continue;
     }
@@ -363,7 +381,8 @@ test("DISPATCH: each table slot selects the SAME arm-then-tail, or faults identi
   );
   console.log(
     `  DISPATCH: ${ARM_COUNT} slots, ${faulted.size} faulting identically on both sides ` +
-      `(${[...faulted].sort((a, b) => a - b).join(",")}), ${informative} writing real memory`,
+      `(${[...faulted].sort((a, b) => a - b).join(",")}; at a tamper transfer: ` +
+      `${[...derailed].sort((a, b) => a - b).join(",") || "none"}), ${informative} writing real memory`,
   );
 });
 
@@ -379,6 +398,8 @@ test("WRAP: the eighth bit does not choose — a slot and that slot plus 128 beh
     if (lowR.faulted) {
       assert.equal(lowR.faultA, lowR.faultB, `slot ${i}: ${lowR.faultA} vs ${lowR.faultB}`);
       assert.equal(wrapR.faultA, wrapR.faultB, `slot ${i}+128: ${wrapR.faultA} vs ${wrapR.faultB}`);
+      if (lowR.derailed) assert.deepEqual(lowR.masked, [], `slot ${i}: ${show(lowR.masked)}`);
+      if (wrapR.derailed) assert.deepEqual(wrapR.masked, [], `slot ${i}+128: ${show(wrapR.masked)}`);
     } else {
       assert.deepEqual(lowR.masked, [], `slot ${i}: ${show(lowR.masked)}`);
       assert.deepEqual(wrapR.masked, [], `slot ${i}+128: ${show(wrapR.masked)}`);

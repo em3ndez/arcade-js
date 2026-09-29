@@ -18,12 +18,13 @@
  *   The window is MEASURED — the WINDOW arm instruments the oracle's own `push16` over this file's
  *   whole sweep — never assumed and never copied from another gate.
  *
- * ★ THE MISALIGNED DERAIL READS THE DISPATCHER FRAME, NOT THE CALL SCRATCH. The wrong-glyph derail
- *   enters stepMotherShipWarpFlashFrame through its misaligned prologue (two POP AF, a DEC SP),
- *   which reads words ABOVE the entry seat — the dispatcher's own frame, identical in the oracle
- *   and the rewrite — while the oracle's extra call scratch lies strictly BELOW the seat and is
- *   masked. So the stray-carry life-loss decision is the same on both sides; the DERAIL arm proves
- *   it by value.
+ * ★ BOTH DERAILS ARE COMPARED AT THE TRANSFER. The wrong-glyph derail enters the warp/flash step's
+ *   misaligned prologue (0x459b) and the colour guard's enters a caption record run as code (0x49fa);
+ *   neither has a routine form, so the rewrite raises NotImplemented where the transfer would begin.
+ *   The oracle is stopped on entry to the landing (test/_tamperDerail.js), and the two sides must
+ *   reach the SAME landing after the SAME work outside the window. On the genuine image neither is
+ *   taken: this arm runs only after the copyright screen is built and its line re-flashed every frame
+ *   in its two colours, and the "K" at 0xa67c is that line's third glyph in both records.
  *
  * What it exercises, holes stated:
  *   1. CORPUS   — every dispatch of an undriven attract session, replayed from its own captured
@@ -33,8 +34,7 @@
  *                 caught, one INSIDE is masked. The third shows the first two are not the
  *                 instrument catching everything.
  *   4. DERAIL   — the glyph cell is forced OFF its expected value on a real captured machine; both
- *                 sides transfer into the mother-ship handler and agree outside the window,
- *                 including whether the misaligned prologue's stray carry folded in a life-loss.
+ *                 sides reach the warp/flash landing and agree outside the window up to it.
  *   5. SAMPLE   — on the clean path the sampled glyph/colour pair is marked and read back out of
  *                 the tamper witness cells by value, and the sequence index is shown to step.
  *   6. TEETH    — broken twins with their exact catch counts.
@@ -57,6 +57,7 @@ import { paintFiveLabelledNumericReadouts } from "../paintFiveLabelledNumericRea
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { loc_176a as oracle } from "../../translated/loc_176a.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { stopAtDerails, faultClass } from "./_tamperDerail.js";
 import {
   TAMPER_GLYPH_SOURCE_CELL,
   TAMPER_SAMPLE_GLYPH_CELL,
@@ -133,32 +134,40 @@ function unitDiff(candidate, machine, width) {
 }
 
 /**
- * Outcome comparison for the DERAIL branch. The wrong-glyph derail transfers into the mother-ship
- * warp/flash handler through its MISALIGNED prologue, which — from any state that is not a live
- * mother-ship object — corrupts a pointer and faults (an unmapped write). That fault is a genuine
- * property of the anti-tamper transfer, not of the rewrite, and it happens identically on both
- * sides because both run the same handler from the same state. So the test of the branch is that
- * the two OUTCOMES agree: both raise (the transfer was taken), or both return with equal memory
- * outside the window. A twin that skips the derail RETURNS where the oracle RAISES — caught.
+ * Outcome comparison for the two DERAIL branches. The oracle is stopped on entry to a tamper landing
+ * and the rewrite raises there (see the header), so the OUTCOMES must agree — both reach the same
+ * landing, or both return — and memory must agree outside the window either way, since both stop at
+ * the same program point. A twin that skips a derail RETURNS where the oracle stops — caught. Any
+ * other fault on either side is reported as itself, never as a derail. Returns the diff (null when
+ * equal) and the landing both sides reached.
  */
 function outcomeDiff(candidate, machine, width) {
   const sp = machine.regs.sp;
-  const a = machine.clone();
+  const a = stopAtDerails(machine.clone());
   const b = machine.clone();
   let ra = null;
   let rb = null;
-  try { oracle(a); } catch (e) { ra = String(e).slice(0, 40); }
-  try { candidate(b); } catch (e) { rb = String(e).slice(0, 40); }
-  if (ra && rb) return null; // both transferred into the faulting handler: equivalent
-  if (!!ra !== !!rb) {
+  try { oracle(a); } catch (e) { ra = faultClass(e); }
+  try { candidate(b); } catch (e) { rb = faultClass(e); }
+  if (ra !== rb) {
     return { addr: null, reg: "outcome", a: ra ? `raised(${ra})` : "returned", b: rb ? `raised(${rb})` : "returned" };
+  }
+  if (ra !== null && !ra.startsWith("derail@")) {
+    return { addr: null, reg: "outcome", a: `raised(${ra})`, b: `raised(${rb})` };
   }
   const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp, width));
   if (ram) return ram;
+  if (ra !== null) return null; // stopped at the transfer: the registers are the landing's, not a live-out
   for (const k of REG_FIELDS) {
     if (MOVED.includes(k)) continue;
     if (a.regs[k] !== b.regs[k]) return { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
   }
+  return null;
+}
+
+/** Which landing the ORACLE reaches from `machine`, or null if it returns. */
+function oracleLanding(machine) {
+  try { oracle(stopAtDerails(machine.clone())); } catch (e) { return faultClass(e); }
   return null;
 }
 
@@ -344,23 +353,18 @@ test("BOUNDARY: the exclusion is exactly as wide as it declares", { skip }, () =
 
 test("DERAIL: a wrong glyph transfers into the mother-ship handler on both sides", { skip }, () => {
   const w = windowBytes();
-  // Force the glyph off its expected value on a real captured machine and confirm BOTH sides take
-  // the same transfer into the handler — see outcomeDiff for why the outcome, not the full memory
-  // state, is the comparison here.
+  // Force the glyph off its expected value on a real captured machine: the oracle must reach the
+  // warp/flash landing (the probe proves the transfer, not merely a crash), and the rewrite must
+  // raise there after the same work — see outcomeDiff.
   const badGlyphs = [0x00, 0x7d, 0xff, EXPECTED_GLYPH ^ 0x01];
   for (const bad of badGlyphs) {
     const e = captureCorpus()[0].clone();
     e.mem8[TAMPER_GLYPH_SOURCE_CELL] = bad;
+    assert.equal(oracleLanding(e), "derail@0x459b", `glyph=${hex4(bad)}: the oracle did not reach 0x459b`);
     const d = outcomeDiff(paintReadoutsThenSampleWitnessOrDerail, e, w);
     assert.equal(d, null, `glyph=${hex4(bad)}: ${show(d)}`);
-    // The rewrite must actually enter the derail (raise from the misaligned handler) rather than
-    // quietly do the clean-path work: a state with no live mother-ship object faults there.
-    const b = e.clone();
-    let raised = false;
-    try { paintReadoutsThenSampleWitnessOrDerail(b); } catch { raised = true; }
-    assert.ok(raised, `glyph=${hex4(bad)}: the rewrite did not transfer into the derail handler`);
   }
-  console.log(`  DERAIL: ${badGlyphs.length} wrong-glyph values, both sides transfer into the handler identically`);
+  console.log(`  DERAIL: ${badGlyphs.length} wrong-glyph values, both sides stop at 0x459b after the same work`);
 });
 
 test("SAMPLE: the clean path marks and reads back the tamper witness pair", { skip }, () => {
@@ -399,25 +403,21 @@ test("TEETH: the no-derail twin is CAUGHT on a wrong glyph", { skip }, () => {
 
 test("TEETH: the no-colour-guard twin is CAUGHT on a bad colour", { skip }, () => {
   // A guarded copyright colour cell (0xa1dc, the sample colour source) forced OFF 0x10/0x05 makes
-  // the colour guard derail into its data-run trap (loc_49fa), which scribbles the tile plane. On a
-  // TAMPERED state the trap's debris is not byte-stable across the layer boundary (it is the
-  // callee's own un-established region — see checkTheCopyrightLineColoursOrDerail / loc_49fa gates),
-  // so this tooth is rewrite-vs-TWIN, not rewrite-vs-oracle: the guard must leave a mark the
-  // guardless twin does not. The glyph is left correct so the ONLY difference is the missing guard.
+  // the colour guard transfer into its caption-record landing (0x49fa). The glyph is left correct so
+  // the ONLY difference is the missing guard. The oracle must reach that landing, the rewrite must
+  // stop there after the same work, and the guardless twin — which returns — must be caught.
+  const w = windowBytes();
   const e = captureCorpus()[0].clone();
   assert.equal(e.mem8[TAMPER_GLYPH_SOURCE_CELL], EXPECTED_GLYPH, "corpus[0] is not on the clean path");
   e.mem8[TAMPER_SAMPLE_COLOUR_CELL] = 0x00; // 0xa1dc: neither 0x10 nor 0x05 -> guard derails
   const cursor = e.mem8[WRITE_CURSOR];
   for (let i = 0; i < 4; i++) e.mem8[COMMAND_RING + ((cursor + i) & 63)] = FREE;
-  const a = e.clone();
-  const b = e.clone();
-  paintReadoutsThenSampleWitnessOrDerail(a);
-  brokenNoColourGuard(b);
-  const diffs = allDiffs(a, b);
-  console.log(`  TEETH/no-colour-guard: rewrite and guardless twin differ at ${diffs.length} cells ` +
-    `(first ${diffs[0] ? hex4(diffs[0].addr) : "-"})`);
-  assert.ok(diffs.length > 0, "the guard left no mark the guardless twin omits, so it is invisible " +
-    "here and this tooth proves nothing");
+  assert.equal(oracleLanding(e), "derail@0x49fa", "the oracle did not reach the colour guard's landing");
+  const rewrite = outcomeDiff(paintReadoutsThenSampleWitnessOrDerail, e, w);
+  assert.equal(rewrite, null, `the rewrite disagreed on a bad colour: ${show(rewrite)}`);
+  const d = outcomeDiff(brokenNoColourGuard, e, w);
+  console.log(`  TEETH/no-colour-guard: ${show(d)}`);
+  assert.notEqual(d, null, "the twin that skips the colour guard was not caught");
 });
 
 for (const [label, twin] of CLEAN_TWINS) {
