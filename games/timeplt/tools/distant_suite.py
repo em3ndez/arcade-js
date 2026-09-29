@@ -89,6 +89,19 @@ def load_schedule(path):
     for n in inv:
         if n not in reaches:
             raise SystemExit(f"schedule {path}: pixel_invisible names {n!r}, which is not in 'reaches'")
+    # Optional per-tape TIGHTER pixel budget for the distant-state window and the band. A tape
+    # whose target's whole visible effect is one small sprite can pass the default budgets with
+    # that routine broken (countdown-slot's arm mutants do; the tape's note has the measurement);
+    # a measured tighter budget gives that tape teeth. It may only
+    # TIGHTEN: a value above the default band budget (itself far below the whole-frame rough
+    # tolerance) is refused, so no tape can loosen the gate through this key.
+    if "distant_budget_px" in s:
+        v = s["distant_budget_px"]
+        if isinstance(v, bool) or not isinstance(v, int) or not 0 <= v <= ps.BAND_MAX_PX:
+            raise SystemExit(
+                f"schedule {path}: 'distant_budget_px' must be an integer 0..{ps.BAND_MAX_PX} "
+                f"(the default band budget) -- it may only tighten, got {v!r}"
+            )
     r = s["responded"]
     if "cell" not in r or "val" not in r:
         raise SystemExit(f"schedule {path}: 'responded' needs 'cell' and 'val'")
@@ -194,7 +207,7 @@ def reach_check(reach_out, sched, lo, hi):
     return missing
 
 
-def band_scan(js_rgb, golden_rgb, offset, from_frame):
+def band_scan(js_rgb, golden_rgb, offset, from_frame, budget=None):
     """Per-frame band (rows BAND_FROM..) pixel diff, reduced to what the reconvergence
     verdict needs: the worst frame, the total frames over the per-frame budget, and the
     LONGEST RUN of consecutive over-budget frames.
@@ -213,6 +226,7 @@ def band_scan(js_rgb, golden_rgb, offset, from_frame):
     over-budget frames (334 total, 21.3%), still a hard FAIL."""
     import numpy as np
 
+    budget = ps.BAND_MAX_PX if budget is None else budget
     w, h, bpf = ps.pixel_gate.screen_geometry(ps.HW)
     n = min(os.path.getsize(js_rgb) // bpf, os.path.getsize(golden_rgb) // bpf - offset)
     worst, worst_at, over, run, max_run = 0, None, 0, 0, 0
@@ -225,7 +239,7 @@ def band_scan(js_rgb, golden_rgb, offset, from_frame):
             c = int(np.any(a != b, axis=2).sum())
             if c > worst:
                 worst, worst_at = c, i
-            if c > ps.BAND_MAX_PX:
+            if c > budget:
                 over += 1
                 run += 1
                 max_run = max(max_run, run)
@@ -403,12 +417,20 @@ def distant_gate(a, sched, work, idiomatic, summary):
     distant_js = max(0, hit[0] - offset)
     rc = 0
     summary["windows"] = {}
+    tight = sched.get("distant_budget_px")
+    w, h, _ = ps.pixel_gate.screen_geometry(ps.HW)
     for label, frm in (("whole run", ps.DIFF_FROM), ("distant state", distant_js)):
-        v = ps.pixel_gate.rough_verdict(d, ps.HW, from_frame=frm)
+        if label == "distant state" and tight is not None:
+            # rough_verdict fails a frame over int(total * tolerance) px; +0.5 makes that int exactly `tight`
+            v = ps.pixel_gate.rough_verdict(d, ps.HW, from_frame=frm, tolerance=(tight + 0.5) / (w * h))
+            note = f" (tape budget {tight}px)"
+        else:
+            v = ps.pixel_gate.rough_verdict(d, ps.HW, from_frame=frm)
+            note = ""
         print(
             f"  {label:15} frames={v['frames']:5d} differ={v['frames_differing']:5d} "
             f"max={v['max_pixels']:5d}px ({v['max_pct']:6.3f}%) "
-            f"worst@{v['worst_frame']} -> {v['verdict']}"
+            f"worst@{v['worst_frame']}{note} -> {v['verdict']}"
         )
         summary["windows"][label] = v
         if v["verdict"] != ps.pixel_gate.PASS:
@@ -418,7 +440,9 @@ def distant_gate(a, sched, work, idiomatic, summary):
         os.path.join(go, "frames.rgb"),
         offset,
         distant_js,
+        tight,
     )
+    band_budget = ps.BAND_MAX_PX if tight is None else tight
     # Same 100px/frame budget as pixel_suite (floor NOT lowered). PASS iff the over-budget
     # band frames are RARE and ISOLATED transients -- not a sustained or systematic
     # divergence. Two guards, both proven to trip on the documented shape-bit twin and to
@@ -434,7 +458,7 @@ def distant_gate(a, sched, work, idiomatic, summary):
     band_ok = b["max_run"] < MAX_RUN and over_frac < OVER_FRAC
     bverdict = ps.pixel_gate.PASS if band_ok else ps.pixel_gate.FAIL
     print(
-        f"  band rows {ps.BAND_FROM}.. worst={b['worst']:5d}px (budget {ps.BAND_MAX_PX}) "
+        f"  band rows {ps.BAND_FROM}.. worst={b['worst']:5d}px (budget {band_budget}) "
         f"over={b['over']}/{b['frames']} ({100 * over_frac:.2f}%) "
         f"max-consecutive={b['max_run']} worst@{b['worst_at']} -> {bverdict}"
     )
@@ -451,7 +475,7 @@ def distant_gate(a, sched, work, idiomatic, summary):
         )
     if not band_ok:
         rc = 1
-    summary["band"] = dict(b, budget=ps.BAND_MAX_PX, ok=band_ok)
+    summary["band"] = dict(b, budget=band_budget, ok=band_ok)
 
     # 3) REACH: the routines this tape exists for ran inside the compared distant window. The
     #    window ends where the comparison ends (the golden is shorter than the render by `offset`).

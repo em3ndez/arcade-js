@@ -486,6 +486,47 @@ def _selftest_distant_glob():
     return bad
 
 
+def _selftest_distant_budget():
+    """A tape's `distant_budget_px` may only TIGHTEN. Drive the REAL distant_suite.py (its
+    schedule load runs before any MAME work, via --print-render-argv) on a real tape with the key
+    rewritten: a value at the default band budget and a tight one must be accepted (controls
+    first -- else the refusals prove only that every schedule is refused); above the default,
+    negative, fractional or boolean must exit non-zero."""
+    bad = 0
+    real = os.path.join(REPO, "games", "timeplt", "tools", "distant_suite.py")
+    src = os.path.join(REPO, "games", "timeplt", "tapes", "era-advance.poke.json")
+    if not (os.path.isfile(real) and os.path.isfile(src)):
+        print("  [BAD] distant budget: games/timeplt distant_suite.py or era-advance tape missing")
+        return 1
+    sys.path.insert(0, os.path.join(REPO, "games", "timeplt", "tools"))
+    try:
+        import pixel_suite
+        default = pixel_suite.BAND_MAX_PX
+    finally:
+        sys.path.pop(0)
+    with open(src, encoding="utf-8") as fh:
+        base = json.load(fh)
+    with tempfile.TemporaryDirectory() as tmp:
+        for label, val, want_ok in [
+            ("tight budget (control -- must be ACCEPTED)", 16, True),
+            ("budget == default band budget (control -- ACCEPTED)", default, True),
+            ("budget ABOVE the default -- loosens, REFUSE", default + 1, False),
+            ("budget far above the default -- REFUSE", 5000, False),
+            ("negative budget -- REFUSE", -1, False),
+            ("fractional budget -- REFUSE", 16.5, False),
+            ("boolean budget -- REFUSE", True, False),
+        ]:
+            path = os.path.join(tmp, "t.poke.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(dict(base, distant_budget_px=val), fh)
+            r = subprocess.run(["python3", real, "--schedule", path, "--layer", "idiomatic",
+                                "--print-render-argv"], cwd=REPO, capture_output=True, text=True)
+            ok = (r.returncode == 0) == want_ok
+            bad += not ok
+            print(f"  [{'ok ' if ok else 'BAD'}] distant budget: {label}: rc={r.returncode}")
+    return bad
+
+
 def _fixture_game(root, game, *, flag, path, runtime):
     """A minimal game with the three predicate terms set INDEPENDENTLY: no shipped game has
     exactly one term false, so the corpus cannot supply these."""
@@ -702,6 +743,7 @@ def cmd_selftest(_args=None):
 
     bad += _selftest_staged_paths()
     bad += _selftest_distant_glob()
+    bad += _selftest_distant_budget()
     bad += _selftest_manifest_reads()
     bad += _selftest_predicate_terms()
 

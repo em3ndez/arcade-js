@@ -69,7 +69,8 @@ one credit's worth of play.
 
 **timeplt (worked):** the tapes live in `games/timeplt/tapes/*.poke.json`, run by
 `games/timeplt/tools/distant_suite.py`, each pixel-validated against MAME — era 1 (1940), era 4 (2001),
-two-player, game-over, high-score entry, mother-ship (boss) armed collision, and a deep round. Most carry a
+two-player, game-over, high-score entry, mother-ship (boss) armed collision, a deep round, and an era-3
+countdown slot. Most carry a
 game-set `responded` cell — a value the ROM writes only on reaching the state, read from the golden dump — so
 a pass is not two engines agreeing on the same wrong thing; the two era tapes' `responded` instead confirms
 the held era poke landed in the golden (that state's coherence comes from the MAME grounding, not the cell).
@@ -109,13 +110,23 @@ directly-called ones by host call-stack attribution on a read their own body mak
 | two-player | the three above + loadActivePlayerContextAndPostRoundHud |
 | era-one | the three above + serviceEra1EnemyCraftSlot |
 | era-advance | flyRoundIntroFlashingEraYearThenEraseIntroCaptions, flyEnemyFreeLeadInThenStepSequence, serviceSlotByMarkerThenCloseSweepTurn |
+| countdown-slot | stepCountdownSlotThenCloseTurn, serviceSlotByMarkerThenCloseSweepTurn |
 | game-over | fileScoreAfterGameOverHoldElsePassTurn — **reached, pixel-invisible** (see below) |
 | high-score | fileScoreAfterGameOverHoldElsePassTurn (its filing arm), erasePenRouteThenOpenInitialsEntry, stepHighScoreInitialsEntry |
 
-- **stepCountdownSlotThenCloseTurn (0x4108): NOT tape-covered.** It is inlined into
-  serviceSlotByMarkerThenCloseSweepTurn as the sweep's drifting-countdown arm, and no tape's sweep meets a
-  drifting marker. The arm is probed (a call into stepDriftingCountdownObjectByEraFrames with the sweep on
-  the stack); the standing test's planted-marker control proves the probe fires and its mutant silences it.
+- **stepCountdownSlotThenCloseTurn (0x4108): covered by countdown-slot.** It is inlined into
+  serviceSlotByMarkerThenCloseSweepTurn as the sweep's drifting-countdown arm. The tape loads era 3 from
+  the player's saved era (PLAYER_ONE_ERA_INDEX) and pokes SHOT_BURST_PENDING in bursts until a shot destroys
+  an object in the era-2+ object bank and its slot takes a countdown marker. Its `responded` cell (0xAA58 eq
+  0x0D) is the slot's SPRITE_STATE byte (iy+0x30), and 0x0D is the arm's NEAR_STATE. The only ROM store of
+  0x0D to (iy+0x30) is at 0x4169, inside 0x413C, whose only caller is 0x4108 (static byte scan), so the golden
+  responding shows MAME running the arm. The arm's whole visible effect is one small sprite, so at the
+  default budgets a broken arm passed. The tape sets `distant_budget_px`, a per-tape budget that only
+  tightens (`distant_suite.py` refuses a value above the default band budget), for the distant-state window
+  and the band, set just above the correct layers' measured floor. With it, two arm mutants fail against
+  MAME. The measurement is in the tape's note. The arm is probed (a call into
+  stepDriftingCountdownObjectByEraFrames with the sweep on the stack); the standing test's planted-marker
+  control on era-advance proves the probe fires and its mutant silences it.
 - **Not in a window:** postRoundStartCaptionsAndResetPlayfield runs in era-advance, game-over and
   high-score only before the distant state, so those tapes do not declare it.
 - **Not reach-checked:** startTwoPlayerGame and handPlayOverToOtherPlayer (two-player) are called directly

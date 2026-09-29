@@ -186,7 +186,8 @@ romTest("control: removing a tape's pokes turns it red", async () => {
 });
 
 romTest("control: the inlined 0x4108 arm's probe fires on a planted drifting marker, and its mutant silences it", async () => {
-  // No tape reaches the arm (docs/pixel-tapes.md); prove the instrument could see it if one did.
+  // era-advance does not reach the arm (countdown-slot does); planting a marker there proves the probe
+  // fires on a planted marker and not on the unplanted tape.
   const file = "era-advance.poke.json";
   const plant = [{ addr: 0xa8c0, val: 0x20, frame: 960, dur: 1 }]; // slot 0's marker -> a drifting object
   const names = ["serviceSlotByMarkerThenCloseSweepTurn", "stepCountdownSlotThenCloseTurn"];
