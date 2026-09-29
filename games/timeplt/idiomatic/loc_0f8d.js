@@ -13,6 +13,7 @@ export function loc_0f8d(m) {
   m.pop16();
   m.pop16();
   const fourth = m.pop16();
-  const fixed = spriteFixupPass(m, RESIDUE_LOW, fourth & 0xff);
-  return (m.regs.b = RESIDUE_HIGH, fixed);
+  spriteFixupPass(m, RESIDUE_LOW, fourth & 0xff);
+  m.ret();
+  return void (m.regs.b = RESIDUE_HIGH);
 }

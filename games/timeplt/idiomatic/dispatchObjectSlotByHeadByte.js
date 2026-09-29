@@ -9,10 +9,10 @@ import { runSlotCountdownDriftAndAnimateElseRetire } from "./runSlotCountdownDri
 
 const ALL_ONES = 255;
 
-export function dispatchObjectSlotByHeadByte(m, ix = m.regs.ix) {
+export function dispatchObjectSlotByHeadByte(m, ix = m.regs.ix, iy = m.regs.iy) {
   const head = m.mem8[ix];
   if (head === 0) return;
   return head === ALL_ONES
-    ? flyAndRetireSlotCyclingShapeInEra4(m)
-    : runSlotCountdownDriftAndAnimateElseRetire(m);
+    ? flyAndRetireSlotCyclingShapeInEra4(m, ix, iy)
+    : runSlotCountdownDriftAndAnimateElseRetire(m, ix, iy);
 }

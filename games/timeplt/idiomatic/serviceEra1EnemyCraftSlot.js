@@ -17,15 +17,17 @@ const EMPTY = 0;
 const HELD = 0xfe;
 const ACTIVE = 0xff;
 
-export function serviceEra1EnemyCraftSlot(m, ix = m.regs.ix) {
+export function serviceEra1EnemyCraftSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
+  // The slot's record and sprite entry are handed to every step that takes them, so a slot named
+  // here is the slot every step works on.
   const status = m.mem8[ix];
   if (status === EMPTY) return;
-  if (status === HELD) return releaseHeldObject(m);
-  if (status !== ACTIVE) return stepDyingObjectState(m);
+  if (status === HELD) return releaseHeldObject(m, ix);
+  if (status !== ACTIVE) return stepDyingObjectState(m, ix, iy);
 
-  steerTowardAimHeading(m);
-  loc_5854(m);
-  if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
-  launchBankEnemyWhenAimedNearPlayer(m);
-  return refreshSecondEraSpriteFromHeading(m);
+  steerTowardAimHeading(m, ix);
+  loc_5854(m, ix, iy);
+  if (hasReachedRetireLine(m, iy)) return retireSlotAndSubPixel(m, ix, iy);
+  launchBankEnemyWhenAimedNearPlayer(m, ix, iy);
+  return refreshSecondEraSpriteFromHeading(m, ix, iy);
 }

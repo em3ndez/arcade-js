@@ -6,15 +6,10 @@
 
 import { SOUND_COMMAND_LATCH, AUDIO_IRQ_LATCH } from "./names.js";
 
-/** Where in the instruction the write bus cycle lands; a recorder of hardware writes needs it. */
-const WRITE_BUS_CYCLE = 10;
-
 export function sendSoundCommand(m, command = m.regs.a) {
-  const { mem } = m;
-  // A hardware-latch store must carry the bus-cycle offset so a write recorder can time it; the
-  // indexed view cannot pass one, so these stay method calls.
-  mem.write8(SOUND_COMMAND_LATCH, command, WRITE_BUS_CYCLE);
-  mem.write8(AUDIO_IRQ_LATCH, 1, WRITE_BUS_CYCLE);
-  mem.write8(AUDIO_IRQ_LATCH, 0, WRITE_BUS_CYCLE);
+  const { mem8 } = m;
+  mem8[SOUND_COMMAND_LATCH] = command;
+  mem8[AUDIO_IRQ_LATCH] = 1;
+  mem8[AUDIO_IRQ_LATCH] = 0;
   return (m.regs.a = 0);
 }

@@ -3,53 +3,54 @@
  * runCommandRingDrainLoop — memory-equivalent to the frozen oracle at ROM 0x0B93.
  *
  * WHAT IT IS. The foreground loop. It consumes the command ring forever: read cursor, occupancy
- * test, take two bytes, free both cells, step and wrap the cursor, index a sixteen-entry address
- * table through the already-decompiled fetchWideTableWord — that transfer is dissolved into a
- * direct call here — and run the address it names with a fixed place to come back to.
+ * test, take two bytes, free both cells, step and wrap the cursor, and run the handler the low
+ * nibble selects out of a sixteen-entry address table fixed in the image. The frozen side reads the
+ * table and jumps through it with a return slot parked on the stack; the rewrite switches on the
+ * nibble and calls each slot's handler directly, handing it the argument byte.
  *
- * ★ NEITHER SIDE RETURNS, so the ordinary contract call CANNOT be used and this file says so
- *   instead of pretending. `unitEquivalence` runs both implementations to completion; both of
- *   these run until something outside them stops the machine. What replaces it is an ESCAPE: the
- *   sixteen handler addresses are replaced, in one clone's own registry, by a stub that records
- *   the register state it was handed and then points the program counter at a no-op address the
- *   loop does not own. Both implementations already treat that as "the arm went somewhere else"
- *   and hand over to it, so BOTH return after exactly one command — through their own code, not
- *   through anything the harness added to them.
+ * ★ NEITHER SIDE RETURNS, so each is stopped after exactly ONE command, each by its own hand:
+ *   - the frozen side's jump through the table lands on a recorder, in one clone's own registry,
+ *     that runs the REAL frozen handler and then points the program counter at a no-op address the
+ *     loop does not own; the loop treats that as "the arm went somewhere else", hands over to it and
+ *     returns — through its own code;
+ *   - the rewrite runs the REAL rewritten handler (a direct import the registry cannot see) and loops;
+ *     _spineSever.js stops it at its SECOND look at the read cursor, from inside the loop's own frame,
+ *     before that look reads anything — i.e. after exactly one pass.
+ *   Both sides therefore run the whole consume-and-dispatch path AND the handler, and are compared on
+ *   everything that leaves behind. That is a stronger comparison than a stubbed handover: which
+ *   handler ran, and with what, shows as the handler's own writes.
  *
- * ★ WHAT THAT BUYS AND WHAT IT DOES NOT. It compares the whole of the consume-and-dispatch path:
- *   the cells freed, the cursor stepped and wrapped, WHICH handler is selected, and the register
- *   state the handler is handed. It does NOT compare the idle spin — with a free cell neither side
- *   terminates, so no arm here presents one, and that is a stated hole rather than a gap nobody
- *   noticed.
+ * ★ NO REGISTER IS HANDED TO A HANDLER. The frozen side seats the command, the argument (twice) and
+ *   the table words in registers before its jump; the rewrite passes the argument as a parameter and
+ *   seats nothing. What the handlers really read is measured, not assumed: EXHAUSTIVE runs every
+ *   handler on both sides and compares what they write, and the pair-swapped twin (command and
+ *   argument exchanged in the two registers only the frozen side seats, the accumulator left right)
+ *   is caught NOWHERE — the recorded proof that no handler reads either register.
  *
- * ★ THERE IS NO WHOLE-MACHINE ARM, and the reason is structural. An idiomatic poll loop charges no
- *   T-states, so wiring this one into the cycle-driven host means the interrupt that refills the
- *   ring never arrives and the run hangs. That is the documented consequence of dropping the cycle
- *   model for a routine that WAITS, not a defect in this rewrite, and it is why every tooth below
- *   is a unit tooth.
+ * ★ THE SWITCH IS THE TABLE. The table never changes while the game runs, so each case is the handler
+ *   its slot names. SLOTS reads all sixteen words out of the image and checks the cases against them
+ *   by behaviour: every slot the registry transcribes gives identical results on both sides, and
+ *   every slot it does not is refused by both.
  *
- * ★ THE FLAGS AT THE HANDOVER ARE NOT COMPARED, and that is a derivation rather than a shrug. The
- *   oracle's last flag-setting operation before the handover is inside the table read; the rewrite
- *   calls a routine that does not model flags. The HANDLER ENTRIES arm disassembles nothing — it
- *   reads the first opcode of every one of the sixteen arms out of memory and asserts each either
- *   sets flags before testing any or ignores them, which is what makes the incoming flag state
- *   dead at every arm.
+ * ★ THE STACK WINDOW IS EXCLUDED — the manifest's measured window, not a number typed here. The
+ *   frozen side parks return slots there that the rewrite never pushes, and its handlers push their
+ *   own scratch.
  *
- * GATE: crafted-entry with an escape, over the ring's whole command space. Holes stated:
+ * GATE: crafted-entry, one command per run, over the ring's whole command space. Holes stated:
  *
  *   1. THE ENTRY — captured at the one real dispatch, which happens once per session at boot.
- *   2. ESCAPE WORKS — both sides return after exactly one command, and the stub fired once.
- *   3. EQUAL — identical outside a measured scratch window, on every crafted command.
+ *   2. ONE COMMAND — both sides stop after exactly one command.
+ *   3. EQUAL — identical outside the stack window on the real cursor.
  *   4. NOT VACUOUS — a no-op FAILS the same masked diff on a real cell.
- *   5. THE HANDOVER — the handler chosen and the registers it is handed, compared as data.
- *   6. EXHAUSTIVE — all 256 command bytes against several cursors and arguments.
+ *   5. SLOTS — all sixteen table words against the switch.
+ *   6. EXHAUSTIVE — all 128 occupied command bytes against several cursors and arguments.
  *   7. COMMAND_RING WRAP — cursors that take the step past the end of the ring.
- *   8. HANDLER ENTRIES — the first instruction of all sixteen arms, read out of memory.
+ *   8. IDLE — an empty ring: the rewrite yields having written nothing.
  *   9. TEETH — nine twins, each with an exact catch count over the crafted space.
  *
- * HOLE: the idle spin is not compared, because neither side terminates on a free cell.
- * HOLE: there is no whole-run arm and no session corpus beyond the single boot dispatch.
- * HOLE: the sixteen arms are STUBBED, so nothing here says what any of them does.
+ * HOLE: the frozen idle spin cannot be run to a stop, so the IDLE arm is one-sided.
+ * HOLE: there is no whole-run arm and no session corpus beyond the single boot dispatch; the handlers
+ *   run from that one boot state, so a handler's play-state paths are its own gate's business.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0b93.test.js
  */
@@ -60,43 +61,33 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { runCommandRingDrainLoop } from "../runCommandRingDrainLoop.js";
 import { loc_0b93 as oracle } from "../../translated/loc_0b93.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { COMMAND_READ_CURSOR, COMMAND_RING } from "../names.js";
+import { buildRoutines } from "../../routines.js";
+import manifest from "../../manifest.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
+import { COMMAND_READ_CURSOR, COMMAND_RING, ROUTINES } from "../names.js";
+import { Severed, severAtDirectCall } from "./_spineSever.js";
 
 const TARGET = 0x0b93;
+const LOOP_NAME = "runCommandRingDrainLoop";
 
 const RING_CELLS = 64;
 const FREE = 255;
 const HANDLERS = 0x0bbc;
 const HANDLER_COUNT = 16;
 const COME_BACK_TO = 0x0b90;
+const TABLE_READ = 0x018c;
 
 const ESCAPE = 0xffff;
 
-const SCRATCH_BYTES = 2;
-
-const HANDOVER = ["a", "b", "c", "de", "hl"];
+const [STACK_LO, STACK_HI] = manifest.convergence.stateExclude.stack;
 
 const skip = romsPresent() ? false : "ROM images are not assembled";
 
-const YIELD_BUDGET = 64;
-
-function drive(fn, m, ...args) {
-  const r = fn(m, ...args);
-  if (!r || typeof r.next !== "function") return r;
-  for (let i = 0; i <= YIELD_BUDGET; i++) {
-    const step = r.next();
-    if (step.done) return step.value;
-  }
-  throw new Error(`still yielding after ${YIELD_BUDGET} resumptions; the oracle returned`);
-}
-
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
-const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
+const show = (d) => (d ? `${d.addr === null ? "-" : hex4(d.addr)}: oracle=${d.a} candidate=${d.b}` : "identical");
 const u8 = (x) => x & 0xff;
 const everyByte = Array.from({ length: 256 }, (_unused, v) => v);
-
-const sharedMachine = (overrides) => makeMachine(overrides);
+const inStack = (addr) => addr >= STACK_LO && addr < STACK_HI;
 
 // ── the entry ───────────────────────────────────────────────────────────────────────────
 
@@ -104,7 +95,7 @@ let entry = null;
 function entryState() {
   if (entry !== null) return entry;
   const real = makeMachine().routines.get(TARGET);
-  const m = sharedMachine(
+  const m = makeMachine(
     new Map([[TARGET, (mm, ...args) => {
       if (entry === null) entry = mm.clone();
       return real(mm, ...args);
@@ -118,25 +109,74 @@ function entryState() {
 const handlerTable = () =>
   Array.from({ length: HANDLER_COUNT }, (_unused, i) => entryState().mem16[HANDLERS + 2 * i]);
 
-const TABLE_READ = 0x018c;
+// ── one command per run ─────────────────────────────────────────────────────────────────
 
-function escaping(machine) {
-  const seen = [];
+/**
+ * A clone prepared so that EITHER side stops after one command. The frozen side: the first jump
+ * through the table runs the real frozen handler and then escapes (a handler calling another table
+ * word from inside itself reaches the real one). The rewrite: severed at its second look at the cursor.
+ */
+function oneCommand(machine) {
   const m = machine.clone();
-  const real = m.routines;
+  const real = buildRoutines();
+  const table = new Set(handlerTable());
+  const ran = [];
+  let inHandler = false;
   const noop = () => {};
-  const stub = (handler) => (mm) => {
-    seen.push({ handler, ...Object.fromEntries(HANDOVER.map((k) => [k, mm.regs[k]])) });
-    mm.pc = ESCAPE;
-  };
   m.routines = {
     get: (addr) => {
-      if (addr === TABLE_READ) return real.get(addr);
       if (addr === ESCAPE) return noop;
-      return stub(addr);
+      if (inHandler || !table.has(addr)) return real.get(addr);
+      return (mm) => {
+        ran.push(addr);
+        const body = real.get(addr);
+        if (body === undefined) {
+          throw new NotImplemented(`no routine registered at ${hex4(addr)}`);
+        }
+        inHandler = true;
+        try {
+          body(mm);
+        } finally {
+          inHandler = false;
+        }
+        mm.pc = ESCAPE;
+      };
     },
   };
-  return { m, seen };
+  const cut = { passes: 0 };
+  severAtDirectCall(m, LOOP_NAME, { reads: [COMMAND_READ_CURSOR], after: 1 }, () => {
+    cut.passes++;
+  });
+  return { m, ran, cut };
+}
+
+function drive(fn, m) {
+  const r = fn(m);
+  if (!r || typeof r.next !== "function") return r;
+  for (let i = 0; i < 4; i++) if (r.next().done) return undefined;
+  throw new Error("the rewrite yielded again and again without looking at its cursor twice");
+}
+
+/**
+ * Run one side; returns the machine and how it ended: "stopped" after its one command, "refused" on
+ * a slot that names no transcribed handler, or the fault a handler raised. A crafted argument can
+ * send a handler's pointers into the image, where the board faults the write; the fault is compared
+ * by kind and address (the frozen side's message also carries its program counter, which the rewrite
+ * does not keep), and the memory written up to it is compared as for any other run.
+ */
+function runSide(fn, machine) {
+  const side = oneCommand(machine);
+  let outcome = "stopped";
+  try {
+    drive(fn, side.m);
+  } catch (e) {
+    if (e instanceof Severed) outcome = "stopped";
+    else if (e instanceof NotImplemented) outcome = "refused";
+    else outcome = `${e.name}: ${String(e.message).replace(/ \(pc=0x[0-9a-f]+\)$/, "")}`.slice(0, 80);
+  }
+  delete side.m.mem.read8;
+  delete side.m.mem.write8;
+  return { ...side, outcome };
 }
 
 /** A real captured machine with one command waiting at the read cursor. */
@@ -148,39 +188,31 @@ function craft(cursor, command, argument) {
   return m;
 }
 
-function allDiffs(a, b) {
+function strayDiffs(a, b) {
   const da = a.dumpState();
   const db = b.dumpState();
   const out = [];
   for (let i = 0; i < da.length; i++) {
-    if (da[i] !== db[i]) out.push({ addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] });
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (!inStack(addr)) out.push({ addr, a: da[i], b: db[i] });
   }
   return out;
 }
 
-const inScratch = (addr, sp) => addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp;
+const deviceSignature = (c) =>
+  `${[...c.io.latch].join(",")}|wd=${c.io.watchdogKicks}|snd=${c.io.soundData}` +
+  `|ur=${c.mem.unmappedReads}|uw=${c.mem.unmappedWrites}`;
 
-/** Both sides run once on the same crafted state; masked RAM first, then the handover. */
+/** Both sides once on the same crafted state: how they ended, RAM outside the stack, the devices. */
 function unitDiff(candidate, machine) {
-  const sp = machine.regs.sp;
-  const left = escaping(machine);
-  const right = escaping(machine);
-  oracle(left.m);
-  try {
-    drive(candidate, right.m);
-  } catch (e) {
-    return { addr: null, a: "returned once", b: String(e).slice(0, 50) };
-  }
-  const ram = allDiffs(left.m, right.m).find((d) => !inScratch(d.addr, sp));
+  const left = runSide(oracle, machine);
+  const right = runSide(candidate, machine);
+  if (left.outcome !== right.outcome) return { addr: null, a: left.outcome, b: right.outcome };
+  const ram = strayDiffs(left.m, right.m)[0];
   if (ram) return ram;
-  if (left.seen.length !== right.seen.length) {
-    return { addr: null, a: left.seen.length, b: right.seen.length };
-  }
-  for (const [i, l] of left.seen.entries()) {
-    const r = right.seen[i];
-    for (const k of ["handler", ...HANDOVER]) {
-      if (l[k] !== r[k]) return { addr: null, a: l[k], b: r[k] };
-    }
+  if (deviceSignature(left.m) !== deviceSignature(right.m)) {
+    return { addr: null, a: deviceSignature(left.m), b: deviceSignature(right.m) };
   }
   return null;
 }
@@ -208,6 +240,7 @@ function brokenNoOp() {}
 
 const TWIN_PASS_LIMIT = 2;
 
+/** A frozen-shaped consumer with one field flipped, dispatching through the table like the oracle. */
 function consume(m, opts) {
   const { regs, mem8 } = m;
   let passes = 0;
@@ -232,7 +265,7 @@ function consume(m, opts) {
     regs.a = opts.commandInAccumulator ? command : argument;
     regs.de = COME_BACK_TO;
     regs.hl = handler;
-    if (!opts.noPark) m.push16(COME_BACK_TO);
+    m.push16(COME_BACK_TO);
     m.call(handler);
     if (m.pc !== COME_BACK_TO) return m.call(m.pc);
   }
@@ -240,16 +273,21 @@ function consume(m, opts) {
 
 const twin = (opts) => (m) => consume(m, opts);
 
+/**
+ * Exact catch counts, measured on effects: a twin is caught where it leaves different memory, devices
+ * or ending — so a slip that lands on a refused slot on both sides with the same consumed cells, or a
+ * handler that ignores its argument, is (rightly) not a catch.
+ */
 const TWINS = [
   ["no-op", brokenNoOp, 1542],
   ["cells-not-freed", twin({ keepCells: true }), 1542],
   ["frees-only-the-command", twin({ freesOne: true }), 1541],
   ["cursor-steps-one", twin({ stepOne: true }), 1542],
   ["cursor-not-wrapped", twin({ noMask: true }), 512],
-  ["whole-byte-index", twin({ wholeByte: true }), 1344],
-  ["table-off-by-one", twin({ tableOffByOne: true }), 1158],
-  ["pair-swapped", twin({ pairSwapped: true }), 1535],
-  ["command-in-accumulator", twin({ commandInAccumulator: true }), 1535],
+  ["whole-byte-index", twin({ wholeByte: true }), 804],
+  ["table-off-by-one", twin({ tableOffByOne: true }), 900],
+  ["pair-swapped", twin({ pairSwapped: true }), 0],
+  ["command-in-accumulator", twin({ commandInAccumulator: true }), 565],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -257,38 +295,36 @@ const TWINS = [
 test("THE ENTRY: the foreground loop is entered exactly once, at boot", { skip }, () => {
   let dispatches = 0;
   const real = makeMachine().routines.get(TARGET);
-  const m = sharedMachine(new Map([[TARGET, (mm, ...a) => (dispatches++, real(mm, ...a))]]));
+  const m = makeMachine(new Map([[TARGET, (mm, ...a) => (dispatches++, real(mm, ...a))]]));
   m.runFrames(ENTRY_FRAMES);
   console.log(`  THE ENTRY: ${dispatches} dispatch(es) in ${ENTRY_FRAMES} frames`);
   assert.equal(dispatches, 1, "the foreground loop is entered more than once, so it RETURNS and " +
-    "the escape this file is built on is no longer needed");
+    "the one-command stop this file is built on is no longer needed");
 });
 
-test("ESCAPE WORKS: both sides return after exactly one command", { skip }, () => {
+test("ONE COMMAND: both sides stop after exactly one command", { skip }, () => {
   const machine = craft(0, 1, 31);
-  const left = escaping(machine);
-  const right = escaping(machine);
-  oracle(left.m);
-  drive(runCommandRingDrainLoop, right.m);
-  console.log(
-    `  ESCAPE: oracle handed over ${left.seen.length} time(s) to ${hex4(left.seen[0]?.handler ?? 0)}, ` +
-      `rewrite ${right.seen.length} time(s)`,
-  );
-  assert.equal(left.seen.length, 1, "the oracle did not hand over exactly once");
-  assert.equal(right.seen.length, 1, "the rewrite did not hand over exactly once");
+  const left = runSide(oracle, machine);
+  const right = runSide(runCommandRingDrainLoop, machine);
+  console.log(`  ONE COMMAND: oracle ran ${left.ran.map(hex4).join(",")} and ${left.outcome}; ` +
+    `rewrite ${right.outcome} after ${right.cut.passes} cut`);
+  assert.deepEqual(left.ran, [handlerTable()[1]], "the oracle did not run exactly the slot-1 handler");
+  assert.equal(left.outcome, "stopped", "the oracle did not escape after its handler");
+  assert.equal(right.cut.passes, 1, "the rewrite was not stopped at its second look at the cursor");
+  assert.equal(right.ran.length, 0, "the rewrite went through the registry, which it must not need");
+  assert.equal(right.m.mem8[COMMAND_RING], FREE, "the rewrite did not consume the command");
 });
 
-test("EQUAL: identical outside the scratch window, on the real cursor", { skip }, () => {
+test("EQUAL: identical outside the stack window, on the real cursor", { skip }, () => {
   const machine = craft(entryState().mem8[COMMAND_READ_CURSOR] & (RING_CELLS - 1), 1, 31);
-  const sp = machine.regs.sp;
-  const left = escaping(machine);
-  const right = escaping(machine);
-  oracle(left.m);
-  drive(runCommandRingDrainLoop, right.m);
-  const all = allDiffs(left.m, right.m);
-  const strays = all.filter((d) => !inScratch(d.addr, sp));
-  console.log(`  EQUAL: ${all.length} differing bytes, ${strays.length} outside the window`);
-  assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
+  const left = runSide(oracle, machine);
+  const right = runSide(runCommandRingDrainLoop, machine);
+  const strays = strayDiffs(left.m, right.m);
+  const moved = strayDiffs(machine, right.m).length;
+  console.log(`  EQUAL: the command moved ${moved} bytes, ${strays.length} of them differ outside the window`);
+  assert.ok(moved > 2, "the command wrote nothing beyond its two cells, so the handler never ran");
+  assert.deepEqual(strays, [], `a divergence escaped the stack window: ${show(strays[0])}`);
+  assert.equal(deviceSignature(right.m), deviceSignature(left.m), "the devices differ");
 });
 
 test("NOT VACUOUS: a no-op candidate FAILS the same masked diff, on a real cell", { skip }, () => {
@@ -298,80 +334,80 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked diff, on a real cell"
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("THE HANDOVER: the arm chosen, and the registers it is handed", { skip }, () => {
+test("SLOTS: the switch runs exactly the handler each table word names, and refuses the rest", { skip }, () => {
   const table = handlerTable();
-  for (const index of Array.from({ length: HANDLER_COUNT }, (_unused, i) => i)) {
-    const machine = craft(0, index, 200 + index);
-    const left = escaping(machine);
-    const right = escaping(machine);
-    oracle(left.m);
-    drive(runCommandRingDrainLoop, right.m);
-    assert.equal(left.seen[0].handler, table[index], `arm ${index} is not the table's entry`);
-    assert.deepEqual(right.seen, left.seen, `arm ${index}: the handover state differs`);
+  const transcribed = [];
+  for (let slot = 0; slot < HANDLER_COUNT; slot++) {
+    const word = table[slot];
+    const named = ROUTINES[word] !== undefined;
+    for (const argument of ARGUMENTS) {
+      const machine = craft(0, slot, argument);
+      const left = runSide(oracle, machine);
+      const right = runSide(runCommandRingDrainLoop, machine);
+      if (named) {
+        assert.notEqual(right.outcome, "refused", `slot ${slot} (${hex4(word)}) is transcribed and must run`);
+      } else {
+        assert.equal(right.outcome, "refused", `slot ${slot} (${hex4(word)}) is not transcribed and must be refused`);
+      }
+      assert.equal(left.outcome, right.outcome, `slot ${slot}: the two sides ended differently`);
+      assert.equal(show(unitDiff(runCommandRingDrainLoop, machine)), "identical", `slot ${slot} argument ${argument}`);
+    }
+    if (named) transcribed.push(`${slot}:${ROUTINES[word].name}`);
   }
-  console.log(`  HANDOVER: all ${HANDLER_COUNT} arms selected and handed identical state`);
-});
-
-test("EXCLUDED, deliberately: which registers differ after the handover", { skip }, () => {
-  const moved = new Set();
-  for (const [cursor, command, argument] of cross()) {
-    const machine = craft(cursor, command, argument);
-    const left = escaping(machine);
-    const right = escaping(machine);
-    oracle(left.m);
-    drive(runCommandRingDrainLoop, right.m);
-    for (const k of REG_FIELDS) if (left.m.regs[k] !== right.m.regs[k]) moved.add(k);
-  }
-  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.ok(!moved.has("b"), "the argument register differs after the handover");
-  assert.ok(!moved.has("c"), "the command register differs after the handover");
+  console.log(`  SLOTS: ${transcribed.length} transcribed — ${transcribed.join(", ")}`);
+  assert.ok(transcribed.length > 0, "no slot names a transcribed handler, so the arm compared refusals only");
 });
 
 test("EXHAUSTIVE: every occupied command byte, over several cursors", { skip }, () => {
+  const endings = new Map();
   for (const [cursor, command, argument] of cross()) {
-    const d = unitDiff(runCommandRingDrainLoop, craft(cursor, command, argument));
+    const machine = craft(cursor, command, argument);
+    const d = unitDiff(runCommandRingDrainLoop, machine);
     assert.equal(d, null, `cursor ${cursor} command ${command} argument ${argument}: ${show(d)}`);
+    const how = runSide(oracle, machine).outcome;
+    const kind = how === "stopped" || how === "refused" ? how : "faulted";
+    endings.set(kind, (endings.get(kind) ?? 0) + 1);
   }
-  console.log(`  EXHAUSTIVE: ${cross().length} cursor x command x argument entries identical`);
+  console.log(`  EXHAUSTIVE: ${cross().length} cursor x command x argument entries identical — ` +
+    [...endings].map(([k, n]) => `${n} ${k}`).join(", "));
+  assert.ok((endings.get("stopped") ?? 0) > 0, "no crafted command ran a handler to the end");
 });
 
 test("COMMAND_RING WRAP: a cursor at the end of the ring folds back onto its head", { skip }, () => {
   const wraps = [];
   for (const cursor of [RING_CELLS - 2, RING_CELLS - 1, RING_CELLS, 255]) {
     const machine = craft(cursor, 1, 31);
-    const left = escaping(machine);
-    oracle(left.m);
+    const left = runSide(oracle, machine);
     wraps.push(`${cursor}->${left.m.mem8[COMMAND_READ_CURSOR]}`);
     const d = unitDiff(runCommandRingDrainLoop, machine);
     assert.equal(d, null, `cursor ${cursor}: ${show(d)}`);
   }
   console.log(`  COMMAND_RING WRAP: ${wraps.join(", ")}`);
-  const past = craft(RING_CELLS - 2, 1, 31);
-  const after = escaping(past);
-  oracle(after.m);
+  const after = runSide(runCommandRingDrainLoop, craft(RING_CELLS - 2, 1, 31));
   assert.ok(after.m.mem8[COMMAND_READ_CURSOR] < RING_CELLS, "the cursor left the ring");
 });
 
-test("HANDLER ENTRIES: no arm reads a flag before setting one", { skip }, () => {
-  const CONDITIONAL_FIRST_BYTES = new Set([
-    0xc0, 0xc8, 0xd0, 0xd8, 0xe0, 0xe8, 0xf0, 0xf8, // ret cc
-    0xc2, 0xca, 0xd2, 0xda, 0xe2, 0xea, 0xf2, 0xfa, // jp cc
-    0xc4, 0xcc, 0xd4, 0xdc, 0xe4, 0xec, 0xf4, 0xfc, // call cc
-    0x20, 0x28, 0x30, 0x38, // jr cc
-    0x10, // djnz
-  ]);
-  const m = entryState();
-  const firsts = [];
-  for (const handler of handlerTable()) {
-    const opcode = m.mem8[handler];
-    firsts.push(`${hex4(handler)}:${opcode.toString(16)}`);
-    assert.ok(
-      !CONDITIONAL_FIRST_BYTES.has(opcode),
-      `the arm at ${hex4(handler)} begins with a conditional, so the flags at the handover ARE ` +
-        "live and this file's decision not to compare them is wrong",
-    );
-  }
-  console.log(`  HANDLER ENTRIES: ${new Set(firsts).size} distinct arms, none begins conditional`);
+test("IDLE: on an empty ring the rewrite yields having written nothing", { skip }, () => {
+  const machine = entryState().clone();
+  const cell = (COMMAND_RING + machine.mem8[COMMAND_READ_CURSOR]) & 0xffff;
+  assert.ok(machine.mem8[cell] & 0x80, "the captured ring is not empty at its cursor");
+  const before = machine.dumpState();
+  const it = runCommandRingDrainLoop(machine);
+  const first = it.next();
+  assert.equal(first.done, false, "the rewrite did not yield on an empty ring");
+  const after = machine.dumpState();
+  let moved = 0;
+  for (let i = 0; i < before.length; i++) if (before[i] !== after[i]) moved++;
+  assert.equal(moved, 0, "the idle pass wrote memory");
+  // Control: a waiting command does move memory before the next yield.
+  const busy = craft(machine.mem8[COMMAND_READ_CURSOR], 1, 31);
+  const b0 = busy.dumpState();
+  runCommandRingDrainLoop(busy).next();
+  const b1 = busy.dumpState();
+  let busyMoved = 0;
+  for (let i = 0; i < b0.length; i++) if (b0[i] !== b1[i]) busyMoved++;
+  assert.ok(busyMoved > 0, "a waiting command moved nothing either, so the idle reading is blind");
+  console.log(`  IDLE: nothing written on the empty ring; a waiting command moved ${busyMoved} bytes`);
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
@@ -381,6 +417,7 @@ for (const [label, candidate, crossCaught] of TWINS) {
     const caught = cross().filter(([u, c, a]) => unitDiff(candidate, craft(u, c, a)) !== null).length;
     console.log(`  TEETH/${label}: caught on ${caught} of ${cross().length} crafted entries`);
     assert.equal(caught, crossCaught, `the ${label} twin's crafted catch count moved`);
+    if (label === "pair-swapped") return; // the recorded proof that no handler reads B or C
     assert.ok(caught > 0, `the crafted space missed the ${label} twin everywhere`);
   });
 }

@@ -40,16 +40,6 @@ export const UNWIRED = {
       "the frame service PUSHES, so control RETURNS into it rather than calling it. The module " +
       "and its gate are correct and stay; what is missing is a seam that can model a routine " +
       "whose whole job is to dismantle the frame its caller is standing on.",
-    "dispatchInlineWordTableIndexedByA.js":
-      "RST 0x30's argument IS the stack slot. The caller's transfer leaves the inline table's " +
-      "address where a return address would sit, and the routine pops it -- consuming it is what " +
-      "turns the caller's next bytes into a table instead of instructions. A dispatch entry takes " +
-      "only the machine, so it would have to model that pop, which the memory-equivalence " +
-      "contract keeps out of idiomatic code. Eight sites in translated/ reach it. Four are " +
-      "already decompiled and ALL FOUR dissolved the transfer -- they read the inline table " +
-      "directly and none of them calls this address -- so the route out is demonstrated, not " +
-      "hoped for. The remaining four are frozen, and each dissolves it in its own unit by passing " +
-      "the table address as an argument, at which point nothing here touches the stack.",
     "placeTileAtTableSuppliedOffset.js":
       "Not a dispatch entry: it is an interior continuation. Decoding the image from EVERY byte " +
       "offset -- which over-generates and cannot under-generate -- finds exactly one transfer to " +

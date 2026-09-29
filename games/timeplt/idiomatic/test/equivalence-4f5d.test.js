@@ -6,14 +6,17 @@
  * that puts targets under the shots so the sweep this entry starts actually does something.
  *
  * EQUAL at the real dispatch agrees byte for byte, the stack scratch INCLUDED, so this file names
- * NO exclusion and asserts the empty one — everything this entry hands over to is already stack-free.
- * The HAND-OVER is harvested AT the hand-over, by a spy wired in place of the sweep on the frozen
- * side and read straight off the registers on the rewrite's; comparing registers AFTERWARDS could
- * not answer it, because the frozen sweep runs two of them down while the stack-free one keeps its
- * cursors in locals. The two CURSOR CELLS the sweep reloads between passes are compared as memory.
+ * NO memory exclusion and asserts the empty one — everything this entry hands over to is already
+ * stack-free. The rewrite hands the sweep its eight inputs as ARGUMENTS, not registers, so the
+ * frozen side's register hand-over is harvested AT the hand-over by a spy wired in place of the
+ * sweep, and the HAND-OVER arm replays the sweep from exactly that harvest against the rewrite, byte
+ * for byte, on every judging state — where the twins below show each of the eight inputs moves the
+ * result, so agreement there pins every one. Registers left AFTERWARDS are not a live-out: the only
+ * caller hands every later sweep its inputs as arguments and reads no register back. The two
+ * CURSOR CELLS the sweep reloads between passes are compared as memory.
  * THE SWEEP REALLY RUNS is crafted: a target placed on top of a shot, both shown destroyed —
  * without it the file could pass on a machine where nothing ever hits. TEETH: eight twins, one per
- * staged constant, each on an exact count over nine judging states (the real dispatch and eight
+ * handed-over input, each on an exact count over nine judging states (the real dispatch and eight
  * crafted placements chosen to discriminate the counts and the box).
  *
  * HOLE: what the sweep DOES is gated elsewhere; this file fixes the eight things this entry chooses
@@ -47,7 +50,7 @@ const ENTRY_SECOND_AXIS = 49;
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
 const DISPATCHES = 152;
 
-/** The registers this entry hands the sweep. */
+/** The registers the frozen entry hands the sweep. */
 const STAGED = ["b", "c", "h", "l", "a_"];
 
 /** The sweep this entry stages and then runs; wired to a spy to harvest the hand-over. */
@@ -62,12 +65,12 @@ const SCRATCH_BYTES = 8;
 
 /**
  * The registers allowed to diverge — a BOUND, not an exact list: one diverging outside this set
- * fails the arm below, and a rewrite diverging on fewer still passes. The count and the shot cursor
- * are the SWEEP's leftovers (frozen runs them down, stack-free keeps cursors in locals), so they
- * belong to the sweep's contract. `c` is both STAGED and excluded here and `ix` is in the harvested
- * set too; neither is excused, because THE STAGED REGISTERS arm asserts them equal directly.
+ * fails the arm below, and a rewrite diverging on fewer still passes. Two groups, neither a
+ * live-out: the frozen hand-over itself (the rewrite passes those values as arguments and leaves
+ * the registers alone; THE HAND-OVER arm pins the values), and the sweep's leftovers (frozen runs
+ * the count and the shot cursor down, stack-free keeps cursors in locals).
  */
-const EXCLUDED = ["a", "f", "c", "ix", "sp"];
+const EXCLUDED = ["a", "f", "sp", ...STAGED, "d", "e", "ix", "iy"];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -117,11 +120,14 @@ function stagedByOracle(machine) {
   return { staged: seen, machine: spied };
 }
 
-/** What the REWRITE hands the sweep: it leaves every staged register standing, so read them off. */
-function stagedByRewrite(machine) {
+/** The sweep run from exactly what the frozen entry hands it: its harvested registers and cells. */
+function sweepFromOracleHandOver(machine) {
+  const { staged, machine: spied } = stagedByOracle(machine);
   const m = machine.clone();
-  stagePlayerShotSweepAgainstTargetsAndRun(m);
-  return Object.fromEntries([...STAGED, "de", "ix", "iy"].map((k) => [k, m.regs[k]]));
+  m.mem16[TARGET_RECORD_CURSOR] = spied.mem16[TARGET_RECORD_CURSOR];
+  m.mem16[TARGET_ENTRY_CURSOR] = spied.mem16[TARGET_ENTRY_CURSOR];
+  destroyTargetsHitByShots(m, staged.ix, staged.iy, staged.de, staged.b, staged.a_, staged.c, staged.l, staged.h);
+  return m;
 }
 
 let captured = null;
@@ -208,14 +214,31 @@ test("EQUAL at the real dispatch: every byte identical, the stack scratch includ
   );
 });
 
-test("THE STAGED REGISTERS: harvested at the hand-over, both sides agree", { skip }, () => {
+test("THE HAND-OVER: the sweep run from the frozen harvest matches the rewrite on every judging state", { skip }, () => {
   const { staged } = stagedByOracle(entryState());
-  assert.deepEqual(stagedByRewrite(entryState()), staged, "the hand-over diverged");
   assert.equal(staged.de, TARGET_RECORDS, "the target record run moved");
   assert.equal(staged.iy, TARGET_ENTRIES, "the target entry run moved");
   assert.equal(staged.ix, SHOT_RECORDS, "the shot run moved");
+  let states = 0;
+  for (const machine of judgingStates()) {
+    const a = sweepFromOracleHandOver(machine);
+    const b = machine.clone();
+    stagePlayerShotSweepAgainstTargetsAndRun(b);
+    assert.deepEqual(allDiffs(a, b), [], `the hand-over diverged — ${show(allDiffs(a, b)[0])}`);
+    states++;
+  }
+  // The arm has teeth: a hand-over one input off, replayed the same way, is seen.
+  const off = (machine) => {
+    const { staged: h } = stagedByOracle(machine);
+    const m = machine.clone();
+    stage(m, { span: h.h + 1 });
+    return m;
+  };
+  const seen = judgingStates().filter((machine) => allDiffs(sweepFromOracleHandOver(machine), off(machine)).length > 0).length;
+  assert.ok(seen > 0, "a hand-over with the box one wider matched the harvest everywhere, so this arm is blind");
   console.log(
-    `  STAGED: ${Object.entries(staged).map(([k, v]) => `${k}=${v}`).join(" ")}`,
+    `  HAND-OVER: ${Object.entries(staged).map(([k, v]) => `${k}=${v}`).join(" ")}; ${states} states identical, ` +
+      `a one-off hand-over seen on ${seen}`,
   );
 });
 
@@ -257,25 +280,33 @@ test("CORPUS: every dispatch of a driven session replays identically", { skip },
 // Each twin stages one thing wrong and then runs the same sweep, so a catch measures the
 // staging and not the sweep.
 
-const stage = (m, o) => {
-  m.regs.de = o.targetRecords ?? TARGET_RECORDS;
-  m.regs.iy = o.targetEntries ?? TARGET_ENTRIES;
-  m.regs.ix = o.shots ?? SHOT_RECORDS;
-  m.regs.a_ = o.targetsPerPass ?? 3;
-  m.regs.b = o.targetsFirstPass ?? 3;
-  m.regs.c = o.shotCount ?? 6;
+function stage(m, o) {
   m.mem16[TARGET_RECORD_CURSOR] = o.recordCursor ?? TARGET_RECORDS;
   m.mem16[TARGET_ENTRY_CURSOR] = o.entryCursor ?? TARGET_ENTRIES;
-  m.regs.l = o.reach ?? 7;
-  m.regs.h = o.span ?? 15;
-  destroyTargetsHitByShots(m);
-};
+  destroyTargetsHitByShots(
+    m,
+    o.shots ?? SHOT_RECORDS,
+    o.targetEntries ?? TARGET_ENTRIES,
+    o.targetRecords ?? TARGET_RECORDS,
+    o.targetsFirstPass ?? 3,
+    o.targetsPerPass ?? 3,
+    o.shotCount ?? 6,
+    o.reach ?? 7,
+    o.span ?? 15,
+  );
+}
+
+// The two target counts, each moved alone: measured, so each is pinned independently of the other.
+const FIRST_PASS_SHORT = 1;
+const LATER_PASSES_SHORT = 1;
 
 const TWINS = [
   ["no-op", () => {}, 9],
   ["wrong-target-run", (m) => stage(m, { targetRecords: TARGET_RECORDS + 16 }), 4],
   ["wrong-shot-run", (m) => stage(m, { shots: SHOT_RECORDS + 16 }), 4],
   ["one-target-short", (m) => stage(m, { targetsFirstPass: 2, targetsPerPass: 2 }), 2],
+  ["first-pass-one-short", (m) => stage(m, { targetsFirstPass: 2 }), FIRST_PASS_SHORT],
+  ["later-passes-one-short", (m) => stage(m, { targetsPerPass: 2 }), LATER_PASSES_SHORT],
   ["one-shot-short", (m) => stage(m, { shotCount: 5 }), 2],
   ["reach-off-by-one", (m) => stage(m, { reach: 8 }), 2],
   ["span-off-by-one", (m) => stage(m, { span: 16 }), 1],

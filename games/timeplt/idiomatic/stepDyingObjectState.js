@@ -14,7 +14,7 @@ const REARM = 0xf0;
 const REARMED_TO = 0x3b;
 const DEATH_BEGINS = 0x3c;
 
-export function stepDyingObjectState(m, object = m.regs.ix) {
+export function stepDyingObjectState(m, object = m.regs.ix, sprite = m.regs.iy) {
   const { mem8 } = m;
   const state = mem8[object + STATE];
 
@@ -25,10 +25,10 @@ export function stepDyingObjectState(m, object = m.regs.ix) {
 
   // At the threshold the kill is counted first; no reachable object wins a claim, so the count leaves the carry clear and every value at or above the threshold flies on.
   if (state === DEATH_BEGINS) countTheKillAndGrantTheSharedToken(m, object);
-  if (state >= DEATH_BEGINS) return decrementObjectStateThenFlyAtSlowestSpeed(m, object);
+  if (state >= DEATH_BEGINS) return decrementObjectStateThenFlyAtSlowestSpeed(m, object, sprite);
 
   const stepped = u8(state - 1);
   mem8[object + STATE] = stepped;
-  if (stepped === 0) return retireSlotAndSubPixel(m, object);
-  return moveObjectByStateByteThenRunAppearance(m, object);
+  if (stepped === 0) return retireSlotAndSubPixel(m, object, sprite);
+  return moveObjectByStateByteThenRunAppearance(m, object, sprite);
 }

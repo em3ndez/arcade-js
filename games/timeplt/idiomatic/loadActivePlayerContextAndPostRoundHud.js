@@ -17,7 +17,6 @@ import {
 
 const CONTEXT_BYTES = 16;
 const CHECKSUM_BYTES = 256;
-const LATCH_WRITE_OFFSET = 10;
 const ROUND_COMMAND = 6;
 const LIVES_COMMAND = 5;
 
@@ -35,7 +34,7 @@ export function loadActivePlayerContextAndPostRoundHud(m) {
 
   let checksum = 0;
   for (let i = 0; i < CHECKSUM_BYTES; i++) checksum ^= mem8[TAMPER_CHECKSUM_SPAN_BASE + i];
-  m.mem.write8(VIDEO_ENABLE_LATCH, u8(checksum - 1), LATCH_WRITE_OFFSET);
+  mem8[VIDEO_ENABLE_LATCH] = u8(checksum - 1);
 
   return advanceSequenceSubStep(m);
 }

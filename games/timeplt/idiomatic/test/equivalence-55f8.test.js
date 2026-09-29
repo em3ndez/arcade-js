@@ -53,6 +53,7 @@ import {
 } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { LATCH_AUDIO_IRQ } from "../../../../boards/timeplt/io.js";
+import { recordHardwareWrites } from "./_spineSever.js";
 
 const TARGET = 0x55f8;
 
@@ -84,7 +85,7 @@ const deviceState = (m) => `${m.io.soundData}:${[...m.io.latch].join("")}`;
 
 /** The ordered hardware writes, addresses and values only — the cycle stamp is a hole above. */
 const writeOrder = (m) =>
-  (m.mem.writeTrace ?? []).map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
+  (m.hardwareWrites ?? []).map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
 
 // ── the entry ───────────────────────────────────────────────────────────────────────────
 
@@ -106,8 +107,8 @@ function entryState() {
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
-  a.mem.writeTrace = [];
-  b.mem.writeTrace = [];
+  a.hardwareWrites = recordHardwareWrites(a);
+  b.hardwareWrites = recordHardwareWrites(b);
   oracle(a);
   candidate(b);
   return {

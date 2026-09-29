@@ -27,8 +27,9 @@
  *      standing (the beam sits before its line until the multiplex pass, then past every hold),
  *      so the closing multiplex pass has a write to make. Under the plain pin every armed request
  *      is taken by the second fixup first, so without this entry the closing pass writes nothing.
- *   4. SP TOOTH — the rewrite is placeable through the seam on every entry, and a twin that drops
- *      the fixup's supplied return word is NOT (the missing-push class memory-eq cannot see).
+ *   4. SP TOOTH — the rewrite is placeable through the seam on every entry, and a twin that still
+ *      lays a word down for the plain-return fixup, which never lifts it, is NOT (the stray-word
+ *      class memory-eq cannot see).
  *   5. TEETH — broken twins, each caught on at least one entry of the pool.
  *
  * HOLE: the crafted arms vary only the timer cells and the era; everything else is the captured
@@ -227,7 +228,7 @@ function stackWindow(machine) {
 
 // ── broken twins ────────────────────────────────────────────────────────────────────────────
 
-function fix(m) { m.push16(0); multiplexSpriteSlotsSkipping(m); }
+const fix = multiplexSpriteSlotsSkipping;
 function services(m, { closingPass = true } = {}) {
   fix(m);
   dispatchPlayerFrameByState(m);
@@ -272,9 +273,10 @@ const TWINS = [
   ["drop-last-mux", (m) => { fold(m); services(m, { closingPass: false }); timer(m); }],
 ];
 
-// A dropped return word: memory-identical in the scratch window, caught only by stack placement.
-const missingPush = (m) => {
+// A stray stack word: memory-identical in the scratch window, caught only by stack placement.
+const strayWord = (m) => {
   fold(m);
+  m.push16(0);
   multiplexSpriteSlotsSkipping(m);
   dispatchPlayerFrameByState(m);
   fix(m);
@@ -363,7 +365,7 @@ test("STACK WINDOW: the excluded scratch sits above data", { skip }, () => {
   }
 });
 
-test("SP TOOTH: the rewrite is seam-placeable; a dropped return word is not", { skip }, () => {
+test("SP TOOTH: the rewrite is seam-placeable; a stray stack word is not", { skip }, () => {
   for (const e of pool()) {
     const good = e.clone();
     pin(good, e);
@@ -374,11 +376,10 @@ test("SP TOOTH: the rewrite is seam-placeable; a dropped return word is not", { 
   for (const e of pool()) {
     const bad = e.clone();
     pin(bad, e);
-    if (!seamPlaceable(withOmittedRet, missingPush, TARGET, bad).placeable) caught++;
-    else if (unitDiff(missingPush, e)) caught++;
+    if (!seamPlaceable(withOmittedRet, strayWord, TARGET, bad).placeable) caught++;
   }
-  assert.equal(caught, pool().length, `the missing-push twin escaped on ${pool().length - caught} entries`);
-  console.log(`  SP TOOTH: rewrite placeable everywhere; missing-push twin caught on all ${caught}`);
+  assert.equal(caught, pool().length, `the stray-word twin escaped on ${pool().length - caught} entries`);
+  console.log(`  SP TOOTH: rewrite placeable everywhere; stray-word twin refused by the seam on all ${caught}`);
 });
 
 test("TEETH: every broken twin is caught, and the real routine passes the same pool", { skip }, () => {

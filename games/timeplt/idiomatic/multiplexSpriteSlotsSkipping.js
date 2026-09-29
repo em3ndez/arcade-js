@@ -4,7 +4,8 @@
  * byte has bit 7 set and adding the live scanline counter to it carries out of the top; on that
  * trigger the Y byte's bit 7 is cleared, quieting the slot, and the X byte's bit 7 is toggled.
  * LIVE-OUT: the touched sprite bytes, plus the accumulator, C and flags left by the last slot. The
- * register live-out is dispatched from the frozen translated layer, so it rides the closing return. */
+ * register live-out is dispatched from the frozen translated layer, so it rides the closing return,
+ * which is a plain return: the stack is left exactly where it was found. */
 
 import {
   SCANLINE_COUNTER,
@@ -86,5 +87,5 @@ function serviceSlot(m, yAddr, xAddr, c, f) {
 export function multiplexSpriteSlotsSkipping(m, c = m.regs.c, f = m.regs.f) {
   let a;
   for (const [yAddr, xAddr] of SLOTS) [a, c, f] = serviceSlot(m, yAddr, xAddr, c, f);
-  return (m.regs.a = a), (m.regs.c = c), (m.regs.f = f), m.ret();
+  return [(m.regs.a = a), (m.regs.c = c), (m.regs.f = f)];
 }

@@ -10,13 +10,17 @@
  *   recorder wired into the routine map catches the FROZEN path's transfer and cannot catch the
  *   rewrite's, because the rewrite never asks the map. So the two are compared at the NEXT seam
  *   both of them do reach, the jump out of the power-on routine at 0x0069, and this gate is
- *   therefore a gate on the PAIR. Two arms narrow that back down: CONTRIBUTION shows the frozen
+ *   therefore a gate on the PAIR. The power-on routine makes that jump as a direct call too, so the
+ *   rewrite is stopped there by _spineSever.js, before the entered routine's first store. Two arms narrow that back down: CONTRIBUTION shows the frozen
  *   entry adds nothing of its own, and DESTINATION shows the rewrite really goes through the
  *   power-on routine, by the marks only that routine leaves.
  *
- * ★ IT IS A TRANSFER, NOT A CALL. The chain's last act is `m.call(0x0069)`, which runs 0x0069
- *   INCLUDING its `ret`, so the rewrite performs the caller's return itself and is wired RAW in
- *   the whole-machine arm, as _harness.js sets out.
+ * ★ IT IS A TRANSFER, NOT A CALL. The whole-machine arm stops the rewrite at the jump out, however
+ *   it gets there, charges the pair's time, and hands the rest of the session to the frozen 0x0069.
+ *
+ * ★ THE ACCUMULATOR AND FLAGS ARE DEAD AT THE JUMP OUT, derived from 0x0069: it reads A only as the
+ *   data of its watchdog kicks (ignored by the watchdog) and then clears it with an xor, which also
+ *   rewrites the flags before anything reads them. So both sit in the ceiling.
  *
  * ★ THE STATE DUMP CANNOT SEE MOST OF WHAT THE PAIR DOES: past this entry, every write is to a
  *   device. So every comparison here reads the control latch, the watchdog count and the
@@ -53,12 +57,16 @@ import { loc_0000 as oracle } from "../../translated/loc_0000.js";
 import { buildRoutines } from "../../routines.js";
 import { firstStateDiff, wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { Severed, severAtDirectCall, recordHardwareWrites } from "./_spineSever.js";
 
 const TARGET = 0x0000;
 /** Where the jump goes, and the positive control for the REACH arm. */
 const DESTINATION = 0x07b1;
 /** The next seam both paths reach: the jump out of the power-on routine. */
 const CONTINUATION = 0x0069;
+/** The continuation as the power-on rewrite reaches it (a direct call), and the store it makes first. */
+const CONTINUATION_NAME = "clearWorkRamAndSpriteBanksThenColdInit";
+const WATCHDOG = 0xc200;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -77,10 +85,11 @@ const PAIR_TSTATES = 343;
 
 /**
  * The ceiling on register divergence: the cursor and counter the frozen power-on walk leaves
- * behind, which the rewritten walk counts in a local instead. A ceiling and not a demand — the
- * EXCLUDED arm tests a subset, so a closer rewrite still passes.
+ * behind, which the rewritten walk counts in a local instead, and the accumulator and flags the
+ * header derives dead at the jump out. A ceiling and not a demand — the EXCLUDED arm tests a
+ * subset, so a closer rewrite still passes.
  */
-const MOVED = ["b", "h", "l"];
+const MOVED = ["a", "f", "b", "h", "l"];
 
 const TAPES = [
   ["attract", { tape: [] }],
@@ -171,15 +180,24 @@ function runTo(entry, fn, seam) {
   if (patched) Object.defineProperty(c.mem, "read8", patched);
   const sink = { hits: 0, addr: null, regs: null };
   c.routines = stopAt(entry.routines, seam, sink);
-  c.mem.writeTrace = [];
+  const log = recordHardwareWrites(c);
+  if (seam === CONTINUATION) {
+    // The power-on rewrite's direct call into the continuation, stopped before its first store.
+    severAtDirectCall(c, CONTINUATION_NAME, { writes: [WATCHDOG] }, (mm) => {
+      sink.hits++;
+      sink.addr = CONTINUATION;
+      sink.regs = Object.fromEntries(REG_FIELDS.map((k) => [k, mm.regs[k]]));
+    });
+  }
   let threw = null;
   try {
     fn(c);
   } catch (e) {
-    threw = String(e).slice(0, 60);
+    if (!(e instanceof Severed)) threw = String(e).slice(0, 60);
   }
-  const writes = c.mem.writeTrace.map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
-  c.mem.writeTrace = null;
+  delete c.mem.read8;
+  delete c.mem.write8;
+  const writes = log.map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
   return { c, sink, refused: threw !== null, writes };
 }
 
@@ -243,24 +261,39 @@ const SWEEP_RUNS = { scrambles: SCRAMBLES.length, socket: VALUES, setting: VALUE
 
 // ── the hosted whole-machine replay ─────────────────────────────────────────────────────
 
+/**
+ * The rewrite hosted in the cycle-driven session: run it to the jump out, stopping it before the
+ * continuation's first store however it gets there (through the map, or by a direct call), charge
+ * the pair's time, and hand the rest of the session to the frozen continuation.
+ */
 function hosted(candidate) {
   return (mm) => {
     const real = mm.routines;
+    let reached = false;
     mm.routines = {
       get: (addr) =>
         addr === CONTINUATION
-          ? (x) => {
-              x.routines = real;
-              x.step(CONTINUATION, PAIR_TSTATES);
-              return x.call(CONTINUATION);
+          ? () => {
+              reached = true;
+              throw new Severed(CONTINUATION_NAME);
             }
           : real.get(addr),
     };
+    severAtDirectCall(mm, CONTINUATION_NAME, { writes: [WATCHDOG] }, () => {
+      reached = true;
+    });
     try {
-      return candidate(mm);
+      candidate(mm);
+    } catch (e) {
+      if (!(e instanceof Severed)) throw e;
     } finally {
       mm.routines = real;
+      delete mm.mem.read8;
+      delete mm.mem.write8;
     }
+    if (!reached) return undefined;
+    mm.step(CONTINUATION, PAIR_TSTATES);
+    return mm.call(CONTINUATION);
   };
 }
 
@@ -306,9 +339,8 @@ function brokenGoesTwice(m) {
 
 /** BUG: scribbles on an index register — the control for the EXCLUDED ceiling. */
 function brokenMovesIndex(m) {
-  const r = trampolineToSeatTheStackAndSettleTheControlLatch(m);
   m.regs.ix = (m.regs.ix + 1) & 0xffff;
-  return r;
+  return trampolineToSeatTheStackAndSettleTheControlLatch(m);
 }
 
 const TWINS = [

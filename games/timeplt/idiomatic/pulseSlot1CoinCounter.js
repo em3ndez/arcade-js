@@ -12,10 +12,10 @@ import { COIN_ACCEPTED, COIN_PULSE_TIMER, COIN_COUNTER_0_LATCH } from "./names.j
 
 const PULSE_FRAMES = 48;
 const LINE_DROPS_AT = 24;
-const WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE = 10;
 
-const drive = (m, level) =>
-  m.mem.write8(COIN_COUNTER_0_LATCH, level, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
+const drive = (m, level) => {
+  m.mem8[COIN_COUNTER_0_LATCH] = level;
+};
 
 export function pulseSlot1CoinCounter(m) {
   const { mem8 } = m;

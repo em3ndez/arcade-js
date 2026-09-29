@@ -3,14 +3,15 @@
  * enterCommandRingDrain — memory-equivalent to the frozen oracle at ROM 0x0B90.
  *
  * A three-byte `jp 0x0b93`: a tail transfer into the foreground command-ring loop, which is the
- * drain — a coroutine that never returns. This entry's whole job is to reach it and hand back
- * whatever it yields. It reaches it through the routine map (m.call), not a direct import: a direct
- * import of a poll routine hangs, and the map is what lets this gate SEVER it. Both arms run against
- * a clone whose 0x0b93 is a RECORDER that notes the state handed over and returns one shared
- * sentinel, so both return after one transfer through their own code. This entry writes no memory
- * and touches no register, so RAM comes back byte-identical, the hand-off state matches, and the
- * real live-out — the drain's continuation — is handed straight back, asserted as the sentinel by
- * identity. Neither tape dispatches this address, so entries are CRAFTED from a real machine
+ * drain — a coroutine that never returns. This entry's whole job is to reach it. The frozen side
+ * reaches it through the routine map; the rewrite is itself a coroutine that enters the drain by
+ * `yield*` into a direct import. Both arms run against a clone whose 0x0b93 is a RECORDER that
+ * notes the state handed over and returns one shared sentinel (the frozen side's transfer), and
+ * whose drain is ALSO caught by _spineSever.js at its first act (reading its cursor) from inside
+ * the drain's own frame (the rewrite's transfer), noting the same state. The rewrite's returned
+ * coroutine is driven until that happens. This entry writes no memory and touches no register, so
+ * RAM comes back byte-identical, the hand-off state matches, and both hand control on to the drain
+ * — the sentinel by identity on the frozen side, the severed drain on the rewrite's. Neither tape dispatches this address, so entries are CRAFTED from a real machine
  * captured at the drain's one boot dispatch; the zero is evidence only because the same taps
  * counted the drain in the same runs.
  *
@@ -18,7 +19,7 @@
  *   1. UNREACHED — this address at zero under both tapes, drain as a live positive control.
  *   2. THE ENTRY — a real machine captured at the drain's boot dispatch.
  *   3. REACHES THE DRAIN — both arms reach it once and hand it identical state.
- *   4. EQUAL — RAM, the hand-off state and the returned sentinel, on every crafted entry.
+ *   4. EQUAL — RAM, the hand-off state and the continuation, on every crafted entry.
  *   5. NOT VACUOUS — a memory-writing twin FAILS the RAM diff.
  *   6. TEETH — four twins, each with its exact crafted catch count.
  * HOLE: the drain is stubbed; cycles and pc are not compared, since this hands back a coroutine.
@@ -34,9 +35,11 @@ import { enterCommandRingDrain } from "../enterCommandRingDrain.js";
 import { loc_0b90 as oracle } from "../../translated/loc_0b90.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { COMMAND_READ_CURSOR } from "../names.js";
+import { Severed, severAtDirectCall } from "./_spineSever.js";
 
 const TARGET = 0x0b90;
 const DRAIN = 0x0b93;
+const DRAIN_NAME = "runCommandRingDrainLoop";
 
 /** What the severed drain hands back; both arms must return this exact object. */
 const SENTINEL = { drain: true };
@@ -70,12 +73,31 @@ function entryState() {
 /** A clone whose drain is a recorder returning the shared sentinel, installed the same on both arms. */
 function severed(machine, log) {
   const c = machine.clone();
+  const record = (mm) => log.push(Object.fromEntries(HANDOVER.map((k) => [k, mm.regs[k]])));
   c.routines = new Map(c.routines);
   c.routines.set(DRAIN, (mm) => {
-    log.push(Object.fromEntries(HANDOVER.map((k) => [k, mm.regs[k]])));
+    record(mm);
     return SENTINEL;
   });
-  return c;
+  return severAtDirectCall(c, DRAIN_NAME, { reads: [COMMAND_READ_CURSOR] }, record);
+}
+
+/**
+ * Where control went after the transfer: "drain" when it went on into the drain — the sentinel
+ * handed back by the map's recorder, or a returned coroutine that, driven, entered the drain and was
+ * severed there — and "none" otherwise. A coroutine gets a small budget of resumptions; one that
+ * yields that often without entering the drain went somewhere else.
+ */
+function continuation(ret) {
+  if (ret === SENTINEL) return "drain";
+  if (!ret || typeof ret.next !== "function") return "none";
+  try {
+    for (let i = 0; i < 4; i++) if (ret.next().done) return "none";
+  } catch (e) {
+    if (e instanceof Severed) return "drain";
+    throw e;
+  }
+  return "none";
 }
 
 /** Register seeds layered onto the base entry: registers this transfer must pass through untouched. */
@@ -100,10 +122,10 @@ function unitDiff(candidate, machine) {
   const logB = [];
   const a = severed(machine, logA);
   const b = severed(machine, logB);
-  const retA = oracle(a);
+  const retA = continuation(oracle(a));
   let retB;
   try {
-    retB = candidate(b);
+    retB = continuation(candidate(b));
   } catch (e) {
     return { addr: null, a: "returned", b: String(e).slice(0, 50) };
   }
@@ -189,12 +211,13 @@ test("REACHES THE DRAIN: both arms reach it once and hand it identical state", {
   const b = severed(entryState(), logB);
   const retA = oracle(a);
   const retB = enterCommandRingDrain(b);
+  assert.equal(retA, SENTINEL, "the oracle did not hand back the drain's continuation");
+  assert.equal(logB.length, 0, "the rewrite entered the drain before it was driven");
+  assert.equal(continuation(retB), "drain", "the rewrite's coroutine, driven, did not enter the drain");
   assert.equal(logA.length, 1, "the oracle did not reach the drain exactly once");
   assert.equal(logB.length, 1, "the rewrite did not reach the drain exactly once");
   assert.deepEqual(logB, logA, "the state handed to the drain differs");
-  assert.equal(retA, SENTINEL, "the oracle did not hand back the drain's continuation");
-  assert.equal(retB, SENTINEL, "the rewrite did not hand back the drain's continuation");
-  console.log("  REACHES THE DRAIN: one transfer each, identical hand-off, sentinel returned");
+  console.log("  REACHES THE DRAIN: one transfer each, identical hand-off, both go on into the drain");
 });
 
 test("EQUAL: RAM, the hand-off state and the returned sentinel, on every crafted entry", { skip }, () => {

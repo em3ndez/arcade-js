@@ -29,18 +29,18 @@ export function runSlotCountdownDriftAndAnimateElseRetire(m, ix = m.regs.ix, iy 
   const { mem8 } = m;
 
   if (mem8[ERA_INDEX] !== LAST_ERA) {
-    retireSlot(m);
+    retireSlot(m, ix, iy);
     return;
   }
   const wasAt = mem8[ix + COUNTER];
   if (wasAt === FLOOR) {
-    retireSlot(m);
+    retireSlot(m, ix, iy);
     return;
   }
 
   mem8[ix + COUNTER] = wasAt - 1;
-  if (wasAt >= CLAMPED_FROM) stampObjectStateByte3bThenRequestTwoSounds(m);
-  driftWithWorldScroll(m);
+  if (wasAt >= CLAMPED_FROM) stampObjectStateByte3bThenRequestTwoSounds(m, ix);
+  driftWithWorldScroll(m, ix, iy);
 
   const nowAt = mem8[ix + COUNTER];
   if (nowAt < SHAPES_FROM) return;

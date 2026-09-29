@@ -3,6 +3,7 @@
  * then two's-complement checksum the guarded code block into the guard cell (0 on a clean image)
  * and step the sequence sub-index. LIVE-OUT: memory only. */
 
+import { F_Z } from "../../../core/cpu/z80.js";
 import { drawInterpolatedPenRun } from "./drawInterpolatedPenRun.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { BANK_LAUNCH_COOLDOWN, holdCopyrightThenEraseTheCoinInvitation_ADDR } from "./names.js";
@@ -10,9 +11,10 @@ import { BANK_LAUNCH_COOLDOWN, holdCopyrightThenEraseTheCoinInvitation_ADDR } fr
 const GUARDED_LEN = 0x22;
 
 export function advancePenRunAnimationStep(m) {
-  const { regs, mem8 } = m;
-  drawInterpolatedPenRun(m);
-  if (regs.fNZ) return;
+  const { mem8 } = m;
+  // The run hands back the flags it settles on; Z set means it reseated to a zero row integer.
+  const reseatedAtRowZero = (drawInterpolatedPenRun(m) & F_Z) !== 0;
+  if (!reseatedAtRowZero) return;
 
   let sum = 0;
   for (let i = 0; i < GUARDED_LEN; i++) sum = (sum - mem8[holdCopyrightThenEraseTheCoinInvitation_ADDR + i]) & 0xff;

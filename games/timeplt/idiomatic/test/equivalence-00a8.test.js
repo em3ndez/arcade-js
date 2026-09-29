@@ -24,6 +24,15 @@
  *   5. TEETH — one twin per named arm below. This does NOT claim to cover every way the
  *      handover could be wrong; it claims each listed twin is caught.
  *
+ * ★ THE SETTING IS A PARAMETER. The frozen entry reads it from the accumulator; the rewrite is handed
+ *   it by its caller. Every arm hands the rewrite exactly the value it seats in A for the oracle.
+ *
+ * ★ THE LOOP IS REACHED TWO WAYS, SEVERED AT ONE PLACE. The oracle jumps into it through the routine
+ *   map, where a recorder catches it; the rewrite enters it by `yield*` into a direct import, which the
+ *   map cannot see, so _spineSever.js catches it at the loop's first act (reading its cursor) from
+ *   inside the loop's own frame, before anything is read or written. Both record the same hand-over.
+ *   The accumulator is not part of the hand-over: the loop loads A from its cursor before reading it.
+ *
  * HOLE: nothing here runs the foreground loop, so nothing here shows that the loop is the right
  * thing to hand over to beyond the address itself matching.
  * HOLE: the watchdog is modelled as a count of kicks, so an arm asserting it cannot distinguish
@@ -41,11 +50,14 @@ import { loc_00a8 as oracle } from "../../translated/loc_00a8.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { LATCH_NMI_ENABLE } from "../../../../boards/timeplt/io.js";
+import { COMMAND_READ_CURSOR } from "../names.js";
+import { Severed, severAtDirectCall } from "./_spineSever.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x00a8;
 const FOREGROUND_LOOP = 0x0b93;
+const FOREGROUND_LOOP_NAME = "runCommandRingDrainLoop";
 const CORPUS_FRAMES = 1200;
 
 const CARRIED = 1;
@@ -86,25 +98,34 @@ function entryState() {
  */
 function severed(machine, log) {
   const c = machine.clone();
+  const record = (mm) => log.push({ latch: mm.io.latch[LATCH_NMI_ENABLE], kicks: mm.io.watchdogKicks });
   c.routines = new Map(c.routines);
   c.routines.set(FOREGROUND_LOOP, (mm) => {
-    log.push({ a: mm.regs.a, latch: mm.io.latch[LATCH_NMI_ENABLE], kicks: mm.io.watchdogKicks });
+    record(mm);
     return { [Symbol.iterator]: function* () {} };
   });
-  return c;
+  return severAtDirectCall(c, FOREGROUND_LOOP_NAME, { reads: [COMMAND_READ_CURSOR] }, record);
 }
 
 const YIELD_BUDGET = 64;
 
 function drive(fn, m, ...args) {
-  const r = fn(m, ...args);
-  if (!r || typeof r.next !== "function") return r;
-  for (let i = 0; i <= YIELD_BUDGET; i++) {
-    const step = r.next();
-    if (step.done) return step.value;
+  try {
+    const r = fn(m, ...args);
+    if (!r || typeof r.next !== "function") return r;
+    for (let i = 0; i <= YIELD_BUDGET; i++) {
+      const step = r.next();
+      if (step.done) return step.value;
+    }
+  } catch (e) {
+    if (e instanceof Severed) return undefined;
+    throw e;
   }
   throw new Error(`still yielding after ${YIELD_BUDGET} resumptions; the oracle returned`);
 }
+
+/** The rewrite, handed the value the caller carries — the one the oracle reads from A. */
+const handed = (fn) => (m) => fn(m, m.regs.a);
 
 function unitDiff(candidate, machine) {
   const logA = [];
@@ -112,7 +133,7 @@ function unitDiff(candidate, machine) {
   const a = severed(machine, logA);
   const b = severed(machine, logB);
   oracle(a);
-  drive(candidate, b);
+  drive(handed(candidate), b);
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return ram;
   for (let i = 0; i < a.io.latch.length; i++) {
@@ -127,7 +148,7 @@ function unitDiff(candidate, machine) {
     return { reg: "handovers", a: logA.length, b: logB.length };
   }
   for (const [i, x] of logA.entries()) {
-    for (const k of ["a", "latch", "kicks"]) {
+    for (const k of ["latch", "kicks"]) {
       if (x[k] !== logB[i][k]) return { reg: `handover.${k}`, a: x[k], b: logB[i][k] };
     }
   }
@@ -242,7 +263,7 @@ test("EQUAL at the captured entry, loop severed: latch, watchdog and handover id
   const a = severed(entryState(), logA);
   const b = severed(entryState(), logB);
   oracle(a);
-  drive(enableInterruptAndEnterForegroundLoop, b);
+  drive(handed(enableInterruptAndEnterForegroundLoop), b);
   assert.equal(logA.length, 1, "vacuous: the oracle did not reach the foreground loop");
   assert.equal(logB.length, 1, "the rewrite did not reach the foreground loop");
   assert.deepEqual(logB[0], logA[0], "the state handed to the loop differs");
@@ -260,7 +281,7 @@ test("EXCLUDED, deliberately: nothing at all, once the loop is severed", { skip 
   const a = severed(entryState(), []);
   const b = severed(entryState(), []);
   oracle(a);
-  drive(enableInterruptAndEnterForegroundLoop, b);
+  drive(handed(enableInterruptAndEnterForegroundLoop), b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     [],
@@ -274,10 +295,10 @@ test("EXHAUSTIVE: all 256 carried values against both starting latch states", { 
 
   // Only the low bit reaches the latch, and the sweep is what proves the other seven do not.
   const even = severed(craft(0xfe, 1), []);
-  drive(enableInterruptAndEnterForegroundLoop, even);
+  drive(handed(enableInterruptAndEnterForegroundLoop), even);
   assert.equal(even.io.latch[LATCH_NMI_ENABLE], 0, "an even value must clear the latch bit");
   const odd = severed(craft(0xff, 0), []);
-  drive(enableInterruptAndEnterForegroundLoop, odd);
+  drive(handed(enableInterruptAndEnterForegroundLoop), odd);
   assert.equal(odd.io.latch[LATCH_NMI_ENABLE], 1, "an odd value must set it");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} crafted entries identical; only the low bit lands`);
 });

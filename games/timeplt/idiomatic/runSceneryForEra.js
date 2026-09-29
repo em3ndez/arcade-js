@@ -5,7 +5,7 @@
  * first era, one for the fifth, and one shared by everything between — including an index past the
  * fifth, which falls to that middle order rather than being refused. LIVE-OUT: memory, plus the two cursors. */
 
-import { ERA_INDEX, SCENERY_ENTRY_SLOT0, SCENERY_RECORD_SLOT0, loc_2cd1 } from "./names.js";
+import { ERA_INDEX, SCENERY_ENTRY_SLOT0, SCENERY_RECORD_SLOT0 } from "./names.js";
 import { driftThreeTileSceneryAtFiveQuarters } from "./driftThreeTileSceneryAtFiveQuarters.js";
 import { stepTwoTileSceneryAtFiveQuarters } from "./stepTwoTileSceneryAtFiveQuarters.js";
 import { driftTwoTileSceneryAtThreeQuarters } from "./driftTwoTileSceneryAtThreeQuarters.js";
@@ -13,21 +13,11 @@ import { driftOneTileSceneryAtThreeQuarters } from "./driftOneTileSceneryAtThree
 import { driftOneTileSceneryAtHalf } from "./driftOneTileSceneryAtHalf.js";
 import { driftNearestSceneryTriTile } from "./driftNearestSceneryTriTile.js";
 
-
 const FIRST_ERA = 0;
 const LAST_ERA = 4;
 
-/** The one step still reached by transfer. The parked slot is a real stack write the frozen step's
- *  tail return consumed; the lifted step drops that return, so it is laid down and popped here. The
- *  seed is forwarded to the object this step runs. */
-function diagonalPair(m, record, entry) {
-  m.push16(loc_2cd1);
-  driftNearestSceneryTriTile(m, record, entry);
-  m.ret();
-}
-
 const OPENING_ORDER = [driftThreeTileSceneryAtFiveQuarters, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
-const MIDDLE_ORDER = [diagonalPair, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
+const MIDDLE_ORDER = [driftNearestSceneryTriTile, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
 const CLOSING_ORDER = [stepTwoTileSceneryAtFiveQuarters, stepTwoTileSceneryAtFiveQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf, driftOneTileSceneryAtHalf];
 
 export function runSceneryForEra(m) {

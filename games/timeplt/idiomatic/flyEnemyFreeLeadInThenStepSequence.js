@@ -27,14 +27,11 @@ function foldIntoPhase(m, base, key) {
 
 export function flyEnemyFreeLeadInThenStepSequence(m) {
   const { mem8 } = m;
-  // This callee returns through a stack word, so the call site supplies one; the value is a filler.
-  const spriteFixup = () => { m.push16(0); multiplexSpriteSlotsSkipping(m); };
-
   foldIntoPhase(m, loc_0831, 0xc2);
 
-  spriteFixup();
+  multiplexSpriteSlotsSkipping(m);
   dispatchPlayerFrameByState(m);
-  spriteFixup();
+  multiplexSpriteSlotsSkipping(m);
   runSceneryForEra(m);
   fireAndSweepPlayerShots(m);
   multiplexSpriteSlots(m);

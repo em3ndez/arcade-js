@@ -37,7 +37,7 @@
  *      the write set is the failure arm's rather than the clean arm's.
  *   8. THE DROPPED READ — forced hostile over a whole session, with a tooth on the instrument.
  *   9. WHOLE-MACHINE — an undriven session with the rewrite wired, diffed every frame.
- *  10. TEETH — nine twins, each with a verdict on the genuine image AND on the altered one, and an
+ *  10. TEETH — ten twins, each with a verdict on the genuine image AND on the altered one, and an
  *      assertion that no twin is blind to both.
  *
  * HOLE: exactly ONE dispatch exists in any session, so the corpus cannot vary anything. Every
@@ -57,6 +57,7 @@ import { SEQUENCE_SUBSTEP, TAMPER_WITNESS } from "../names.js";
 import { loc_17b9 as oracle } from "../../translated/loc_17b9.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { recordHardwareWrites } from "./_spineSever.js";
 
 const TARGET = 0x17b9;
 
@@ -137,12 +138,26 @@ function entryState() {
   return entry;
 }
 
+/**
+ * RAM first, then what the dump cannot see: the ordered device writes (address and value, recorded
+ * on both sides) and the latch lines they leave — the failure arm's display write lands there.
+ */
+function devicesDiff(a, b, drovenA, drovenB) {
+  const seq = (log) => log.map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
+  if (seq(drovenA) !== seq(drovenB)) return { addr: null, a: seq(drovenA), b: seq(drovenB) };
+  if (a.io.latch.join() !== b.io.latch.join()) return { addr: null, a: a.io.latch.join(), b: b.io.latch.join() };
+  return null;
+}
+
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
+  const drovenA = recordHardwareWrites(a);
+  const drovenB = recordHardwareWrites(b);
   oracle(a);
   candidate(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)) ??
+    devicesDiff(a, b, drovenA, drovenB);
 }
 
 /**
@@ -170,9 +185,12 @@ function alteredDiff(candidate, offset = 0) {
   const a = altered(offset);
   const b = a.clone();
   b.mem.rom = a.mem.rom;
+  const drovenA = recordHardwareWrites(a);
+  const drovenB = recordHardwareWrites(b);
   oracle(a);
   candidate(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)) ??
+    devicesDiff(a, b, drovenA, drovenB);
 }
 
 // ── replaying whole sessions ────────────────────────────────────────────────────────────
@@ -317,6 +335,18 @@ function brokenFailureCopiesGlyphTwice(m) {
   m.mem8[TAMPER_WITNESS + 1] = m.mem8[SAMPLED_CELL];
 }
 
+/** BUG: the failure arm never switches the display off — visible only in the device writes. */
+function brokenFailureLeavesPictureOn(m) {
+  let total = m.mem8[TOTAL_SEED];
+  for (let i = 0; i < GUARDED_BYTES; i++) total = (total + m.mem8[GUARDED_FIRST + i]) & 0xff;
+  if (total === EXPECTED_TOTAL) {
+    advanceSequenceSubStep(m);
+    return;
+  }
+  m.mem8[TAMPER_WITNESS] = m.mem8[SAMPLED_CELL];
+  m.mem8[TAMPER_WITNESS + 1] = m.mem8[SAMPLED_CELL & ~CHARACTER_PLANE_BIT];
+}
+
 /** BUG: the failure arm ALSO steps the sequence, so a tampered image carries on running. */
 function brokenFailureAlsoAdvances(m) {
   let total = m.mem8[TOTAL_SEED];
@@ -342,6 +372,7 @@ const TWINS = [
   ["no-advance", brokenNoAdvance, true, false],
   ["failure-copies-glyph-twice", brokenFailureCopiesGlyphTwice, false, true],
   ["failure-also-advances", brokenFailureAlsoAdvances, false, true],
+  ["failure-leaves-picture-on", brokenFailureLeavesPictureOn, false, true],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────

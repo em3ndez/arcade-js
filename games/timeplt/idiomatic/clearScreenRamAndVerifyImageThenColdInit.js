@@ -2,13 +2,17 @@
 /**
  * clearScreenRamAndVerifyImageThenColdInit — cold-start clear, then verify the program image and hand off to init.
  * Fills colour RAM with 0x10 and video RAM with 0xf1 (bases from two image pointers), then sums the
- * program image and subtracts the stored total: zero hands off to init, else derails into data.
+ * program image and subtracts the stored total: zero hands off to init. The fold covers the program image and
+ * nothing else, so the total is a constant of the image and a genuine image always lands on zero. The other
+ * arm jumps into a data table and runs it as code, which destroys control rather than reporting anything;
+ * it has no faithful transcription, so it raises where it would derail.
  * LIVE-OUT: the two fills and the watchdog kicks (after fill one, then once per summed byte), then the handoff.
  */
 
 import { u16 } from "../../../core/int.js";
 import { initColdStartRamThenSeedConfig } from "./initColdStartRamThenSeedConfig.js";
-import { trampolineToSeatTheStackAndSettleTheControlLatch_ADDR, COLOUR_RAM_BASE_WORD, VIDEO_RAM_BASE_WORD, loc_59d7, WATCHDOG_RESET } from "./names.js";
+import { NotImplemented } from "../../../boards/timeplt/io.js";
+import { trampolineToSeatTheStackAndSettleTheControlLatch_ADDR, COLOUR_RAM_BASE_WORD, VIDEO_RAM_BASE_WORD, WATCHDOG_RESET } from "./names.js";
 
 const COLOUR_FILL = 0x10;
 const VIDEO_FILL = 0xf1;
@@ -37,6 +41,11 @@ export function clearScreenRamAndVerifyImageThenColdInit(m) {
     mem8[WATCHDOG_RESET] = total; // ⚠ the watchdog port ignores this value; only the kick counts
   }
 
-  if (u8(total - GENUINE_TOTAL) !== 0) return m.call(loc_59d7);
+  if (u8(total - GENUINE_TOTAL) !== 0) {
+    throw new NotImplemented(
+      "clearScreenRamAndVerifyImageThenColdInit: the whole-image fold missed its expected total, so the image " +
+        "is tampered and the original would run a data table as code; a genuine image always matches",
+    );
+  }
   return initColdStartRamThenSeedConfig(m);
 }

@@ -9,6 +9,7 @@ import { drawInterpolatedPenRun } from "./drawInterpolatedPenRun.js";
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
+import { F_Z } from "../../../core/cpu/z80.js";
 import { advancePenRunAnimationStep_ADDR, IMAGE_GUARD_BLOCK_0BDD_BASE, SEQUENCE_PHASE } from "./names.js";
 
 const XOR_LEN = 256;
@@ -17,10 +18,11 @@ const SUM_LEN = 20;
 const SUM_BIAS = 0x77;
 
 export function blankCaptionThenAdvancePenRunStep(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   blankFourteenCharCells(m);
-  drawInterpolatedPenRun(m);
-  if (regs.fNZ) return;
+  // The run hands back the flags it settles on; Z set means it reseated to a zero row integer.
+  const reseatedAtRowZero = (drawInterpolatedPenRun(m) & F_Z) !== 0;
+  if (!reseatedAtRowZero) return;
 
   let fold = 0;
   for (let i = 0; i < XOR_LEN; i++) fold ^= mem8[IMAGE_GUARD_BLOCK_0BDD_BASE + i];

@@ -7,7 +7,9 @@
  * presents -- empty, active, retiring (active and reaching the line), held, dying -- all REAL entries.
  * Registers: ix and iy are held on every entry; on the active (refreshed) path the accumulator and
  * flags the sprite refresh leaves are compared too. Teeth: broken twins, each caught exactly where its
- * bug shows. Run: node --test games/timeplt/idiomatic/test/equivalence-294c.test.js
+ * bug shows. SPLIT: the slot handed in as arguments is the slot worked on even when the registers
+ * name a different one -- asserted on every class.
+ * Run: node --test games/timeplt/idiomatic/test/equivalence-294c.test.js
  */
 
 import test from "node:test";
@@ -260,3 +262,44 @@ for (const [label, twin, expect] of TWINS) {
     console.log(`  TEETH/${label}: ${CLASSES.map((k) => `${k}=${report[k]}`).join(" ")}`);
   });
 }
+
+// ── the split ───────────────────────────────────────────────────────────────────────────
+
+/** The registers moved to the neighbouring slot while the entry's own slot is handed over as
+ *  arguments; the registers are put back afterwards so only memory, SP and pc can tell. */
+const NEIGHBOUR_RECORD = 0x10;
+const NEIGHBOUR_ENTRY = 2;
+const SPLIT_CLASSES = CLASSES;
+function split(fn) {
+  return (m) => {
+    const { ix, iy } = m.regs;
+    m.regs.ix = (ix + NEIGHBOUR_RECORD) & 0xffff;
+    m.regs.iy = (iy + NEIGHBOUR_ENTRY) & 0xffff;
+    const r = fn(m, ix, iy);
+    m.regs.ix = ix;
+    m.regs.iy = iy;
+    return r;
+  };
+}
+/** BUG: takes the slot as arguments but lets the release read it off the registers. */
+function brokenUnforwarded(m, ix = m.regs.ix) {
+  const s = m.mem8[ix];
+  if (s === EMPTY) return;
+  if (s === HELD) return releaseHeldObject(m);
+  return serviceEra1EnemyCraftSlot(m, ix);
+}
+
+test("SPLIT: the slot handed over is the slot worked on, whatever the registers name", { skip }, () => {
+  const { buckets } = captureBuckets();
+  for (const k of SPLIT_CLASSES) {
+    for (const entry of buckets[k]) {
+      const d = unitDiff(split(serviceEra1EnemyCraftSlot), entry, k === "active");
+      assert.equal(d, null, `a ${k} entry worked on the slot the registers name: ${show(d)}`);
+    }
+  }
+  const caught = caughtOn(split(brokenUnforwarded), buckets.held);
+  assert.equal(caught, buckets.held.length, "a release that reads the slot off the registers went unseen");
+  assert.equal(caughtOn(split(brokenUnforwarded), buckets.empty), 0, "the unforwarded twin was caught where it does nothing");
+  console.log(`  SPLIT: ${SPLIT_CLASSES.map((k) => `${k}=${buckets[k].length}`).join(" ")} identical; ` +
+    `unforwarded release caught ${caught}/${buckets.held.length}`);
+});

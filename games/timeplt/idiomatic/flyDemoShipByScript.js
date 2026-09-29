@@ -13,7 +13,7 @@ const DWELL_BITS = 0x3f;
 const TURN_STEP = 3;
 
 export function flyDemoShipByScript(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   let command;
   for (;;) {
@@ -32,6 +32,5 @@ export function flyDemoShipByScript(m) {
   if (turn === 1) mem8[PLAYER_HEADING] = u8(mem8[PLAYER_HEADING] - TURN_STEP);
   else if (turn !== 0) mem8[PLAYER_HEADING] = u8(mem8[PLAYER_HEADING] + TURN_STEP);
 
-  regs.exx(); // the mover runs on the alternate register bank; this pass never swaps back
   return scrollWorldAtTheEraPace(m);
 }

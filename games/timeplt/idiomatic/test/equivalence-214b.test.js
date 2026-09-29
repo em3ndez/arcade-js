@@ -2,8 +2,10 @@
 /**
  * flyDemoShipByScript — memory-equivalent to the frozen oracle at ROM 0x214B.
  * GATE: real attract dispatches (undriven tape), plus crafted turn/advance entries; compares work
- *   RAM, pc and every register but the shadow bank the exit swap fills with dead loop scratch —
- *   which the identical RAM/pc/main-register result proves the mover never reads. Teeth land in RAM.
+ *   RAM, pc and every register but the shadow bank — the frozen exit swap fills it with dead loop
+ *   scratch, and the rewrite does not swap at all. That the swap is dead is proven twice: the
+ *   identical RAM/pc/main-register result shows the mover never reads it, and the SHADOW BANK arm
+ *   shows no idiomatic routine swaps banks or reads a shadow register. Teeth land in RAM.
  */
 
 import test from "node:test";
@@ -15,6 +17,9 @@ import { flyDemoShipByScript } from "../flyDemoShipByScript.js";
 import { loc_214b as oracle } from "../../translated/loc_214b.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const TARGET = 0x214b;
 const MOVER = 0x1f42;
@@ -25,8 +30,8 @@ const HEADING = 0xa802;
 const CAP = 40;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
-// Two dead sets, both measured. The loop swaps its spent scratch into the shadow bank on the closing
-// exx and never swaps back. The world-scroll mover is a tail: once flyDemoShipByScript returns nothing reads its
+// Two dead sets, both measured. The frozen loop swaps its spent scratch into the shadow bank on the
+// closing exx and never swaps back; the rewrite keeps no scratch in registers and does not swap. The world-scroll mover is a tail: once flyDemoShipByScript returns nothing reads its
 // accumulator, flags or index registers, and the ROM ret it drops leaves sp two bytes low. Excluding
 // them keeps the gate from demanding a value the rewrite need not carry.
 const EXCLUDED = ["b_", "c_", "d_", "e_", "h_", "l_", "a", "f", "d", "e", "l", "sp"];
@@ -258,3 +263,19 @@ for (const [label, twin] of TWINS) {
     console.log(`  TEETH/${label}: caught ${caught}/${entries.length} (${inRam} in RAM)`);
   });
 }
+
+// A swap of the BC/DE/HL banks or a reference to one of their shadow halves, in source text. (The
+// shadow accumulator is a separate swap this routine never makes, so it is not the question here.)
+const SHADOW_USE = /\bexx\(|regs\.(?:[bcdehl]_|bc_|de_|hl_)\b/;
+const IDIOMATIC_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+test("SHADOW BANK: no idiomatic routine swaps BC/DE/HL or reads their shadow halves, so the dropped swap is dead", () => {
+  // Positive control: the frozen routine's own swap is what the pattern must see.
+  const frozen = readFileSync(join(IDIOMATIC_DIR, "..", "translated", "loc_214b.js"), "utf8");
+  assert.ok(SHADOW_USE.test(frozen), "the pattern does not see the frozen routine's swap, so an absence means nothing");
+  const users = readdirSync(IDIOMATIC_DIR)
+    .filter((f) => f.endsWith(".js"))
+    .filter((f) => SHADOW_USE.test(readFileSync(join(IDIOMATIC_DIR, f), "utf8")));
+  assert.deepEqual(users, [], `an idiomatic routine touches the shadow bank: ${users.join(", ")}`);
+  console.log("  SHADOW BANK: no idiomatic routine swaps or reads it; the frozen swap is seen by the same pattern");
+});

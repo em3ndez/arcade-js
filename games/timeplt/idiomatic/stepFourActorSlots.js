@@ -5,7 +5,8 @@
  * handed to returned through a tail that lifted one off. Now that the step (dispatchObjectSlotByHeadByte) is a direct
  * call that lifts nothing, that park writes only dead scratch below the stack pointer, so it has
  * been retired -- exactly as the note it used to carry said it would be, "when that tail stops
- * lifting, the park goes with it." LIVE-OUT: memory, plus the two cursors the fourth slot left. */
+ * lifting, the park goes with it." LIVE-OUT: memory; the two cursors the fourth slot leaves are never
+ * read again. */
 
 import { dispatchObjectSlotByHeadByte } from "./dispatchObjectSlotByHeadByte.js";
 import { ACTOR_ENTRY_SLOT0, ACTOR_ENTRY_SLOT1, ACTOR_ENTRY_SLOT2, ACTOR_ENTRY_SLOT3, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT1, ACTOR_RECORD_SLOT2, ACTOR_RECORD_SLOT3 } from "./names.js";

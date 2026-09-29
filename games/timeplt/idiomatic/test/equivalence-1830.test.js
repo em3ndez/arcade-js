@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * postAttractInfoCaptions — memory-equivalent to the frozen oracle at ROM 0x1830.
- * GATE: unit-capture with a 2-byte dead-stack window, a replayed corpus, a crafted 2x2 branch
- *   grid, an asserted parked-return drift, and teeth. Hole: what each posted code draws is not
+ * GATE: unit-capture with a 4-byte dead-stack window, a replayed corpus, a crafted 2x2 branch
+ *   grid, the frozen continuation run on both sides, a seam-placement arm, and teeth. Every callee
+ *   is a direct call that lays nothing on the stack, so the window is the frozen side's own call
+ *   slot plus the word its ring writer saves beneath it. Hole: what each posted code draws is not
  *   checked here, only that the same (1, code) pairs reach the writer and the same counter bumps
  *   land. Run: node --test games/timeplt/idiomatic/test/equivalence-1830.test.js
  */
@@ -15,27 +17,44 @@ import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { postAttractInfoCaptions } from "../postAttractInfoCaptions.js";
 import { loc_1830 as oracle } from "../../translated/loc_1830.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { seamPlaceable } from "../../../../core/equivalence.js";
+import { withOmittedRet } from "../../machine.js";
+import { stampCopyrightStrip } from "../stampCopyrightStrip.js";
+import { flashCopyrightLine } from "../flashCopyrightLine.js";
+import { postCommand } from "../postCommand.js";
+import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x1830;
 const DISPATCHER = 0x1651; // fires every frame the sequence runs, so it mints a real-state corpus
-const SCRATCH_BYTES = 2;
-// The dissolved tail advanceSequenceSubStep does the counter inc but takes no ROM ret, so the
-// oracle's inc-and-ret leaves f/h/l set and pops two bytes the rewrite keeps. All dead: postAttractInfoCaptions is
-// itself a tail and nothing downstream reads them. sp is proved on its own arm, not masked away here.
-const EXCLUDED_REGS = ["f", "h", "l", "sp"];
+const CONTINUATION = 0x167b; // the fixed tail the dispatcher parks beneath every arm it runs
+const SCRATCH_BYTES = 4;
+// The frozen side leaves scratch the rewrite does not reproduce: its copyright-strip and flash
+// callees leave b/c/iy and the flags, its ring writer leaves a/f and walks e, and its closing
+// inc-and-ret leaves f/h/l and pops two bytes the rewrite keeps. All dead: the continuation the
+// dispatcher parks reloads a from memory and seats hl before any use, reads no other register,
+// and the CONTINUATION arm runs it on both sides to show it. sp is proved on its own arm.
+const EXCLUDED_REGS = ["a", "b", "c", "e", "f", "h", "l", "iy", "sp"];
 const FLIP_CELL = 0xa9c3;
 const BRANCH_CELL = 0xa986;
+// Read by the continuation on a zero credit count, from the frozen tail's own operands.
+const FREE_PLAY_CELL = 0xa9c0;
+const START_INPUT_CELL = 0xa9ae;
+const START_ONE = 0x08;
+const START_TWO = 0x10;
+const PLAY_ACTIVE_CELL = 0xad30;
 const CORPUS_CAP = 200;
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
 let entry = null;
+let continuation = null;
 const corpus = [];
 function capture() {
   if (entry !== null) return;
   const real1830 = TRANSLATED.get(TARGET);
+  continuation = TRANSLATED.get(CONTINUATION);
   const real1651 = TRANSLATED.get(DISPATCHER);
   const m = makeMachine(new Map([
     [TARGET, (mm) => { if (entry === null) entry = mm.clone(); return real1830(mm); }],
@@ -80,56 +99,31 @@ function craft(flip, branch) {
 const GRID = [[0, 1], [0x80, 1], [0, 2], [0x80, 2], [0, 5], [0x80, 5]];
 
 // ── twins ─────────────────────────────────────────────────────────────────────────────────
-const park = (m) => (addr) => { m.push16(0); m.call(addr); };
-function twinNoParks(m) {
-  const { mem8, regs } = m;
-  const call = (addr) => m.call(addr);
-  call(0x0b06); call(0x0b39);
-  const post = (c) => { regs.de = 0x0100 | c; call(0x0038); };
-  post(0x01); post(0x14); post(0x15);
-  const flip = mem8[FLIP_CELL] === 0 ? 0x0f : 0x11;
-  post(flip); post(flip + 1); post(0x16); post(0x00);
-  if (mem8[BRANCH_CELL] >= 2) { post(0x19); call(0x0f1a); return m.call(0x0f1a); }
-  post(0x17); return m.call(0x0f1a);
+/** The arm rebuilt from its parts, with one knob per defect a twin carries. */
+function build({ leading = [0x01, 0x14, 0x15], readFlip = true, readBranch = true, bumps = 2 } = {}) {
+  return (m) => {
+    const { mem8 } = m;
+    const post = (c) => postCommand(m, 0x01, c);
+    stampCopyrightStrip(m);
+    flashCopyrightLine(m);
+    for (const c of leading) post(c);
+    const flip = readFlip && mem8[FLIP_CELL] !== 0 ? 0x11 : 0x0f;
+    post(flip); post(flip + 1); post(0x16); post(0x00);
+    if (readBranch && mem8[BRANCH_CELL] >= 2) {
+      post(0x19);
+      for (let i = 0; i < bumps; i++) advanceSequenceSubStep(m);
+      return;
+    }
+    post(0x17);
+    advanceSequenceSubStep(m);
+  };
 }
-function twinDropPost(m) {
-  const { mem8, regs } = m; const call = park(m);
-  call(0x0b06); call(0x0b39);
-  const post = (c) => { regs.de = 0x0100 | c; call(0x0038); };
-  post(0x01); post(0x14); // one code short
-  const flip = mem8[FLIP_CELL] === 0 ? 0x0f : 0x11;
-  post(flip); post(flip + 1); post(0x16); post(0x00);
-  if (mem8[BRANCH_CELL] >= 2) { post(0x19); call(0x0f1a); return m.call(0x0f1a); }
-  post(0x17); return m.call(0x0f1a);
-}
-function twinIgnoreFlip(m) {
-  const { mem8, regs } = m; const call = park(m);
-  call(0x0b06); call(0x0b39);
-  const post = (c) => { regs.de = 0x0100 | c; call(0x0038); };
-  post(0x01); post(0x14); post(0x15);
-  post(0x0f); post(0x10); post(0x16); post(0x00); // flip cell never consulted
-  if (mem8[BRANCH_CELL] >= 2) { post(0x19); call(0x0f1a); return m.call(0x0f1a); }
-  post(0x17); return m.call(0x0f1a);
-}
-function twinIgnoreBranch(m) {
-  const { mem8, regs } = m; const call = park(m);
-  call(0x0b06); call(0x0b39);
-  const post = (c) => { regs.de = 0x0100 | c; call(0x0038); };
-  post(0x01); post(0x14); post(0x15);
-  const flip = mem8[FLIP_CELL] === 0 ? 0x0f : 0x11;
-  post(flip); post(flip + 1); post(0x16); post(0x00);
-  post(0x17); return m.call(0x0f1a); // always the low arm, one counter bump
-}
-function twinSingleCounter(m) {
-  const { mem8, regs } = m; const call = park(m);
-  call(0x0b06); call(0x0b39);
-  const post = (c) => { regs.de = 0x0100 | c; call(0x0038); };
-  post(0x01); post(0x14); post(0x15);
-  const flip = mem8[FLIP_CELL] === 0 ? 0x0f : 0x11;
-  post(flip); post(flip + 1); post(0x16); post(0x00);
-  if (mem8[BRANCH_CELL] >= 2) { post(0x19); return m.call(0x0f1a); } // bumps once, not twice
-  post(0x17); return m.call(0x0f1a);
-}
+const twinDropPost = build({ leading: [0x01, 0x14] }); // one code short
+const twinIgnoreFlip = build({ readFlip: false }); // flip cell never consulted
+const twinIgnoreBranch = build({ readBranch: false }); // always the low arm, one counter bump
+const twinSingleCounter = build({ bumps: 1 }); // bumps once, not twice
+/** A stray word laid on the stack that nothing lifts: memory-identical in the window, seam-refused. */
+const twinStrayWord = (m) => { m.push16(0); postAttractInfoCaptions(m); };
 
 // ── the gate ──────────────────────────────────────────────────────────────────────────────
 test("EQUAL: the real dispatch is identical outside the dead stack window", { skip }, () => {
@@ -155,7 +149,7 @@ test("NOT VACUOUS: the masked diff catches a do-nothing twin", { skip }, () => {
   assert.notEqual(stray(() => {}, entry), null, "the masked diff passed a no-op, so it is not a gate");
 });
 
-test("WINDOW: the widest divergence is exactly the declared 2-byte window", { skip }, () => {
+test("WINDOW: the widest divergence is exactly the declared window", { skip }, () => {
   capture();
   let widest = 0;
   for (const s of [entry, ...corpus, ...GRID.map(([f, b]) => craft(f, b))]) {
@@ -170,16 +164,66 @@ test("WINDOW: the widest divergence is exactly the declared 2-byte window", { sk
   console.log(`  WINDOW: widest divergence sp-${widest}`);
 });
 
-test("PARKED RETURNS are load-bearing: dropping them leaves SP 20 bytes adrift", { skip }, () => {
+test("SEAM: a direct call leaves the stack where it found it, and the seam places the arm", { skip }, () => {
   capture();
-  for (const s of [entry, ...corpus]) {
-    const ref = s.clone(); oracle(ref);
-    const c = s.clone(); twinNoParks(c);
-    assert.equal((c.regs.sp - ref.regs.sp) & 0xffff, 20,
-      "the ten frozen callees each pop an unparked slot; if this is ever not 20 the parks may go");
+  const states = [entry, ...corpus, ...GRID.map(([f, b]) => craft(f, b))];
+  for (const s of states) {
+    const direct = s.clone();
+    postAttractInfoCaptions(direct);
+    assert.equal(direct.regs.sp, s.regs.sp, "a direct call moved the stack pointer");
+    const r = seamPlaceable(withOmittedRet, postAttractInfoCaptions, TARGET, s.clone());
+    assert.equal(r.placeable, true, `the seam cannot place the arm: ${r.error}`);
   }
-  const ref0 = entry.clone(); oracle(ref0); const c0 = entry.clone(); twinNoParks(c0);
-  console.log(`  PARKED: without parks sp=${hex4(c0.regs.sp)} vs oracle ${hex4(ref0.regs.sp)} over ${corpus.length + 1} states`);
+  // ★ control: a stray word is invisible to the masked diff (it lands in the window) but not here.
+  let refused = 0;
+  for (const s of states) if (!seamPlaceable(withOmittedRet, twinStrayWord, TARGET, s.clone()).placeable) refused++;
+  assert.equal(refused, states.length, "the stray-word control was placed on some state");
+  console.log(`  SEAM: ${states.length} states SP-neutral and placeable; the stray-word control refused on each`);
+});
+
+/** Zero credits with free play on and a start button held: the continuation's deepest path, which
+ *  starts a game rather than stepping the sequence. */
+function craftFreePlayStart(start) {
+  const s = craft(0, 0);
+  s.mem8[FREE_PLAY_CELL] = 1;
+  s.mem8[START_INPUT_CELL] = start;
+  return s;
+}
+
+test("CONTINUATION: the frozen tail after the arm leaves RAM identical (the excluded registers are dead)", { skip }, () => {
+  capture();
+  const states = [
+    entry, ...corpus, ...GRID.map(([f, b]) => craft(f, b)),
+    craftFreePlayStart(START_ONE), craftFreePlayStart(START_TWO),
+  ];
+  const afterTail = (s, arm) => {
+    const a = s.clone(); const b = s.clone();
+    oracle(a); arm(b);
+    // Seat both sides on the same stack pointer so the tail's own pushes land on the same bytes.
+    b.regs.sp = a.regs.sp;
+    continuation(a); continuation(b);
+    const sp = s.regs.sp;
+    const da = a.dumpState(); const db = b.dumpState();
+    for (let i = 0; i < da.length; i++) {
+      if (da[i] === db[i]) continue;
+      const ad = a.stateOffsetToAddr(i);
+      if (ad !== null && ad < sp && ad >= sp - SCRATCH_BYTES) continue;
+      return { addr: ad, a: da[i], b: db[i] };
+    }
+    return null;
+  };
+  for (const s of states) {
+    const d = afterTail(s, postAttractInfoCaptions);
+    assert.equal(d, null, `the continuation diverged at ${d && hex4(d.addr)}`);
+  }
+  // The deepest path is really taken: the two-player start raises the play-active cell.
+  const deep = craftFreePlayStart(START_TWO);
+  postAttractInfoCaptions(deep);
+  continuation(deep);
+  assert.equal(deep.mem8[PLAY_ACTIVE_CELL], 0xff, "the free-play start state never reached the game-start path");
+  // ★ control: the same comparison still sees a real defect once the tail has run.
+  assert.notEqual(afterTail(craft(0x80, 2), twinIgnoreFlip), null, "the tail hid a wrong caption pair");
+  console.log(`  CONTINUATION: ${states.length} states identical through the frozen tail; a wrong caption pair still shows`);
 });
 
 test("CORPUS: every captured real state replays identically", { skip }, () => {
@@ -206,12 +250,12 @@ test("EXCLUDED: only the dead registers differ, and a scribbling control is stil
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved.filter((k) => !EXCLUDED_REGS.includes(k)), [], "a register diverged outside the dead set");
   assert.ok(EXCLUDED_REGS.some((k) => moved.includes(k)), "no dead register moved, so the exclusion measures nothing");
-  const scribble = (m) => { postAttractInfoCaptions(m); m.regs.a = (m.regs.a + 1) & 0xff; };
+  const scribble = (m) => { postAttractInfoCaptions(m); m.regs.d = (m.regs.d + 1) & 0xff; };
   assert.notEqual(stray(scribble, entry), null, "the register check cannot even see a scribbled live register");
   console.log(`  EXCLUDED: ${moved.join(", ")} move (all dead); a scribble on a live register is caught`);
 });
 
-// no-parks is a stack-only defect the sp-excluded diff cannot see; the PARKED arm above is its gate.
+// a stray word is a stack-only defect the sp-excluded diff cannot see; the SEAM arm above is its gate.
 const STRUCTURAL = [["no-op", () => {}], ["drop-a-post", twinDropPost]];
 for (const [label, twin] of STRUCTURAL) {
   test(`TEETH: the ${label} twin is caught across the whole corpus`, { skip }, () => {

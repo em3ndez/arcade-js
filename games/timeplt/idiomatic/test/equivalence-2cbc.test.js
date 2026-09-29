@@ -10,9 +10,11 @@
  *   pushed a slot for each. The window is exactly [SP-6, SP) and every arm PINS it — each walks
  *   the whole dump and asserts no divergence escapes it, so it cannot quietly widen.
  *
- *   ONE STEP STILL LEAVES THROUGH A RETURN. The rewrite lays a slot down for that one, and the
- *   arm below MEASURES what happens without it: the stack pointer ends two bytes adrift per
- *   dispatch, so the slot is not decoration.
+ *   EVERY STEP IS A DIRECT CALL. None of them lays a slot down or lifts one, so the rewrite leaves
+ *   the stack pointer exactly where it found it on every order, and the dispatch seam places it.
+ *   The STACK arm asserts both, with a control that dispatches one step through the seam instead
+ *   (lifting a word nothing laid down) and so must end two bytes adrift, and one that lays a word
+ *   down nothing lifts, which the seam must refuse.
  *
  * What it exercises, holes stated:
  *   1. EQUAL at the real dispatch — identical outside the six-byte window.
@@ -25,7 +27,8 @@
  *      it fails the arm, and a rewrite that diverges on fewer of them still passes.
  *   6. CRAFTED — the era index forced to each of 0..7 and to 255, so all three orders run,
  *      including the one an index past the last era falls to.
- *   7. THE PARKED SLOT IS LOAD-BEARING — measured, not argued.
+ *   7. STACK — every order leaves the pointer where it found it and is seam-placeable; a control
+ *      that lifts an unlaid word is measured adrift, and a stray word is refused by the seam.
  *   8. TEETH — six twins, each caught on an exact count of the crafted eras. Two score below
  *      nine, which is the family reporting its own shape: a twin that gets ONE era's order wrong
  *      can only be caught on the eras that take that order.
@@ -49,7 +52,8 @@ import { driftOneTileSceneryAtThreeQuarters } from "../driftOneTileSceneryAtThre
 import { driftOneTileSceneryAtHalf } from "../driftOneTileSceneryAtHalf.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_2cbc as oracle } from "../../translated/loc_2cbc.js";
-import { unitEquivalence } from "../../../../core/equivalence.js";
+import { unitEquivalence, seamPlaceable } from "../../../../core/equivalence.js";
+import { withOmittedRet } from "../../machine.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x2cbc;
@@ -226,7 +230,7 @@ function brokenRunsOneStepTooMany(m) {
   band(m, [...orderFor(m.mem8[ERA_INDEX]), driftOneTileSceneryAtHalf]);
 }
 
-/** BUG: the slot the transferred step returns through is never laid down. */
+/** BUG: the diagonal step is dispatched through the seam, which lifts a word nothing laid down. */
 function brokenDropsTheParkedSlot(m) {
   const era = m.mem8[ERA_INDEX];
   const order = era === FIRST_ERA ? OPENING
@@ -314,24 +318,25 @@ test("CRAFTED: all three running orders, each forced by an era index", { skip },
   console.log(`  CRAFTED: eras ${ERAS.join(",")} identical, all three orders reached`);
 });
 
-test("THE PARKED SLOT IS LOAD-BEARING: without it the stack pointer drifts", { skip }, () => {
+test("STACK: every order leaves the pointer where it found it, and the seam places it", { skip }, () => {
+  for (const era of ERAS) {
+    const e = craft(era);
+    const direct = e.clone();
+    runSceneryForEra(direct);
+    assert.equal(direct.regs.sp, e.regs.sp, `era ${era}: a direct call moved the stack pointer`);
+    const r = seamPlaceable(withOmittedRet, runSceneryForEra, TARGET, e.clone());
+    assert.equal(r.placeable, true, `era ${era}: the seam cannot place the rewrite: ${r.error}`);
+  }
+  // ★ controls: lifting a word nothing laid down drifts the pointer on a direct call, and laying
+  // one down that nothing lifts is refused by the seam.
   const middle = craft(1);
-  const parked = middle.clone();
-  const unparked = middle.clone();
-  runSceneryForEra(parked);
-  brokenDropsTheParkedSlot(unparked);
-  assert.equal(
-    unparked.regs.sp - parked.regs.sp,
-    2,
-    "dropping the parked slot no longer moves the stack pointer, so the rewrite should stop " +
-      "laying one down",
-  );
-  assert.equal(parked.regs.sp, middle.regs.sp, "the parked form must leave the pointer where it " +
-    "found it");
-  console.log(
-    `  PARKED SLOT: with it sp stays ${hex4(parked.regs.sp)}; without it ` +
-      `${hex4(unparked.regs.sp)}, two bytes adrift per dispatch`,
-  );
+  const lifted = middle.clone();
+  brokenDropsTheParkedSlot(lifted);
+  assert.equal(lifted.regs.sp - middle.regs.sp, 2, "the lifting control no longer drifts the stack pointer");
+  const strayWord = (m) => { m.push16(0); runSceneryForEra(m); };
+  assert.equal(seamPlaceable(withOmittedRet, strayWord, TARGET, middle.clone()).placeable, false,
+    "the seam placed a rewrite that leaves a stray word on the stack");
+  console.log(`  STACK: ${ERAS.length} crafted eras SP-neutral and placeable; the lifting control drifts 2, the stray word is refused`);
 });
 
 for (const [label, twin, expected] of TWINS) {

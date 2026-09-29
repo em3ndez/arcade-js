@@ -19,6 +19,9 @@
  *   4. CORPUS — every dispatch of a driven session, on a clone taken at the dispatch, with the
  *      head bytes the session actually presented reported rather than assumed.
  *   5. TEETH — six twins, each caught on its own exact count over the sweep.
+ *   6. THE CURSORS ARE DEAD — the two cursors the fourth slot leaves are overwritten as the frozen
+ *      entry returns, over whole sessions, and no frame moves; the same overwrite on the way into
+ *      the step does move one, so the identical sessions are not a blind check.
  *
  * HOLE: the ORDER the four slots are visited in is not observable to this gate and no twin
  * attacks it. The four act on disjoint records and disjoint entries, so any order leaves the same
@@ -39,6 +42,7 @@ import { stepFourActorSlots } from "../stepFourActorSlots.js";
 import { loc_3e36 as oracle } from "../../translated/loc_3e36.js";
 import { dispatchObjectSlotByHeadByte } from "../dispatchObjectSlotByHeadByte.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { buildRoutines } from "../../routines.js";
 
 const TARGET = 0x3e36;
 
@@ -57,8 +61,9 @@ const IDLE = 0;
 const SCRATCH_BYTES = 4;
 
 // Upper bound on register divergence: nothing outside this set may move (fewer dirty still passes). The
-// two cursors are outside it -- the fourth slot leaves them put on both sides, and EQUAL checks them.
-const EXCLUDED = ["a", "f", "sp"];
+// two cursors the fourth slot leaves are in it because they are not a live-out: THE CURSORS ARE DEAD
+// shows the frozen game never reads them again, so a rewrite need not leave them.
+const EXCLUDED = ["a", "f", "sp", "ix", "iy"];
 
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
 const DISPATCHES = 303;
@@ -168,9 +173,7 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-  assert.equal(a.regs.ix, b.regs.ix, "the record cursor diverged");
-  assert.equal(a.regs.iy, b.regs.iy, "the entry cursor diverged");
-  console.log(`  EQUAL: sp ${hex4(sp)}, cursors ${hex4(a.regs.ix)}/${hex4(a.regs.iy)}`);
+  console.log(`  EQUAL: sp ${hex4(sp)}, registers moved: ${moved.join(", ") || "none"}`);
 });
 
 test("EXHAUSTIVE: every uniform head byte and every mixed pattern behaves alike", { skip }, () => {
@@ -246,3 +249,58 @@ for (const [label, twin, expected] of TWINS) {
     console.log(`  TEETH/${label}: caught on ${expected} of ${JUDGED} judged states`);
   });
 }
+
+// ── the cursors are dead ────────────────────────────────────────────────────────────────
+// Whether a caller reads back the two cursors the fourth slot leaves is a question about the frozen
+// game, so it is answered there: whole sessions run twice, once as shipped and once with both cursors
+// overwritten the moment this entry returns, and every frame compared. The same overwrite made where
+// the cursors ARE read -- on the way into the per-slot step -- must show, or an identical pair of
+// sessions would mean nothing.
+
+const STEP = 0x3e63;
+const POISON_FRAMES = 3000;
+const POISONS = [
+  ["neighbour slot", (ix, iy) => [(ix + 0x10) & 0xffff, (iy + 2) & 0xffff]],
+  ["player slot", () => [0xa800, 0xaa10]],
+];
+const SESSIONS = [
+  ["coin-start", {}],
+  ["attract", { tape: [] }],
+];
+
+function session(opts, at, poison) {
+  const routines = buildRoutines();
+  const fn = routines.get(at);
+  const overrides = poison === null ? null : new Map([[at, at === TARGET
+    ? (mm) => { const r = fn(mm); [mm.regs.ix, mm.regs.iy] = poison(mm.regs.ix, mm.regs.iy); return r; }
+    : (mm) => { [mm.regs.ix, mm.regs.iy] = poison(mm.regs.ix, mm.regs.iy); return fn(mm); }]]);
+  const m = makeMachine(overrides, opts);
+  const frames = m.runFrames(POISON_FRAMES);
+  assert.equal(m.stoppedBy, null, `session stopped early: ${m.stoppedBy}`);
+  assert.equal(frames.length, POISON_FRAMES, "session ran short");
+  return frames;
+}
+
+function firstDivergentFrame(x, y) {
+  for (let f = 0; f < x.length; f++) {
+    const a = x[f];
+    const b = y[f];
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return f;
+  }
+  return -1;
+}
+
+test("THE CURSORS ARE DEAD: overwriting them as this entry returns changes no frame of a whole session", { skip }, () => {
+  const report = [];
+  for (const [label, opts] of SESSIONS) {
+    const clean = session(opts, TARGET, null);
+    for (const [name, poison] of POISONS) {
+      const after = firstDivergentFrame(clean, session(opts, TARGET, poison));
+      assert.equal(after, -1, `${label}: overwriting the cursors with the ${name} changed frame ${after}`);
+      const into = firstDivergentFrame(clean, session(opts, STEP, poison));
+      assert.ok(into >= 0, `${label}: the same overwrite on the way into the step changed nothing, so the check is blind`);
+      report.push(`${label}/${name}: dead after, live into the step (frame ${into})`);
+    }
+  }
+  console.log(`  CURSORS DEAD: ${report.join("; ")}`);
+});

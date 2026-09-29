@@ -20,6 +20,7 @@ import { loc_496e as oracle } from "../../translated/loc_496e.js";
 import { loc_4984 as tailOracle } from "../../translated/loc_4984.js";
 import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
+import { recordHardwareWrites } from "./_spineSever.js";
 
 const TARGET = 0x496e;
 const CALLERS = [0x48e7, 0x4911];
@@ -43,7 +44,7 @@ const show = (d) => (d ? `${d.addr == null ? "device/return" : hex4(d.addr)}: or
 
 // ── the masked comparison ──────────────────────────────────────────────────────────────────
 
-const lineWrites = (m) => (m.mem.writeTrace || []).filter((w) => w.addr === COUNTER_LINE).map((w) => w.value).join(",");
+const lineWrites = (m) => (m.hardwareWrites || []).filter((w) => w.addr === COUNTER_LINE).map((w) => w.value).join(",");
 
 /**
  * Oracle vs candidate on independent clones. lowestSp is watched off the oracle's own pushes and
@@ -56,11 +57,11 @@ function compare(cand, machine) {
   let low = seat;
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
-  a.mem.writeTrace = [];
+  a.hardwareWrites = recordHardwareWrites(a);
   const retO = oracle(a);
   const droveO = lineWrites(a);
   const b = machine.clone();
-  b.mem.writeTrace = [];
+  b.hardwareWrites = recordHardwareWrites(b);
   let retC, threw = null;
   try { retC = cand(b); } catch (e) { threw = String(e).slice(0, 40); }
   const droveC = lineWrites(b);

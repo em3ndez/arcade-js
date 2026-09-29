@@ -177,8 +177,9 @@ test("SCRATCH: the frozen push window sits above the data on every entry", { ski
 
 // ── SP tooth (R36) ──────────────────────────────────────────────────────────────────────────
 
-/** BUG: the second sprite fixup is called with no stack word, so its ret pops the caller's slot. */
-function brokenMissingPush(m) {
+/** BUG: the first sprite fixup is still handed a stack word, which the plain-return fixup never
+ *  lifts, so the arm exits one word deep. */
+function brokenStrayWord(m) {
   const { mem8 } = m;
   const fold = (base, key) => {
     let sum = mem8[SEQUENCE_PHASE];
@@ -198,15 +199,15 @@ function brokenMissingPush(m) {
   advanceSequenceSubStep(m);
 }
 
-test("SP TOOTH: the seam places the rewrite on every entry, and refuses a dropped push", { skip }, () => {
+test("SP TOOTH: the seam places the rewrite on every entry, and refuses a stray stack word", { skip }, () => {
   for (const e of allEntries()) {
     const r = seamPlaceable(withOmittedRet, candidate, TARGET, e.clone());
     assert.equal(r.placeable, true, `the seam refused the rewrite: ${r.error}`);
   }
   let refused = 0;
-  for (const e of allEntries()) if (!seamPlaceable(withOmittedRet, brokenMissingPush, TARGET, e.clone()).placeable) refused++;
-  assert.ok(refused > 0, "the missing-push mutant was placed on every entry — the SP tooth has no teeth");
-  console.log(`  SP TOOTH: rewrite placed on all; missing-push mutant refused on ${refused}/${allEntries().length}`);
+  for (const e of allEntries()) if (!seamPlaceable(withOmittedRet, brokenStrayWord, TARGET, e.clone()).placeable) refused++;
+  assert.equal(refused, allEntries().length, "the stray-word mutant was placed on some entry — the SP tooth has no teeth");
+  console.log(`  SP TOOTH: rewrite placed on all; stray-word mutant refused on ${refused}/${allEntries().length}`);
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────────
@@ -247,9 +248,9 @@ function brokenNoScenery(m) {
   let sum = phase;
   for (let i = 0; i < 256; i++) sum = (sum - mem8[FIRST_BLOCK + i]) & 0xff;
   mem8[SEQUENCE_PHASE] = sum ^ FIRST_KEY;
-  m.push16(0); multiplexSpriteSlotsSkipping(m);
+  multiplexSpriteSlotsSkipping(m);
   dispatchPlayerFrameByState(m);
-  m.push16(0); multiplexSpriteSlotsSkipping(m);
+  multiplexSpriteSlotsSkipping(m);
   fireAndSweepPlayerShots(m);
   multiplexSpriteSlots(m);
   mem8[SEQUENCE_DELAY] = (mem8[SEQUENCE_DELAY] - 1) & 0xff;
@@ -269,7 +270,7 @@ const TWINS = [
   // only visible where the delay expires
   ["never-step", brokenNeverStep, () => [expiring(), offPhaseExpiring()]],
   ["no-scenery", brokenNoScenery, allEntries],
-  ["missing-push", brokenMissingPush, allEntries],
+  ["stray-word", brokenStrayWord, allEntries],
 ];
 
 for (const [label, twin, pool] of TWINS) {

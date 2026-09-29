@@ -39,6 +39,7 @@ import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
 import { loc_4984 as oracle } from "../../translated/loc_4984.js";
 import { COIN_ACCEPTED, COIN_PULSE_TIMER } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { recordHardwareWrites } from "./_spineSever.js";
 
 const TARGET = 0x4984;
 const COUNTER_LINE_BIT = 5;
@@ -65,11 +66,10 @@ const latch = (m) => m.io.latch[COUNTER_LINE_BIT];
 
 /** Run one side with device writes recorded, and hand back what it drove, in order. */
 function driven(fn, machine) {
-  machine.mem.writeTrace = [];
+  const log = recordHardwareWrites(machine);
   fn(machine);
-  const out = machine.mem.writeTrace.map((w) => `${hex4(w.addr)}=${w.value}`);
-  machine.mem.writeTrace = null;
-  return out;
+  delete machine.mem.write8;
+  return log.map((w) => `${hex4(w.addr)}=${w.value}`);
 }
 
 /**

@@ -5,6 +5,15 @@
  * severed to an empty coroutine so both arms stop at the same handover, comparing work RAM outside
  * the stack window, the LS259 and sound latches, and the watchdog kicks. The raw return is that
  * coroutine, driven not compared; fill priors prove the two fills are no accidental match.
+ *
+ * THE TAMPER ARM RAISES, AND IT IS DEAD ON A GENUINE IMAGE. The fold covers the program image and
+ * nothing else, so its total is a constant of the image. GUARD computes that total from the genuine
+ * image — exactly the value the routine subtracts — so the mismatch arm never runs on a genuine
+ * image. Where the frozen form jumps into a data table (replaced here by a probe), the rewrite raises
+ * NotImplemented; THROWS pins that on a private tampered image, with both fills laid identically
+ * first, and BLOCK measures the fold's extent at both ends of the image. A twin that still jumps into
+ * the table is caught by THROWS.
+ * HOLE: a pair of byte changes that cancel in an eight-bit sum is exactly what the check cannot see.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-5866.test.js
  */
 
@@ -17,9 +26,14 @@ import { loc_5866 as oracle } from "../../translated/loc_5866.js";
 import { initColdStartRamThenSeedConfig } from "../initColdStartRamThenSeedConfig.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
+import { readFileSync } from "node:fs";
+import { COMMAND_READ_CURSOR } from "../names.js";
+import { Severed, severAtDirectCall } from "./_spineSever.js";
 
 const TARGET = 0x5866;
 const DRAIN = 0x0b93; // the foreground loop, severed so both arms stop at the same handover
+const DRAIN_NAME = "runCommandRingDrainLoop";
 const DERAIL = 0x59d7; // the tampered-image branch: data, never a genuine tail
 const [STACK_LO, STACK_HI] = manifest.convergence.stateExclude.stack;
 
@@ -32,6 +46,8 @@ const WATCHDOG = 0xc200;
 const SOUND_SEED = 0x5a;
 const FILL_PRIORS = [0x00, 0x10, 0xf1, 0xff];
 const EXPECTED_DISPATCHES = 1; // boot-time; it runs once under any tape
+const IMAGE_END = 0x6000; // one past the folded program image
+const GENUINE_TOTAL = 0xaf;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -39,6 +55,9 @@ const show = (d) => (d ? d.k : "identical");
 const outsideStack = (addr) => addr === null || addr < STACK_LO || addr >= STACK_HI;
 const u8 = (x) => x & 0xff;
 const u16 = (x) => x & 0xffff;
+
+// A PRIVATE copy per craft, so tampering never poisons the harness's cached image. Guarded: ROMs are gitignored.
+const ROM_IMAGE = romsPresent() ? readFileSync(new URL("../../rom/maincpu.bin", import.meta.url)) : null;
 
 // ── the rig: capture the boot entry, sever the foreground, drive the coroutine ────────────
 
@@ -71,22 +90,32 @@ function craftFill(prior) {
 
 /** A clone whose foreground loop is a recorder returning an empty iterable, reached by the frozen
  *  side's plain call and the rewrite's coroutine handover alike. */
+// The frozen side reaches the loop through the routine map; the rewritten spine enters it by `yield*`
+// into a direct import, which _spineSever.js catches at the loop's first act (reading its cursor) from
+// inside the loop's own frame. Both record the same hand-over. The accumulator is not part of it: the
+// loop loads A from its cursor before anything reads it.
 function severed(machine, log) {
   const c = machine.clone();
+  const record = (mm) => log.push({ kicks: mm.io.watchdogKicks });
   c.routines = new Map(c.routines);
   c.routines.set(DRAIN, (mm) => {
-    log.push({ a: mm.regs.a, kicks: mm.io.watchdogKicks });
+    record(mm);
     return { [Symbol.iterator]: function* () {} };
   });
-  return c;
+  return severAtDirectCall(c, DRAIN_NAME, { reads: [COMMAND_READ_CURSOR] }, record);
 }
 
 function drive(fn, m) {
-  const r = fn(m);
-  if (!r || typeof r.next !== "function") return r;
-  for (let i = 0; i <= 64; i++) {
-    const step = r.next();
-    if (step.done) return step.value;
+  try {
+    const r = fn(m);
+    if (!r || typeof r.next !== "function") return r;
+    for (let i = 0; i <= 64; i++) {
+      const step = r.next();
+      if (step.done) return step.value;
+    }
+  } catch (e) {
+    if (e instanceof Severed) return undefined;
+    throw e;
   }
   throw new Error("still yielding after the budget");
 }
@@ -122,7 +151,7 @@ function diff(cand, machine) {
   if (a.io.watchdogKicks !== b.io.watchdogKicks) return { k: "kicks" };
   if (logA.length !== logB.length) return { k: "handovers" };
   for (const [i, x] of logA.entries()) {
-    if (x.a !== logB[i].a || x.kicks !== logB[i].kicks) return { k: "handover" };
+    if (x.kicks !== logB[i].kicks) return { k: "handover" };
   }
   return null;
 }
@@ -131,7 +160,7 @@ function diff(cand, machine) {
 
 /** A faithful body with one field flipped; the handoff reaches the same severed loop as the real one. */
 function body({ fillColour = true, colourVal = COLOUR_FILL, fillVideo = true, videoVal = VIDEO_FILL,
-  kick1 = true, handoff = true } = {}) {
+  kick1 = true, handoff = true, stillDerails = false } = {}) {
   return (m) => {
     const { mem8, mem16 } = m;
     if (fillColour) {
@@ -152,7 +181,10 @@ function body({ fillColour = true, colourVal = COLOUR_FILL, fillVideo = true, vi
       mem8[WATCHDOG] = total;
     }
     if (!handoff) return undefined;
-    if (u8(total - 0xaf) !== 0) return m.call(DERAIL);
+    if (u8(total - 0xaf) !== 0) {
+      if (stillDerails) return m.call(DERAIL);
+      throw new NotImplemented("tampered image");
+    }
     return initColdStartRamThenSeedConfig(m);
   };
 }
@@ -176,6 +208,35 @@ function caughtOver(cand) {
   let caught = 0;
   for (const s of states()) if (diff(cand, s)) caught++;
   return caught;
+}
+
+// ── the tamper arm ───────────────────────────────────────────────────────────────────────────
+
+/** A severed clone of the boot entry reading a PRIVATE image with one byte bumped, the derail
+ *  address answering with a counting probe instead of the table's refusal. */
+function tamperedAt(at, delta) {
+  const image = Uint8Array.from(ROM_IMAGE);
+  image[at] = (image[at] + delta) & 0xff;
+  const c = severed(entryState(), []);
+  c.mem.rom = image;
+  const hits = { n: 0 };
+  c.routines.set(DERAIL, () => { hits.n++; });
+  c.io.soundData = SOUND_SEED;
+  return { c, hits };
+}
+
+/** Oracle reaches the derail probe; the candidate raises NotImplemented. -1 for any other error. */
+function derailOutcome(cand, at, delta) {
+  const o = tamperedAt(at, delta);
+  const r = tamperedAt(at, delta);
+  drive(oracle, o.c);
+  let raised = 0;
+  try {
+    drive(cand, r.c);
+  } catch (e) {
+    raised = e instanceof NotImplemented ? 1 : -1;
+  }
+  return { oracle: o.hits.n, candidate: raised + r.hits.n, o: o.c, r: r.c, probe: r.hits.n };
 }
 
 // ── the gate ─────────────────────────────────────────────────────────────────────────────────
@@ -244,3 +305,39 @@ for (const [label, twin] of TWINS) {
     console.log(`  TEETH/${label}: caught on ${caught}/${states().length} states`);
   });
 }
+
+test("GUARD: the genuine image folds to exactly the expected total, so the raise is dead", { skip }, () => {
+  // The fold as the routine does it: seeded with the first byte, then every byte below IMAGE_END.
+  let total = ROM_IMAGE[0];
+  for (let a = 0; a < IMAGE_END; a++) total = u8(total + ROM_IMAGE[a]);
+  assert.equal(total, GENUINE_TOTAL, "the genuine image no longer folds to the expected total");
+  assert.ok(IMAGE_END <= ROM_IMAGE.length, "the fold runs past the program image");
+  const genuine = derailOutcome(candidate, 0x0100, 0);
+  assert.equal(genuine.oracle, 0, "the oracle derails on a genuine image");
+  assert.equal(genuine.candidate, 0, "the rewrite raises on a genuine image");
+  console.log(`  GUARD: the genuine image folds to ${hex4(total)}; neither side derails on it`);
+});
+
+test("THROWS: a tampered image raises NotImplemented, fills already laid as the oracle lays them", { skip }, () => {
+  const r = derailOutcome(candidate, 0x1234, 1);
+  assert.equal(r.oracle, 1, "the tampered oracle did not reach the derail");
+  assert.equal(r.candidate, 1, "the rewrite did not raise NotImplemented on a tampered image");
+  assert.equal(r.probe, 0, "the rewrite jumped into the table instead of raising");
+  const d = firstStateDiff(r.o.dumpState(), r.r.dumpState(), (off) => r.o.stateOffsetToAddr(off));
+  assert.ok(d === null || !outsideStack(d.addr), `before the derail the sides differ at ${hex4(d?.addr ?? 0)}`);
+  assert.equal(r.o.io.watchdogKicks, r.r.io.watchdogKicks, "the kicks before the derail differ");
+  const still = derailOutcome(body({ stillDerails: true }), 0x1234, 1);
+  assert.equal(still.candidate, still.oracle, "control: the still-derailing twin should agree with the oracle's probe count");
+  assert.equal(still.probe, 1, "control: the still-derailing twin did not reach the table, so THROWS cannot tell it apart");
+  console.log("  THROWS: tampered image raises NotImplemented after identical fills and kicks; " +
+    "the still-derailing twin is seen reaching the table instead");
+});
+
+test("BLOCK: the fold's extent — both ends of the image trip it", { skip }, () => {
+  for (const [label, at] of [["the image's first byte", 0x0000], ["the image's last byte", IMAGE_END - 1]]) {
+    const r = derailOutcome(candidate, at, 1);
+    assert.equal(r.oracle, 1, `${label}: the oracle did not derail`);
+    assert.equal(r.candidate, 1, `${label}: the rewrite did not raise`);
+  }
+  console.log("  BLOCK: a change at either end of the image derails the oracle and raises in the rewrite");
+});

@@ -24,9 +24,12 @@ import { COINAGE_SETTINGS, KILL_QUOTA } from "../names.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
+import { COMMAND_READ_CURSOR } from "../names.js";
+import { Severed, severAtDirectCall } from "./_spineSever.js";
 
 const TARGET = 0x52aa;
 const DRAIN = 0x0b93; // the foreground loop, severed so both arms stop at the same handover
+const DRAIN_NAME = "runCommandRingDrainLoop";
 const [STACK_LO, STACK_HI] = manifest.convergence.stateExclude.stack;
 
 const BOOT_BYTE_A = 0x08c9;
@@ -74,22 +77,32 @@ function craft(dsw0, dsw1) {
 
 /** A clone whose foreground loop is a recorder returning an empty iterable, reached by the frozen
  *  side's plain call and the rewrite's `yield*` alike. */
+// The frozen side reaches the loop through the routine map; the rewritten spine enters it by `yield*`
+// into a direct import, which _spineSever.js catches at the loop's first act (reading its cursor) from
+// inside the loop's own frame. Both record the same hand-over. The accumulator is not part of it: the
+// loop loads A from its cursor before anything reads it.
 function severed(machine, log) {
   const c = machine.clone();
+  const record = (mm) => log.push({ kicks: mm.io.watchdogKicks });
   c.routines = new Map(c.routines);
   c.routines.set(DRAIN, (mm) => {
-    log.push({ a: mm.regs.a, kicks: mm.io.watchdogKicks });
+    record(mm);
     return { [Symbol.iterator]: function* () {} };
   });
-  return c;
+  return severAtDirectCall(c, DRAIN_NAME, { reads: [COMMAND_READ_CURSOR] }, record);
 }
 
 function drive(fn, m) {
-  const r = fn(m);
-  if (!r || typeof r.next !== "function") return r;
-  for (let i = 0; i <= 64; i++) {
-    const step = r.next();
-    if (step.done) return step.value;
+  try {
+    const r = fn(m);
+    if (!r || typeof r.next !== "function") return r;
+    for (let i = 0; i <= 64; i++) {
+      const step = r.next();
+      if (step.done) return step.value;
+    }
+  } catch (e) {
+    if (e instanceof Severed) return undefined;
+    throw e;
   }
   throw new Error("still yielding after the budget; the tail returned");
 }
@@ -118,7 +131,7 @@ function diff(cand, machine) {
   if (a.io.watchdogKicks !== b.io.watchdogKicks) return { k: "kicks" };
   if (logA.length !== logB.length) return { k: "handovers" };
   for (const [i, x] of logA.entries()) {
-    if (x.a !== logB[i].a || x.kicks !== logB[i].kicks) return { k: "handover" };
+    if (x.kicks !== logB[i].kicks) return { k: "handover" };
   }
   return null;
 }

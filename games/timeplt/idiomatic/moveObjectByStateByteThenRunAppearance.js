@@ -12,9 +12,9 @@ import { driveObjectAppearanceByPhaseBand } from "./driveObjectAppearanceByPhase
 const STATE = 0;
 const COUNTDOWN_FROM = 32;
 
-export function moveObjectByStateByteThenRunAppearance(m, object = m.regs.ix) {
-  if (m.mem8[object + STATE] >= COUNTDOWN_FROM) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
-  else driftWithWorldScroll(m);
+export function moveObjectByStateByteThenRunAppearance(m, object = m.regs.ix, sprite = m.regs.iy) {
+  if (m.mem8[object + STATE] >= COUNTDOWN_FROM) decrementObjectStateThenFlyAtSlowestSpeed(m, object, sprite);
+  else driftWithWorldScroll(m, object, sprite);
 
-  driveObjectAppearanceByPhaseBand(m, object);
+  driveObjectAppearanceByPhaseBand(m, object, sprite);
 }

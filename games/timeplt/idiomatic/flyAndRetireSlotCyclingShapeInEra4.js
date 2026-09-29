@@ -13,8 +13,8 @@ import { retireSlot } from "./retireSlot.js";
 
 const CYCLED_SHAPE_ERA = 4;
 
-export function flyAndRetireSlotCyclingShapeInEra4(m) {
-  if (m.mem8[ERA_INDEX] === CYCLED_SHAPE_ERA) animateFixedShapeCycle(m);
-  flyAlongStoredVelocity(m);
-  if (hasReachedRetireLine(m)) retireSlot(m);
+export function flyAndRetireSlotCyclingShapeInEra4(m, record = m.regs.ix, entry = m.regs.iy) {
+  if (m.mem8[ERA_INDEX] === CYCLED_SHAPE_ERA) animateFixedShapeCycle(m, entry);
+  flyAlongStoredVelocity(m, record, entry);
+  if (hasReachedRetireLine(m, entry)) retireSlot(m, record, entry);
 }

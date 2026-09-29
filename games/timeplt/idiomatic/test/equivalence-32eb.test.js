@@ -15,9 +15,16 @@
  *      different routes and that is deliberate: the oracle tail-calls 0x00A8 through the routine
  *      map, while the rewrite IMPORTS its successor directly, a rewrite-to-rewrite hand-off that
  *      owes no `ret`. Severing 0x00A8 would therefore stop the oracle one routine EARLIER than the
- *      candidate and compare two different amounts of work. Both routes converge on `m.call(0x0b93)`
- *      — translated loc_00a8 ends there and so does the imported rewrite — so severing the drain
- *      cuts both arms at the same place, after exactly the same work.
+ *      candidate and compare two different amounts of work. Both routes converge on the drain:
+ *      translated loc_00a8 jumps there through the map, where a recorder catches it, and the
+ *      imported rewrite enters it by `yield*` into a direct import, which _spineSever.js catches at
+ *      the drain's first act (reading its cursor) from inside the drain's own frame — so both arms
+ *      are cut at the same place, after exactly the same work.
+ *   2a. NO REGISTER CROSSES THE HAND-OVER, derived from the drain: it loads H, L and A before reading
+ *      any of them, loads B and C from the ring before reading either, and seats DE before it
+ *      dispatches. So the counter, pointer and accumulator the frozen side leaves behind are dead,
+ *      the rewrite leaves them unset, and they are not compared. The interrupt-enable setting the
+ *      frozen side carries in A is still compared — as the latch line it drives.
  *   3. THE STACK IS EXCLUDED, and only the measured window. The oracle pushes a return slot before
  *      its sound call where the rewrite's direct import pushes nothing, so the TWO bytes of that
  *      slot -- 0xAFFE and 0xAFFF, holding the pushed 0x3305 -- differ by construction. The window
@@ -44,12 +51,14 @@ import { petWatchdogThroughStartupDelayThenStartMachine } from "../petWatchdogTh
 import { loc_32eb as oracle } from "../../translated/loc_32eb.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { SEQUENCE_DELAY } from "../names.js";
+import { SEQUENCE_DELAY, COMMAND_READ_CURSOR } from "../names.js";
+import { Severed, severAtDirectCall } from "./_spineSever.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x32eb;
 const DRAIN = 0x0b93;
+const DRAIN_NAME = "runCommandRingDrainLoop";
 const [STACK_LO, STACK_HI] = manifest.convergence.stateExclude.stack;
 
 const EXPECTED_KICKS = 1 + 12 * 256 + 1;
@@ -96,29 +105,36 @@ function entryState() {
  */
 function severed(machine, log) {
   const c = machine.clone();
+  const record = (mm) => log.push({ latch: mm.io.latch[0], kicks: mm.io.watchdogKicks });
   c.routines = new Map(c.routines);
   c.routines.set(DRAIN, (mm) => {
-    log.push({ a: mm.regs.a, bc: mm.regs.bc, hl: mm.regs.hl, kicks: mm.io.watchdogKicks });
+    record(mm);
     return { [Symbol.iterator]: function* () {} };
   });
-  return c;
+  return severAtDirectCall(c, DRAIN_NAME, { reads: [COMMAND_READ_CURSOR] }, record);
 }
 
 const YIELD_BUDGET = 64;
 
 function drive(fn, m, ...args) {
-  const r = fn(m, ...args);
-  if (!r || typeof r.next !== "function") return r;
-  for (let i = 0; i <= YIELD_BUDGET; i++) {
-    const step = r.next();
-    if (step.done) return step.value;
+  try {
+    const r = fn(m, ...args);
+    if (!r || typeof r.next !== "function") return r;
+    for (let i = 0; i <= YIELD_BUDGET; i++) {
+      const step = r.next();
+      if (step.done) return step.value;
+    }
+  } catch (e) {
+    if (e instanceof Severed) return undefined;
+    throw e;
   }
   throw new Error(`still yielding after ${YIELD_BUDGET} resumptions; the oracle returned`);
 }
 
 const outsideStack = (addr) => addr === null || addr < STACK_LO || addr >= STACK_HI;
 
-/** The real contract: RAM outside the stack, the whole LS259, the KICK COUNT, registers, handover. */
+/** The real contract: RAM outside the stack, the whole LS259, the KICK COUNT, the untouched
+ *  registers, and the handover. */
 function unitDiff(candidate, machine, carried) {
   const logA = [];
   const logB = [];
@@ -150,14 +166,15 @@ function unitDiff(candidate, machine, carried) {
   if (a.io.watchdogKicks !== b.io.watchdogKicks) {
     return { addr: null, a: `${a.io.watchdogKicks} kicks`, b: `${b.io.watchdogKicks} kicks` };
   }
-  for (const k of ["a", "bc", "hl", "de"]) {
+  // Neither side moves DE, IX, IY or the stack seat; the rest are dead at the hand-over (2a above).
+  for (const k of ["de", "ix", "iy", "sp"]) {
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
   if (logA.length !== logB.length) {
     return { addr: null, a: `${logA.length} handovers`, b: `${logB.length} handovers` };
   }
   for (const [i, x] of logA.entries()) {
-    for (const k of ["a", "bc", "hl", "kicks"]) {
+    for (const k of ["latch", "kicks"]) {
       if (x[k] !== logB[i][k]) return { addr: null, a: `handover ${k}=${x[k]}`, b: `${logB[i][k]}` };
     }
   }

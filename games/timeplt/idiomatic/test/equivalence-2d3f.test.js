@@ -7,9 +7,17 @@
  * ALREADY DECOMPILED — 0x0F1A, 0x4AFB, the queue at 0x0038, 0x0B06, 0x0B39 and the fold at
  * 0x43E8 — so the rewrite calls each of them directly and dissolving those transfers belongs
  * to this caller's unit. One further transfer has no callee at all: on a raised guard the ROM
- * jumps into 0x2E3E, a velocity TABLE read as data rather than a routine, so the rewrite reaches it
- * the only way the frozen form does — through the dispatch registry, where nothing is registered
- * and the transfer RAISES. That is reproduced, not repaired.
+ * jumps into 0x2E3E, a velocity TABLE read as data rather than a routine. The frozen form reaches it
+ * through the dispatch registry, where nothing is registered, and RAISES NotImplemented; the rewrite
+ * raises NotImplemented itself at that point, without consulting the registry. Both sides raise the
+ * same kind at the same point, after the same writes — reproduced, not repaired.
+ *
+ * ★ THE RAISE IS DEAD ON A GENUINE IMAGE, and GENUINE shows it two ways. Computed: the step before
+ *   this one banks the negated sum of a fixed run of the program image into the guard cell, and the
+ *   genuine image's run sums to zero. Measured: over the coin-start tape, the undriven tape and a
+ *   long undriven run that reaches this step both by the boot pass (where the cold-start clear
+ *   leaves the cell zero) and by the attract loop (where the checksum step precedes it), every
+ *   dispatch reads the guard zero — with the dispatch count as the positive control.
  *
  * ★ ONE SEAM SHAPE ON EVERY ARM. The free-play arm ends in a dissolved call; every other arm ends
  *   by handing the folded block down the tail chain from 0x07AD on, and that chain is now entered
@@ -40,9 +48,13 @@
  *   3. WINDOW     — the oracle's own deepest push, measured over the whole sweep and PINNED.
  *   4. BOUNDARY   — the exclusion is exactly as wide as it declares: one byte BELOW the window is
  *                   caught, one AT the entry seat is caught, one INSIDE is masked.
- *   5. THE TRAP   — on a raised guard both sides raise, with the SAME message naming the SAME
- *                   transfer target, and on a clear guard neither raises. The second half is what
- *                   stops the first from being an instrument that raises on everything.
+ *   5. THE TRAP   — on a raised guard both sides raise NotImplemented (the oracle's naming the
+ *                   transfer target it jumped to, the rewrite raising without any dispatch, shown by
+ *                   a probe at that target with a registry-jumping twin as its control), and on a
+ *                   clear guard neither raises. The second half is what stops the first from being
+ *                   an instrument that raises on everything.
+ *   5a. GENUINE   — the guard reads zero on a genuine image: computed from the image and measured
+ *                   at every dispatch of three runs.
  *   6. ARMS ARE DISTINGUISHABLE — the frame counter's two parities and the ring cell's two states
  *                   really change what the ORACLE writes, so the arms scored on them are not
  *                   scored on a difference that does not exist.
@@ -88,6 +100,8 @@ import { loc_2d3f as oracle } from "../../translated/loc_2d3f.js";
 import { COMMAND_RING, FRAME_TICK, FREE_PLAY, SEQUENCE_SUBSTEP } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { withOmittedRet } from "../../machine.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
+import { holdCopyrightThenEraseTheCoinInvitation_ADDR as CHECKSUMMED_RUN } from "../names.js";
 
 const TARGET = 0x2d3f;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -101,6 +115,8 @@ const BLOCK_BYTES = 20;
 const WRITE_CURSOR = 0xa9b2;
 const SEAM = 0x07ad;
 const PANEL_CELL = 0xa47f;
+const CHECKSUMMED_BYTES = 0x22;
+const LONG_UNDRIVEN_FRAMES = 6000;
 
 /** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
 const SCRATCH_BYTES = 10;
@@ -213,8 +229,30 @@ function runSide(fn, m) {
     fn(m);
     return null;
   } catch (e) {
+    // The KIND of the raise is what both sides must share: the frozen form's refusal names the
+    // registry lookup, the rewrite's names the guard, and both are NotImplemented. Anything else
+    // is reported with its message so it can never match a NotImplemented.
+    return e instanceof NotImplemented ? "raise: NotImplemented" : `raise: ${String(e.message ?? e)}`;
+  }
+}
+
+/** The raw message a side raises, or null. */
+function rawRaise(fn, m) {
+  try {
+    fn(m);
+    return null;
+  } catch (e) {
     return String(e.message ?? e);
   }
+}
+
+/** A clone whose own dispatch map answers the trap address with a counting probe. */
+function probedTrap(machine) {
+  const c = machine.clone();
+  c.routines = new Map(c.routines);
+  const hits = { n: 0 };
+  c.routines.set(TRAP, () => { hits.n++; });
+  return { c, hits };
 }
 
 function unitDiff(candidate, machine) {
@@ -455,15 +493,56 @@ test("THE TRAP: a raised guard raises on both sides, a clear one on neither", { 
   const fromRewrite = runSide(showCreditLine, raised.clone());
   assert.notEqual(fromOracle, null, "the oracle did not raise on a raised guard, so this arm is " +
     "not the trap it is written to be and the agreement below means nothing");
-  assert.equal(fromRewrite, fromOracle, "the rewrite did not raise the same way as the oracle");
-  assert.ok(fromOracle.includes(hex4(TRAP)), "the raise does not name the transfer target, so it " +
+  assert.equal(fromRewrite, fromOracle, "the rewrite did not raise the same kind as the oracle");
+  const oracleMessage = rawRaise(oracle, raised.clone());
+  assert.ok(oracleMessage.includes(hex4(TRAP)), "the oracle's raise does not name the transfer target, so it " +
     "could be any failure at all rather than the transfer into a place holding no routine");
+  // Where the raise comes from: the oracle gets there by jumping to the trap address, the rewrite
+  // raises before any dispatch. With a probe standing at the trap, the oracle is seen jumping to it
+  // and the rewrite still raises without touching it.
+  const po = probedTrap(raised);
+  const pr = probedTrap(raised);
+  runSide(oracle, po.c);
+  assert.equal(po.hits.n, 1, "the oracle did not jump to the trap address on a raised guard");
+  assert.throws(() => showCreditLine(pr.c), NotImplemented, "the rewrite did not raise NotImplemented");
+  assert.equal(pr.hits.n, 0, "the rewrite reached the trap through the registry instead of raising");
+  // Control: the pre-fault form, which still jumps through the registry, is seen by that probe.
+  const still = probedTrap(raised);
+  runSide(build(), still.c);
+  assert.equal(still.hits.n, 1, "the registry-jumping twin was not seen by the probe, so the check above is blind");
   // The control: without the nudge NEITHER side raises, so the agreement above is about the guard
   // and not about an instrument that raises on everything.
   const clear = entryState();
   assert.equal(runSide(oracle, clear.clone()), null, "the oracle raises with the guard clear");
   assert.equal(runSide(showCreditLine, clear.clone()), null, "the rewrite raises with the guard clear");
   console.log(`  TRAP: both sides raise — ${fromOracle}; with the guard clear neither does`);
+});
+
+test("GENUINE: the guard reads zero at every dispatch on a genuine image, so the raise is dead", { skip }, () => {
+  // Computed: the checksum step banks the NEGATED sum of this run; the genuine run sums to zero.
+  const rom = entryState().rom;
+  let banked = 0;
+  for (let i = 0; i < CHECKSUMMED_BYTES; i++) banked = (banked - rom[CHECKSUMMED_RUN + i]) & 0xff;
+  assert.equal(banked, 0, "the genuine image's checksummed run no longer banks zero");
+  // Measured over three runs; each run's dispatch count is the positive control for its zeros.
+  const runs = [["coin-start", {}, ENTRY_FRAMES], ["undriven", { tape: [] }, ENTRY_FRAMES],
+    ["long-undriven", { tape: [] }, LONG_UNDRIVEN_FRAMES]];
+  for (const [label, opts, frames] of runs) {
+    const guards = [];
+    const host = makeMachine(new Map([[TARGET, (mm) => {
+      guards.push(mm.mem8[GUARD_RESULT]);
+      return oracle(mm);
+    }]]), opts);
+    host.runFrames(frames);
+    assert.equal(host.stoppedBy, null, `${label}: the run stopped early: ${host.stoppedBy}`);
+    assert.ok(guards.length > 0, `${label}: never dispatched, so its zeros prove nothing`);
+    assert.deepEqual(guards.filter((g) => g !== 0), [], `${label}: a genuine image read a raised guard`);
+    if (label === "long-undriven") {
+      assert.ok(guards.length >= 2, "the long run did not come round to this step a second time, so " +
+        "the attract-loop route (checksum step first) was not measured");
+    }
+    console.log(`  GENUINE: ${label} — ${guards.length} dispatch(es), guard zero at each`);
+  }
 });
 
 test("ARMS ARE DISTINGUISHABLE: parity and ring state change what is written", { skip }, () => {
@@ -594,12 +673,11 @@ test("CALLS, NOT RESTATES: the module's text, with each callee as a positive con
       `the check passes ${helper[0]}'s ` +
       "OWN body, so it cannot tell a call from an inlined copy and proves nothing");
   }
-  // The seventh transfer has no file to import, so the module must reach it through the registry.
-  assert.match(module, /m\.call\(\s*loc_2e3e\s*\)/, "the module does not reach the trap through the " +
-    "dispatch registry, which is the only way a transfer into a place holding no routine can be " +
-    "reproduced rather than repaired");
+  // The seventh transfer has no routine to call: the module raises there rather than dispatching.
+  assert.match(module, /throw new NotImplemented\(/, "the module does not raise at the trap");
+  assert.doesNotMatch(module, /\bm\.call\(/, "the module still dispatches through the registry");
   console.log(`  CALLS, NOT RESTATES: ${HELPERS.map((h) => h[0]).join(", ")} called, each of ` +
-    "their own bodies fails the same check, and the trap goes through the registry");
+    "their own bodies fails the same check, and the trap raises in place");
 });
 
 test("the panel repaint reaches the plane, so its twin has something to catch", { skip }, () => {

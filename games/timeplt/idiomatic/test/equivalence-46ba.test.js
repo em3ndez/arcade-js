@@ -23,23 +23,26 @@
  *   3. SCRATCH    — the unmasked difference lies wholly inside the dead window.
  *   4. STACK      — the rewrite ends exactly one word deeper than the frozen twin, because it
  *                   calls the block past the table directly and that block's `ret` becomes a JS
- *                   return; the figure is pinned and the stack pointer is asserted to be the ONLY
- *                   register that moves, so the exclusion cannot quietly widen.
- *   5. ★ PARK     — the slot the arm returns through is ASSERTED, not assumed: a twin that
- *                   parks nothing is run on every defined era and its stack pointer must
- *                   end two bytes adrift of the frozen original's. That is what makes the
- *                   park a measured requirement rather than a habit kept from the
- *                   transcription — and what would say so if the arms ever stopped
- *                   returning through the stack.
- *   6. STORES     — the era really selects different stored values, so the sweep is
+ *                   return; the figure is pinned. Besides the stack pointer only the arm's own
+ *                   walking scratch (a/f/h/l) may differ: the frozen arms walk the table in them,
+ *                   the rewrite's arms hand back only the pair. The continuation reloads a and
+ *                   the flags before reading them and hands h/l back untouched through a save and
+ *                   restore, so the set is pinned and cannot quietly widen.
+ *   5. ★ LIVE     — against the dispatch the live game ran before this rewrite, the table word
+ *                   dispatched through the seam into the lifted arms with a slot parked for it:
+ *                   every register, the stack pointer included, and all RAM outside that dead
+ *                   slot are identical, so calling the arms directly changes nothing the game sees.
+ *   6. ★ SEAM     — the rewrite is seam-placeable on every defined era and a direct call leaves
+ *                   the stack where it found it; a control that parks a word nothing lifts is
+ *                   refused, and one that dispatches the arm without a park drifts the stack.
+ *   7. PAST       — the three indices past the table fault on both sides: two name no routine,
+ *                   and the last runs the six-digit painter into a write the machine refuses.
+ *   8. STORES     — the era really selects different stored values, so the sweep is
  *                   separating arms rather than agreeing on one outcome.
- *   7. TEETH      — four broken twins, each caught outside the window.
+ *   9. TEETH      — four broken twins, each caught outside the window.
  *
- * HOLE: the era selector is masked to three bits while the table defines five entries, and
- * indices past the end are NOT exercised. There the two sides also hand the arm different
- * registers, because the frozen dispatch leaves the arm address and a table cursor behind
- * and the rewrite does not; no defined arm reads either, but an undefined one may. The
- * entry is also the walk's dispatch rather than this routine's own, so the surrounding
+ * HOLE: past the table only the fault is compared, not what each side wrote before faulting.
+ * The entry is also the walk's dispatch rather than this routine's own, so the surrounding
  * state is one it is never really called with.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-46ba.test.js
@@ -54,6 +57,14 @@ import { ERA_INDEX } from "../names.js";
 import { loc_46ba as oracle } from "../../translated/loc_46ba.js";
 import { loc_3e63 as walk } from "../../translated/loc_3e63.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { seamPlaceable } from "../../../../core/equivalence.js";
+import { withOmittedRet } from "../../machine.js";
+import { loc_5942 } from "../loc_5942.js";
+import { loc_594e } from "../loc_594e.js";
+import { loc_5965 } from "../loc_5965.js";
+import { loc_596b } from "../loc_596b.js";
+import { paintSixDigitFieldSuppressingLeadingZeros } from "../paintSixDigitFieldSuppressingLeadingZeros.js";
+import { fileTwoPairsIntoObjectRecordHighByteFirst } from "../fileTwoPairsIntoObjectRecordHighByteFirst.js";
 
 const TARGET = 0x46ba;
 const WALK = 0x3e63;
@@ -71,6 +82,15 @@ const WINDOW = 8;
  * stack. One dissolved return, one word: the STACK arm pins the figure so the cost cannot grow.
  */
 const DISSOLVED_RET = 2;
+/** The frozen arms' table-walking scratch, which the rewrite's arms do not reproduce. */
+const ARM_SCRATCH = ["a", "f", "h", "l"];
+/** The routines the live game had lifted at each table word, keyed by the word. */
+const LIFTED_ARMS = [
+  [0x5942, loc_5942], [0x594e, loc_594e], [0x5965, loc_5965], [0x596b, loc_596b],
+  [0x0d73, paintSixDigitFieldSuppressingLeadingZeros],
+];
+/** Indices the mask admits past the table's defined arms. */
+const PAST_THE_TABLE = [5, 6, 7];
 /** Where the block past the table parks the two pairs the arm hands back. */
 const STORED_AT = [0x0c, 0x0d, 0x1c, 0x1d];
 
@@ -139,9 +159,9 @@ function brokenFirstArm(m) {
 }
 
 /**
- * BUG: parks nothing for the arm to return through. It looks tidier than the real thing and
- * leaves the stack adrift on every era. Not one of TWINS: the masked RAM comparison cannot see
- * it, because the byte it fails to write is inside the dead window. The PARK arm judges it.
+ * BUG: sends the table word through the call seam with nothing parked, so the arm's return lifts
+ * a word nothing laid down. Not one of TWINS: the masked RAM comparison cannot see it, because the
+ * byte it fails to write is inside the dead window. The SEAM arm judges it.
  */
 function brokenNoPark(m) {
   const i = m.mem8[ERA_INDEX] & 0x07;
@@ -210,7 +230,7 @@ test("SCRATCH: the whole raw difference lies inside the dead window", { skip }, 
   );
 });
 
-test("STACK: the rewrite ends exactly two bytes deeper, and nothing else moves", { skip }, () => {
+test("STACK: the rewrite ends exactly two bytes deeper, and only the arm scratch differs", { skip }, () => {
   for (let era = 0; era < DEFINED_ARMS; era++) {
     const r = run(setMotherShipVelocityFromHeading, era);
     assert.equal(
@@ -220,32 +240,88 @@ test("STACK: the rewrite ends exactly two bytes deeper, and nothing else moves",
         `apart, not ${DISSOLVED_RET} — the rewrite is moving the stack for some reason other ` +
         "than the one dissolved return",
     );
-    assert.deepEqual(
-      r.moved,
-      ["sp"],
-      `era ${era}: a register other than the stack pointer moved — the block past the table ` +
-        "writes memory and nothing else, so anything here is a real divergence",
-    );
+    assert.ok(r.moved.includes("sp"), `era ${era}: the stack pointer did not move`);
+    const stray = r.moved.filter((k) => k !== "sp" && !ARM_SCRATCH.includes(k));
+    assert.deepEqual(stray, [], `era ${era}: a register outside the arm's walking scratch moved`);
   }
-  console.log(`  STACK: exit pointer exactly ${DISSOLVED_RET} bytes deeper on every defined era, sp the only register moved`);
+  console.log(`  STACK: exit pointer exactly ${DISSOLVED_RET} bytes deeper on every defined era; only sp and ${ARM_SCRATCH.join("/")} differ`);
 });
 
-test("★ THE PARKED SLOT IS LOAD-BEARING: dropping it leaves the stack two bytes adrift", { skip }, () => {
+/** The dispatch the live game ran before this rewrite: park the block's address, send the table
+ *  word through the call seam into whatever the machine holds there, then run the block. */
+function previousDispatch(m) {
+  const i = m.mem8[ERA_INDEX] & 0x07;
+  m.push16(AFTER_ARM);
+  m.call(m.mem16[ARM_TABLE + 2 * i]);
+  fileTwoPairsIntoObjectRecordHighByteFirst(m);
+}
+
+/** The entry on a machine that holds the lifted arms, as the live game does. */
+function liveRouted(era) {
+  const m = entryState().clone();
+  m.routines = new Map(m.routines);
+  for (const [addr, fn] of LIFTED_ARMS) m.routines.set(addr, withOmittedRet(fn, addr));
+  m.mem8[ERA_INDEX] = era;
+  return m;
+}
+
+test("★ LIVE: identical to the seam-routed dispatch into the lifted arms, registers included", { skip }, () => {
   for (let era = 0; era < DEFINED_ARMS; era++) {
-    const reference = entryState().clone();
-    const withoutPark = entryState().clone();
-    reference.mem8[ERA_INDEX] = era;
-    withoutPark.mem8[ERA_INDEX] = era;
-    oracle(reference);
-    brokenNoPark(withoutPark);
-    assert.equal(
-      withoutPark.regs.sp - reference.regs.sp,
-      2,
-      `era ${era}: dropping the park must leave the stack two bytes adrift. If this is ever ` +
-        "zero, the arms no longer return through the stack and the park should go",
-    );
+    const a = liveRouted(era);
+    const b = liveRouted(era);
+    const sp = a.regs.sp;
+    previousDispatch(a);
+    setMotherShipVelocityFromHeading(b);
+    const da = a.dumpState();
+    const db = b.dumpState();
+    for (let off = 0; off < da.length; off++) {
+      if (da[off] === db[off]) continue;
+      const addr = a.stateOffsetToAddr(off);
+      assert.ok(addr >= sp - 2 && addr < sp, `era ${era}: ${hex4(addr)} differs outside the parked slot`);
+    }
+    const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+    assert.deepEqual(moved, [], `era ${era}: a register differs from the live dispatch`);
   }
-  console.log(`  PARK: dropping it is two bytes adrift on all ${DEFINED_ARMS} defined eras`);
+  // ★ control: the same comparison sees an arm taken from the wrong table word.
+  const a = liveRouted(1);
+  const b = liveRouted(1);
+  previousDispatch(a);
+  b.mem8[ERA_INDEX] = 3;
+  setMotherShipVelocityFromHeading(b);
+  b.mem8[ERA_INDEX] = 1;
+  const differs = REG_FIELDS.some((k) => a.regs[k] !== b.regs[k]) ||
+    a.dumpState().some((v, i) => v !== b.dumpState()[i] && a.stateOffsetToAddr(i) >= a.regs.sp);
+  assert.ok(differs, "the live comparison passed an arm taken from the wrong word");
+  console.log(`  LIVE: ${DEFINED_ARMS} eras identical to the seam-routed dispatch, every register included`);
+});
+
+test("★ SEAM: placed on every defined era, SP-neutral when called directly; both controls caught", { skip }, () => {
+  for (let era = 0; era < DEFINED_ARMS; era++) {
+    const e = entryState().clone();
+    e.mem8[ERA_INDEX] = era;
+    const direct = e.clone();
+    setMotherShipVelocityFromHeading(direct);
+    assert.equal(direct.regs.sp, e.regs.sp, `era ${era}: a direct call moved the stack pointer`);
+    const r = seamPlaceable(withOmittedRet, setMotherShipVelocityFromHeading, TARGET, e.clone());
+    assert.equal(r.placeable, true, `era ${era}: the seam cannot place the rewrite: ${r.error}`);
+    const strayWord = (m) => { m.push16(AFTER_ARM); setMotherShipVelocityFromHeading(m); };
+    assert.equal(seamPlaceable(withOmittedRet, strayWord, TARGET, e.clone()).placeable, false,
+      `era ${era}: the seam placed a rewrite that parks a word nothing lifts`);
+    const unparked = e.clone();
+    brokenNoPark(unparked);
+    // The unparked twin's arm lifts a word nothing laid down, and its dispatched block lifts another.
+    assert.equal(unparked.regs.sp - e.regs.sp, 4, `era ${era}: an unparked table dispatch no longer lifts its words`);
+  }
+  console.log(`  SEAM: ${DEFINED_ARMS} eras placed and SP-neutral; the stray park is refused, the unparked dispatch drifts`);
+});
+
+test("PAST: the indices past the table fault on both sides", { skip }, () => {
+  for (const era of PAST_THE_TABLE) {
+    const r = run(setMotherShipVelocityFromHeading, era);
+    assert.ok(r.faultA, `era ${era}: the frozen twin did not fault`);
+    assert.equal(r.faultB, r.faultA, `era ${era}: the rewrite faulted as ${r.faultB}, the frozen twin as ${r.faultA}`);
+  }
+  console.log(`  PAST: eras ${PAST_THE_TABLE.join(", ")} fault identically on both sides`);
 });
 
 test("STORES: the era really changes what gets stored", { skip }, () => {

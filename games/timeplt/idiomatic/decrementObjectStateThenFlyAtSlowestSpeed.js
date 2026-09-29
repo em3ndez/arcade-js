@@ -8,8 +8,8 @@ import { u8 } from "../../../core/int.js";
 
 const STATE = 0;
 
-export function decrementObjectStateThenFlyAtSlowestSpeed(m, object = m.regs.ix) {
+export function decrementObjectStateThenFlyAtSlowestSpeed(m, object = m.regs.ix, sprite = m.regs.iy) {
   const { mem8 } = m;
   mem8[object + STATE] = u8(mem8[object + STATE] - 1);
-  flyAtSlowestSpeed(m);
+  flyAtSlowestSpeed(m, object, sprite);
 }

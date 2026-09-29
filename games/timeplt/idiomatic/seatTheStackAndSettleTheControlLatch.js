@@ -6,24 +6,20 @@
  * lines low, and enables the picture. The latch takes data from the low bit and its line from the address,
  * TWO ADDRESSES TO A LINE, so the eight-address walk settles FOUR lines (each written twice) and the ninth
  * address is a fifth line, not a ninth; that last setting is read from the program image, not a literal, so
- * patching it can leave the machine dark. No work memory is touched. LIVE-OUT: stack seat, latched lines, accumulator. */
+ * patching it can leave the machine dark. No work memory is touched. LIVE-OUT: stack seat, latched lines. */
 
-import { EXPANSION_SOCKET_PROBE, SPRITE_RAM_BASE, WATCHDOG_RESET, NMI_ENABLE_LATCH, VIDEO_ENABLE_LATCH, DISPLAY_ON_VALUE, clearWorkRamAndSpriteBanksThenColdInit_ADDR } from "./names.js";
+import { clearWorkRamAndSpriteBanksThenColdInit } from "./clearWorkRamAndSpriteBanksThenColdInit.js";
+import { EXPANSION_SOCKET_PROBE, SPRITE_RAM_BASE, WATCHDOG_RESET, NMI_ENABLE_LATCH, VIDEO_ENABLE_LATCH, DISPLAY_ON_VALUE } from "./names.js";
 
 const EXPANSION_FITTED = 0x55;
 
 const CONTROL_LINE_ADDRESSES = 8;
 
-/** Where in the instruction the write bus cycle falls; a recorder of hardware writes wants it. */
-const STORE_TO_A_FIXED_ADDRESS = 10;
-const STORE_THROUGH_A_POINTER = 7;
-
 export function seatTheStackAndSettleTheControlLatch(m) {
-  const { regs, mem, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = mem8[EXPANSION_SOCKET_PROBE];
-  regs.cp(EXPANSION_FITTED);
-  if (regs.fZ) {
+  const socketAnswer = mem8[EXPANSION_SOCKET_PROBE];
+  if (socketAnswer === EXPANSION_FITTED) {
     throw new Error(
       "the expansion socket answered, so this machine is being asked to run as an expanded one " +
         "and control belongs in the expansion from here. Nothing models that, and a socket with " +
@@ -31,13 +27,9 @@ export function seatTheStackAndSettleTheControlLatch(m) {
     );
   }
 
-  mem.write8(WATCHDOG_RESET, regs.a, STORE_TO_A_FIXED_ADDRESS);
-  for (let i = 0; i < CONTROL_LINE_ADDRESSES; i++) {
-    mem.write8(NMI_ENABLE_LATCH + i, 0, STORE_THROUGH_A_POINTER);
-  }
+  mem8[WATCHDOG_RESET] = socketAnswer;
+  for (let i = 0; i < CONTROL_LINE_ADDRESSES; i++) mem8[NMI_ENABLE_LATCH + i] = 0;
+  mem8[VIDEO_ENABLE_LATCH] = mem8[DISPLAY_ON_VALUE];
 
-  regs.a = mem8[DISPLAY_ON_VALUE];
-  mem.write8(VIDEO_ENABLE_LATCH, regs.a, STORE_TO_A_FIXED_ADDRESS);
-
-  return (regs.sp = SPRITE_RAM_BASE, m.call(clearWorkRamAndSpriteBanksThenColdInit_ADDR));
+  return (m.regs.sp = SPRITE_RAM_BASE, clearWorkRamAndSpriteBanksThenColdInit(m));
 }

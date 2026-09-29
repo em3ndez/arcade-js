@@ -16,7 +16,6 @@ import { TAMPER_WITNESS, stampCopyrightStrip_ADDR, COPYRIGHT_STRIP_CHECK_SEED, D
 
 const GUARDED_BYTES = 51;
 const EXPECTED_TOTAL = 239;
-const LATCH_WRITE_OFFSET = 10;
 const CHARACTER_PLANE_BIT = 1 << 10;
 
 // The flags the compare-with-expected leaves on the blank arm: sign and undocumented bits from the
@@ -38,7 +37,7 @@ export function guardBlockOrBlankDisplay(m) {
 
   if (total === EXPECTED_TOTAL) return (m.regs.a = total, m.regs.b = 0, advanceSequenceSubStep(m));
 
-  m.mem.write8(VIDEO_ENABLE_LATCH, mem8[DISPLAY_OFF_VALUE], LATCH_WRITE_OFFSET);
+  mem8[VIDEO_ENABLE_LATCH] = mem8[DISPLAY_OFF_VALUE];
   const colourCell = TAMPER_WITNESS_SAMPLE_CELL & ~CHARACTER_PLANE_BIT;
   mem8[TAMPER_WITNESS] = mem8[TAMPER_WITNESS_SAMPLE_CELL];
   const colour = mem8[colourCell];

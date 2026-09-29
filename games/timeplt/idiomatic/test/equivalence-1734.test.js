@@ -20,6 +20,7 @@ import { advancePenRunAnimationStep as candidate } from "../advancePenRunAnimati
 import { loc_1734 as oracle } from "../../translated/loc_1734.js";
 import { loc_0201 as oracle0201 } from "../../translated/loc_0201.js";
 import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
+import { F_Z } from "../../../../core/cpu/z80.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 
 const TARGET = 0x1734;
@@ -135,9 +136,10 @@ function branchOf(machine) {
 /** The rewrite with one deliberate defect each; every parameter matches advancePenRunAnimationStep by default. */
 function build({ branch = "nz", base = GUARDED_BLOCK, len = GUARDED_LEN, cell = GUARD_CELL, store = true, step = true }) {
   return (m) => {
-    const { regs, mem8 } = m;
-    drawInterpolatedPenRun(m);
-    if (branch === "nz" ? regs.fNZ : !regs.fNZ) return;
+    const { mem8 } = m;
+    // The run hands back its flags; Z set means it reseated to a zero row integer.
+    const reseatedAtRowZero = (drawInterpolatedPenRun(m) & F_Z) !== 0;
+    if (branch === "nz" ? !reseatedAtRowZero : reseatedAtRowZero) return;
     let sum = 0;
     for (let i = 0; i < len; i++) sum = (sum - mem8[base + i]) & 0xff;
     if (store) mem8[cell] = sum;

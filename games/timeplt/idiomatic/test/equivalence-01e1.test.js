@@ -13,11 +13,15 @@
  *   private copy of the image and requires both sides to follow — which is also a positive
  *   control that the private-image machinery below really does change what the entry reads.
  *
- * ★ THE FAILING BRANCH IS UNREACHABLE ON A GENUINE IMAGE, so it is built rather than reasoned
- *   about. The check's trap is the cold-start entry, which wipes the machine's whole state; TAMPER
- *   replaces that address with a probe and changes one image byte, so the branch is exercised
- *   without the wipe running. BLOCK walks the tamper to the first byte of the checked run, the
- *   last, and the bytes either side, so the run's extent is measured rather than declared.
+ * ★ THE FAILING BRANCH IS UNREACHABLE ON A GENUINE IMAGE, and the rewrite RAISES there. The
+ *   checked run lies wholly inside the program image, so its total is a constant of the image;
+ *   GUARD computes it from the genuine image and finds exactly the value the check subtracts, so
+ *   the mismatch arm is dead. The oracle's trap is the cold-start entry, which wipes the machine's
+ *   whole state; on the oracle side that address is replaced with a probe, and the rewrite in its
+ *   place raises NotImplemented — THROWS pins that, with a twin that still cold-starts as its
+ *   control. TAMPER changes one image byte and requires the oracle to reach the trap exactly when
+ *   the rewrite raises; BLOCK walks the tamper to the first byte of the checked run, the last, and
+ *   the bytes either side, so the run's extent is measured rather than declared.
  *
  * What it exercises, holes stated:
  *   1. CORPUS — every real dispatch, whole state dump plus a register-ceiling check. Vacuity
@@ -27,7 +31,11 @@
  *   4. SEEDS — the two coordinates are read from the image, not baked in.
  *   5. ENTRY-STATE — crafted register entries, including the one that makes the counter move.
  *   6. BLOCK — the checked run's first and last byte trip the check; the bytes either side do not.
- *   7. TAMPER — a changed image sends both sides to the trap, the genuine one sends neither.
+ *   7. TAMPER — a changed image sends the oracle to the trap and makes the rewrite raise; the
+ *      genuine one does neither.
+ *   7a. GUARD — the genuine image's total, computed, is the expected one: the raise is dead code.
+ *   7b. THROWS — a tampered image raises NotImplemented (not any error), with the pen already
+ *      parked exactly as the oracle parks it, and a still-cold-starting twin is caught.
  *   8. EXCLUDED — nothing outside the declared ceiling moves, with a control twin.
  *   9. DRIVEN — the rewrite wired live for a whole session; divergence confined to dead stack.
  *  10. TEETH — six twins, each caught, with the arm that caught it named.
@@ -49,6 +57,7 @@ import { withOmittedRet } from "../../machine.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "../armThePenRouteThenColdStartOnATamperedImage.js";
 import { loc_01e1 as oracle } from "../../translated/loc_01e1.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 
 const TARGET = 0x01e1;
 const TRAP = 0x0069;
@@ -62,6 +71,7 @@ const SECOND_AXIS_START = 0x280c;
 
 const CHECKED_BLOCK = 0x0e33;
 const CHECKED_BYTES = 0x100;
+const GENUINE_TOTAL = 0xfd;
 
 /** Measured by WINDOW: on the passing path the oracle pushes nothing at all. */
 const SCRATCH_BYTES = 0;
@@ -193,14 +203,16 @@ function patched(edits) {
 
 const bumped = (at, delta) => [[at, (ROM_IMAGE[at] + delta) & 0xff]];
 
+/** How often each side reaches the trap. The rewrite reaches it by RAISING NotImplemented (counted
+ * once); a twin may still reach it through the probe. Any other error reads as -1, never a match. */
 function trapHits(candidate, edits) {
   const o = patched(edits);
   const r = patched(edits);
   oracle(o.machine);
   try {
     candidate(r.machine);
-  } catch {
-    return { oracle: o.hits.n, candidate: -1 };
+  } catch (e) {
+    return { oracle: o.hits.n, candidate: e instanceof NotImplemented ? r.hits.n + 1 : -1 };
   }
   return { oracle: o.hits.n, candidate: r.hits.n };
 }
@@ -266,6 +278,14 @@ function brokenNeverTraps(m) {
 function brokenMovesIndex(m) {
   armThePenRouteThenColdStartOnATamperedImage(m);
   m.regs.ix = (m.regs.ix + 1) & 0xffff;
+}
+
+/** BUG: the pre-fault form — still hands a tampered image to the cold start instead of raising. */
+function brokenStillColdStarts(m) {
+  m.mem8[PEN_ROUTE_LEG] = 0;
+  m.mem16[PEN_FIRST_AXIS] = m.mem16[FIRST_AXIS_START];
+  m.mem16[PEN_SECOND_AXIS] = m.mem16[SECOND_AXIS_START];
+  return check(m);
 }
 
 const TWINS = [
@@ -416,10 +436,52 @@ test("BLOCK: the checked run's extent, measured at both ends", { skip }, () => {
   console.log("  BLOCK: both ends of the run trip the check, both neighbours do not, on both sides");
 });
 
-test("TAMPER: a changed image sends both sides to the trap", { skip }, () => {
+test("GUARD: the genuine image folds to exactly the expected total, so the raise is dead", { skip }, () => {
+  let total = 0;
+  for (let i = 0; i < CHECKED_BYTES; i++) total = (total + ROM_IMAGE[CHECKED_BLOCK + i]) & 0xff;
+  assert.equal(total, GENUINE_TOTAL, "the genuine image no longer folds to the expected total");
+  assert.ok(CHECKED_BLOCK + CHECKED_BYTES <= ROM_IMAGE.length,
+    "the checked run leaves the program image, so its total is not a constant of the image");
+  // The fold is read through the machine exactly as the routine reads it: a clone at the real entry
+  // sees the same bytes, so no RAM or port can move the total.
+  const c = entry().clone();
+  let seen = 0;
+  for (let i = 0; i < CHECKED_BYTES; i++) seen = (seen + c.mem8[CHECKED_BLOCK + i]) & 0xff;
+  assert.equal(seen, GENUINE_TOTAL, "the machine reads a different run than the image holds");
+  console.log(`  GUARD: the genuine run folds to ${hex4(total)}, the expected total — the raise is dead`);
+});
+
+test("THROWS: a tampered image raises NotImplemented after parking the pen as the oracle does", { skip }, () => {
+  const edits = bumped(CHECKED_BLOCK + 5, 1);
+  const o = patched(edits);
+  const r = patched(edits);
+  const seat = o.machine.regs.sp;
+  oracle(o.machine);
+  assert.equal(o.hits.n, 1, "the tampered oracle did not reach its trap");
+  assert.throws(() => armThePenRouteThenColdStartOnATamperedImage(r.machine), NotImplemented,
+    "the rewrite no longer raises NotImplemented on a tampered image");
+  assert.equal(r.hits.n, 0, "the rewrite reached the cold-start trap instead of raising");
+  const da = o.machine.dumpState();
+  const db = r.machine.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = o.machine.stateOffsetToAddr(i);
+    assert.ok(addr >= seat - TRAP_SCRATCH_BYTES && addr < seat,
+      `before the trap the two sides differ at ${hex4(addr)}: oracle=${da[i]} rewrite=${db[i]}`);
+  }
+  // Control: the pre-fault form, which still cold-starts, must fail this arm.
+  const t = patched(edits);
+  let raised = false;
+  try { brokenStillColdStarts(t.machine); } catch (e) { raised = e instanceof NotImplemented; }
+  assert.ok(!raised && t.hits.n === 1, "the still-cold-starting twin is indistinguishable here");
+  console.log("  THROWS: tampered image raises NotImplemented; pen parked identically; the " +
+    "cold-starting twin is seen reaching the trap instead");
+});
+
+test("TAMPER: a changed image sends the oracle to the trap and makes the rewrite raise", { skip }, () => {
   const clean = trapHits(armThePenRouteThenColdStartOnATamperedImage, []);
   assert.equal(clean.oracle, 0, "the genuine image already fails the check");
-  assert.equal(clean.candidate, 0, "the rewrite traps on a genuine image");
+  assert.equal(clean.candidate, 0, "the rewrite raises on a genuine image");
 
   let caught = 0;
   const offsets = [0, 1, 37, 128, CHECKED_BYTES - 2, CHECKED_BYTES - 1];
@@ -437,7 +499,7 @@ test("TAMPER: a changed image sends both sides to the trap", { skip }, () => {
   assert.equal(blind.oracle, 1, "the tampered oracle stopped trapping");
   assert.equal(blind.candidate, 0, "the never-traps twin reached the trap, so it is not the " +
     "control this arm needs");
-  console.log(`  TAMPER: ${caught} single-byte changes trapped on both sides, the genuine image ` +
+  console.log(`  TAMPER: ${caught} single-byte changes trapped (oracle) and raised (rewrite), the genuine image ` +
     "on neither, and the check-free twin is seen sailing through");
 });
 

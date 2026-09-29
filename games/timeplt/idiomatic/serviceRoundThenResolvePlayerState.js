@@ -25,36 +25,32 @@ import { drawKillMeter } from "./drawKillMeter.js";
 import { multiplexSpriteSlots } from "./multiplexSpriteSlots.js";
 import { advanceRoundWhenFieldCleared } from "./advanceRoundWhenFieldCleared.js";
 import { loseLifeAndHandOver } from "./loseLifeAndHandOver.js";
-import { PLAYER_STATE, armMotherShipOrStep_ADDR } from "./names.js";
+import { armMotherShipOrStep } from "./armMotherShipOrStep.js";
+import { PLAYER_STATE } from "./names.js";
 
 const ALIVE = 0xff;
 
 export function serviceRoundThenResolvePlayerState(m) {
-  // These two callees return through a stack word, so the call site supplies one, as a real call
-  // would; the rest are plain functions. The seat is restored either way, so the value is a filler.
-  const spriteFixup = () => { m.push16(0); multiplexSpriteSlotsSkipping(m); };
-
   reaimAndAnimateEnemyCraftOnPhaseTick(m);
   dispatchPlayerFrameByState(m);
   fireAndSweepPlayerShots(m);
   driveEnemyWaveForLifePhase(m);
-  spriteFixup();
+  multiplexSpriteSlotsSkipping(m);
   runParachutistSlot(m);
-  m.push16(0);
-  m.call(armMotherShipOrStep_ADDR);
+  armMotherShipOrStep(m);
   stepSevenCraftSlots(m);
-  spriteFixup();
+  multiplexSpriteSlotsSkipping(m);
   runSceneryForEra(m);
   sweepEra2PlusObjectBank(m);
-  spriteFixup();
+  multiplexSpriteSlotsSkipping(m);
   serviceEra1BomberObject(m);
   serviceFixedSlotInEra1(m);
   stepFourActorSlots(m);
-  spriteFixup();
+  multiplexSpriteSlotsSkipping(m);
   serviceEra0BallisticObjectBank(m);
   dispatchCollisionPassByEra(m);
   askForSoundWhileTheGroupIsClear(m);
-  spriteFixup();
+  multiplexSpriteSlotsSkipping(m);
   awardBonusLifeAtScoreMark(m);
   expireHitChain(m);
   escalateDifficultyRungOnCounterWrap(m);

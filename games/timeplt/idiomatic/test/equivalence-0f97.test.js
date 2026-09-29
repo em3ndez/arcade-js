@@ -5,6 +5,11 @@
  * cycle-free rewrite reads one value for the whole pass. So the scanline is PINNED on both sides
  * before every comparison, which is the timing-seeded-input control the method prescribes; the last
  * arm proves that pin is load-bearing by showing the two DO part company without it.
+ *
+ * The rewrite takes the plain-return form: it leaves the stack where it found it and the dispatch
+ * seam supplies the `ret` the frozen twin executes itself. So every comparison runs the rewrite
+ * THROUGH the seam, as a dispatch reaches it, and the STACK arm pins the plain-return contract the
+ * direct callers rely on (they lay nothing down for it) with a control that still pops a word.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0f97.test.js
  */
 import test from "node:test";
@@ -13,7 +18,8 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { multiplexSpriteSlotsSkipping } from "../multiplexSpriteSlotsSkipping.js";
 import { loc_0f97 as oracle } from "../../translated/loc_0f97.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
+import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
+import { withOmittedRet } from "../../machine.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x0f97;
@@ -38,13 +44,14 @@ function pin(m, scanline) {
 
 /** Oracle vs candidate on clones with the scanline pinned identically: whole dump, then registers. */
 function unitDiff(candidate, machine, scanline) {
+  const seamed = withOmittedRet(candidate, TARGET);
   const a = machine.clone();
   const b = machine.clone();
   pin(a, scanline);
   pin(b, scanline);
   oracle(a);
   try {
-    candidate(b);
+    seamed(b);
   } catch (e) {
     return { addr: null, a: "returned", b: String(e).slice(0, 40) };
   }
@@ -53,6 +60,7 @@ function unitDiff(candidate, machine, scanline) {
   for (const k of REG_FIELDS) {
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
+  if (a.pc !== b.pc) return { addr: null, a: `pc=${hex4(a.pc)}`, b: `pc=${hex4(b.pc)}` };
   return null;
 }
 
@@ -143,6 +151,12 @@ const brokenMovesSpareRegister = (m) => {
   m.regs.h = (m.regs.h + 1) & 0xff;
 };
 
+/** ★ the old shape: executes its own `ret`, popping a word its direct callers no longer lay down. */
+const brokenPopsItsOwnReturn = (m) => {
+  multiplexSpriteSlotsSkipping(m);
+  m.ret();
+};
+
 const TWINS = [
   ["no-op", brokenNoOp],
   ["skip-arm-check", brokenSkipArm],
@@ -203,6 +217,31 @@ for (const [label, fn] of TWINS) {
   });
 }
 
+test("STACK: a direct call leaves the stack where it found it; the seam places every dispatch", { skip }, () => {
+  const entries = capture().slice(0, SWEEP_SAMPLE);
+  for (const e of entries) {
+    const direct = e.clone();
+    pin(direct, 200);
+    const sp = direct.regs.sp;
+    multiplexSpriteSlotsSkipping(direct);
+    assert.equal(direct.regs.sp, sp, "a direct call moved the stack, so its callers cannot call it bare");
+    const seated = e.clone();
+    pin(seated, 200);
+    assert.equal(seamPlaceable(withOmittedRet, multiplexSpriteSlotsSkipping, TARGET, seated).placeable, true,
+      "the dispatch seam cannot place the rewrite");
+  }
+  // ★ control: the old self-returning shape pops a word on a direct call, and this arm must see it.
+  const control = entries[0].clone();
+  const sp = control.regs.sp;
+  brokenPopsItsOwnReturn(control);
+  assert.equal((control.regs.sp - sp) & 0xffff, 2, "the self-returning control did not move the stack");
+  const unplaced = entries[0].clone();
+  const pushesAWord = (m) => { m.push16(0); multiplexSpriteSlotsSkipping(m); };
+  assert.equal(seamPlaceable(withOmittedRet, pushesAWord, TARGET, unplaced).placeable, false,
+    "the seam placed a rewrite that leaves a stray word on the stack");
+  console.log(`  STACK: ${entries.length} direct calls SP-neutral and seam-placeable; both controls caught`);
+});
+
 test("UNPINNED: the two DO diverge without the pin, proving it is load-bearing", { skip }, () => {
   const entries = capture();
   let diverged = 0;
@@ -210,7 +249,7 @@ test("UNPINNED: the two DO diverge without the pin, proving it is load-bearing",
     const a = e.clone();
     const b = e.clone();
     oracle(a);
-    multiplexSpriteSlotsSkipping(b);
+    withOmittedRet(multiplexSpriteSlotsSkipping, TARGET)(b);
     if (firstStateDiff(a.dumpState(), b.dumpState()) !== null) { diverged++; continue; }
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) { diverged++; break; }
   }

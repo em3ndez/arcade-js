@@ -28,13 +28,6 @@ const ERA_ARGUMENT_BASE = 0x1a;
 // Frame-tick low nibble -> command posted while the round is armed; any other nibble posts nothing.
 const TICK_COMMANDS = new Map([[0x00, 0x02], [0x05, 0x0a], [0x0a, 0x0b]]);
 
-/** The fixup pass returns through a stack word, so one is supplied as a real call would; the
- *  seat is restored by that return, so the value is a filler. */
-function spriteFixup(m) {
-  m.push16(0);
-  multiplexSpriteSlotsSkipping(m);
-}
-
 export function flyRoundIntroFlashingEraYearThenEraseIntroCaptions(m) {
   const { mem8 } = m;
 
@@ -42,9 +35,9 @@ export function flyRoundIntroFlashingEraYearThenEraseIntroCaptions(m) {
   for (let i = 0; i < FOLD_BYTES; i++) fold = u8(fold - mem8[loc_4d9f + i]);
   mem8[SEQUENCE_PHASE] = fold ^ FOLD_KEY;
 
-  spriteFixup(m);
+  multiplexSpriteSlotsSkipping(m);
   dispatchPlayerFrameByState(m);
-  spriteFixup(m);
+  multiplexSpriteSlotsSkipping(m);
   runSceneryForEra(m);
   multiplexSpriteSlots(m);
 

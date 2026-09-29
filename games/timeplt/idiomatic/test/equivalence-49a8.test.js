@@ -4,7 +4,12 @@
  * plane and cold-starts, so both arms are run with the foreground loop (0x0b93) severed and compared
  * on RAM outside the measured stack window, the LS259 latch, the sound latch, the watchdog kicks and
  * the handover. Registers are not compared: the dissolved lattice leaves different register residue,
- * and the cold-start tail never returns, so no caller consumes one. Run:
+ * and the cold-start tail never returns, so no caller consumes one. The oracle reaches the loop
+ * through the routine map and the rewrite by `yield*` into a direct import; _spineSever.js catches
+ * the latter at the loop's first act (reading its cursor) from inside the loop's own frame, so both
+ * are cut at the same hand-over. The accumulator is not part of it: the loop loads A before reading
+ * it. TAMPERED runs the out-of-band frame service on an image whose checked block no longer adds up,
+ * and shows the cold start still follows it on both sides. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-49a8.test.js
  */
 
@@ -19,11 +24,14 @@ import { saveAccumulatorForFrameInterrupt } from "../saveAccumulatorForFrameInte
 import { petWatchdogThroughStartupDelayThenStartMachine } from "../petWatchdogThroughStartupDelayThenStartMachine.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
+import { COMMAND_READ_CURSOR } from "../names.js";
+import { Severed, severAtDirectCall } from "./_spineSever.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x49a8;
 const DRAIN = 0x0b93;
+const DRAIN_NAME = "runCommandRingDrainLoop";
 const [STACK_LO, STACK_HI] = manifest.convergence.stateExclude.stack;
 
 const CONFIG_LOW3 = 0xa9c4;
@@ -66,20 +74,27 @@ function entryState() {
 // iterable so the oracle's plain call and the rewrite's yield* both reach it and count once.
 function severed(machine, log) {
   const c = machine.clone();
+  if (machine.mem.rom !== c.mem.rom) c.mem.rom = machine.mem.rom;
+  const record = (mm) => log.push({ kicks: mm.io.watchdogKicks });
   c.routines = new Map(c.routines);
   c.routines.set(DRAIN, (mm) => {
-    log.push({ a: mm.regs.a, kicks: mm.io.watchdogKicks });
+    record(mm);
     return { [Symbol.iterator]: function* () {} };
   });
-  return c;
+  return severAtDirectCall(c, DRAIN_NAME, { reads: [COMMAND_READ_CURSOR] }, record);
 }
 
 function drive(fn, m) {
-  const r = fn(m);
-  if (!r || typeof r.next !== "function") return r;
-  for (let i = 0; i <= 64; i++) {
-    const step = r.next();
-    if (step.done) return step.value;
+  try {
+    const r = fn(m);
+    if (!r || typeof r.next !== "function") return r;
+    for (let i = 0; i <= 64; i++) {
+      const step = r.next();
+      if (step.done) return step.value;
+    }
+  } catch (e) {
+    if (e instanceof Severed) return undefined;
+    throw e;
   }
   throw new Error("still yielding after the budget; the oracle returned");
 }
@@ -87,6 +102,14 @@ function drive(fn, m) {
 function craft(a) {
   const m = entryState().clone();
   m.regs.a = a;
+  return m;
+}
+
+/** A captured entry whose checked block no longer adds up: one byte of its own image copy moved. */
+function craftTampered(a, delta) {
+  const m = craft(a);
+  m.mem.rom = Uint8Array.from(m.mem.rom);
+  m.mem.rom[CHECKSUM_BASE] = (m.mem.rom[CHECKSUM_BASE] + delta) & 0xff;
   return m;
 }
 
@@ -114,7 +137,7 @@ function unitDiff(cand, machine) {
   if (a.io.watchdogKicks !== b.io.watchdogKicks) return { k: "kicks" };
   if (logA.length !== logB.length) return { k: "handovers" };
   for (const [i, x] of logA.entries()) {
-    if (x.a !== logB[i].a || x.kicks !== logB[i].kicks) return { k: "handover" };
+    if (x.kicks !== logB[i].kicks) return { k: "handover" };
   }
   return null;
 }
@@ -197,6 +220,29 @@ test("KICKS: the whole hold is spun, and the state dump cannot see it", { skip }
   const before = a.io.watchdogKicks;
   drive(oracle, a);
   assert.equal(a.io.watchdogKicks - before, EXPECTED_KICKS, "the oracle's kick count moved");
+});
+
+const TAMPER_DELTAS = [1, 0x80, 0xff];
+
+test("TAMPERED: a checked block that does not add up runs the frame service, then cold-starts", { skip }, () => {
+  let compared = 0;
+  for (const delta of TAMPER_DELTAS) {
+    for (const a of [CONFIG_INPUTS[0], CONFIG_INPUTS[5]]) {
+      const point = craftTampered(a, delta);
+      assert.equal(show(unitDiff(candidate, point)), "identical", `delta ${delta} carried ${hex4(a)}`);
+      // Non-vacuity: the frozen side really does reach the hand-over on the tampered image.
+      const log = [];
+      drive(oracle, severed(point, log));
+      assert.equal(log.length, 1, "the frozen side no longer cold-starts after the frame service");
+      compared++;
+    }
+  }
+  // Teeth: running the frame service and stopping there, never cold-starting, is caught on every
+  // tampered point.
+  let caught = 0;
+  for (const delta of TAMPER_DELTAS) if (unitDiff(twin({ derail: true }), craftTampered(0, delta))) caught++;
+  assert.equal(caught, TAMPER_DELTAS.length, "the derail-without-cold-start twin passed a tampered image");
+  console.log(`  TAMPERED: ${compared} tampered entries identical; the stopping twin caught on ${caught}`);
 });
 
 for (const [name, brokenTwin, expected] of TWINS) {

@@ -7,6 +7,6 @@ import { OPENING_ERA_VELOCITY_TABLE } from "./names.js";
 
 const VELOCITY_TABLE = OPENING_ERA_VELOCITY_TABLE;
 
-export function loc_5854(m) {
-  flyAlongHeading(m, VELOCITY_TABLE);
+export function loc_5854(m, object = m.regs.ix, sprite = m.regs.iy) {
+  flyAlongHeading(m, VELOCITY_TABLE, object, sprite);
 }

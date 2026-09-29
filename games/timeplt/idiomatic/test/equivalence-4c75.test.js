@@ -4,7 +4,9 @@
  * GATE: real dispatches (reached by computed dispatch; its static caller is dead) plus crafted
  *   branch entries; RAM compared with the dead stack scratch below the seated SP masked out, the
  *   +2 SP re-seat and the undefined return asserted, teeth. The picture-enable latch write is
- *   outside the RAM dump, so a dropped-checksum twin is invisible here. Run:
+ *   outside the RAM dump, so the comparison also reads the ordered device writes (address and
+ *   value, recorded on both sides) and the latch lines they leave; the wrong-picture-level twin is
+ *   caught there and nowhere else. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-4c75.test.js
  */
 
@@ -19,6 +21,7 @@ import { blankFourteenCharCells } from "../blankFourteenCharCells.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { postCommand } from "../postCommand.js";
 import { u8 } from "../../../../core/int.js";
+import { recordHardwareWrites } from "./_spineSever.js";
 import {
   ACTIVE_PLAYER, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES,
   LIVES_REMAINING, ROUND_NUMBER, PLAY_ACTIVE,
@@ -58,6 +61,8 @@ function compare(cand, machine) {
   let low = seat;
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
+  const drovenA = recordHardwareWrites(a);
+  const drovenB = recordHardwareWrites(b);
   const retOracle = oracle(a);
   let retCand, threw = null;
   try { retCand = cand(b); } catch (e) { threw = e; }
@@ -70,6 +75,13 @@ function compare(cand, machine) {
     const addr = a.stateOffsetToAddr(i);
     if (addr >= low && addr < seat) continue;
     escaped = { addr, oracle: da[i], candidate: db[i] };
+  }
+  const seq = (log) => log.map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
+  if (escaped === null && seq(drovenA) !== seq(drovenB)) {
+    escaped = { addr: null, oracle: seq(drovenA), candidate: seq(drovenB) };
+  }
+  if (escaped === null && a.io.latch.join() !== b.io.latch.join()) {
+    escaped = { addr: null, oracle: a.io.latch.join(), candidate: b.io.latch.join() };
   }
   return { escaped, low, seat, spDiff: a.regs.sp - b.regs.sp, retOracle, retCand };
 }
@@ -135,7 +147,7 @@ function scenarios() {
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
 /** The rewrite with one deliberate defect each; every parameter matches loadActivePlayerContextAndPostRoundHud by default. */
-function twin({ blank = true, forceP1 = false, copy = true, round = ROUND_COMMAND, substep = true }) {
+function twin({ blank = true, forceP1 = false, copy = true, round = ROUND_COMMAND, substep = true, bias = 1 }) {
   return (m) => {
     const { mem8 } = m;
     if (blank) blankFourteenCharCells(m);
@@ -146,7 +158,7 @@ function twin({ blank = true, forceP1 = false, copy = true, round = ROUND_COMMAN
     postCommand(m, LIVES_COMMAND, u8(mem8[LIVES_REMAINING] - 1));
     let checksum = 0;
     for (let i = 0; i < 256; i++) checksum ^= mem8[0x5b50 + i];
-    m.mem.write8(0xc308, u8(checksum - 1), 10);
+    m.mem.write8(0xc308, u8(checksum - bias), 10);
     if (substep) advanceSequenceSubStep(m);
   };
 }
@@ -158,6 +170,8 @@ const TWINS = [
   ["skip-copy", twin({ copy: false }), 5],
   ["wrong-round-cmd", twin({ round: 7 }), 2],
   ["skip-substep", twin({ substep: false }), 5],
+  // Visible only in the device writes: the picture level from the checksum itself, not less one.
+  ["wrong-picture-level", twin({ bias: 0 }), 3],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────

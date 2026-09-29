@@ -19,6 +19,7 @@ import { blankCaptionThenAdvancePenRunStep as candidate } from "../blankCaptionT
 import { loc_5bd7 as oracle } from "../../translated/loc_5bd7.js";
 import { blankFourteenCharCells } from "../blankFourteenCharCells.js";
 import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
+import { F_Z } from "../../../../core/cpu/z80.js";
 import { advanceSequencePhase } from "../advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { u8 } from "../../../../core/int.js";
@@ -148,10 +149,11 @@ function scenarios() {
 /** The rewrite with one deliberate defect each; every parameter matches blankCaptionThenAdvancePenRunStep by default. */
 function build({ blank = true, branch = "nz", phase = "clean", bias = SUM_BIAS, store = true, step = true }) {
   return (m) => {
-    const { regs, mem8 } = m;
+    const { mem8 } = m;
     if (blank) blankFourteenCharCells(m);
-    drawInterpolatedPenRun(m);
-    if (branch === "nz" ? regs.fNZ : !regs.fNZ) return;
+    // The run hands back its flags; Z set means it reseated to a zero row integer.
+    const reseatedAtRowZero = (drawInterpolatedPenRun(m) & F_Z) !== 0;
+    if (branch === "nz" ? !reseatedAtRowZero : reseatedAtRowZero) return;
     let fold = 0;
     for (let i = 0; i < XOR_LEN; i++) fold ^= mem8[XOR_BLOCK + i];
     if (phase === "clean" ? fold !== XOR_TARGET : fold === XOR_TARGET) advanceSequencePhase(m);

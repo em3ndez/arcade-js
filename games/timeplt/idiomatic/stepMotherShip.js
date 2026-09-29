@@ -33,7 +33,8 @@ const SLOT_STRIDE = 0x10;
 const SLOT_COUNT = 0x0f;
 const FIRST_SLOT_CODE = 0x14;
 const CODE_STEP = 0x0a;
-const SLOT_SOUND = 0x0402;
+const SLOT_COMMAND = 0x04;
+const SLOT_ARGUMENT = 0x02;
 const INIT_MARKER = 0xe4;
 const READY_ARMED = 0xfe;
 const SPRITE_SEED = 0x3d;
@@ -43,7 +44,8 @@ const IDLE_DELAY = 0x0e;
 const HOLD_COUNTER = 0x04;
 const STATE = 0x00;
 
-const WARP_SOUND = 0x040d;
+const WARP_COMMAND = 0x04;
+const WARP_ARGUMENT = 0x0d;
 
 const FLASH_STATE = 0xb4;
 const SPENT_HOLD = 0x5a;
@@ -129,7 +131,7 @@ export function loc_43f0_4554(m, phase = m.regs.c, ix = m.regs.ix, iy = m.regs.i
     const held = mem8[slot];
     if (held === 0xff) {
       mem8[slot] = code;
-      postCommand(m, (SLOT_SOUND >> 8) & 0xff, SLOT_SOUND & 0xff); // queue this slot's sound
+      postCommand(m, SLOT_COMMAND, SLOT_ARGUMENT); // post this slot's command pair
     } else if (u8(held + 2) === 0x00) {
       mem8[slot] = 0x00; // slot held 0xFE
     }
@@ -201,7 +203,7 @@ export function loc_43f0_4623(m, ix = m.regs.ix, iy = m.regs.iy) {
   mem8[Y(0x32)] = 0x6c;
 
   if (u8(mem8[PLAYER_STATE] + 1) === 0x00) requestMotherShipWarpSound(m);
-  return postCommand(m, (WARP_SOUND >> 8) & 0xff, WARP_SOUND & 0xff);
+  return postCommand(m, WARP_COMMAND, WARP_ARGUMENT);
 }
 
 export function loc_43f0_4646(m, ix = m.regs.ix, b = m.regs.b) {

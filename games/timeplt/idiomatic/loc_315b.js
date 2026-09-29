@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_315b — a bare transfer: control leaves for one fixed address chosen here and does not come
- * back. No cell is read or written, no register moves. LIVE-OUT: whatever the destination leaves. */
+/** loc_315b — a bare transfer into a packed table of bytes: the original jumps there and the bytes
+ * would run as instructions, which destroys control rather than reporting anything. There is no
+ * faithful transcription of table bytes run as code, so this raises where the jump would land. It is
+ * reached only when a caption witness sampled off the screen reads something other than what a
+ * genuine image paints there. No cell is read or written before the raise. LIVE-OUT: none — it
+ * never returns. */
 
-import { loc_3176 } from "./names.js";
+import { NotImplemented } from "../../../boards/timeplt/io.js";
 
-export function loc_315b(m) {
-  return m.call(loc_3176);
+export function loc_315b() {
+  throw new NotImplemented(
+    "loc_315b: the caption witness read wrong, and the original jumps into a packed table run as code; " +
+      "a genuine image paints the witness it expects",
+  );
 }

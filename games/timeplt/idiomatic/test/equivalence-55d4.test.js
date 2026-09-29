@@ -67,6 +67,7 @@ import { sendSoundCommand } from "../sendSoundCommand.js";
 import { loc_55d4 as oracle } from "../../translated/loc_55d4.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { recordHardwareWrites } from "./_spineSever.js";
 
 const TARGET = 0x55d4;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -190,15 +191,15 @@ function sweep() {
 
 /** The ordered hardware writes, addresses and values only — the cycle stamp is a hole above. */
 const writeOrder = (mm) =>
-  (mm.mem.writeTrace ?? []).map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
+  (mm.hardwareWrites ?? []).map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
 const deviceState = (mm) => `${mm.io.soundData}:${[...mm.io.latch].join("")}`;
 
 /** Oracle vs candidate on the hardware alone: what the state dump structurally cannot see. */
 function hardwareDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
-  a.mem.writeTrace = [];
-  b.mem.writeTrace = [];
+  a.hardwareWrites = recordHardwareWrites(a);
+  b.hardwareWrites = recordHardwareWrites(b);
   oracle(a);
   candidate(b);
   if (writeOrder(a) !== writeOrder(b)) return `writes [${writeOrder(a)}] vs [${writeOrder(b)}]`;
@@ -382,9 +383,9 @@ test("HARDWARE: the writes RAM cannot see, with the blindness measured", { skip 
   let sent = 0;
   for (const e of entries) {
     const probe = e.clone();
-    probe.mem.writeTrace = [];
+    const sentWrites = recordHardwareWrites(probe);
     oracle(probe);
-    if (probe.mem.writeTrace.length > 0) sent++;
+    if (sentWrites.length > 0) sent++;
     const d = hardwareDiff(sendOldestQueuedSoundCommand, e);
     assert.equal(d, null, `count=${e.mem8[PENDING_COUNT]}: ${d}`);
   }

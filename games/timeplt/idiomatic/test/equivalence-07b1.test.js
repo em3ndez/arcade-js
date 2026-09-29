@@ -15,8 +15,18 @@
  *   pass at the one real entry. Two arms exist for that: the TAP compares the ordered list of
  *   device writes, and PRESET drives the lines HIGH first so the clearing has something to undo.
  *
- * ★ IT IS A TRANSFER, NOT A CALL, so the rewrite's `m.call(0x0069)` performs the caller's return
- *   itself and the candidate is wired RAW in the whole-machine arm, as _harness.js sets out.
+ * ★ IT IS A TRANSFER, NOT A CALL, and the rewrite makes it as a DIRECT call into the cold-start
+ *   clear. The routine map cannot see that transfer, so both sides are stopped at it by different
+ *   hands at the same place: the frozen side's jump through the map is caught by the map, and the
+ *   rewrite's direct call is caught by _spineSever.js the moment the entered routine makes its first
+ *   store (its first watchdog kick), before that store lands. The whole-machine arm stops the
+ *   rewrite there too and hands the rest of the session to the frozen continuation.
+ *
+ * ★ THE ACCUMULATOR AND FLAGS ARE DEAD AT THE JUMP, derived from the continuation, so they sit in
+ *   the ceiling: the continuation reads A only as the data of its watchdog kicks (the watchdog counts
+ *   kicks and ignores the data), then clears A with an xor before anything else reads it; the flags
+ *   are rewritten by that xor and nothing reads them first. The rewrite carries the socket answer and
+ *   the picture setting in locals and leaves both registers as it found them.
  *
  * ★ ONE DISPATCH A SESSION, at power-on, from the reset vector. The crafted arms are where the
  *   coverage is; the corpus is a single point by nature and the REACH arm says so.
@@ -56,9 +66,13 @@ import { loc_07b1 as oracle } from "../../translated/loc_07b1.js";
 import { buildRoutines } from "../../routines.js";
 import { firstStateDiff, wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { Severed, severAtDirectCall, recordHardwareWrites } from "./_spineSever.js";
 
 const TARGET = 0x07b1;
 const CONTINUATION = 0x0069;
+/** The continuation as the rewrite reaches it (a direct call), and the store it makes first. */
+const CONTINUATION_NAME = "clearWorkRamAndSpriteBanksThenColdInit";
+const WATCHDOG = 0xc200;
 /** The reset vector, which jumps here; the positive control for the REACH arm. */
 const RESET_VECTOR = 0x0000;
 
@@ -78,11 +92,12 @@ const LATCH_LINES = 8;
 const OWN_TSTATES = 333;
 
 /**
- * The ceiling on register divergence: the cursor and the counter the frozen walk leaves behind.
- * The rewrite counts its addresses in a local and leaves all three registers as it found them.
+ * The ceiling on register divergence: the cursor and the counter the frozen walk leaves behind, and
+ * the accumulator and flags the header derives dead at the jump. The rewrite counts its addresses in
+ * a local, carries both values in locals, and leaves all five registers as it found them.
  * A ceiling and not a demand — the EXCLUDED arm tests a subset, so a closer rewrite still passes.
  */
-const MOVED = ["b", "h", "l"];
+const MOVED = ["a", "f", "b", "h", "l"];
 
 const TAPES = [
   ["attract", { tape: [] }],
@@ -179,7 +194,9 @@ const deviceSignature = (c) =>
   `${[...c.io.latch].join(",")}|wd=${c.io.watchdogKicks}|snd=${c.io.soundData}` +
   `|ur=${c.mem.unmappedReads}|uw=${c.mem.unmappedWrites}`;
 
-const traceOf = (c) => (c.mem.writeTrace ?? []).map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
+const traceOf = (log) => (log ?? []).map((w) => `${hex4(w.addr)}=${w.value}`).join(" ");
+
+const snapshot = (mm) => Object.fromEntries(REG_FIELDS.map((k) => [k, mm.regs[k]]));
 
 function runToSeam(entry, fn, { trace = false } = {}) {
   const c = entry.clone();
@@ -188,16 +205,22 @@ function runToSeam(entry, fn, { trace = false } = {}) {
   if (patched) Object.defineProperty(c.mem, "read8", patched);
   const sink = { hits: 0, addr: null, regs: null };
   c.routines = stopAtSeam(entry.routines, sink);
-  if (trace) c.mem.writeTrace = [];
+  const log = trace ? recordHardwareWrites(c) : null;
+  // The rewrite's direct call into the continuation, stopped before the continuation's first store.
+  severAtDirectCall(c, CONTINUATION_NAME, { writes: [WATCHDOG] }, (mm) => {
+    sink.hits++;
+    sink.addr = CONTINUATION;
+    sink.regs = snapshot(mm);
+  });
   let threw = null;
   try {
     fn(c);
   } catch (e) {
-    threw = String(e).slice(0, 60);
+    if (!(e instanceof Severed)) threw = String(e).slice(0, 60);
   }
-  const writes = traceOf(c);
-  c.mem.writeTrace = null;
-  return { c, sink, threw, refused: threw !== null, writes };
+  delete c.mem.read8;
+  delete c.mem.write8;
+  return { c, sink, threw, refused: threw !== null, writes: traceOf(log) };
 }
 
 function seamDiff(candidate, entry, opts) {
@@ -278,24 +301,39 @@ const SWEEP_RUNS = {
 
 // ── the hosted whole-machine replay ─────────────────────────────────────────────────────
 
+/**
+ * The rewrite hosted in the cycle-driven session: run it to the jump, stopping it before the
+ * continuation's first store however it gets there (through the map, or by a direct call), charge
+ * the entry's own time, and hand the rest of the session to the frozen continuation.
+ */
 function hosted(candidate) {
   return (mm) => {
     const real = mm.routines;
+    let reached = false;
     mm.routines = {
       get: (addr) =>
         addr === CONTINUATION
-          ? (x) => {
-              x.routines = real;
-              x.step(CONTINUATION, OWN_TSTATES);
-              return x.call(CONTINUATION);
+          ? () => {
+              reached = true;
+              throw new Severed(CONTINUATION_NAME);
             }
           : real.get(addr),
     };
+    severAtDirectCall(mm, CONTINUATION_NAME, { writes: [WATCHDOG] }, () => {
+      reached = true;
+    });
     try {
-      return candidate(mm);
+      candidate(mm);
+    } catch (e) {
+      if (!(e instanceof Severed)) throw e;
     } finally {
       mm.routines = real;
+      delete mm.mem.read8;
+      delete mm.mem.write8;
     }
+    if (!reached) return undefined;
+    mm.step(CONTINUATION, OWN_TSTATES);
+    return mm.call(CONTINUATION);
   };
 }
 
@@ -346,8 +384,13 @@ function brokenNoStackSeat(m) {
 
 /** BUG: seats the stack one byte low. */
 function brokenStackOffByOne(m) {
-  seatTheStackAndSettleTheControlLatch(m);
+  probeSocket(m);
+  quiet(m);
+  clearLines(m, LATCH_LINES);
+  m.regs.a = m.mem.read8(PICTURE_ENABLE_SETTING);
+  m.mem.write8(PICTURE_ENABLE, m.regs.a, STORE_BUS_CYCLE);
   m.regs.sp = 0xafff;
+  return m.call(CONTINUATION);
 }
 
 /** BUG: never quiets the watchdog. */
@@ -395,9 +438,8 @@ function brokenNeverHandsOn(m) {
 
 /** BUG: scribbles on an index register — the control for the EXCLUDED ceiling. */
 function brokenMovesIndex(m) {
-  const r = seatTheStackAndSettleTheControlLatch(m);
   m.regs.ix = (m.regs.ix + 1) & 0xffff;
-  return r;
+  return seatTheStackAndSettleTheControlLatch(m);
 }
 
 const TWINS = [

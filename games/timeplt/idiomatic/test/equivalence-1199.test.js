@@ -3,7 +3,9 @@
  * serviceRoundThenResolvePlayerState vs the frozen oracle at ROM 0x1199 — the per-frame service list then a player-state tail.
  * GATE: masked strict. Real captures run the tape; crafted 0xA800 forces each tail arm. The dissolved
  * calls drop the callees' pushed return words, so the oracle's [low, seat) stack scratch is masked and
- * the two-byte drift asserted; the mask floor is proven to sit above data.
+ * the two-byte drift asserted; the mask floor is proven to sit above data. Every callee is a plain
+ * direct call that leaves the stack where it found it, so the SEAM arm runs the rewrite through the
+ * dispatch seam and a control that lays down one stray word must be refused by it.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-1199.test.js
  */
 
@@ -13,6 +15,8 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { serviceRoundThenResolvePlayerState as candidate } from "../serviceRoundThenResolvePlayerState.js";
 import { loc_1199 as oracle } from "../../translated/loc_1199.js";
+import { withOmittedRet } from "../../machine.js";
+import { seamPlaceable } from "../../../../core/equivalence.js";
 
 import { reaimAndAnimateEnemyCraftOnPhaseTick } from "../reaimAndAnimateEnemyCraftOnPhaseTick.js";
 import { dispatchPlayerFrameByState } from "../dispatchPlayerFrameByState.js";
@@ -20,6 +24,7 @@ import { fireAndSweepPlayerShots } from "../fireAndSweepPlayerShots.js";
 import { driveEnemyWaveForLifePhase } from "../driveEnemyWaveForLifePhase.js";
 import { multiplexSpriteSlotsSkipping } from "../multiplexSpriteSlotsSkipping.js";
 import { runParachutistSlot } from "../runParachutistSlot.js";
+import { armMotherShipOrStep } from "../armMotherShipOrStep.js";
 import { stepSevenCraftSlots } from "../stepSevenCraftSlots.js";
 import { runSceneryForEra } from "../runSceneryForEra.js";
 import { sweepEra2PlusObjectBank } from "../sweepEra2PlusObjectBank.js";
@@ -119,10 +124,10 @@ function footprint(machine) {
 // ── broken twins ────────────────────────────────────────────────────────────────────────────
 // A reproduction of the service list, so a twin can drop one service or take the wrong tail arm.
 function services(m, skipIdx = -1) {
-  const fix = () => { m.push16(0); multiplexSpriteSlotsSkipping(m); };
+  const fix = multiplexSpriteSlotsSkipping;
   const list = [
     reaimAndAnimateEnemyCraftOnPhaseTick, dispatchPlayerFrameByState, fireAndSweepPlayerShots,
-    driveEnemyWaveForLifePhase, fix, runParachutistSlot, (mm) => { mm.push16(0); mm.call(0x43b7); },
+    driveEnemyWaveForLifePhase, fix, runParachutistSlot, armMotherShipOrStep,
     stepSevenCraftSlots, fix, runSceneryForEra, sweepEra2PlusObjectBank, fix, serviceEra1BomberObject,
     serviceFixedSlotInEra1, stepFourActorSlots, fix, serviceEra0BallisticObjectBank, dispatchCollisionPassByEra,
     askForSoundWhileTheGroupIsClear, fix, awardBonusLifeAtScoreMark, expireHitChain, escalateDifficultyRungOnCounterWrap,
@@ -183,6 +188,21 @@ test("SP DRIFT: the dropped return words are two bytes and the mask floor sits a
     assert.ok(r.low > DATA_TOP, `${label} stack window reached into data (${hex4(r.low)})`);
   }
   console.log("  SP DRIFT: 2 bytes on every path, stack window above data");
+});
+
+test("SEAM: every path is placed by the dispatch seam; a stray stack word is refused", { skip }, () => {
+  const pool = [...capture().slice(0, 8), craft(DEAD), craft(ALIVE), craft(0x00)];
+  for (const e of pool) {
+    const r = seamPlaceable(withOmittedRet, candidate, TARGET, e.clone());
+    assert.equal(r.placeable, true, `the seam could not place the rewrite: ${r.error}`);
+  }
+  // ★ control: one filler word laid down and never lifted is exactly the defect this arm exists for.
+  const strayWord = (m) => { m.push16(0); candidate(m); };
+  for (const e of pool) {
+    assert.equal(seamPlaceable(withOmittedRet, strayWord, TARGET, e.clone()).placeable, false,
+      "the seam placed a rewrite that leaves a stray word on the stack");
+  }
+  console.log(`  SEAM: ${pool.length} entries placed; the stray-word control refused on each`);
 });
 
 test("TEETH: broken twins are caught, and the real routine passes the same entries", { skip }, () => {
