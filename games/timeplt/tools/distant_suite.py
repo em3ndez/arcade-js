@@ -109,6 +109,13 @@ def load_schedule(path):
     return s
 
 
+def tape_budget(sched):
+    """The per-tape px budget for the distant-state window and the band, or None for the defaults
+    (a tape without `distant_budget_px`). distant_gate takes its budget from here, and
+    test/distant_budget_check.py drives distant_gate to prove the value reaches both verdicts."""
+    return sched.get("distant_budget_px")
+
+
 def lua_tape(path, sched):
     """MAME tape: the schedule's input presses (active-low IN0 fields) and its direct RAM
     pokes, on the frame-notifier clock. Each field is set to the OR of its presses' windows;
@@ -417,7 +424,7 @@ def distant_gate(a, sched, work, idiomatic, summary):
     distant_js = max(0, hit[0] - offset)
     rc = 0
     summary["windows"] = {}
-    tight = sched.get("distant_budget_px")
+    tight = tape_budget(sched)
     w, h, _ = ps.pixel_gate.screen_geometry(ps.HW)
     for label, frm in (("whole run", ps.DIFF_FROM), ("distant state", distant_js)):
         if label == "distant state" and tight is not None:
