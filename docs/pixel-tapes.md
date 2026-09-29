@@ -67,11 +67,64 @@ one poke-tape per state to the pixel gate. State plainly which routines each tap
 remain oracle-only. "The pixel gate covers this game" is a claim about that list being worked, not about
 one credit's worth of play.
 
-**timeplt (worked):** six tapes now live in `games/timeplt/tapes/`, run by `tools/distant_suite.py` and each
-pixel-validated against MAME — era 4 (2001), two-player, game-over, high-score entry, mother-ship (boss)
-armed collision, and a deep round. Five of the six carry a game-set `responded` cell — a value the ROM
-writes only on reaching the state, read from the golden dump — so a pass is not two engines agreeing on the
-same wrong thing; era-4's `responded` instead confirms its held era poke landed in the golden (that state's
-coherence comes from the MAME grounding, not the cell). Entropy pinning proved unnecessary (the JS PRNG runs
-in lockstep with MAME even in the spawn-heavy fields, measured). Remaining: promote the specific routines each tape exercises from `[code]` to `[seen]` — a per-tape
-reach map, still owed.
+**timeplt (worked):** the tapes live in `games/timeplt/tapes/*.poke.json`, run by
+`games/timeplt/tools/distant_suite.py`, each pixel-validated against MAME — era 1 (1940), era 4 (2001),
+two-player, game-over, high-score entry, mother-ship (boss) armed collision, and a deep round. Most carry a
+game-set `responded` cell — a value the ROM writes only on reaching the state, read from the golden dump — so
+a pass is not two engines agreeing on the same wrong thing; the two era tapes' `responded` instead confirms
+the held era poke landed in the golden (that state's coherence comes from the MAME grounding, not the cell).
+Entropy pinning proved unnecessary (the JS PRNG runs in lockstep with MAME even in the spawn-heavy fields,
+measured).
+
+⚠ **History, stated plainly:** until this wiring landed the distant tapes were in NO gate. Commit `b60b1dec`
+("decompile the last nine oracle-served routines") reported gates green; those gates did not include the
+distant tapes — they had to be run by hand.
+
+**Wiring.**
+- Per commit: `tools/pixel_gate_required.py` GLOBS `games/<g>/tapes/*.poke.json` at import (a new tape is
+  gated the moment it lands) and adds one entry per tape, each with its own `--work`, accepted only on its
+  anchored `distant_suite: PASS -- <name>` line. The tapes, `distant_suite.py` and `tools/render-lib.js` are
+  render-affecting and shared, so a change to any runs both layers. Every tape PASSes on `--layer oracle` and
+  `--layer idiomatic`, so both are wired.
+- DONE: `tools/done_gate.py` `check_pixel` runs every tape on the idiomatic layer before either pixel
+  branch — a legacy game is not excused.
+- Standing, MAME-free: `games/timeplt/test/distant-reach-tape.test.js` (picked up by `check_wholegame`)
+  renders each schedule through `render-lib.js` from the argv `distant_suite.py --print-render-argv`
+  builds, and requires the JS `responded` state plus every declared reach. Each declared routine has a
+  mutant that must turn it red; removing a tape's pokes must too.
+
+**Reach — the routines each tape exists for.** A schedule's `reaches` lists them; `render.js --reach`
+counts each one's executions per painted frame and `distant_suite.py` FAILS a tape if any declared routine
+has no execution inside the compared distant window (from the golden's first responded frame, in JS
+frames, to where the comparison ends). Override-dispatched routines count at the dispatch;
+directly-called ones by host call-stack attribution on a read their own body makes
+(`render-lib.js DIRECT_PROBES`). Measured on both layers:
+
+| tape | reaches |
+|---|---|
+| boss-armed, deep-round | postRoundStartCaptionsAndResetPlayfield, flyRoundIntroFlashingEraYearThenEraseIntroCaptions, flyEnemyFreeLeadInThenStepSequence |
+| two-player | the three above + loadActivePlayerContextAndPostRoundHud |
+| era-one | the three above + serviceEra1EnemyCraftSlot |
+| era-advance | flyRoundIntroFlashingEraYearThenEraseIntroCaptions, flyEnemyFreeLeadInThenStepSequence, serviceSlotByMarkerThenCloseSweepTurn |
+| game-over | fileScoreAfterGameOverHoldElsePassTurn — **reached, pixel-invisible** (see below) |
+| high-score | fileScoreAfterGameOverHoldElsePassTurn (its filing arm), erasePenRouteThenOpenInitialsEntry, stepHighScoreInitialsEntry |
+
+- **stepCountdownSlotThenCloseTurn (0x4108): NOT tape-covered.** It is inlined into
+  serviceSlotByMarkerThenCloseSweepTurn as the sweep's drifting-countdown arm, and no tape's sweep meets a
+  drifting marker. The arm is probed (a call into stepDriftingCountdownObjectByEraFrames with the sweep on
+  the stack); the standing test's planted-marker control proves the probe fires and its mutant silences it.
+- **Not in a window:** postRoundStartCaptionsAndResetPlayfield runs in era-advance, game-over and
+  high-score only before the distant state, so those tapes do not declare it.
+- **Not reach-checked:** startTwoPlayerGame and handPlayOverToOtherPlayer (two-player) are called directly
+  and have no probe yet.
+- **Pixel-invisible — chosen: mark, not RAM-compare.** A routine whose in-window effect is RAM-only is
+  listed in the schedule's `pixel_invisible` with the reason, and printed as "reached, pixel-invisible"; it
+  is NOT `[seen]` from that tape. game-over's fileScoreAfterGameOverHoldElsePassTurn only ticks the
+  SEQUENCE_DELAY hold until its expiry. The sweep's own bookkeeping (cursors, turn count) is likewise
+  RAM-only; serviceSlotByMarkerThenCloseSweepTurn is declared because its era-4 handler flies and animates
+  the slot's object (a [code] reading of the handler, not a separate measurement). A golden-vs-JS RAM compare of the written cells (`pixel_suite.state_column`) would upgrade
+  these; not built.
+
+Remaining: promote each reached, pixel-visible routine from `[code]` to `[seen]` in names.js. Per
+reviewer-rules R3a the reach count itself is our engine's number (`[code]`); what grounds the routine is the
+MAME pixel diff over the window the count proves it ran in.

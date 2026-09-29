@@ -20,55 +20,20 @@
  */
 
 import { createHash } from "node:crypto";
-import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync, writeSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { closeSync, mkdirSync, openSync, writeFileSync, writeSync } from "node:fs";
+import { join } from "node:path";
 
-import { Machine, CYCLES_PER_FRAME, resolveAllIdiomatic } from "../machine.js";
-import { buildRoutines } from "../routines.js";
-import { runIdiomaticGame } from "../../../core/frame-stepped.js";
-import manifest from "../manifest.js";
+import { CYCLES_PER_FRAME } from "../machine.js";
 import { SCREEN_W, SCREEN_H } from "../../../boards/timeplt/video.js";
-import { parseEmitArgs, hex4 } from "../../../tools/emit-core.js";
+import { hex4 } from "../../../tools/emit-core.js";
+import { parseRenderArgs, createRenderMachine, runGeneratorFrames } from "./render-lib.js";
 
-const GAME_DIR = dirname(dirname(fileURLToPath(import.meta.url))); // games/timeplt
 const BYTES_PER_FRAME = SCREEN_W * SCREEN_H * 3; // 172032, the frame contract
 
-const ROM_SIZES = { tiles: 0x2000, sprites: 0x4000, proms: 0x0240 };
-
-function loadRegion(name, path) {
-  const buf = new Uint8Array(readFileSync(path));
-  if (buf.length !== ROM_SIZES[name]) {
-    throw new Error(
-      `${name}: ${path} is ${buf.length} bytes, expected ${ROM_SIZES[name]} — ` +
-        "a wrong or partial region renders a plausible, wrong image rather than failing",
-    );
-  }
-  return buf;
-}
-
 async function main() {
-  const args = parseEmitArgs(process.argv, {
-    defaults: {
-      rom: join(GAME_DIR, "rom", "maincpu.bin"),
-      tiles: join(GAME_DIR, "rom", "tiles.bin"),
-      sprites: join(GAME_DIR, "rom", "sprites.bin"),
-      proms: join(GAME_DIR, "rom", "proms.bin"),
-      frames: 1802,
-      framesOut: join(GAME_DIR, "out", "render"),
-    },
-    extra: (flag, next, a) => {
-      switch (flag) {
-        case "--tiles": a.tiles = next(); return true;
-        case "--sprites": a.sprites = next(); return true;
-        case "--proms": a.proms = next(); return true;
-        case "--frames-out": a.framesOut = next(); return true;
-        case "--idiomatic": a.idiomatic = true; return true;
-        case "--tape-origin": a.tapeOrigin = Number(next()); return true;
-        default: return false;
-      }
-    },
-  });
+  // --reach NAMES --reach-out FILE: count each named routine's executions per painted frame (see
+  // render-lib.js) so distant_suite.py can require the tape to reach what it exists to cover.
+  const args = parseRenderArgs(process.argv);
   if (!Number.isInteger(args.frames) || args.frames < 2) {
     throw new Error(`--frames expects an integer >= 2, got ${args.frames}`);
   }
@@ -81,19 +46,7 @@ async function main() {
   // origin is that gap and the TAPE must ride the golden's numbering, or the two coin on different
   // game frames; pixel_suite.py measures and pins the value.
 
-  const gfx = {
-    tiles: loadRegion("tiles", args.tiles),
-    sprites: loadRegion("sprites", args.sprites),
-    proms: loadRegion("proms", args.proms),
-  };
-  const romImage = new Uint8Array(readFileSync(args.rom));
-  const overrides = args.idiomatic ? await resolveAllIdiomatic() : null;
-
-  const machine = args.idiomatic
-    ? await Machine.create(romImage, { ...gfx, overrides })
-    : new Machine(romImage, buildRoutines(), gfx);
-  machine.inputTape = args.inputs.length ? args.inputs : null;
-  machine.pokes = args.pokes.length ? args.pokes : null;
+  const { machine, reach } = await createRenderMachine(args);
 
   mkdirSync(args.framesOut, { recursive: true });
   const rgbPath = join(args.framesOut, "frames.rgb");
@@ -103,6 +56,7 @@ async function main() {
   machine.onVideoFrame = (buf) => {
     writeSync(fd, buf, 0, buf.length);
     hashes.push(createHash("sha256").update(buf).digest("hex"));
+    if (reach) reach.frame = hashes.length; // code from here on belongs to the next painted frame
   };
 
   const want = args.frames;
@@ -110,6 +64,9 @@ async function main() {
     ? runGeneratorFrames(machine, want, args.tapeOrigin ?? 0)
     : machine.runFrames(want);
   closeSync(fd);
+  if (reach && args.reachOut) {
+    writeFileSync(args.reachOut, JSON.stringify({ frames: hashes.length, ...reach.toJSON() }) + "\n");
+  }
 
   writeFileSync(
     join(args.framesOut, "frames.json"),
@@ -184,33 +141,6 @@ async function main() {
       `taking ${machine.nmiCount} NMI(s). Now pixel-diff frames.rgb against the MAME golden.`,
   );
   return 0;
-}
-
-/**
- * Paint `want` frames of the idiomatic game under runIdiomaticGame.
- *
- * PAINTED WHOLE AT THE VBLANK YIELD: there is no beam on this clock, and the cycle-driven painter
- * publishes on a boundary this engine sets to Infinity. ⚠ The whole-frame tolerance does NOT settle
- * which instant to snapshot -- yield 1324px and post-NMI 2810px BOTH sit inside 5%. The band check
- * does: 33px/0 over at the yield against 1571px/1278 over post-NMI. Pick on the band.
- */
-function runGeneratorFrames(machine, want, tapeOrigin) {
-  const states = [];
-  machine.startBeamFrame(); // open frame 1's band buffer before the boot foreground runs
-  const r = runIdiomaticGame(machine, {
-    nmiReturnPC: manifest.convergence.idiomatic.nmiReturnPC,
-    maxFrames: want,
-    onFrame: (m, f) => {
-      if (f === 0) return; // power-on, before the boot generator runs: no golden frame matches it
-      m.applyInputs(f + tapeOrigin);
-      m.applyPokes(f + tapeOrigin);
-      states.push(m.mem.dumpState());
-      if (m.onVideoFrame) m.onVideoFrame(m.finishBeamFrame());
-      m.startBeamFrame(); // open the next frame's band buffer
-    },
-  });
-  machine.stoppedBy = r.stopError ?? null;
-  return states;
 }
 
 process.exit(await main());

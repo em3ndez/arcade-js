@@ -11,5 +11,12 @@
   "pokes": [
     { "frame": 660, "addr": "0xa800", "val": "0xf0", "dur": 1 }
   ],
-  "responded": { "cell": "0xad32", "op": "eq", "val": 1 }
+  "responded": { "cell": "0xad32", "op": "eq", "val": 1 },
+  "reaches": [
+    "postRoundStartCaptionsAndResetPlayfield",
+    "flyRoundIntroFlashingEraYearThenEraseIntroCaptions",
+    "flyEnemyFreeLeadInThenStepSequence",
+    "loadActivePlayerContextAndPostRoundHud"
+  ],
+  "_reaches": "startTwoPlayerGame and handPlayOverToOtherPlayer are called directly (no map dispatch) and have no host-stack probe in render-lib.js DIRECT_PROBES, so they are not reach-checked; loadActivePlayerContextAndPostRoundHud (the P2 context load at the handoff) is."
 }

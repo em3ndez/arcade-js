@@ -8,5 +8,10 @@
   "pokes": [
     { "frame": 620, "addr": "0xad02", "val": "0x00" }
   ],
-  "responded": { "cell": "0xad0d", "op": "eq", "val": "0xff" }
+  "responded": { "cell": "0xad0d", "op": "eq", "val": "0xff" },
+  "reaches": [
+    "postRoundStartCaptionsAndResetPlayfield",
+    "flyRoundIntroFlashingEraYearThenEraseIntroCaptions",
+    "flyEnemyFreeLeadInThenStepSequence"
+  ]
 }

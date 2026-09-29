@@ -52,7 +52,7 @@ def _event(press, frame, dur):
 def load_schedule(path):
     with open(path, encoding="utf-8") as fh:
         s = json.load(fh)
-    for req in ("name", "pokes", "responded"):
+    for req in ("name", "pokes", "responded", "reaches"):
         if req not in s:
             raise SystemExit(f"schedule {path}: missing required key {req!r}")
     s.setdefault("coin", ps.LUA_COIN)
@@ -79,6 +79,16 @@ def load_schedule(path):
             _event("coin", _int(s["coin"]), hold),
             _event("start1p", _int(s["start"]), hold),
         ]
+    reaches = s["reaches"]
+    if not (isinstance(reaches, list) and reaches and all(isinstance(n, str) for n in reaches)):
+        raise SystemExit(
+            f"schedule {path}: 'reaches' must be a non-empty list of idiomatic routine names -- "
+            "the routines this tape exists to put on the glass"
+        )
+    inv = s.setdefault("pixel_invisible", {})
+    for n in inv:
+        if n not in reaches:
+            raise SystemExit(f"schedule {path}: pixel_invisible names {n!r}, which is not in 'reaches'")
     r = s["responded"]
     if "cell" not in r or "val" not in r:
         raise SystemExit(f"schedule {path}: 'responded' needs 'cell' and 'val'")
@@ -130,9 +140,11 @@ end)
     return path
 
 
-def render_js(out, frames, sched, idiomatic):
-    """Our side: the same input presses (golden-aligned at +TAPE_OFFSET) and pokes
-    (at +POKE_OFFSET). render.js applies both through the generator path."""
+def render_argv(out, frames, sched, idiomatic, reach_out):
+    """render.js's argv for this schedule: the same input presses (golden-aligned at +TAPE_OFFSET)
+    and pokes (at +POKE_OFFSET), plus the reach instrument for the schedule's `reaches`. The ONE
+    place the schedule is aligned to the JS side -- test/distant-reach-tape.test.js reads it back
+    through --print-render-argv rather than re-deriving the alignment."""
     cmd = [
         "node",
         os.path.join(HERE, "render.js"),
@@ -153,7 +165,33 @@ def render_js(out, frames, sched, idiomatic):
         cmd += ["--poke", f"0x{addr:04X}=0x{val:02X}@{fr + POKE_OFFSET}{tail}"]
     if idiomatic:
         cmd += ["--idiomatic", "--tape-origin", str(ps.LANDMARK)]
-    subprocess.run(cmd, check=True)
+    cmd += ["--reach", ",".join(sched["reaches"]), "--reach-out", reach_out]
+    return cmd
+
+
+def render_js(out, frames, sched, idiomatic, reach_out):
+    subprocess.run(render_argv(out, frames, sched, idiomatic, reach_out), check=True)
+
+
+def reach_check(reach_out, sched, lo, hi):
+    """Every declared routine must execute inside the COMPARED distant window, JS frames [lo, hi):
+    a pixel PASS over a window the routine never ran in says nothing about that routine.
+    Returns the names with zero hits there."""
+    with open(reach_out, encoding="utf-8") as fh:
+        rep = json.load(fh)
+    missing = []
+    for name in sched["reaches"]:
+        r = rep["routines"][name]
+        n = sum(c for f, c in r["hits"] if lo <= f < hi)
+        inv = sched["pixel_invisible"].get(name)
+        tag = f" (reached, pixel-invisible: {inv})" if inv else ""
+        print(
+            f"  reach {name} [{r['addr']}] via {'+'.join(r['via']) or 'NOTHING'}: "
+            f"{n} hit(s) in JS frames {lo}..{hi - 1}{tag if n else ''} -> {'ok' if n else 'NOT REACHED'}"
+        )
+        if not n:
+            missing.append(name)
+    return missing
 
 
 def band_scan(js_rgb, golden_rgb, offset, from_frame):
@@ -234,9 +272,35 @@ def main():
     p.add_argument("--rompath", default=os.path.join(ps.GAME, "rom"))
     p.add_argument("--frames", type=int, default=ps.GOLDEN_FRAMES - 1)
     p.add_argument("--work", default=os.path.join(ps.GAME, "out", "distantwork"))
+    p.add_argument(
+        "--layer",
+        choices=("idiomatic", "oracle"),
+        default=None,
+        help="which layer to render vs MAME (as pixel_suite.py). Default reads manifest.runtime; "
+        "tools/pixel_gate_required.py passes it explicitly.",
+    )
+    p.add_argument(
+        "--print-render-argv",
+        action="store_true",
+        help="print the render.js argv (JSON) this schedule renders with, and exit -- no MAME. "
+        "test/distant-reach-tape.test.js builds its machine from it.",
+    )
     a = p.parse_args()
 
     sched = load_schedule(a.schedule)
+    if a.print_render_argv:
+        idio = (a.layer == "idiomatic") if a.layer else (ps.runtime() == "idiomatic")
+        off = ps.GEN_OFFSET if idio else ps.FROZEN_OFFSET
+        print(
+            json.dumps(
+                {
+                    "argv": render_argv("<frames-out>", a.frames, sched, idio, "<reach-out>")[2:],
+                    # the nominal compared window's end, in JS frames (golden length - offset)
+                    "window_end": ps.GOLDEN_FRAMES - off,
+                }
+            )
+        )
+        return 0
 
     try:
         verified = (
@@ -254,19 +318,25 @@ def main():
         print(f"distant_suite: SKIP -- romset {ps.DRIVER} not found under {a.rompath}")
         return 0
 
-    work = os.path.join(a.work, sched["name"])
+    idiomatic = (a.layer == "idiomatic") if a.layer else (ps.runtime() == "idiomatic")
+    layer = "idiomatic" if idiomatic else "oracle"
+    # Per tape AND per layer, so two layers (or two tapes) never share a work dir.
+    work = os.path.join(a.work, sched["name"], layer)
     os.makedirs(work, exist_ok=True)
     go, jo = os.path.join(work, "golden"), os.path.join(work, "js")
-    idiomatic = ps.runtime() == "idiomatic"
     offset = ps.GEN_OFFSET if idiomatic else ps.FROZEN_OFFSET
-    print(f"distant_suite: {sched['name']} -- {sched.get('description', '')}")
+    src = "--layer" if a.layer else "manifest.runtime"
+    # The header says "tape <name>" so no tape name can make it read as the verdict line
+    # (tools/pixel_gate_required.py anchors on `^distant_suite: PASS -- <name>$`).
+    print(f"distant_suite: tape {sched['name']} -- {sched.get('description', '')}")
     print(
         f"  layer: {'IDIOMATIC (generator engine)' if idiomatic else 'oracle (cycle-driven)'}"
-        f"; golden offset {offset}; poke offset {POKE_OFFSET}"
+        f"; golden offset {offset}; poke offset {POKE_OFFSET} (layer from {src})"
     )
 
     ps.capture_golden(a.rompath, go, lua_tape(os.path.join(work, "tape.lua"), sched))
-    render_js(jo, a.frames, sched, idiomatic)
+    reach_out = os.path.join(work, "reach.json")
+    render_js(jo, a.frames, sched, idiomatic, reach_out)
 
     # 1) Prove the poke drove the REAL machine into the distant state (MAME, not our engine).
     hit = responded_frames(go, sched)
@@ -353,6 +423,17 @@ def main():
             )
         )
     if not band_ok:
+        rc = 1
+
+    # 3) REACH: the routines this tape exists for ran inside the compared distant window. The
+    #    window ends where the comparison ends (the golden is shorter than the render by `offset`).
+    compared = min(got, os.path.getsize(os.path.join(go, "frames.rgb")) // bpf - offset)
+    missing = reach_check(reach_out, sched, distant_js, compared)
+    if missing:
+        print(
+            f"  REACH FAIL: {', '.join(missing)} never ran in the compared distant window -- the "
+            "pixel verdict above does not cover them. Fix the schedule or its 'reaches'."
+        )
         rc = 1
 
     print(f"distant_suite: {'PASS' if rc == 0 else 'FAIL'} -- {sched['name']}")

@@ -13,5 +13,10 @@
     { "frame": 650, "addr": "0xad10", "val": "0x01", "dur": 1 },
     { "frame": 660, "addr": "0xa800", "val": "0xf0", "dur": 1 }
   ],
-  "responded": { "cell": "0xab2a", "op": "eq", "val": "0x57" }
+  "responded": { "cell": "0xab2a", "op": "eq", "val": "0x57" },
+  "reaches": [
+    "fileScoreAfterGameOverHoldElsePassTurn",
+    "erasePenRouteThenOpenInitialsEntry",
+    "stepHighScoreInitialsEntry"
+  ]
 }

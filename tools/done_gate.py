@@ -23,6 +23,7 @@ Subcommand: check --game <game>.
 """
 import argparse
 import glob
+import json
 import os
 import re
 import subprocess
@@ -181,6 +182,12 @@ def check_pixel(game):
     suite = f"games/{game}/tools/pixel_suite.py"
     if not os.path.exists(suite):
         return False, "no pixel_suite.py"
+    # DISTANT-STATE TAPES FIRST, on BOTH branches below (a legacy game is NOT excused from them): every
+    # games/<g>/tapes/*.poke.json through the game's distant_suite.py on the shipped layer. Red on any
+    # tape short of its own literal `distant_suite: PASS -- <name>` line (SKIP/INCOMPLETE/FAIL/crash).
+    ok, dnote = check_distant(game)
+    if not ok:
+        return False, dnote
     # Legacy pre-runbook ports (runbook "Legacy games": do not retrofit) are grandfathered on the attract
     # pixel gate; the --done gameplay bar is the go-forward standard for games ported under the runbook.
     LEGACY_ATTRACT_ONLY = {"timeplt", "thepit"}
@@ -189,13 +196,35 @@ def check_pixel(game):
             return False, "pixel_suite.py has no --done mode (attract-only gate is blind to gameplay)"
         rc, out = run(["python3", suite, "--layer", "idiomatic"])
         ok = rc == 0 and re.search(r"^pixel_suite: PASS", out, re.M) is not None
-        return ok, ("PASS (legacy attract-only, grandfathered)" if ok else "pixel suite FAILED")
+        return ok, (f"PASS (legacy attract-only, grandfathered; {dnote})" if ok else "pixel suite FAILED")
     rc, out = run(["python3", suite, "--layer", "idiomatic", "--done"])
     passed = rc == 0 and re.search(r"^pixel_suite: PASS", out, re.M) is not None
     if passed:
-        return True, "PASS (--done: attract completeness + gameplay vs MAME)"
+        return True, f"PASS (--done: attract completeness + gameplay vs MAME; {dnote})"
     last = next((ln for ln in reversed(out.splitlines()) if ln.strip()), "")
     return False, "pixel --done FAILED: " + last[:90]
+
+
+def check_distant(game):
+    """(ok, detail) for every distant-state tape of `game`; ok with a note when it has none."""
+    dsuite = f"games/{game}/tools/distant_suite.py"
+    tapes = sorted(glob.glob(f"games/{game}/tapes/*.poke.json"))
+    if not os.path.exists(dsuite):
+        return True, "no distant_suite.py"
+    if not tapes:
+        return False, "distant_suite.py exists but no tapes/*.poke.json"
+    for t in tapes:
+        try:
+            with open(t, encoding="utf-8") as fh:
+                name = json.load(fh).get("name")
+        except (OSError, ValueError) as e:
+            return False, f"distant tape {t} unreadable: {e}"
+        rc, out = run(["python3", dsuite, "--schedule", t, "--layer", "idiomatic"])
+        pat = r"^distant_suite: PASS -- " + re.escape(str(name)) + r"$"
+        if rc != 0 or re.search(pat, out, re.M) is None:
+            last = next((ln for ln in reversed(out.splitlines()) if ln.strip()), "")
+            return False, f"distant tape {os.path.basename(t)} not PASS: " + last[:80]
+    return True, "distant tapes PASS"
 
 
 def check_wholegame(game):
@@ -356,6 +385,35 @@ def selftest():
         print("selftest FAIL: done_record_committed missed a tracked DONE.md", file=sys.stderr); ok = False
     if done_record_committed("x", tracked=set()):
         print("selftest FAIL: done_record_committed counted an absent DONE.md", file=sys.stderr); ok = False
+    # check_distant: every tape needs ITS OWN anchored PASS line; SKIP, the header, another tape's
+    # PASS, or PASS-then-crash is red. Drives the real function over a synthetic game dir.
+    import tempfile
+    global run
+    real_run, cwd = run, os.getcwd()
+    with tempfile.TemporaryDirectory() as root:
+        os.makedirs(os.path.join(root, "games", "g", "tapes"))
+        os.makedirs(os.path.join(root, "games", "g", "tools"))
+        with open(os.path.join(root, "games", "g", "tapes", "t1.poke.json"), "w") as fh:
+            json.dump({"name": "t1"}, fh)
+        try:
+            os.chdir(root)
+            ok_none = check_distant("g")[0]  # no distant_suite.py yet -> nothing to run
+            open(os.path.join("games", "g", "tools", "distant_suite.py"), "w").close()
+            for label, fake, want in [
+                ("PASS (control)", (0, "distant_suite: tape t1 -- d\ndistant_suite: PASS -- t1\n"), True),
+                ("SKIP exit 0", (0, "distant_suite: SKIP -- no `mame` on PATH\n"), False),
+                ("header only", (0, "distant_suite: tape t1 -- d\n"), False),
+                ("another tape's PASS", (0, "distant_suite: PASS -- t2\n"), False),
+                ("PASS then exit 1", (1, "distant_suite: PASS -- t1\n"), False),
+            ]:
+                run = lambda cmd, fake=fake: fake
+                if check_distant("g")[0] != want:
+                    print(f"selftest FAIL: check_distant {label} -> want {want}", file=sys.stderr); ok = False
+        finally:
+            run = real_run
+            os.chdir(cwd)
+    if not ok_none:
+        print("selftest FAIL: check_distant red for a game with no distant_suite.py", file=sys.stderr); ok = False
     print("selftest OK" if ok else "selftest FAILED")
     return 0 if ok else 1
 

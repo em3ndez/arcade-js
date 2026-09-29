@@ -505,8 +505,8 @@ survives or is explicitly accounted for.
 **Applies to the first decompile unit of any game, and to every commit the interlock fires on.**
 `hooks/pre-commit` enforces this automatically — `tools/pixel_gate_required.py check` refuses any
 commit whose staged diff touches, for some game, its `idiomatic/`, `translated/`, `routines.js`,
-`machine.js`, `manifest.js`, its own `tools/render.js` or `tools/pixel_suite.py`, or its
-`boards/<board>/` directory — unless that game's suite prints its literal `PASS` line. **So a
+`machine.js`, `manifest.js`, its own `tools/render.js`, `tools/render-lib.js`, `tools/pixel_suite.py`,
+`tools/distant_suite.py` or `tapes/*.poke.json`, or its `boards/<board>/` directory — unless that game's suite prints its literal `PASS` line. **So a
 plain `translated/` lift fires it too**, and a reviewer on such a commit owes the verdict line
 just as much as one reviewing an idiomatic batch. Your job is to check the enforcement was not
 waived, and to run it yourself where it could not be:
@@ -531,8 +531,11 @@ idiomatic code, because nothing renders it. Do not accept "pixel gate green" as 
 idiomatic module in such a game; the honest statement is that the layer is unrendered and therefore
 unmeasured. See [the pixel gate](pixel-gate.md).
 
-**Paste the verdict line into your review, and accept only `PASS`.** The other outcomes are not
-passes and do not look like failures:
+**Paste the verdict line into your review, and accept only `PASS`** — for a game with distant-state
+tapes (`games/<g>/tapes/*.poke.json`, see [pixel-tapes](pixel-tapes.md)) that is EVERY
+`distant_suite: PASS -- <tape>` line too, one per tape per layer the interlock ran, alongside
+`pixel_suite: PASS`. A tape missing from the paste is unverified. The other outcomes are not passes and do
+not look like failures:
 
 - `pixel_suite: SKIP -- no mame on PATH` / `SKIP -- romset ... not found` — you have checked
   nothing. This is the false green: a reviewer with no romset sees no failure and writes
@@ -555,6 +558,14 @@ search problem; one routine and one pixel diff is a bug report.
 
 Beware that `make verify` is a disassembly decoder check defaulting to `GAME=dkong` — a green
 `make verify` says nothing about pixels.
+
+### R34a [D] a decompile commit names, per new routine, the tape that covers it
+
+For each routine the commit decompiles, the message names ONE of: the base gameplay tape
+(`pixel_suite.py`); a distant tape whose schedule `reaches` lists it (its `distant_suite` reach line shows
+hits); or "oracle-only / pixel-invisible, <reason>". The reviewer confirms the named tape's `reaches`
+really lists the routine (or the reason holds) — "gates green" alone does not say a new routine was ever
+on the glass (commit `b60b1dec` is the example: its green did not include the distant tapes).
 
 ## R35 [ALL] An exclusivity claim about a cell needs a WRITE TAP, not a scan
 

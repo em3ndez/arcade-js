@@ -10,5 +10,10 @@
     { "frame": 620, "addr": "0xa9d7", "val": "0x01" },
     { "frame": 620, "addr": "0xa9d6", "val": "0x01" }
   ],
-  "responded": { "cell": "0xacc1", "op": "eq", "val": "0x07" }
+  "responded": { "cell": "0xacc1", "op": "eq", "val": "0x07" },
+  "reaches": [
+    "postRoundStartCaptionsAndResetPlayfield",
+    "flyRoundIntroFlashingEraYearThenEraseIntroCaptions",
+    "flyEnemyFreeLeadInThenStepSequence"
+  ]
 }

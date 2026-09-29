@@ -10,5 +10,11 @@
     { "frame": 650, "addr": "0xad10", "val": "0x01", "dur": 1 },
     { "frame": 660, "addr": "0xa800", "val": "0xf0", "dur": 1 }
   ],
-  "responded": { "cell": "0xa672", "op": "eq", "val": "0x7d" }
+  "responded": { "cell": "0xa672", "op": "eq", "val": "0x7d" },
+  "reaches": [
+    "fileScoreAfterGameOverHoldElsePassTurn"
+  ],
+  "pixel_invisible": {
+    "fileScoreAfterGameOverHoldElsePassTurn": "each in-window run ticks SEQUENCE_DELAY, a RAM-only hold; only its expiry (score not filed, turn passes) changes the screen"
+  }
 }

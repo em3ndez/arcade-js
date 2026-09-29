@@ -34,6 +34,9 @@ ROUGH_TOLERANCE, which changes every game's verdict; the sharpest hole left here
 knowingly. `boards/<board>/` and `games/<g>/manifest.js` are NOT excluded: each is single-game and
 costs one suite run, and the board is resolved through each manifest's `board:` field.
 """
+import concurrent.futures
+import glob
+import json
 import os
 import re
 import subprocess
@@ -44,7 +47,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 RENDER_AFFECTING = re.compile(
     r"^games/([^/]+)/(?:idiomatic/|translated/|routines\.js$|machine\.js$|manifest\.js$"
-    r"|tools/render\.js$|tools/pixel_suite\.py$)"
+    r"|tools/render\.js$|tools/render-lib\.js$|tools/pixel_suite\.py$"
+    r"|tools/distant_suite\.py$|tapes/[^/]+\.poke\.json$)"
 )
 
 BOARD_PATH = re.compile(r"^boards/([^/]+)/")
@@ -57,7 +61,42 @@ MANIFEST_BOARD = re.compile(r'^\s*board:\s*"([^"]+)"', re.M)
 
 PIXEL_SUITE_PASS = re.compile(r"^pixel_suite: PASS", re.M)
 
+
+def DISTANT_PASS(name):
+    """The verdict line of ONE distant tape, anchored at both ends and keyed to the tape's name.
+    distant_suite.py's header reads `distant_suite: tape <name> -- ...`, so no tape name can make
+    the header satisfy this; and another tape's PASS cannot stand in for this one."""
+    return re.compile(r"^distant_suite: PASS -- " + re.escape(name) + r"$", re.M)
+
+
+def distant_entries(game, repo=None):
+    """One SUITES entry per distant-state tape of `game`: every games/<g>/tapes/*.poke.json, GLOBBED
+    at import, when the game has tools/distant_suite.py -- so a new tape is gated the moment it
+    lands, with nothing to remember. Each tape gets its own --work dir. The pattern keys on the
+    schedule's own `name` (what the suite prints); an unreadable schedule keys on its file stem and
+    the suite's own load error refuses it."""
+    repo = repo or REPO
+    suite = f"games/{game}/tools/distant_suite.py"
+    if not os.path.isfile(os.path.join(repo, suite)):
+        return []
+    out = []
+    for path in sorted(glob.glob(os.path.join(repo, "games", game, "tapes", "*.poke.json"))):
+        rel = os.path.relpath(path, repo)
+        stem = os.path.basename(path)[: -len(".poke.json")]
+        try:
+            with open(path, encoding="utf-8") as fh:
+                name = json.load(fh).get("name", stem)
+        except (OSError, ValueError):
+            name = stem
+        argv = ["python3", suite, "--schedule", rel,
+                "--work", f"games/{game}/out/distantwork/{stem}"]
+        out.append((argv, DISTANT_PASS(name)))
+    return out
+
+
 SUITES = {
+    # + one entry per distant-state tape (distant_entries, globbed below). Both layers: every tape
+    # PASSes on --layer oracle and --layer idiomatic (measured when the wiring landed).
     "timeplt": [(["python3", "games/timeplt/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "thepit": [(["python3", "games/thepit/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "frogger": [(["python3", "games/frogger/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
@@ -68,6 +107,9 @@ SUITES = {
     "tempest": [(["python3", "games/tempest/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "dkong": [(["python3", "games/dkong/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
+
+for _game in SUITES:
+    SUITES[_game] = SUITES[_game] + distant_entries(_game)
 
 #: game -> a human hint printed when the game is absent from SUITES. Empty: every game now
 #: declares a pixel_suite.py. (move_suite.py/prize_suite.py remain dkong's separate unit gates.)
@@ -281,17 +323,38 @@ def cmd_check(_args=None):
             failed.append(game)
             continue
         layers = layers_for_game(game, paths)
-        for argv, pattern in SUITES[game]:
-            for layer in layers:
-                full = argv + ["--layer", layer]
-                print(f"pixel_gate_required: {game} [{layer}] -- running {' '.join(full)}")
-                ok, out = run_suite(full, pattern)
-                tail = "\n".join(out.strip().splitlines()[-12:])
-                if ok:
-                    print(f"  {game} [{layer}]: PASS{dormancy_caveat(game, paths)}\n{tail}")
-                else:
-                    print(f"  {game} [{layer}]: REFUSED -- the suite did not print its PASS "
-                          f"line.\n{tail}", file=sys.stderr)
+        jobs = [(argv + ["--layer", layer], pattern, layer)
+                for argv, pattern in SUITES[game] for layer in layers]
+        for full, _p, layer in jobs:
+            print(f"pixel_gate_required: {game} [{layer}] -- running {' '.join(full)}")
+        # A distant tape's run owns its work dir (per tape, per layer), so those go concurrently.
+        # Every OTHER suite runs serially, in one worker: pixel_suite.py's two layers share one
+        # work dir, and running them at once corrupts both (measured: a spurious oracle FAIL).
+        results = [None] * len(jobs)
+        serial = [i for i, j in enumerate(jobs) if "--schedule" not in j[0]]
+        parallel = [i for i, j in enumerate(jobs) if "--schedule" in j[0]]
+
+        def run_serial():
+            for i in serial:
+                results[i] = run_suite(jobs[i][0], jobs[i][1])
+
+        def run_one(i):
+            results[i] = run_suite(jobs[i][0], jobs[i][1])
+
+        workers = max(1, min(len(parallel) + 1, os.cpu_count() or 1, 8))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            futs = [pool.submit(run_serial)] + [pool.submit(run_one, i) for i in parallel]
+            for f in futs:
+                f.result()
+        for (full, _p, layer), (ok, out) in zip(jobs, results):
+            tail = "\n".join(out.strip().splitlines()[-12:])
+            what = f"{game} [{layer}] {' '.join(full[1:4])}"
+            if ok:
+                print(f"  {what}: PASS{dormancy_caveat(game, paths)}\n{tail}")
+            else:
+                print(f"  {what}: REFUSED -- the suite did not print its PASS "
+                      f"line.\n{tail}", file=sys.stderr)
+                if game not in failed:
                     failed.append(game)
 
     if failed:
@@ -358,6 +421,42 @@ def _selftest_staged_paths():
                   f"the gate -> {fires}")
         finally:
             REPO = saved
+    return bad
+
+
+def _selftest_distant_glob():
+    """distant_entries must pick up EVERY tape on disk (a new tape is gated with no edit here), key
+    each pattern to the schedule's own name, give each its own --work, and add nothing for a game
+    without a distant_suite.py."""
+    bad = 0
+    with tempfile.TemporaryDirectory() as root:
+        tapes = os.path.join(root, "games", "g", "tapes")
+        os.makedirs(tapes)
+        os.makedirs(os.path.join(root, "games", "g", "tools"))
+        for stem in ("alpha", "beta"):
+            with open(os.path.join(tapes, f"{stem}.poke.json"), "w", encoding="utf-8") as fh:
+                json.dump({"name": stem}, fh)
+        with open(os.path.join(tapes, "notes.json"), "w", encoding="utf-8") as fh:
+            fh.write("{}")
+        none_yet = distant_entries("g", root) == []
+        bad += not none_yet
+        print(f"  [{'ok ' if none_yet else 'BAD'}] distant glob: no distant_suite.py -> no entries")
+        open(os.path.join(root, "games", "g", "tools", "distant_suite.py"), "w").close()
+        ents = distant_entries("g", root)
+        scheds = [a[a.index("--schedule") + 1] for a, _ in ents]
+        works = [a[a.index("--work") + 1] for a, _ in ents]
+        ok = (scheds == ["games/g/tapes/alpha.poke.json", "games/g/tapes/beta.poke.json"]
+              and len(set(works)) == 2
+              and ents[1][1].search("distant_suite: PASS -- beta\n")
+              and not ents[1][1].search("distant_suite: PASS -- alpha\n"))
+        bad += not ok
+        print(f"  [{'ok ' if ok else 'BAD'}] distant glob: every *.poke.json, own --work, own name -> {scheds}")
+    real = [a[a.index("--schedule") + 1] for a, _ in SUITES.get("timeplt", []) if "--schedule" in a]
+    disk = sorted(os.path.relpath(p, REPO) for p in
+                  glob.glob(os.path.join(REPO, "games", "timeplt", "tapes", "*.poke.json")))
+    ok = real == disk and len(disk) > 0
+    bad += not ok
+    print(f"  [{'ok ' if ok else 'BAD'}] SUITES[timeplt] distant entries == tapes on disk -> {ok}")
     return bad
 
 
@@ -501,6 +600,37 @@ def cmd_selftest(_args=None):
         bad += got is not False
         print(f"  [{mark}] suite HANGS past its timeout: accepted={got} expected=False")
 
+        # The distant tapes' verdict: anchored, keyed to the tape's name, header-proof.
+        dp = DISTANT_PASS("era-advance")
+        for label, text, rc, want in [
+            ("distant PASS (control -- must be ACCEPTED)",
+             "distant_suite: tape era-advance -- desc\n  band -> PASS\ndistant_suite: PASS -- era-advance\n", 0, True),
+            ("distant SKIP, exit 0 -- no mame", "distant_suite: SKIP -- no `mame` on PATH\n", 0, False),
+            ("distant header only, exit 0", "distant_suite: tape era-advance -- desc\n", 0, False),
+            ("distant PASS then exit 1", "distant_suite: PASS -- era-advance\n", 1, False),
+            ("distant argparse error, exit 2",
+             "usage: distant_suite.py [-h] --schedule SCHEDULE\ndistant_suite.py: error: unrecognized arguments: --bogus\n", 2, False),
+            ("ANOTHER tape's PASS line", "distant_suite: PASS -- era-one\n", 0, False),
+            ("PASS with a trailing suffix", "distant_suite: PASS -- era-advance-twin\n", 0, False),
+        ]:
+            argv = _fixture(tmp, f"d{abs(hash(label))}.py", text, rc)
+            got, _ = run_suite(argv, dp)
+            mark = "ok " if got == want else "BAD"
+            bad += got != want
+            print(f"  [{mark}] {label}: accepted={got} expected={want}")
+        # The REAL suite's argparse error (exit 2), not a stand-in, when the suite is present.
+        real = "games/timeplt/tools/distant_suite.py"
+        if os.path.isfile(os.path.join(globals()["REPO"], real)):
+            got, _ = run_suite(["python3", real, "--bogus"], dp)
+            bad += got is not False
+            print(f"  [{'ok ' if got is False else 'BAD'}] REAL distant_suite argparse error: "
+                  f"accepted={got} expected=False")
+        # A tape NAMED "PASS": its header must not read as its verdict.
+        argv = _fixture(tmp, "dpass.py", "distant_suite: tape PASS -- PASS\n", 0)
+        got, _ = run_suite(argv, DISTANT_PASS("PASS"))
+        bad += got is not False
+        print(f"  [{'ok ' if got is False else 'BAD'}] tape named PASS, header only: accepted={got} expected=False")
+
         real_staged, real_suites = globals()["staged_paths"], SUITES
         try:
             for label, paths, suites, want_rc in [
@@ -518,6 +648,16 @@ def cmd_selftest(_args=None):
                 ("cmd_check: idiomatic staged, suite SKIPs -> REFUSE",
                  ["games/timeplt/idiomatic/loc_1.js"],
                  {"timeplt": [(_fixture(tmp, "skip.py", "pixel_suite: SKIP\n", 0), PIXEL_SUITE_PASS)]}, 1),
+                ("cmd_check: pixel PASS + distant SKIP -> REFUSE",
+                 ["games/timeplt/tapes/era-advance.poke.json"],
+                 {"timeplt": [(_fixture(tmp, "px_ok.py", "pixel_suite: PASS\n", 0), PIXEL_SUITE_PASS),
+                              (_fixture(tmp, "dist_skip.py", "distant_suite: SKIP -- no `mame` on PATH\n", 0),
+                               DISTANT_PASS("era-advance"))]}, 1),
+                ("cmd_check: pixel PASS + distant PASS -> allow",
+                 ["games/timeplt/tools/distant_suite.py"],
+                 {"timeplt": [(_fixture(tmp, "px_ok2.py", "pixel_suite: PASS\n", 0), PIXEL_SUITE_PASS),
+                              (_fixture(tmp, "dist_ok.py", "distant_suite: PASS -- era-advance\n", 0),
+                               DISTANT_PASS("era-advance"))]}, 0),
                 ("cmd_check: undeclared game staged -> REFUSE",
                  ["games/dkong/idiomatic/marioWalk.js"], {}, 1),
                 ("cmd_check: a BOARD path reaches its game -> REFUSE (undeclared here)",
@@ -535,6 +675,7 @@ def cmd_selftest(_args=None):
             globals()["staged_paths"], globals()["SUITES"] = real_staged, real_suites
 
     bad += _selftest_staged_paths()
+    bad += _selftest_distant_glob()
     bad += _selftest_manifest_reads()
     bad += _selftest_predicate_terms()
 
@@ -549,6 +690,11 @@ def cmd_selftest(_args=None):
         ("games/timeplt/machine.js", "timeplt"),
         ("games/timeplt/tools/render.js", "timeplt"),
         ("games/timeplt/tools/pixel_suite.py", "timeplt"),
+        ("games/timeplt/tools/distant_suite.py", "timeplt"),
+        ("games/timeplt/tools/render-lib.js", "timeplt"),
+        ("games/timeplt/tapes/era-advance.poke.json", "timeplt"),
+        ("games/timeplt/tapes/era-advance.poke.json.bak", None),
+        ("games/timeplt/tapes/sub/x.poke.json", None),
         ("games/dkong/idiomatic/marioWalk.js", "dkong"),
         ("games/timeplt/manifest.js", "timeplt"),
         ("boards/timeplt/video.js", "timeplt"),
@@ -577,6 +723,8 @@ def cmd_selftest(_args=None):
         (["games/timeplt/tools/render.js"], ["idiomatic", "oracle"]),
         (["games/timeplt/tools/pixel_suite.py"], ["idiomatic", "oracle"]),
         (["games/timeplt/routines.js"], ["idiomatic", "oracle"]),
+        (["games/timeplt/tools/distant_suite.py"], ["idiomatic", "oracle"]),
+        (["games/timeplt/tapes/era-one.poke.json"], ["idiomatic", "oracle"]),
         (["games/timeplt/idiomatic/a.js", "games/dkong/idiomatic/b.js"], ["idiomatic"]),  # this game only
     ]:
         got = layers_for_game("timeplt", lpaths)
