@@ -264,6 +264,13 @@ def responded_frames(golden_dir, sched):
     return [f for f, b in enumerate(col) if _match(b, op, val)]
 
 
+def work_dir(base, name, layer):
+    """Per tape AND per layer, so two layers (or two tapes) never share a work dir. Callers pass
+    the shared base (tools/pixel_gate_required.py passes games/<g>/out/distantwork); its selftest
+    imports this to prove the partition."""
+    return os.path.join(base, name, layer)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument(
@@ -284,6 +291,12 @@ def main():
         action="store_true",
         help="print the render.js argv (JSON) this schedule renders with, and exit -- no MAME. "
         "test/distant-reach-tape.test.js builds its machine from it.",
+    )
+    p.add_argument(
+        "--keep-frames",
+        action="store_true",
+        help="keep the raw frames.rgb / state.bin dumps after the verdict (default: delete them, "
+        "keeping frames.json hashes, reach.json and summary.json -- as pixel_suite.py).",
     )
     a = p.parse_args()
 
@@ -320,9 +333,19 @@ def main():
 
     idiomatic = (a.layer == "idiomatic") if a.layer else (ps.runtime() == "idiomatic")
     layer = "idiomatic" if idiomatic else "oracle"
-    # Per tape AND per layer, so two layers (or two tapes) never share a work dir.
-    work = os.path.join(a.work, sched["name"], layer)
+    work = work_dir(a.work, sched["name"], layer)
     os.makedirs(work, exist_ok=True)
+    # Every step below (responded_frames, frame_diffs, band_scan, the reach window) reads the raw
+    # dumps; ps.finish_work deletes them only after the verdict is final (see pixel_suite.py).
+    summary = {"suite": "distant_suite", "tape": sched["name"], "layer": layer, "verdict": "CRASH"}
+    try:
+        return distant_gate(a, sched, work, idiomatic, summary)
+    finally:
+        ps.finish_work(work, summary, a.keep_frames)
+
+
+def distant_gate(a, sched, work, idiomatic, summary):
+    """Capture, render, and judge one tape; records the verdict (and, on FAIL, where) in `summary`."""
     go, jo = os.path.join(work, "golden"), os.path.join(work, "js")
     offset = ps.GEN_OFFSET if idiomatic else ps.FROZEN_OFFSET
     src = "--layer" if a.layer else "manifest.runtime"
@@ -347,6 +370,7 @@ def main():
             f"({r['cell']} {r['op']} {r['val']}); the poke did not reach the distant "
             "state, so there is nothing to validate. Fix the schedule, not the gate."
         )
+        summary.update(verdict="FAIL", why="golden never satisfied responded")
         return 1
     print(
         f"  golden responded: {r['cell']} {r['op']} {r['val']} on frames "
@@ -365,6 +389,7 @@ def main():
             f"distant_suite: INCOMPLETE -- render delivered {got} of {a.frames - 1} "
             "frames; a comparison this short concludes nothing."
         )
+        summary.update(verdict="INCOMPLETE", why=f"render delivered {got} of {a.frames - 1} frames")
         return 1
 
     # 2) Pixel-diff the whole run and, separately, the distant-state window (from the
@@ -377,6 +402,7 @@ def main():
     )
     distant_js = max(0, hit[0] - offset)
     rc = 0
+    summary["windows"] = {}
     for label, frm in (("whole run", ps.DIFF_FROM), ("distant state", distant_js)):
         v = ps.pixel_gate.rough_verdict(d, ps.HW, from_frame=frm)
         print(
@@ -384,6 +410,7 @@ def main():
             f"max={v['max_pixels']:5d}px ({v['max_pct']:6.3f}%) "
             f"worst@{v['worst_frame']} -> {v['verdict']}"
         )
+        summary["windows"][label] = v
         if v["verdict"] != ps.pixel_gate.PASS:
             rc = 1
     b = band_scan(
@@ -424,6 +451,7 @@ def main():
         )
     if not band_ok:
         rc = 1
+    summary["band"] = dict(b, budget=ps.BAND_MAX_PX, ok=band_ok)
 
     # 3) REACH: the routines this tape exists for ran inside the compared distant window. The
     #    window ends where the comparison ends (the golden is shorter than the render by `offset`).
@@ -435,6 +463,10 @@ def main():
             "pixel verdict above does not cover them. Fix the schedule or its 'reaches'."
         )
         rc = 1
+    summary["reach_missing"] = missing
+    summary["verdict"] = "PASS" if rc == 0 else "FAIL"
+    if rc:
+        summary["worst_frames"] = ps.worst_frames(d, distant_js)
 
     print(f"distant_suite: {'PASS' if rc == 0 else 'FAIL'} -- {sched['name']}")
     return rc

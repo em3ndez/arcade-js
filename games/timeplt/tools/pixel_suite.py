@@ -196,6 +196,43 @@ def game_responded(golden_dir):
     }
 
 
+# ── Raw-capture cleanup ────────────────────────────────────────────────────────────────────────
+# Each run leaves ~300MB per side of raw frames (plus the golden's state dump) under the work dir,
+# and every gated tape keeps its own work dir, so they pile up to tens of GB. Once the verdict is
+# computed nothing reads them again (the gates key on the printed verdict line, never on the files),
+# so they are deleted on PASS and FAIL alike. What stays is small: frames.json (per-frame hashes),
+# manifest/state.json, reach.json, tape.lua, and summary.json -- the verdict plus, on FAIL, the
+# worst frames and their pixel counts. --keep-frames keeps the raw dumps for debugging.
+RAW_DUMPS = (os.path.join("golden", "frames.rgb"), os.path.join("golden", "state.bin"),
+             os.path.join("js", "frames.rgb"))
+
+
+def worst_frames(diffs, from_frame=0, k=10):
+    """The `k` worst JS frames at or after `from_frame` as [[frame, differing_px], ...], worst first."""
+    window = np.asarray(diffs[from_frame:], dtype=np.int64)
+    order = np.argsort(window, kind="stable")[::-1][:k]
+    return [[int(i) + from_frame, int(window[i])] for i in order if window[i] > 0]
+
+
+def finish_work(work, summary, keep_frames):
+    """Write summary.json into `work`, then delete the raw dumps unless `keep_frames`. Called once
+    the verdict is final, including on an early FAIL or a crash, so a failed run cannot strand them."""
+    summary["raw_frames_kept"] = bool(keep_frames)
+    try:
+        with open(os.path.join(work, "summary.json"), "w", encoding="utf-8") as fh:
+            json.dump(summary, fh, indent=1, default=str)
+            fh.write("\n")
+    except OSError as e:
+        print(f"  warning: could not write summary.json: {e}")
+    if keep_frames:
+        return
+    for rel in RAW_DUMPS:
+        try:
+            os.remove(os.path.join(work, rel))
+        except FileNotFoundError:
+            pass
+
+
 # ── --done helpers ─────────────────────────────────────────────────────────────────────────────
 def done_capture(rompath, out, seconds, tape=None):
     """Fresh certified MAME golden for one --done part. `tape` (a lua tape) composes coin/start for
@@ -382,6 +419,9 @@ def main():
     p.add_argument("--done", action="store_true",
                    help="the runbook DONE bar: attract COMPLETENESS + tape-driven GAMEPLAY vs MAME "
                         "(drift-tolerant whole-run reconverge), NOT the per-commit fixed-offset tripwire.")
+    p.add_argument("--keep-frames", action="store_true",
+                   help="keep the raw frames.rgb / state.bin dumps in the work dir after the verdict "
+                        "(default: delete them, keeping frames.json hashes and summary.json).")
     a = p.parse_args()
 
     # --done: the ship bar (attract completeness + gameplay reconverge). Separate from the default
@@ -400,6 +440,16 @@ def main():
         return 0
 
     os.makedirs(a.work, exist_ok=True)
+    summary = {"suite": "pixel_suite", "verdict": "CRASH"}
+    try:
+        return gameplay_gate(a, summary)
+    finally:
+        finish_work(a.work, summary, a.keep_frames)
+
+
+def gameplay_gate(a, summary):
+    """The default per-commit gameplay tripwire. Records its verdict (and, on FAIL, where it went
+    wrong) in `summary`; the caller deletes the raw dumps afterwards."""
     go, jo = os.path.join(a.work, "golden"), os.path.join(a.work, "js")
     idiomatic = (a.layer == "idiomatic") if a.layer else (runtime() == "idiomatic")
     offset = GEN_OFFSET if idiomatic else FROZEN_OFFSET
@@ -413,6 +463,7 @@ def main():
         if not frames:
             print(f"pixel_suite: FAIL -- golden shows no '{label}'; this run compares two "
                   "attract screens, which proves nothing.")
+            summary.update(verdict="FAIL", why=f"golden shows no '{label}'")
             return 1
         print(f"  golden: {label:22} frames {frames[0]}..{frames[-1]}")
 
@@ -421,11 +472,13 @@ def main():
     if got < a.frames - 1:
         print(f"pixel_suite: INCOMPLETE -- render delivered {got} of {a.frames - 1} frames; "
               "a comparison this short concludes nothing.")
+        summary.update(verdict="INCOMPLETE", why=f"render delivered {got} of {a.frames - 1} frames")
         return 1
 
     d = pixel_gate.frame_diffs(os.path.join(jo, "frames.rgb"),
                                os.path.join(go, "frames.rgb"), HW, offset=offset)
     rc = 0
+    summary["windows"] = {}
     coin_js = LUA_COIN + TAPE_OFFSET + FROZEN_OFFSET - offset
     for label, frm in (("boot+attract+play", DIFF_FROM),
                        ("gameplay (coin on)", coin_js)):
@@ -433,6 +486,7 @@ def main():
         print(f"  {label:20} frames={r['frames']:5d} differ={r['frames_differing']:5d} "
               f"max={r['max_pixels']:5d}px ({r['max_pct']:6.3f}%) "
               f"worst@{r['worst_frame']} -> {r['verdict']}")
+        summary["windows"][label] = r
         if r["verdict"] != pixel_gate.PASS:
             rc = 1
     bw, bover, bat = band_worst(os.path.join(jo, "frames.rgb"),
@@ -442,6 +496,10 @@ def main():
           f"over={bover} worst@{bat} -> {bverdict}")
     if bover:
         rc = 1
+    summary["band"] = {"worst_px": bw, "worst_frame": bat, "over": bover, "budget": BAND_MAX_PX}
+    summary["verdict"] = "PASS" if rc == 0 else "FAIL"
+    if rc:
+        summary["worst_frames"] = worst_frames(d, DIFF_FROM)
 
     print(f"pixel_suite: {'PASS' if rc == 0 else 'FAIL'}")
     return rc

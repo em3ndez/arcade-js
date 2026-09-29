@@ -82,8 +82,11 @@ distant tapes — they had to be run by hand.
 
 **Wiring.**
 - Per commit: `tools/pixel_gate_required.py` GLOBS `games/<g>/tapes/*.poke.json` at import (a new tape is
-  gated the moment it lands) and adds one entry per tape, each with its own `--work`, accepted only on its
-  anchored `distant_suite: PASS -- <name>` line. The tapes, `distant_suite.py` and `tools/render-lib.js` are
+  gated the moment it lands) and adds one entry per tape, accepted only on its anchored
+  `distant_suite: PASS -- <name>` line. Every entry passes the same `--work games/<g>/out/distantwork`; the
+  suite partitions it into `<name>/<layer>/`, so no two tapes or layers share a dir. After the verdict the
+  suite deletes the raw `frames.rgb`/`state.bin` dumps (on PASS and FAIL), keeping the hashes, `reach.json`
+  and a `summary.json` (on FAIL, the worst frames and their pixel counts); `--keep-frames` keeps them. The tapes, `distant_suite.py` and `tools/render-lib.js` are
   render-affecting and shared, so a change to any runs both layers. Every tape PASSes on `--layer oracle` and
   `--layer idiomatic`, so both are wired.
 - DONE: `tools/done_gate.py` `check_pixel` runs every tape on the idiomatic layer before either pixel

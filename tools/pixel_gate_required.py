@@ -72,7 +72,8 @@ def DISTANT_PASS(name):
 def distant_entries(game, repo=None):
     """One SUITES entry per distant-state tape of `game`: every games/<g>/tapes/*.poke.json, GLOBBED
     at import, when the game has tools/distant_suite.py -- so a new tape is gated the moment it
-    lands, with nothing to remember. Each tape gets its own --work dir. The pattern keys on the
+    lands, with nothing to remember. Every tape passes the same --work BASE; the suite partitions
+    it per tape name and per layer (distant_suite.work_dir), so no two runs share a dir. The pattern keys on the
     schedule's own `name` (what the suite prints); an unreadable schedule keys on its file stem and
     the suite's own load error refuses it."""
     repo = repo or REPO
@@ -89,7 +90,7 @@ def distant_entries(game, repo=None):
         except (OSError, ValueError):
             name = stem
         argv = ["python3", suite, "--schedule", rel,
-                "--work", f"games/{game}/out/distantwork/{stem}"]
+                "--work", f"games/{game}/out/distantwork"]
         out.append((argv, DISTANT_PASS(name)))
     return out
 
@@ -426,8 +427,9 @@ def _selftest_staged_paths():
 
 def _selftest_distant_glob():
     """distant_entries must pick up EVERY tape on disk (a new tape is gated with no edit here), key
-    each pattern to the schedule's own name, give each its own --work, and add nothing for a game
-    without a distant_suite.py."""
+    each pattern to the schedule's own name, and add nothing for a game without a distant_suite.py.
+    Work-dir uniqueness is the SUITE's partition, not a per-tape --work: every entry passes the same
+    base, every tape's name is distinct, and distant_suite.work_dir puts name AND layer in the path."""
     bad = 0
     with tempfile.TemporaryDirectory() as root:
         tapes = os.path.join(root, "games", "g", "tapes")
@@ -446,17 +448,41 @@ def _selftest_distant_glob():
         scheds = [a[a.index("--schedule") + 1] for a, _ in ents]
         works = [a[a.index("--work") + 1] for a, _ in ents]
         ok = (scheds == ["games/g/tapes/alpha.poke.json", "games/g/tapes/beta.poke.json"]
-              and len(set(works)) == 2
+              and works == ["games/g/out/distantwork"] * 2
               and ents[1][1].search("distant_suite: PASS -- beta\n")
               and not ents[1][1].search("distant_suite: PASS -- alpha\n"))
         bad += not ok
-        print(f"  [{'ok ' if ok else 'BAD'}] distant glob: every *.poke.json, own --work, own name -> {scheds}")
+        print(f"  [{'ok ' if ok else 'BAD'}] distant glob: every *.poke.json, shared --work base, own name -> {scheds}")
     real = [a[a.index("--schedule") + 1] for a, _ in SUITES.get("timeplt", []) if "--schedule" in a]
     disk = sorted(os.path.relpath(p, REPO) for p in
                   glob.glob(os.path.join(REPO, "games", "timeplt", "tapes", "*.poke.json")))
     ok = real == disk and len(disk) > 0
     bad += not ok
     print(f"  [{'ok ' if ok else 'BAD'}] SUITES[timeplt] distant entries == tapes on disk -> {ok}")
+    # Work-dir uniqueness: the real tapes' names are distinct, and the suite's own partition puts
+    # name AND layer in the path, so (tape, layer) -> dir is injective under the shared base.
+    names = []
+    for t in disk:
+        with open(os.path.join(REPO, t), encoding="utf-8") as fh:
+            names.append(json.load(fh).get("name"))
+    sys.path.insert(0, os.path.join(REPO, "games", "timeplt", "tools"))
+    try:
+        import distant_suite
+        base = "games/timeplt/out/distantwork"
+        dirs = {distant_suite.work_dir(base, n, layer)
+                for n in names for layer in ("idiomatic", "oracle")}
+        part = (len(dirs) == 2 * len(names)
+                and all(d.startswith(base + os.sep) for d in dirs)
+                and distant_suite.work_dir(base, "n", "l") == os.path.join(base, "n", "l"))
+    except Exception as e:  # noqa: BLE001 -- a broken import is itself a BAD
+        print(f"  distant_suite import failed: {e}")
+        part = False
+    finally:
+        sys.path.pop(0)
+    ok = len(set(names)) == len(names) and part
+    bad += not ok
+    print(f"  [{'ok ' if ok else 'BAD'}] distant work dirs: tape names distinct + suite partitions "
+          f"by name and layer -> {ok}")
     return bad
 
 
