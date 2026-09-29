@@ -87,3 +87,36 @@ disassembly present and complete, and all four ROM sha256s matching the manifest
 
 *Auditor: opus-r40-dkong-auditor-1. Method over recollection; every line above is a command re-run at HEAD
 `e7ac6edc`, not a trusted prior claim.*
+
+---
+
+## Correction — 2026-09-29
+
+**§3(c) above is false as written for the commits it was audited at (`3686b4d8`, `e7ac6edc`).** The
+"ORACLE-SERVED count: 0" probe counted only `m.call` dispatches. Translated code entered any other way was
+invisible to it, and the live idiomatic game did run translated code every frame:
+
+- `games/dkong/machine.js` `fireNmi` called translated `loc_0066` directly (no `idiomaticNmi` branch), so
+  translated `loc_0066` ran each frame, calling `loc_0087` (when 0x6007 is clear) and then `loc_00b5`, and
+  the idiomatic `serviceVblankNmi` / `perFrame` never ran;
+- `idiomatic/runAttractState.js` imported seven translated handlers (`loc_0763`, `loc_0779`, `loc_1977`,
+  `loc_084b`, `loc_07cb`, `loc_123c`, `loc_07c3`) although idiomatic equivalents existed;
+- `idiomatic/boot.js` ran translated `bootOnly` and `loc_0266`.
+
+Found by an independent gate measurement, confirmed by Jimmy-prime, and measured by
+`tools/translated_live_probe.mjs` (commit `09ecc730`), which counts ANY execution of `translated/` code in a
+live run on the shipped engine: 7 translated routines on the coin/start/play tape, 12 in attract.
+
+**Fixed in `e1bc8f41`:** `fireNmi` calls `serviceVblankNmi` directly under the idiomatic engine (no push, SP
+inert); the attract dispatcher and boot use their idiomatic routines; an SP drift in `loc_00ca` that the old
+per-frame SP reset had masked is fixed. After the fix the probe reads **0 translated routines** on the tape
+(3600 frames) and in attract (7200 frames); the dkong eq and whole-game suites, `pixel_suite` vs MAME (unchanged
+from before the fix), `move_suite`, `prize_suite` and `make trace/verify/stepcheck` pass; both changes were
+independently reviewed.
+
+What "0" means here: no translated routine executed on the paths these inputs drove. It is not a
+reachability proof.
+
+Open, not decided in this correction: the `idiomatic_gate` exemption for register writes after `return` was
+found too loose (it passes input seats before a call); dkong's count under the tightened rule is measured and
+with Jimmy-prime for decision.
