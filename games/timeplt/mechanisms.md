@@ -34,7 +34,7 @@ Power-on then passes through a chain of routines, each ending by jumping to the 
   - KILL_QUOTA 0xA9CD [seen] gets the byte at 0x0874 (56). This matches the 56 enemies per era in gameplay.md.
   - The coin bank DSW0 at 0xC360 is complemented, because every port is active-low, and stored in COINAGE_SETTINGS 0xA9B1 [seen]. `unpackCoinage` (0x4ACC) [seen] then turns it into the two coin ratios; see below.
   - From DSW1 at 0xC200, complemented, the low two bits give the lives: 3, 4 or 5. The fourth setting would be 6, but it is stored as 0xFF instead. gameplay.md reports this setting as "256". The code stores the all-ones byte. Each lost life takes one off it and the game ends when it reaches zero, so in code it plays as 255 lives (§9 keeps the on-screen behaviour open).
-  - `unpackTheFirstThreeSwitchSettings` (0x2E19) [seen] stores the lives in STARTING_LIVES 0xA9C1 [seen], bit 2 in COCKTAIL_MODE 0xA9C2 [seen] and bit 3 in BONUS_LIFE_SETTING 0xA9C3 [seen].
+  - `unpackTheFirstThreeSwitchSettings` (0x2E19) [seen] stores the lives in STARTING_LIVES 0xA9C1 [seen], bit 2 in UPRIGHT_CABINET 0xA9C2 [seen] and bit 3 in BONUS_LIFE_SETTING 0xA9C3 [seen].
   - `finishBootSelfTestAndColdStart` (0x49A8) [seen] stores bits 4–6 in DIFFICULTY_SETTING 0xA9C4 [seen] and bit 7 in DEMO_SOUNDS_ENABLE 0xA9C6 [seen].
 - **`finishBootSelfTestAndColdStart`** also sets FLIPSCREEN_LATCH 0xC302 from FLIPSCREEN_INIT_BYTE 0x0C3E (1). It then paints the power-on picture: `tileCharPlaneWithBoxLattice` (0x00B1) [seen] calls `stampGridBox` (0x00C7) [seen] 14 bands × 16 times. Each call stamps a 2×2 block of glyphs 86/131/199/239 into the character plane. The first block goes at 0xA440, two 32-cell rows into the plane, and each band covers two rows, so the 14 bands fill rows 2–29. The result is a lattice of boxes. Finally it sums 256 bytes at BOOT_SELFTEST_CHECKSUM_BASE 0x27DE against 0xC5.
 - **`petWatchdogThroughStartupDelayThenStartMachine` (0x32EB) [seen]** holds the machine still. It makes 12 passes of 256 watchdog kicks each, counting SEQUENCE_DELAY 0xA9EB [seen] down from 12 to 0 as it goes. The lattice stays on screen for this whole delay. Then it sends sound command 0 straight to the audio processor to quiet it.
@@ -65,7 +65,7 @@ The interrupt vector at 0x0066, `enterVblankInterrupt` [seen], jumps to 0x00D8, 
 
 1. **Publish the display.** `publishSpriteShadow` (0x0365) [seen] copies the sprite shadow in work RAM into the two hardware sprite banks. It transforms the bytes according to which way round the picture is. `drainBothDeferredCellLists` (0x5286) [seen] blanks the character cells painted last pass and paints the ones now pending.
 2. **Close the gate, kick the watchdog.** NMI_ENABLE_LATCH 0xC300 is set to 0, so a second vertical blank cannot land in the middle of this frame. WATCHDOG_RESET 0xC200 is written.
-3. **Settle the picture's orientation.** SCREEN_UNFLIPPED 0xA987 [seen] is cleared only when ACTIVE_PLAYER 0xAD32 [seen] is non-zero and COCKTAIL_MODE [seen] is zero. Otherwise it is set to 1, and FLIPSCREEN_LATCH 0xC302 [seen] is driven from it. ★ COCKTAIL_MODE holds the *complemented* switch bit. On the upright setting, switch 0x04 is clear, so the cell reads 1. Despite the name, zero in this cell means a cocktail cabinet. The only case that turns the picture round is player two's turn on a cocktail table.
+3. **Settle the picture's orientation.** SCREEN_UNFLIPPED 0xA987 [seen] is cleared only when ACTIVE_PLAYER 0xAD32 [seen] is non-zero and UPRIGHT_CABINET [seen] is zero. Otherwise it is set to 1, and FLIPSCREEN_LATCH 0xC302 [seen] is driven from it. ★ UPRIGHT_CABINET holds the *complemented* switch bit. On the upright setting, switch 0x04 is clear, so the cell reads 1, and zero in this cell means a cocktail cabinet. The only case that turns the picture round is player two's turn on a cocktail table.
 4. **Latch the ports.** Five ports are read, complemented (all are active-low) and stored:
 
    | Port | Mirror cell |
@@ -513,7 +513,7 @@ The switch bank at DSW1_PORT 0xC200 (the read side of the watchdog address) is r
 | Bits | Cell | Meaning |
 |---|---|---|
 | 0–1 | STARTING_LIVES 0xA9C1 [seen] | 3, 4 or 5 lives; the fourth setting would compute 6 and is stored as 0xFF instead, which is 255 lives (gameplay.md's manual says 256) |
-| 2 | COCKTAIL_MODE 0xA9C2 [seen] | the frame service turns the screen round for player two only when this cell reads 0 |
+| 2 | UPRIGHT_CABINET 0xA9C2 [seen] | the frame service turns the screen round for player two only when this cell reads 0 |
 | 3 | BONUS_LIFE_SETTING 0xA9C3 [seen] | chooses the bonus-mark list and the pair of bonus captions the attract screen shows |
 | 4–6 | DIFFICULTY_SETTING 0xA9C4 [seen] | 0–7, in the order MAME labels 1 (Easiest) to 8 (Difficult) |
 | 7 | DEMO_SOUNDS_ENABLE 0xA9C6 [seen] | enqueueSoundIfGameOrAttract [seen] drops a sound request unless this is set or a game is in play |
@@ -761,7 +761,7 @@ After that, once per dispatch of the round engine, escalateDifficultyRungOnCount
 At power-on, seedGameConfigFromDipSwitches [seen] complements DSW1 (0xC200) and splits it up:
 
 - Bits 0–1 give lives 3, 4 or 5; the fourth setting is stored as 0xFF. This goes into STARTING_LIVES 0xA9C1 [seen].
-- Bit 2 goes into COCKTAIL_MODE 0xA9C2 [seen].
+- Bit 2 goes into UPRIGHT_CABINET 0xA9C2 [seen].
 - Bit 3 goes into BONUS_LIFE_SETTING 0xA9C3 [seen]. These three are handled by unpackTheFirstThreeSwitchSettings [seen].
 - Bits 4–6 go into DIFFICULTY_SETTING 0xA9C4 [seen], where 0 is the easiest.
 - Bit 7 goes into DEMO_SOUNDS_ENABLE 0xA9C6 [seen]. These last two are handled by finishBootSelfTestAndColdStart [seen].
@@ -787,7 +787,7 @@ The attract demo ignores the switch. It loads record 2 directly, and it cycles A
 
 ### Cabinet and flip
 
-Every frame, serviceVerticalBlankInterrupt recomputes SCREEN_UNFLIPPED 0xA987 [seen]. It is 1 unless ACTIVE_PLAYER 0xAD32 [seen] is non-zero (player two) *and* COCKTAIL_MODE reads zero, in which case it is 0. The service copies the value to FLIPSCREEN_LATCH 0xC302. Three readers use it:
+Every frame, serviceVerticalBlankInterrupt recomputes SCREEN_UNFLIPPED 0xA987 [seen]. It is 1 unless ACTIVE_PLAYER 0xAD32 [seen] is non-zero (player two) *and* UPRIGHT_CABINET reads zero, in which case it is 0. The service copies the value to FLIPSCREEN_LATCH 0xC302. Three readers use it:
 
 - publishSpriteShadow [seen] selects a turned-round set of byte transforms when it copies the sprite shadow to the two hardware banks.
 - readPlayerControls [seen] returns IN2_MIRROR 0xA9B0 [seen] (the second, cocktail panel) instead of IN1_MIRROR 0xA9AF [seen].
@@ -795,7 +795,7 @@ Every frame, serviceVerticalBlankInterrupt recomputes SCREEN_UNFLIPPED 0xA987 [s
 
 The two panels use the same bit layout. Because the picture is turned round along with the panel, the heading table STICK_HEADING_TABLE 0x1F2E serves both players unchanged.
 
-The name COCKTAIL_MODE is misleading. The flip happens when that cell is **zero**, and SCREEN_UNFLIPPED only reads 0 on a cocktail cabinet with player two up. So the cell holds 0 on a cocktail cabinet and 1 on an upright. Read it as "cabinet type, 1 = upright", not "cocktail enabled" [seen]. Under MAME the boot write at 0x2E22 stores 01 on an upright run and 00 with the cabinet switch set to cocktail, and on the cocktail run FLIPSCREEN_LATCH 0xC302 [seen] is written 00 at 0x0109 on player two's turns and 01 on player one's, the player-two value coming from the 0x0103 write of SCREEN_UNFLIPPED.
+UPRIGHT_CABINET is named for the value it holds. The flip happens when that cell is **zero**, and SCREEN_UNFLIPPED only reads 0 on a cocktail cabinet with player two up. So the cell holds 0 on a cocktail cabinet and 1 on an upright: "cabinet type, 1 = upright" [seen]. Under MAME the boot write at 0x2E22 stores 01 on an upright run and 00 with the cabinet switch set to cocktail, and on the cocktail run FLIPSCREEN_LATCH 0xC302 [seen] is written 00 at 0x0109 on player two's turns and 01 on player one's, the player-two value coming from the 0x0103 write of SCREEN_UNFLIPPED.
 
 ### Fixed ROM tables the world reads
 
@@ -1608,7 +1608,6 @@ These are the questions the routines do not settle on their own, grouped by the 
 
 ### The frame and the sequence
 
-- COCKTAIL_MODE (0xA9C2) polarity is observed under MAME: an upright run writes 01 at 0x2E22 and a run with the cabinet switch set to cocktail writes 00, and the frame service turns the screen round for player two only when the cell reads 0. So the cell reads 0 on a cocktail cabinet and 1 on an upright, the opposite of what its name says; the rename is still open.
 - The starting-lives setting that folds to 6 is stored in STARTING_LIVES as 0xFF, where gameplay.md says '256'. In code each lost life takes one off LIVES_REMAINING and the game ends at zero, so 0xFF plays as 255 lives, except that a bonus life awarded while the byte reads 0xFF adds one and wraps it to 0. Neither has been watched in play, and nor has how the lives HUD shows the count beyond the six-emblem clamp. A MAME run on that setting, losing lives and watching LIVES_REMAINING and the emblem strip, would close both.
 - DIP1_MIRROR (0xA9AD) is re-latched every frame and nothing uses it. Across every MAME full-span read-tap capture, the only read of 0xA9AD is the power-on wipe's ldir at 0x0091. What remains open is only whether a path none of the captures ran, such as the service switch held at boot, reads it. A read tap on such a run would close it.
 - COINAGE_SETTINGS is refreshed every frame, but the coin ratios are unpacked only at power-on. So a coinage switch changed while the machine runs should have no effect until reset. This is a code reading. Changing the switch mid-run under MAME and inserting coins would confirm it.

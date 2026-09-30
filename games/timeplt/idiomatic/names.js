@@ -101,7 +101,7 @@ export const COIN_SLOT_2_ACCUMULATOR = 0xa9cb; // slot-2 accumulator (+0x10/coin
 
 // ── DSW1 gameplay config, unpacked bit-by-bit at boot (the coinage half is COINAGE_SETTINGS above).
 export const STARTING_LIVES = 0xa9c1; // lives per game (3/4/5/0xff), loaded into PLAYER_ONE/TWO_LIVES at start [seen]
-export const COCKTAIL_MODE = 0xa9c2; // cabinet type from DSW1 'Cabinet' (bit 2), seeded at 0x2E22: 1 = upright (MAME default), 0 = cocktail; the frame service turns the screen round for player two only when it reads 0 [seen]
+export const UPRIGHT_CABINET = 0xa9c2; // cabinet type from DSW1 'Cabinet' (bit 2), seeded at 0x2E22: 1 = upright (MAME default), 0 = cocktail; the frame service turns the screen round for player two only when it reads 0 [seen]
 export const BONUS_LIFE_SETTING = 0xa9c3; // selects the bonus-life mark list + the attract bonus captions [seen]
 export const DEMO_SOUNDS_ENABLE = 0xa9c6; // attract-sound gate: a queued request is dropped unless set or a game is active [seen]
 
@@ -399,7 +399,7 @@ export const TAMPER_GLYPH_COPY = 0xab43;
  * Whether the picture is the right way up for whoever is playing: 1 upright, 0 turned round. [seen]
  *
  * The vblank service rewrites it every frame -- 1 unconditionally, then 0 only when the active-player
- * cell is non-zero (player two's turn) AND the cabinet cell COCKTAIL_MODE reads zero (cocktail) --
+ * cell is non-zero (player two's turn) AND the cabinet cell UPRIGHT_CABINET reads zero (cocktail) --
  * and hands it straight to the LS259 bit the board reports as flip-screen. Every reader reads it as
  * orientation: the sprite publish chooses between its upright and turned-round transform sets, the
  * control reader chooses which cabinet panel to hand back, and floodColourPlaneWithSavedPlayerColour
@@ -3956,7 +3956,7 @@ export const ROUTINES = {
   },
   0x00d9: {
     name: "serviceVerticalBlankInterrupt",
-    role: "the vertical-blank service body, entered by falling through from the one-byte `push af` at 0x00D8 (saveAccumulatorForFrameInterrupt): publish the sprite shadow and drain the deferred cell lists, close the interrupt gate (0xC300 <- 0) and kick the watchdog (0xC200), set SCREEN_UNFLIPPED and the flip-screen latch 0xC302 from ACTIVE_PLAYER and COCKTAIL_MODE, latch the five complemented input/DIP ports into DIP1_MIRROR, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR and COINAGE_SETTINGS, step FRAME_TICK and the packed-decimal BCD_FRAME_COUNTER, take BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER and ATTACKER_SPAWN_COOLDOWN one step toward zero, service the coin inputs, then run the arm of the four-word table at 0x015F (0x15C2 / 0x1651 / 0x17FE / 0x0F1F) that the low two bits of SEQUENCE_PHASE select, with the epilogue 0x0174 pushed as its return so the frame closes there",
+    role: "the vertical-blank service body, entered by falling through from the one-byte `push af` at 0x00D8 (saveAccumulatorForFrameInterrupt): publish the sprite shadow and drain the deferred cell lists, close the interrupt gate (0xC300 <- 0) and kick the watchdog (0xC200), set SCREEN_UNFLIPPED and the flip-screen latch 0xC302 from ACTIVE_PLAYER and UPRIGHT_CABINET, latch the five complemented input/DIP ports into DIP1_MIRROR, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR and COINAGE_SETTINGS, step FRAME_TICK and the packed-decimal BCD_FRAME_COUNTER, take BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER and ATTACKER_SPAWN_COOLDOWN one step toward zero, service the coin inputs, then run the arm of the four-word table at 0x015F (0x15C2 / 0x1651 / 0x17FE / 0x0F1F) that the low two bits of SEQUENCE_PHASE select, with the epilogue 0x0174 pushed as its return so the frame closes there",
     cert: "seen",
     why: "each clause is a write or a transfer made from inside 0x00D9-0x015E, and each was watched under MAME in five captures (attract, driven play, the boss-armed tape and two Mother-Ship kill runs): once per frame the body writes 0x00 to 0xC300 (pc 0x00ED) and to 0xC200 (0x00F0), SCREEN_UNFLIPPED (0x00F4) and 0xC302 (0x0109), the five port mirrors 0xA9AD-0xA9B1 (0x0110-0x012C; the IN0 mirror 0xA9AE stays 0 through undriven attract and takes nonzero values in driven play), FRAME_TICK through every byte value (0x0132) and BCD_FRAME_COUNTER in packed-decimal steps (0x0139); the three countdowns are written only while nonzero (0x0141, 0x0149, 0x0151). The body is fetched exactly as often as the epilogue 0x0174 in every capture, and all four arms of the table were fetched -- 0x15C2 (the boot wipe), 0x1651 (attract), 0x17FE (the credit state) and 0x0F1F (the round engine). It is an entry of its own, not a stretch of 0x00D8: `jp nz,0x00d9` at 0x08C4 (erasePenRouteThenOpenInitialsEntry's tamper arm) transfers to it directly",
   },

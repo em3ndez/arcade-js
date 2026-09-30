@@ -76,7 +76,7 @@ whose role is only partly pinned, carry a terse caveat.
 | a9b3 | commandReadCursor | The command ring's CONSUMER cursor: which cell the foreground loop reads next. |
 | a9c0 | freePlay | Set while the cabinet is on free play, so a coin never has to buy a credit. |
 | a9c1 | startingLives | lives per game (3/4/5/0xff), loaded into PLAYER_ONE/TWO_LIVES at start |
-| a9c2 | cocktailMode | cabinet type; gates screen flip (exact polarity MAME-pending) |
+| a9c2 | uprightCabinet | cabinet type from DSW1 'Cabinet' (bit 2), seeded at 0x2E22: 1 = upright (MAME default), 0 = cocktail; the frame service turns the screen round for player two only when it reads 0 |
 | a9c3 | bonusLifeSetting | selects the bonus-life mark list + the attract bonus captions |
 | a9c4 | difficultySetting | Which of the eight Difficulty DIP positions the cabinet is set to, 0-7. |
 | a9c6 | demoSoundsEnable | attract-sound gate: a queued request is dropped unless set or a game is active |

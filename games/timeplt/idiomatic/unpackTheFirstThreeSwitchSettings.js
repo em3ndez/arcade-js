@@ -12,7 +12,7 @@
  * [seen], which it jumps into, takes bits 4-7. Between the three of them every bit of the bank lands
  * in a cell:
  *   bits 0-1 -> STARTING_LIVES (0xA9C1) [code]      (here, as the caller's count)
- *   bit 2    -> COCKTAIL_MODE (0xA9C2) [code]       (here)
+ *   bit 2    -> UPRIGHT_CABINET (0xA9C2) [code]       (here)
  *   bit 3    -> BONUS_LIFE_SETTING (0xA9C3) [code]  (here)
  *   bits 4-6 -> DIFFICULTY_SETTING, bit 7 -> DEMO_SOUNDS_ENABLE (the continuation)
  *
@@ -25,13 +25,13 @@
 
 import { u8 } from "../../../core/int.js";
 import { finishBootSelfTestAndColdStart } from "./finishBootSelfTestAndColdStart.js";
-import { BONUS_LIFE_SETTING, COCKTAIL_MODE, STARTING_LIVES } from "./names.js";
+import { BONUS_LIFE_SETTING, UPRIGHT_CABINET, STARTING_LIVES } from "./names.js";
 
 // The two single-bit settings this routine peels, in the order the ROM takes them: two `rrca`s bring
-// bit 2 to the bottom for COCKTAIL_MODE (0x2E1D-0x2E25), one more brings bit 3 down for
+// bit 2 to the bottom for UPRIGHT_CABINET (0x2E1D-0x2E25), one more brings bit 3 down for
 // BONUS_LIFE_SETTING (0x2E26-0x2E2D); each is masked with `and 0x01`, one bit per cell and nothing else.
 const SINGLE_BIT_CELLS = [
-  { cell: COCKTAIL_MODE, bit: 2 },
+  { cell: UPRIGHT_CABINET, bit: 2 },
   { cell: BONUS_LIFE_SETTING, bit: 3 },
 ];
 // Bit 3 is the last bit spent; the byte goes on rotated right by that many places.

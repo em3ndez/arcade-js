@@ -29,7 +29,7 @@ import { dispatchSequencePhase1SubStepArm } from "./dispatchSequencePhase1SubSte
 import { dispatchSequencePhase2SubStepArm } from "./dispatchSequencePhase2SubStepArm.js";
 import { dispatchSequenceSubStepArm } from "./dispatchSequenceSubStepArm.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
-import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, COINAGE_SETTINGS, DIP1_MIRROR, FRAME_TICK, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, SCREEN_UNFLIPPED, SEQUENCE_PHASE, WAVE_CLAIM_TIMER, WATCHDOG_RESET, DSW1_PORT, NMI_ENABLE_LATCH, IN0_PORT, FLIPSCREEN_LATCH, IN1_PORT, IN2_PORT, DSW0_PORT } from "./names.js";
+import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, UPRIGHT_CABINET, COINAGE_SETTINGS, DIP1_MIRROR, FRAME_TICK, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, SCREEN_UNFLIPPED, SEQUENCE_PHASE, WAVE_CLAIM_TIMER, WATCHDOG_RESET, DSW1_PORT, NMI_ENABLE_LATCH, IN0_PORT, FLIPSCREEN_LATCH, IN1_PORT, IN2_PORT, DSW0_PORT } from "./names.js";
 
 // The three countdowns, in the ROM's order (0xA817, 0xA812, 0xA8F4): each is taken one step toward
 // zero per frame and stops there.
@@ -68,11 +68,11 @@ export function serviceVerticalBlankInterrupt(m) {
   mem8[NMI_ENABLE_LATCH] = 0;
   mem8[WATCHDOG_RESET] = 0;
   // 3. Settle the picture's orientation. The only case that turns the picture round is player
-  //    two's turn (ACTIVE_PLAYER nonzero) on a cocktail table (COCKTAIL_MODE zero -- the cell holds
+  //    two's turn (ACTIVE_PLAYER nonzero) on a cocktail table (UPRIGHT_CABINET zero -- the cell holds
   //    the complemented switch, so zero means cocktail; see mechanisms.md). The cell then drives
   //    latch line 1, the flip-screen line (0xC302).
   // Cleared only when the primary gate is armed while the secondary one reads clear.
-  mem8[SCREEN_UNFLIPPED] = mem8[ACTIVE_PLAYER] !== 0 && mem8[COCKTAIL_MODE] === 0 ? 0 : 1;
+  mem8[SCREEN_UNFLIPPED] = mem8[ACTIVE_PLAYER] !== 0 && mem8[UPRIGHT_CABINET] === 0 ? 0 : 1;
   mem8[FLIPSCREEN_LATCH] = mem8[SCREEN_UNFLIPPED];
 
   // 4. Latch the five input/DIP ports into work-RAM mirrors, complemented (`cpl`): the switches and

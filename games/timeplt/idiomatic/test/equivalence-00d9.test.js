@@ -58,7 +58,7 @@ import { dispatchSequenceSubStepArm } from "../dispatchSequenceSubStepArm.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "../sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
 import {
   ROUTINES, SEQUENCE_PHASE, SEQUENCE_PHASE_ARM_TABLE, BCD_FRAME_COUNTER, FRAME_TICK, ACTIVE_PLAYER,
-  COCKTAIL_MODE, SCREEN_UNFLIPPED, FLIPSCREEN_LATCH, DIP1_MIRROR, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR,
+  UPRIGHT_CABINET, SCREEN_UNFLIPPED, FLIPSCREEN_LATCH, DIP1_MIRROR, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR,
   COINAGE_SETTINGS, DSW1_PORT, IN0_PORT, IN1_PORT, IN2_PORT, DSW0_PORT, NMI_ENABLE_LATCH, WATCHDOG_RESET,
   BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER, ATTACKER_SPAWN_COOLDOWN,
 } from "../names.js";
@@ -93,7 +93,7 @@ function build({
     drainBothDeferredCellLists(m);
     mem8[NMI_ENABLE_LATCH] = 0;
     mem8[WATCHDOG_RESET] = 0;
-    mem8[SCREEN_UNFLIPPED] = gate && mem8[ACTIVE_PLAYER] !== 0 && mem8[COCKTAIL_MODE] === 0 ? 0 : 1;
+    mem8[SCREEN_UNFLIPPED] = gate && mem8[ACTIVE_PLAYER] !== 0 && mem8[UPRIGHT_CABINET] === 0 ? 0 : 1;
     mem8[FLIPSCREEN_LATCH] = mem8[SCREEN_UNFLIPPED];
     mem8[DIP1_MIRROR] = mem8[DSW1_PORT] ^ invert;
     mem8[IN0_MIRROR] = mem8[IN0_PORT] ^ invert;
@@ -226,11 +226,11 @@ test("BCD: the carry-in is measured, the pure step is exhaustive, and the servic
 function gateCrafts() {
   const out = [];
   for (const player of [0, 1]) {
-    for (const cocktail of [0, 1]) {
+    for (const upright of [0, 1]) {
       const e = corpus()[0].clone();
       e.mem8[ACTIVE_PLAYER] = player;
-      e.mem8[COCKTAIL_MODE] = cocktail;
-      out.push([`player=${player} cocktail=${cocktail}`, e]);
+      e.mem8[UPRIGHT_CABINET] = upright;
+      out.push([`player=${player} upright=${upright}`, e]);
     }
   }
   return out;
