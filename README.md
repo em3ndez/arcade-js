@@ -49,52 +49,52 @@ explanation:
 And this is what comes back out — same behaviour, proven memory-equivalent to a faithful
 instruction-for-instruction translation of those bytes, and now saying what it is *for*:
 
+<!-- BEGIN GENERATED: listing games/thepit/idiomatic/glitterJewels.js -->
 ```js
 /**
- * glitterJewels — cycle the colour of the on-screen diamond cells so they glitter:
- * each frame advance one diamond cell's colour attribute through the palette; a diamond
- * that has been collected drops out of the set and holds a fixed colour.  ROM 0x06ac.
+ * glitterJewels — cycle the colour of the on-screen diamond cells so they glitter: each frame
+ * advance one diamond cell's colour attribute through the palette; a collected diamond drops out
+ * of the set and holds a fixed colour.
  *
- * A free-running countdown at GLITTER_COUNTDOWN (0x805c) runs 8 → 7 → ... → 1 and reloads to 8 when it
- * reaches 0, so it repeats on a fixed eight-frame period. Each value it passes
- * through names one fixed screen cell — a colour-RAM byte paired with the video-RAM
- * byte that holds the glyph currently shown at that cell. For that one cell:
- *   - if the shown glyph is the cell's "animating" glyph, its colour attribute
- *     steps to the next of eight shades — the running colour flash;
- *   - otherwise the cell is pinned to its resting colour (3 or 7).
- * The value-4 step and the wrap-through-0 both land on the same cell, so seven
- * distinct cells share the eight-frame cycle. Any countdown value outside 2..7
- * falls to the value-1 cell.
- *
- * Called once per main-loop pass (mainLoop) as a decorative recolour; it takes no
- * caller input beyond the countdown and screen bytes it reads, and returns nothing.
- *
- * Memory-equivalent to the frozen oracle — equivalence-06ac.test.js.
- * GATE:     crafted-entry — real captured main-loop dispatches (the countdown at
- *           its natural values) plus a crafted sweep over every countdown value and
- *           both recolour branches (glyph animating vs resting), with the colour
- *           seeded to cross the eight-shade wrap. Teeth on the sweep.
- * LIVE-OUT: memory-only — the caller overwrites every register this leaves before
- *           reading it, so nothing is live out; SP/pc are the modelled return the
- *           direct-call layer drops.
- * NAMES:    GLITTER_COUNTDOWN (0x805c) from names.js is the countdown work-RAM byte; the
- *           cell targets are colour/video RAM outside names.js's work-RAM map and stay hex.
+ * A free-running countdown at GLITTER_COUNTDOWN runs 8 → 7 → ... → 1 and reloads to 8 when it
+ * reaches 0, so it repeats on a fixed eight-frame period. Each value it passes through names one
+ * fixed screen cell — a colour byte paired with the video byte holding the glyph shown there. If
+ * that glyph is the cell's "animating" glyph, its colour attribute steps to the next of eight
+ * shades (the running flash); otherwise the cell is pinned to its resting colour. The value-4 step
+ * and the wrap-through-0 land on the same cell, so seven distinct cells share the cycle; any value
+ * outside 2..7 falls to the value-1 cell. Called once per main-loop pass as a decorative recolour.
  */
 
-import { GLITTER_COUNTDOWN } from "./names.js";
+import {
+  GLITTER_COUNTDOWN,
+  JEWEL_GLITTER_TILE_1,
+  JEWEL_GLITTER_TILE_2,
+  JEWEL_GLITTER_TILE_4,
+  JEWEL_GLITTER_TILE_3,
+  JEWEL_GLITTER_TILE_5,
+  JEWEL_GLITTER_TILE_6,
+  JEWEL_GLITTER_TILE_7,
+  JEWEL_GLITTER_COLOUR_5,
+  JEWEL_GLITTER_COLOUR_6,
+  JEWEL_GLITTER_COLOUR_7,
+  JEWEL_GLITTER_COLOUR_1,
+  JEWEL_GLITTER_COLOUR_2,
+  JEWEL_GLITTER_COLOUR_3,
+  JEWEL_GLITTER_COLOUR_4,
+} from "./names.js";
 
 // Countdown value → the cell it recolours:
 //   [ colour-RAM cell (written), video-RAM cell (read), animating glyph, resting colour ]
 const CELLS = {
-  7: [0x8873, 0x9073, 0x3a, 7],
-  6: [0x895d, 0x915d, 0x3b, 3],
-  5: [0x88d9, 0x90d9, 0x3a, 7],
-  4: [0x89fd, 0x91fd, 0x3c, 3],
-  3: [0x89b6, 0x91b6, 0x3a, 7],
-  2: [0x8a7d, 0x927d, 0x3d, 3],
+  7: [JEWEL_GLITTER_COLOUR_7, JEWEL_GLITTER_TILE_7, 0x3a, 7],
+  6: [JEWEL_GLITTER_COLOUR_6, JEWEL_GLITTER_TILE_6, 0x3b, 3],
+  5: [JEWEL_GLITTER_COLOUR_5, JEWEL_GLITTER_TILE_5, 0x3a, 7],
+  4: [JEWEL_GLITTER_COLOUR_4, JEWEL_GLITTER_TILE_4, 0x3c, 3],
+  3: [JEWEL_GLITTER_COLOUR_3, JEWEL_GLITTER_TILE_3, 0x3a, 7],
+  2: [JEWEL_GLITTER_COLOUR_2, JEWEL_GLITTER_TILE_2, 0x3d, 3],
 };
 // Countdown value 1, and any stray value outside 2..7.
-const CELL_DEFAULT = [0x8b3a, 0x933a, 0x3a, 7];
+const CELL_DEFAULT = [JEWEL_GLITTER_COLOUR_1, JEWEL_GLITTER_TILE_1, 0x3a, 7];
 
 function recolorCell(m, colourCell, tileCell, animatingGlyph, restingColor) {
   const { mem8 } = m;
@@ -125,6 +125,7 @@ export function glitterJewels(m) {
   recolorCell(m, ...(CELLS[countdown] ?? CELL_DEFAULT));
 }
 ```
+<!-- END GENERATED -->
 
 *`games/thepit/idiomatic/glitterJewels.js`, complete, with only the SPDX licence header removed.*
 
@@ -135,9 +136,8 @@ screen, and that a collected one drops out of the cycle and holds still, is a fi
 in the machine code for it to live.
 
 Every such routine keeps a gate proving it memory-equivalent to the faithful translation, so
-readability is never bought with correctness. That decompilation sweep is **complete for Frogger**,
-whose layer is fully idiomatic; **Pooyan** is the port in progress, and the earlier games were done
-under earlier iterations of the method.
+readability is never bought with correctness. Where each game stands in that sweep is in the
+[status table](#games) below.
 
 Alongside the code, the game's **mechanics** are written up in the same way: *grounded by playing it
 in MAME*, not guessed from the source. The same oracle does double duty — a **gate** that proves the
@@ -159,6 +159,25 @@ what the tooling had to do about them — is written up in
 > **Status — Donkey Kong:** plays. All four boards, natural board-to-board progression, and the
 > level loop all work — finish 100m and it wraps back to 25m at the next level, indefinitely —
 > and the rendering is pixel-validated frame-by-frame against MAME 0.288.
+
+## Games
+
+Generated from `games/registry.js`, each game's `manifest.js` and its `DONE.md` by
+`node tools/gen_readme.mjs --write`; `npm test` fails when it is stale.
+
+<!-- BEGIN GENERATED: game status -->
+| Game | Board (MAME machine config) | CPU | Runtime | Idiomatic layer complete (`idiomaticComplete`) | Done audit |
+|---|---|---|---|---|---|
+| [Donkey Kong](games/dkong/) | `dkong` | z80 | idiomatic | not declared | [DONE.md](games/dkong/DONE.md) |
+| [The Pit](games/thepit/) | `thepit` | z80 | idiomatic | not declared | [DONE.md](games/thepit/DONE.md) |
+| [Frogger](games/frogger/) | `frogger` | z80 | idiomatic | yes | [DONE.md](games/frogger/DONE.md) |
+| [Time Pilot](games/timeplt/) | `timeplt` | z80 | idiomatic | yes | — |
+| [Pooyan](games/pooyan/) | `pooyan` | z80 | idiomatic | yes | [DONE.md](games/pooyan/DONE.md) |
+| [Space Invaders](games/invaders/) | `invaders` | 8080 | idiomatic | yes | [DONE.md](games/invaders/DONE.md) |
+| [Galaxian](games/galaxian/) | `galaxian` | z80 | idiomatic | yes | [DONE.md](games/galaxian/DONE.md) |
+| [Centipede](games/centiped/) | `centiped` | 6502 | idiomatic | yes | [DONE.md](games/centiped/DONE.md) |
+| [Tempest](games/tempest/) | `tempest` | 6502 | idiomatic | yes | [DONE.md](games/tempest/DONE.md) |
+<!-- END GENERATED -->
 
 ## What's here (and what isn't)
 
@@ -202,8 +221,9 @@ at 2× speed; over this 35-second run the largest single-frame difference is 0.1
   Movement 6/6 and bonus-item 9/9 scenarios pass across all four board types. Those scenarios
   poke the board state to start on a given board, which keeps each one short and deterministic
   — that's a property of the fixtures, not a limit of the game, which progresses on its own.
-- **Decoder cross-check.** Our Z80 decoder is checked against `z80dasm` over the whole ROM:
-  6411 instruction boundaries, zero disagreements in either direction (`make verify`).
+- **Decoder cross-check.** Our Z80 decoder is checked against `z80dasm` over the code the
+  tracer decodes in Donkey Kong's ROM: 6411 instruction boundaries,
+  zero disagreements in either direction (`make verify`).
 - **Step audit.** Every `m.step()` target in the translation is verified to land on a real
   instruction boundary (`make stepcheck`). The static tracer reaches ~82% of the ROM, and a
   target it never decoded is reported as **unresolved rather than excused** — either the step is
@@ -221,6 +241,8 @@ at 2× speed; over this 35-second run the largest single-frame difference is 0.1
 ```
 core/                 game-agnostic engine
   cpu/z80.js          the Z80 processor        (any Z80 game reuses this)
+  cpu/8080.js         the Intel 8080 processor
+  cpu/6502.js         the MOS 6502 processor
   cpu/test/           unit tests for the CPU core
   audio.js            sample-player abstraction (audio lives ABOVE emulation)
 boards/               arcade hardware, named by MAME driver (a "board")
@@ -228,8 +250,8 @@ boards/               arcade hardware, named by MAME driver (a "board")
   dkong/hardware.json the same, as JSON: the single source the shared Python gate
                       tools read via --hardware, instead of hardcoding DK addresses
   dkong/test/         unit tests for the board
-games/                one directory per romset (dkong, thepit, timeplt, frogger, pooyan)
-  dkong/
+games/                one directory per romset, listed in games/registry.js (status: see Games above)
+  dkong/              for example:
     manifest.js       declares its cpu + board + rom set + inputs + metadata
     translated/       the assembly-JS translation of the ROM (the frozen oracle)
     idiomatic/        readable-JS rewrites, each gated memory-equivalent to the oracle
@@ -239,10 +261,6 @@ games/                one directory per romset (dkong, thepit, timeplt, frogger,
     test/             unit + integration tests for the translation
     entrypoints.json  disassembly entry points (folded into the trace)
     tools/            per-game gate runners (emit.js · move_suite.py · prize_suite.py)
-  thepit/             the second game — same shape; its mechanisms.md maps the game
-  timeplt/            same shape — an earlier-method port (translated)
-  frogger/            same shape; its idiomatic layer is complete
-  pooyan/             same shape; the port currently in progress
 web/                  browser front-end: pick a game and play it
 tools/                disassembler · tracer · MAME golden capture · pixel/state diff ·
                        gate runner (verdict.sh) — shared, game-agnostic
@@ -253,9 +271,14 @@ Tests are colocated with the code they test (`core/**/test/`, `boards/**/test/`,
 `games/**/test/` — see `npm test`'s glob), not in a separate top-level `test/`.
 
 The three layers — **CPU**, **board**, **game** — are independent axes. A game's
-`manifest.js` names its CPU (`z80`) and board (`dkong`); the machine assembles
-CPU + board + translated ROM. Frogger, for example, would reuse `core/cpu/z80.js` on a
-future `boards/galaxian/`. A board is named for the **MAME machine config** it implements —
+`manifest.js` names its CPU and board: Donkey Kong and Frogger, for example, both name `z80` and
+share `core/cpu/z80.js`, but each names its own board (`dkong`, `frogger`). The game's `machine.js`
+wires that board's memory map and I/O to the ROM images and to the routine layer the manifest's
+`runtime` selects: `"idiomatic"` (the Runtime column above) dispatches every routine listed in
+`idiomatic/names.js` to its readable rewrite, while the faithful `translated/` layer stays as the
+frozen oracle each rewrite is gated memory-equivalent against — and is what runs, on the
+cycle-driven engine, when `runtime` is absent.
+A board is named for the **MAME machine config** it implements —
 usually identical to the driver file (`dkong`), but not always: The Pit runs the `thepit` config
 *inside* MAME's `taito/roundup.cpp` family file, so it lives at `boards/thepit/` while its hardware
 is cited from `roundup.cpp`. The manifest also declares an `inputs` block (ports, actions,
