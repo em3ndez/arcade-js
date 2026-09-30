@@ -17,7 +17,7 @@ import { steerEnemyTowardShip as candidate } from "../steerEnemyTowardShip.js";
 import { loc_29f7 as oracle } from "../../translated/loc_29f7.js";
 import { steerTowardAimHeading } from "../steerTowardAimHeading.js";
 import { loc_58aa } from "../loc_58aa.js";
-import { loc_5860 } from "../loc_5860.js";
+import { flyAtSecondFastestSpeed } from "../flyAtSecondFastestSpeed.js";
 import { ERA_INDEX, FRAME_TICK } from "../names.js";
 
 const TARGET = 0x29f7;
@@ -127,7 +127,7 @@ const within = (m) => {
   const probe = m.mem8[m.regs.iy + PROBE];
   return [120, 132].some((ref) => ((ref - probe + 72) & 0xff) < 144);
 };
-const chooseTail = (m) => (((m.mem8[FRAME_TICK] >> 1) & 1) === 0 ? loc_58aa(m) : loc_5860(m));
+const chooseTail = (m) => (((m.mem8[FRAME_TICK] >> 1) & 1) === 0 ? loc_58aa(m) : flyAtSecondFastestSpeed(m));
 
 /** BUG: does nothing. */
 function brokenNoOp() {}
@@ -143,7 +143,7 @@ function brokenWrongTail(m) {
     steerTowardAimHeading(m);
     m.mem8[ERA_INDEX] = 4;
   } else steerTowardAimHeading(m);
-  return ((m.mem8[FRAME_TICK] >> 1) & 1) === 0 ? loc_5860(m) : loc_58aa(m);
+  return ((m.mem8[FRAME_TICK] >> 1) & 1) === 0 ? flyAtSecondFastestSpeed(m) : loc_58aa(m);
 }
 /** BUG: forces the rate index low for the turn but never reseats it to four. */
 function brokenNoReseat(m) {

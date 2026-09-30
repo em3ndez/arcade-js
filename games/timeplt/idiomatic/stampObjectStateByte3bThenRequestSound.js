@@ -3,12 +3,12 @@
  * it. The stamp is unconditional: nothing here reads the byte first, and nothing chooses between
  * two outcomes. LIVE-OUT: memory. */
 
-import { loc_568e } from "./loc_568e.js";
+import { requestObjectState3bSound } from "./requestObjectState3bSound.js";
 
 const STATE = 0;
 const STAMPED_STATE = 59;
 
 export function stampObjectStateByte3bThenRequestSound(m, object = m.regs.ix) {
   m.mem8[object + STATE] = STAMPED_STATE;
-  loc_568e(m);
+  requestObjectState3bSound(m);
 }

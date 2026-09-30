@@ -766,7 +766,9 @@ shows only stage A (the renames + the map) and silently omits stage B.
   re-verify each threaded claim against code, staged in the same commit — this satisfies
   `understanding_gate` CHECK A (mechanisms.md is staged) without a destructive regen. A routine RENAME,
   or ANY role/behaviour change, still takes the whole regen above: the ripple through the narrative is
-  real there, so the blind re-derivation earns its cost. (Codified 2026-09-18 on the thepit RAM-naming
+  real there, so the blind re-derivation earns its cost. The one exempt rename is a value-identical rename
+  made in the cleanup sweep (roles unchanged, right after the cleanup milestone's whole regen/currency
+  check), which threads too — see the cleanup phase's "(1) RENAME". (Codified 2026-09-18 on the thepit RAM-naming
   pass; runbook rule-1 novel-decision.)
 
 ### The clock-free block — handle these four together
@@ -941,6 +943,11 @@ distinct phase, gated on a flag, and runs in this order.
     mechanism is confident — still named `loc_<addr>` gets a descriptive EFFECT name, settled leaf-first
     before its callers. `loc_` is reserved for a genuinely-unclear mechanism, else allowlisted (with a
     reason) in `games/<game>/names-debt.txt`.
+    **A cleanup-sweep rename THREADS the map, it does not regenerate it:** the rename is value-identical
+    (roles unchanged, per-routine equivalence 0 fail), and the cleanup milestone has just done the whole
+    regen / currency check, so thread the new names into the citations `mechanisms.md` already makes (and
+    re-verify each threaded claim against code) in the same commit — CHECK A is satisfied, CHECK B still
+    forbids the retired `loc_` names. A rename that changes a role still takes the whole regen.
   - **(2) COMMENT.** Verbose explanatory comments PLUS light code cleanup (fix misnomers, simplify locals).
   Never a behaviour change. **The byte-identical proof below verifies (2) ONLY** — a rename is not
   byte-identical, so verify it with the equivalence subset instead. **Enforced BOTH WAYS:** `done_gate`'s

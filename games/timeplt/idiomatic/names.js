@@ -1590,7 +1590,7 @@ export const ROUND_INTRO_SOUND_1 = 0x0c5b; // 1st of three round-intro sound cod
 export const ROUND_INTRO_SOUND_3 = 0x1675; // 3rd of three round-intro sound codes (requestRoundIntroSoundBurst)
 export const ATTACKER_SPAWN_SOUND_ERA0 = 0x16de; // sound-command code, requestAttackerSpawnSoundEra0 (era-0 branch)
 export const ROUND_START_SOUND = 0x1767; // sound-command code enqueued by requestRoundStartSound
-export const loc_18fa = 0x18fa; // program-image byte read as a sound code, enqueued by loc_583a only while a game is in progress
+export const loc_18fa = 0x18fa; // program-image byte read as a sound code, enqueued by requestHighScoreFiledSound only while a game is in progress
 export const ENEMY_WAVE_SOUND = 0x273a; // sound-command code enqueued by requestEnemyWaveSound
 export const ATTACKER_SPAWN_SOUND_LATE_ERA = 0x276b; // sound-command code, requestAttackerSpawnSoundLateEra (only era 4 reaches it; era 3 folds into the mid-era path)
 export const INTER_ROUND_SOUND_1 = 0x27cb; // 1st of the inter-round sound pair (requestInterRoundSoundPair)
@@ -1837,7 +1837,7 @@ export const loc_1601 = 0x1601; // return address armAttractScreenShowingHighSco
 export const loc_0f6d = 0x0f6d; // return address advanceAttractTowardGameStart pushes for its hideAllSprites call
 export const loc_1fcf = 0x1fcf; // return address pushed for the off-map call (loc_1f99)
 export const serviceSlotByMarkerThenCloseSweepTurn_ADDR = 0x40ea; // routine 0x40ea as a code target -- the object-bank sweep body (sweepEra2PlusObjectBank)
-export const loc_2e3e = 0x2e3e; // ROM velocity table for the era-1/2 pace (scrollWorldAtTheEraPace), also read by loc_5860/loc_5965/setMotherShipVelocityFromHeading; the same address is the tamper-trap jump target in showCreditLine
+export const loc_2e3e = 0x2e3e; // ROM velocity table for the era-1/2 pace (scrollWorldAtTheEraPace), also read by flyAtSecondFastestSpeed/loc_5965/setMotherShipVelocityFromHeading; the same address is the tamper-trap jump target in showCreditLine
 export const loc_59d7 = 0x59d7; // ROM table of 256 16-bit velocity words, read by chaseOneAimPointAndRetireAtTheLine, flyAtSlowestSpeed, setMotherShipVelocityFromHeading and loc_58aa/loc_5942/loc_598e/loc_59c5; the same address is the derail target of the whole-ROM checksum in clearScreenRamAndVerifyImageThenColdInit
 export const loc_49fa = 0x49fa; // derail into a caption record decoded as code (checkTheCopyrightLineColoursOrDerail)
 
@@ -1845,7 +1845,7 @@ export const loc_49fa = 0x49fa; // derail into a caption record decoded as code 
 // self-test modules; roles read from the modules' use and the ROM disassembly (contrib Code.md).
 export const OPENING_ERA_VELOCITY_TABLE = 0x5e00; // ROM velocity table for the opening era (scrollWorldAtTheEraPace's era-0 pace, loc_594e); also read by loc_59d1/loc_58b6/loc_5854
 export const VELOCITY_TABLE_5C00 = 0x5c00; // ROM velocity table, era not determined; read by loc_59cb/loc_5994
-export const VELOCITY_TABLE_08FA = 0x08fa; // ROM velocity table for the pace of era 3 and up (scrollWorldAtTheEraPace), also read by loc_58a4; the same address doubles as the anti-tamper checksum-failure landing (routine loc_08fa)
+export const VELOCITY_TABLE_08FA = 0x08fa; // ROM velocity table for the pace of era 3 and up (scrollWorldAtTheEraPace), also read by flyAtFastestSpeed; the same address doubles as the anti-tamper checksum-failure landing (routine loc_08fa)
 export const BONUS_LIFE_MARK_TABLE_BIT0_CLEAR = 0x4e1b; // ROM score-mark list used when BONUS_LIFE_SETTING bit0 is clear (awardBonusLifeAtScoreMark)
 export const BONUS_LIFE_MARK_TABLE_BIT0_SET = 0x4e30; // ROM score-mark list used when BONUS_LIFE_SETTING bit0 is set (awardBonusLifeAtScoreMark)
 export const NEAR_ERA_SPRITE_FRAME_TABLE = 0x416e; // ROM sprite-frame table for the near eras, ERA_INDEX < 4 (stepDriftingCountdownObjectByEraFrames)
@@ -1917,7 +1917,7 @@ export const ROUTINES = {
   },
   0x330b: {
     name: "fileScoreAfterGameOverHoldElsePassTurn",
-    role: "phase-3 sub-step 8 arm (entry 8 of the 0x0F29 table): count SEQUENCE_DELAY down and return while it is nonzero, so the GAME OVER banner stays up for the hold postGameOverBanner armed; on expiry file the score (fileScoreIntoHighScoreTable). A score that beats no record posts command 3 (eraseTextRunByIndex) for captions 9 (PLAYER) and 11 (GAME OVER), reseats SEQUENCE_SUBSTEP to 0x0B (program byte at 0x0843) and tails into passTurnToOtherPlayerIfLivesElseStepSequence. A filed score requests a sound (loc_583a), sets PEN_COLOUR=0 / PEN_GLYPH=0xF1 (blanking) and re-arms the pen route so it erases, checks that the 256 program bytes at 0x01F1 sum to 0x19 (advanceSequencePhase otherwise), then steps to sub-step 9, the start of initials entry",
+    role: "phase-3 sub-step 8 arm (entry 8 of the 0x0F29 table): count SEQUENCE_DELAY down and return while it is nonzero, so the GAME OVER banner stays up for the hold postGameOverBanner armed; on expiry file the score (fileScoreIntoHighScoreTable). A score that beats no record posts command 3 (eraseTextRunByIndex) for captions 9 (PLAYER) and 11 (GAME OVER), reseats SEQUENCE_SUBSTEP to 0x0B (program byte at 0x0843) and tails into passTurnToOtherPlayerIfLivesElseStepSequence. A filed score requests a sound (requestHighScoreFiledSound), sets PEN_COLOUR=0 / PEN_GLYPH=0xF1 (blanking) and re-arms the pen route so it erases, checks that the 256 program bytes at 0x01F1 sum to 0x19 (advanceSequencePhase otherwise), then steps to sub-step 9, the start of initials entry",
     cert: "seen",
     why: "'GameOverHold' is refutable by the arm that arms the delay: serviceRoundThenResolvePlayerState leads to postGameOverBanner (0x1253), which posts the GAME OVER captions, sets SEQUENCE_DELAY to 0xB4 and steps sub-step 7 to 8, so this countdown is that banner's hold; 'fileScore' is fileScoreIntoHighScoreTable on expiry; 'ElsePassTurn' is the carry-set path, which erases captions 9 and 11 (PLAYER, GAME OVER), seeds SEQUENCE_SUBSTEP past the initials arms from ROM 0x0843 (=0x0B) and tails into passTurnToOtherPlayerIfLivesElseStepSequence. Only the entry path from 0x1253 was checked",
   },
@@ -2915,9 +2915,10 @@ export const ROUTINES = {
     cert: "seen",
   },
   0x568e: {
-    name: "loc_568e",
+    name: "requestObjectState3bSound",
     role: "read the byte at 0x2D87 and request it as a sound code, only while a game is being played",
     cert: "seen",
+    why: "named for the data cell it requests, OBJECT_STATE_3B_SOUND 0x2D87 [seen], and in the family shape of the requestXSound siblings: its one caller is stampObjectStateByte3bThenRequestSound, which stamps an object's state byte to 0x3B and then asks for this sound. The state, not 'death', is the name because the stamp's callers include non-combat objects (the cell's own recorded reasoning). Two blind derivations converged on this name",
   },
   0x56e4: {
     name: "requestInterRoundSoundPair",
@@ -2965,9 +2966,10 @@ export const ROUTINES = {
     cert: "seen",
   },
   0x583a: {
-    name: "loc_583a",
+    name: "requestHighScoreFiledSound",
     role: "read the byte at 0x18FA and request it as a sound code, only while a game is being played",
     cert: "seen",
+    why: "named by its trigger, like requestRoundStartSound and requestBonusLifeSound: its only caller, fileScoreAfterGameOverHoldElsePassTurn, calls it only on the path where fileScoreIntoHighScoreTable DID file the finished score, just before the pen is blanked and initials entry begins; the path that files nothing never reaches it. The name claims the request only -- whether the in-game permission is still open at that moment is not MAME-checked. Two blind derivations converged on the reading (filed-path sound); one worded it HighScoreEntry, this wording is the more exact of the two",
   },
   0x5840: {
     name: "flyAtSlowestSpeed",
@@ -2976,9 +2978,10 @@ export const ROUTINES = {
     why: "every entry into flyAlongHeading is a two-instruction shim fixing one velocity table, and the tables are one waveform scaled by its own peak (to within two units of the last place, with identical off-symmetry headings), so magnitude is the only thing a shim chooses -- which makes a speed the right thing to name it for. The ladder's order is fixed outside the flier: the routine that arms the player climbs the same tables as the era rises, and an enemy shim selects the table that routine reaches at the top, matching gameplay.md's fourth-era jets 'as fast and manoeuvrable as you'. This entry's table, 0x59D7, sits below the slowest the player is ever given. Under MAME every dispatch here was predicted by that table alone while a sibling shim ran a faster one on the SAME slot array, so an entry selects a speed and not an object class. 'Slowest' is a rank over the ROM tables: two rungs are selected only by shims whose addresses appear nowhere in the image",
   },
   0x5860: {
-    name: "loc_5860",
+    name: "flyAtSecondFastestSpeed",
     role: "fly one object a single step at the pace of the velocity samples at 0x2E3E, choosing that table and deciding nothing else; a pointer the caller held is discarded. Its one reader, steerEnemyTowardShip (the era-4 arm of the handler table at 0x2914), alternates on bit 1 of the frame tick between this entry and 0x58AA, the shim that gives the double-velocity mover the ladder's bottom table, so the object does not stay on one rung",
     cert: "seen",
+    why: "named by rank like its siblings flyAtSlowestSpeed and flyAtFastestSpeed: its table, 0x2E3E (peak 306), is second-fastest however the ladder is counted -- over the live flyAlongHeading shims (206/256/306/331), over the six ROM rungs (206/231/256/281/306/331; the 231 and 281 shims at 0x5846/0x585A are never entered, no absolute word or relative branch reaches them) -- so the rank does not depend on which tables are counted. Bytes 21 3E 2E C3 BC 58; its one entry is the jp at 0x2A19 in steerEnemyTowardShip, which alternates it with loc_58aa on bit 1 of the frame tick. 'SecondFastest' is a rank over tables, the same caveat flyAtFastestSpeed records: loc_58aa's doubled 206 moves farther per step. Converged with a third, independent derivation; the two first-pass derivers had offered an era-pace wording at low confidence",
   },
   0x5942: {
     name: "loc_5942",
@@ -3081,9 +3084,10 @@ export const ROUTINES = {
     why: "every caller fixes the outer array at the six-slot table fireAndSweepPlayerShots owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one stepDyingObjectState converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision. That one shot can take several targets in a pass is read off the code rather than separately observed",
   },
   0x58a4: {
-    name: "loc_58a4",
+    name: "flyAtFastestSpeed",
     role: "fly one object a single step at the pace of the velocity samples at 0x08FA, choosing that table and deciding nothing else; a pointer the caller held is discarded",
     cert: "seen",
+    why: "the mirror of flyAtSlowestSpeed (0x5840), whose recorded reasoning names a flyAlongHeading shim by the speed its table sets: this shim fixes VELOCITY_TABLE_08FA, peak 331, the top rung of the six-rung ROM ladder 206/231/256/281/306/331 (the 231 and 281 rungs' flyAlongHeading shims at 0x5846 and 0x585A are never entered -- a whole-image word scan finds neither address). 'Fastest' is a rank over the tables, the same caveat flyAtSlowestSpeed records -- a double-velocity mover on the 206 table moves farther per step. Its one caller is serviceEra3EnemyCraftSlot, matching gameplay.md's fourth-era jets 'as fast ... as you'. Two blind derivations converged",
   },
   0x58bc: {
     name: "flyAlongHeading",

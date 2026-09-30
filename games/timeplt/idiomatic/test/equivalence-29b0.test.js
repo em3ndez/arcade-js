@@ -13,7 +13,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { serviceEra3EnemyCraftSlot } from "../serviceEra3EnemyCraftSlot.js";
 import { loc_29b0 as oracle } from "../../translated/loc_29b0.js";
 import { steerTowardAimHeading } from "../steerTowardAimHeading.js";
-import { loc_58a4 } from "../loc_58a4.js";
+import { flyAtFastestSpeed } from "../flyAtFastestSpeed.js";
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { retireSlotAndSubPixel } from "../retireSlotAndSubPixel.js";
 import { launchBankEnemyWhenAimedNearPlayer } from "../launchBankEnemyWhenAimedNearPlayer.js";
@@ -140,7 +140,7 @@ function twinSwapDyingRelease(m) {
   const s = m.mem8[m.regs.ix];
   if (s === 0) return;
   if (s !== 0xff) { if (s === 0xfe) return stepDyingObjectState(m); return releaseHeldObject(m); }
-  steerTowardAimHeading(m); loc_58a4(m);
+  steerTowardAimHeading(m); flyAtFastestSpeed(m);
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   launchBankEnemyWhenAimedNearPlayer(m); dressSpriteForCoarseHeading(m); return launchAttackerIntoFreeSlot(m);
 }
@@ -148,7 +148,7 @@ function twinSkipRetire(m) {
   const s = m.mem8[m.regs.ix];
   if (s === 0) return;
   if (s !== 0xff) { if (s === 0xfe) return releaseHeldObject(m); return stepDyingObjectState(m); }
-  steerTowardAimHeading(m); loc_58a4(m);
+  steerTowardAimHeading(m); flyAtFastestSpeed(m);
   hasReachedRetireLine(m);
   launchBankEnemyWhenAimedNearPlayer(m); dressSpriteForCoarseHeading(m); return launchAttackerIntoFreeSlot(m);
 }
@@ -156,7 +156,7 @@ function twinHeldAsDying(m) {
   const s = m.mem8[m.regs.ix];
   if (s === 0) return;
   if (s !== 0xff) return stepDyingObjectState(m);
-  steerTowardAimHeading(m); loc_58a4(m);
+  steerTowardAimHeading(m); flyAtFastestSpeed(m);
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   launchBankEnemyWhenAimedNearPlayer(m); dressSpriteForCoarseHeading(m); return launchAttackerIntoFreeSlot(m);
 }

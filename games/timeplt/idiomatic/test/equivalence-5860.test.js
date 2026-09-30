@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5860 — memory-equivalent to the frozen oracle at ROM 0x5860.
+ * flyAtSecondFastestSpeed — memory-equivalent to the frozen oracle at ROM 0x5860.
  *
  * WHAT IT IS. Two instructions: load a fixed table pointer, then tail-jump to the per-object move
  * at 0x58BC, which IS ALREADY DECOMPILED — so the rewrite calls flyAlongHeading directly with the
@@ -59,7 +59,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_5860 } from "../loc_5860.js";
+import { flyAtSecondFastestSpeed } from "../flyAtSecondFastestSpeed.js";
 import { flyAlongHeading } from "../flyAlongHeading.js";
 import { loc_5860 as oracle } from "../../translated/loc_5860.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -305,8 +305,8 @@ test("UNREACHED: no session dispatches this entry, so the corpus is a diversion"
   console.log(`  UNREACHED: ${counts.join(", ")}`);
 });
 
-test("EQUAL at the borrowed entry: loc_5860 == oracle on RAM", { skip }, () => {
-  const d = unitDiff(loc_5860, entryState());
+test("EQUAL at the borrowed entry: flyAtSecondFastestSpeed == oracle on RAM", { skip }, () => {
+  const d = unitDiff(flyAtSecondFastestSpeed, entryState());
   assert.equal(d, null, `RAM diverged — ${show(d)}`);
   const e = entryState();
   console.log(
@@ -328,7 +328,7 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole sweep"
     const a = selector(heading);
     const b = a.clone();
     oracle(a);
-    loc_5860(b);
+    flyAtSecondFastestSpeed(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
     for (const at of WRITTEN) assert.equal(a.mem8[at(a)], b.mem8[at(b)], `live-out ${hex4(at(a))}`);
@@ -340,7 +340,7 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole sweep"
 
 test("EXHAUSTIVE: all 256 headings crafted off the borrowed entry are identical", { skip }, () => {
   for (const heading of everyHeading) {
-    const d = unitDiff(loc_5860, selector(heading));
+    const d = unitDiff(flyAtSecondFastestSpeed, selector(heading));
     assert.equal(d, null, `heading ${heading}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: ${HEADINGS} headings identical`);
@@ -348,7 +348,7 @@ test("EXHAUSTIVE: all 256 headings crafted off the borrowed entry are identical"
 
 test("CRAFTED: every displacement x position x heading combination is identical", { skip }, () => {
   for (const [heading, p] of cross()) {
-    const d = unitDiff(loc_5860, craft(heading, p));
+    const d = unitDiff(flyAtSecondFastestSpeed, craft(heading, p));
     assert.equal(d, null, `heading ${heading} ${JSON.stringify(p)}: ${show(d)}`);
   }
   console.log(`  CRAFTED: ${cross().length} entries identical`);
@@ -357,7 +357,7 @@ test("CRAFTED: every displacement x position x heading combination is identical"
 test("CARRY: a fraction swept 0..255 carries into the whole byte as the oracle does", { skip }, () => {
   const priors = carryPriors();
   for (const p of priors) {
-    const d = unitDiff(loc_5860, craft(0, p));
+    const d = unitDiff(flyAtSecondFastestSpeed, craft(0, p));
     assert.equal(d, null, `fraction=${p.fA}: ${show(d)}`);
   }
   const caught = priors.filter((p) => unitDiff(brokenNoCarry, craft(0, p)) !== null).length;

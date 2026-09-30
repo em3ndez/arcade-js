@@ -6,7 +6,7 @@
 
 import { steerTowardAimHeading } from "./steerTowardAimHeading.js";
 import { loc_58aa } from "./loc_58aa.js";
-import { loc_5860 } from "./loc_5860.js";
+import { flyAtSecondFastestSpeed } from "./flyAtSecondFastestSpeed.js";
 import { ERA_INDEX, FRAME_TICK } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
@@ -29,5 +29,5 @@ export function steerEnemyTowardShip(m, iy = m.regs.iy, ix = m.regs.ix) {
   } else {
     steerTowardAimHeading(m, ix);
   }
-  return ((mem8[FRAME_TICK] >> 1) & 1) === 0 ? loc_58aa(m, ix, iy) : loc_5860(m, ix, iy);
+  return ((mem8[FRAME_TICK] >> 1) & 1) === 0 ? loc_58aa(m, ix, iy) : flyAtSecondFastestSpeed(m, ix, iy);
 }

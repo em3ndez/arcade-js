@@ -11,7 +11,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fileScoreIntoHighScoreTable } from "./fileScoreIntoHighScoreTable.js";
 import { postCommand } from "./postCommand.js";
 import { passTurnToOtherPlayerIfLivesElseStepSequence } from "./passTurnToOtherPlayerIfLivesElseStepSequence.js";
-import { loc_583a } from "./loc_583a.js";
+import { requestHighScoreFiledSound } from "./requestHighScoreFiledSound.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "./armThePenRouteThenColdStartOnATamperedImage.js";
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
@@ -39,7 +39,7 @@ export function fileScoreAfterGameOverHoldElsePassTurn(m) {
     return passTurnToOtherPlayerIfLivesElseStepSequence(m);
   }
 
-  loc_583a(m);
+  requestHighScoreFiledSound(m);
   mem8[PEN_COLOUR] = 0;
   mem8[PEN_GLYPH] = BLANKING_GLYPH;
   armThePenRouteThenColdStartOnATamperedImage(m);

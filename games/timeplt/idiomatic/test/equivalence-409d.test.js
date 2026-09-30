@@ -3,7 +3,7 @@
  * stampObjectStateByte3bThenRequestSound — memory-equivalent to the frozen oracle at ROM 0x409D.
  *
  * WHAT IT IS. One byte stamped into an object's record, then a transfer into the sound-request
- * shim at ROM 0x568E, WHICH IS ALREADY DECOMPILED — so the rewrite calls loc_568e directly and
+ * shim at ROM 0x568E, WHICH IS ALREADY DECOMPILED — so the rewrite calls requestObjectState3bSound directly and
  * dissolving that transfer belongs to this caller's unit.
  *
  * ★ THE ORACLE MAKES A TEST WHOSE TWO ANSWERS GO TO THE SAME PLACE. Between the stamp and the
@@ -64,7 +64,7 @@ import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { stampObjectStateByte3bThenRequestSound } from "../stampObjectStateByte3bThenRequestSound.js";
-import { loc_568e } from "../loc_568e.js";
+import { requestObjectState3bSound } from "../requestObjectState3bSound.js";
 import { ERA_INDEX, PLAY_ACTIVE } from "../names.js";
 import { loc_409d as oracle } from "../../translated/loc_409d.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -107,7 +107,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * constant. The same predicate is run over the shim itself as a positive control, so an absence
  * is only evidence once the check is shown able to see the thing present.
  */
-const HELPERS = [["loc_568e", "../loc_568e.js", "0x2d87"]];
+const HELPERS = [["requestObjectState3bSound", "../requestObjectState3bSound.js", "0x2d87"]];
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
@@ -293,32 +293,32 @@ function brokenStampOnly(m) {
 
 /** BUG: the sound is asked for and the record is left alone. */
 function brokenSoundOnly(m) {
-  loc_568e(m);
+  requestObjectState3bSound(m);
 }
 
 /** BUG: the stamped value is one short. */
 function brokenValueOffByOne(m) {
   m.mem8[m.regs.ix + STATE] = STAMPED_STATE - 1;
-  loc_568e(m);
+  requestObjectState3bSound(m);
 }
 
 /** BUG: the stamp lands on the record's second byte. */
 function brokenOffsetOffByOne(m) {
   m.mem8[m.regs.ix + STATE + 1] = STAMPED_STATE;
-  loc_568e(m);
+  requestObjectState3bSound(m);
 }
 
 /** BUG: the request is made twice. */
 function brokenSoundTwice(m) {
   m.mem8[m.regs.ix + STATE] = STAMPED_STATE;
-  loc_568e(m);
-  loc_568e(m);
+  requestObjectState3bSound(m);
+  requestObjectState3bSound(m);
 }
 
 /** BUG: the era test is treated as live, so the stamp only happens in the first era. */
 function brokenEraGated(m) {
   if (m.mem8[ERA_INDEX] === 0) m.mem8[m.regs.ix + STATE] = STAMPED_STATE;
-  loc_568e(m);
+  requestObjectState3bSound(m);
 }
 
 /** BUG: the request bypasses the permission cell that normally drops it. */
@@ -326,7 +326,7 @@ function brokenUngated(m) {
   m.mem8[m.regs.ix + STATE] = STAMPED_STATE;
   const was = m.mem8[PLAY_ACTIVE];
   m.mem8[PLAY_ACTIVE] = 0xff;
-  loc_568e(m);
+  requestObjectState3bSound(m);
   m.mem8[PLAY_ACTIVE] = was;
 }
 

@@ -5,7 +5,7 @@
  * countdown step. LIVE-OUT: memory. */
 
 import { steerTowardAimHeading } from "./steerTowardAimHeading.js";
-import { loc_58a4 } from "./loc_58a4.js";
+import { flyAtFastestSpeed } from "./flyAtFastestSpeed.js";
 import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 import { retireSlotAndSubPixel } from "./retireSlotAndSubPixel.js";
 import { launchBankEnemyWhenAimedNearPlayer } from "./launchBankEnemyWhenAimedNearPlayer.js";
@@ -26,7 +26,7 @@ export function serviceEra3EnemyCraftSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
     return stepDyingObjectState(m, ix, iy);
   }
   steerTowardAimHeading(m, ix);
-  loc_58a4(m, ix, iy);
+  flyAtFastestSpeed(m, ix, iy);
   if (hasReachedRetireLine(m, iy)) return retireSlotAndSubPixel(m, ix, iy);
   launchBankEnemyWhenAimedNearPlayer(m, ix, iy);
   dressSpriteForCoarseHeading(m, ix, iy);

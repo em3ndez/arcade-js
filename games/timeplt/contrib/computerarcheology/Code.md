@@ -5424,7 +5424,7 @@ serviceEra3EnemyCraftSlot:
 
 loc_29bf:
 29BF: CD EF 2B        CALL    $2BEF               ; {code.steerTowardAimHeading} turn its heading one step toward its aim
-29C2: CD A4 58        CALL    $58A4               ; {code.loc_58a4} fly the slot a step along its heading
+29C2: CD A4 58        CALL    $58A4               ; {code.flyAtFastestSpeed} fly the slot a step along its heading
 29C5: CD 83 2B        CALL    $2B83               ; {code.hasReachedRetireLine} has it drifted onto a retire line?
 29C8: DA DE 2B        JP      C,$2BDE             ; {code.retireSlotAndSubPixel} yes: take the slot out of play
 29CB: CD D6 3E        CALL    $3ED6               ; {code.launchBankEnemyWhenAimedNearPlayer} when aimed near the ship, try the bank launch
@@ -5482,7 +5482,7 @@ loc_2a10:
 2A13: 0F              RRCA                        
 2A14: E6 01           AND     $01                 ; isolate bit 1 of it
 2A16: CA AA 58        JP      Z,$58AA             ; {code.loc_58aa} that bit clear: fly the slot at double velocity
-2A19: C3 60 58        JP      $5860               ; {code.loc_5860} otherwise fly it at single velocity
+2A19: C3 60 58        JP      $5860               ; {code.flyAtSecondFastestSpeed} otherwise fly it at single velocity
 
 loc_2a1c:
 2A1C: AF              XOR     A                   
@@ -6720,7 +6720,7 @@ loc_330b:
 330E: 35              DEC     (HL)                ; count it down
 330F: C0              RET     NZ                  ; not yet elapsed: leave
 3310: CD C3 4C        CALL    $4CC3               ; {code.fileScoreIntoHighScoreTable} try to file the score into the high-score table
-3313: D2 26 33        JP      NC,$3326            ; {code.loc_3326} it did not place: branch away
+3313: D2 26 33        JP      NC,$3326            ; {code.loc_3326} it placed (carry clear): branch to the filed-score path
 3316: 11 09 03        LD      DE,$0309            
 3319: FF              RST     $38                 ; queue ring command 3 / argument 9
 331A: 1E 0B           LD      E,$0B               
@@ -6730,7 +6730,7 @@ loc_330b:
 3323: C3 E7 12        JP      $12E7               ; {code.passTurnToOtherPlayerIfLivesElseStepSequence} pass the turn to the other player if lives remain, else step the sequence
 
 loc_3326:
-3326: CD 3A 58        CALL    $583A               ; {code.loc_583a}
+3326: CD 3A 58        CALL    $583A               ; {code.requestHighScoreFiledSound}
 3329: 3E 00           LD      A,$00               ; zero...
 332B: 32 0C AD        LD      ($AD0C),A           ; {hard.workRam+50C} ...clear the pen colour
 332E: 3E F1           LD      A,$F1               ; 0xF1...
@@ -8173,8 +8173,8 @@ stampObjectStateByte3bThenRequestSound:
 409D: DD 36 00 3B     LD      (IX+$00),$3B        ; stamp the object's state byte to fifty-nine
 40A1: 3A 04 AD        LD      A,($AD04)           ; {hard.workRam+504} read the era index
 40A4: A7              AND     A                   
-40A5: CA 8E 56        JP      Z,$568E             ; {code.loc_568e} ask for the accompanying sound
-40A8: C3 8E 56        JP      $568E               ; {code.loc_568e} the other arm asks for it too -- the test above changes nothing
+40A5: CA 8E 56        JP      Z,$568E             ; {code.requestObjectState3bSound} ask for the accompanying sound
+40A8: C3 8E 56        JP      $568E               ; {code.requestObjectState3bSound} the other arm asks for it too -- the test above changes nothing
 
 ; retire an object, zeroing only the INTEGER halves — occupancy byte and
 ; both sprite-entry coordinates — leaving the sub-pixel remainders
@@ -11471,7 +11471,7 @@ requestTwoSounds:
 5689: 3A DA 4C        LD      A,($4CDA)           ; {hard.rom+4CDA} second sound code from the program image
 568C: 18 89           JR      $5617               ; {code.enqueueSoundIfGameOrAttract} request it -- game or attract sound
 
-loc_568e:
+requestObjectState3bSound:
 568E: 3A 87 2D        LD      A,($2D87)           ; {hard.rom+2D87} a sound code from the program image
 5691: C3 0C 56        JP      $560C               ; {code.enqueueSoundIfGameInProgress} request it, only while a game is in progress
 
@@ -11610,7 +11610,7 @@ requestRoundStartSound:
 5834: 3A 67 17        LD      A,($1767)           ; {hard.rom+1767} fetch the round-start sound code from the program image
 5837: C3 0C 56        JP      $560C               ; {code.enqueueSoundIfGameInProgress} request it, only while a game is in progress
 
-loc_583a:
+requestHighScoreFiledSound:
 583A: 3A FA 18        LD      A,($18FA)           ; {hard.rom+18FA} fetch another sound code from the program image
 583D: C3 0C 56        JP      $560C               ; {code.enqueueSoundIfGameInProgress} request it, only while a game is in progress
 
@@ -11632,7 +11632,7 @@ loc_5854:
 ; ---- $585A-$585F: data ----
 585A: 21 30 25 C3 BC 58
 
-loc_5860:
+flyAtSecondFastestSpeed:
 5860: 21 3E 2E        LD      HL,$2E3E            ; point at a velocity table
 5863: C3 BC 58        JP      $58BC               ; {code.flyAlongHeading} fly the object one step along its heading using that table
 
@@ -11686,7 +11686,7 @@ loc_589b:
 589E: C2 D7 59        JP      NZ,$59D7            ; {code.loc_59d7} a tampered image derails into the velocity-table data
 58A1: C3 11 25        JP      $2511               ; {code.initColdStartRamThenSeedConfig} a genuine image hands on to cold-start init
 
-loc_58a4:
+flyAtFastestSpeed:
 58A4: 21 FA 08        LD      HL,$08FA            ; point at a velocity table
 58A7: C3 BC 58        JP      $58BC               ; {code.flyAlongHeading} fly the object one step along its heading using that table
 

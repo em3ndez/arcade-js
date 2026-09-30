@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_58a4 — memory-equivalent to the frozen oracle at ROM 0x58A4.
+ * flyAtFastestSpeed — memory-equivalent to the frozen oracle at ROM 0x58A4.
  *
  * WHAT IT IS. Two instructions: load a fixed table pointer, then tail-jump to the per-object move
  * at 0x58BC, which is ALREADY decompiled — so the rewrite calls flyAlongHeading directly with the
@@ -54,7 +54,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_58a4 } from "../loc_58a4.js";
+import { flyAtFastestSpeed } from "../flyAtFastestSpeed.js";
 import { flyAlongHeading } from "../flyAlongHeading.js";
 import { velocityForHeading } from "../velocityForHeading.js";
 import { ERA_INDEX } from "../names.js";
@@ -158,7 +158,7 @@ function replaySession(candidate) {
 }
 
 let cache = null;
-const session = () => (cache ??= replaySession(loc_58a4));
+const session = () => (cache ??= replaySession(flyAtFastestSpeed));
 
 let entry = null;
 function entryState() {
@@ -254,11 +254,11 @@ test("UNREACHED: no plain tape dispatches this entry, which is why the era is pi
   console.log("  UNREACHED: shared, attract and the same turning tape unpinned all reach it 0 times");
 });
 
-test("EQUAL at the real dispatch: loc_58a4 == oracle on the WHOLE dump", { skip }, () => {
+test("EQUAL at the real dispatch: flyAtFastestSpeed == oracle on the WHOLE dump", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_58a4(b);
+  flyAtFastestSpeed(b);
   const strays = allDiffs(a, b);
   assert.deepEqual(strays, [], `RAM diverged: ${show(strays[0])}`);
   console.log(
@@ -277,7 +277,7 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_58a4(b);
+  flyAtFastestSpeed(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,
@@ -295,12 +295,12 @@ test("CORPUS: every dispatch of the pinned session replays identically", { skip 
 });
 
 test("EXHAUSTIVE: all 256 headings behave as the oracle", { skip }, () => {
-  assert.equal(sweepCaught(loc_58a4), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(flyAtFastestSpeed), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${HEADINGS.length} headings identical`);
 });
 
 test("WHOLE-MACHINE: the pinned session differs only where the interrupt pushes", { skip }, () => {
-  const r = wholeRunCells(loc_58a4);
+  const r = wholeRunCells(flyAtFastestSpeed);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

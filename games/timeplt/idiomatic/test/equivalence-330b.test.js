@@ -31,7 +31,7 @@ import { loc_330b as oracle } from "../../translated/loc_330b.js";
 import { fileScoreIntoHighScoreTable } from "../fileScoreIntoHighScoreTable.js";
 import { postCommand } from "../postCommand.js";
 import { passTurnToOtherPlayerIfLivesElseStepSequence } from "../passTurnToOtherPlayerIfLivesElseStepSequence.js";
-import { loc_583a } from "../loc_583a.js";
+import { requestHighScoreFiledSound } from "../requestHighScoreFiledSound.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "../armThePenRouteThenColdStartOnATamperedImage.js";
 import { advanceSequencePhase } from "../advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
@@ -167,7 +167,7 @@ function twin({ tick = true, command = 3, args = [0x09, 0x0b], seed = SEED, pass
       if (passTurn) passTurnToOtherPlayerIfLivesElseStepSequence(m);
       return;
     }
-    if (sound) loc_583a(m);
+    if (sound) requestHighScoreFiledSound(m);
     mem8[PEN_COLOUR] = colour;
     mem8[PEN_GLYPH] = glyph;
     if (arm) armThePenRouteThenColdStartOnATamperedImage(m);
