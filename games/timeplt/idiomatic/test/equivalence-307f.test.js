@@ -1,11 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * loc_307f — memory-equivalent to the frozen oracle at ROM 0x307F. UNREACHED by both tapes, so the
- * entries are crafted from a real end-of-session machine over painted sprite-entry bands. The three
- * dissolved callees (placeTileAtTableSuppliedOffset, fetchTableWord=0x0010, placeDiagonallyAbuttingTile=0x308a) drop the
- * ROM `ret` chain and the register dance, so RAM is compared outside the measured dead-stack window
- * [low, seat), the +2 SP drift is asserted, the live-out cursors ix/iy and A are checked, and the
- * scrambled register set {f,b,c,d,e,h,l} is excluded with a control twin proving the check sees one.
+ * entries are crafted from a real end-of-session machine over painted sprite-entry bands.
+ *
+ * STRAIGHT PATH (the counter still holds): the dissolved placer (placeTileAtTableSuppliedOffset,
+ * 0x3074, then 0x309B) drops the ROM `ret` chain and the register dance, so RAM is compared outside
+ * the measured dead-stack window [low, seat), the +2 SP drift is asserted, the live-out cursors ix/iy
+ * are checked, and the measured scrambled register set {a,f,b,d,e} is excluded with a control twin
+ * (a shadow register clobbered) proving the check still sees a register outside that set. A joins the
+ * set because the placer now builds the displaced coordinate in a local and only stores it, where the
+ * frozen placer leaves it in A: DEAD AT EXIT complements A as the FROZEN routine hands back, over a
+ * whole attract and a whole coin-start session each driven down the one real way in (the tamper
+ * witness 0xAD39 poked off its sentinel, so the scenery seed's guard fails through 0x3114), and not
+ * one frame of state changes, beside an SP exit control and an E entry control that are both heard.
+ * HOLE: those sessions present only a few dispatches (pinned), all on the straight path.
+ *
+ * LAST SLOT (the counter runs out): the oracle indexes the word table, bumps the byte past the entry,
+ * and then POPS TWO STACK BYTES IT NEVER PUSHED (`pop af` at 0x3088), dropping its caller's return
+ * word. The rewrite lays no return words, so that unwind has no faithful form and it raises
+ * NotImplemented at the pop. The two sides are compared AT the pop: the oracle is stopped on the step
+ * just past it and the rewrite must raise naming loc_307f, with RAM identical at that point (the index,
+ * the table walk and the bump all land before it). What happens after the pop is not compared.
+ * The arm is dead in the image: the only way in (0x3117's guard-fail divert through 0x3114) arrives
+ * with the clear loop's spent count B = 0 (by construction: 0x3117's only entry is the jp c at 0x30E0
+ * straight after the clear loop's ld b,8/djnz at 0x30D7-0x30DB; MAME logged B = 0 at every sampled
+ * fetch of 0x3117), which counts down
+ * to 255, the straight path; MAME fetched 0x307F and the last-slot step 0x3083 zero times.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-307f.test.js
  */
 
@@ -20,6 +40,9 @@ import { dispatchSeatedSlotByEraIndex as controlModule } from "../dispatchSeated
 import { loc_290e as controlOracle } from "../../translated/loc_290e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
+import { TAMPER_WITNESS } from "../names.js";
+import { assertDeadAtExit, heard } from "./_deadAtExit.js";
 
 const TARGET = 0x307f;
 const CONTROL = 0x290e;
@@ -33,8 +56,14 @@ const TABLE = 0xa900; // word table the last-slot lookup walks, in low work RAM
 // Every crafted write lands at or below here; the stack seats far above it, so masking the scratch
 // window can never hide a game-data divergence. Both bounds are asserted.
 const DATA_TOP = 0xadff;
-const SP_DRIFT = 2; // the dropped final ROM ret
-const EXCLUDED = ["f", "b", "c", "d", "e", "h", "l", "sp"];
+const SP_DRIFT = 2; // the dropped final ROM ret (straight path)
+const AFTER_POP = 0x3089; // the oracle's step just past the unpaired `pop af`
+const EXCLUDED = ["a", "f", "b", "d", "e", "sp"];
+
+/** DEAD AT EXIT: the one real way in, forced -- the tamper witness knocked off its sentinel. */
+const DIVERT_POKES = [{ addr: TAMPER_WITNESS, val: 0x00, frame: 260, dur: null }];
+/** Whole sessions; measured dispatches of this address under the poke (a move is a finding). */
+const DEAD_SESSIONS = [["undriven attract", [], 1], ["coin -> start", undefined, 2]];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -78,8 +107,19 @@ function craft(bval, { index = 0, c = 0x11, entry = ENTRY_SEAT, record = RECORD_
 
 /**
  * Oracle vs candidate on clones. RAM is diffed with the dead-stack window [low, seat) masked, low
- * measured by watching the oracle's own pushes; the SP drift, the two cursors and A are returned.
+ * measured by watching the oracle's own pushes; the SP drift and the two cursors are returned.
  */
+class PopReached extends Error {}
+
+/** Which way a side left: "returned", "pop" (the oracle at the unpaired pop, or the rewrite raising
+ * there by name), or the fault's text for anything else. */
+function outcomeOf(err) {
+  if (err === null) return "returned";
+  if (err instanceof PopReached) return "pop";
+  if (err instanceof NotImplemented && err.message.startsWith("not implemented: loc_307f:")) return "pop";
+  return `fault: ${String(err.message ?? err).slice(0, 60)}`;
+}
+
 function compare(cand, machine) {
   const a = machine.clone();
   const b = machine.clone();
@@ -90,8 +130,16 @@ function compare(cand, machine) {
     push(v);
     if (a.regs.sp < low) low = a.regs.sp;
   };
-  const retOracle = oracle(a);
-  const retCand = cand(b);
+  const step = a.step.bind(a);
+  a.step = (next, cycles) => {
+    if (next === AFTER_POP) throw new PopReached();
+    return step(next, cycles);
+  };
+  let retOracle, retCand;
+  let errA = null;
+  let errB = null;
+  try { retOracle = oracle(a); } catch (e) { errA = e; }
+  try { retCand = cand(b); } catch (e) { errB = e; }
   const da = a.dumpState();
   const db = b.dumpState();
   let escaped = null;
@@ -101,24 +149,34 @@ function compare(cand, machine) {
     if (addr >= low && addr < seat) continue;
     escaped = { addr, a: da[i], b: db[i] };
   }
-  const regMoved = REG_FIELDS.filter((k) => !EXCLUDED.includes(k) && a.regs[k] !== b.regs[k]);
+  const outcomeA = outcomeOf(errA);
+  const outcomeB = outcomeOf(errB);
+  const returned = outcomeA === "returned" && outcomeB === "returned";
+  const regMoved = returned ? REG_FIELDS.filter((k) => !EXCLUDED.includes(k) && a.regs[k] !== b.regs[k]) : [];
   return {
+    outcomeA,
+    outcomeB,
+    returned,
     escaped,
     low,
     seat,
     spDiff: (((a.regs.sp - b.regs.sp) & 0xffff) << 16) >> 16,
     regMoved,
-    ixMatch: a.regs.ix === b.regs.ix,
-    iyMatch: a.regs.iy === b.regs.iy,
+    ixMatch: !returned || a.regs.ix === b.regs.ix,
+    iyMatch: !returned || a.regs.iy === b.regs.iy,
     retOracle,
     retCand,
   };
 }
 
-/** A defect fails compare() if RAM escaped the mask, a live-out register moved, or SP drifted wrong. */
+/** A defect fails compare() if the two sides left differently, RAM escaped the mask, or -- when both
+ * returned -- a live-out register moved or SP drifted wrong. */
 function caught(cand, machine) {
   const r = compare(cand, machine);
-  return !!r.escaped || r.regMoved.length > 0 || !r.ixMatch || !r.iyMatch || r.spDiff !== SP_DRIFT;
+  if (r.outcomeA !== r.outcomeB) return true;
+  if (r.escaped) return true;
+  if (!r.returned) return false;
+  return r.regMoved.length > 0 || !r.ixMatch || !r.iyMatch || r.spDiff !== SP_DRIFT;
 }
 
 /** The largest cell the oracle moves outside the stack, so the mask cannot be hiding a data write. */
@@ -126,7 +184,12 @@ function footprintTop(machine) {
   const a = machine.clone();
   const before = a.dumpState().slice();
   const seat = a.regs.sp;
-  oracle(a);
+  const step = a.step.bind(a);
+  a.step = (next, cycles) => {
+    if (next === AFTER_POP) throw new PopReached();
+    return step(next, cycles);
+  };
+  try { oracle(a); } catch (e) { if (!(e instanceof PopReached)) throw e; }
   const now = a.dumpState();
   let top = 0;
   for (let i = 0; i < now.length; i++) {
@@ -154,10 +217,11 @@ const corpusCaught = (cand) => corpus().filter((m) => caught(cand, m)).length;
 
 function brokenNoOp() {}
 
-/** Control: everything right, then scribbles a live-out register the check must see. */
-function brokenMovesLiveReg(m) {
+/** Control: everything right, then clobbers a register outside the ceiling (a shadow half this entry
+ * never touches), which the register check must see. */
+function clobbersARegisterOutsideTheCeiling(m) {
   loc_307f(m);
-  m.regs.a = (m.regs.a + 1) & 0xff;
+  m.regs.h_ = (m.regs.h_ + 1) & 0xff;
 }
 
 /** BUG: never stores the coordinate through the pointer, so the fold and the table byte are off. */
@@ -177,7 +241,7 @@ function brokenAlwaysStraight(m) {
   return importStraight(m);
 }
 
-/** BUG: the last slot never takes two bytes off the stack, so A and the SP drift are wrong. */
+/** BUG: runs on past the unpaired pop into the diagonal placer, as if the stack had a word to give. */
 function brokenSkipPop(m) {
   const { regs, mem } = m;
   mem.write8(regs.hl, regs.e);
@@ -188,15 +252,14 @@ function brokenSkipPop(m) {
   return importLast(m);
 }
 
-/** BUG: the byte just past the looked-up entry is never bumped. */
+/** BUG: the byte just past the looked-up entry is never bumped (it raises at the pop all the same). */
 function brokenSkipInc(m) {
   const { regs, mem } = m;
   mem.write8(regs.hl, regs.e);
   regs.and(mem.read8(regs.hl));
   if (regs.djnz() !== 0) return importStraight(m);
   importFetch(m);
-  regs.af = m.pop16();
-  return importLast(m);
+  throw new NotImplemented("loc_307f: twin");
 }
 
 // Late-bound so the twins can reuse the real dissolved callees without another import block.
@@ -206,7 +269,7 @@ const TWINS = [
   ["no-op", brokenNoOp],
   ["skip-store", brokenSkipStore],
   ["always-straight", brokenAlwaysStraight],
-  ["skip-pop", brokenSkipPop],
+  ["runs-past-the-pop", brokenSkipPop],
   ["skip-inc", brokenSkipInc],
 ];
 
@@ -215,7 +278,7 @@ const EXPECTED = {
   "no-op": 16,
   "skip-store": 16,
   "always-straight": 10,
-  "skip-pop": 10,
+  "runs-past-the-pop": 10,
   "skip-inc": 10,
 };
 
@@ -250,9 +313,13 @@ test("UNREACHED: neither tape dispatches it, and the same rig reaches a live con
   }
 });
 
-test("BOTH PATHS EQUAL: RAM identical outside the mask, cursors and A carried, SP drift +2", { skip }, () => {
-  for (const [label, m] of [["straight (B=3)", craft(3)], ["last-slot (B=1)", craft(1, { index: 5 })]]) {
+test("BOTH PATHS EQUAL: straight returns with cursors and SP drift +2; last slot stops at the pop", { skip }, () => {
+  {
+    const label = "straight (B=3)";
+    const m = craft(3);
     const r = compare(loc_307f, m);
+    assert.equal(r.outcomeA, "returned", `${label}: the oracle did not return`);
+    assert.equal(r.outcomeB, "returned", `${label}: the rewrite did not return (${r.outcomeB})`);
     assert.equal(r.escaped, null, `${label} escaped the mask at ${r.escaped && hex4(r.escaped.addr)}`);
     assert.deepEqual(r.regMoved, [], `${label} moved a live register: ${r.regMoved}`);
     assert.ok(r.ixMatch && r.iyMatch, `${label} did not carry the cursors`);
@@ -263,6 +330,22 @@ test("BOTH PATHS EQUAL: RAM identical outside the mask, cursors and A carried, S
     assert.ok(footprintTop(m) <= DATA_TOP, `${label} wrote above ${hex4(DATA_TOP)}`);
     console.log(`  ${label}: window [${hex4(r.low)},${hex4(r.seat)}) masked, spDiff ${r.spDiff}`);
   }
+  {
+    const label = "last-slot (B=1)";
+    const m = craft(1, { index: 5 });
+    const r = compare(loc_307f, m);
+    assert.equal(r.outcomeA, "pop", `${label}: the oracle did not reach the unpaired pop`);
+    assert.equal(r.outcomeB, "pop", `${label}: the rewrite did not raise at the pop (${r.outcomeB})`);
+    assert.equal(r.escaped, null, `${label} escaped the mask at ${r.escaped && hex4(r.escaped.addr)}`);
+    assert.ok(r.low > DATA_TOP, `${label} stack window ${hex4(r.low)} reached into game data`);
+    assert.ok(footprintTop(m) <= DATA_TOP, `${label} wrote above ${hex4(DATA_TOP)}`);
+    // Anti-vacuity: the bump before the pop really moved a cell, so RAM-at-the-pop has something to hold.
+    const before = m.dumpState().slice();
+    const probe = m.clone();
+    try { loc_307f(probe); } catch { /* raises at the pop */ }
+    assert.ok(probe.dumpState().some((v, i) => v !== before[i]), `${label}: nothing moved before the pop`);
+    console.log(`  ${label}: both stop at the pop, RAM identical outside [${hex4(r.low)},${hex4(r.seat)})`);
+  }
 });
 
 test("NOT VACUOUS: a no-op candidate is caught on both paths", { skip }, () => {
@@ -271,20 +354,41 @@ test("NOT VACUOUS: a no-op candidate is caught on both paths", { skip }, () => {
   console.log("  NOT VACUOUS: the empty candidate is caught on both paths");
 });
 
-test("EXCLUDED, deliberately: only the scrambled set moves, and the check can still see A", { skip }, () => {
+test("EXCLUDED, deliberately: only the scrambled set moves, and the check still sees one outside it", { skip }, () => {
   const moved = new Set();
-  for (const m of corpus()) {
+  // Registers are a contract only where both sides return: the straight-path entries.
+  for (const m of corpus().filter((mm) => ((mm.regs.b - 1) & 0xff) !== 0)) {
     const a = m.clone();
     const b = m.clone();
     oracle(a);
     loc_307f(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
-  assert.ok(caught(brokenMovesLiveReg, craft(1, { index: 5 })),
-    "the control twin scribbles A and is NOT caught, so the live-out check proves nothing");
+  assert.ok(caught(clobbersARegisterOutsideTheCeiling, craft(3)),
+    "the control twin clobbers h_ and is NOT caught, so the live-out check proves nothing");
+  assert.deepEqual(compare(clobbersARegisterOutsideTheCeiling, craft(3)).regMoved, ["h_"],
+    "the control is caught for some reason other than the clobbered register");
   const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], `a register moved outside the excluded set: ${unexpected}`);
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
+});
+
+test("DEAD AT EXIT: A, as the frozen routine leaves it, is read by nothing after it", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ["a"], frames: ENTRY_FRAMES,
+    sessions: DEAD_SESSIONS.map(([label, tape, dispatches]) =>
+      ({ label, tape, pokes: DIVERT_POKES, dispatches })),
+    // ENTRY CONTROL: E is the coordinate stored through the pointer; nudged on the way in it must be heard.
+    controls: [{
+      label: "entry", poison: ["e"], flip: { e: 0x01 }, before: true, every: true, reachEvery: true,
+    }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the SP nudge at this exit went unheard, so the exit poison never lands`);
+  }
+  console.log("  DEAD AT EXIT: the exit control and the E entry control are heard in every session");
 });
 
 test("BRANCH SWEEP: every one of the 256 counter values replays identically", { skip }, () => {
@@ -292,18 +396,21 @@ test("BRANCH SWEEP: every one of the 256 counter values replays identically", { 
   for (let b = 0; b < 256; b++) {
     const m = craft(b, { index: b });
     assert.ok(!caught(loc_307f, m), `B=${b} diverged: ${show(compare(loc_307f, m).escaped)}`);
-    if (compare(loc_307f, m).spDiff === SP_DRIFT && ((b - 1) & 0xff) === 0) path2++;
+    if (compare(loc_307f, m).outcomeA === "pop") {
+      assert.equal((b - 1) & 0xff, 0, `B=${b} reached the pop without exhausting the counter`);
+      path2++;
+    }
   }
   assert.equal(path2, 1, "exactly one counter value should exhaust to the last-slot path");
   console.log("  BRANCH SWEEP: 256 counter values identical, one last-slot path among them");
 });
 
-test("INDEX SWEEP: the last-slot lookup is identical across all 256 indices, wrap included", { skip }, () => {
+test("INDEX SWEEP: the last-slot lookup is identical up to the pop across all 256 indices, wrap included", { skip }, () => {
   for (let index = 0; index < 256; index++) {
     const m = craft(1, { index });
     assert.ok(!caught(loc_307f, m), `index ${index} diverged: ${show(compare(loc_307f, m).escaped)}`);
   }
-  console.log("  INDEX SWEEP: 256 last-slot indices identical");
+  console.log("  INDEX SWEEP: 256 last-slot indices identical at the pop");
 });
 
 for (const [label, twin] of TWINS) {

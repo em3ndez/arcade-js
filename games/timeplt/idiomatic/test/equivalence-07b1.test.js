@@ -46,7 +46,9 @@
  *   9. TIME — the entry's own T-states, measured; one value, which the whole-machine arm charges.
  *  10. WHOLE-MACHINE — both tapes, the full frame budget, byte-identical with the rewrite wired.
  *  11. EXCLUDED — measured over the scrambles, with a control twin.
- *  12. TEETH — eight twins with their catch counts.
+ *  12. TEETH — six twins with their catch counts.
+ *  13. HARMLESS — the two stack-seat twins, caught nowhere (SP left the contract, runbook §4 Retiring
+ *      SP), each shown to leave SP different from the oracle at the jump.
  *
  * HOLE: the walk's cursor and counter are in the ceiling, which is a statement that nothing
  * downstream reads them. No arm here reads the continuation to check that; what stands behind it
@@ -95,9 +97,17 @@ const OWN_TSTATES = 333;
  * The ceiling on register divergence: the cursor and the counter the frozen walk leaves behind, and
  * the accumulator and flags the header derives dead at the jump. The rewrite counts its addresses in
  * a local, carries both values in locals, and leaves all five registers as it found them.
+ * sp — the oracle seats the stack at 0xB000 (ld sp,0xb000 at 0x07B8) for its own layer's pushes. The
+ * idiomatic layer lays no return words -- every routine is a direct call and the frame interrupt fires
+ * as one (runbook §4, Retiring SP) -- so nothing it runs reads SP and the rewrite does not seat it.
+ * What stands behind that is the whole-game gate (idiomatic.test.js), which asserts SP stays inert
+ * across the whole idiomatic session. The WHOLE-MACHINE arm below hands the rest of a session to the
+ * FROZEN continuation, whose pushes do read SP, so that hand-off seats the stack the frozen layer
+ * expects (FROZEN_STACK_SEAT) -- a bridge in the test, not a duty of the rewrite.
  * A ceiling and not a demand — the EXCLUDED arm tests a subset, so a closer rewrite still passes.
  */
-const MOVED = ["a", "f", "b", "h", "l"];
+const MOVED = ["a", "f", "b", "h", "l", "sp"];
+const FROZEN_STACK_SEAT = 0xb000;
 
 const TAPES = [
   ["attract", { tape: [] }],
@@ -332,6 +342,8 @@ function hosted(candidate) {
       delete mm.mem.write8;
     }
     if (!reached) return undefined;
+    // The frozen continuation pushes through SP; seat it as the oracle leaves it at the jump.
+    mm.regs.sp = FROZEN_STACK_SEAT;
     mm.step(CONTINUATION, OWN_TSTATES);
     return mm.call(CONTINUATION);
   };
@@ -372,7 +384,12 @@ function brokenWalksSeven(m) {
   return m.call(CONTINUATION);
 }
 
-/** BUG: never seats the stack, so every later push lands wherever the caller left the pointer. */
+// The stack-seat twins are HARMLESS now: the stack seat left the contract with SP (see MOVED). A
+// rewrite that leaves SP unseated is the correct one, SP staying inert across the idiomatic session is
+// asserted by the whole-game gate, and the HARMLESS arm below pins them at caught-nowhere so the change
+// of contract stays on record here.
+
+/** Formerly a BUG, now HARMLESS: never seats the stack, so SP stays wherever the caller left it. */
 function brokenNoStackSeat(m) {
   probeSocket(m);
   quiet(m);
@@ -382,7 +399,7 @@ function brokenNoStackSeat(m) {
   return m.call(CONTINUATION);
 }
 
-/** BUG: seats the stack one byte low. */
+/** Formerly a BUG, now HARMLESS: seats the stack one byte low. */
 function brokenStackOffByOne(m) {
   probeSocket(m);
   quiet(m);
@@ -392,6 +409,11 @@ function brokenStackOffByOne(m) {
   m.regs.sp = 0xafff;
   return m.call(CONTINUATION);
 }
+
+const HARMLESS = [
+  ["no-stack-seat", brokenNoStackSeat],
+  ["stack-off-by-one", brokenStackOffByOne],
+];
 
 /** BUG: never quiets the watchdog. */
 function brokenNoWatchdog(m) {
@@ -445,8 +467,6 @@ function brokenMovesIndex(m) {
 const TWINS = [
   ["leaves-picture-off", brokenLeavesPictureOff],
   ["walks-seven", brokenWalksSeven],
-  ["no-stack-seat", brokenNoStackSeat],
-  ["stack-off-by-one", brokenStackOffByOne],
   ["no-watchdog", brokenNoWatchdog],
   ["literal-picture", brokenLiteralPicture],
   ["ignores-socket", brokenIgnoresSocket],
@@ -634,5 +654,19 @@ for (const [label, twin] of TWINS) {
       `${setting}/${SWEEP_RUNS.setting} settings, ${preset}/${SWEEP_RUNS.preset} line patterns, ` +
       `${scrambles}/${SWEEP_RUNS.scrambles} scrambles`);
     assert.ok(socket + setting + preset + scrambles > 0, `every arm PASSED the ${label} twin`);
+  });
+}
+
+for (const [label, twin] of HARMLESS) {
+  test(`HARMLESS: the ${label} twin is caught nowhere (SP left the contract, runbook §4 Retiring SP)`, { skip }, () => {
+    const caught = sweepSocket(twin) + sweepSetting(twin) + sweepPreset(twin) + sweepScrambles(twin);
+    assert.equal(caught, 0, `the ${label} twin was caught on ${caught} runs, but SP is not in the contract`);
+    // Not vacuous: from an entry whose SP is neither seat, the twin reaches the jump with another SP.
+    const entry = craft((c) => { c.regs.sp = 0x8000; });
+    const a = runToSeam(entry, oracle);
+    const b = runToSeam(entry, twin);
+    assert.ok(a.sink.regs && b.sink.regs, "a side never reached the jump");
+    assert.notEqual(b.sink.regs.sp, a.sink.regs.sp, `the ${label} twin must leave SP different at the jump`);
+    console.log(`  HARMLESS/${label}: caught on 0 runs; SP at the jump ${hex4(b.sink.regs.sp)} vs the oracle's ${hex4(a.sink.regs.sp)}`);
   });
 }

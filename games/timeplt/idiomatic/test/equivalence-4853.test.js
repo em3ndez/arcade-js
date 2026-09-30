@@ -17,7 +17,9 @@
  *   3. CORPUS — every dispatch of a driven and an undriven session, counts asserted, together
  *      with WHICH EXIT each dispatch took, so a corpus that only ever bounces off a guard is
  *      reported as such rather than read as coverage.
- *   4. EXCLUDED — the register divergence pinned to a measured set.
+ *   4. EXCLUDED — the register divergence pinned to a measured set, and DEAD AT EXIT: those
+ *      registers complemented on the frozen game at every exit of an attract and a coin-start
+ *      session change nothing, beside an SP flip at the same exit that is heard (assertDeadAtExit).
  *   5. EXHAUSTIVE — all four exits, and the placing arm over every one of the 256 headings:
  *      the gate cell open and shut, the frame bit set and clear, and the delay at the value that
  *      expires and at values that do not.
@@ -43,6 +45,7 @@ import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_HEADING } from "../names.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4853;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
@@ -67,7 +70,18 @@ const DISPATCHES = { shared: 598, attract: 844 };
  * therefore pinned at BOTH that entry and a crafted one that runs the whole body.
  */
 const EXCLUDED_AT_ENTRY = ["sp"];
-const EXCLUDED_WHEN_PLACING = ["f", "sp"];
+/**
+ * When it places, the frozen routine also leaves the pair cursor (the pair's second byte) in HL
+ * and the second coordinate in A (what its last load left). The rewrite leaves neither: it never
+ * seats HL (its table fetch returns the byte and hands no pointer back), and A holds the pair's
+ * first byte, as fetched. The oracle's own read of that HL, one past the fetched byte, is inside
+ * this routine and is compared as the memory it writes. DEAD AT EXIT complements A, F, H and L on
+ * the frozen game at every exit of whole sessions, placing ones included, and nothing differs. So
+ * a, h and l join the placing set, as measured here; nothing else may.
+ */
+const EXCLUDED_WHEN_PLACING = ["a", "f", "h", "l", "sp"];
+/** Longer than the corpus: the placing arm is rare, and these lengths reach it in both. Measured. */
+const DEAD_SESSIONS = [["attract", [], 8000], ["coin-start", undefined, 12000]];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: frozen=${d.a} candidate=${d.b}` : "identical");
@@ -329,6 +343,21 @@ test("EXCLUDED, deliberately: pinned at the captured entry AND at a placing one"
     `  EXCLUDED: ${EXCLUDED_AT_ENTRY.join(", ")} at the captured entry, ` +
       `${EXCLUDED_WHEN_PLACING.join(", ")} when it places, and pc in both`,
   );
+});
+
+test("DEAD AT EXIT: every register the placing arm leaves different but SP is dead where it returns", { skip }, () => {
+  const poison = EXCLUDED_WHEN_PLACING.filter((k) => k !== "sp");
+  const exits = assertDeadAtExit({
+    at: TARGET, poison, reachEvery: true,
+    sessions: DEAD_SESSIONS.map(([label, tape, frames]) => ({ label, tape, frames })),
+    // The placing arm alone leaves these registers different: some poisoned exit must come off it.
+    controls: [{ label: "placing arm", poison: [], only: (m) => exitOf(m) === "places", expect: "reach" }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    const placed = r.controls["placing arm"].poisoned;
+    console.log(`  DEAD AT EXIT/${r.label}: ${placed} of ${r.dead.poisoned} exits placing`);
+  }
 });
 
 test("EXHAUSTIVE: all four exits, and every heading through the placing one", { skip }, () => {

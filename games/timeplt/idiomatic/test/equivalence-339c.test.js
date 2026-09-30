@@ -17,7 +17,17 @@
  *   2. NOT VACUOUS — an empty candidate FAILS the crafted comparison, from poisoned destinations.
  *   3. EXCLUDED — the register divergence BOUNDED by a declared set rather than pinned to it:
  *      nothing outside the set may move, and a rewrite that leaves fewer of those registers
- *      dirty is strictly better and still passes.
+ *      dirty is strictly better and still passes. A is in it because the rewrite's address step
+ *      no longer echoes the low byte of the entry address into A, which the frozen one leaves.
+ *   3a. DEAD THROUGH THE ONE CONTINUATION — the whole-session DEAD AT EXIT instrument cannot speak
+ *      here: over a whole attract session and a whole coin -> start session it poisons NO exit,
+ *      which is asserted. So the liveness of the ceiling is measured on the only continuation the
+ *      program image gives this exit, and the image is asserted to give only one: the address
+ *      appears in it once, as the call at 0x4A97, whose return site jumps to 0x0F1A, which loads
+ *      HL, bumps a cell and returns. For every crafted entry, the frozen routine is run into that
+ *      frozen continuation with every register in the ceiling flipped at the exit, and memory,
+ *      the program counter it returns to and every unflipped register come out identical; the
+ *      same exit with SP flipped is heard.
  *   4. EXHAUSTIVE — the whole input space is three bytes, and all of it is swept: three states of
  *      the player-up flag against every one of 256 index values, with the OTHER player's index
  *      set to a different value at each point so a routine that read the wrong one is visible.
@@ -29,6 +39,10 @@
  *      and six short of the total, which is where a wrong index happens to select the same two
  *      bytes as the right one; the counts record that rather than rounding it away.
  *
+ * HOLE: the continuation ends in a return to whatever called the three callers, which nothing in
+ * any played session does; their only path in the image is a tail jump into misaligned code that
+ * calls unmapped addresses. So A, B, C, D, E and the carry are shown unread only as far as that
+ * return; L is overwritten before it.
  * HOLE: one backdrop, and the table the routine reads is part of the program image rather than
  * anything this file varies — so what is covered is the SELECTION and the copy, not the contents
  * of what gets copied.
@@ -46,6 +60,8 @@ import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { ACTIVE_PLAYER } from "../names.js";
+import { loc_0f1a as continuation } from "../../translated/loc_0f1a.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x339c;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
@@ -62,7 +78,19 @@ const CORPUS_FRAMES = 2000;
 const TAPES = [["shared", {}], ["attract", { tape: [] }]];
 /** The three sites that transfer here. None of them runs either, which is asserted. */
 const CALLERS = [0x49fa, 0x4a0f, 0x4a42];
-const EXCLUDED = ["f", "b", "c", "d", "e", "l", "sp"];
+const EXCLUDED = ["a", "f", "b", "c", "d", "e", "l", "sp"];
+
+/** The one call into this routine in the program image, the return site it pushes, and where that site jumps. */
+const CALL_SITE = 0x4a97;
+const RETURN_SITE = 0x4a9a;
+const CONTINUATION = 0x0f1a;
+/** A stand-in for the return address the continuation hands back through; any word the stack could not hold by accident. */
+const STAND_IN = 0x5aa5;
+/** The whole sessions the standard DEAD AT EXIT instrument is asked over, and finds no exit in. */
+const DEAD_SESSIONS = [
+  { label: "attract", tape: [], frames: 20000 },
+  { label: "coin-start", tape: undefined, frames: 20000 },
+];
 
 const UP_STATES = [0, 1, 0xff];
 /** A poison the correct answer never leaves in either field. */
@@ -248,6 +276,63 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch push", { skip },
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
+});
+
+/** Run the frozen routine from `spec` into its one continuation, flipping `poison` (or `flip`'s bits) at the exit. */
+function throughContinuation(spec, poison = [], flip = {}) {
+  const m = craft(spec);
+  m.push16(STAND_IN);
+  m.push16(RETURN_SITE);
+  oracle(m);
+  assert.equal(m.pc, RETURN_SITE, "the frozen routine did not return to its one return site");
+  for (const k of poison) m.regs[k] ^= flip[k] ?? (k === "sp" ? 0xffff : 0xff);
+  continuation(m);
+  return m;
+}
+
+/** What differs after the continuation, the flipped registers themselves aside. */
+function continuationHeard(spec, poison, flip) {
+  const a = throughContinuation(spec);
+  const b = throughContinuation(spec, poison, flip);
+  const regs = REG_FIELDS.filter((k) => !poison.includes(k) && a.regs[k] !== b.regs[k]);
+  return { cells: allDiffs(a, b), regs, pc: a.pc !== b.pc, returnedTo: a.pc };
+}
+
+test("DEAD THROUGH THE ONE CONTINUATION: every register in the ceiling is unread after this exit", { skip }, () => {
+  // The standard instrument first: no played session hands back from here, so it can say nothing.
+  // assertDeadAtExit pins every session to zero dispatches (a session that now hands back from here
+  // fails that count: use the whole-session DEAD AT EXIT then), requires the unpoisoned run to match
+  // its baseline, and then refuses the arm as vacuous, which is the one failure expected here.
+  assert.throws(() => assertDeadAtExit({
+    at: TARGET, poison: EXCLUDED.filter((k) => k !== "sp"),
+    sessions: DEAD_SESSIONS.map((spec) => ({ ...spec, dispatches: 0 })),
+  }), { message: new RegExp(`^no session dispatched ${hex4(TARGET)}, so its silence is vacuous$`) },
+  "a session now hands back from here, or the unpoisoned run differed: use the whole-session DEAD AT EXIT");
+  // The image: this address is named once, by a call whose return site jumps to the continuation.
+  const image = pristine().mem.rom;
+  const named = [];
+  for (let i = 0; i + 2 < image.length; i++) if (image[i + 1] === (TARGET & 0xff) && image[i + 2] === TARGET >> 8) named.push(i);
+  assert.deepEqual(named.map(hex4), [hex4(CALL_SITE)], "the image names this routine somewhere other than the one call");
+  assert.equal(image[CALL_SITE], 0xcd, "the one naming is not a plain call");
+  assert.deepEqual([...image.slice(RETURN_SITE, RETURN_SITE + 3)], [0xc3, CONTINUATION & 0xff, CONTINUATION >> 8],
+    "the return site no longer jumps straight to the continuation");
+  assert.deepEqual([...image.slice(CONTINUATION, CONTINUATION + 5)], [0x21, 0xac, 0xa9, 0x34, 0xc9],
+    "the continuation is no longer load HL, bump the cell, return");
+
+  const ceiling = EXCLUDED.filter((k) => k !== "sp");
+  let exitHeard = 0;
+  for (const spec of POINTS) {
+    const dead = continuationHeard(spec, ceiling);
+    assert.equal(dead.returnedTo, STAND_IN, "the continuation did not return through the stand-in");
+    assert.deepEqual(dead.cells.map((d) => hex4(d.addr)), [], `${spec}: a flipped register reached memory`);
+    assert.deepEqual(dead.regs, [], `${spec}: a flipped register reached another register`);
+    assert.equal(dead.pc, false, `${spec}: a flipped register moved where the continuation returns`);
+    const control = continuationHeard(spec, ["sp"], { sp: 2 });
+    if (control.pc || control.cells.length > 0 || control.regs.length > 0) exitHeard++;
+  }
+  assert.equal(exitHeard, POINTS.length, "the SP flip at this exit went unheard somewhere, so the exit poison does not land there");
+  console.log(`  DEAD THROUGH THE CONTINUATION: ${POINTS.length} crafted exits, ${ceiling.join(", ")} flipped, nothing differs; ` +
+    `the SP flip heard at all ${exitHeard}; no session exit to poison`);
 });
 
 test("EXHAUSTIVE: three states of the player-up flag against every index", { skip }, () => {

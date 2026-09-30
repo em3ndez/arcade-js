@@ -5,8 +5,9 @@
  * capped, or closed out once it overruns; on any other era a heading-quadrant picks a shape pair and
  * the era picks a colour, and one half of the compass swaps the pair into the two entry slots in its
  * own colour while the other half biases that colour by half a page.
+ * The record and its sprite entry are arguments.
  * LIVE-OUT: the object's sprite entry and wind-down cell, plus whatever the retire or close-out
- * tail leaves. */
+ * tail leaves in memory. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { hasReachedBoundaryBandSelectedByHeading } from "./hasReachedBoundaryBandSelectedByHeading.js";
@@ -34,11 +35,11 @@ const HEADING_BIAS = 0x40;
 const HALF = 0x80;
 
 export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   const record = ix;
   const entry = iy;
 
-  if (hasReachedBoundaryBandSelectedByHeading(m)) return retireEntryPairIntoCooldown(m);
+  if (hasReachedBoundaryBandSelectedByHeading(m, record, entry)) return retireEntryPairIntoCooldown(m, record, entry);
 
   const era = mem8[ERA_INDEX];
 
@@ -47,15 +48,15 @@ export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.re
     if (seed !== SETTLED) {
       const counter = u8(mem8[record + WIND_DOWN] + 1);
       mem8[record + WIND_DOWN] = counter;
-      if (counter & CLOSED_OUT) return (regs.c = counter, restartAnimationCounterThenDressFlutterSprite(m));
+      if (counter & CLOSED_OUT) return restartAnimationCounterThenDressFlutterSprite(m, counter, record, entry);
       if (u8(seed + 2) < counter) mem8[record + WIND_DOWN] = CLOSED_OUT;
       mem8[entry + COLOUR_LO] = FLUTTER_CODE;
       mem8[entry + COLOUR_HI] = FLUTTER_CODE;
-      return (regs.c = counter, dressSpriteFlutterShapesByFrameTickBit(m));
+      return dressSpriteFlutterShapesByFrameTickBit(m, entry);
     }
     mem8[entry + COLOUR_LO] = FLUTTER_CODE;
     mem8[entry + COLOUR_HI] = FLUTTER_CODE;
-    return dressSpriteFlutterShapesByFrameTickBit(m);
+    return dressSpriteFlutterShapesByFrameTickBit(m, entry);
   }
 
   const index = u8(u8(era * 16) + (mem8[FRAME_TICK] & 0x02));

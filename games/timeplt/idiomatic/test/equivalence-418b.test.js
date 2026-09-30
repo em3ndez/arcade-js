@@ -4,8 +4,17 @@
  * GATE: crafted entries (real sweep-body states with one slot forced into this arm — marker full,
  *   countdown live, era not the fourth), the dead stack scratch below the seat masked out, the SP
  *   drift asserted per arm (+2 on both: the rewrite omits the sweep's one ret whether this turn ends
- *   the sweep or its close runs the remaining turns as direct calls), registers minus the callee's
- *   dead scratch, and teeth. Run: node --test games/timeplt/idiomatic/test/equivalence-418b.test.js
+ *   the sweep or its close runs the remaining turns as direct calls), and teeth.
+ *
+ * ★ NO REGISTER IS LIVE AT EXIT, measured on the ORACLE. This arm always leaves through the end of
+ *   the whole sweep — its close runs every remaining turn before it returns — so what it leaves is
+ *   what the sweep leaves, and wrapped in the all-frozen game with every register it can leave
+ *   complemented on the way out it is unheard in every dumped cell over the era-3 and countdown-slot
+ *   sessions that dispatch it, where SP flipped at the same exit is heard (the exit-side control) and
+ *   a poisoned record cursor on its entry is heard at once. (Within the
+ *   sweep the cursors and the count are handed from turn to turn as arguments.) The twin that
+ *   differs only in never going round is bitten where the sweep goes round onto an occupied slot.
+ * Run: node --test games/timeplt/idiomatic/test/equivalence-418b.test.js
  */
 
 import test from "node:test";
@@ -17,8 +26,8 @@ import { loc_418b as oracle } from "../../translated/loc_418b.js";
 import { loc_40ea as sweepBody } from "../../translated/loc_40ea.js";
 import { closeOneTurnOfTheSlotSweep } from "../closeOneTurnOfTheSlotSweep.js";
 import { flyAndRetireSlotCyclingShapeInEra4 } from "../flyAndRetireSlotCyclingShapeInEra4.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { ERA_INDEX } from "../names.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x418b;
 const SWEEP_BODY = 0x40ea;
@@ -38,7 +47,16 @@ const POKE_FROM_FRAME = 900;
 const DATA_TOP = 0xadff;
 const CORPUS = 200;
 
-const EXCLUDED = ["a", "f", "h", "l", "sp"];
+// The sessions that dispatch this arm through the game's own code (JS frames, one later than a lua
+// schedule's): the third era held, and the countdown-slot tape's pokes.
+const SESSION_FRAMES = 2400;
+const SESSIONS = {
+  "era 3": [{ addr: ERA_INDEX, val: 3, frame: POKE_FROM_FRAME, dur: null }],
+  countdown: [{ addr: 0xad14, val: 3, frame: 561, dur: 1 },
+    ...Array.from({ length: 19 }, (_, k) => ({ addr: 0xaa81, val: 3, frame: 701 + 16 * k, dur: 1 }))],
+};
+/** Every register the oracle can leave behind, the stack pointer apart (its return pops through it). */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
@@ -105,12 +123,6 @@ function compare(cand, machine) {
     if (addr >= floor && addr < seat) continue;
     escaped = { addr, a: da[i], b: db[i] };
   }
-  if (!escaped) {
-    for (const k of REG_FIELDS) {
-      if (EXCLUDED.includes(k)) continue;
-      if (a.regs[k] !== b.regs[k]) { escaped = { addr: null, reg: k, a: a.regs[k], b: b.regs[k] }; break; }
-    }
-  }
   return { escaped, floor, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
@@ -128,17 +140,13 @@ function footprint(machine) {
   return n;
 }
 
-/** Which registers a candidate parts company with the oracle on, over the corpus. */
-function movedOver(cand) {
-  const moved = new Set();
-  for (const m of scenarios()) {
-    const a = m.clone();
-    const b = m.clone();
-    oracle(a);
-    try { cand(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
+/** Looping entries whose next slot is planted with a drifting object, so a turn that never goes round shows. */
+function loopingScenarios() {
+  return captured().map((e) => {
+    const m = craft(e, { count: 3 });
+    m.mem8[(m.regs.ix + 0x10 + MARKER_OFFSET) & 0xffff] = 0x30;
+    return m;
+  });
 }
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
@@ -163,18 +171,13 @@ function skipCloseTurn(m) {
   const addr = (m.regs.ix + COUNTDOWN_OFFSET) & 0xffff;
   m.mem8[addr] = m.mem8[addr] - 1;
 }
-/** The control for the excluded set: scribbles a register the routine leaves alone. */
-function movesSpareCursor(m) {
-  candidate(m);
-  m.regs.iy = (m.regs.iy + 1) & 0xffff;
-}
-
+// [label, twin, the entries it must be caught on]
 const TWINS = [
-  ["no-op", () => {}],
-  ["skip-fly", skip3e6c],
-  ["skip-countdown", skipCountdown],
-  ["wrong-countdown-cell", wrongCountdownCell],
-  ["skip-close-turn", skipCloseTurn],
+  ["no-op", () => {}, scenarios],
+  ["skip-fly", skip3e6c, scenarios],
+  ["skip-countdown", skipCountdown, scenarios],
+  ["wrong-countdown-cell", wrongCountdownCell, scenarios],
+  ["skip-close-turn", skipCloseTurn, loopingScenarios],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -233,21 +236,22 @@ test("ERA: the third era also reaches this arm; the fourth is diverted before it
   console.log("  ERA: era 2 and era 3 identical");
 });
 
-test("EXCLUDED: nothing outside the dead scratch moves, and the check can see one", { skip }, () => {
-  const moved = movedOver(candidate);
-  const control = movedOver(movesSpareCursor);
-  assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
-    "even a twin that scribbles a cursor moves nothing, so the empty reading below proves nothing");
-  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
-  assert.deepEqual(unexpected, [], "a register diverged outside the dead scratch");
-  console.log(`  EXCLUDED: moves ${[...moved].sort().join(",")}; the control also moves a cursor`);
+test("DEAD AT EXIT: no register the oracle leaves is heard, and the instrument hears one that is read", { skip }, () => {
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: SESSION_FRAMES, reachEvery: true,
+    sessions: Object.entries(SESSIONS).map(([label, pokes]) => ({ label, pokes })),
+    // A poisoned record cursor on entry is heard in game data in every session: the instrument is not deaf.
+    controls: [{ label: "entry IX", poison: ["ix"], before: true, expect: "heard", every: true, dataOnly: true }],
+  });
 });
 
-for (const [label, twin] of TWINS) {
-  test(`TEETH: the ${label} twin is CAUGHT on every crafted entry`, { skip }, () => {
+for (const [label, twin, entries] of TWINS) {
+  test(`TEETH: the ${label} twin is CAUGHT on every entry of the arm it breaks`, { skip }, () => {
+    const list = entries();
     let caught = 0;
-    for (const m of scenarios()) if (compare(twin, m).escaped) caught++;
-    assert.equal(caught, scenarios().length, `the ${label} twin escaped an entry`);
-    console.log(`  TEETH/${label}: caught on ${caught}/${scenarios().length}`);
+    for (const m of list) if (compare(twin, m).escaped) caught++;
+    assert.ok(list.length > 0, "no entries to bite on");
+    assert.equal(caught, list.length, `the ${label} twin escaped an entry`);
+    console.log(`  TEETH/${label}: caught on ${caught}/${list.length}`);
   });
 }

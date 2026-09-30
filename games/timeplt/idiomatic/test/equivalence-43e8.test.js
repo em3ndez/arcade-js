@@ -68,8 +68,19 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 let entry = null;
 
 /** The rewrite, handing on through the registry -- the one change the severed arms make, the same
- *  transfer the oracle's `jp 0x07AD` makes, so the recorder severs both sides at the same place. */
-const routed = (m) => sumImageBlockForTheTamperCheck(m, undefined, undefined, (mm) => mm.call(CONTINUATION));
+ *  transfer the oracle's `jp 0x07AD` makes, so the recorder severs both sides at the same place.
+ *  The rewrite hands the total and the walked-off pointer on as ARGUMENTS; the frozen chain behind
+ *  0x07AD reads them from registers, so this adapter seats exactly what the oracle leaves at its
+ *  jump -- total in A, pointer in HL, the spent count 0 in B -- from the arguments it is handed. The
+ *  handover log below then compares what the rewrite handed on against what the oracle left; B is the
+ *  adapter's own, because the spent count is dead in the oracle too (0x07AD's first act, ld b,a,
+ *  overwrites it with the total). */
+const routed = (m) => sumImageBlockForTheTamperCheck(m, undefined, undefined, (mm, total, pointer) => {
+  mm.regs.a = total;
+  mm.regs.hl = pointer;
+  mm.regs.b = 0;
+  return mm.call(CONTINUATION);
+});
 
 function gate(candidate) {
   return unitEquivalence(

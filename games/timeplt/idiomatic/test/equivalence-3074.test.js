@@ -23,9 +23,20 @@
  *      poked into a scratch cell so the wrap of the sum is covered rather than argued.
  *   5. REGISTERS ARE EXCLUDED, DELIBERATELY, and pinned. The cursor pair the routine advances IS
  *      reproduced and compared; the flag byte and the pair the frozen advance happens to leave a
- *      stride in are not, since the rewrite reaches the advance through the decompiled twin.
- *   6. TEETH — seven twins, each with its exact catch count over the cross.
+ *      stride in are not, since the rewrite reaches the advance through the decompiled twin. Nor is
+ *      the accumulator: the frozen routine builds the displaced coordinate in A and leaves it there,
+ *      the rewrite builds it in a local and only stores it. What the oracle leaves in A is still
+ *      compared, against the byte the rewrite lands on the next entry.
+ *   6. DEAD AT EXIT — why A may go: on the FROZEN game, A is complemented as this routine hands back,
+ *      over a whole attract session and a whole coin-start session, and not one frame of state
+ *      changes. Neither tape reaches this address unaided (arm 1), so both sessions are driven by the
+ *      one real way in: the tamper witness 0xAD39 is poked off its sentinel, the scenery seed's guard
+ *      fails, and 0x3114 -> 0x307F -> here runs. An exit control (SP nudged by a word at the same
+ *      exit) and an entry control (the carried coordinate C nudged on the way in) are both heard.
+ *   7. TEETH — seven twins, each with its exact catch count over the cross.
  *
+ * HOLE: DEAD AT EXIT rests on the poked sessions' few dispatches (pinned below), each arriving with
+ * the clear loop's spent count, so A is shown dead only where the divert really hands back.
  * HOLE: no real dispatch, so nothing here says which displacements a live game presents; and
  * nothing establishes what the table at the pointer the prologue loads is for. The prologue is
  * reproduced from the four instructions preceding this entry, which is a reading of the image
@@ -46,6 +57,8 @@ import { dispatchSeatedSlotByEraIndex as controlModule } from "../dispatchSeated
 import { loc_290e as controlOracle } from "../../translated/loc_290e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { TAMPER_WITNESS } from "../names.js";
+import { assertDeadAtExit, heard } from "./_deadAtExit.js";
 
 const TARGET = 0x3074;
 const CONTROL = 0x290e;
@@ -66,7 +79,12 @@ const CROSS_SIZE = ENTRIES.length * RECORDS.length * TABLES.length;
 const SCRATCH_SOURCE = 0xafc0;
 
 const PAINT_EITHER_SIDE = 4;
-const EXCLUDED = ["f", "d", "e", "sp"];
+const EXCLUDED = ["a", "f", "d", "e", "sp"];
+
+/** DEAD AT EXIT: the one real way in, forced -- the tamper witness knocked off its sentinel. */
+const DIVERT_POKES = [{ addr: TAMPER_WITNESS, val: 0x00, frame: 260, dur: null }];
+/** Whole sessions; measured dispatches of this address under the poke (a move is a finding). */
+const DEAD_SESSIONS = [["undriven attract", [], 1], ["coin -> start", undefined, 2]];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -231,7 +249,7 @@ test("EXHAUSTIVE over the displacement: all 256 values of the selected byte", { 
   console.log("  EXHAUSTIVE: 256 displacements identical, and the wrap is asserted");
 });
 
-test("EXCLUDED, deliberately: the flag byte, one register pair, sp and pc", { skip }, () => {
+test("EXCLUDED, deliberately: the accumulator, the flag byte, one register pair, sp and pc", { skip }, () => {
   const a = craft(ENTRIES[0], RECORDS[0], PROLOGUE_TABLE);
   const b = a.clone();
   oracle(a);
@@ -242,8 +260,30 @@ test("EXCLUDED, deliberately: the flag byte, one register pair, sp and pc", { sk
   assert.equal(a.regs.iy, b.regs.iy, "the entry cursor is reproduced, not excluded");
   assert.equal(a.regs.ix, RECORDS[0] + RECORD_STRIDE, "the record cursor did not step a record on");
   assert.equal(a.regs.iy, ENTRIES[0] + ENTRY_STRIDE, "the entry cursor did not step an entry on");
-  assert.equal(a.regs.a, b.regs.a, "the displaced coordinate is reproduced, not excluded");
+  // The accumulator is excluded, but what the oracle leaves in it -- the displaced coordinate -- is
+  // still held: it must be the byte the rewrite lands on the next entry.
+  assert.equal(b.mem8[ENTRIES[0] + ENTRY_STRIDE], a.regs.a,
+    "the displaced coordinate the oracle leaves in A is not the byte the rewrite stored");
   console.log(`  EXCLUDED: ${moved.join(", ")} and pc`);
+});
+
+test("DEAD AT EXIT: the accumulator, as the frozen routine leaves it, is read by nothing after it", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ["a"], frames: ENTRY_FRAMES,
+    sessions: DEAD_SESSIONS.map(([label, tape, dispatches]) =>
+      ({ label, tape, pokes: DIVERT_POKES, dispatches })),
+    // ENTRY CONTROL: C is the coordinate the routine displaces into the next entry; nudged on the way
+    // in it must be heard, so the same instrument hears a register the routine really carries into RAM.
+    controls: [{
+      label: "entry", poison: ["c"], flip: { c: 0x01 }, before: true, every: true, reachEvery: true,
+    }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the SP nudge at this exit went unheard, so the exit poison never lands`);
+  }
+  console.log("  DEAD AT EXIT: the exit control and the C entry control are heard in every session");
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────

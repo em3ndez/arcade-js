@@ -16,9 +16,9 @@ const SLOW_STEP = 3;
 const WITHIN_ONE_NOTCH = 3;
 const HALF_TURN = 128;
 
-export function turnShipTowardTargetHeading(m) {
+export function turnShipTowardTargetHeading(m, stick = m.regs.a) {
   const { mem8 } = m;
-  const wanted = fetchTableByte(m, loc_1f2e_ADDR);
+  const wanted = fetchTableByte(m, loc_1f2e_ADDR, stick);
   const heading = mem8[PLAYER_HEADING];
   if (heading !== wanted) {
     const delta = u8(heading - wanted);
@@ -27,5 +27,5 @@ export function turnShipTowardTargetHeading(m) {
     else if (delta >= HALF_TURN) mem8[PLAYER_HEADING] = u8(heading + step);
     else mem8[PLAYER_HEADING] = u8(heading - step);
   }
-  return scrollWorldAtTheEraPace(m);
+  return scrollWorldAtTheEraPace(m, mem8[PLAYER_HEADING]);
 }

@@ -32,5 +32,5 @@ export function flyDemoShipByScript(m) {
   if (turn === 1) mem8[PLAYER_HEADING] = u8(mem8[PLAYER_HEADING] - TURN_STEP);
   else if (turn !== 0) mem8[PLAYER_HEADING] = u8(mem8[PLAYER_HEADING] + TURN_STEP);
 
-  return scrollWorldAtTheEraPace(m);
+  return scrollWorldAtTheEraPace(m, mem8[PLAYER_HEADING]);
 }

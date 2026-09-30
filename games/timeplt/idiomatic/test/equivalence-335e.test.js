@@ -2,7 +2,10 @@
 /**
  * seatCaptionPenFromEraFoldingTamperIntoPhase vs the frozen oracle: the dissolved callees drop the ROM rets, so RAM is compared with
  * the dead stack below the seat masked out, the +2 sp re-seat and the undefined return checked,
- * registers left out (no caller consumes one); plus branch paths, a corpus, and teeth. Run:
+ * registers left out (no caller consumes one); plus branch paths, a corpus, and teeth. The twins
+ * address the glyph/colour record themselves: the oracle reads the colour through the HL its rst 08
+ * leaves on the entry, which is internal to this routine and which fetchTableByte no longer returns;
+ * a CONTROL holds the defect-free twin caught nowhere. Run:
  * node --test games/timeplt/idiomatic/test/equivalence-335e.test.js
  */
 
@@ -111,19 +114,20 @@ function scenarios() {
 
 function twin({ biasOff = false, forceP1 = false, liveGlyph = true, extraStep = true, table = TABLE, tail = true }) {
   return (m) => {
-    const { regs, mem8 } = m;
+    const { mem8 } = m;
     let t = mem8[PHASE];
     for (let i = 0; i < IMAGE_BYTES; i++) t = u8(t + mem8[u16(IMAGE_BLOCK + i)]);
     mem8[PHASE] = u8(t + BIAS + (biasOff ? 1 : 0));
     const p2 = !forceP1 && mem8[ACTIVE_PLAYER] !== 0;
     const pen = p2 ? PEN_TWO : PEN_ONE;
     const era = p2 ? mem8[ERA_TWO] : mem8[ERA_ONE];
-    regs.a = u8(era * 2);
-    regs.hl = table;
-    const glyph = fetchTableByte(m);
+    // The oracle reads the colour through the HL its rst 08 leaves on the entry, INSIDE this routine;
+    // fetchTableByte no longer hands that pointer back, so the twin addresses the entry itself.
+    const at = u16(table + u8(era * 2));
+    const glyph = fetchTableByte(m, table, u8(era * 2));
     mem8[pen] = glyph;
     if (liveGlyph) mem8[LIVE_GLYPH] = glyph;
-    const colour = mem8[u16(regs.hl + 1)];
+    const colour = mem8[u16(at + 1)];
     mem8[pen + 1] = colour;
     const held = colour === mem8[LIVE_COLOUR];
     mem8[LIVE_COLOUR] = colour;
@@ -197,6 +201,16 @@ test("CORPUS: both tapes reach it and every dispatch replays identically", { ski
   assert.equal(coin.caught, 0, `the rewrite diverged on ${coin.caught} coin-start dispatches`);
   assert.equal(attract.caught, 0, `the rewrite diverged on ${attract.caught} attract dispatches`);
   console.log(`  CORPUS: coin-start ${coin.dispatched} identical, attract ${attract.dispatched} identical`);
+});
+
+test("CONTROL: the twin with no defect switched on is caught nowhere", { skip }, () => {
+  // The twins read the record's colour off the entry they address themselves (the rst 08 hand-off
+  // of HL is internal to the oracle and no longer returned); this holds that base faithful, so each
+  // twin's count below is its one defect's and not the scaffold's.
+  let caught = 0;
+  for (const [, m] of scenarios()) if (compare(twin({}), m).escaped) caught++;
+  assert.equal(caught, 0, "the defect-free twin diverged, so the twin counts measure the scaffold");
+  console.log(`  CONTROL: the defect-free twin is caught on 0 of ${scenarios().length} scenarios`);
 });
 
 for (const [label, brokenTwin, expected] of TWINS) {

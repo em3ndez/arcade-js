@@ -49,7 +49,12 @@ const REGISTER_BYTES = 17;
 const FIRST_TAP = 7;
 const SECOND_TAP = 16;
 
-const MOVED = ["f", "sp", "b_", "c_", "d_", "e_", "h_", "l_"];
+/**
+ * The oracle leaves the drawn byte in A for its frozen callers; the rewrite RETURNS it (every caller in
+ * the live game is idiomatic and takes the return), so A is compared as the RETURN against the oracle's
+ * A in unitDiff rather than as a register — it is excluded here as a register only.
+ */
+const MOVED = ["a", "f", "sp", "b_", "c_", "d_", "e_", "h_", "l_"];
 const CORPUS_FRAMES = 1400;
 const WHOLE_FRAMES = 1400;
 const RET_TSTATES = 10;
@@ -92,15 +97,16 @@ function entryState() {
   return entry;
 }
 
-/** Oracle vs candidate on clones: RAM first, then the drawn byte. */
+/** Oracle vs candidate on clones: RAM first, then the drawn byte — the oracle's A against the
+ * candidate's RETURNED byte. */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
   oracle(a);
-  candidate(b);
+  const drawn = candidate(b);
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return ram;
-  return a.regs.a === b.regs.a ? null : { addr: null, a: a.regs.a, b: b.regs.a };
+  return a.regs.a === drawn ? null : { addr: null, a: a.regs.a, b: drawn };
 }
 
 const caught = (candidate, machine) => unitDiff(candidate, machine) !== null;
@@ -147,7 +153,9 @@ function hosted(candidate) {
     const before = probe.cycles;
     oracle(probe);
     const total = probe.cycles - before;
-    candidate(mm);
+    // The host here is the frozen layer, whose callers read the drawn byte out of A; the shim seats
+    // the returned byte there, which is what an idiomatic caller does with the return.
+    mm.regs.a = candidate(mm);
     mm.tick(total - RET_TSTATES);
     mm.ret(RET_TSTATES);
   };
@@ -238,7 +246,8 @@ const TWINS = [
   ["short-register", brokenShortRegister, 256, 4, true],
   ["no-counter", brokenNoCounter, 255, 6, true],
   ["adds-taps", brokenAddsTaps, 256, 5, true],
-  ["no-result", brokenNoResult, 255, 6, true],
+  // Returns nothing, so the drawn-byte compare (oracle A vs the RETURN) catches it at every counter.
+  ["no-result", brokenNoResult, 256, 6, true],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -262,9 +271,10 @@ test("EXCLUDED, deliberately: the alternate register set, the flags, the pointer
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  drawRandomByte(b);
   // What this catches: the drawn byte disagreeing, or the MAIN register set being touched on
   // either arm — the original's pair of set swaps is what buys it that.
+  const drawn = drawRandomByte(b);
+  assert.equal(drawn, a.regs.a, "the returned byte must be the byte the oracle leaves in A");
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !MOVED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");

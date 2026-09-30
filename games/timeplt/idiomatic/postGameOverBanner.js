@@ -6,7 +6,7 @@
  * The routine also carries an arm that has nothing to do with a banner: reached with play NOT
  * active, it hands off to restartAttractSequence and never comes back here. That arm has never
  * been seen taken.
- * LIVE-OUT: memory, plus the last command pair queued. */
+ * LIVE-OUT: memory only. */
 
 import { PLAY_ACTIVE, ACTIVE_PLAYER, SEQUENCE_DELAY } from "./names.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
@@ -32,5 +32,5 @@ export function postGameOverBanner(m) {
   postCommand(m, SECOND_COMMAND, SECOND_ARGUMENT);
 
   mem8[SEQUENCE_DELAY] = TIMER_RELOAD;
-  return (m.regs.d = SECOND_COMMAND, m.regs.e = SECOND_ARGUMENT, void advanceSequenceSubStep(m));
+  advanceSequenceSubStep(m);
 }

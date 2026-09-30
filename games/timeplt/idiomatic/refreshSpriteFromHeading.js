@@ -3,7 +3,8 @@
  * the shape and the byte that mirrors it, and store the pair into the entry's two slots. Choosing
  * the pair is not done here; all this adds is where the two bytes land, and it overwrites both
  * slots whole, so whatever the entry carried before — mirroring and tint together — is replaced.
- * LIVE-OUT: the two slots written, plus the shape left standing in the accumulator. */
+ * The object whose heading is read comes in beside the entry. LIVE-OUT: the two slots written,
+ * plus the shape left standing in the accumulator. */
 
 import { u16 } from "../../../core/int.js";
 import { spriteForHeading } from "./spriteForHeading.js";
@@ -11,9 +12,9 @@ import { spriteForHeading } from "./spriteForHeading.js";
 const SHAPE_SLOT = 0x01;
 const ATTRIBUTE_SLOT = 0x30;
 
-export function refreshSpriteFromHeading(m, entry = m.regs.iy) {
+export function refreshSpriteFromHeading(m, entry = m.regs.iy, object = m.regs.ix) {
   const { mem8 } = m;
-  const [shape, mirror] = spriteForHeading(m);
+  const [shape, mirror] = spriteForHeading(m, object);
   mem8[u16(entry + ATTRIBUTE_SLOT)] = mirror;
   mem8[u16(entry + SHAPE_SLOT)] = shape;
   return (m.regs.a = shape);

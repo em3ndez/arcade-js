@@ -43,6 +43,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, COIN_START_TAPE, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, TAPE_SESSIONS } from "./_deadAtExit.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -69,7 +70,19 @@ const HISTORIES = [BACK_HISTORY, FORWARD_HISTORY, COMMIT_HISTORY, OTHER_COMMIT_H
 const SCRATCH_BYTES = 10;
 /** Measured over natural + crafted entries. The one caller's continuation reads memory before any
  * register. b, a_ and f_ move only on the game-start tails, whose own gates carry the same ceiling. */
-const MOVED = ["a", "f", "b", "d", "e", "h", "l", "a_", "f_"];
+/**
+ * c is NOT a live-out (it would hold the pen colour a game start's credit-panel repaint leaves): the
+ * panel's painter now takes its colour as an argument. From the ORACLE: this sub-step arm returns
+ * through the dispatcher's tail 0x0F54 — on the start path that leaves c, play has just been made
+ * active, so 0x0F54 returns at once — into the NMI epilogue 0x0174, whose
+ * 0x55D4 writes b/c before any read and which then pops every register.
+ * Measured on the ORACLE by the DEAD AT EXIT arm below: c complemented where this entry hands back is
+ * heard nowhere, over every tape session — but only tapes/high-score.poke.json reaches this entry, on
+ * its initials-entry path. No session takes the start path that leaves the colour in c, so on that
+ * path c's liveness rests on the static read above (0x0F54 returns at once, 0x55D4 writes b/c first),
+ * not on a measurement.
+ */
+const MOVED = ["a", "f", "b", "d", "e", "h", "l", "a_", "f_", "c"];
 
 const IN1 = 0xc320;
 const BACK = 0x01;
@@ -425,6 +438,13 @@ test("CRAFTED START: lives, free play, credits and start buttons reach every gam
   console.log(`  CRAFTED START: ${n} entries, ${started} start a game, ${caught} diverge`);
   assert.ok(started > 0, "vacuous: no crafted entry starts a game");
   assert.equal(caught, 0, show(first));
+});
+
+/** Frames each TAPE_SESSIONS session runs for the DEAD AT EXIT arm. */
+const DEAD_FRAMES = 2500;
+
+test("DEAD AT EXIT: on the frozen game, c is dead where this entry hands back", { skip }, () => {
+  assertDeadAtExit({ at: TARGET, poison: ["c"], sessions: TAPE_SESSIONS, frames: DEAD_FRAMES });
 });
 
 test("REGISTERS: only scratch registers differ, over natural and crafted entries", { skip }, () => {

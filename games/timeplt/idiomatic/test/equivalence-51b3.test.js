@@ -9,8 +9,13 @@
  *      comparison; the total dispatch count is asserted, so a shrinking corpus fails loudly.
  *   2. NO EXCLUSION WINDOW AT ALL — this routine pushes nothing, so the two arms agree on every
  *      byte of the dump including the stack. Asserted rather than assumed.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to at most {a, f, sp}. Both
- *      cursors and the count are reproduced and compared, not excused.
+ *   3. NO REGISTER IS LIVE AT EXIT, measured on the ORACLE (DEAD AT EXIT): wrapped in the
+ *      all-frozen game, every register it leaves — the cursors and the count included — is
+ *      complemented on the way out and is unheard anywhere over five sessions (the driven one,
+ *      and the era-1, era-2, era-4 and armed-ship holds that route the collision pass through
+ *      each of its callers), while a complemented stack pointer is heard in game data in each
+ *      (assertDeadAtExit). So registers
+ *      and pc are not compared; the oracle's own walk (WALK) still pins the loop's shape.
  *   4. WHAT THE CORPUS COVERS, AND WHAT IT DOES NOT — measured: how many real dispatches pass the
  *      guard, how many find an object in play, and how many actually mark one. If real play never
  *      marks anything, the crafted arms are the only thing gating the mark, and this says so.
@@ -22,7 +27,8 @@
  *   7. BOTH AXES ARE REQUIRED — an object inside the box on one axis and outside on the other is
  *      not marked, asserted for each axis separately.
  *   8. THE COUNT OF ZERO WALKS 256 SLOTS — asserted against a count of one, so the loop's shape
- *      is pinned at the value a naive rewrite gets wrong.
+ *      is pinned at the value a naive rewrite gets wrong; in the cross, a count of zero over a
+ *      planted object is what shows it in memory.
  *   9. TEETH — nine twins, each reported with its catch count over the crafted cross.
  *
  * HOLE: what a marked object goes on to do is not covered here, nor what the guard byte or the
@@ -38,9 +44,9 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { markObjectsTouchingPlayer } from "../markObjectsTouchingPlayer.js";
 import { loc_51b3 as oracle } from "../../translated/loc_51b3.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { PLAYER_STATE } from "../names.js";
+import { ERA_INDEX, PLAYER_STATE } from "../names.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x51b3;
 
@@ -57,7 +63,17 @@ const TAPES = [["shared", {}], ["attract", { tape: [] }]];
 /** How many entry states are kept per tape. The COUNT above is of every dispatch, not of these. */
 const KEEP_PER_TAPE = 40;
 
-const EXCLUDED = ["a", "f", "sp"];
+/** The sessions DEAD AT EXIT poisons over (JS frames): driven, and the holds that route each caller. */
+const DEAD_FRAMES = 2400;
+const DEAD_SESSIONS = {
+  driven: [],
+  "era 1": [{ addr: ERA_INDEX, val: 1, frame: 701, dur: null }],
+  "era 2": [{ addr: ERA_INDEX, val: 2, frame: 901, dur: null }],
+  "era 4": [{ addr: ERA_INDEX, val: 4, frame: 701, dur: null }],
+  armed: [{ addr: 0xad02, val: 0, frame: 621, dur: null }],
+};
+/** Every register the oracle can leave behind, the stack pointer apart. */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 /** Where the crafted arms put the state bytes and the objects, clear of anything the game uses. */
 const CRAFTED_STATES = 0xaf00;
@@ -84,10 +100,7 @@ function unitDiff(candidate, machine) {
   const b = machine.clone();
   oracle(a);
   candidate(b);
-  const ram = allDiffs(a, b)[0];
-  if (ram) return ram;
-  const moved = REG_FIELDS.find((k) => !EXCLUDED.includes(k) && a.regs[k] !== b.regs[k]);
-  return moved ? { addr: null, a: a.regs[moved], b: b.regs[moved] } : null;
+  return allDiffs(a, b)[0] ?? null;
 }
 
 let corpusCache = null;
@@ -141,7 +154,7 @@ const anEntry = () => corpus()[0].states[0];
  * chosen offset from the reference on each axis.
  */
 function craft({ guard = IN_PLAY, state = IN_PLAY, first = 0, second = 0, slots = 1,
-  offset = CRAFTED_OFFSET, width = CRAFTED_WIDTH, reference = 0x80 } = {}) {
+  offset = CRAFTED_OFFSET, width = CRAFTED_WIDTH, reference = 0x80, count = slots } = {}) {
   const m = anEntry().clone();
   m.mem8[PLAYER_STATE] = guard;
   m.mem8[REFERENCE_FIRST_AXIS] = reference;
@@ -155,7 +168,7 @@ function craft({ guard = IN_PLAY, state = IN_PLAY, first = 0, second = 0, slots 
   }
   m.regs.de = CRAFTED_STATES;
   m.regs.iy = CRAFTED_ENTRY;
-  m.regs.b = slots;
+  m.regs.b = count;
   m.regs.l = offset;
   m.regs.h = width;
   return m;
@@ -177,6 +190,8 @@ for (const guard of [IN_PLAY, 0x00, 0x7f]) {
   }
 }
 CROSS.push({ slots: 3 }, { slots: 8 }, { slots: 0 }, { width: 1 }, { width: 255 }, { offset: 0 });
+// a count of zero over a planted object: the whole-256 walk marks it, a walk of none does not
+CROSS.push({ slots: 1, count: 0 });
 
 function crossCaught(candidate) {
   let caught = 0;
@@ -218,21 +233,25 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: at most the accumulator, the flag byte, sp and pc", { skip }, () => {
+test("WALK: the oracle's cursors walk the run, and pc is the oracle's own", { skip }, () => {
   const entry = craft({ slots: 3 });
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
   markObjectsTouchingPlayer(b);
-  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  assert.ok(moved.every((k) => EXCLUDED.includes(k)), `a register outside the set moved: ${moved}`);
-  assert.equal(a.regs.e, b.regs.e, "the state cursor is reproduced, not excluded");
-  assert.equal(a.regs.iy, b.regs.iy, "the entry cursor is reproduced, not excluded");
-  assert.equal(a.regs.b, b.regs.b, "the count is reproduced, not excluded");
   assert.equal(a.regs.e, u8(CRAFTED_STATES + 3 * STATE_STRIDE), "the state cursor did not walk three slots");
   assert.equal(a.regs.iy, CRAFTED_ENTRY + 3 * ENTRY_STRIDE, "the entry cursor did not walk three slots");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  console.log(`  EXCLUDED: ${moved.join(", ")} and pc`);
+  console.log("  WALK: three slots walked by both cursors on the oracle");
+});
+
+test("DEAD AT EXIT: no register the oracle leaves is heard, and a complemented stack pointer is", { skip }, () => {
+  // Beside the helper's SP flip: SP complemented on the way out must reach game data in EVERY session.
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: DEAD_FRAMES, reachEvery: true,
+    sessions: Object.entries(DEAD_SESSIONS).map(([label, pokes]) => ({ label, pokes })),
+    controls: [{ label: "SP complemented", poison: ["sp"], dataOnly: true, every: true }],
+  });
 });
 
 test("WHAT THE CORPUS COVERS, AND WHAT IT DOES NOT", { skip }, () => {

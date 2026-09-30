@@ -18,25 +18,29 @@
  *      twin that never doubles at that exact entry and watching it pass.
  *
  * The comparison every arm is judged by is therefore `liveOutDiff`: RAM outside the two scratch
- * bytes, AND the five value registers the callers consume. The flag byte, the stack pointer and
- * pc stay excluded, and the EXCLUDED test pins exactly which, so "excluded" cannot widen.
+ * bytes, AND the two halves of the fetched word the callers consume, which the rewrite also
+ * RETURNS (checked against the oracle's DE on every swept input and every session dispatch). The
+ * flag byte, the stack pointer, pc, the advanced pointer (H, L) and the echoed low byte (A) are
+ * the ceiling, and the EXCLUDED test pins that exact set as a union over the sweep, so "excluded"
+ * can neither widen nor be padded.
  *
- * WHY THOSE FIVE, derived from the CALLERS. Every live call site consumes the fetched word on
- * its very next step. The busiest exchanges it into the address register and jumps to it, so
- * there the word is a code address and the advanced pointer travels into the target alongside
- * it. A second walks a record byte by byte through the word. A third exchanges the word and then
- * indexes a byte table through it. A fourth splits the word and stores its halves as an object's
- * two coordinates, which is why both halves are compared rather than the pair as a number. The
- * echoed low byte is the one live-out no observed caller reads on its next step; it is included
- * anyway, because the jump-table site dispatches with it still live.
+ * WHY THE WORD, derived from the CALLERS. Every live call site consumes the fetched word on its
+ * very next step: one exchanges it into the address register and jumps to it, one walks a record
+ * byte by byte through it, one indexes a byte table through it, and one splits it and stores its
+ * halves as an object's two coordinates — which is why both halves are compared rather than the
+ * pair as a number. The oracle ALSO leaves the pointer past the entry in HL and the entry's low
+ * address byte in A. Whether anything reads those is asked of the ORACLE, not argued: DEAD AT
+ * EXIT complements A, H and L as the frozen routine hands back, on every dispatch of an attract
+ * and a coin-start session, and no cell of any frame moves, while the word halves and an SP move
+ * at the same exit are heard. So the rewrite returns the word only.
  *
  * What it exercises, holes stated:
  *   1. EQUAL at the real dispatch — on the pristine entry the coin -> start tape reaches. The
  *      tape buys an entry taken while the game is being played; undriven attract reaches this
  *      routine too, first at frame 237.
  *   2. BLIND — the RAM verdict demonstrated identical for the rewrite and for an empty body.
- *   3. EXCLUDED — the divergence pinned to {f, sp} plus pc, and the RAM difference pinned to the
- *      scratch window and nothing else.
+ *   3. EXCLUDED — the divergence pinned to {a, f, h, l, sp} plus pc over the sweep, and the RAM
+ *      difference pinned to the scratch window and nothing else.
  *   4. DEGENERATE — the captured entry shown to be blind to the doubling.
  *   5. FLAGS — the excluded flag byte forced to a hostile constant on every dispatch of a whole
  *      driven session, to find out what actually depends on it. The busiest caller jumps to a
@@ -52,8 +56,12 @@
  *      dispatch's OWN stack pointer, which spans several bytes over a session. An exclusion
  *      pinned to one sample would call honest scratch an escape at the deeper end, and the
  *      repair that suggests itself — widening it — is what quietly removes the check.
- *   9. TEETH — five broken twins, each caught by liveOutDiff on a COUNTED set of inputs that a
- *      stated predicate predicts exactly, and each caught on real traffic as well.
+ *   9. DEAD AT EXIT — assertDeadAtExit: A, H and L complemented as the FROZEN routine hands back,
+ *      over an attract and a coin-start session: silent. Controls at the same exit: each word
+ *      half, and SP moved by two, are heard in every session.
+ *  10. TEETH — three broken twins, each caught by liveOutDiff on a COUNTED set of inputs that a
+ *      stated predicate predicts exactly, and each caught on real traffic as well; two more whose
+ *      only defect is the dead pointer or echo are HARMLESS, caught on no input.
  *
  * The pristine entry is HARVESTED from the gate rather than captured a second time: the
  * candidate arm is handed a fresh clone of the entry, so cloning it there keeps one capture path
@@ -72,6 +80,7 @@ import { loc_0010 as oracle } from "../../translated/loc_0010.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 
 const TARGET = 0x0010;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
@@ -85,8 +94,15 @@ const POISON = 0xdead;
 /** Top of the stack, which grows down from here into the last bytes of work RAM. */
 const STACK_TOP = 0xb000;
 
-/** The registers a caller consumes: the two halves of the word, of the pointer, and the echo. */
-const VALUE_REGS = ["d", "e", "h", "l", "a"];
+/** The registers a caller consumes: the two halves of the fetched word. */
+const LIVE_OUT = ["d", "e"];
+
+/** The registers allowed to differ: the flag byte, the stack the frozen ret pops, and the pointer
+ * and echo the oracle leaves, which DEAD AT EXIT measures unread. Every one of them is seen to move. */
+const EXCLUDED = ["a", "f", "h", "l", "sp"];
+
+/** Session length for DEAD AT EXIT; the table walks of both tapes are well under way by then. */
+const DEAD_FRAMES = 2500;
 
 /**
  * Table bases for the crafted sweep. The first four are bases the game itself presents; the last
@@ -139,11 +155,11 @@ function ramDiffs(a, b, top) {
   return out;
 }
 
-/** The comparison with teeth: RAM outside the scratch window, then the five value registers. */
+/** The comparison with teeth: RAM outside the scratch window, then the fetched word's halves. */
 function liveOutDiff(a, b, top) {
   const ram = ramDiffs(a, b, top).filter((d) => !d.scratch);
   if (ram.length) return ram[0];
-  for (const k of VALUE_REGS) {
+  for (const k of LIVE_OUT) {
     if (a.regs[k] !== b.regs[k]) return { where: k, oracle: a.regs[k], candidate: b.regs[k] };
   }
   return null;
@@ -180,6 +196,8 @@ function sweep(candidate) {
   const f = a.regs.f;
   const cycles = a.cycles;
   let caught = 0;
+  let returnMismatch = 0;
+  const moved = new Set();
   for (const base of BASES) {
     for (let number = 0; number < 256; number++) {
       a.regs.sp = sp;
@@ -193,12 +211,16 @@ function sweep(candidate) {
       b.regs.a = number;
       b.regs.de = POISON;
       oracle(a);
-      candidate(b);
-      if (VALUE_REGS.some((k) => a.regs[k] !== b.regs[k])) caught++;
+      const returned = candidate(b);
+      if (LIVE_OUT.some((k) => a.regs[k] !== b.regs[k])) caught++;
+      if (returned !== a.regs.de) returnMismatch++;
+      for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     }
   }
   return {
     caught,
+    returnMismatch,
+    moved,
     strayed: ramDiffs(a, b, sp).filter((d) => !d.scratch),
     wrote: ramDiffs(entryState(), b, sp),
   };
@@ -244,7 +266,7 @@ function drivenSession() {
 
       const mine = mm.clone();
       const beforeMine = mine.dumpState();
-      fetchTableWord(mine);
+      const returned = fetchTableWord(mine);
       rewrote += countDiff(beforeMine, mine.dumpState());
 
       const before = mm.dumpState();
@@ -256,7 +278,7 @@ function drivenSession() {
         if (depth > deepest) deepest = depth;
         if (depth <= 0 || depth > SCRATCH_BYTES) escaped++;
       }
-      if (VALUE_REGS.some((k) => mine.regs[k] !== mm.regs[k])) diverged++;
+      if (LIVE_OUT.some((k) => mine.regs[k] !== mm.regs[k]) || returned !== mm.regs.de) diverged++;
       return r;
     }]]);
     const host = makeMachine(snoop);
@@ -355,7 +377,7 @@ test("BLIND: the RAM verdict says the same thing about an empty body", { skip },
   console.log(`  BLIND: empty body gives the same RAM verdict; live-out catches it — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: the flag byte, the stack pointer, pc, and two scratch bytes",
+test("EXCLUDED, deliberately: the flag byte, the stack pointer, pc, the pointer, the echo, and two scratch bytes",
   { skip },
   () => {
     const a = entryState().clone();
@@ -364,8 +386,11 @@ test("EXCLUDED, deliberately: the flag byte, the stack pointer, pc, and two scra
     oracle(a);
     fetchTableWord(b);
 
-    const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-    assert.deepEqual(moved, ["f", "sp"], "the excluded register set changed shape");
+    // The ceiling is the union over every swept input: every excluded register must actually be
+    // left different somewhere (no padding), and nothing outside it ever is (no widening).
+    const union = sweep(fetchTableWord).moved;
+    const moved = REG_FIELDS.filter((k) => union.has(k));
+    assert.deepEqual(moved, EXCLUDED, "the excluded register set changed shape");
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
 
     const diffs = ramDiffs(a, b, top);
@@ -377,7 +402,7 @@ test("EXCLUDED, deliberately: the flag byte, the stack pointer, pc, and two scra
         "writing memory, not the known cost of wiring a stackless rewrite into a stacked engine",
     );
     console.log(
-      `  EXCLUDED: registers ${moved.join(", ")} and pc; RAM differs only at ` +
+      `  EXCLUDED: registers ${moved.join(", ")} and pc over the sweep; RAM differs only at ` +
         `${diffs.map((d) => d.where).join(", ")}, inside the ${SCRATCH_BYTES} bytes below the ` +
         `entry stack pointer ${hex4(entryState().regs.sp)}`,
     );
@@ -427,6 +452,22 @@ test("FLAGS: the byte the rewrite drops steers nothing in a whole driven session
     );
   });
 
+test("DEAD AT EXIT: the oracle's pointer and echo are read by nothing after it hands back", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ["a", "h", "l"], frames: DEAD_FRAMES, reachEvery: true,
+    sessions: [{ label: "attract", tape: [] }, { label: "coin-start" }],
+    // Controls on the same instrument and exit: each half of the word, the live-out, is heard.
+    controls: LIVE_OUT.map((k) => ({ label: `live-out ${k}`, poison: [k], every: true, reachEvery: true })),
+  });
+  // SP moved where this hands back, which the ROM returns through, is heard in EVERY session.
+  for (const r of exits) {
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the SP flip at this exit was not heard, so the exit poison never lands`);
+  }
+  console.log(`  DEAD AT EXIT: word halves heard and exit control heard in every session ` +
+    `(${exits.map((r) => `${r.label} ${heardAs(r.exitControl)}`).join("; ")})`);
+});
+
 // ── the comparison with teeth ───────────────────────────────────────────────────────────────
 
 test("EXHAUSTIVE: every entry number against every crafted base, identical", { skip }, () => {
@@ -434,6 +475,7 @@ test("EXHAUSTIVE: every entry number against every crafted base, identical", { s
   assert.deepEqual(r.strayed, [], `RAM moved outside the scratch window — ${show(r.strayed[0])}`);
   assert.deepEqual(r.wrote, [], "the rewrite wrote memory, so reusing one machine was unsound");
   assert.equal(r.caught, 0, `${r.caught} of ${SPACE} inputs diverged`);
+  assert.equal(r.returnMismatch, 0, `the returned word differs from the oracle's DE on ${r.returnMismatch} inputs`);
 
   const wrap = atInput(fetchTableWord, 0xffff, 0);
   assert.equal(wrap, null, `the two-byte read across the top of the space diverged — ${show(wrap)}`);
@@ -484,7 +526,8 @@ test("WINDOW: the excluded scratch is MEASURED at every dispatch, not assumed", 
 // A gate that cannot fail is worthless. Each twin is a plausible way to get this routine wrong,
 // each must be caught by the SAME comparison the real arm passes, and each must be caught on
 // exactly the inputs its stated predicate names — a twin caught on the wrong SET is a gate
-// agreeing with the wrong theory of why it failed.
+// agreeing with the wrong theory of why it failed. The two twins whose only defect lies in a
+// register DEAD AT EXIT measures unread are HARMLESS, and are asserted caught on no input at all.
 
 /** BUG: does nothing at all — the tell that a gate is measuring an unreached routine. */
 function brokenNoOp() {}
@@ -524,17 +567,34 @@ function brokenNumberEcho(m) {
 }
 
 const TWINS = [
-  // the pointer always moves, so an untouched machine is caught everywhere
-  ["no-op", brokenNoOp, () => true],
-  // caught wherever doubling the number changes it, which is everywhere but number zero
-  ["no-double", brokenNoDouble, (_base, number) => number !== 0],
-  // the pointer always ends two bytes short, whatever the input
-  ["no-advance", brokenNoAdvance, () => true],
+  // an untouched machine keeps the poison word, so it is caught wherever the entry is not that word
+  ["no-op", brokenNoOp, (base, n) => wordAt(base, n) !== POISON],
+  // caught wherever the word at the undoubled offset is not the word at the doubled one
+  ["no-double", brokenNoDouble, (base, n) => entryState().mem16[u16(base + n)] !== wordAt(base, n)],
   // caught wherever the entry's two bytes are not the same byte twice
   ["byte-swap", brokenByteSwap, (base, n) => u8(wordAt(base, n)) !== wordAt(base, n) >> 8],
-  // caught wherever the low half of the entry's address is not the number that selected it
-  ["number-echo", brokenNumberEcho, (base, n) => u8(entryAddressOf(base, n)) !== n],
 ];
+
+/** Twins whose only defect is a register DEAD AT EXIT measures unread, and the register it leaves. */
+const HARMLESS = [
+  // the pointer ends two bytes short, whatever the input
+  ["no-advance", brokenNoAdvance, "l"],
+  // the echo is the entry number instead of the low half of the entry's address
+  ["number-echo", brokenNumberEcho, "a"],
+];
+
+for (const [label, twin, reg] of HARMLESS) {
+  test(`HARMLESS: the ${label} twin fetches the right word, so it is caught nowhere`, { skip }, () => {
+    const r = sweep(twin);
+    assert.equal(r.caught, 0, `the ${label} twin was caught on ${r.caught}: only the word may be judged`);
+    assert.ok(r.moved.has(reg), `the ${label} twin must actually leave ${reg} different, or this proves nothing`);
+    const { pairs } = drivenSession();
+    const hit = pairs.filter((p) => atInput(twin, p.base, p.number) !== null);
+    assert.equal(hit.length, 0, `the ${label} twin was caught on real traffic`);
+    console.log(`  HARMLESS/${label}: caught on 0 of ${SPACE} inputs and 0 of ${pairs.length} real ones; ` +
+      `its only defect is ${reg}`);
+  });
+}
 
 for (const [label, twin, pred] of TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT on exactly the inputs it must be`, { skip }, () => {

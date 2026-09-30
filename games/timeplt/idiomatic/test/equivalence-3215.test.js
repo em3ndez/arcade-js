@@ -38,7 +38,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, COIN_START_TAPE, romsPresent } from "./_harness.js";
 import { startOnePlayerGame } from "../startOnePlayerGame.js";
 import { hideCaptionSprites } from "../hideCaptionSprites.js";
 import { seatSequencePhase3AndResetSubStep } from "../seatSequencePhase3AndResetSubStep.js";
@@ -48,6 +48,7 @@ import { loc_3215 as oracle } from "../../translated/loc_3215.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8 } from "../../../../core/int.js";
+import { assertDeadAtExit, TAPE_SESSIONS } from "./_deadAtExit.js";
 
 const TARGET = 0x3215;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -63,7 +64,14 @@ const KEEPS = 3;
 const SCRATCH_BYTES = 10;
 
 /** The ceiling on register divergence: a BOUND, not a demand — a rewrite diverging on fewer still passes. */
-const CEILING = ["a", "f", "d", "e", "h", "l", "sp", "a_", "f_"];
+/**
+ * c (the pen colour the credit panel leaves) is NOT a live-out: the panel's painter now takes its
+ * colour as an argument. Measured on the ORACLE by the DEAD AT EXIT arm below: c complemented where
+ * this entry hands back is heard nowhere. The entry runs once per one-player start, so each tape
+ * session poisons a single exit, all at the same point of the first start; the RESTARTS session
+ * adds exits at later starts with fewer credits left.
+ */
+const CEILING = ["a", "f", "d", "e", "h", "l", "sp", "a_", "f_", "c"];
 /** Outside the ceiling, so the EXCLUDED arm can show the measurement reports one. */
 const OUTSIDE = "b";
 
@@ -451,6 +459,28 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
   // that became register-exact — a gate that requires a wart refuses the fix.
   assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !CEILING.includes(k)), [],
     "a register outside the declared ceiling diverged");
+});
+
+/**
+ * Three credits, then a one-player start every hundred frames; the game-over pokes are laid twice, so
+ * the game ends and restarts on the credits left (JS frames: presses one after the schedule's).
+ */
+const IN0 = COIN_START_TAPE[0].port;
+const GAME_OVER = TAPE_SESSIONS.find((s) => s.label === "game-over").pokes;
+const RESTARTS = {
+  label: "restarts",
+  tape: [
+    ...[401, 441, 481].map((frame) => ({ frame, port: IN0, bits: 0x01, dur: 8 })),
+    ...Array.from({ length: 30 }, (_, k) => ({ frame: 501 + 100 * k, port: IN0, bits: 0x08, dur: 8 })),
+  ],
+  pokes: [...GAME_OVER, ...GAME_OVER.map((p) => ({ ...p, frame: p.frame + 1500 }))],
+  frames: 3600,
+};
+
+test("DEAD AT EXIT: on the frozen game, c is dead where this entry hands back", { skip }, () => {
+  const exits = assertDeadAtExit({ at: TARGET, poison: ["c"], sessions: [...TAPE_SESSIONS, RESTARTS], frames: 1500 });
+  const restarts = exits.find((r) => r.label === "restarts").dead.poisoned;
+  assert.ok(restarts > 1, `the RESTARTS session started ${restarts} game(s), so it adds no later exit`);
 });
 
 test("PRIORS: every count value and a spread of starting counts", { skip }, () => {

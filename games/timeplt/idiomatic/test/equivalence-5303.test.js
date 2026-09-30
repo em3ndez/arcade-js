@@ -3,8 +3,10 @@
  * advanceSequenceUnlessImageTampered — memory-equivalent to the frozen oracle at ROM 0x5303.
  * GATE: the real dispatch (a genuine image, so the match arm) plus crafted tamper entries forcing
  *   the mismatch arm; RAM compared with the two dead push words below the seat masked out (the
- *   oracle brackets its call, the rewrite dissolves it), SP drift and return asserted per arm, and
- *   the scanline pinned so the trap's cycle-driven fixup read matches a cycle-free rewrite.
+ *   oracle brackets its call, the rewrite dissolves it), SP drift and return asserted per arm. The
+ *   mismatch arm is compared AT the transfer into the trap 0x0F8D: the oracle is stopped on entry
+ *   there and the rewrite must raise naming it (the trap unwinds return words the idiomatic layer
+ *   never lays down, so it raises; equivalence-0f8d gates that and pins the frozen unwind).
  *   Registers are not compared: the dissolved callees drop the register dance and no caller consumes
  *   one. Run: node --test games/timeplt/idiomatic/test/equivalence-5303.test.js
  */
@@ -12,6 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { stopAtLandings, landingOf } from "./_landingProbe.js";
 import { advanceSequenceUnlessImageTampered as candidate } from "../advanceSequenceUnlessImageTampered.js";
 import { loc_5303 as oracle } from "../../translated/loc_5303.js";
 import { loc_0f8d as springTamperTrap } from "../loc_0f8d.js";
@@ -26,8 +29,8 @@ const MISMATCH_DRIFT = 0; // mismatch arm: both reach the trap's unwind, so SP t
 // Work RAM tops here; the stack seats above every game variable, so the words the oracle leaves
 // below its seat are pure scratch. Asserted against the measured window in the MASK arm.
 const DATA_TOP = 0xadff;
-// The trap falls through eight sprite slots; arming these Y bytes and pinning a carrying scanline
-// makes that fixup actually write, so the mismatch comparison has something to hold.
+// The frozen trap falls through eight sprite slots; arming these Y bytes and pinning a carrying
+// scanline makes that fixup write, so a twin that runs the frozen trap moves memory and is seen.
 const SLOT_Y = [0xb411, 0xb413, 0xb415, 0xb437, 0xb439, 0xb43b, 0xb43d, 0xb43f];
 const ARMED = 0xf0;
 const FIRING_SCANLINE = 0x30;
@@ -36,6 +39,18 @@ const skip = romsPresent() ? false : "ROM images are gitignored; none assembled"
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
 // ── the masked comparison ─────────────────────────────────────────────────────────────────
+/** The trap the mismatch arm transfers into. The rewrite raises NotImplemented there (its landing has
+ * no faithful form: it unwinds return words the idiomatic layer never lays down), so the oracle is
+ * stopped on entry to it and the two sides are compared AT the transfer; the trap's own effects are
+ * gated (and pinned off the frozen side) by equivalence-0f8d. */
+const TRAP = 0x0f8d;
+const LANDINGS = new Map([[TRAP, "loc_0f8d"]]);
+function outcomeOf(err) {
+  if (err === null) return "returned";
+  if (landingOf(err, LANDINGS) === TRAP) return "trap";
+  return `fault: ${String(err.message ?? err).slice(0, 40)}`;
+}
+
 /**
  * Oracle vs a candidate on clones with the scanline pinned identically. The oracle pushes a return
  * word its dissolved rewrite never writes, so the diff excludes [low, seat) — low watched off the
@@ -50,9 +65,14 @@ function compare(cand, machine, scanline) {
   let low = seat;
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
-  const retOracle = oracle(a);
-  let retCand, threw = null;
-  try { retCand = cand(b); } catch (e) { threw = String(e).slice(0, 40); }
+  stopAtLandings(a, [TRAP]);
+  let retOracle, retCand, errA = null, errB = null;
+  try { retOracle = oracle(a); } catch (e) { errA = e; }
+  try { retCand = cand(b); } catch (e) { errB = e; }
+  const outcomeA = outcomeOf(errA);
+  const outcomeB = outcomeOf(errB);
+  // A side that left some other way than returning or reaching the trap is a fault, never an arm.
+  const threw = outcomeA !== outcomeB ? `oracle ${outcomeA}, candidate ${outcomeB}` : null;
   const da = a.dumpState();
   const db = b.dumpState();
   let escaped = null;
@@ -62,7 +82,7 @@ function compare(cand, machine, scanline) {
     if (addr >= low && addr < seat) continue;
     escaped = { addr, oracle: da[i], candidate: db[i] };
   }
-  return { escaped, low, seat, spDiff: ((a.regs.sp - b.regs.sp) << 16) >> 16, retOracle, retCand, threw };
+  return { escaped, low, seat, spDiff: ((a.regs.sp - b.regs.sp) << 16) >> 16, retOracle, retCand, threw, outcome: outcomeA };
 }
 
 /** Cells the oracle moves from a state, ignoring the push scratch — one arm's footprint. */
@@ -71,7 +91,8 @@ function footprint(machine, scanline) {
   a.io.readScanline = () => scanline & 0xff;
   const seat = a.regs.sp;
   const before = a.dumpState().slice();
-  oracle(a);
+  stopAtLandings(a, [TRAP]);
+  try { oracle(a); } catch (e) { if (landingOf(e, LANDINGS) !== TRAP) throw e; }
   const now = a.dumpState();
   const cells = [];
   for (let i = 0; i < now.length; i++) {
@@ -148,7 +169,8 @@ const TWINS = [
   ["inverted", brokenInverted, 5],
   ["wrong-constant", brokenWrongConstant, 2],
   ["stale-accumulator", brokenStaleAccumulator, 4],
-  ["extra-pop", brokenExtraPop, 5],
+  // Caught on the match arm only: on a mismatch the rewrite raises at the trap before the pop runs.
+  ["extra-pop", brokenExtraPop, 1],
 ];
 
 function isCaught(twin, sc) {
@@ -170,15 +192,15 @@ test("ARMS: match and mismatch are memory-equivalent, and the arms really differ
   const prints = {};
   for (const sc of scenarios()) {
     const r = compare(candidate, sc.m, sc.scan);
-    assert.equal(r.threw, null, `${sc.label} threw: ${r.threw}`);
+    assert.equal(r.threw, null, `${sc.label} left differently: ${r.threw}`);
     assert.equal(r.escaped, null, `${sc.label} escaped at ${r.escaped && hex4(r.escaped.addr)}`);
+    // ★ Vacuity guard: the arms must leave DIFFERENTLY -- the match arm returns, every mismatch
+    // reaches the trap -- or the poke changed nothing and the branch is not exercised.
+    assert.equal(r.outcome, sc.label === "match" ? "returned" : "trap", `${sc.label} took the wrong arm`);
     prints[sc.label] = footprint(sc.m, sc.scan).map(hex4).join(",");
   }
-  // ★ Vacuity guard: the two arms must move DIFFERENT cells, or the poke changed nothing and the
-  // mismatch scenarios would pass a rewrite that ignored the branch entirely.
   assert.notEqual(prints.match, prints["tamper-00"], "the match and mismatch arms move the same cells");
-  assert.ok(prints["tamper-00"].length > 0, "the mismatch arm's fixup never fired, so its comparison is vacuous");
-  console.log(`  ARMS: 5 scenarios equivalent; match moves ${prints.match.split(",").length}, tamper ${prints["tamper-00"].split(",").length} cells`);
+  console.log(`  ARMS: 5 scenarios equivalent; match returns and moves ${prints.match.split(",").length} cells, every mismatch reaches the trap`);
 });
 
 test("SP and RETURN: the match arm lifts two over the rewrite, the mismatch arm tracks", { skip }, () => {

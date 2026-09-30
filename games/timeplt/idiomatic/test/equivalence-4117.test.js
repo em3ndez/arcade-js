@@ -7,25 +7,26 @@
  * shared gates' frame budget never reaches this entry — the era its objects belong to has not
  * begun; six thousand frames of undriven attract do reach it, and nothing is poked to get there.
  *
- * WHERE THE LIVE-OUT COMES FROM. The caller is 0x40EA, and both exits — the `ret nc` and the tail
- * jump to the retire routine — land on 0x4106, which does `jr 0x410B` at once. 0x410B reads exactly
+ * WHERE THE LIVE-OUT WENT. The caller is 0x40EA, and both exits — the `ret nc` and the tail jump
+ * to the retire routine — land on 0x4106, which does `jr 0x410B` at once. 0x410B reads exactly
  * three things: the object record pointer, the sprite entry pointer, and the loop counter (ix, iy,
- * b). Those are the LIVE_OUT, and the rewrite AGREES on all three — measured, not asserted — which
- * is why none appears in the ceiling. Everything else 0x410B leaves is overwritten or re-read from
- * memory, so a, f, the two scratch pairs and the alternate accumulator are dead across the boundary.
+ * b). The oracle hands all three back UNCHANGED — it never moves the pointers and it brackets its
+ * calls with a save and restore of the counter pair — and the HANDED BACK arm measures that on the
+ * oracle over the whole sweep. So the caller's own copies ARE the live-out: the rewrite's caller
+ * holds the record, the entry and the count as locals and hands them to the turn-closer itself, and
+ * this routine takes the record and the entry as arguments and leaves no register behind. That the
+ * caller's copies are right is gated where the caller is (0x40EA, chased arm, ending and looping).
  *
- * THE COUNTER PAIR IS PART OF THE CONTRACT. The oracle brackets three calls with a save and restore
- * of the counter pair, and the rewrite does the same with a local. The counter is OUTSIDE the
- * ceiling, so the `counter-not-restored` twin is caught by the EXCLUDED arm — a gated property, not
- * a coincidence.
+ * EVERYTHING ELSE IS DEAD, measured on the ORACLE: wrapped in the all-frozen game with every other
+ * register it can leave complemented on the way out (assertDeadAtExit), nothing differs over the
+ * era-2 session, the stack page included; complementing the counter on the way out IS heard in game
+ * data, so the instrument is not deaf.
  *
  * Six callees reached through the registry leave dead scratch below the seat; the window is
- * MEASURED, not assumed. Every register in the ceiling already sits in the declared moved set of a
- * callee's own landed gate (0x3FAF's {a,f,d,e,l,sp} and 0x33B8's {f,b,c,d,e,sp,a_}), so this
- * routine introduces no divergence of its own and the INHERITED arm asserts that containment.
+ * MEASURED, not assumed.
  *
  * HOLE: the six callees are gated by their own files; this file gates that all six are reached, in
- * order, under the right conditions, and that the counter pair survives them.
+ * order, under the right conditions.
  * HOLE: the retire arm fires on ONE captured dispatch; the crafted sweep does not force it.
  * HOLE: nothing here establishes what the point being aimed at IS.
  *
@@ -44,8 +45,8 @@ import { dressSpriteShapeAndAttributeForHeadingSector } from "../dressSpriteShap
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { retireSlot } from "../retireSlot.js";
 import { loc_4117 as oracle } from "../../translated/loc_4117.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { FRAME_TICK } from "../names.js";
+import { ERA_INDEX, FRAME_TICK, ROUTINES } from "../names.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4117;
 const FRAMES = 6000;
@@ -59,24 +60,15 @@ const ONE_AIM_POINT = 0xac7f;
 /** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
 const SCRATCH_BYTES = 6;
 
-/**
- * The ceiling on divergence, and the whole of it. Derived from the exit successors, none of which
- * reads any of these before overwriting it — not from the rewrite. Not a set the rewrite is
- * required to fill: one that diverged on fewer still passes, so this can never refuse a fix.
- */
-const MOVED = ["a", "f", "d", "e", "l", "sp", "a_"];
+/** What ROM 0x410B reads out of this routine: handed back exactly as they were handed in. */
+const HANDED_BACK = ["ix", "iy", "b"];
 
-/** What ROM 0x410B reads out of this routine, and therefore what must agree exactly. */
-const LIVE_OUT = ["ix", "iy", "b"];
+/** Every other register the oracle can leave behind, the stack pointer apart. */
+const LEFT_BEHIND = ["a", "f", "c", "d", "e", "h", "l", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
-/**
- * The two callees whose own landed gates already declare every register in the ceiling. Copied
- * here as a claim this file CHECKS against those files' text, not as a note.
- */
-const INHERITED_FROM = [
-  ["equivalence-3faf.test.js", ["a", "f", "d", "e", "l", "sp"]],
-  ["equivalence-33b8.test.js", ["f", "b", "c", "d", "e", "sp", "a_"]],
-];
+/** The session DEAD AT EXIT poisons over: the era-2 poke the sweep gates use (JS frames). */
+const SESSION = [{ addr: ERA_INDEX, val: 2, frame: 900, dur: null }];
+const SESSION_FRAMES = 2400;
 
 const PHASES = Array.from({ length: 16 }, (_unused, p) => p);
 
@@ -110,9 +102,9 @@ function allDiffs(a, b) {
 const inScratch = (addr, sp) => addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp;
 
 /**
- * Oracle vs candidate on clones of `machine`: the whole dump masked to the measured window, then
- * every register outside the ceiling. Only the candidate's side is wrapped, because a raise from
- * the oracle is a harness fault and must not be swallowed.
+ * Oracle vs candidate on clones of `machine`: the whole dump masked to the measured window. Only the
+ * candidate's side is wrapped, because a raise from the oracle is a harness fault and must not be
+ * swallowed.
  */
 function unitDiff(candidate, machine) {
   const sp = machine.regs.sp;
@@ -124,13 +116,7 @@ function unitDiff(candidate, machine) {
   } catch (e) {
     return { addr: null, reg: "raised", a: "returned", b: String(e).slice(0, 40) };
   }
-  const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
-  if (ram) return ram;
-  for (const k of REG_FIELDS) {
-    if (MOVED.includes(k)) continue;
-    if (a.regs[k] !== b.regs[k]) return { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
-  }
-  return null;
+  return allDiffs(a, b).find((d) => !inScratch(d.addr, sp)) ?? null;
 }
 
 /** How far below its seat the oracle's own pushes take the stack pointer, on one entry state. */
@@ -274,20 +260,6 @@ function brokenAimToWrongCell(m) {
   retireSlot(m);
 }
 
-/** BUG: leaves the counter pair wherever the callees left it. The EXCLUDED arm owns this one. */
-function brokenCounterNotRestored(m) {
-  const { regs, mem8 } = m;
-  const object = regs.ix;
-  if ((mem8[FRAME_TICK] & PHASE_WHEEL) === mem8[(object + TURN_PHASE) & 0xffff]) {
-    mem8[(object + AIM_HEADING) & 0xffff] = headingToward(m, ONE_AIM_POINT);
-  }
-  steerTowardAimOneUnitAFrame(m);
-  loc_58aa(m);
-  dressSpriteShapeAndAttributeForHeadingSector(m);
-  if (!hasReachedRetireLine(m)) return;
-  retireSlot(m);
-}
-
 const TWINS = [
   ["no-op", brokenNoOp],
   ["always-re-aims", brokenAlwaysReAims],
@@ -398,81 +370,43 @@ test("PHASE: both sides of the re-aim test, over all sixteen phases", { skip }, 
     `the stale aim ${STALE_AIM} is replaced on that one and stands on the others`);
 });
 
-test("LIVE-OUT: the three registers the caller reads agree exactly", { skip }, () => {
-  const disagreed = [];
+test("HANDED BACK: the oracle returns the three registers its caller reads exactly as it got them", { skip }, () => {
+  const moved = [];
   for (const m of sweep()) {
     const a = m.clone();
-    const b = m.clone();
     oracle(a);
-    chaseOneAimPointAndRetireAtTheLine(b);
-    for (const k of LIVE_OUT) if (a.regs[k] !== b.regs[k]) disagreed.push(k);
+    for (const k of HANDED_BACK) if (a.regs[k] !== m.regs[k]) moved.push(k);
   }
-  // A live register live-out is invisible to a memory gate, so the absence above is only evidence
-  // if the same measurement can report one. The counter twin drops the loop counter, and that is
-  // asserted seen here before the clean reading is believed.
+  assert.deepEqual([...new Set(moved)], [], "the oracle hands back a pointer or the counter changed, so " +
+    "the caller's own copies are not its live-out and the rewrite's caller is wrong to keep them");
+  // The same measurement on the rewrite, which leaves the counter pair wherever its callees did: the
+  // reading above is evidence only because this one can see a register that was not handed back.
   const control = [];
   for (const m of sweep()) {
-    const a = m.clone();
     const b = m.clone();
-    oracle(a);
-    brokenCounterNotRestored(b);
-    for (const k of LIVE_OUT) if (a.regs[k] !== b.regs[k]) control.push(k);
+    chaseOneAimPointAndRetireAtTheLine(b);
+    for (const k of HANDED_BACK) if (b.regs[k] !== m.regs[k]) control.push(k);
   }
-  assert.ok(control.length > 0, "the measurement reports nothing even for a twin that abandons " +
-    "the loop counter, so a clean reading proves nothing");
-  assert.deepEqual([...new Set(disagreed)], [], "a register the caller reads diverged");
-  console.log(`  LIVE-OUT: ${LIVE_OUT.join(", ")} agree over the whole sweep; the control twin ` +
-    `disagrees on ${[...new Set(control)].join(", ")}`);
+  assert.ok(control.length > 0, "the measurement sees nothing even on a routine that does not restore " +
+    "the counter pair, so the clean oracle reading proves nothing");
+  // The hand-back is safe only while its frozen readers never run: the caller 0x40EA and the loop tail
+  // 0x410B it jumps to must both be replaced by overrides that take the registers as arguments.
+  for (const reader of [0x40ea, 0x410b]) {
+    assert.ok(ROUTINES[reader] !== undefined, `${hex4(reader)} reads the handed-back registers and is frozen, so the ` +
+      "rewrite's moved counter would reach it");
+  }
+  console.log(`  HANDED BACK: ${HANDED_BACK.join(", ")} unchanged by the oracle over the whole sweep; ` +
+    `the rewrite, which keeps no counter, moves ${[...new Set(control)].join(", ")}`);
 });
 
-test("INHERITED: the ceiling is contained in the callees' own declared sets", { skip }, async () => {
-  const union = new Set();
-  for (const [file, declared] of INHERITED_FROM) {
-    const text = await import("node:fs").then((fs) =>
-      fs.readFileSync(new URL(`./${file}`, import.meta.url), "utf8"));
-    const line = `const EXCLUDED = [${declared.map((k) => `"${k}"`).join(", ")}];`;
-    assert.ok(text.includes(line), `${file} no longer declares ${line} — the containment claim ` +
-      "below is quoting a set that file does not have any more");
-    for (const k of declared) union.add(k);
-  }
-  assert.deepEqual(MOVED.filter((k) => !union.has(k)), [], "the ceiling now holds a register no " +
-    "callee's own gate declares, so this routine has started diverging on its own account");
-  console.log(`  INHERITED: ceiling ${MOVED.join(", ")} ⊆ ${[...union].join(", ")}`);
-});
-
-/** Which registers a candidate parts company with the oracle on, over the whole sweep. */
-function movedOver(candidate) {
-  const moved = new Set();
-  for (const m of sweep()) {
-    const a = m.clone();
-    const b = m.clone();
-    oracle(a);
-    try {
-      candidate(b);
-    } catch {
-      continue;
-    }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
-}
-
-test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(chaseOneAimPointAndRetireAtTheLine);
-  // The absence below is only evidence if the same measurement CAN report a register outside the
-  // ceiling. The counter twin leaves the loop counter where the callees left it, and the control
-  // asserts that is seen.
-  const control = movedOver(brokenCounterNotRestored);
-  assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
-    "the measurement reports nothing outside the ceiling even for a twin that abandons the " +
-      "counter pair, so a clean reading below proves nothing");
-  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")} — ` +
-    `ceiling ${MOVED.join(", ")}; the control twin also moves ` +
-    `${REG_FIELDS.filter((k) => control.has(k) && !MOVED.includes(k)).join(", ")}`);
-  // MOVED is a CEILING. deepEqual against it would DEMAND the divergence and go RED on a rewrite
-  // that became register-exact — a gate that requires a wart refuses the fix.
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
-    "a register outside the declared ceiling diverged");
+test("DEAD AT EXIT: no other register the oracle leaves is heard; the counter is", { skip }, () => {
+  // assertDeadAtExit: nothing differs, the stack page included; the counter, poisoned at the same
+  // exit, must be heard in game data (dataOnly), not only as pushed scratch on the stack page.
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: SESSION_FRAMES, reachEvery: true,
+    sessions: [{ label: "era 2", pokes: SESSION }],
+    controls: [{ label: "counter", poison: ["b"], expect: "heard", every: true, dataOnly: true }],
+  });
 });
 
 for (const [label, twin] of TWINS) {

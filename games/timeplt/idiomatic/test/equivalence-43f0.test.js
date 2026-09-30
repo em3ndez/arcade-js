@@ -2,7 +2,11 @@
 /** stepMotherShip — memory-equivalent to the frozen oracle. Nothing dispatches this deep-state driver on
  * either tape (a live control proves the run counts), so it runs on CRAFTED entries poked onto real
  * captured machines to force every state-byte arm, full work-RAM compared with the dead stack scratch
- * masked off both sides' pushes, index registers held, and broken twins caught in memory.
+ * masked off both sides' pushes, and broken twins caught in memory. No register is compared: the
+ * DEAD AT EXIT arm (assertDeadAtExit) measures on the ORACLE that none it leaves — the record/sprite
+ * pair the live arm walks on included — is heard anywhere, the stack page included, over three armed
+ * sessions (eras 0, 2 and 4), while a complemented stack pointer is heard at once. The rewrite threads the pair through every arm and
+ * into every callee as arguments and leaves it nowhere.
  * The spent-sequence tamper gate (TAMPER_GLYPH_COPY) has its own DERAIL arm: when it fails the oracle
  * falls into the warp/flash step's misaligned prologue (0x459b), which has no routine form, so the
  * rewrite raises there and the two are compared AT the transfer (test/_tamperDerail.js). On a genuine
@@ -20,8 +24,8 @@ import { stepMotherShipWarpFlashFrame } from "../stepMotherShipWarpFlashFrame.js
 import { loc_598e } from "../loc_598e.js";
 import { loc_5994 } from "../loc_5994.js";
 import { loc_43f0 as oracle } from "../../translated/loc_43f0.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { stopAtDerails, faultClass } from "./_tamperDerail.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x43f0;
 const ANCHOR = 0x43b7; // reached on the tape; seats this object's bank
@@ -32,10 +36,16 @@ const STACK_FLOOR = 0xae00; // data below, the stack seats up at 0xb000
 const BASES = 2;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
-/** The scratch the vanished ret and the dissolved callees' dropped pushes leave; a SUBSET, so an
- *  exact rewrite still passes. Index registers are held — they are the routine's real pointer live-out. */
-const EXCLUDED = ["a", "f", "b", "c", "d", "e", "h", "l", "sp",
-  "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+/** The sessions DEAD AT EXIT poisons over (JS frames): the kill quota spent, the ship armed, in three eras. */
+const DEAD_FRAMES = 3000;
+const QUOTA_SPENT = { addr: 0xad02, val: 0, frame: 621, dur: null };
+const DEAD_SESSIONS = {
+  "era 0": [QUOTA_SPENT],
+  "era 2": [QUOTA_SPENT, { addr: 0xad04, val: 2, frame: 701, dur: null }],
+  "era 4": [QUOTA_SPENT, { addr: 0xad04, val: 4, frame: 701, dur: null }],
+};
+/** Every register the oracle can leave behind, the stack pointer apart. */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
 const COOLDOWN = 0xa817;
@@ -121,12 +131,7 @@ function compare(cand, machine) {
     if (scratch.has(addr)) continue;
     escaped = { addr, oracle: da[i], candidate: db[i] };
   }
-  let reg = null;
-  for (const k of REG_FIELDS) {
-    if (EXCLUDED.includes(k)) continue;
-    if (a.regs[k] !== b.regs[k]) { reg = { k, a: a.regs[k], b: b.regs[k] }; break; }
-  }
-  return { escaped, reg, minSp };
+  return { escaped, minSp };
 }
 
 function footprint(machine) {
@@ -155,7 +160,6 @@ test("EQUAL: every crafted arm replays identically, and the corpus is not vacuou
   for (const [label, c] of rows) {
     const r = compare(candidate, c);
     assert.equal(r.escaped, null, `${label}: escaped at ${r.escaped && hex4(r.escaped.addr)} oracle=${r.escaped && r.escaped.oracle} rewrite=${r.escaped && r.escaped.candidate}`);
-    assert.equal(r.reg, null, `${label}: index register ${r.reg && r.reg.k} diverged (${r.reg && r.reg.a} vs ${r.reg && r.reg.b})`);
     assert.ok(r.minSp > STACK_FLOOR, `${label}: a push reached ${hex4(r.minSp)}, into game data`);
   }
   console.log(`  EQUAL: ${rows.length} crafted entries identical outside the scratch`);
@@ -179,29 +183,31 @@ function pick(label) {
   return [row[1], row[2]];
 }
 
-test("REGISTERS: index registers are held, with a control that moves one", { skip }, () => {
-  const movesIx = (m) => { const r = candidate(m); m.regs.ix = (m.regs.ix + 1) & 0xffff; return r; };
-  let control = 0;
-  for (const [, c] of corpus()) {
-    assert.equal(compare(candidate, c).reg, null, "a held register diverged");
-    if (compare(movesIx, c).reg) control++;
-  }
-  assert.ok(control > 0, "the register check passed a twin that scribbles ix, so a clean reading proves nothing");
-  console.log(`  REGISTERS: ix/iy held on ${corpus().length} entries; the ix-scribble control caught on ${control}`);
+test("DEAD AT EXIT: no register the oracle leaves is heard, and a complemented stack pointer is", { skip }, () => {
+  // assertDeadAtExit: every session reaches this routine and nothing differs, the stack page
+  // included; beside the helper's own SP flip, a COMPLEMENTED stack pointer at the same exit must be
+  // heard in game data (dataOnly) in every session, as before.
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: DEAD_FRAMES, reachEvery: true,
+    sessions: Object.entries(DEAD_SESSIONS).map(([label, pokes]) => ({ label, pokes })),
+    controls: [{
+      label: "complemented SP", poison: ["sp"], expect: "heard", every: true, reachEvery: true, dataOnly: true,
+    }],
+  });
 });
 
 const noOp = () => {};
 const scribbleData = (m) => { candidate(m); m.mem8[RECORD + 0x20] ^= 0xff; };
-// The body re-expresses its Z80 main-register scratch as JS locals, so only ix/iy are pinned. A twin
-// that scribbles a main register after the routine is DELIBERATELY not flagged -- the same memory
-// measurement must still catch a scribbled RAM cell, or the clean read on the register twin is worthless.
+// The body re-expresses its Z80 register scratch as JS locals and no register is live-out (DEAD AT
+// EXIT). A twin that scribbles a main register after the routine is DELIBERATELY not flagged -- the
+// same memory measurement must still catch a scribbled RAM cell, or the clean read on the register
+// twin is worthless.
 const scribbleScratchReg = (m) => { candidate(m); m.regs.a = (m.regs.a + 1) & 0xff; m.regs.b = (m.regs.b + 1) & 0xff; };
 
 test("SCRATCH NOT PINNED: a main-register-only twin passes; a RAM scribble is caught", { skip }, () => {
   for (const [label, c] of corpus()) {
     const r = compare(scribbleScratchReg, c);
     assert.equal(r.escaped, null, `${label}: a scratch-register scribble moved memory`);
-    assert.equal(r.reg, null, `${label}: a scratch register was pinned, but only ix/iy are live-out`);
     assert.ok(biteInMemory(scribbleData, c), `${label}: the RAM measurement missed a scribbled cell, so it has no teeth`);
   }
   console.log(`  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on all ${corpus().length}`);

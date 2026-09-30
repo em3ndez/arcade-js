@@ -5,7 +5,7 @@
  * once the number has gone past the last of them every further visit posts one fixed argument
  * instead, and the number keeps climbing rather than stopping or wrapping. All four steps and the
  * one past them share a single command byte, so what varies from visit to visit is the argument
- * alone. LIVE-OUT: memory, plus the command pair left standing in the registers. */
+ * alone. LIVE-OUT: memory. */
 
 import { offsetAddress } from "./offsetAddress.js";
 import { postCommand } from "./postCommand.js";
@@ -28,5 +28,5 @@ export function postNextParachutistBonus(m, record = m.regs.ix) {
   if (step < STEPS) {
     argument = mem8[offsetAddress(m, PARACHUTIST_BONUS_ARG_TABLE, step)];
   }
-  return (m.regs.d = COMMAND, m.regs.e = argument, void postCommand(m, COMMAND, argument));
+  postCommand(m, COMMAND, argument);
 }

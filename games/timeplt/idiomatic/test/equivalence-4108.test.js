@@ -5,8 +5,16 @@
  *   (captured sweep-body states with the head slot's marker forced to a live count, across the
  *   countdown bands and eras 2-4); the dead stack scratch below the seat masked out; the SP drift
  *   pinned per arm (+2 on both: the rewrite omits the sweep's one ret whether this turn ends the
- *   sweep or its close runs the remaining turns as direct calls); the oracle-derived live-out
- *   registers asserted; teeth.
+ *   sweep or its close runs the remaining turns as direct calls); teeth.
+ *
+ * ★ NO REGISTER IS LIVE AT EXIT, measured on the ORACLE. This arm always leaves through the end of
+ *   the whole sweep — its close runs every remaining turn before it returns — so what it leaves in
+ *   the cursors, the counter and the stride pair is what the sweep leaves, and wrapped in the
+ *   all-frozen game with all of it complemented on the way out it is unheard in every dumped cell over
+ *   the countdown-slot session that dispatches it, where SP flipped at the same exit is heard (the
+ *   exit-side control) and a poisoned record cursor on its entry is heard at once. (Within the sweep the cursors and the count are handed from turn to turn as arguments.)
+ *   The twins that differ from the rewrite only in what they leave in registers on the last turn
+ *   are bitten where the sweep goes round again onto an occupied slot.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-4108.test.js
  */
 
@@ -20,6 +28,7 @@ import { loc_40ea as sweepBody } from "../../translated/loc_40ea.js";
 import { stepDriftingCountdownObjectByEraFrames } from "../stepDriftingCountdownObjectByEraFrames.js";
 import { closeOneTurnOfTheSlotSweep } from "../closeOneTurnOfTheSlotSweep.js";
 import { ERA_INDEX } from "../names.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4108;
 const SWEEP_BODY = 0x40ea;
@@ -35,8 +44,13 @@ const POKE_FROM_FRAME = 900;
 const DATA_TOP = 0xadff;
 const CORPUS = 30;
 
-// Live-out the oracle leaves for the sweep: both cursors, the counter and the stride pair.
-const LIVE_OUT = ["ix", "iy", "b", "d", "e"];
+// The countdown-slot tape's pokes (JS frames, one later than its lua schedule): the session that
+// dispatches this arm through the game's own code, for DEAD AT EXIT.
+const COUNTDOWN_SESSION = [{ addr: 0xad14, val: 3, frame: 561, dur: 1 },
+  ...Array.from({ length: 19 }, (_, k) => ({ addr: 0xaa81, val: 3, frame: 701 + 16 * k, dur: 1 }))];
+const SESSION_FRAMES = 2400;
+/** Every register the oracle can leave behind, the stack pointer apart (its return pops through it). */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
@@ -111,10 +125,6 @@ function compare(cand, machine) {
     if (addr >= floor && addr < seat) continue;
     escaped = { addr, a: da[i], b: db[i] };
   }
-  if (!escaped) {
-    const k = LIVE_OUT.find((r) => a.regs[r] !== b.regs[r]);
-    if (k) escaped = { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
-  }
   return { escaped, floor, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
@@ -135,9 +145,11 @@ function footprint(machine) {
 
 function skipStep(m) { return closeOneTurnOfTheSlotSweep(m); }
 function skipClose(m) { stepDriftingCountdownObjectByEraFrames(m); }
+/** BUG: closes first, then steps the slot the close moved on to rather than this one. */
 function closeThenStep(m) {
+  const { ix, iy } = m.regs;
   const r = closeOneTurnOfTheSlotSweep(m);
-  stepDriftingCountdownObjectByEraFrames(m);
+  stepDriftingCountdownObjectByEraFrames(m, (ix + 0x10) & 0xffff, (iy + 2) & 0xffff);
   return r;
 }
 function stepTwice(m) {
@@ -145,19 +157,32 @@ function stepTwice(m) {
   stepDriftingCountdownObjectByEraFrames(m);
   return closeOneTurnOfTheSlotSweep(m);
 }
-function movesLiveOut(m) {
-  const r = candidate(m);
-  m.regs.iy = (m.regs.iy + 1) & 0xffff;
-  return r;
+
+/**
+ * Looping entries whose next slot is planted with a drifting object, so a turn that fails to go
+ * round (or goes round before stepping) writes different memory.
+ */
+let looping = null;
+function loopingScenarios() {
+  if (looping) return looping;
+  looping = [];
+  for (const e of captured().sweeps) {
+    for (const era of ERAS) {
+      const m = craft(e, { era, count: 0x30, turns: 3 });
+      m.mem8[(m.regs.ix + 0x10 + MARKER_OFFSET) & 0xffff] = 0x30;
+      looping.push(m);
+    }
+  }
+  return looping;
 }
 
+// [label, twin, the entries it must be caught on]
 const TWINS = [
-  ["no-op", () => {}],
-  ["skip-step", skipStep],
-  ["skip-close", skipClose],
-  ["close-then-step", closeThenStep],
-  ["step-twice", stepTwice],
-  ["moves-live-out", movesLiveOut],
+  ["no-op", () => {}, scenarios],
+  ["skip-step", skipStep, scenarios],
+  ["skip-close", skipClose, loopingScenarios],
+  ["close-then-step", closeThenStep, loopingScenarios],
+  ["step-twice", stepTwice, scenarios],
 ];
 
 // ── gate ───────────────────────────────────────────────────────────────────────────────────
@@ -202,11 +227,21 @@ test("LOOPING ARM: with turns left the whole sweep runs, its one ret omitted as 
   console.log(`  LOOPING ARM: ${compared} entries identical, spDiff 2`);
 });
 
-for (const [label, twin] of TWINS) {
-  test(`TEETH: the ${label} twin is CAUGHT on every crafted entry`, { skip }, () => {
+test("DEAD AT EXIT: no register the oracle leaves is heard, and the instrument hears one that is read", { skip }, () => {
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: SESSION_FRAMES, reachEvery: true,
+    sessions: [{ label: "countdown", pokes: COUNTDOWN_SESSION }],
+    // A poisoned record cursor on entry is heard in game data: the instrument is not deaf.
+    controls: [{ label: "entry IX", poison: ["ix"], before: true, expect: "heard", every: true, dataOnly: true }],
+  });
+});
+
+for (const [label, twin, entries] of TWINS) {
+  test(`TEETH: the ${label} twin is CAUGHT on every entry of the arm it breaks`, { skip }, () => {
     let caught = 0;
-    for (const m of scenarios()) if (compare(twin, m).escaped) caught++;
-    assert.equal(caught, scenarios().length, `the ${label} twin escaped an entry`);
-    console.log(`  TEETH/${label}: caught on ${caught}/${scenarios().length}`);
+    for (const m of entries()) if (compare(twin, m).escaped) caught++;
+    assert.ok(entries().length > 0, "no entries to bite on");
+    assert.equal(caught, entries().length, `the ${label} twin escaped an entry`);
+    console.log(`  TEETH/${label}: caught on ${caught}/${entries().length}`);
   });
 }

@@ -10,12 +10,21 @@
  *      three sub-calls and its own return with pushes and pops; the rewrite calls the decompiled
  *      callees directly, so bytes below the entry stack pointer can hold different values. The
  *      exclusion is the SCRATCH_BYTES window below the entry stack pointer, and every arm pins it.
- *   2. EXCLUDED, measured: the registers that ever diverge are exactly the four dead scratch cells
- *      the rewrite never reloads — the leftover column step in BC and the leftover table pointer in
- *      HL. Everything a caller reads agrees, the stack pointer and the Z flag included.
- *   3. LIVE-OUT is the Z flag. Both caller families return conditionally on it, so it is checked
- *      against the oracle on every dispatch, and a control twin that flips only that flag is caught
- *      while its memory stays identical — the proof the flag arm is not blind.
+ *   2. EXCLUDED, measured: the registers that ever diverge are exactly the dead ones the rewrite
+ *      never reloads — the leftover column step in BC, the leftover table pointer in HL, and A and
+ *      the flag byte, which the rewrite leaves alone because it RETURNS the flags instead. Everything
+ *      a caller reads agrees, the stack pointer and the Z flag included.
+ *   3. LIVE-OUT is the Z flag, and the rewrite hands it back as its return value: the flag byte an
+ *      AND of the new row integer with itself leaves, compared whole against the oracle's F. Both
+ *      caller families return conditionally on Z, so it is checked on every dispatch, and a control
+ *      twin that flips only that bit of its return is caught while its memory stays identical — the
+ *      proof the flag arm is not blind.
+ *   3a. A AND THE REST OF F ARE DEAD WHERE THIS HANDS BACK, asked of the ORACLE by assertDeadAtExit:
+ *      complemented on every exit of the all-frozen game over both tapes (F with its Z bit spared),
+ *      they change no cell of any frame. The frozen callers (0x08B4, 0x1734, 0x5BD7) test Z at once
+ *      and either return or reload before reading A; 0x5BD7's `sub a` reads A only to zero it.
+ *      Controls on the same instrument: Z alone flipped at the exit is heard, and SP moved at the
+ *      exit is heard, on both tapes.
  *   4. THE RETURN IS THE SEAM'S: the rewrite performs no return of its own and leaves the stack
  *      pointer where it found it -- every caller reaches it by a direct call, and the vertical-blank
  *      service that runs it is itself a direct call with no guest return slot, so a rewrite that
@@ -38,6 +47,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
 import { loc_0201 as oracle } from "../../translated/loc_0201.js";
 import { plotPenCell } from "../plotPenCell.js";
@@ -61,8 +71,9 @@ const Z_FLAG = 0x40;
 
 /** Widest divergence any dispatch produces below the entry stack pointer. Measured, pinned exact. */
 const SCRATCH_BYTES = 4;
-/** BC keeps the last column step, HL the table pointer past the entry; no caller reads either. */
-const REG_EXCLUDED = ["b", "c", "h", "l"];
+/** BC keeps the last column step, HL the table pointer past the entry; no caller reads either. A
+ *  and F are left alone because the flags are RETURNED; the DEAD AT EXIT arm measures them dead. */
+const REG_EXCLUDED = ["a", "f", "b", "c", "h", "l"];
 const COMPARED = REG_FIELDS.filter((k) => !REG_EXCLUDED.includes(k));
 /** The real run stamps at most seventeen cells; a twin that never converges is stopped past that. */
 const GUARD = 1000;
@@ -74,7 +85,12 @@ const CAUGHT = {
   "step-unsigned": 78,
   "swap-row-col": 104,
   "no-run-index-inc": 106,
-  "forgot-report": 105,
+  // 1, not 105: the twin's memory is right and A is dead, so it is seen only where the leftover
+  // accumulator and the new row integer disagree about being zero. The leftover is the advanced run
+  // index: the word fetch no longer echoes its entry's low address byte into A (that echo is dead at
+  // the fetch's exit), so the dispatch where the echo alone was zero no longer counts. The TEETH arm
+  // below derives this count from the oracle's own run index and row integer.
+  "forgot-report": 1,
   "flip-z-control": 106,
 };
 
@@ -104,14 +120,16 @@ const anEntry = () => driven()[0];
 
 // ── the masked comparison ─────────────────────────────────────────────────────────────────
 
-/** Oracle vs a candidate on two clones of one entry, ignoring the dead stack window. */
+/** Oracle vs a candidate on two clones of one entry, ignoring the dead stack window. The Z flag is
+ *  judged on what the candidate RETURNS, against the oracle's F. */
 function diverge(candidate, entry) {
   const sp = entry.regs.sp;
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
+  let reported;
   try {
-    placed(candidate)(b);
+    reported = placed(candidate)(b);
   } catch {
     return { reason: "threw" };
   }
@@ -125,6 +143,7 @@ function diverge(candidate, entry) {
   }
   const reg = COMPARED.find((k) => a.regs[k] !== b.regs[k]);
   if (reg) return { reason: "reg:" + reg, a: a.regs[reg], b: b.regs[reg] };
+  if ((reported & Z_FLAG) !== (a.regs.f & Z_FLAG)) return { reason: "z", a: a.regs.f, b: reported };
   return null;
 }
 
@@ -202,6 +221,7 @@ function brokenStepUnsigned(m) {
   regs.a = regs.e;
   regs.and(regs.a);
   m.ret(10);
+  return regs.f;
 }
 
 /** BUG: stores the loaded endpoint into the wrong axis integers. */
@@ -216,6 +236,7 @@ function brokenSwapRowCol(m) {
   regs.a = regs.e;
   regs.and(regs.a);
   m.ret(10);
+  return regs.f;
 }
 
 /** BUG: does not advance the run index, so it reloads the run it just finished. */
@@ -232,6 +253,7 @@ function brokenNoRunIndexInc(m) {
   regs.a = regs.e;
   regs.and(regs.a);
   m.ret(10);
+  return regs.f;
 }
 
 /** BUG: performs its own return -- the pre-dissolution form. Memory-identical, and the seam accepts
@@ -253,12 +275,12 @@ function brokenForgotReport(m) {
   mem8[COL_POS + 1] = regs.d;
   regs.and(regs.a);
   m.ret(10);
+  return regs.f;
 }
 
-/** BUG: correct in memory, wrong only in the live-out flag — the control for the flag arm. */
+/** BUG: correct in memory, wrong only in the returned Z flag — the control for the flag arm. */
 function brokenFlipZControl(m) {
-  drawInterpolatedPenRun(m);
-  m.regs.f ^= Z_FLAG;
+  return drawInterpolatedPenRun(m) ^ Z_FLAG;
 }
 
 const TWINS = [
@@ -279,7 +301,7 @@ test("EQUAL at the real dispatch: identical outside the dead stack window", { sk
   console.log(`  EQUAL: entry sp=${hex(entry.regs.sp)}; identical outside [sp-${SCRATCH_BYTES}, sp)`);
 });
 
-test("EXCLUDED, measured: nothing outside the four dead scratch registers ever diverges", { skip }, () => {
+test("EXCLUDED, measured: nothing outside the dead registers ever diverges", { skip }, () => {
   const union = new Set();
   for (const e of driven()) {
     for (const k of movedRegisters(drawInterpolatedPenRun, e)) union.add(k);
@@ -295,14 +317,37 @@ test("NOT VACUOUS: the masked comparison catches a do-nothing candidate", { skip
 });
 
 test("LIVE-OUT: the Z flag agrees, and the flag arm catches a twin that flips only it", { skip }, () => {
+  let n = 0;
+  for (const e of driven()) {
+    const a = e.clone();
+    const b = e.clone();
+    oracle(a);
+    const reported = placed(drawInterpolatedPenRun)(b);
+    assert.equal(reported, a.regs.f, "the flag byte the rewrite returns differs from the oracle's F");
+    n++;
+  }
   const a = anEntry().clone();
-  const b = anEntry().clone();
   oracle(a);
-  placed(drawInterpolatedPenRun)(b);
-  assert.equal(b.regs.f, a.regs.f, "the rewrite's flag byte differs from the oracle's");
   const control = diverge(brokenFlipZControl, anEntry());
-  assert.equal(control?.reason, "reg:f", "flipping only the Z flag was not caught by the flag arm");
-  console.log(`  LIVE-OUT: Z ${(a.regs.f & Z_FLAG) === 0 ? "clear" : "set"} on both; the flag-flip control is caught`);
+  assert.equal(control?.reason, "z", "flipping only the returned Z flag was not caught by the flag arm");
+  console.log(`  LIVE-OUT: the returned flags equal the oracle's F on all ${n} dispatches; the flag-flip control is caught`);
+});
+
+test("A AND F ARE DEAD AT EXIT: complemented on every exit of the ORACLE (Z spared), no cell moves", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ["a", "f"], flip: { f: 0xff ^ Z_FLAG }, frames: ENTRY_FRAMES,
+    sessions: TAPES.map(([label, opts]) => ({ label, tape: opts.tape, dispatches: DISPATCHES[label] })),
+    // CONTROL, same instrument and exit: Z alone flipped — the live-out — must be heard.
+    controls: [{ label: "live Z", poison: ["f"], flip: { f: Z_FLAG }, every: true, reachEvery: true }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so every tape hears it.
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+  }
+  console.log(`  DEAD AT EXIT: A and F-but-Z complemented, nothing moves; Z and exit controls heard ` +
+    `on every tape (${exits.map((r) => `${r.label} ${heardAs(r.exitControl)}`).join("; ")})`);
 });
 
 test("THE RETURN IS THE SEAM'S: the rewrite leaves SP where it found it; placed, it lands where the oracle does", { skip }, () => {
@@ -338,7 +383,7 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
       const a = e.clone();
       const b = e.clone();
       oracle(a);
-      placed(drawInterpolatedPenRun)(b);
+      const reported = placed(drawInterpolatedPenRun)(b);
       const da = a.dumpState();
       const db = b.dumpState();
       for (let i = 0; i < da.length; i++) {
@@ -350,11 +395,23 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
       }
       const stray = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !REG_EXCLUDED.includes(k));
       assert.deepEqual(stray, [], `a ${label} dispatch moved a register outside the dead scratch set`);
+      assert.equal(reported, a.regs.f, `a ${label} dispatch returned flags other than the oracle's F`);
     }
     total += entries.length;
   }
   assert.equal(widest, SCRATCH_BYTES, "the widest scratch divergence moved: the window is wrong");
   console.log(`  CORPUS: ${total} dispatches over two sessions; widest scratch sp-${widest}`);
+});
+
+test("TEETH: the forgot-report count is exactly where the run index and the new row disagree on zero", { skip }, () => {
+  let predicted = 0;
+  for (const e of driven()) {
+    const a = e.clone();
+    oracle(a);
+    if ((a.mem8[RUN_INDEX] === 0) !== (a.mem8[ROW_POS + 1] === 0)) predicted++;
+  }
+  assert.equal(predicted, CAUGHT["forgot-report"], "the forgot-report twin's predicted count moved");
+  console.log(`  TEETH/forgot-report: predicted ${predicted} from the oracle's run index and row integer`);
 });
 
 for (const [label, twin] of TWINS) {

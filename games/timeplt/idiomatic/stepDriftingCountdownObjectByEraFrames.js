@@ -4,7 +4,7 @@
  * world and the count falls by one. At zero the slot retires. Below the animation window nothing
  * more happens; otherwise the count picks a frame from one of two fixed tables — the choice made
  * on the era index — and that frame plus a fixed sprite state are written to the sprite entry.
- * LIVE-OUT: memory, and the object/sprite cursors the caller keeps walking. */
+ * The object record and its sprite entry are arguments. LIVE-OUT: memory. */
 
 import { stampObjectStateByte3bThenRequestSound } from "./stampObjectStateByte3bThenRequestSound.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
@@ -26,18 +26,18 @@ const FAR_STATE = 0x02;
 export function stepDriftingCountdownObjectByEraFrames(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const object = ix;
+  const sprite = iy;
 
-  if (mem8[object + COUNT] >= RESET_MARK) stampObjectStateByte3bThenRequestSound(m);
-  driftWithWorldScroll(m);
+  if (mem8[object + COUNT] >= RESET_MARK) stampObjectStateByte3bThenRequestSound(m, object);
+  driftWithWorldScroll(m, object, sprite);
 
   const count = (mem8[object + COUNT] - 1) & 0xff;
   mem8[object + COUNT] = count;
-  if (count === 0) return retireSlot(m);
+  if (count === 0) return retireSlot(m, object, sprite);
   if (count < WINDOW_FLOOR) return;
 
   const frame = ((count - WINDOW_FLOOR) >> 2) & 0x07;
   const far = mem8[ERA_INDEX] >= FINAL_ERA;
-  const sprite = iy;
   mem8[sprite + SPRITE_CODE] = fetchTableByte(m, far ? FAR_TABLE : NEAR_TABLE, frame);
   mem8[sprite + SPRITE_STATE] = far ? FAR_STATE : NEAR_STATE;
 }

@@ -10,7 +10,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, COIN_START_TAPE, romsPresent } from "./_harness.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 import { awardOneCreditOnDebouncedInputEdge } from "../awardOneCreditOnDebouncedInputEdge.js";
 import { loc_48e7 as oracle } from "../../translated/loc_48e7.js";
 import { requestCoinSound } from "../requestCoinSound.js";
@@ -23,7 +24,14 @@ const HISTORY = 0xa983;
 const INPUT_BIT = 2;
 
 /** Scratch the dissolved tail leaves and the routine never really owns; a ceiling, not a prediction. */
-const EXCLUDED = ["a", "f", "h", "l", "sp"];
+/**
+ * c (the credit amount) is NOT a live-out: the award now takes the amount as an argument, so the
+ * rewrite leaves c alone where the oracle leaves the amount in it. Measured on the ORACLE by the
+ * DEAD AT EXIT arm below: c complemented where this entry hands back (to 0x48C1) is heard nowhere,
+ * over attract, coin-start, and a session that presses the input this entry watches, so the firing
+ * branch — the one that loads the amount into c — is among the exits poisoned.
+ */
+const EXCLUDED = ["a", "f", "h", "l", "sp", "c"];
 /** Every real write lands at or below here; the stack seats far above it, so the mask is safe. */
 const DATA_TOP = 0xadff;
 
@@ -161,6 +169,23 @@ test("THE EDGE, off the frozen side: the oracle credits exactly when low three b
     }
   }
   console.log("  THE EDGE: the oracle's firing tracks the 001 predicate across all 512 states");
+});
+
+/** Presses of the input this entry debounces (IN0 bit 2), JS frames: each gives one leading edge. */
+const EDGE_TAPE = [401, 601].map((frame) => ({ frame, port: COIN_START_TAPE[0].port, bits: 1 << INPUT_BIT, dur: 8 }));
+const DEAD_FRAMES = 1200;
+
+test("DEAD AT EXIT: on the frozen game, c is dead where this entry hands back", { skip }, () => {
+  const firesOnEntry = (m) => fires(m.mem8[IN0_MIRROR] >> INPUT_BIT, m.mem8[HISTORY]);
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ["c"], frames: DEAD_FRAMES,
+    sessions: [{ label: "attract", tape: [] }, { label: "coin-start" }, { label: "input edge", tape: EDGE_TAPE }],
+    // The firing branch, the one that loads the amount into c, must be among the exits poisoned.
+    controls: [{ label: "firing branch", poison: [], only: firesOnEntry, expect: "reach" }],
+  });
+  const fired = exits.find((r) => r.label === "input edge").controls["firing branch"].poisoned;
+  assert.ok(fired > 0, "the edge session never took the firing branch, so no exit poisoned the amount");
+  console.log(`  DEAD AT EXIT: the input-edge session took the firing branch ${fired} times`);
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────

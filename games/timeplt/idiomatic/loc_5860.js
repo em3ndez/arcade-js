@@ -7,6 +7,6 @@ import { flyAlongHeading } from "./flyAlongHeading.js";
 
 const VELOCITY_TABLE = loc_2e3e;
 
-export function loc_5860(m) {
-  flyAlongHeading(m, VELOCITY_TABLE);
+export function loc_5860(m, object = m.regs.ix, sprite = m.regs.iy) {
+  flyAlongHeading(m, VELOCITY_TABLE, object, sprite);
 }

@@ -386,6 +386,35 @@ feeds the next batch's targets.
     whole-game tape or a register-focused review — the whole-game replay and a review pass that audits
     live-out completeness are therefore BOTH mandatory. When unsure a caller reads it, set + test it anyway
     (a value that matches the oracle can never cause a false failure).
+  - **The ONE exception: every reader of the register is itself rewritten (the HAND-OFF form).** A register
+    an oracle caller reads back is a live-out the module MUST set and the gate MUST compare — EXCEPT when
+    every such reader is itself an idiomatic override that takes the value explicitly (a param, or the
+    callee's return), so no code that reads the register runs in the wired game. Dropping it needs all
+    three: **(1)** a **HAND-OFF arm** in the module's eq test that MEASURES the reader set on the ORACLE —
+    the register complemented as the frozen routine hands back, one caller (return address) at a time,
+    over sessions covering the game's reachable states (attract, coin-start, and every poke-driven distant
+    state in `tapes/*.poke.json`), with an SP flip at the same exit that must be heard — pins the heard
+    set, and requires the routine owning each reader to be an idiomatic override (an entry in the game's
+    `idiomatic/names.js` `ROUTINES`, the set the idiomatic runtime wires — NOT the translated registry in
+    `routines.js`, which holds every frozen routine); **(2)** the live **translated-code probe**
+    (`tools/translated_live_probe.mjs`) reading 0, so no frozen reader runs by a path the arm did not name; **(3)** the header states the HOLE: a reader reached only in a state no
+    session drives is not measured. Then the register is dead in the live game and need not be set; move
+    it to the excluded set, and relabel a twin whose only defect is that register HARMLESS (asserted caught
+    nowhere) instead of deleting it. That each override computes the value itself is a REVIEW check, not
+    the arm's. This relaxes the held set only as LAST MILE (a) below does (derived from the oracle,
+    proposer≠confirmer); it never licenses dropping a register a still-FROZEN routine reads (R37, next).
+    Reference: timeplt `equivalence-0008` (HL) / `equivalence-0018` (A), via `_deadAtExit.js`
+    `TAPE_SESSIONS` + `handOffReaders`.
+  - **A register moved into the ceiling because NO caller reads it (DEAD AT EXIT) is measured, not argued,
+    and always with its exit-side control.** Complement it where the frozen routine hands back and require
+    silence over the sessions that reach it; an entry-side poison says nothing about whether the exit poison
+    lands, so the same exit also gets an SP flip that must be heard. Write the arm through the shared helper
+    (timeplt `_deadAtExit.js` `assertDeadAtExit`), which runs both and fails without the control, and give it
+    the arm's other poisons (entry-side controls, a register that must be heard live, a second poison that
+    must stay silent) as its `controls` — never a hand-rolled poison loop, which is how the exit control went
+    missing more than once. The session poisoner itself is private to `_deadAtExit.js`: its only other use
+    is the HAND-OFF measurement above (`handOffReaders`, which carries the same SP exit control), so
+    `git grep -l poisonedRun games/timeplt/idiomatic/test` lists that one file.
   - **Register-bridge live-out into a FROZEN callee — a distinct sub-case (reviewer-rules R37).** A rewrite
     that forwards a value as an explicit JS param, while a still-frozen callee (or an idiomatic callee whose
     signature is `fn(m, x = m.regs.X)`) reads it from the register bridge, passes a STALE register in the
@@ -486,7 +515,13 @@ feeds the next batch's targets.
   invisible to it. Write those as a **return-assignment** — `return (m.regs.a = value);` — which sets the
   register (for the translated dispatch) *and* returns the value (for idiomatic callers); never a bare
   `regs.a = value;`. So the exempt forms are: a param-default (incoming), a `return`/tuple (idiomatic
-  outgoing), and a `regs.X` write that is **part of a `return`** (load-bearing outgoing); the gate flags
+  outgoing), and a `regs.X` write that is **part of a `return`** (load-bearing outgoing) — for a game in
+  `idiomatic_gate.TIGHT_GAMES` (timeplt) only when the write IS the return's value (the whole expression,
+  the last comma operand, a tuple/object element, a `?:` branch, or a `u8`/`u16` argument) with no call
+  after it inside the return, and the param-default exemption covers the parameter list only, not the rest
+  of the signature's line. For a TIGHT game an input seat riding a return (`return (regs.ix = X,
+  callee(m))`, a call argument, a `void` operand, a `?:` condition) counts as debt; every other game keeps
+  the legacy rule (any write after `return` on the line) until it is re-baselined. The gate flags
   **every other** body register reference as debt, and the **reviewer audits** each return-assignment as a
   genuine dispatch-out under proposer≠confirmer. Multiple load-bearing outputs generalize the same way —
   `return [ m.regs.a = foo, m.regs.hl = bar ];`. (An assignment evaluates to its RHS *before* the register's

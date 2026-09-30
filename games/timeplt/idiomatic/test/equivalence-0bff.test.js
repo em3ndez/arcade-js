@@ -33,6 +33,13 @@
  * The painted-cell model in this file is derived here and CHECKED against the other side of the
  * comparison: on the blank canvas the cells it predicts are exactly the cells the oracle moves.
  *
+ * THE RUN POINTER IS DEAD WHERE THIS HANDS BACK, asked of the ORACLE rather than argued from the
+ *   rewrite. The frozen loop leaves HL on the terminator; the rewrite hands its caller only the
+ *   cursor. DEAD AT EXIT (assertDeadAtExit) complements H and L on every exit of the all-frozen game
+ *   over the attract and the coin -> start sessions and not one cell of per-frame state moves, while
+ *   the same instrument hears, in both sessions, HL nudged on the way IN and SP moved at the same
+ *   exit. So H and L sit in the register ceiling beside A, F and SP, and only the cursor is held.
+ *
  * HOLES. Only the coin -> start tape's states are replayed; a caption the tape never posts is
  * unseen except through the crafted entries. The crafted entries nudge one register each on a
  * real captured state, identically on both sides.
@@ -44,6 +51,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 import { drawTextRun } from "../drawTextRun.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_0bff as oracle } from "../../translated/loc_0bff.js";
@@ -56,6 +64,12 @@ const END_OF_TEXT = 185;
 const CHARACTER_PLANE_BIT = 0x0400;
 const CHARACTER_PLANE = 0xa400;
 const CELL_STEP = 32;
+
+/** The register ceiling: may differ from the oracle. H and L are there by DEAD AT EXIT below. */
+const EXCLUDED = ["a", "f", "sp", "h", "l"];
+/** The run pointer the frozen loop leaves on the terminator; nothing after this exit reads it. */
+const DEAD_AT_EXIT = ["h", "l"];
+const DEAD_SESSIONS = [["attract", []], ["coin -> start", undefined]];
 
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
 
@@ -226,14 +240,13 @@ test("NOT A DEAD FIRST DISPATCH: the cloned entry paints a real caption", { skip
   );
 });
 
-test("EXCLUDED, deliberately: three registers and pc move, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a ceiling on the registers that move, and the cursor held", { skip }, () => {
   const first = corpus().entries[0];
   const a = first.clone();
   const b = first.clone();
   oracle(a);
   drawTextRun(b);
 
-  const EXCLUDED = ["a", "f", "sp"];
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
     moved.filter((k) => !EXCLUDED.includes(k)),
@@ -241,9 +254,25 @@ test("EXCLUDED, deliberately: three registers and pc move, and nothing else", { 
     "a register outside the declared excluded set moved",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  assert.equal(a.regs.hl, b.regs.hl, "the caption pointer is reproduced, not excluded");
   assert.equal(a.regs.de, b.regs.de, "the cursor is reproduced, not excluded");
-  console.log(`  EXCLUDED: ${moved.join(", ")} and pc; hl and de reproduced`);
+  console.log(`  EXCLUDED: ${moved.join(", ")} and pc moved, within ${EXCLUDED.join(", ")}; de reproduced`);
+});
+
+test("DEAD AT EXIT: the run pointer, as the frozen loop leaves it, is read by nothing after it", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: DEAD_AT_EXIT, frames: ENTRY_FRAMES, reachEvery: true,
+    sessions: DEAD_SESSIONS.map(([label, tape]) => ({ label, tape })),
+    // ENTRY CONTROL: the run pointer this routine reads, nudged one glyph on the way in, must be heard.
+    controls: [{ label: "entry", poison: ["l"], flip: { l: 1 }, before: true, every: true, reachEvery: true }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so every session hears it.
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+  }
+  console.log(`  DEAD AT EXIT: ${DEAD_AT_EXIT.join(", ")} complemented, nothing differs; entry and exit ` +
+    `controls heard in every session (${exits.map((r) => `${r.label} ${heardAs(r.exitControl)}`).join("; ")})`);
 });
 
 test("CORPUS: every captured dispatch replays identically", { skip }, () => {

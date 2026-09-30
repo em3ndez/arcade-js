@@ -5,7 +5,7 @@
  * bytes say where the caption goes and its glyphs begin three bytes in, so the byte between them
  * is stepped over unread. The colour is that cell's value plus ten kept to four bits — an offset
  * from a colour chosen elsewhere, not a colour chosen here — and every cell of the caption gets it.
- * LIVE-OUT: memory, plus the colour, the cursor and the run pointer the painting leaves behind.
+ * LIVE-OUT: memory, plus the cursor the painting leaves behind.
  */
 
 import { u8, u16 } from "../../../core/int.js";
@@ -23,5 +23,5 @@ export function drawCaptionTenPastSharedColour(m, index = m.regs.a) {
   const cursor = mem16[record];
   const run = u16(record + GLYPHS_FROM);
   const colour = u8(mem8[PEN_COLOUR] + COLOUR_BIAS) & COLOUR_MASK;
-  return (m.regs.c = colour, drawTextRun(m, run, cursor, colour));
+  return drawTextRun(m, run, cursor, colour);
 }

@@ -6,16 +6,19 @@
  *   replayed, a crafted cross over the shared flag, the slots' occupancy and both coordinates, a
  *   masked whole-machine replay, and teeth.
  *   1. EQUAL at the real dispatch — identical outside an eight-byte stack-scratch window, which is
- *      what the scoring call inside the sweep brackets its work with, and the three genuine
- *      register live-outs match the frozen side exactly. Every arm PINS the window by walking
- *      the whole dump.
+ *      what the scoring call inside the sweep brackets its work with. No register is pinned: the
+ *      routine's live-out is memory only (arm 3). Every arm PINS the window by walking the whole
+ *      dump.
  *   2. VACUITY, MEASURED — a no-op is invisible at almost every real dispatch, because almost none
  *      of them reaches anything. The exact count is asserted; the crafted cross is where the
  *      destroying path is gated.
- *   3. LIVE-OUTS PINNED, SCRATCH NOT (frogger standard) — E, IY and F are the only registers a
- *      later sibling sweep reads off the file, so they are pinned; the box widths, the slot count
- *      and the stepped accumulator are dead scratch, so a twin that only scribbles a dead register
- *      passes while a RAM (or pinned-live-out) scribble is caught.
+ *   3. NO REGISTER LIVE-OUT, MEASURED ON THE ORACLE — the ROM leaves E (second-axis slack), IY
+ *      (slot cursor) and F (carry) changed, but its one caller (0x4EBC) reloads DE and IY before
+ *      its next sweep and every path after overwrites the carry before reading it. DEAD AT EXIT
+ *      (assertDeadAtExit) poisons all three as the FROZEN routine hands back over the whole attract
+ *      session and requires nothing to move, with an exit control (SP) and an entry control (IY
+ *      into 0x5185) that must be heard. So a twin that only scribbles E, IY, F or B passes, while a
+ *      RAM scribble is caught.
  *   4. CORPUS — every dispatch the attract run produces, with the flag and occupancy shapes it saw.
  *   5. CRAFTED CROSS — the shared flag live or not, TWO slots (the first and the last) live or
  *      not, and their two coordinates swept across the window edge on each axis. The two axes have
@@ -46,6 +49,7 @@ import { loc_4f7e as oracle } from "../../translated/loc_4f7e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
+import { assertDeadAtExit, heardAs } from "./_deadAtExit.js";
 
 const TARGET = 0x4f7e;
 
@@ -68,12 +72,14 @@ const DESTROYED = 0xf0;
 const SCRATCH_BYTES = 8;
 /**
  * The frogger standard: RAM (masked over the frozen side's stack scratch) is the whole contract,
- * and only the registers a later sibling sweep actually reads off the file are pinned beside it —
- * the second-axis slack in E, the slot cursor in IY, and the carry in F. The box widths, the slot
- * count and the stepped accumulator the ROM also leaves are dead after return and are NOT pinned,
- * so a rewrite that drops them still passes and a twin that scribbles one is deliberately ignored.
+ * and only registers a caller actually reads off the file would be pinned beside it. Derived from
+ * the ORACLE, there are none: E, IY and F, which the ROM leaves changed, are dead where it hands
+ * back (DEAD AT EXIT measures it), and so are the box widths, the slot count and the stepped
+ * accumulator. A twin that scribbles any of them is deliberately ignored.
  */
-const GENUINE_LIVE_OUTS = ["f", "e", "iy"];
+const GENUINE_LIVE_OUTS = [];
+/** The registers the frozen routine leaves changed, each measured dead at its exit. */
+const LEFT_CHANGED = ["e", "iy", "f"];
 const SCRIBBLE_CELL = 0xa100; // a compared (non-stack) cell the control flips to prove RAM bites
 const FRAMES = 1600;
 const RET_TSTATES = 10;
@@ -363,7 +369,7 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(liveOutDiff(destroyFixedTargetHitByShots, entryState()), null, "a pinned live-out diverged");
-  console.log(`  EQUAL: sp ${hex4(sp)}; nothing outside the ${SCRATCH_BYTES}-byte window moves; E/IY/F pinned`);
+  console.log(`  EQUAL: sp ${hex4(sp)}; nothing outside the ${SCRATCH_BYTES}-byte window moves`);
 });
 
 test("VACUITY, MEASURED: a no-op is invisible at almost every real dispatch", { skip }, () => {
@@ -382,20 +388,35 @@ test("VACUITY, MEASURED: a no-op is invisible at almost every real dispatch", { 
   console.log(`  VACUITY: a no-op shows at ${noOpSeen} of ${entries.length} real dispatches`);
 });
 
-test("LIVE-OUTS PINNED, SCRATCH NOT: a dead-register scribble passes; RAM and a live-out bite", { skip }, () => {
-  // The frogger standard: E, IY and F are the only registers a later sibling sweep reads off the
-  // file, so they are pinned to the frozen side; the box widths, the slot count and the stepped
-  // accumulator are dead after return and are NOT pinned. A twin that only scribbles a dead
-  // register is DELIBERATELY not flagged, and the same measurement must still catch a scribbled RAM
-  // cell — and a scribbled pinned live-out — or the clean read on the dead-register twin is worthless.
-  assert.equal(liveOutDiff(destroyFixedTargetHitByShots, entryState()), null, "a pinned live-out diverged at the real dispatch");
+test("NO REGISTER PINNED, RAM IS: dead-register scribbles pass; a RAM scribble bites", { skip }, () => {
+  // The frogger standard with the oracle-derived live-out set, which is empty (DEAD AT EXIT below):
+  // a twin that only scribbles a register the ROM leaves changed (E, IY, F) or one it uses as
+  // scratch (B) is DELIBERATELY not flagged, and the same measurement must still catch a scribbled
+  // RAM cell, or the clean read on the register twins is worthless.
+  assert.deepEqual(GENUINE_LIVE_OUTS, [], "a register live-out was declared; derive it from the oracle and measure it");
   const scribbleDeadReg = (m) => { destroyFixedTargetHitByShots(m); m.regs.b = u8(m.regs.b + 1); };
-  const scribbleLiveOut = (m) => { destroyFixedTargetHitByShots(m); m.regs.e = u8(m.regs.e + 1); };
+  const scribbleLeftChanged = (m) => {
+    destroyFixedTargetHitByShots(m);
+    m.regs.e = u8(m.regs.e + 1); m.regs.iy = (m.regs.iy + 2) & 0xffff; m.regs.f ^= 0x01;
+  };
   const scribbleData = (m) => { destroyFixedTargetHitByShots(m); m.mem8[SCRIBBLE_CELL] ^= 0xff; };
   assert.equal(caughtFull(scribbleDeadReg, entryState()), false, "a dead-register scribble was flagged, but B is not a live-out");
-  assert.equal(caughtFull(scribbleLiveOut, entryState()), true, "a scribbled pinned live-out went uncaught, so the pin has no teeth");
+  assert.equal(caughtFull(scribbleLeftChanged, entryState()), false, "an E/IY/F scribble was flagged, but they are dead at exit");
   assert.equal(caughtFull(scribbleData, entryState()), true, "a scribbled RAM cell went uncaught, so the RAM measurement has no teeth");
-  console.log(`  LIVE-OUTS: ${GENUINE_LIVE_OUTS.join(", ")} pinned; dead-reg scribble ignored, RAM + live-out scribbles caught`);
+  console.log("  NO REGISTER PINNED: B and E/IY/F scribbles ignored, RAM scribble caught");
+});
+
+test("DEAD AT EXIT: E, IY and F, as the frozen routine leaves them, are read by nothing after it", { skip }, () => {
+  // ENTRY-SIDE CONTROL: the caller's next sweep (0x5185) reads IY; nudged one entry on the way in,
+  // the instrument must hear it -- IY is heard when it is live.
+  const [run] = assertDeadAtExit({
+    at: TARGET, poison: LEFT_CHANGED, frames: FRAMES,
+    sessions: [{ label: "attract", tape: [], dispatches: DISPATCHES }],
+    controls: [{ label: "IY into 0x5185", at: 0x5185, poison: ["iy"], flip: { iy: 0x02 }, before: true }],
+  });
+  assert.equal(run.dead.stopped, null, `the poisoned run stopped early: ${run.dead.stopped}`);
+  console.log(`  DEAD AT EXIT: exit control heard (${heardAs(run.exitControl)}); ` +
+    `entry control heard (${heardAs(run.controls["IY into 0x5185"])})`);
 });
 
 test("CORPUS: every captured dispatch replays identically", { skip }, () => {

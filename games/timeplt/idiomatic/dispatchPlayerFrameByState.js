@@ -9,22 +9,20 @@ import { flyDemoShipByScript } from "./flyDemoShipByScript.js";
 import { readPlayerControls } from "./readPlayerControls.js";
 import { turnShipTowardTargetHeading } from "./turnShipTowardTargetHeading.js";
 import { scrollWorldAtTheEraPace } from "./scrollWorldAtTheEraPace.js";
-import { PLAYER_ENTRY, PLAYER_STATE, PLAY_ACTIVE } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_HEADING, PLAYER_STATE, PLAY_ACTIVE } from "./names.js";
 
 const WOUND = 0xff;
 
 export function dispatchPlayerFrameByState(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  // ix/iy seat the player record and its sprite entry for whichever routine runs; each ride the
-  // return as the outgoing bridge to that routine, so the cleared arm seats nothing.
   const state = mem8[PLAYER_STATE];
   if (state === 0) return;
-  if (state !== WOUND) return (regs.ix = PLAYER_STATE, regs.iy = PLAYER_ENTRY, advancePlayerAnimationStrip(m));
+  if (state !== WOUND) return advancePlayerAnimationStrip(m, PLAYER_STATE, PLAYER_ENTRY);
 
-  if (mem8[PLAY_ACTIVE] === 0) return (regs.ix = PLAYER_STATE, regs.iy = PLAYER_ENTRY, flyDemoShipByScript(m));
+  if (mem8[PLAY_ACTIVE] === 0) return flyDemoShipByScript(m);
 
   const stick = readPlayerControls(m) & 0x0f;
-  if (stick !== 0) return (regs.ix = PLAYER_STATE, regs.iy = PLAYER_ENTRY, regs.a = stick, turnShipTowardTargetHeading(m));
-  return (regs.ix = PLAYER_STATE, regs.iy = PLAYER_ENTRY, regs.a = stick, scrollWorldAtTheEraPace(m));
+  if (stick !== 0) return turnShipTowardTargetHeading(m, stick);
+  return scrollWorldAtTheEraPace(m, mem8[PLAYER_HEADING]);
 }

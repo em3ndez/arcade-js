@@ -6,7 +6,8 @@ Runbook goal (§5 definition of done): a finished idiomatic module names its dat
 never the machine. Six kinds of cruft are counted, all of which must reach 0 for a game to be
 IDIOMATIC (a hard done requirement):
   - REGISTERS: `regs.a` / ALU helpers, minus two exempt bridges — a param-default (`fn(m, x=m.regs.a)`)
-    and a write riding a return (`return (m.regs.a=v)`).
+    and a write riding a return (`return (m.regs.a=v)`). For a TIGHT_GAMES game the return-write
+    exemption is narrower: the write must BE the return's value (a seat before a call is NOT exempt).
   - m.call(...) — dissolve to a direct JS call (or `yield*`). m.push16/* — Z80 stack trampolines.
     (m.ret / m.pop* are Z80 stack primitives too, but counted CLOSURE-only — like `unlifted` below —
     so a frozen legacy game's budget is not re-baselined by the gate newly seeing them.)
@@ -70,9 +71,137 @@ def strip_comments(text):
     return text
 
 
-def register_hits(text):
+_OPEN, _CLOSE = "([{", ")]}"
+_WRITE_AT = re.compile(r"(?:m\.)?regs\.[A-Za-z][A-Za-z0-9]*\s*=(?!=)")
+_CALL_AT = re.compile(r"(?<![\w$.])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(")
+_PURE = {"u8", "u16"}  # width-mask wrappers: value-preserving, never an input-seat consumer
+_NOT_CALL = {"if", "for", "while", "switch", "return", "function", "catch", "typeof", "void", "new"}
+
+
+def _skip_str(s, i):
+    q, i = s[i], i + 1
+    while i < len(s) and s[i] != q:
+        i += 2 if s[i] == "\\" else 1
+    return i + 1
+
+
+def _close(s, i):
+    """Index of the bracket closing the opener at s[i]."""
+    depth = 0
+    while i < len(s):
+        c = s[i]
+        if c in "'\"`":
+            i = _skip_str(s, i)
+            continue
+        depth += (c in _OPEN) - (c in _CLOSE)
+        if depth == 0:
+            return i
+        i += 1
+    return len(s) - 1
+
+
+def _split(s, a, b, sep):
+    """Top-level `sep`-separated (start, end) spans of s[a:b]."""
+    out, depth, st, i = [], 0, a, a
+    while i < b:
+        c = s[i]
+        if c in "'\"`":
+            i = _skip_str(s, i)
+            continue
+        depth += (c in _OPEN) - (c in _CLOSE)
+        if c == sep and depth == 0:
+            out.append((st, i))
+            st = i + 1
+        i += 1
+    return out + [(st, b)]
+
+
+def _ternary(s, a, b):
+    """(q, colon) of a top-level `?:` in s[a:b] (not `?.`/`??`), else None."""
+    depth, q, nest, i = 0, None, 0, a
+    while i < b:
+        c = s[i]
+        if c in "'\"`":
+            i = _skip_str(s, i)
+            continue
+        depth += (c in _OPEN) - (c in _CLOSE)
+        if depth == 0 and c == "?" and s[i + 1:i + 2] not in (".", "?") and s[i - 1:i] != "?":
+            nest += q is not None
+            q = i if q is None else q
+        elif depth == 0 and c == ":" and q is not None:
+            if nest == 0:
+                return q, i
+            nest -= 1
+        i += 1
+    return None
+
+
+def _value_writes(s, a, b, out):
+    """Append the (start, end) span of every `regs.X =` write that IS the value of the expression s[a:b]:
+    the whole expression, inside parens, the LAST comma operand, an array element, an object property
+    value, a ?: branch, the argument of a pure u8()/u16() mask, or a chained assignment's RHS. NOT a
+    `void` operand, a non-last comma operand, a call argument, or a ternary condition."""
+    while a < b and s[a].isspace():
+        a += 1
+    while b > a and s[b - 1].isspace():
+        b -= 1
+    seg = s[a:b]
+    if not seg or re.match(r"void\b", seg):
+        return
+    parts = _split(s, a, b, ",")
+    if len(parts) > 1:
+        return _value_writes(s, *parts[-1], out)
+    w = _WRITE_AT.match(seg)
+    if w and not (a and (s[a - 1].isalnum() or s[a - 1] in "_$.")):
+        out.append((a, b))
+        return _value_writes(s, a + w.end(), b, out)
+    t = _ternary(s, a, b)
+    if t:
+        _value_writes(s, t[0] + 1, t[1], out)
+        return _value_writes(s, t[1] + 1, b, out)
+    if seg[0] in _OPEN and _close(s, a) == b - 1:
+        for pa, pb in ([(a + 1, b - 1)] if seg[0] == "(" else _split(s, a + 1, b - 1, ",")):
+            if seg[0] == "{":
+                kv = _split(s, pa, pb, ":")
+                if len(kv) >= 2:
+                    _value_writes(s, kv[1][0], pb, out)
+            else:
+                _value_writes(s, pa, pb, out)
+        return
+    u = re.match(r"(?:u8|u16)\s*\(", seg)
+    if u and _close(s, a + u.end() - 1) == b - 1:
+        _value_writes(s, a + u.end(), b - 1, out)
+
+
+def _return_end(s, i):
+    """End of the return expression starting at s[i] (`;`, an unmatched closer, or an ASI newline)."""
+    depth, n = 0, len(s)
+    j = i
+    while j < n:
+        c = s[j]
+        if c in "'\"`":
+            j = _skip_str(s, j)
+            continue
+        if c in _OPEN:
+            depth += 1
+        elif c in _CLOSE:
+            if depth == 0:
+                return j
+            depth -= 1
+        elif c == ";" and depth == 0:
+            return j
+        elif c == "\n" and depth == 0:
+            prev, nxt = s[i:j].rstrip(), s[j + 1:].lstrip()[:1]
+            if not prev or (prev[-1] not in ",(?:=+-*/&|<>![{" and nxt not in ".?:+-*/&|,)]}"):
+                return j
+        j += 1
+    return n
+
+
+def register_hits_legacy(text):
     """Register names, minus a param-default (signature line) and a `regs.X =` write after the first
-    `return` on a line (the exempt outgoing bridge `return (m.regs.a = v)`)."""
+    `return` on a line (the exempt outgoing bridge `return (m.regs.a = v)`). The rule for every game
+    NOT in TIGHT_GAMES — it also exempts an INPUT SEAT riding a return (`return (regs.ix = X, f(m))`)."""
     hits = []
     for line in text.splitlines():
         if SIG.search(line):
@@ -84,13 +213,48 @@ def register_hits(text):
     return hits
 
 
-def counts(text):
+# Games held to the TIGHTENED return-write exemption (register_hits_tight). Opt-in per game; every other
+# game keeps register_hits_legacy until it is re-baselined under the tight rule.
+TIGHT_GAMES = {"timeplt"}
+
+
+def register_hits(text, tight=False):
+    """Dispatch to the tight or the legacy register rule."""
+    return register_hits_tight(text) if tight else register_hits_legacy(text)
+
+
+def register_hits_tight(text):
+    """Register names, minus a param-default (signature line) and a `regs.X =` write that IS a `return`'s
+    value (the load-bearing outgoing bridge `return (m.regs.a = v)` / `return [m.regs.a = x, m.regs.hl = y]`,
+    single- or multi-line). A write is NOT exempt when it merely rides a return as an INPUT SEAT: a
+    non-last comma operand or call argument (`return (regs.ix = X, callee(m))`, `return f((regs.de = K, m))`),
+    a `void (...)` operand, or any write followed by a (non-mask) call within the same return. The
+    param-default exemption covers a signature's PARAMETER LIST only, not the rest of its line, so a
+    one-line body (`function f(m) { m.regs.ix = X; return g(m); }`) is counted like any other."""
+    sig_spans = [(s.end() - 1, _close(text, s.end() - 1)) for s in SIG.finditer(text)]
+    in_sig = lambda o: any(x <= o <= y for x, y in sig_spans)
+    exempt = set()
+    for r in RET.finditer(text):
+        if in_sig(r.start()):
+            continue
+        end = _return_end(text, r.end())
+        spans = []
+        _value_writes(text, r.end(), end, spans)
+        for wa, wb in spans:
+            later = [c for c in _CALL_AT.finditer(text, wb, end)
+                     if c.group(1) not in _PURE and c.group(1) not in _NOT_CALL]
+            if not later:
+                exempt.add(wa)
+    return [m.group(1) for m in REF.finditer(text) if not in_sig(m.start()) and m.start() not in exempt]
+
+
+def counts(text, game=None):
     """Per-category cruft counts for one module's source text. The CATEGORIES keys are always-counted
     (baked into every game's budget); "stack" (m.ret/m.pop*) is a separate closure-only addend the
     callers apply only for CLOSURE_GAMES, so it is returned but excluded from total()."""
     code = strip_comments(text)
     return {
-        "registers": len(register_hits(code)),
+        "registers": len(register_hits(code, tight=game in TIGHT_GAMES)),
         "calls": len(CALL.findall(code)),
         "pushes": len(PUSH.findall(code)),
         "addrs": len(ADDR.findall(code)),
@@ -139,7 +303,7 @@ def count_in_index(game):
             blob = git(["show", f":{path}"])
         except GitError:
             continue
-        c = counts(blob)
+        c = counts(blob, game)
         for k in CATEGORIES:
             agg[k] += c[k]
         stk += c["stack"]
@@ -310,7 +474,7 @@ def worklist(game):
     for path in sorted(glob.glob(os.path.join(idir, "*.js"))):
         if os.path.basename(path) == "names.js":
             continue
-        per = counts(open(path, encoding="utf-8").read())
+        per = counts(open(path, encoding="utf-8").read(), game)
         disp_tot = total(per) + (per["stack"] if closure else 0)
         if disp_tot:
             rows.append((disp_tot, os.path.basename(path), per))
@@ -352,6 +516,42 @@ def selftest():
     # registers: 2 body refs; a param-default and a return-write are exempt
     reg = "function f(m, x = m.regs.a) {\n  const y = m.regs.b + regs.c;\n  return (m.regs.hl = y);\n}"
     want("registers", counts(reg)["registers"], 2)
+    # TIGHT rule (TIGHT_GAMES, e.g. timeplt): a return-write is exempt only when it IS the returned value.
+    tg, lg = "timeplt", "galaxian"   # a TIGHT game, and a game on the legacy rule
+    want("TIGHT_GAMES holds the tight game", tg in TIGHT_GAMES, True)
+    want("legacy game not TIGHT", lg in TIGHT_GAMES, False)
+    # outgoing return-writes stay exempt: tuple, object, multi-line, chained through a u16 mask, ternary RHS
+    for ok_src in ("return (m.regs.a = v);",
+                   "return [m.regs.a = x, m.regs.hl = y];",
+                   "return [\n  m.regs.a = x,\n  m.regs.hl = y,\n];",
+                   "return { d: (m.regs.d = d), e: u16(m.regs.e = e) };",
+                   "return (m.regs.fC = x === undefined ? true : x);",
+                   "return c ? (m.regs.a = 1) : (m.regs.a = 2);"):
+        want(f"tight return-write exempt: {ok_src!r}", counts(ok_src, tg)["registers"], 0)
+    # an INPUT SEAT riding a return is counted: seat-before-call, call argument, void, non-returned comma operand
+    for src, n in (("return (regs.ix = X, regs.iy = Y, callee(m));", 2),
+                   ("return (\n  regs.ix = X,\n  callee(m)\n);", 1),
+                   ("return callee(m, m.regs.de = K);", 1),
+                   ("return callee((m.regs.de = K, m));", 1),
+                   ("return [regs.c = 1, gather(m, 16)];", 1),
+                   ("return void (regs.hl = c, regs.a = s);", 2),
+                   ("return (m.regs.ix = r, m.regs.b = n, undefined);", 2),
+                   ("return (m.regs.a = v) ? 1 : 0;", 1),
+                   ("function f(m) { m.regs.ix = X; return g(m); }", 1),
+                   ("function f(m) { return (m.regs.ix = X, g(m)); }", 1)):
+        want(f"tight input seat counted: {src!r}", counts(src, tg)["registers"], n)
+    # the tight param-default exemption still covers a (multi-line) parameter list
+    want("tight param-default exempt", counts("function f(m,\n  x = m.regs.a,\n) {\n  return x;\n}", tg)["registers"], 0)
+    # LEGACY rule (every other game) keeps its old result: any write after `return` on the line is exempt,
+    # INCLUDING the input seat; the tight rule does not leak to it.
+    for src, n in (("return (m.regs.a = v);", 0),
+                   ("return [m.regs.a = x, m.regs.hl = y];", 0),
+                   ("return (regs.ix = X, regs.iy = Y, callee(m));", 0),
+                   ("return callee(m, m.regs.de = K);", 0),
+                   ("return void (regs.hl = c, regs.a = s);", 0),
+                   ("return (\n  regs.ix = X,\n  callee(m)\n);", 1)):
+        want(f"legacy {lg} rule: {src!r}", counts(src, lg)["registers"], n)
+        want(f"no-game = legacy rule: {src!r}", counts(src)["registers"], n)
     # m.call + m.push* counted; m.ret/m.pop* counted as stack primitives; a coroutine yield* is not
     ctl = "function g(m) { m.push16(0x0232); m.call(0x1a55); m.pop16(); yield* h(m); return m.ret(); }"
     c = counts(ctl)

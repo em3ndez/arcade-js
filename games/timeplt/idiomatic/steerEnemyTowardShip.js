@@ -20,14 +20,14 @@ const RATE_INDEX_RESEATED = 4;
 const withinWindow = (probe) =>
   REFERENCES.some((ref) => u8(ref - probe + HALF_WINDOW) < WINDOW);
 
-export function steerEnemyTowardShip(m, iy = m.regs.iy) {
+export function steerEnemyTowardShip(m, iy = m.regs.iy, ix = m.regs.ix) {
   const { mem8 } = m;
   if (withinWindow(mem8[iy + PROBE])) {
     mem8[ERA_INDEX] = RATE_INDEX_WHILE_TURNING;
-    steerTowardAimHeading(m);
+    steerTowardAimHeading(m, ix);
     mem8[ERA_INDEX] = RATE_INDEX_RESEATED;
   } else {
-    steerTowardAimHeading(m);
+    steerTowardAimHeading(m, ix);
   }
-  return ((mem8[FRAME_TICK] >> 1) & 1) === 0 ? loc_58aa(m) : loc_5860(m);
+  return ((mem8[FRAME_TICK] >> 1) & 1) === 0 ? loc_58aa(m, ix, iy) : loc_5860(m, ix, iy);
 }

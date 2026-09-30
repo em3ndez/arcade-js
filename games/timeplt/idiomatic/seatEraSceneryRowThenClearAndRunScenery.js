@@ -2,7 +2,9 @@
 /** seatEraSceneryRowThenClearAndRunScenery — seat one era-keyed object band, then hand the frame's scenery on. A fixed run is
  * summed against a constant as a tamper tripwire whose answer is dropped, eight bytes of the row the
  * era indexes are copied into a stride-two cell run, and control transfers into the scenery clear +
- * run: at era four with the fill byte 0x28, otherwise 0xCC. The era rides into the callee seated in C.
+ * run: at era four with the fill byte 0x28, otherwise 0xCC. The era and the entry cursor ride into the
+ * chain as arguments; the cursor is the era-object entry its one caller has just cleared through (the
+ * original leaves it standing in IY), and the chain writes through it only if the scenery guard fails.
  * LIVE-OUT: memory (the seated band and whatever the scenery chain leaves); control leaves through the
  * tail and does not return. */
 
@@ -11,7 +13,7 @@ import { offsetAddress } from "./offsetAddress.js";
 import { seatSceneryFillByte0x28ThenClearEraScenery } from "./seatSceneryFillByte0x28ThenClearEraScenery.js";
 import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenRunEraScenery.js";
 import { u8, u16 } from "../../../core/int.js";
-import { SCENERY_SPRITE_CODE_SLOT0, ERA_INDEX, COPYRIGHT_CAPTION_RECORD, loc_3176 } from "./names.js";
+import { SCENERY_SPRITE_CODE_SLOT0, ERA_INDEX, COPYRIGHT_CAPTION_RECORD, ERA_OBJECT_ENTRY_SLOT0, loc_3176 } from "./names.js";
 
 const CHECK_LEN = 0x10;
 const CHECK_EXPECTED = 0x22;
@@ -21,7 +23,7 @@ const SEAT_COUNT = 8;
 const ERA_FOUR = 0x04;
 const FILL_BYTE = 0xcc;
 
-export function seatEraSceneryRowThenClearAndRunScenery(m) {
+export function seatEraSceneryRowThenClearAndRunScenery(m, entryCursor = ERA_OBJECT_ENTRY_SLOT0) {
   const { mem8 } = m;
 
   sumByteRunAndCompareToExpected(m, COPYRIGHT_CAPTION_RECORD, CHECK_LEN, CHECK_EXPECTED); // tamper checksum; its answer is discarded here
@@ -35,7 +37,7 @@ export function seatEraSceneryRowThenClearAndRunScenery(m) {
     dst = u16(dst + SEAT_STRIDE);
   }
 
-  // the era rides into the scenery chain seated in C; fill byte 0x28 at era four, else 0xCC
-  if (era === ERA_FOUR) return (m.regs.c = era, seatSceneryFillByte0x28ThenClearEraScenery(m));
-  return (m.regs.c = era, clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE));
+  // fill byte 0x28 at era four, else 0xCC
+  if (era === ERA_FOUR) return seatSceneryFillByte0x28ThenClearEraScenery(m, era, entryCursor);
+  return clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE, era, entryCursor);
 }

@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** seatTheStackAndSettleTheControlLatch — power-on, the first code that decides anything. It probes the
  * expansion socket: an empty socket floats the bus high, never a fitted board's answer, so the question
- * always returns "no" and the rest runs; a "yes" would hand control to the expansion. Then it seats the
- * stack just under sprite memory (growing down through work RAM), quiets the watchdog, drives the control
- * lines low, and enables the picture. The latch takes data from the low bit and its line from the address,
+ * always returns "no" and the rest runs; a "yes" would hand control to the expansion. Then it quiets the
+ * watchdog, drives the control lines low, and enables the picture. The original also seats the stack just
+ * under sprite memory here; this layer lays no return words (every routine is a direct call and the frame
+ * interrupt fires as one), so nothing reads the stack pointer and the seat is not carried. The latch takes data from the low bit and its line from the address,
  * TWO ADDRESSES TO A LINE, so the eight-address walk settles FOUR lines (each written twice) and the ninth
  * address is a fifth line, not a ninth; that last setting is read from the program image, not a literal, so
- * patching it can leave the machine dark. No work memory is touched. LIVE-OUT: stack seat, latched lines. */
+ * patching it can leave the machine dark. No work memory is touched. LIVE-OUT: latched lines. */
 
 import { clearWorkRamAndSpriteBanksThenColdInit } from "./clearWorkRamAndSpriteBanksThenColdInit.js";
-import { EXPANSION_SOCKET_PROBE, SPRITE_RAM_BASE, WATCHDOG_RESET, NMI_ENABLE_LATCH, VIDEO_ENABLE_LATCH, DISPLAY_ON_VALUE } from "./names.js";
+import { EXPANSION_SOCKET_PROBE, WATCHDOG_RESET, NMI_ENABLE_LATCH, VIDEO_ENABLE_LATCH, DISPLAY_ON_VALUE } from "./names.js";
 
 const EXPANSION_FITTED = 0x55;
 
@@ -31,5 +32,5 @@ export function seatTheStackAndSettleTheControlLatch(m) {
   for (let i = 0; i < CONTROL_LINE_ADDRESSES; i++) mem8[NMI_ENABLE_LATCH + i] = 0;
   mem8[VIDEO_ENABLE_LATCH] = mem8[DISPLAY_ON_VALUE];
 
-  return (m.regs.sp = SPRITE_RAM_BASE, clearWorkRamAndSpriteBanksThenColdInit(m));
+  return clearWorkRamAndSpriteBanksThenColdInit(m);
 }

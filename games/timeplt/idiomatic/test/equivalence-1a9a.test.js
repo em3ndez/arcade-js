@@ -20,6 +20,9 @@
  *   6. THE ROW REALLY CHANGES, asserted: the twelve bytes are shown to differ between two rows, so
  *      a rewrite that always read row zero could not pass the cross by accident.
  *   7. TEETH — seven twins, each caught on its own exact count over the cross.
+ *   8. DEAD AT EXIT — every register in the excluded ceiling is flipped on the FROZEN game where
+ *      this entry hands back, over a whole attract session and a whole coin -> start session, and
+ *      not one frame of state changes, while flipping SP at the same exit is heard.
  *
  * HOLE: no twin attacks the era's low nibble being taken rather than the whole byte, and none can:
  * scaling by sixteen and truncating to a byte discards the high nibble anyway, so the two readings
@@ -44,6 +47,7 @@ import { ERA_INDEX, ERA_RUNG } from "../names.js";
 import { fetchTableWord } from "../fetchTableWord.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 
 const TARGET = 0x1a9a;
 
@@ -59,8 +63,18 @@ const CELLS = DESTINATIONS.flat();
 
 const SCRATCH_BYTES = 4;
 
-/** Registers the rewrite may leave diverged: none of these outlives the entry. */
-const EXCLUDED = ["a", "f", "b", "e", "sp"];
+/**
+ * Registers the rewrite may leave diverged: none of these outlives the entry, which DEAD AT EXIT
+ * measures on the frozen game rather than argues. L is here because the rewrite's table fetch no
+ * longer leaves the pointer stepped past the entry it read, where the frozen one does.
+ */
+const EXCLUDED = ["a", "f", "b", "e", "l", "sp"];
+
+/** The whole sessions DEAD AT EXIT poisons this entry's exits over, with each one's exit count. Measured. */
+const DEAD_SESSIONS = [
+  { label: "attract", tape: [], frames: 20000, exits: 19 },
+  { label: "coin-start", tape: undefined, frames: 20000, exits: 17 },
+];
 
 /** The attract run this entry is reached by, and the frame it is first reached on. Measured. */
 const ATTRACT_FRAMES = 2000;
@@ -191,6 +205,22 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
       "outlive the entry",
   );
   console.log(`  EQUAL: sp ${hex4(sp)}; identical outside [SP-${SCRATCH_BYTES}, SP)`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
+  const ceiling = EXCLUDED.filter((k) => k !== "sp");
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ceiling,
+    sessions: DEAD_SESSIONS.map((spec) => ({
+      label: spec.label, tape: spec.tape, frames: spec.frames, dispatches: spec.exits,
+    })),
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // EXIT CONTROL, same instrument and exit: the ROM returns through SP, so every session hears it.
+    assert.ok(heard(r.exitControl), `${r.label}: the SP flip at this exit was not heard`);
+    console.log(`  DEAD AT EXIT/${r.label}: exit control heard (${heardAs(r.exitControl)})`);
+  }
 });
 
 test("NOT VACUOUS: a candidate that does nothing is caught on a real cell", { skip }, () => {

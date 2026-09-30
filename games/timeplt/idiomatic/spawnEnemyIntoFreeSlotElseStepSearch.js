@@ -6,9 +6,9 @@
  * its paired entry with facing, script and a fresh animation. LIVE-OUT: memory. Every register the
  * body touches is dead-after-return scratch — the table walk holds its cursor and index in JS
  * locals, every arm hands on to a callee that reseats what it needs, and the four callers each
- * tail-return this result and read no register back, so nothing survives. Only the two cursors ride
- * in as boundary-seated callee params (record and entry, defaulted off the register file). At most
- * one slot is filled per turn. */
+ * tail-return this result and read no register back, so nothing survives. The two cursors and the
+ * count of turns still owed ride in as arguments and are handed on to the tail with the slot taken.
+ * At most one slot is filled per turn. */
 
 import { closeOneTurnOfTheFreeSlotSearch } from "./closeOneTurnOfTheFreeSlotSearch.js";
 import { drawRandomByte } from "./drawRandomByte.js";
@@ -24,10 +24,10 @@ const JITTER_BIAS = 0x08;
 const VELOCITY_STRIDE = 4;
 const FACING_BIAS = 0x80;
 
-export function spawnEnemyIntoFreeSlotElseStepSearch(m, record = m.regs.ix, entry = m.regs.iy) {
+export function spawnEnemyIntoFreeSlotElseStepSearch(m, record = m.regs.ix, entry = m.regs.iy, count = m.regs.b) {
   const { mem8 } = m;
 
-  if (mem8[record + 0x00] !== 0) return closeOneTurnOfTheFreeSlotSearch(m);
+  if (mem8[record + 0x00] !== 0) return closeOneTurnOfTheFreeSlotSearch(m, record, entry, count);
   mem8[record + 0x00] = 0xff; // claim the slot for this turn
 
   // heading = scroll angle folded to a quadrant, jittered by a signed random amount, kept in range

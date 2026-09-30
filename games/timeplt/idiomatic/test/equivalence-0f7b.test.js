@@ -11,7 +11,12 @@
  *      address step with a pushed return address and the rewrite models no stack. Every arm
  *      walks the whole dump and asserts nothing escapes the window, so it cannot quietly widen.
  *   3. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   4. EXCLUDED, deliberately — no register outside the measured allowed set may differ.
+ *   4. EXCLUDED, deliberately — no register outside the measured allowed set may differ. The set
+ *      is a CEILING whose liveness is measured on the ORACLE, not argued: DEAD AT EXIT flips every
+ *      register in it on the FROZEN game where this entry hands back, over a whole attract session
+ *      and a whole coin -> start session, and not one frame of state changes, while flipping SP at
+ *      the same exit is heard. A is in it because the rewrite's address step no longer echoes the
+ *      low byte of the record address into A, which the frozen one leaves there.
  *   5. THE RECORD LANDS — the four written cells are read back and matched against the table
  *      entry the index selects, so the RAM arm is not vacuous on the cells that matter.
  *   6. EXHAUSTIVE — all 256 indices crafted onto the real entry state. This is the load-bearing
@@ -35,6 +40,7 @@ import { loadDifficultyRecord } from "../loadDifficultyRecord.js";
 import { loc_0f7b as oracle } from "../../translated/loc_0f7b.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { START_RUNG_ROUNDS_1_5 } from "../names.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 
 const TARGET = 0x0f7b;
 const FRAMES = 700;
@@ -44,7 +50,13 @@ const RECORD_TABLE = 0x186a;
 const RECORD_BYTES = 4;
 
 const SCRATCH_BYTES = 2;
-const EXCLUDED = ["f", "b", "c", "d", "e", "l", "sp"];
+const EXCLUDED = ["a", "f", "b", "c", "d", "e", "l", "sp"];
+
+/** The whole sessions DEAD AT EXIT poisons this entry's exits over, with each one's exit count. Measured. */
+const DEAD_SESSIONS = [
+  { label: "attract", tape: [], frames: 20000, exits: 5 },
+  { label: "coin-start", tape: undefined, frames: 20000, exits: 5 },
+];
 
 const INDICES = Array.from({ length: 256 }, (_unused, i) => i);
 
@@ -209,6 +221,26 @@ test("EXCLUDED, deliberately: the allowed register set bounds it, and nothing el
     "a register outside the excluded set diverged",
   );
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
+  const ceiling = EXCLUDED.filter((k) => k !== "sp");
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ceiling,
+    sessions: DEAD_SESSIONS.map((spec) => ({
+      label: spec.label, tape: spec.tape, frames: spec.frames, dispatches: spec.exits,
+    })),
+    // ENTRY CONTROL: the index arrives in A and is read, so nudging it on the way in is heard,
+    // in every session.
+    controls: [{ label: "entry", poison: ["a"], flip: { a: 0x01 }, before: true, every: true,
+      reachEvery: true }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    assert.ok(heard(r.exitControl), `${r.label}: the SP flip at this exit was not heard`);
+    console.log(`  DEAD AT EXIT/${r.label}: exit control heard (${heardAs(r.exitControl)}), ` +
+      `entry control heard (${heardAs(r.controls.entry)})`);
+  }
 });
 
 test("THE RECORD LANDS: the four cells hold the entry the index selects", { skip }, () => {

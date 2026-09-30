@@ -1867,7 +1867,7 @@ export const ONE_SHOT_OBJECT_SHAPE_TABLE = 0x4094; // ROM sprite-shape byte tabl
 export const PARACHUTIST_FLIGHT_SHAPE_TABLE = 0x47ea; // 8-entry ROM in-flight parachutist sprite-shape table keyed on FRAME_TICK (runParachutistSlot)
 export const COUNTDOWN_SLOT_SHAPE_TABLE = 0x3ec3; // 8-shape ROM animation table (each held 4 counts) for the countdown/drift object slot (runSlotCountdownDriftAndAnimateElseRetire)
 export const EXPANSION_SOCKET_PROBE = 0x6000; // power-on probe of the expansion-ROM socket at the 0x6000 ROM-region boundary (read cp 0x55; empty socket floats high) (seatTheStackAndSettleTheControlLatch)
-export const SPRITE_RAM_BASE = 0xb000; // base of sprite RAM (0xb000), seated as the initial stack top at boot; the stack grows down below it (seatTheStackAndSettleTheControlLatch)
+export const SPRITE_RAM_BASE = 0xb000; // base of sprite RAM (0xb000); the ROM seats it as the initial stack top at boot and the stack grows down below it; the idiomatic layer retires SP and does not seat it (runbook §4 Retiring SP)
 export const DISPLAY_ON_VALUE = 0x2d4b; // ROM byte (=0x01) written to VIDEO_ENABLE_LATCH at boot to turn the picture on; parallels DISPLAY_OFF_VALUE (seatTheStackAndSettleTheControlLatch)
 export const SCENERY_SEED_TABLE = 0x316e; // 4-entry packed ROM (tint,shape) table seating the four scenery objects (seedSceneryEntriesThenRunScenery)
 export const NMI_REENABLE_BYTE = 0x1600; // ROM byte (=0x01) written to the NMI-enable latch 0xc300 to reopen the interrupt gate in the vblank epilogue (sendOneQueuedSoundThenUnwindTheFrameInterrupt); distinct from NMI_ENABLE_BYTE 0x4c87

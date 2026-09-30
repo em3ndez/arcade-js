@@ -6,10 +6,19 @@
  * by one and a counter cell taken down by one. It calls nothing.
  *
  * ★ THE ZERO FLAG IS A LIVE-OUT, AND THAT IS NOT A JUDGEMENT CALL. Both callers of this address
- *   follow the call with a conditional return on the zero flag the counter's decrement leaves, and
- *   both are still frozen oracle files that read the register file directly. So the rewrite has to
- *   leave that flag right, and every arm here compares it alongside RAM. The counter-flag twin is
- *   the tooth: it writes the same memory and only gets the flag wrong.
+ *   follow the call with a conditional return on the zero flag the counter's decrement leaves. The
+ *   rewrite RETURNS that flag as a boolean (counter reached zero) and its idiomatic callers branch on
+ *   the return, so every arm here compares the RETURN against the oracle's Z bit alongside RAM. The
+ *   counter-flag twin is the tooth: it writes the same memory and only gets the flag wrong. Where the
+ *   rewrite is hosted inside the frozen game (WHOLE-MACHINE), the host shim hands the return to the
+ *   frozen caller as its Z bit — the only register the oracle's callers read, measured below.
+ *
+ * ★ EVERYTHING ELSE THE ORACLE LEAVES IN REGISTERS IS DEAD. It leaves the walked pointer and then
+ *   the counter's address in HL, the spent loop count in B, the cell step in DE, and the rest of the
+ *   flag byte; the rewrite writes none of them. DEAD AT EXIT (assertDeadAtExit) asks the ORACLE:
+ *   those complemented as the frozen routine hands back (Z spared), on every dispatch of an attract
+ *   and a coin-start session, move no cell of any frame; Z alone flipped at the same exit, and SP
+ *   moved there, are heard in every session.
  *
  * ★ THE CURSOR IS RE-READ AFTER THE BLANKING RUN, NOT CARRIED. If the run were ever aimed at the
  *   cursor cell itself, the value advanced would be the one the run just wrote. That is behaviour,
@@ -21,16 +30,18 @@
  *
  *   1. EQUAL at the real dispatch — RAM byte-identical, and the zero flag identical.
  *   2. NOT VACUOUS — a no-op FAILS that same diff on a real cell.
- *   3. EXCLUDED — the registers that move over the whole cross, bounded: one outside the set
- *      fails and one that stops moving does not; the zero flag is checked as a live-out rather
- *      than excluded with the rest of the flag byte.
+ *   3. EXCLUDED — the registers that move over the whole cross, pinned exactly: one outside the
+ *      set fails, and so does one that stops moving (no padding); the zero flag is checked as a
+ *      live-out, the return against the oracle's Z, rather than excluded with the rest of F.
+ *   3a. DEAD AT EXIT — described above.
  *   4. UNIFORM CORPUS — the cursors and counter values real play presents, and how often the
  *      counter reaches zero. That last number is what says whether the flag is exercised at all.
  *   5. CORPUS — every dispatch of three sessions.
  *   6. CRAFTED CROSS — cursors including one aimed at the cursor cell itself and one on the colour
  *      side, crossed with counter values including zero and one.
  *   7. WHOLE-MACHINE — a driven session with the rewrite wired, diffed every frame; nothing is
- *      excluded, because this routine touches no stack.
+ *      excluded, because this routine touches no stack. The host shim sets the frozen caller's Z
+ *      bit from the return and nothing else.
  *   8. TEETH — ten twins, each with an exact catch count over the cross and per session. Two are
  *      caught by NO real dispatch and by no whole run — the run this entry blanks is already blank
  *      at its far end on every real dispatch — so the crafted cross is what holds them.
@@ -50,6 +61,7 @@ import { loc_01c2 as oracle } from "../../translated/loc_01c2.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS, F_Z } from "../../../../core/cpu/z80.js";
 import { BLANK_LINES_LEFT, BLANK_LINE_CURSOR } from "../names.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 
 const TARGET = 0x01c2;
 
@@ -59,8 +71,13 @@ const BLANK_GLYPH = 241;
 const LINE_COLOUR = 16;
 const CHARACTER_PLANE_BIT = 0x0400;
 
-const MOVED = ["b", "d", "e", "h", "l", "sp"];
+/** The registers left different over the cross: the rest of the flag byte, the spent loop count,
+ * the cell step, the counter's address, and the stack the frozen ret pops. DEAD AT EXIT measures
+ * each unread by the oracle's callers. */
+const MOVED = ["f", "b", "d", "e", "h", "l", "sp"];
 const HELD = ["ix", "iy"];
+/** The oracle's registers the rewrite does not write, poisoned at the exit (Z spared). */
+const DEAD = ["b", "d", "e", "h", "l", "f"];
 
 const CORPUS_FRAMES = 2000;
 const WHOLE_FRAMES = 1400;
@@ -127,17 +144,18 @@ function entryState() {
   return entry;
 }
 
-/** Oracle vs candidate on clones: RAM, then the zero flag the callers branch on. */
+/** The oracle's zero flag as the boolean the rewrite returns. */
+const zOf = (m) => (m.regs.f & F_Z) !== 0;
+
+/** Oracle vs candidate on clones: RAM, then the RETURN against the zero flag the callers branch on. */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
   oracle(a);
-  candidate(b);
+  const returned = candidate(b);
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return ram;
-  if ((a.regs.f & F_Z) !== (b.regs.f & F_Z)) {
-    return { addr: null, a: a.regs.f & F_Z, b: b.regs.f & F_Z };
-  }
+  if (returned !== zOf(a)) return { addr: null, a: zOf(a), b: returned };
   return null;
 }
 
@@ -206,7 +224,9 @@ function hosted(candidate) {
     const before = probe.cycles;
     oracle(probe);
     const total = probe.cycles - before;
-    candidate(mm);
+    const zero = candidate(mm);
+    // The frozen caller branches on Z; hand it the returned flag there and touch nothing else.
+    mm.regs.f = (mm.regs.f & ~F_Z) | (zero === true ? F_Z : 0);
     mm.tick(total - RET_TSTATES);
     mm.ret(RET_TSTATES);
   };
@@ -264,8 +284,9 @@ function blankRun(m, cells) {
 
 function finish(m) {
   m.mem16[BLANK_LINE_CURSOR] = (m.mem16[BLANK_LINE_CURSOR] + 1) & 0xffff;
-  const left = m.regs.dec8(m.mem8[BLANK_LINES_LEFT]);
+  const left = (m.mem8[BLANK_LINES_LEFT] - 1) & 0xff;
   m.mem8[BLANK_LINES_LEFT] = left;
+  return left === 0;
 }
 
 function brokenNoOp() {}
@@ -273,13 +294,13 @@ function brokenNoOp() {}
 /** BUG: one cell short, so the far end of the line is never blanked. */
 function brokenOneCellShort(m) {
   blankRun(m, CELLS_PER_LINE - 1);
-  finish(m);
+  return finish(m);
 }
 
 /** BUG: one cell too many. */
 function brokenOneCellLong(m) {
   blankRun(m, CELLS_PER_LINE + 1);
-  finish(m);
+  return finish(m);
 }
 
 /** BUG: the colour plane is left alone, so old colours show under the blanks. */
@@ -289,29 +310,31 @@ function brokenNoColour(m) {
     m.mem8[cursor] = BLANK_GLYPH;
     cursor = ((cursor | CHARACTER_PLANE_BIT) + CELL_STEP) & 0xffff;
   }
-  finish(m);
+  return finish(m);
 }
 
 /** BUG: the cursor cell is left where it was, so the next call blanks the same line. */
 function brokenCursorNotAdvanced(m) {
   blankRun(m, CELLS_PER_LINE);
-  const left = m.regs.dec8(m.mem8[BLANK_LINES_LEFT]);
+  const left = (m.mem8[BLANK_LINES_LEFT] - 1) & 0xff;
   m.mem8[BLANK_LINES_LEFT] = left;
+  return left === 0;
 }
 
 /** BUG: the WALKED pointer is stored back instead of the re-read one advanced by one. */
 function brokenCarriesWalkedPointer(m) {
   const walked = blankRun(m, CELLS_PER_LINE);
   m.mem16[BLANK_LINE_CURSOR] = (walked + 1) & 0xffff;
-  const left = m.regs.dec8(m.mem8[BLANK_LINES_LEFT]);
+  const left = (m.mem8[BLANK_LINES_LEFT] - 1) & 0xff;
   m.mem8[BLANK_LINES_LEFT] = left;
+  return left === 0;
 }
 
 /** BUG: the counter is left standing, so the caller never sees the run end. */
 function brokenCounterHeld(m) {
   blankRun(m, CELLS_PER_LINE);
   m.mem16[BLANK_LINE_CURSOR] = (m.mem16[BLANK_LINE_CURSOR] + 1) & 0xffff;
-  m.regs.dec8(m.mem8[BLANK_LINES_LEFT]);
+  return ((m.mem8[BLANK_LINES_LEFT] - 1) & 0xff) === 0;
 }
 
 /** BUG: the same memory, but the flag is taken from the CURSOR rather than the counter. */
@@ -320,7 +343,7 @@ function brokenFlagFromCursor(m) {
   const advanced = (m.mem16[BLANK_LINE_CURSOR] + 1) & 0xffff;
   m.mem16[BLANK_LINE_CURSOR] = advanced;
   m.mem8[BLANK_LINES_LEFT] = (m.mem8[BLANK_LINES_LEFT] - 1) & 0xff;
-  m.regs.dec8(advanced & 0xff);
+  return (((advanced & 0xff) - 1) & 0xff) === 0;
 }
 
 /** BUG: the wrong blanking code. */
@@ -331,7 +354,7 @@ function brokenWrongGlyph(m) {
     m.mem8[cursor & ~CHARACTER_PLANE_BIT] = LINE_COLOUR;
     cursor = ((cursor | CHARACTER_PLANE_BIT) + CELL_STEP) & 0xffff;
   }
-  finish(m);
+  return finish(m);
 }
 
 /** BUG: the run steps the other way along the line. */
@@ -342,7 +365,7 @@ function brokenStepsBackwards(m) {
     m.mem8[cursor & ~CHARACTER_PLANE_BIT] = LINE_COLOUR;
     cursor = ((cursor | CHARACTER_PLANE_BIT) - CELL_STEP) & 0xffff;
   }
-  finish(m);
+  return finish(m);
 }
 
 const TWINS = [
@@ -368,12 +391,13 @@ test("EQUAL at the real dispatch: RAM and the zero flag identical", { skip }, ()
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  blankNextLine(b);
+  const returned = blankNextLine(b);
   console.log(
     `  EQUAL: entry cursor ${hex4(e.mem16[BLANK_LINE_CURSOR])} counter ${e.mem8[BLANK_LINES_LEFT]}; ` +
-      `zero flag ${a.regs.f & F_Z}/${b.regs.f & F_Z}`,
+      `oracle zero flag ${zOf(a)}, returned ${returned}`,
   );
-  assert.equal(a.regs.f & F_Z, b.regs.f & F_Z, "the zero flag the callers branch on");
+  assert.equal(typeof returned, "boolean", "the rewrite returns the zero flag as a boolean");
+  assert.equal(returned, zOf(a), "the returned flag against the zero flag the callers branch on");
 });
 
 test("NOT VACUOUS: a no-op candidate FAILS the RAM diff at the real dispatch", { skip }, () => {
@@ -389,17 +413,33 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     const a = craft(cursor, counter);
     const b = a.clone();
     oracle(a);
-    blankNextLine(b);
+    const returned = blankNextLine(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-    assert.equal(a.regs.f & F_Z, b.regs.f & F_Z, `the zero flag at cursor ${hex4(cursor)}`);
+    assert.equal(returned, zOf(a), `the returned zero flag at cursor ${hex4(cursor)} counter ${counter}`);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)),
-    [],
-    "a register outside the declared excluded set moved",
+    REG_FIELDS.filter((k) => moved.has(k)),
+    MOVED,
+    "the registers left different moved: none may join the set, and none may sit in it unmoved",
   );
   for (const k of HELD) assert.ok(!moved.has(k), `an index register moved (${k})`);
+});
+
+test("DEAD AT EXIT: what the oracle leaves in HL, B, DE and F-but-Z is read by nothing", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: DEAD, flip: { f: 0xff ^ F_Z }, frames: CORPUS_FRAMES, reachEvery: true,
+    sessions: [{ label: "attract", tape: [] }, { label: "coin-start" }],
+    // CONTROL, same instrument and exit: Z alone flipped — the live-out — must be heard.
+    controls: [{ label: "live Z", poison: ["f"], flip: { f: F_Z }, every: true, reachEvery: true }],
+  });
+  // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so every session hears it.
+  for (const r of exits) {
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+  }
+  console.log(`  DEAD AT EXIT: ${DEAD.join(", ")} complemented (Z spared); Z and exit controls heard ` +
+    `in every session (${exits.map((r) => `${r.label} ${heardAs(r.exitControl)}`).join("; ")})`);
 });
 
 test("UNIFORM CORPUS: what real play presents, and whether the flag is exercised", { skip }, () => {

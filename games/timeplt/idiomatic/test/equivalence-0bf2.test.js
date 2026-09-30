@@ -10,8 +10,25 @@
  *      stack for. Every arm PINS that window: it walks the whole dump and asserts nothing escapes.
  *   2. NOT VACUOUS — a no-op candidate fails the same masked diff at the real dispatch.
  *   3. EXCLUDED, deliberately, bounded by a measured set: a register outside it fails, a rewrite
- *      that clobbers fewer of them does not. The cursor, the colour and the run pointer the
- *      painting leaves behind are NOT in it — they are live-outs and must agree.
+ *      that clobbers fewer of them does not. The cursor the painting leaves behind is NOT in it —
+ *      it is the live-out and must agree. The colour register IS in it: the rewrite hands the
+ *      colour to the painter as an argument and leaves no copy in C. So is the run pointer: the
+ *      rewrite hands it to the painter as an argument and gets back only the cursor, while the
+ *      frozen painter leaves HL on the terminator.
+ *   3a. C IS DEAD WHERE THIS HANDS BACK, asked of the ORACLE (assertDeadAtExit) rather than argued
+ *      from the rewrite.
+ *      Read off the frozen callers: the ring drain loop (0x0B93) reloads C from the ring at 0x0B9E
+ *      before it reads it, and the three call sites inside 0x0C90 fall into 0x0D57 or 0x0D61, each
+ *      of which loads C (0x0D5D, 0x0D67) before reading it. The vertical-blank interrupt saves the
+ *      whole main set with pushes, runs on the exchanged bank, and pops it back. Measured: C is
+ *      complemented on every exit of the all-frozen game over the attract and coin -> start
+ *      sessions, and the ONE cell that ever differs is the byte `push bc` at 0x00DA lays C into
+ *      when the interrupt lands on the drain loop (SP 0xB000: return address, then AF, then BC) —
+ *      a saved copy the interrupt pops straight back into C, which the loop then overwrites. Two
+ *      controls on the same instrument: the index complemented on ENTRY is heard, and SP moved at
+ *      the EXIT is heard, so both the entry and the exit poison land.
+ *   3b. HL IS DEAD WHERE THIS HANDS BACK, on the same instrument, sessions and controls: H and L
+ *      complemented on every exit move no cell of per-frame state at all.
  *   4. CORPUS — every dispatch the attract run produces, with the set of indices it presented.
  *   5. INDEX SWEEP — every index of the pointer table, which is far more than real play uses.
  *   6. WHOLE-MACHINE — the session replayed with the rewrite wired through a measured shim.
@@ -34,6 +51,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 import { drawTextRunByIndex } from "../drawTextRunByIndex.js";
 import { loc_0bf2 as oracle } from "../../translated/loc_0bf2.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -47,7 +65,13 @@ const HEADER_BYTES = 3;
 const END_OF_TEXT = 185;
 
 const SCRATCH_BYTES = 2;
-const MOVED = ["a", "f", "sp"];
+const MOVED = ["a", "f", "c", "h", "l", "sp"];
+/** The run pointer the frozen painter leaves on the terminator; nothing after this exit reads it. */
+const HL_DEAD_AT_EXIT = ["h", "l"];
+/** The byte the vertical-blank interrupt's `push bc` (0x00DA) saves C into when it lands on the
+ *  ring drain loop, whose stack pointer is 0xB000: 0xAFFE/F the return address, 0xAFFC/D AF. */
+const NMI_SAVED_C = 0xaffa;
+const DEAD_SESSIONS = [["attract", []], ["coin -> start", undefined]];
 const CORPUS_FRAMES = 1400;
 const WHOLE_FRAMES = 1400;
 const RET_TSTATES = 10;
@@ -96,7 +120,7 @@ function allDiffs(a, b) {
   return out;
 }
 
-/** Oracle vs candidate on clones: masked RAM first, then the three live-out registers. */
+/** Oracle vs candidate on clones: masked RAM first, then the live-out cursor. */
 function unitDiff(candidate, machine) {
   const sp = machine.regs.sp;
   const a = machine.clone();
@@ -105,9 +129,7 @@ function unitDiff(candidate, machine) {
   candidate(b);
   const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
   if (ram) return ram;
-  for (const k of ["de", "hl", "c"]) {
-    if (a.regs[k] !== b.regs[k]) return { addr: null, a: a.regs[k], b: b.regs[k] };
-  }
+  if (a.regs.de !== b.regs.de) return { addr: null, a: a.regs.de, b: b.regs.de };
   return null;
 }
 
@@ -258,7 +280,9 @@ const TWINS = [
   ["index-not-doubled", brokenIndexNotDoubled, 32, true],
   ["destination-swapped", brokenDestinationSwapped, 33, true],
   ["run-starts-early", brokenRunStartsEarly, 33, true],
-  ["keeps-callers-colour", brokenKeepsCallersColour, 33, true],
+  // 31, not 33: on indices 24 (an empty run) and 32 the wrong colour reaches no cell, so the
+  // twin is memory-identical there; the dead C register was the only thing that told them apart.
+  ["keeps-callers-colour", brokenKeepsCallersColour, 31, true],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -284,7 +308,7 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked diff", { skip }, () =
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: registers and pc, but NOT the three live-outs", { skip }, () => {
+test("EXCLUDED, deliberately: registers and pc, but NOT the live-out cursor", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
@@ -293,12 +317,43 @@ test("EXCLUDED, deliberately: registers and pc, but NOT the three live-outs", { 
   assert.deepEqual(
     moved.filter((k) => !MOVED.includes(k)),
     [],
-    "a register outside the declared excluded set diverged: the cursor, the colour and the run " +
-      "pointer must agree",
+    "a register outside the declared excluded set diverged",
   );
+  assert.equal(a.regs.de, b.regs.de, "the cursor is the live-out and must agree");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.sp - b.regs.sp, SCRATCH_BYTES, "the oracle returns; the rewrite does not");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc, plus ${SCRATCH_BYTES} scratch bytes`);
+});
+
+test("C AND HL ARE DEAD AT EXIT: complemented on every exit of the ORACLE; C moves only the interrupt's saved copy, HL nothing", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ["c"], frames: ENTRY_FRAMES, reachEvery: true, scratch: [NMI_SAVED_C],
+    sessions: DEAD_SESSIONS.map(([label, tape]) => ({ label, tape })),
+    controls: [
+      // H and L at the same exits: silent here, and held to NO cell at all below.
+      { label: "HL", poison: HL_DEAD_AT_EXIT, expect: "silent", reachEvery: true },
+      // ENTRY CONTROL: the index this routine reads, complemented on the way in, must be heard.
+      { label: "entry", poison: ["a"], before: true, every: true, reachEvery: true },
+    ],
+  });
+  for (const r of exits) {
+    const hl = r.controls.HL;
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // The saved copy is the ONE cell C moves, and it does move: the exit poison is seen landing.
+    assert.deepEqual(r.dead.cells.map(hex4), [hex4(NMI_SAVED_C)],
+      `${r.label}: C was read after this routine handed back, somewhere other than the interrupt's ` +
+        "save slot");
+    assert.equal(hl.stopped, null, `${r.label}: the HL-poisoned run stopped early: ${hl.stopped}`);
+    assert.equal(hl.frames, ENTRY_FRAMES, `${r.label}: compared ${hl.frames} of ${ENTRY_FRAMES} frames`);
+    assert.equal(hl.poisoned, r.dead.poisoned, `${r.label}: the HL run poisoned a different set of exits`);
+    assert.deepEqual(hl.cells.map(hex4), [],
+      `${r.label}: the run pointer was read after this routine handed back`);
+    // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so every session hears it.
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+  }
+  console.log(`  DEAD AT EXIT: C moves only ${hex4(NMI_SAVED_C)}, H and L nothing; entry and exit controls ` +
+    `heard in every session (${exits.map((r) => `${r.label} ${heardAs(r.exitControl)}`).join("; ")})`);
 });
 
 test("CORPUS: every captured dispatch replays identically", { skip }, () => {
@@ -332,13 +387,16 @@ test("INDEX SWEEP: every entry of the pointer table paints identically", { skip 
   console.log(`  INDEX SWEEP: ${INDICES.length} indices identical; ${LAST_INDEX + 1} kills the oracle`);
 });
 
-test("WHOLE-MACHINE: the session differs only in the scratch window", { skip }, () => {
+test("WHOLE-MACHINE: the session differs only in the scratch window and the interrupt's saved C", { skip }, () => {
   const r = wholeRunCells(hosted(drawTextRunByIndex));
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early: ${r.stopped}`);
   assert.equal(r.frames, WHOLE_FRAMES, `compared ${r.frames} of ${WHOLE_FRAMES} frames`);
   assert.ok(r.fired > 0, "vacuous: the override never dispatched");
-  assert.deepEqual(r.cells, scratchWindow(), "a divergence escaped the scratch window");
+  // The rewrite leaves C holding what the caller had, so the interrupt's saved copy of it differs;
+  // the DEAD AT EXIT arm is what licenses that one cell.
+  assert.deepEqual(r.cells, [NMI_SAVED_C, ...scratchWindow()].sort((x, y) => x - y),
+    "a divergence escaped the scratch window and the interrupt's saved C");
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, only ` +
       `${r.cells.map(hex4).join(" ")} differ`,

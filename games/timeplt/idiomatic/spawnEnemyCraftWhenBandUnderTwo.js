@@ -2,10 +2,8 @@
 /** spawnEnemyCraftWhenBandUnderTwo — gate a spawning tick on the packed-decimal phase byte the caller points at, count the
  * busy heads across the enemy-craft band, and only when fewer than two are busy run the free-slot
  * search: the cleared run when the owed-kills cell is zero, else the owed run seated for as many
- * turns as the round asks. LIVE-OUT: memory. The sole caller (driveEnemyWaveForLifePhase) tail-returns
- * this result and reads no register back; b and the two cursors are seated only so the owed run's
- * downward search (spawnEnemyIntoFreeSlotElseStepSearch -> closeOneTurnOfTheFreeSlotSearch, which reads
- * b/ix/iy off the register file) threads correctly — none survive the return. */
+ * turns as the round asks. LIVE-OUT: memory. The count and the two cursors go to the search as
+ * arguments, and the sole caller (driveEnemyWaveForLifePhase) tail-returns this result. */
 
 import { u16 } from "../../../core/int.js";
 import { loc_3793 } from "./loc_3793.js";
@@ -36,7 +34,6 @@ export function spawnEnemyCraftWhenBandUnderTwo(m, hl = m.regs.hl) {
   // nothing owed -> the cleared five-slot run; else the owed run over the round's craft count
   if (mem8[KILLS_REMAINING] === 0x00) return loc_3793(m);
 
-  // seat the owed run's search counter and its two cursors on the register file: the recursion in
-  // spawnEnemyIntoFreeSlotElseStepSearch -> closeOneTurnOfTheFreeSlotSearch reads b/ix/iy back off it.
-  return (m.regs.b = mem8[ROUND_CRAFT_COUNT], m.regs.ix = CRAFT_RECORD_SLOT6, m.regs.iy = CRAFT_ENTRY_SLOT6, spawnEnemyIntoFreeSlotElseStepSearch(m));
+  // the owed run: the round's craft count of turns, from the slot-6 record and its entry downward
+  return spawnEnemyIntoFreeSlotElseStepSearch(m, CRAFT_RECORD_SLOT6, CRAFT_ENTRY_SLOT6, mem8[ROUND_CRAFT_COUNT]);
 }

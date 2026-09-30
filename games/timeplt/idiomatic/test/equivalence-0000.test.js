@@ -89,7 +89,12 @@ const PAIR_TSTATES = 343;
  * header derives dead at the jump out. A ceiling and not a demand — the EXCLUDED arm tests a
  * subset, so a closer rewrite still passes.
  */
-const MOVED = ["a", "f", "b", "h", "l"];
+const MOVED = ["a", "f", "b", "h", "l", "sp"];
+// sp: the oracle's power-on routine seats the stack at 0xB000 for its own layer's pushes; the
+// idiomatic layer lays no return words (direct calls, the frame interrupt fired as one -- runbook §4,
+// Retiring SP), so its power-on routine does not seat it and the whole-game gate asserts SP stays
+// inert. The WHOLE-MACHINE hand-off to the FROZEN 0x0069 seats it for that frozen layer (a test
+// bridge), and the stack seat is not one of the marks DESTINATION reads.
 
 const TAPES = [
   ["attract", { tape: [] }],
@@ -227,7 +232,6 @@ function seamDiff(candidate, entry) {
 const marks = (r, entry) => ({
   probed: r.c.mem.unmappedReads - entry.mem.unmappedReads,
   quieted: r.c.io.watchdogKicks - entry.io.watchdogKicks,
-  seated: r.c.regs.sp,
   picture: r.c.io.latch[PICTURE_LINE],
 });
 
@@ -292,6 +296,8 @@ function hosted(candidate) {
       delete mm.mem.write8;
     }
     if (!reached) return undefined;
+    // The frozen continuation pushes through SP; seat it as the oracle leaves it at the jump out.
+    mm.regs.sp = STACK_SEAT;
     mm.step(CONTINUATION, PAIR_TSTATES);
     return mm.call(CONTINUATION);
   };
@@ -411,7 +417,6 @@ test("DESTINATION: the rewrite really goes through the power-on routine", { skip
     "same marks, so these are not marks of it and this arm proves nothing");
   assert.equal(rewrite.probed, 1, "the socket must be asked exactly once");
   assert.equal(rewrite.quieted, 1, "the watchdog must be quieted exactly once");
-  assert.equal(rewrite.seated, STACK_SEAT, "the stack must be seated");
   assert.equal(rewrite.picture, 1, "the picture line must be set");
   console.log(`  DESTINATION: rewrite ${JSON.stringify(rewrite)}; the skipping twin ` +
     `${JSON.stringify(skipped)}`);

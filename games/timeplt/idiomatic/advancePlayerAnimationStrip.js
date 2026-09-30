@@ -7,9 +7,8 @@
  * into video and colour memory a row at a time; a phase between keyframes draws nothing.
  * LIVE-OUT: memory. The routine is a pure painter — its sole caller (dispatchPlayerFrameByState)
  * tail-returns and reads no register it leaves, so every register it touches is dead-after-return
- * scratch and lives here as a JS local. The two heading-snap diverts hand the compared byte to
- * the divert target in `a` (which folds it with the sound routines' leftover `b`), so that one boundary
- * write rides the return. */
+ * scratch and lives here as a JS local. The two diverts land on the tamper trap, which reads
+ * nothing: a good image never takes them, so nothing is handed to it. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { loc_1f2e } from "./loc_1f2e.js";
@@ -66,12 +65,11 @@ export function advancePlayerAnimationStrip(m, ix = m.regs.ix, iy = m.regs.iy) {
     if (mem8[ERA_INDEX] >= EXTRA_CUE_LEVEL) requestLateEraProgressSound(m);
     requestRoundIntroSoundBurst(m);
 
-    // two game-state cells can divert the frame into the heading snap; each hands the divert target the
-    // compared byte in `a` (its `b` is the sound routines' leftover, untouched here)
+    // two game-state cells divert the frame into the tamper trap when either departs from its genuine value
     const glyph = mem8[TAMPER_GLYPH_STRIP];
-    if (glyph !== RUNNING) return (m.regs.a = glyph, loc_1f2e(m));
+    if (glyph !== RUNNING) return loc_1f2e(m);
     const drawState = mem8[TAMPER_COLOUR_STRIP];
-    if (drawState !== STATE_DRAW_A && drawState !== STATE_DRAW_B) return (m.regs.a = drawState, loc_1f2e(m));
+    if (drawState !== STATE_DRAW_A && drawState !== STATE_DRAW_B) return loc_1f2e(m);
   }
 
   // step the phase down; a strip draws only when it lands on one of seven keyframes

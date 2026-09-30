@@ -242,3 +242,27 @@ test("SCRATCH NOT PINNED: a register-only twin passes; a RAM scribble is caught"
   }
   console.log("  SCRATCH NOT PINNED: register twin ignored; RAM twin caught on both arms");
 });
+
+// ── the guard-fail divert, through the entry cursor the caller leaves ──────────────────────────
+// Below era four the seed step's guard (TAMPER_WITNESS 0xAD39, then 0xAD3A) diverts into 0x307F,
+// which places one tile through IY -- a register this routine never sets, left standing by its one
+// caller (0x19F0 loads IY = 0xAA28, ERA_OBJECT_ENTRY_SLOT0, at 0x1A77 and clears through it just
+// before the call; MAME at 0x3117: IY = 0xAA28 at every fetch). The rewrite takes it as an argument
+// defaulting to that cursor.
+
+const WITNESS = 0xad39;
+const CALLER_CURSOR = 0xaa28;
+
+test("DIVERT: a failed seed guard diverts identically through the caller's entry cursor", { skip }, () => {
+  assert.equal(seatEntry().regs.iy, CALLER_CURSOR, "the real dispatch does not arrive with the caller's cursor in IY");
+  for (const [tag, poke] of [["witness-byte0", (m) => { m.mem8[WITNESS] = 0x00; }], ["witness-byte1", (m) => { m.mem8[WITNESS + 1] = 0x07; }]]) {
+    const m = seatEntry().clone();
+    poke(m);
+    const r = compare(candidate, m);
+    assert.ok(!caught(r), `${tag} diverged — ${show(r.escaped ?? r.throwMismatch ?? r.liveOut)}`);
+    assert.notEqual(footprint(m).join(","), footprint(seatEntry()).join(","), `${tag}: the divert moved the same cells as the seat`);
+    // Teeth: a divert through a cursor one entry on is caught.
+    assert.ok(caught(compare((mm) => candidate(mm, CALLER_CURSOR + 2), m)), `${tag}: a wrong cursor passed`);
+  }
+  console.log("  DIVERT: both witness cells divert identically through 0xaa28; a wrong cursor is caught");
+});

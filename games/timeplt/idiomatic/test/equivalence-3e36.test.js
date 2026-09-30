@@ -208,6 +208,47 @@ test("THE SWEEP REACHES BOTH SIDES OF THE PARK, and the idle arm is inert", { sk
   console.log(`  BOTH SIDES: the idle head is inert; ${live} of 255 non-idle heads move memory`);
 });
 
+// The all-ones arm retires its slot only once the fly step lands the entry on a retire line, which
+// neither the sweep's captured positions nor the corpus is guaranteed to reach. So each slot is
+// crafted onto the line: head all-ones, column byte ON the column line, fraction zero, and a column
+// velocity that cancels the world scroll, so the fly step leaves the column where it was. The index
+// registers are pointed at a slot outside the four, so a step that took its slot from them rather
+// than from its arguments retires the wrong record and shows.
+const RETIRE_COLUMN = 4;
+const WORLD_SCROLL_X = 0xa80a;
+const COLUMN_FRACTION = 5;
+const COLUMN_VELOCITY = 12;
+const OUTSIDE_SLOT = [0xa800, 0xaa10];
+
+function craftOnRetireLine(which) {
+  const m = entryState().clone();
+  [m.regs.ix, m.regs.iy] = OUTSIDE_SLOT;
+  for (const i of which) {
+    const [record, entry] = SLOTS[i];
+    m.mem8[record] = 255;
+    m.mem8[entry] = RETIRE_COLUMN;
+    m.mem8[record + COLUMN_FRACTION] = 0;
+    const cancel = (0x10000 - m.mem16[WORLD_SCROLL_X]) & 0xffff;
+    m.mem8[record + COLUMN_VELOCITY] = cancel & 0xff;
+    m.mem8[record + COLUMN_VELOCITY + 1] = cancel >> 8;
+  }
+  return m;
+}
+
+test("RETIRE: an all-ones slot flown onto the retire line retires the SAME slot, taken from the arguments", { skip }, () => {
+  for (const which of [[0], [1], [2], [3], [0, 1, 2, 3]]) {
+    const probe = craftOnRetireLine(which);
+    const a = probe.clone();
+    oracle(a);
+    for (const i of which) {
+      assert.equal(a.mem8[SLOTS[i][0]], 0, `slot ${i}: the crafted entry did not retire on the oracle, so the arm is vacuous`);
+    }
+    const d = compare(stepFourActorSlots, probe);
+    assert.equal(d, null, `slots ${which.join(",")}: ${show(d)}`);
+  }
+  console.log("  RETIRE: each slot, and all four together, retire identically with the index registers elsewhere");
+});
+
 test("CORPUS: every dispatch of a driven session replays identically", { skip }, () => {
   const r = replay(stepFourActorSlots);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
@@ -222,11 +263,7 @@ test("CORPUS: every dispatch of a driven session replays identically", { skip },
 // a catch measures the slot set, nothing else.
 
 function visit(m, slots) {
-  for (const [record, entry] of slots) {
-    m.regs.ix = record;
-    m.regs.iy = entry;
-    dispatchObjectSlotByHeadByte(m);
-  }
+  for (const [record, entry] of slots) dispatchObjectSlotByHeadByte(m, record, entry);
 }
 
 /** The same four records paired with the entry bases rotated by one. */

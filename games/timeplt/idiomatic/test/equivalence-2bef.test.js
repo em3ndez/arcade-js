@@ -26,6 +26,10 @@
  *      OVERWRITTEN, at every dispatch, by what the rewrite leaves in it. The state trace stays
  *      byte-identical, so they are all dead; a probe arm shows the same method sees a live
  *      register when there is one, so the negative result is not vacuous either.
+ *   5a. DEAD AT EXIT — the same dropped registers, every bit flipped on the FROZEN game at every
+ *      exit of this routine, over a coin-start session and undriven attract, change nothing, while
+ *      flipping SP at the same exit is heard. h/l are among them: the frozen table lookup leaves its
+ *      landing address there, and the rewrite hands the table and index over as arguments instead.
  *   6. TEETH — twins aimed at writing nothing, at the window, at the direction, at the cell
  *      written and at the rate table, each caught by an arm the rewrite passes.
  *
@@ -47,6 +51,7 @@ import { loc_2bef as oracle } from "../../translated/loc_2bef.js";
 import { unitEquivalence, wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x2bef;
 const CORPUS_FRAMES = 2600;
@@ -56,7 +61,12 @@ const HALF_TURN = 128;
 
 const RECORD_BYTES = 8;
 const SCRATCH_BYTES = 2;
-const DROPPED = ["a", "b", "c", "f"];
+// h/l: where the frozen rst 08 lookup landed; the rewrite passes table and index as arguments.
+const DROPPED = ["a", "b", "c", "f", "h", "l"];
+const DEAD_SESSIONS = [
+  { label: "coin-start", tape: undefined, frames: CORPUS_FRAMES },
+  { label: "attract", tape: [], frames: CORPUS_FRAMES },
+];
 const skip = romsPresent() ? false : "ROM images are not assembled";
 
 /** Re-derived here on purpose, so the test states the window instead of importing it. */
@@ -309,7 +319,7 @@ test("CORPUS: every real dispatch of a driven session agrees", { skip }, () => {
   assert.deepEqual(
     moved(r.movedRegs.turning),
     moved(new Set([...DROPPED, "sp"])),
-    "the turning arm may differ in exactly the four dropped registers and the stack pointer",
+    "the turning arm may differ in exactly the dropped registers and the stack pointer",
   );
   console.log(
     `  CORPUS: ${r.dispatches} dispatches over ${r.frames} frames — ${r.arms.arrived} arrived, ` +
@@ -326,6 +336,14 @@ test("LIVE-OUT: the registers the rewrite drops are dead at every dispatch", { s
     `  LIVE-OUT: ${r.framesCompared} frames identical with ${DROPPED.join(", ")} overwritten ` +
       `at ${r.invocations.get(TARGET)} dispatches — memory is the only live-out`,
   );
+});
+
+test("DEAD AT EXIT: on the frozen game, every dropped register is read by nobody once this routine hands back", { skip }, () => {
+  // assertDeadAtExit runs the SP exit control at the same exit and needs it heard in some session.
+  const exits = assertDeadAtExit({ at: TARGET, poison: DROPPED, reachEvery: true, sessions: DEAD_SESSIONS });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+  }
 });
 
 test("LIVE-OUT is not vacuous: the same arm SEES a register that is live", { skip }, () => {

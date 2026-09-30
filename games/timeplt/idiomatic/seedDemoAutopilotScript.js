@@ -19,9 +19,8 @@ export function seedDemoAutopilotScript(m) {
   mem8[DEMO_SCRIPT_POINTER_LO] = script;
   mem8[DEMO_SCRIPT_POINTER_HI] = script >> 8;
 
-  // a genuine tile image returns; a failed readback drops into the trap, which churns the cursor (de)
-  // and the read address (hl) it is handed, so seat both as they enter it
-  if (mem8[TAMPER_GLYPH_READBACK] !== 0xfd) return (m.regs.de = script, m.regs.hl = TAMPER_GLYPH_READBACK, loc_2251(m));
+  // a genuine tile image returns; a failed readback drops into the trap, which faults
+  if (mem8[TAMPER_GLYPH_READBACK] !== 0xfd) return loc_2251();
   if (mem8[TAMPER_COLOUR_READBACK] === 0x10 || mem8[TAMPER_COLOUR_READBACK] === 0x05) return;
-  return (m.regs.de = script, m.regs.hl = TAMPER_COLOUR_READBACK, loc_2251(m));
+  return loc_2251();
 }

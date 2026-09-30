@@ -103,7 +103,7 @@ import { loc_28d8 as oracle } from "../../translated/loc_28d8.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { heard, heardAs, poisonedRun } from "./_deadAtExit.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x28d8;
 /** The era-keyed dispatch this entry hands its seated pair to. */
@@ -207,9 +207,13 @@ const SESSIONS = [
  * A CEILING, measured: the chain's hand-off registers, and the scratch registers the lifted arms
  * leave otherwise than the transcribed ones. DEAD AT EXIT shows every one dead at this entry's exit.
  */
-const MOVED = ["a", "f", "b", "c", "d", "e", "h", "l", "a_"];
-/** Named separately so a failure says which: the two cursors and the seat. */
-const HELD = ["ix", "iy", "sp"];
+const MOVED = ["a", "f", "b", "c", "d", "e", "h", "l", "a_", "ix", "iy"];
+/**
+ * Named separately so a failure says which: the seat. The two cursors are in the ceiling: the rewrite hands
+ * them to the handler as arguments, and DEAD AT EXIT flips both on the frozen game where this entry hands
+ * back with nothing after it hearing them.
+ */
+const HELD = ["sp"];
 
 // ── the twins ───────────────────────────────────────────────────────────────────────────
 
@@ -708,35 +712,15 @@ test("SP-TOOTH: the seam places the rewrite, and refuses one that parks or lifts
 });
 
 test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
-  let controlSees = 0;
-  let exitSees = 0;
-  for (const spec of SESSIONS) {
-    const dead = poisonedRun({ at: TARGET, poison: MOVED, tape: spec.tape, frames: spec.frames });
-    assert.equal(dead.threw, null, `${spec.label}: the poisoned run threw: ${dead.threw}`);
-    assert.equal(dead.stopped, null, `${spec.label}: the poisoned run stopped early: ${dead.stopped}`);
-    assert.equal(dead.frames, spec.frames, `${spec.label}: compared ${dead.frames} of ${spec.frames} frames`);
-    assert.equal(dead.poisoned, spec.dispatches, `${spec.label}: poisoned ${dead.poisoned} of ${spec.dispatches} dispatches`);
-    assert.deepEqual(dead.cells.map(hex4), [], `${spec.label}: a register in the ceiling was read after this entry handed back`);
-    // POSITIVE CONTROL, same instrument: shift the record register one record on, on this entry's
-    // way INTO the arm, where it is read. Silence at the exit means something only if this is heard.
-    const control = poisonedRun({
-      at: HANDLER, poison: ["ix"], flip: { ix: RECORD_STRIDE }, before: true,
-      tape: spec.tape, frames: spec.frames, only: (m) => m.regs.ix === CRAFT_RECORD,
-    });
-    assert.ok(control.poisoned > 0, `${spec.label}: the control never reached this entry's arm`);
-    if (heard(control)) controlSees++;
-    // EXIT-SIDE CONTROL, same instrument and exit: flip SP where this entry hands back. The ROM
-    // returns through the stack, so an exit poison that lands has to be heard.
-    const exitControl = poisonedRun({ at: TARGET, poison: ["sp"], flip: { sp: 2 }, tape: spec.tape, frames: spec.frames });
-    if (heard(exitControl)) exitSees++;
-    console.log(`  DEAD AT EXIT/${spec.label}: ${dead.poisoned} exits poisoned (${MOVED.join(", ")}), ` +
-      `nothing differs; the entry control ${heard(control) ? `is heard (${heardAs(control)})` : "is not heard"}; ` +
-      `the exit control ${heard(exitControl) ? `is heard (${heardAs(exitControl)})` : "is not heard"}`);
-  }
-  assert.ok(controlSees > 0, "the control shifted the record on its way into the arm and no session " +
-    "noticed, so the silence at the exit proves nothing");
-  assert.ok(exitSees > 0, "the control flipped SP at this entry's exit and no session noticed, so the " +
-    "exit poison never lands and its silence proves nothing");
+  assertDeadAtExit({
+    at: TARGET, poison: MOVED, sessions: SESSIONS,
+    controls: [{
+      // POSITIVE CONTROL, same instrument: shift the record register one record on, on this entry's
+      // way INTO the arm, where it is read. Silence at the exit means something only if this is heard.
+      label: "entry", at: HANDLER, poison: ["ix"], flip: { ix: RECORD_STRIDE }, before: true,
+      only: (m) => m.regs.ix === CRAFT_RECORD, reachEvery: true,
+    }],
+  });
 });
 
 test("EXCLUDED, deliberately: a CEILING on the registers that may diverge", { skip }, () => {

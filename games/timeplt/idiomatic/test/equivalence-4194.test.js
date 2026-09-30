@@ -2,8 +2,16 @@
 /**
  * stepSlotApproachThenBreakawayRetire — equivalence gate. The address is unreached under both tapes because it needs the
  * fifth era, so entries come from a run holding the era cell there; RAM is compared with the dead
- * stack scratch below the seat masked, the SP re-seat and return checked, the live sweep cursors
- * held equal and the object-work scratch excluded, plus teeth.
+ * stack scratch below the seat masked, the SP re-seat and return checked, plus teeth.
+ *
+ * ★ NO REGISTER IS LIVE AT EXIT, measured on the ORACLE. This handler always leaves through the end
+ * of the whole sweep — its close runs every remaining turn before it returns — so what it leaves in
+ * the sweep cursors, the count and the object-work scratch is what the sweep leaves; wrapped in the
+ * all-frozen game with every register it can leave complemented on the way out, it is unheard in
+ * every dumped cell over the held-era session that dispatches it, where SP flipped at the same exit is
+ * heard (the exit-side control) and a poisoned record cursor on its entry is heard at once. (Within
+ * the sweep the cursors and the count are handed from turn to turn as arguments, so a rewrite that
+ * drops the count is caught in memory, where the sweep goes wrong.)
  * Run: node --test games/timeplt/idiomatic/test/equivalence-4194.test.js
  */
 
@@ -21,8 +29,9 @@ import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { retireSlot } from "../retireSlot.js";
 import { closeOneTurnOfTheSlotSweep } from "../closeOneTurnOfTheSlotSweep.js";
 import { flyTowardShipStandoffThenEndApproach } from "../flyTowardShipStandoffThenEndApproach.js";
-import { ERA_INDEX } from "../names.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { ERA_INDEX, OPENING_ERA_VELOCITY_TABLE } from "../names.js";
+import { flyAlongHeadingAtDoubleVelocity } from "../flyAlongHeadingAtDoubleVelocity.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4194;
 const DISPATCH_SITE = 0x40ea;
@@ -36,18 +45,18 @@ const DATA_TOP = 0xadff;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
-// Registers the dissolution leaves adrift: SP by the ROM ret that closes the sweep on the last
-// slot, which the rewrite drops, and the object-work scratch no caller reads there. The sweep
-// cursors b/c/d/e/ix/iy are NOT here; the arms below hold the rewrite to them.
-const EXCLUDED = ["a", "f", "h", "l", "sp", "a_"];
-const LIVE = REG_FIELDS.filter((k) => !EXCLUDED.includes(k));
+// The session DEAD AT EXIT poisons over: the era held at five from the same frame the corpus uses.
+const SESSION = [{ frame: POKE_FROM, addr: ERA_INDEX, val: FIFTH_ERA, dur: null }];
+const SESSION_FRAMES = 2400;
+/** Every register the oracle can leave behind, the stack pointer apart (its return pops through it). */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 // ── the masked comparison ─────────────────────────────────────────────────────────────────
 
 /**
  * Oracle vs a candidate on independent clones. The oracle writes return addresses into the stack
  * scratch the rewrite never touches, so the diff excludes [low, seat) with low the oracle's own
- * deepest push. Anything outside that window, and any live register, has escaped.
+ * deepest push. Anything outside that window has escaped.
  */
 function compare(cand, machine) {
   const a = machine.clone();
@@ -64,7 +73,7 @@ function compare(cand, machine) {
   try {
     retCand = cand(b);
   } catch {
-    return { escaped: -1, regDiff: null, low, seat, spDiff: 0, retOracle, retCand: "threw" };
+    return { escaped: -1, low, seat, spDiff: 0, retOracle, retCand: "threw" };
   }
   const da = a.dumpState();
   const db = b.dumpState();
@@ -75,9 +84,7 @@ function compare(cand, machine) {
     if (addr >= low && addr < seat) continue;
     escaped = addr;
   }
-  let regDiff = null;
-  for (const k of LIVE) if (a.regs[k] !== b.regs[k]) { regDiff = k; break; }
-  return { escaped, regDiff, low, seat, spDiff: a.regs.sp - b.regs.sp, retOracle, retCand };
+  return { escaped, low, seat, spDiff: a.regs.sp - b.regs.sp, retOracle, retCand };
 }
 
 /** Cells the oracle moves from a state, ignoring the stack scratch — a branch's footprint. */
@@ -133,37 +140,63 @@ function classify() {
   return { zero, running, reached };
 }
 
+/**
+ * Every real dispatch ends its sweep with nothing left to do, so a handler that never goes round —
+ * or goes round the wrong number of times — is invisible on them in memory. These go round: each
+ * real entry with three turns left and the three slots after it planted with drifting objects, so
+ * the step of each shows whether the sweep reached it, and a sweep one turn long reaches one it
+ * should not.
+ */
+let looping = null;
+function loopingEntries() {
+  if (looping) return looping;
+  looping = capturePoked().map((e) => {
+    const m = e.clone();
+    m.regs.b = 3;
+    for (const next of [0x10, 0x20, 0x30]) m.mem8[(m.regs.ix + next) & 0xffff] = 0x30;
+    return m;
+  });
+  return looping;
+}
+
 // ── broken twins ────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one defect each; every knob matches stepSlotApproachThenBreakawayRetire by default. */
-function twin({ fly = true, retire = true, alwaysRetire = false, advance = true, holdBc = true, dec = true, invert = false } = {}) {
+/**
+ * The rewrite with one defect each; every knob matches stepSlotApproachThenBreakawayRetire by default.
+ * Written in the rewrite's own form — the record, the entry and the count taken once on entry and
+ * handed to each callee — so each twin differs from the rewrite in its one defect only.
+ */
+function twin({ fly = true, retire = true, alwaysRetire = false, advance = true, holdCount = true, dec = true, invert = false } = {}) {
   return (m) => {
-    const { regs, mem8 } = m;
-    const c = (regs.ix + COUNTDOWN) & 0xffff;
+    const { mem8 } = m;
+    const { ix, iy } = m.regs;
+    let turns = m.regs.b;
+    const c = (ix + COUNTDOWN) & 0xffff;
     const zeroBranch = invert ? mem8[c] !== 0 : mem8[c] === 0;
     if (zeroBranch) {
-      const held = regs.bc;
-      if (fly) loc_58b6(m);
-      animateFixedShapeCycleAtHalfRate(m);
-      const reached = hasReachedRetireLine(m);
-      if (holdBc) regs.bc = held;
-      if (alwaysRetire || (retire && reached)) retireSlot(m);
-      return advance ? closeOneTurnOfTheSlotSweep(m) : undefined;
+      if (fly) flyAlongHeadingAtDoubleVelocity(m, OPENING_ERA_VELOCITY_TABLE, ix, iy);
+      animateFixedShapeCycleAtHalfRate(m, iy);
+      const reached = hasReachedRetireLine(m, iy);
+      // the count lost: taken back from whatever the object work left in B
+      if (!holdCount) turns = m.regs.b;
+      if (alwaysRetire || (retire && reached)) retireSlot(m, ix, iy);
+      return advance ? closeOneTurnOfTheSlotSweep(m, ix, iy, turns) : undefined;
     }
     if (dec) mem8[c] = (mem8[c] - 1) & 0xff;
-    flyTowardShipStandoffThenEndApproach(m);
-    return advance ? closeOneTurnOfTheSlotSweep(m) : undefined;
+    flyTowardShipStandoffThenEndApproach(m, ix, iy);
+    return advance ? closeOneTurnOfTheSlotSweep(m, ix, iy, turns) : undefined;
   };
 }
 
+// [label, twin, exact catch count, the corpus it is counted on (the real dispatches by default)]
 const TWINS = [
   ["no-op", () => {}, 445],
   ["skip-fly", twin({ fly: false }), 285],
   ["skip-retire", twin({ retire: false }), 1],
   ["always-retire", twin({ alwaysRetire: true }), 284],
   ["invert-branch", twin({ invert: true }), 445],
-  ["forget-bc", twin({ holdBc: false }), 285],
-  ["skip-advance", twin({ advance: false }), 445],
+  ["forget-count", twin({ holdCount: false }), 285],
+  ["skip-advance", twin({ advance: false }), 445, loopingEntries],
   ["no-dec", twin({ dec: false }), 160],
 ];
 
@@ -171,7 +204,7 @@ function caughtCount(tw, corpus) {
   let n = 0;
   for (const e of corpus) {
     const r = compare(tw, e);
-    if (r.escaped !== null || r.regDiff) n++;
+    if (r.escaped !== null) n++;
   }
   return n;
 }
@@ -204,7 +237,6 @@ test("POKED DISPATCH: the era held at five, and every real dispatch replays iden
   for (const e of entries) {
     const r = compare(candidate, e);
     assert.equal(r.escaped, null, r.escaped && `escaped the mask at ${hex4(r.escaped)}`);
-    assert.equal(r.regDiff, null, `a live register diverged: ${r.regDiff}`);
     assert.equal(r.retOracle, r.retCand, "the return value diverged");
     assert.equal(r.spDiff, 2, "the dropped-ret SP drift moved off +2");
     if (r.low < low) low = r.low;
@@ -222,7 +254,6 @@ test("PATHS: both branches are equivalent and really move different cells", { sk
   for (const e of [...zero, ...running]) {
     const r = compare(candidate, e);
     assert.equal(r.escaped, null, "a path escaped the mask");
-    assert.equal(r.regDiff, null, "a path diverged on a live register");
   }
   // ★ Vacuity guard: the paths must move DIFFERENT cells, or the split is decoration.
   const zeroPrint = footprint(zero.find((e) => !reached.includes(e))).join(",");
@@ -231,18 +262,31 @@ test("PATHS: both branches are equivalent and really move different cells", { sk
   console.log(`  PATHS: zero ${zero.length}, running ${running.length}, reached ${reached.length}`);
 });
 
-test("CONTROL: the live-register check can see a scribbled register", { skip }, () => {
-  const scribble = (m) => { candidate(m); m.regs.e = (m.regs.e + 1) & 0xff; };
-  const r = compare(scribble, capturePoked()[0]);
-  assert.equal(r.regDiff, "e", "the live check missed a scribbled e, so its empty readings prove nothing");
-  console.log("  CONTROL: a scribbled live register is caught");
+test("DEAD AT EXIT: no register the oracle leaves is heard, and the instrument hears one that is read", { skip }, () => {
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: SESSION_FRAMES, reachEvery: true,
+    sessions: [{ label: "held era", pokes: SESSION }],
+    // A poisoned record cursor on entry is heard in game data: the instrument is not deaf.
+    controls: [{ label: "entry IX", poison: ["ix"], before: true, expect: "heard", every: true, dataOnly: true }],
+  });
 });
 
-for (const [label, tw, expected] of TWINS) {
+test("LOOPING: with turns left and an occupied next slot, the whole sweep replays identically", { skip }, () => {
+  const entries = loopingEntries();
+  assert.ok(entries.length > 0, "no entries to loop");
+  for (const e of entries) {
+    const r = compare(candidate, e);
+    assert.equal(r.escaped, null, r.escaped && `escaped the mask at ${hex4(r.escaped)}`);
+    assert.equal(r.spDiff, 2, "the remaining turns run as direct calls, so the oracle pops the sweep's return and the rewrite does not");
+  }
+  console.log(`  LOOPING: ${entries.length} entries identical`);
+});
+
+for (const [label, tw, expected, corpus = capturePoked] of TWINS) {
   test(`TEETH: the ${label} twin is caught on an exact count`, { skip }, () => {
-    const caught = caughtCount(tw, capturePoked());
+    const caught = caughtCount(tw, corpus());
     assert.ok(expected > 0, `the ${label} twin is not caught at all`);
     assert.equal(caught, expected, `the ${label} twin's catch count moved`);
-    console.log(`  TEETH/${label}: caught on ${caught} of ${capturePoked().length}`);
+    console.log(`  TEETH/${label}: caught on ${caught} of ${corpus().length}`);
   });
 }

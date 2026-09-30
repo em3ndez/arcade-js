@@ -18,5 +18,5 @@ export function awardOneCreditOnDebouncedInputEdge(m) {
   mem8[SERVICE_CREDIT_DEBOUNCE] = history;
   if ((history & LOW3) !== EDGE) return;
   requestCoinSound(m);
-  return (m.regs.c = ONE_CREDIT, awardCoinCreditThenPulseCoinCounter(m));
+  return awardCoinCreditThenPulseCoinCounter(m, ONE_CREDIT);
 }

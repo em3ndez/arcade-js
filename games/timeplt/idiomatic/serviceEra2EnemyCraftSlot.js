@@ -19,21 +19,21 @@ const ACTIVE = 0xff;
 const HELD = 0xfe;
 const STEER_MASK = 3;
 
-export function serviceEra2EnemyCraftSlot(m, ix = m.regs.ix) {
+export function serviceEra2EnemyCraftSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { regs, mem8 } = m;
   const state = mem8[ix];
   if (state === 0) return;
 
   if (state === ACTIVE) {
-    if ((mem8[FRAME_TICK] & STEER_MASK) < STEER_MASK) steerTowardAimHeading(m);
-    flyAtSlowestSpeed(m);
-    if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
-    launchBankEnemyWhenAimedNearPlayer(m);
-    dressSpriteForFineHeading(m);
-    launchAttackerIntoFreeSlot(m);
+    if ((mem8[FRAME_TICK] & STEER_MASK) < STEER_MASK) steerTowardAimHeading(m, ix);
+    flyAtSlowestSpeed(m, ix, iy);
+    if (hasReachedRetireLine(m, iy)) return retireSlotAndSubPixel(m, ix, iy);
+    launchBankEnemyWhenAimedNearPlayer(m, ix, iy);
+    dressSpriteForFineHeading(m, iy, ix);
+    launchAttackerIntoFreeSlot(m, ix, iy);
     return;
   }
 
-  if (state === HELD) return releaseHeldObject(m);
-  return stepDyingObjectState(m);
+  if (state === HELD) return releaseHeldObject(m, ix);
+  return stepDyingObjectState(m, ix, iy);
 }

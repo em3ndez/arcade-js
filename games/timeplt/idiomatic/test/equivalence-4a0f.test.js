@@ -5,7 +5,10 @@
  * pushes no return address and omits the tail ret. No tape reaches this address, so the gate is a
  * crafted sweep of the base colour and the saved-pen player selector; RAM is compared with the dead
  * stack scratch masked out, the +2 SP re-seat and the undefined return checked, and registers held
- * to a measured ceiling no caller reads. Run: node --test .../equivalence-4a0f.test.js
+ * to a measured ceiling. DEAD AT EXIT pokes the sequence sub-step once so the game dispatches this
+ * entry itself, complements every ceiling register but SP on the frozen game as it returns, and
+ * nothing differs, beside an SP flip at the same exit that is heard (assertDeadAtExit).
+ * Run: node --test .../equivalence-4a0f.test.js
  */
 
 import test from "node:test";
@@ -16,6 +19,7 @@ import { armRoundWonBandAnimationThenStepSequence as candidate } from "../armRou
 import { loc_4a0f as oracle } from "../../translated/loc_4a0f.js";
 import { u8 } from "../../../../core/int.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4a0f;
 const SEQUENCE_DISPATCHER = 0x0f1f; // a hot address, the positive control for "never reached"
@@ -33,7 +37,16 @@ const POINTER_LO = 0xa9f7;
 const ATTR_LAST = 0xa40c;
 const DATA_TOP = 0xadff;
 const BASE_FRAMES = 600;
-const EXCLUDED = ["f", "b", "c", "d", "e", "h", "l", "sp"];
+/**
+ * The register ceiling. A joined it when offsetAddress stopped echoing the moved pointer's low byte
+ * into A: the oracle's A ends on that byte (the saved-pen lookup's rst 18, ldi leaves A alone), the
+ * rewrite's wherever it was. DEAD AT EXIT measures every one but SP dead where this entry returns.
+ */
+const EXCLUDED = ["a", "f", "b", "c", "d", "e", "h", "l", "sp"];
+/** The sequence sub-step whose table entry is this routine; poked once to make the game dispatch it. */
+const SUBSTEP_SELECTING_IT = 13;
+const DEAD_POKE_FRAME = 800;
+const DEAD_FRAMES = DEAD_POKE_FRAME + 600;
 const SWEEP = 2 * 256;
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -166,10 +179,13 @@ function brokenNoSavedPen(m) {
   m.mem8[PEN_P2] = held[2]; m.mem8[PEN_P2 + 1] = held[3];
 }
 
-/** BUG: scribbles the accumulator, outside the ceiling; the control for EXCLUDED. */
-function brokenMovesA(m) {
+/**
+ * BUG: scribbles the shadow accumulator, outside the ceiling; the control for EXCLUDED. (It scribbled
+ * A until A joined the ceiling; a control must move a register the ceiling does not cover.)
+ */
+function brokenMovesShadowA(m) {
   const r = candidate(m);
-  m.regs.a = u8(m.regs.a + 1);
+  m.regs.a_ = u8(m.regs.a_ + 1);
   return r;
 }
 
@@ -220,13 +236,25 @@ test("SP and RETURN: the oracle re-seats two bytes higher and both return undefi
 
 test("EXCLUDED, measured: nothing moves outside the ceiling, with a control that does", { skip }, () => {
   const moved = movedOver(candidate);
-  const control = movedOver(brokenMovesA);
+  const control = movedOver(brokenMovesShadowA);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
-    "the measurement reports nothing even for a twin that scribbles the accumulator");
+    "the measurement reports nothing even for a twin that scribbles the shadow accumulator");
   const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: moving ${EXCLUDED.filter((k) => moved.has(k)).join(", ")}; ` +
     `control also moves ${REG_FIELDS.filter((k) => control.has(k) && !EXCLUDED.includes(k)).join(", ")}`);
+});
+
+test("DEAD AT EXIT: every register in the ceiling but SP is dead where this entry returns", { skip }, () => {
+  // No tape reaches this entry, so each session pokes the sequence sub-step to the value whose table
+  // entry it is, once; the game's own sequence dispatcher then enters it. Two sessions: the shared
+  // coin-start tape and undriven attract.
+  const pokes = [{ addr: SUBSTEP, val: SUBSTEP_SELECTING_IT, frame: DEAD_POKE_FRAME, dur: 1 }];
+  const poison = EXCLUDED.filter((k) => k !== "sp");
+  assertDeadAtExit({
+    at: TARGET, poison, frames: DEAD_FRAMES, reachEvery: true,
+    sessions: [{ label: "coin-start", tape: undefined, pokes }, { label: "attract", tape: [], pokes }],
+  });
 });
 
 for (const [label, twin, expected] of TWINS) {

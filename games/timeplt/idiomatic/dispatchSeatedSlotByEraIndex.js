@@ -4,9 +4,9 @@
  * the slot's literal target, called directly with that record, and nothing here runs after it. Three
  * bits admit eight slots: the first five are the five eras' slot services; the sixth and seventh hold
  * words that address no program at all, so reaching one is a fault and it is raised, not assumed
- * away; the eighth holds the word of the intro-animation step, and that is what it runs. The seated
- * record is the one value handed on, so each handler is entered directly, with no table word carried
- * in on a register pair. LIVE-OUT: memory, and the handler's. */
+ * away; the eighth holds the word of the intro-animation step, and that is what it runs. The record and
+ * its sprite entry come in as arguments and each handler is entered directly, with no table word
+ * carried in on a register pair. LIVE-OUT: memory, and the handler's. */
 
 import { NotImplemented } from "../../../boards/timeplt/io.js";
 import { ERA_INDEX } from "./names.js";
@@ -19,14 +19,14 @@ import { stepRoundStartIntroAnimation } from "./stepRoundStartIntroAnimation.js"
 
 const ARM_MASK = 0x07;
 
-export function dispatchSeatedSlotByEraIndex(m, record = m.regs.ix) {
+export function dispatchSeatedSlotByEraIndex(m, record = m.regs.ix, entry = m.regs.iy) {
   const slot = m.mem8[ERA_INDEX] & ARM_MASK;
   switch (slot) {
-    case 0: return serviceEra0EnemyCraftSlot(m, record);
-    case 1: return serviceEra1EnemyCraftSlot(m, record);
-    case 2: return serviceEra2EnemyCraftSlot(m, record);
-    case 3: return serviceEra3EnemyCraftSlot(m, record);
-    case 4: return serviceEra4EnemyCraftSlot(m, record);
+    case 0: return serviceEra0EnemyCraftSlot(m, record, entry);
+    case 1: return serviceEra1EnemyCraftSlot(m, record, entry);
+    case 2: return serviceEra2EnemyCraftSlot(m, record, entry);
+    case 3: return serviceEra3EnemyCraftSlot(m, record, entry);
+    case 4: return serviceEra4EnemyCraftSlot(m, record, entry);
     case 7: return stepRoundStartIntroAnimation(m);
     // The two remaining words point past the program image into unmapped space, where the inline
     // dispatch would jump and fault; surface the same fault here.

@@ -8,8 +8,8 @@ import { loc_0f8d as springTamperTrap } from "./loc_0f8d.js";
 
 const GENUINE_IMAGE_CHECKSUM = 0x67;
 
-export function advanceSequenceUnlessImageTampered(m) {
-  const checksum = presentChecksumForTamperTest(m);
+export function advanceSequenceUnlessImageTampered(m, total = m.regs.b, pointer = m.regs.hl, offset = m.regs.de) {
+  const checksum = presentChecksumForTamperTest(m, pointer, offset, total);
   if (checksum !== GENUINE_IMAGE_CHECKSUM) return springTamperTrap(m);
   return advanceSequenceSubStep(m);
 }

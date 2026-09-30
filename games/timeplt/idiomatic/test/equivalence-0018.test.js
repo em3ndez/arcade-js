@@ -9,15 +9,22 @@
  *   advances and the byte it echoes back, so `r.ram === null` is true of a routine with an empty
  *   body — and the BLIND test below PROVES that by passing a no-op through the same call.
  *   Asserting only `r.ram` here would gate nothing. The comparison every arm in this file is
- *   judged by is therefore `liveOutDiff`: the whole RAM dump AND the three value registers the
- *   callers consume. That is not a re-introduction of register fidelity — the flag byte, the
- *   stack pointer and pc are still excluded, and the EXCLUDED test pins exactly which.
+ *   judged by is therefore `liveOutDiff`: the whole RAM dump AND the two halves of the advanced
+ *   address, which the rewrite also RETURNS (checked against the oracle's HL on every input).
+ *   That is not a re-introduction of register fidelity — the flag byte, the stack pointer, pc and
+ *   the echoed low byte in A are excluded, and the EXCLUDED test pins exactly which.
  *
- * WHY THOSE THREE REGISTERS, derived from the CALLERS rather than the instruction sequence.
- * Every call site uses the advanced address on its very next
- * step, as the pointer it reads a table entry through or copies a block from. Three of those also
- * consume the echoed low byte, folding it against the high half. Not one reads a flag on its next
- * step, and the FLAGS test extends that from "next step" to a whole session by measurement.
+ * WHY THE ADDRESS, derived from the CALLERS rather than the instruction sequence. Every call site
+ * uses the advanced address on its very next step, as the pointer it reads a table entry through
+ * or copies a block from. The oracle ALSO echoes the new low half into A, and whether anything
+ * reads that is asked of the ORACLE, not argued: THE ECHO HAND-OFF complements A as the frozen
+ * routine hands back, one caller (return address) at a time, over attract, coin-start and every
+ * distant state a tapes/*.poke.json schedule drives. It is heard at exactly one caller — the
+ * tamper-check fold after 0x1311 that XORs the echo against the high half — and that code lies only
+ * in frozen routines every one of which is replaced by an idiomatic override (names.js ROUTINES), so no
+ * reader of the echo runs in the wired game and the rewrite returns the address only. A reader
+ * reached only in a state none of those sessions drives is not measured. Not one caller reads a flag on its next step, and the
+ * FLAGS test extends that from "next step" to a whole session by measurement.
  *
  * What it exercises, holes stated:
  *   1. EQUAL at the real dispatch — through unitEquivalence, on the pristine entry the coin ->
@@ -25,8 +32,9 @@
  *      while the game is being played, not the only entry available. Weak on its own for the
  *      reason above, which is why 2 and 3 carry the teeth.
  *   2. BLIND — the RAM half demonstrated toothless, so no later reader mistakes it for a gate.
- *   3. EXCLUDED, deliberately — the divergence is pinned to {f, sp} plus pc and nothing else, so
- *      "excluded" cannot quietly widen to the address the callers actually read through.
+ *   3. EXCLUDED, deliberately — the divergence is pinned to {a, f, sp} plus pc and nothing else
+ *      (at a crafted carrying input, and as a ceiling over all real traffic), so "excluded" cannot
+ *      quietly widen to the address the callers actually read through.
  *   4. FLAGS — the excluded flag byte forced to a hostile constant on every dispatch of a whole
  *      driven session, to find out what actually depends on it. This is the licence for dropping
  *      it, and it is a measurement, so it expires if the answer ever changes.
@@ -37,8 +45,11 @@
  *      This is what proves the carry-into-the-high-half path is live in play rather than dead.
  *      The corpus run is FILE-LOCAL and longer than the entry capture: 900 frames is enough to
  *      enter, but it reaches only 11 distinct table bases where 1800 reaches 17.
- *   7. TEETH — four broken twins, each caught by liveOutDiff, and each caught on a COUNTED set
- *      of inputs that a stated predicate predicts exactly.
+ *   7. TEETH — three broken twins, each caught by liveOutDiff, and each caught on a COUNTED set
+ *      of inputs that a stated predicate predicts exactly; the stale-echo twin, whose only defect
+ *      is the echo, is HARMLESS and caught on no input.
+ *   8. THE ECHO HAND-OFF — described above; the heard callers are pinned, each one's frozen
+ *      owners must be ROUTINES overrides, and an SP flip at the same exit must be heard.
  *
  * The pristine entry is HARVESTED from the gate rather than captured a second time: the
  * candidate arm is handed a fresh clone of the entry, so cloning it there keeps one capture
@@ -56,6 +67,8 @@ import { loc_0018 as oracle } from "../../translated/loc_0018.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
+import { ROUTINES } from "../names.js";
+import { TAPE_SESSIONS, handOffReaders, heardAs } from "./_deadAtExit.js";
 
 const TARGET = 0x0018;
 const skip = romsPresent() ? false : "ROM images absent";
@@ -69,6 +82,20 @@ const CORPUS_FRAMES = 1800;
 
 /** Top of the stack, which grows down from here into the last bytes of work RAM. */
 const STACK_TOP = 0xb000;
+
+/** The registers a caller consumes: the two halves of the advanced address (also the return). */
+const LIVE_OUT = ["h", "l"];
+
+/** The registers allowed to differ: the echo (THE ECHO HAND-OFF), the flag byte, the stack. */
+const EXCLUDED = ["a", "f", "sp"];
+
+/**
+ * Where the oracle's echo in A is heard, keyed by the return address of the rst, and the frozen
+ * routines that contain that call site — each must be served by an idiomatic override. The rst at
+ * 0x1311 is the tamper-check fold (`xor h / sub 0x9b`), inlined in 0x12fb, 0x1253 and 0x1271.
+ */
+const A_READERS = new Map([[0x1312, [0x1253, 0x1271, 0x12fb]]]);
+const HANDOFF_FRAMES = 2500;
 
 let entry = null;
 
@@ -92,13 +119,13 @@ function entryState() {
 }
 
 /**
- * The comparison with teeth: RAM plus the three registers a caller consumes — the two halves of
- * the advanced address, and the echoed low byte. Returns null when the arms agree.
+ * The comparison with teeth: RAM plus the two registers a caller consumes — the two halves of
+ * the advanced address. Returns null when the arms agree.
  */
 function liveOutDiff(a, b) {
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return { where: "ram", oracle: ram.a, candidate: ram.b, addr: ram.addr };
-  for (const k of ["h", "l", "a"]) {
+  for (const k of LIVE_OUT) {
     if (a.regs[k] !== b.regs[k]) {
       return { where: k, oracle: a.regs[k], candidate: b.regs[k], addr: null };
     }
@@ -192,6 +219,7 @@ function sweepAll(candidate) {
   const f = a.regs.f;
   const cycles = a.cycles;
   let caught = 0;
+  let returnMismatch = 0;
   for (let h = 0; h < 256; h++) {
     for (let l = 0; l < 256; l++) {
       for (let off = 0; off < 256; off++) {
@@ -206,13 +234,14 @@ function sweepAll(candidate) {
         b.regs.l = l;
         b.regs.a = off;
         oracle(a);
-        candidate(b);
-        if (a.regs.h !== b.regs.h || a.regs.l !== b.regs.l || a.regs.a !== b.regs.a) caught++;
+        const returned = candidate(b);
+        if (a.regs.h !== b.regs.h || a.regs.l !== b.regs.l) caught++;
+        if (returned !== a.regs.hl) returnMismatch++;
       }
     }
   }
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  return { caught, ram };
+  return { caught, returnMismatch, ram };
 }
 
 /** How many inputs a stated predicate says a twin must be caught on. */
@@ -256,12 +285,16 @@ test("BLIND: the RAM half of the contract call cannot fail here", { skip }, () =
     "a routine with an empty body was expected to pass the RAM half — if this ever FAILS the " +
       "routine writes memory after all, and every claim in this file must be re-derived",
   );
-  const d = atInput(() => {}, entryState().regs.hl, entryState().regs.a);
+  // The captured entry's offset is zero, where an empty body IS the routine on the address; the
+  // live-out arm is shown catching it one offset along, at the same address.
+  assert.equal(entryState().regs.a, 0, "the captured entry's offset is no longer zero -- re-derive this arm");
+  assert.equal(atInput(() => {}, entryState().regs.hl, 0), null, "at offset zero the address does not move");
+  const d = atInput(() => {}, entryState().regs.hl, 0x01);
   assert.notEqual(d, null, "the live-out comparison must catch what the RAM half cannot");
   console.log(`  BLIND: empty body passes RAM; live-out catches it — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: the flag byte, the stack pointer and pc, and nothing else",
+test("EXCLUDED, deliberately: the echo, the flag byte, the stack pointer and pc, and nothing else",
   { skip },
   () => {
     const a = entryState().clone();
@@ -271,18 +304,19 @@ test("EXCLUDED, deliberately: the flag byte, the stack pointer and pc, and nothi
     b.regs.hl = 0x18ff;
     b.regs.a = 0x01;
     oracle(a);
-    offsetAddress(b);
+    const returned = offsetAddress(b);
 
     const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
     assert.deepEqual(
       moved,
-      ["f", "sp"],
-      "the excluded set changed shape: only the flag byte and the stack pointer may differ",
+      EXCLUDED,
+      "the excluded set changed shape: only the echo, the flag byte and the stack pointer may differ",
     );
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
     assert.equal(a.regs.hl, 0x1900, "the address must carry into its high half");
     assert.equal(b.regs.hl, 0x1900, "the rewrite must carry into the high half too");
-    assert.equal(b.regs.a, 0x00, "the echoed byte is the low half of the moved address");
+    assert.equal(returned, 0x1900, "the rewrite must RETURN the moved address");
+    assert.equal(a.regs.a, 0x00, "the oracle's echo is the low half of the moved address");
     console.log(`  EXCLUDED: registers ${moved.join(", ")} and pc — the address agrees`);
   });
 
@@ -321,6 +355,7 @@ test("EXHAUSTIVE: all 16777216 inputs, address pair and offset, identical", { sk
   const r = sweepAll(offsetAddress);
   assert.equal(r.ram, null, `a byte of memory moved during the sweep — ${show(r.ram)}`);
   assert.equal(r.caught, 0, `${r.caught} of ${SPACE} inputs diverged`);
+  assert.equal(r.returnMismatch, 0, `the returned address differs from the oracle's HL on ${r.returnMismatch} inputs`);
 
   const wrap = atInput(offsetAddress, 0xffff, 0x01);
   assert.equal(wrap, null, `the top-of-space wrap diverged — ${show(wrap)}`);
@@ -334,9 +369,17 @@ test("REAL TRAFFIC: every pair a driven session presents, and the carry path is 
     assert.ok(pairs.length > 0, "vacuous: the driven session never reached the routine");
     let dispatches = 0;
     let carrying = 0;
+    const moved = new Set();
     for (const p of pairs) {
       const d = atInput(offsetAddress, p.address, p.offset);
       assert.equal(d, null, `${hex4(p.address)} + ${hex2(p.offset)}: ${show(d)}`);
+      const a = entryState().clone();
+      const b = entryState().clone();
+      a.regs.hl = b.regs.hl = p.address;
+      a.regs.a = b.regs.a = p.offset;
+      oracle(a);
+      assert.equal(offsetAddress(b), a.regs.hl, `${hex4(p.address)} + ${hex2(p.offset)}: the return is not the oracle's HL`);
+      for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
       dispatches += p.hits;
       if (u8(p.address) + p.offset > 255) carrying++;
     }
@@ -345,6 +388,8 @@ test("REAL TRAFFIC: every pair a driven session presents, and the carry path is 
       "no observed input carries into the high half — the branch would be dead in play and " +
         "the sweep would be the only thing testing it",
     );
+    const widened = [...moved].filter((k) => !EXCLUDED.includes(k));
+    assert.deepEqual(widened, [], `real traffic moved ${widened.join(", ")}, outside the excluded set`);
     const bases = new Set(pairs.map((p) => p.address >> 8));
     console.log(
       `  REAL TRAFFIC: ${pairs.length} distinct pairs over ${dispatches} dispatches in ` +
@@ -373,7 +418,8 @@ function brokenSignedOffset(m) {
   regs.a = regs.l;
 }
 
-/** BUG: moves the address but leaves the offset byte holding its old value. */
+/** HARMLESS: moves the address but leaves the offset byte holding its old value. Its only defect is
+ * the echo, which THE ECHO HAND-OFF shows no wired reader consumes. */
 function brokenStaleEcho(m) {
   const { regs } = m;
   regs.hl = u16(regs.hl + regs.a);
@@ -387,11 +433,39 @@ const TWINS = [
   ["drops-carry", brokenDropsCarry, (_h, l, off) => l + off > 255],
   // caught wherever the offset's top bit is set, which is where signed and unsigned part ways
   ["signed-offset", brokenSignedOffset, (_h, _l, off) => off > 127],
-  // caught wherever the moved low half differs from the offset that produced it
-  ["stale-echo", brokenStaleEcho, (_h, l, _off) => l !== 0],
-  // caught everywhere except the one input that is genuinely a no-op
-  ["no-op", brokenNoOp, (_h, l, off) => l !== 0 || off !== 0],
+  // caught wherever the offset actually moves the address, which is every non-zero offset
+  ["no-op", brokenNoOp, (_h, _l, off) => off !== 0],
 ];
+
+test("HARMLESS: the stale-echo twin moves the address right, so it is caught nowhere", { skip }, () => {
+  const r = sweepAll(brokenStaleEcho);
+  assert.equal(r.caught, 0, "the echo is not a live-out; only the address may be judged");
+  const pairs = realTraffic();
+  assert.equal(pairs.filter((p) => atInput(brokenStaleEcho, p.address, p.offset) !== null).length, 0,
+    "the stale-echo twin was caught on real traffic");
+  const a = entryState().clone();
+  const b = entryState().clone();
+  a.regs.hl = b.regs.hl = 0x18ff;
+  a.regs.a = b.regs.a = 0x01;
+  oracle(a);
+  brokenStaleEcho(b);
+  assert.notEqual(a.regs.a, b.regs.a, "the twin must actually leave the echo different, or this proves nothing");
+  console.log(`  HARMLESS/stale-echo: caught on 0 of ${SPACE} inputs and 0 of ${pairs.length} real pairs; its only defect is A`);
+});
+
+test("THE ECHO HAND-OFF: every oracle reader of the echoed A, over every tape session, is overridden", { skip }, () => {
+  const { callers, readers, exitControl } = handOffReaders({ at: TARGET, poison: ["a"], sessions: TAPE_SESSIONS, frames: HANDOFF_FRAMES });
+  assert.ok(callers.size > 0, "vacuous: no rst 0x18 was taken");
+  assert.deepEqual([...readers.keys()].sort((p, q) => p - q), [...A_READERS.keys()],
+    "the set of callers that read the oracle's echo moved -- a new reader needs its override checked");
+  for (const [ret, owners] of A_READERS) {
+    const served = owners.filter((addr) => ROUTINES[addr] !== undefined);
+    assert.deepEqual(served, owners, `the reader after ${hex4(ret)} is not served by an override`);
+  }
+  console.log(`  ECHO HAND-OFF: ${callers.size} callers over ${TAPE_SESSIONS.length} sessions, A heard at ` +
+    `${[...readers].map(([r, w]) => `${hex4(r)} (${w})`).join(" ")}, each served by an override; ` +
+    `${callers.size - readers.size} callers never read it; exit control heard (${heardAs(exitControl)})`);
+});
 
 for (const [label, twin, pred] of TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT on exactly the inputs it must be`, { skip }, () => {

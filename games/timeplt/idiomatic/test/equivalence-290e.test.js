@@ -76,7 +76,7 @@ import { loc_290e as oracle } from "../../translated/loc_290e.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { heard, heardAs, poisonedRun } from "./_deadAtExit.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 import { serviceEra0EnemyCraftSlot } from "../serviceEra0EnemyCraftSlot.js";
 import { serviceEra1EnemyCraftSlot } from "../serviceEra1EnemyCraftSlot.js";
 import { serviceEra2EnemyCraftSlot } from "../serviceEra2EnemyCraftSlot.js";
@@ -559,33 +559,14 @@ test("DIRECT: UNMASKED, registers included, the rewrite is exactly the slot modu
 });
 
 test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
-  let controlSees = 0;
-  let exitSees = 0;
-  for (const spec of SESSIONS) {
-    const dead = poisonedRun({ at: TARGET, poison: MOVED, tape: spec.tape, frames: spec.frames });
-    assert.equal(dead.threw, null, `${spec.label}: the poisoned run threw: ${dead.threw}`);
-    assert.equal(dead.stopped, null, `${spec.label}: the poisoned run stopped early: ${dead.stopped}`);
-    assert.equal(dead.frames, spec.frames, `${spec.label}: compared ${dead.frames} of ${spec.frames} frames`);
-    assert.equal(dead.poisoned, spec.dispatches, `${spec.label}: poisoned ${dead.poisoned} of ${spec.dispatches} dispatches`);
-    assert.deepEqual(dead.cells.map(hex4), [], `${spec.label}: a register in the ceiling was read after this entry handed back`);
-    // POSITIVE CONTROL, same instrument: shift the seated record one record on at ENTRY, where the
-    // arm reads it. Silence at the exit means something only if this is heard.
-    const control = poisonedRun({
-      at: TARGET, poison: ["ix"], flip: { ix: 0x10 }, before: true, tape: spec.tape, frames: spec.frames,
-    });
-    if (heard(control)) controlSees++;
-    // EXIT-SIDE CONTROL, same instrument and exit: flip SP where this entry hands back. The ROM
-    // returns through the stack, so an exit poison that lands has to be heard.
-    const exitControl = poisonedRun({ at: TARGET, poison: ["sp"], flip: { sp: 2 }, tape: spec.tape, frames: spec.frames });
-    if (heard(exitControl)) exitSees++;
-    console.log(`  DEAD AT EXIT/${spec.label}: ${dead.poisoned} exits poisoned (${MOVED.join(", ")}), ` +
-      `nothing differs; the entry control ${heard(control) ? `is heard (${heardAs(control)})` : "is not heard"}; ` +
-      `the exit control ${heard(exitControl) ? `is heard (${heardAs(exitControl)})` : "is not heard"}`);
-  }
-  assert.ok(controlSees > 0, "the control shifted the seated record at entry and no session noticed, " +
-    "so the silence at the exit proves nothing");
-  assert.ok(exitSees > 0, "the control flipped SP at this entry's exit and no session noticed, so the " +
-    "exit poison never lands and its silence proves nothing");
+  assertDeadAtExit({
+    at: TARGET, poison: MOVED, sessions: SESSIONS,
+    controls: [{
+      // POSITIVE CONTROL, same instrument: shift the seated record one record on at ENTRY, where the
+      // arm reads it. Silence at the exit means something only if this is heard.
+      label: "entry", at: TARGET, poison: ["ix"], flip: { ix: 0x10 }, before: true,
+    }],
+  });
 });
 
 test("EXCLUDED, deliberately: the registers that move, over every real dispatch", { skip }, () => {

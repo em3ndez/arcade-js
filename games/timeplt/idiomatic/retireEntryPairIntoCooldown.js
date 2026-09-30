@@ -5,7 +5,7 @@
  * first byte, and both coordinates of each of two neighbouring entries, the second coordinate lying forty-nine
  * bytes past the first in a parallel table. Nothing is read, so what this does cannot depend on anything in the
  * machine and a second run changes nothing; how long the value it leaves standing lasts is not decidable here.
- * LIVE-OUT: memory, plus the zero left in the accumulator.
+ * LIVE-OUT: memory.
  */
 
 const NEXT_ENTRY = 2;
@@ -14,12 +14,11 @@ const RECORD_BYTE = 14;
 const RECORD_CODE = 95;
 
 export function retireEntryPairIntoCooldown(m, record = m.regs.ix, entry = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   mem8[record] = 0;
   mem8[entry] = 0;
   mem8[entry + NEXT_ENTRY] = 0;
   mem8[entry + SECOND_AXIS] = 0;
   mem8[entry + SECOND_AXIS + NEXT_ENTRY] = 0;
   mem8[record + RECORD_BYTE] = RECORD_CODE;
-  return void (regs.a = 0);
 }

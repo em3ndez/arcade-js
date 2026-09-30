@@ -10,6 +10,5 @@ import { PLAYER1_SCORE_HI, PLAYER1_SCORE_READOUT_BASE } from "./names.js";
 const COLOUR = 0x10;
 
 export function paintPlayerOneScoreReadout(m) {
-  const { regs } = m;
-  return (regs.de = PLAYER1_SCORE_READOUT_BASE, regs.hl = PLAYER1_SCORE_HI, regs.c = COLOUR, paintSixDigitFieldSuppressingLeadingZeros(m));
+  return paintSixDigitFieldSuppressingLeadingZeros(m, PLAYER1_SCORE_HI, PLAYER1_SCORE_READOUT_BASE, COLOUR);
 }

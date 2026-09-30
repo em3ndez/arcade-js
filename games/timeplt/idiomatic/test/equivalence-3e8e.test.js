@@ -21,9 +21,10 @@
  *      something these arms would catch.
  *   2b. REGISTERS — the two slot pointers the caller addresses through, IX and IY, are asserted
  *      HELD, and the remaining divergence is checked against a CEILING rather than an exact set.
- *      HOLE: the ceiling is a containment bound, not a derived live-out. This entry is reached
- *      only by a tail-jump from 0x3E63, so whatever its callers read of A/F/E/H is what really
- *      bounds it, and that read set is not established here.
+ *      This entry is reached only by a tail-jump from 0x3E63 (asserted off the transcribed
+ *      sources), so it returns where that one does; DEAD AT EXIT complements every register in the
+ *      ceiling but SP at each of 0x3E63's returns over an attract and a coin-start session, on the
+ *      oracle, and nothing differs, beside an SP flip at the same exit that is heard.
  *   3. NOTHING ESCAPES UPWARD, asserted separately: no divergence lands at or above the entry
  *      stack pointer, which is what separates dead scratch from the caller's live stack.
  *   4. EVERY ARM REACHED, asserted rather than assumed: the cross is shown to contain entries that
@@ -55,6 +56,8 @@ import { fetchTableByte } from "../fetchTableByte.js";
 import { stampObjectStateByte3bThenRequestTwoSounds } from "../stampObjectStateByte3bThenRequestTwoSounds.js";
 import { retireSlot } from "../retireSlot.js";
 import { buildRoutines } from "../../routines.js";
+import { readdirSync, readFileSync } from "node:fs";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x3e8e;
 
@@ -214,6 +217,16 @@ function movedRegisters() {
   return moved;
 }
 
+/**
+ * The register ceiling. Every register in it but SP is shown DEAD where this entry hands back, on the
+ * oracle, by DEAD AT EXIT below. L joined it when fetchTableByte stopped leaving HL on the shape
+ * entry: the oracle's HL ends on that entry, the rewrite's wherever the drift left it.
+ */
+const CAP = ["a", "f", "e", "h", "l", "sp"];
+/** The only dispatch that tail-jumps here, so its every return is this entry's return. */
+const TAIL_FROM = BASE_DISPATCH;
+const DEAD_SESSIONS = [["attract", [], 3000], ["coin-start", undefined, 3000]];
+
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("REGISTERS: the slot pointers are held, and nothing outside the cap moves", { skip }, () => {
@@ -228,10 +241,32 @@ test("REGISTERS: the slot pointers are held, and nothing outside the cap moves",
 
   // A CEILING, not a set to fill: a rewrite that diverges on FEWER registers must still pass,
   // so this is containment rather than deepEqual. Only a register NOT listed here fails.
-  const CAP = ["a", "f", "e", "h", "sp"];
   assert.deepEqual([...moved].filter((k) => !CAP.includes(k)), [],
     "a register outside the declared cap diverged");
   console.log(`  REGISTERS: moved ${[...moved].join(",")} — within cap ${CAP.join(",")}`);
+});
+
+test("DEAD AT EXIT: every register in the ceiling but SP is dead where the hand-over returns", { skip }, () => {
+  // No session dispatches this entry, so its own exit cannot be poisoned. It is entered only by the
+  // tail-jump at the end of the hand-over (asserted from the transcribed sources), so it returns
+  // wherever the hand-over returns: complement the ceiling at EVERY return of the hand-over, over
+  // whole sessions, and require silence. HOLE: the poisoned returns are the hand-over's other
+  // arms (this one is never taken), so what is shown is that the return point ignores these
+  // registers on every return the sessions make, not on one made from this arm.
+  const dir = new URL("../../translated/", import.meta.url);
+  const tailers = readdirSync(dir).filter((f) => /^loc_[0-9a-f]+\.js$/.test(f) &&
+    readFileSync(new URL(f, dir), "utf8").includes("m.call(0x3e8e)"));
+  assert.deepEqual(tailers, [`loc_${TAIL_FROM.toString(16)}.js`], "something else now enters this routine");
+  const poison = CAP.filter((k) => k !== "sp");
+  // assertDeadAtExit: every session must reach the hand-over's return (reachEvery) and stay silent
+  // over its full length; the SP flip at the same return must be heard in some session.
+  const exits = assertDeadAtExit({
+    at: TAIL_FROM, poison, reachEvery: true,
+    sessions: DEAD_SESSIONS.map(([label, tape, frames]) => ({ label, tape, frames })),
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+  }
 });
 
 test("NO TAPE REACHES IT: three sessions dispatch it zero times", { skip }, () => {

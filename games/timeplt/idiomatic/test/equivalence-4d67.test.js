@@ -10,10 +10,14 @@
  *   1. EQUAL at the real dispatch — the state dump agrees byte for byte, the scratch window
  *      included. Measured: nothing below the entry stack pointer differs here at all, so this
  *      file names NO exclusion and the arm asserts the empty one rather than describing it.
- *   2. LIVE-OUT — the carry flag as well as the byte. Carry is what the caller branches on to
- *      decide whether to step the next digit pair, so a gate that watched RAM alone would pass a
- *      rewrite that got the roll-over answer exactly backwards, and the TEETH prove that.
- *   3. EXHAUSTIVE — all 256 starting values, byte and carry compared on each. This is the arm
+ *   2. LIVE-OUT — the roll-over answer as well as the byte. The oracle leaves it in carry (set for
+ *      "did NOT roll"), which is what its caller branches on to decide whether to step the next
+ *      digit pair — complementing the flags on the way out is heard in game data (LIVE, measured
+ *      on the oracle), while its caller's own exit leaves nothing anyone reads. The
+ *      rewrite RETURNS the answer and its caller branches on the return, so the oracle's carry is
+ *      compared against the rewrite's returned value, inverted; a gate that watched RAM alone would
+ *      pass a rewrite that got the answer exactly backwards, and the TEETH prove that.
+ *   3. EXHAUSTIVE — all 256 starting values, byte and answer compared on each. This is the arm
  *      that covers packed-decimal inputs that are not valid packed decimal, which no real
  *      dispatch produces: the counter cells start at zero and only this routine writes them.
  *   4. THE SWEEP REACHES BOTH ARMS, asserted rather than assumed — the value at which the byte
@@ -36,6 +40,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { advanceSexagesimalDigit } from "../advanceSexagesimalDigit.js";
 import { loc_4d67 as oracle } from "../../translated/loc_4d67.js";
 import { REG_FIELDS, F_C } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4d67;
 
@@ -82,17 +87,18 @@ function replay(candidate) {
   return { dispatches, caught };
 }
 
-/** Oracle vs candidate on two clones: RAM, then the carry the caller branches on. */
+/** The oracle's roll-over answer: its carry stands for "did NOT roll over". */
+const oracleRolled = (m) => (m.regs.f & F_C) === 0;
+
+/** Oracle vs candidate on two clones: RAM, then the answer the caller branches on. */
 function compare(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
   oracle(a);
-  candidate(b);
+  const rolled = candidate(b) === true;
   const ram = allDiffs(a, b)[0];
   if (ram) return ram;
-  if ((a.regs.f & F_C) !== (b.regs.f & F_C)) {
-    return { addr: null, a: a.regs.f & F_C, b: b.regs.f & F_C };
-  }
+  if (oracleRolled(a) !== rolled) return { addr: null, a: oracleRolled(a), b: rolled };
   return null;
 }
 
@@ -138,23 +144,38 @@ test("EQUAL at the real dispatch: RAM identical, scratch window included", { ski
   );
 });
 
-test("LIVE-OUT: the carry the caller branches on matches on the real dispatch", { skip }, () => {
+test("LIVE-OUT: the answer the caller branches on matches on the real dispatch", { skip }, () => {
   const entry = entryState();
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
   const returned = advanceSexagesimalDigit(b);
-  assert.equal(a.regs.f & F_C, b.regs.f & F_C, "the carry flag diverged");
-  assert.equal(returned, (b.regs.f & F_C) === 0, "the returned answer must mirror carry inverted");
-  console.log(`  LIVE-OUT: carry ${(a.regs.f & F_C) !== 0}, returned ${returned}`);
+  assert.equal(returned, oracleRolled(a), "the returned answer must be the oracle's carry, inverted");
+  console.log(`  LIVE-OUT: oracle carry ${(a.regs.f & F_C) !== 0}, returned ${returned}`);
 });
 
-test("EXHAUSTIVE: all 256 starting values agree on the byte and on carry", { skip }, () => {
+test("LIVE: the answer is read — complemented flags on the way out are heard, the caller's exit is not", { skip }, () => {
+  const CALLER = 0x4d3a;
+  const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+  // The only caller (0x4D3A) consumes the answer in its branch and leaves nothing that is read: so the
+  // rewrite's return, consumed by its caller, carries the whole of it. The control: complemented
+  // flags where THIS routine hands back must be heard in game data, or the answer is not a live-out
+  // and comparing it is pinning a dead register.
+  const [run] = assertDeadAtExit({
+    at: CALLER, poison: LEFT_BEHIND, frames: 3000, sessions: [{ label: "coin-start" }],
+    controls: [{ label: "flags live out of 0x4D67", at: TARGET, poison: ["f"], dataOnly: true }],
+  });
+  const flags = run.controls["flags live out of 0x4D67"];
+  console.log(`  LIVE: complemented flags heard at ${flags.cells.length} cells; ` +
+    `the caller's ${run.dead.poisoned} exits unheard`);
+});
+
+test("EXHAUSTIVE: all 256 starting values agree on the byte and on the answer", { skip }, () => {
   for (let value = 0; value < 256; value++) {
     const d = compare(advanceSexagesimalDigit, craft(value));
     assert.equal(d, null, `value=${value}: ${show(d)}`);
   }
-  console.log("  EXHAUSTIVE: 256 starting values identical in RAM and in carry");
+  console.log("  EXHAUSTIVE: 256 starting values identical in RAM and in the answer");
 });
 
 test("THE SWEEP REACHES BOTH ARMS: the roll-over point is inside it", { skip }, () => {
@@ -193,7 +214,7 @@ function brokenNoDecimalCorrection(m) {
   const cell = m.regs.hl;
   const stepped = (m.mem8[cell] + 1) & 0xff;
   m.mem8[cell] = stepped >= 0x60 ? 0 : stepped;
-  m.regs.f = (m.regs.f & ~F_C) | (stepped >= 0x60 ? 0 : F_C);
+  return stepped >= 0x60;
 }
 
 /** BUG: rolls over at a hundred instead of sixty. */
@@ -202,14 +223,12 @@ function brokenRollsAtHundred(m) {
   const was = m.mem8[cell];
   advanceSexagesimalDigit(m, cell);
   if (m.mem8[cell] === 0 && was !== 0x99) m.mem8[cell] = (was + 1) & 0xff;
-  m.regs.f |= F_C;
+  return false;
 }
 
 /** BUG: the roll-over answer comes back the wrong way round, invisible to RAM. */
 function brokenCarryInverted(m) {
-  const rolled = advanceSexagesimalDigit(m);
-  m.regs.f = (m.regs.f & ~F_C) | (rolled ? F_C : 0);
-  return !rolled;
+  return !advanceSexagesimalDigit(m);
 }
 
 const TWINS = [

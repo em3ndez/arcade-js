@@ -87,7 +87,14 @@ const HIGH_DIGIT_SHIFT = 4;
 const SCRATCH_BYTES = 8;
 
 /** The ceiling on divergence. Not a set the rewrite is required to fill. */
-const MOVED = ["a", "f", "sp"];
+/**
+ * c (the pen colour) is NOT a live-out: the painter now takes its colour as an argument, so the rewrite
+ * leaves c alone where the oracle leaves the colour in it. Measured on the ORACLE: in the frozen game, c poisoned (0x00/0x5a/0xa5/0xff) at every return
+ * reached (0x2D49, 0x3234, 0x4984; coin + service-credit session)
+ * leaves RAM (minus dead stack scratch below SP), pc and SP identical frame by frame over the
+ * session, where the same probe on drawRandomByte's A (a real live-out) forks.
+ */
+const MOVED = ["a", "f", "sp", "c"];
 
 const CORPUS_FRAMES = 2000;
 const WHOLE_FRAMES = 1400;
@@ -117,7 +124,7 @@ const HELPER = ["paintTwoUnsuppressedDigitsFromByte", "../paintTwoUnsuppressedDi
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
-    text.includes(`${name}(m)`) &&
+    text.includes(`${name}(m`) &&
     !text.includes(ownConstant);
 }
 

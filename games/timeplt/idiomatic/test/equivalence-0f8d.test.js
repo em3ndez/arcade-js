@@ -1,11 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f8d — the image-checksum tamper trap, matched against its frozen twin at the same address.
- * GATE: no tape springs the trap (a genuine image passes the check), so entries are CRAFTED on a
- *   real machine — a seated stack of sentinel words plus the eight slot heads the trap falls through
- *   to fix up, swept across the scanline the fall-through reads. The scanline is pinned on both sides
- *   because the frozen twin's cycle accounting drifts that read across the slots and a cycle-free
- *   rewrite does not. Whole RAM, every register, sp and pc compared; teeth below.
+ * loc_0f8d — the image-checksum tamper trap, against its frozen twin at the same address.
+ *
+ * ★ THE REWRITE RAISES WHERE THE ORIGINAL UNWINDS. The frozen trap drops four return words off the
+ *   stack (unwinding its caller chain), runs the sprite fixup pass on the fourth word's low byte and
+ *   returns through a fifth -- STACK UNWIND pins that off the frozen side. The idiomatic layer lays no
+ *   return words: every routine is a direct call and the frame interrupt fires as one, so there is no
+ *   chain on the stack to unwind and no faithful transcription of the unwind. The rewrite raises
+ *   NotImplemented at the landing instead, and the contract is re-expressed around that: across every
+ *   crafted entry it raises NotImplemented naming loc_0f8d and writes NOTHING first (LANDING), while the
+ *   frozen side really does return and move state (RAW), so the two are compared at the transfer and
+ *   the trap's own effects are not compared. Callers are held to the same transfer by their own gates
+ *   (the verdict 0x5303 and the parking step 0x07AD stop the oracle on entry here).
+ *
+ * ★ THE TRAP IS DEAD ON A GENUINE IMAGE, by construction and by measurement. Its only way in is the
+ *   verdict at 0x5303, which springs it when the fold handed on is not 0x67, and the fold's only caller
+ *   (the credit line, jp 0x43E8 with HL = 0x086B, B = 0x14) sums fixed program bytes: GENUINE FOLD
+ *   recomputes that sum from the image as 0x67. UNREACHED runs both tapes with a live control, and a
+ *   wrong total handed to the verdict is the positive control that does reach it. MAME agrees: a
+ *   PC-gated tap over 600 s driven and 600 s of attract logged A = B = 0x67 at every sampled fetch of
+ *   0x5306 (the tap samples the first six per run) and fetched 0x0F8D zero times.
+ *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0f8d.test.js
  */
 import test from "node:test";
@@ -17,7 +32,7 @@ import { loc_0f8d as candidate } from "../loc_0f8d.js";
 import { loc_0f8d as oracle } from "../../translated/loc_0f8d.js";
 import { multiplexSpriteSlotsSkipping as fixupPass } from "../multiplexSpriteSlotsSkipping.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 
 const TARGET = 0x0f8d;
 const FALL_THROUGH = 0x0f97;
@@ -72,68 +87,69 @@ const SCENARIOS = {
 
 function pin(m, scanline) { m.io.readScanline = () => scanline & 0xff; }
 
-/** Oracle vs candidate on clones with the scanline pinned identically: RAM, then registers, then pc. */
-function unitDiff(cand, machine, scanline) {
-  const a = machine.clone();
+/** The landing contract on one crafted entry: the candidate raises NotImplemented naming loc_0f8d, and
+ * the machine it leaves is the machine it was handed (RAM, every register, sp and pc). null = held. */
+function landingDiff(cand, machine, scanline) {
+  const before = machine.clone();
   const b = machine.clone();
-  pin(a, scanline);
+  pin(before, scanline);
   pin(b, scanline);
-  oracle(a);
-  try {
-    cand(b);
-  } catch (e) {
-    return { addr: null, a: "returned", b: String(e).slice(0, 40) };
-  }
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  let err = null;
+  try { cand(b); } catch (e) { err = e; }
+  if (!(err instanceof NotImplemented)) return { reg: "raise", a: "NotImplemented", b: err ? String(err.message ?? err).slice(0, 40) : "returned" };
+  if (!err.message.startsWith("not implemented: loc_0f8d:")) return { reg: "raise", a: "loc_0f8d", b: err.message.slice(0, 40) };
+  const ram = firstStateDiff(before.dumpState(), b.dumpState(), (off) => before.stateOffsetToAddr(off));
   if (ram) return ram;
-  for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) return { reg: k, a: a.regs[k], b: b.regs[k] };
-  if (a.pc !== b.pc) return { reg: "pc", a: a.pc, b: b.pc };
+  for (const k of ["af", "bc", "de", "hl", "ix", "iy", "sp"]) if (before.regs[k] !== b.regs[k]) return { reg: k, a: before.regs[k], b: b.regs[k] };
+  if (before.pc !== b.pc) return { reg: "pc", a: before.pc, b: b.pc };
   return null;
 }
 
 function sweep(cand) {
   let caught = 0;
   for (const mutate of Object.values(SCENARIOS)) {
-    for (let s = 0; s < 256; s += 8) if (unitDiff(cand, craft(mutate), s)) caught++;
+    for (let s = 0; s < 256; s += 8) if (landingDiff(cand, craft(mutate), s)) caught++;
   }
   return caught;
 }
 
-/** Bytes the frozen side moves at a pinned scanline — the guard against a vacuous, no-fire sweep. */
-function footprint(machine, scanline) {
-  const a = machine.clone();
-  pin(a, scanline);
-  const before = a.dumpState().slice();
-  oracle(a);
-  const after = a.dumpState();
-  let n = 0;
-  for (let i = 0; i < after.length; i++) if (after[i] !== before[i]) n++;
-  return n;
-}
-
 // ── broken twins ────────────────────────────────────────────────────────────────────────
 const brokenNoOp = () => {};
-const brokenNoUnwind = (m) => { m.regs.bc = 0x02f2; return fixupPass(m); };
-const brokenThreePops = (m) => { for (let i = 0; i < 3; i++) m.regs.af = m.pop16(); m.regs.bc = 0x02f2; return fixupPass(m); };
-const brokenFivePops = (m) => { for (let i = 0; i < 5; i++) m.regs.af = m.pop16(); m.regs.bc = 0x02f2; return fixupPass(m); };
-const brokenSkipBody = (m) => { for (let i = 0; i < DROPPED; i++) m.regs.af = m.pop16(); m.regs.bc = 0x02f2; };
-const brokenNoBc = (m) => { for (let i = 0; i < DROPPED; i++) m.regs.af = m.pop16(); return fixupPass(m); };
-const brokenBareFlags = (m) => { for (let i = 0; i < DROPPED; i++) m.pop16(); m.regs.bc = 0x02f2; return fixupPass(m); };
-// ★ correct behaviour, but scribbles a register the trap never touches: the control for the reg check.
-const brokenMovesSpareRegister = (m) => { candidate(m); m.regs.d = (m.regs.d + 1) & 0xff; };
+// The old transcription's shape: unwind and run the pass. It returns instead of raising.
+const brokenUnwinds = (m) => { for (let i = 0; i < DROPPED; i++) m.regs.af = m.pop16(); m.regs.bc = 0x02f2; return fixupPass(m); };
+// Raises, but with a plain error rather than the untranscribable-landing fault.
+const brokenPlainError = () => { throw new Error("loc_0f8d: a refusal of the wrong kind"); };
+// Raises the right fault, but only after popping a word: the landing must write and move nothing.
+const brokenPopsFirst = (m) => { m.pop16(); return candidate(m); };
+// Raises the right fault, but only after the fixup pass has written.
+const brokenFixupFirst = (m) => { fixupPass(m, 0xf2, 0x4d); return candidate(m); };
 
 const TWINS = [
-  ["no-op", brokenNoOp],
-  ["no-unwind", brokenNoUnwind],
-  ["three-pops", brokenThreePops],
-  ["five-pops", brokenFivePops],
-  ["skip-body", brokenSkipBody],
-  ["no-bc-residue", brokenNoBc],
-  ["bare-flags", brokenBareFlags],
+  ["no-op", brokenNoOp, 96],
+  ["unwinds", brokenUnwinds, 96],
+  ["plain-error", brokenPlainError, 96],
+  ["pops-first", brokenPopsFirst, 96],
+  ["fixup-first", brokenFixupFirst, 96],
 ];
 
+const GENUINE_BLOCK = 0x086b;
+const GENUINE_LENGTH = 0x14;
+const GENUINE_TOTAL = 0x67;
+const VERDICT = 0x5303;
+const foldOf = (rom) => { let t = 0; for (let i = 0; i < GENUINE_LENGTH; i++) t = (t + rom[GENUINE_BLOCK + i]) & 0xff; return t; };
+
 // ── the gate ────────────────────────────────────────────────────────────────────────────
-test("UNREACHED: no tape springs the trap, with a live control", { skip }, () => {
+test("GENUINE FOLD: the one block the verdict judges sums to 0x67 on the image", { skip }, () => {
+  const rom = baseState().rom;
+  assert.equal(foldOf(rom), GENUINE_TOTAL, "the genuine image does not fold to 0x67, so the trap is live");
+  // Control: one byte of the block moved moves the fold.
+  const was = rom[GENUINE_BLOCK];
+  rom[GENUINE_BLOCK] = was ^ 0xff;
+  try { assert.notEqual(foldOf(rom), GENUINE_TOTAL, "the fold ignores the block's bytes"); } finally { rom[GENUINE_BLOCK] = was; }
+  console.log(`  GENUINE FOLD: ${hex4(GENUINE_BLOCK)}+${GENUINE_LENGTH} sums to ${hex4(GENUINE_TOTAL)}; a moved byte does not`);
+});
+
+test("UNREACHED: no tape springs the trap, with a live control and a wrong-total positive control", { skip }, () => {
   for (const [label, opts] of [["coin-start", {}], ["undriven", { tape: [] }]]) {
     const seen = { [TARGET]: 0, [FALL_THROUGH]: 0 };
     const realPass = TRANSLATED.get(FALL_THROUGH);
@@ -148,18 +164,40 @@ test("UNREACHED: no tape springs the trap, with a live control", { skip }, () =>
     assert.equal(seen[TARGET], 0, `${label} sprang the trap — a genuine image should never fail the check`);
     console.log(`  UNREACHED: ${label} — trap ${seen[TARGET]}, control pass ${seen[FALL_THROUGH]}`);
   }
+  // Positive control: the same undriven run with the verdict handed a wrong total does reach the trap.
+  let sprung = 0;
+  const verdict = TRANSLATED.get(VERDICT);
+  const m = makeMachine(new Map([
+    [VERDICT, (mm) => { mm.regs.b = GENUINE_TOTAL ^ 0xff; return verdict(mm); }],
+    [TARGET, () => { sprung++; throw new Error("sprung"); }],
+  ]), { tape: [] });
+  try { m.runFrames(ENTRY_FRAMES); } catch { /* the probe stops the run */ }
+  assert.ok(sprung > 0, "a wrong total never reached the trap, so the zero above says nothing");
+  console.log(`  UNREACHED: a wrong total at the verdict springs it (${sprung})`);
 });
 
-test("CRAFTED EQUIVALENCE: every scenario and scanline identical, and the pass really fires", { skip }, () => {
-  assert.equal(sweep(candidate), 0, "a crafted state diverged");
+test("LANDING: across every crafted entry the rewrite raises naming loc_0f8d and moves nothing", { skip }, () => {
+  assert.equal(sweep(candidate), 0, "the rewrite wrote, moved a register, or raised the wrong fault");
+  console.log(`  LANDING: 3 scenarios x 32 scanlines -- NotImplemented at entry, machine untouched`);
+});
+
+test("RAW: the frozen trap really returns and moves state, so it is compared at the transfer", { skip }, () => {
   const prints = [];
-  for (let s = 0; s < 256; s++) prints.push(footprint(craft(SCENARIOS.mixed), s));
-  // ★ vacuity guard: the sweep must span quiet AND firing scanlines, or it never exercises the pass.
-  assert.ok(prints.some((n) => n === 0) && prints.some((n) => n > 0), "the fall-through never fired, so the sweep is vacuous");
-  console.log(`  EQUIVALENCE: 3 scenarios x 32 scanlines identical; footprint spans ${Math.min(...prints)}..${Math.max(...prints)} bytes`);
+  let returned = 0;
+  for (let s = 0; s < 256; s++) {
+    const a = craft(SCENARIOS.mixed);
+    pin(a, s);
+    const before = a.dumpState().slice();
+    oracle(a); // returns -- it does not refuse
+    returned++;
+    prints.push(a.dumpState().filter((v, i) => v !== before[i]).length);
+  }
+  assert.equal(returned, 256, "the frozen trap refused somewhere");
+  assert.ok(prints.some((n) => n > 0), "the frozen trap never moved a byte, so the raise hides nothing");
+  console.log(`  RAW: the frozen trap returns on every scanline; its footprint spans ${Math.min(...prints)}..${Math.max(...prints)} bytes`);
 });
 
-test("STACK UNWIND: four words dropped, the pass rets on the fifth", { skip }, () => {
+test("STACK UNWIND: four words dropped, the pass rets on the fifth (frozen side, pinned)", { skip }, () => {
   // Read off the FROZEN side and pinned, so this file's account of the unwind cannot drift.
   const m = craft(SCENARIOS.quiet);
   pin(m, 100);
@@ -170,16 +208,11 @@ test("STACK UNWIND: four words dropped, the pass rets on the fifth", { skip }, (
   console.log(`  UNWIND: sp lifted ${SP_LIFT}, pc=${hex4(m.pc)}, b=${hex4(m.regs.b)}`);
 });
 
-test("LIVE-OUT: the register check can see a stray register", { skip }, () => {
-  assert.equal(sweep(candidate), 0, "the rewrite moved a register the frozen side did not");
-  assert.ok(sweep(brokenMovesSpareRegister) > 0, "a twin that scribbles d is not caught, so the register check is blind");
-  console.log("  LIVE-OUT: register check catches the spare-register control");
-});
-
-for (const [label, twin] of TWINS) {
+for (const [label, twin, expected] of TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT`, { skip }, () => {
     const caught = sweep(twin);
     assert.ok(caught > 0, `every crafted state PASSED the ${label} twin`);
+    assert.equal(caught, expected, `the ${label} twin's catch count moved`);
     console.log(`  TEETH/${label}: caught on ${caught}/${3 * 32} crafted states`);
   });
 }

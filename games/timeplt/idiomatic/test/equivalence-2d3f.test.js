@@ -89,6 +89,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, TAPE_SESSIONS } from "./_deadAtExit.js";
+import { stopAtLandings, landingOf } from "./_landingProbe.js";
 import { showCreditLine } from "../showCreditLine.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { flashCopyrightLine } from "../flashCopyrightLine.js";
@@ -125,8 +127,14 @@ const SCRATCH_BYTES = 10;
  * The ceiling on register divergence, and the whole of it: the oracle marshals its callees through
  * registers, and on the free-play arm it takes a return the dissolved call does not. Not a set the
  * rewrite is REQUIRED to fill — a rewrite that diverged on fewer still passes.
+ * b — the oracle parks the image total in B at 0x07AD for the verdict 0x5303, whose checksum call
+ * 0x200C hands it back in A; the rewritten chain hands the total on as an argument instead. Neither
+ * the chain nor its exit reads B afterwards: the verdict's clean exit 0x0F1A reloads HL, increments
+ * the sequence cursor and returns into the phase dispatcher's shared tail 0x167B, whose own body
+ * tests three memory cells. Measured too, by the DEAD AT EXIT arm below: B complemented where this
+ * entry hands back is heard nowhere over every tape session.
  */
-const CEILING = ["a", "f", "c", "d", "e", "h", "l", "iy", "sp"];
+const CEILING = ["a", "f", "b", "c", "d", "e", "h", "l", "iy", "sp"];
 /** Outside the ceiling, so the EXCLUDED arm can show the measurement reports one. */
 const OUTSIDE = "ix";
 
@@ -582,11 +590,18 @@ function imageReads(fn, machine, lo, hi) {
   return [...seen].sort((x, y) => x - y);
 }
 
-/** The verdict the folded total decides, read off the sequence cursor the genuine exit advances. */
+/** The verdict the folded total decides, read off the sequence cursor the genuine exit advances. A
+ * wrong total transfers into the image-checksum trap 0x0F8D, which the rewrite raises at (it unwinds
+ * return words the idiomatic layer never lays down), so both sides are stopped AT that transfer and
+ * the verdict there reads "trap" (the trap itself is gated by equivalence-0f8d). */
+const IMAGE_TRAP = 0x0f8d;
 function verdict(fn, machine) {
-  const m = machine.clone();
-  const threw = runSide(fn, m);
-  return threw === null ? m.mem8[SEQUENCE_SUBSTEP] : `threw ${threw.slice(0, 40)}`;
+  const m = stopAtLandings(machine.clone(), [IMAGE_TRAP]);
+  let err = null;
+  try { fn(m); } catch (e) { err = e; }
+  if (err === null) return m.mem8[SEQUENCE_SUBSTEP];
+  if (landingOf(err, new Map([[IMAGE_TRAP, "loc_0f8d"]])) === IMAGE_TRAP) return "trap";
+  return `threw ${String(err.message ?? err).slice(0, 40)}`;
 }
 
 test("THE BLOCK HANDED ON: the oracle's total at its seam; the rewrite's by what it reads and the verdict it turns", { skip }, () => {
@@ -648,6 +663,13 @@ function movedOver(candidate) {
   }
   return moved;
 }
+
+/** Frames each TAPE_SESSIONS session runs for the DEAD AT EXIT arm. */
+const DEAD_FRAMES = 2500;
+
+test("DEAD AT EXIT: on the frozen game, b is dead where this entry hands back", { skip }, () => {
+  assertDeadAtExit({ at: TARGET, poison: ["b"], sessions: TAPE_SESSIONS, frames: DEAD_FRAMES });
+});
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
   const outside = unitDiff(regScribbler(OUTSIDE), entryState());

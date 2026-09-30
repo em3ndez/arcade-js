@@ -2,7 +2,9 @@
 /**
  * driveEnemyWaveForLifePhase vs the frozen oracle: natural dispatches, every decision branch crafted, and a full
  * occupancy sweep of the wave body, each masked for the dead stack scratch the dissolved tails leave
- * and held to a shadow-AF ceiling. Run:
+ * and held to a shadow-AF ceiling. The twins address the shape record themselves: the oracle reads its
+ * second byte through the HL its rst 08 leaves on the entry, internal to this routine and no longer
+ * returned by fetchTableByte; a TWIN CONTROL holds the defect-free twin caught nowhere. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-36af.test.js
  */
 
@@ -188,10 +190,12 @@ function twin(opts) {
     let remaining = count;
     do {
       if (mem8[record] === 0) {
-        regs.a = u8(2 * (mem8[descriptor] + bias));
-        regs.hl = SHAPE_TABLE;
-        mem8[entry + 0x31] = fetchTableByte(m);
-        mem8[entry] = mem8[regs.hl + 1];
+        // The oracle reads the second shape byte through the HL its rst 08 leaves on the entry, inside
+        // this routine; fetchTableByte no longer hands that pointer back, so the twin addresses it.
+        const index = u8(2 * (mem8[descriptor] + bias));
+        const at = u16(SHAPE_TABLE + index);
+        mem8[entry + 0x31] = fetchTableByte(m, SHAPE_TABLE, index);
+        mem8[entry] = mem8[u16(at + 1)];
         const aimed = u8(mem8[PLAYER_HEADING] + 0x80);
         mem8[record + 0x01] = aimed;
         mem8[record + 0x02] = aimed;
@@ -328,6 +332,14 @@ test("TEETH CONTROL: the shadow-accumulator twin is caught on every crafted stat
   const states = corpus();
   assert.equal(sweep(movesShadowA, states), states.length, "the control twin slipped a state");
   console.log(`  TEETH CONTROL: caught on ${states.length}/${states.length}`);
+});
+
+test("TWIN CONTROL: the twin with no defect switched on is caught on no crafted state", { skip }, () => {
+  // The twins address the shape record themselves (the rst 08 hand-off of HL is internal to the
+  // oracle and no longer returned); this holds that base faithful, so each count below is its defect's.
+  const states = corpus();
+  assert.equal(sweep(twin({}), states), 0, "the defect-free twin diverged, so the twin counts measure the scaffold");
+  console.log(`  TWIN CONTROL: the defect-free twin is caught on 0/${states.length}`);
 });
 
 for (const [label, brokenTwin, expected] of TWINS) {

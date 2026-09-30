@@ -2,11 +2,13 @@
 /** loc_5942 — hand back the component pair an object's heading calls for, at the pace one fixed
  * velocity table sets; choosing it is all this entry does. LIVE-OUT: the pair. */
 
+import { u16 } from "../../../core/int.js";
 import { velocityForHeading } from "./velocityForHeading.js";
 import { loc_59d7 } from "./names.js";
 
 const VELOCITY_TABLE = loc_59d7;
+const HEADING_IN_RECORD = 2;
 
-export function loc_5942(m) {
-  return velocityForHeading(m, VELOCITY_TABLE);
+export function loc_5942(m, heading = m.mem8[u16(m.regs.ix + HEADING_IN_RECORD)]) {
+  return velocityForHeading(m, VELOCITY_TABLE, heading);
 }

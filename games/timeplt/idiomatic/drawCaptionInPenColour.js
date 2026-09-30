@@ -4,7 +4,7 @@
  * more byte, and the glyphs follow. That third byte is STEPPED OVER, not used: the colour every
  * cell gets is the low half of the current colour cell instead, so a caption's own record cannot
  * choose its colour.
- * LIVE-OUT: the cells painted, plus the cursor and the run pointer the painter leaves standing. */
+ * LIVE-OUT: the cells painted, plus the cursor the painter leaves standing. */
 
 import { u16 } from "../../../core/int.js";
 import { drawTextRun } from "./drawTextRun.js";

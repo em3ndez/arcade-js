@@ -5,8 +5,10 @@
  * the shadow cell above it, stepping the entry cursor by four a row, and control hands on to the
  * scenery run. On the seat arm every register the body touches is dead-after-return scratch — the
  * scenery run reseats both cursors before reading either — so it lives here as JS locals. The divert
- * arm is different: the lifted destination reads the walked pointer and the byte under it as inputs
- * (it stores through the pointer and folds the byte), so both are seated across the transfer.
+ * arm is different: the lifted destination stores the caller's clear stride through the walked pointer,
+ * folds the byte under it, counts the caller's spent clear count down (wrapping, so it keeps to its
+ * one-tile arm) and places one tile through the caller's entry cursor offset by the era -- so the
+ * pointer, the byte, the era, the cursor, the stride and the count are all handed across.
  * LIVE-OUT: memory. */
 
 import { u16 } from "../../../core/int.js";
@@ -24,17 +26,18 @@ const SPRITE_TINT = 0x31; // tint lands at entry +value 0x31
 const SHADOW_TINT = 0x33; // the shadow cell above it
 const TINT_STEP = 0x10; // shadow tint = sprite tint plus this
 
-export function seedSceneryEntriesThenRunScenery(m) {
-  const { regs, mem8 } = m;
+export function seedSceneryEntriesThenRunScenery(m, era = m.regs.c, entryCursor = m.regs.iy, clearStride = m.regs.e, clearCount = m.regs.b) {
+  const { mem8 } = m;
 
-  // The sentinel pointer and the byte under it both ride on into the divert, which stores through
-  // the pointer and folds the byte, so a fail seats the walked pair across the transfer.
+  // The sentinel pointer and the byte under it both ride on into the divert, with the caller's inputs.
+  const divert = (guard, sentinel) =>
+    trampolineToLoc_307f(m, guard, clearStride, sentinel, clearCount, entryCursor, era);
   let guard = TAMPER_WITNESS;
   let sentinel = mem8[guard];
-  if (sentinel !== SENTINEL_MATCH) return (regs.hl = guard, regs.a = sentinel, trampolineToLoc_307f(m));
+  if (sentinel !== SENTINEL_MATCH) return divert(guard, sentinel);
   guard = u16(guard + 1);
   sentinel = mem8[guard];
-  if (sentinel !== SUBGUARD_A && sentinel !== SUBGUARD_B) return (regs.hl = guard, regs.a = sentinel, trampolineToLoc_307f(m));
+  if (sentinel !== SUBGUARD_A && sentinel !== SUBGUARD_B) return divert(guard, sentinel);
 
   let src = SCENERY_SEED_TABLE;
   let entry = SCENERY_ENTRY_SLOT0;

@@ -2,7 +2,8 @@
 /** advanceSlotThenSweepObjectBankByHead — enter the object-bank sweep at its advance step: stride one slot forward, and when the
  * count runs out return. An empty slot is stepped over, a ballistic (0xFF) slot is flown a frame and
  * stepped over, and the first slot carrying any other marker hands the rest of the bank to the
- * servicing sweep. Cursors stride one record and one sprite entry per slot. LIVE-OUT: memory. */
+ * servicing sweep. Cursors stride one record and one sprite entry per slot. LIVE-OUT: memory; returns
+ * where the cursors stopped ({ record, sprite, count }), from the servicing sweep when it hands off. */
 
 import { u16 } from "../../../core/int.js";
 import { sweepObjectSlotBankServicingFirstSlot } from "./sweepObjectSlotBankServicingFirstSlot.js";
@@ -19,11 +20,11 @@ export function advanceSlotThenSweepObjectBankByHead(m, record = m.regs.ix, spri
     record = u16(record + RECORD_STRIDE);
     sprite = u16(sprite + SPRITE_STRIDE);
     count = (count - 1) & 0xff;
-    if (count === 0) return (m.regs.ix = record, m.regs.iy = sprite, m.regs.b = count, undefined);
+    if (count === 0) return { record, sprite, count };
 
     const marker = mem8[record];
     if (marker === EMPTY) continue;
-    if (marker !== BALLISTIC) return (m.regs.ix = record, m.regs.iy = sprite, m.regs.b = count, sweepObjectSlotBankServicingFirstSlot(m));
+    if (marker !== BALLISTIC) return sweepObjectSlotBankServicingFirstSlot(m, record, sprite, count);
     flyAlongBallisticArc(m, record, sprite);
   }
 }

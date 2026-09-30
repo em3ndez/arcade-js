@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0f8d — the image-checksum tamper trap: pop four return words to unwind the caller chain, then
- * run the sprite fixup pass (the fourth word's low byte carries into it) and return through a fifth.
- * LIVE-OUT: sp past all five words, pc from the fifth, b=2, and the accumulator/C/flags the pass leaves. */
+/** loc_0f8d — the image-checksum tamper trap. The original drops four return words off the stack to
+ * unwind its caller chain, runs the sprite fixup pass on the low byte of the fourth, and returns through
+ * a fifth. This layer lays no return words (every routine is a direct call and the frame interrupt fires
+ * as one), so there is no chain on the stack to unwind and no faithful transcription of the unwind; it
+ * raises where the transfer lands instead. It is reached only when the one image block the credit line
+ * folds does not total 0x67, and that block is fixed program bytes, so a genuine image never arrives
+ * here. No cell is read or written before the raise. LIVE-OUT: none — it never returns. */
 
-import { multiplexSpriteSlotsSkipping as spriteFixupPass } from "./multiplexSpriteSlotsSkipping.js";
+import { NotImplemented } from "../../../boards/timeplt/io.js";
 
-const RESIDUE_LOW = 0xf2; // C the fixup pass reads
-const RESIDUE_HIGH = 0x02; // B left for the caller after the pass
-
-export function loc_0f8d(m) {
-  m.pop16();
-  m.pop16();
-  m.pop16();
-  const fourth = m.pop16();
-  spriteFixupPass(m, RESIDUE_LOW, fourth & 0xff);
-  m.ret();
-  return void (m.regs.b = RESIDUE_HIGH);
+export function loc_0f8d() {
+  throw new NotImplemented(
+    "loc_0f8d: the image checksum is not 0x67, so the image is tampered and the original unwinds four " +
+      "return words off the stack as a trap; a genuine image always folds to 0x67",
+  );
 }

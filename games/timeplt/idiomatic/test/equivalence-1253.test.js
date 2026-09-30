@@ -40,6 +40,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, TAPE_SESSIONS } from "./_deadAtExit.js";
 import { postGameOverBanner } from "../postGameOverBanner.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { offsetAddress } from "../offsetAddress.js";
@@ -75,7 +76,16 @@ const TAPES = [["shared", {}], ["attract", { tape: [] }]];
  * The two arms move different sets, so each is pinned apart: the queueing arm reaches the ring
  * through a helper that leaves an address pair behind, and the teardown arm does not.
  */
-const EXCLUDED_QUEUEING = ["a", "f", "h", "l", "sp"];
+/*
+ * The command pair left in d/e is NOT a live-out: the queueing arm hands each pair to the ring as
+ * arguments and nothing reads the last one back. Derived from the ORACLE: this routine's only
+ * return goes, through the sub-step dispatcher and its tail 0x0F54 (play is active here, so it
+ * returns at once), into the NMI epilogue at 0x0174, whose 0x55D4 writes d/e before reading them
+ * and which then pops every register. Measured on the ORACLE too, by the DEAD AT EXIT arm below:
+ * d/e complemented where this entry hands back, over every tape session that reaches it (once each),
+ * are heard nowhere.
+ */
+const EXCLUDED_QUEUEING = ["a", "f", "d", "e", "h", "l", "sp"];
 const EXCLUDED_TEARDOWN = ["a", "f", "sp"];
 
 const PLAY_STATES = [0, 1, 0xff];
@@ -126,7 +136,7 @@ function allDiffs(a, b) {
   return out;
 }
 
-/** Masked RAM, then the command pair the queueing arm leaves in the registers. */
+/** Masked RAM. (The command pair left in d/e is not a live-out; see EXCLUDED_QUEUEING.) */
 function unitDiff(candidate, machine) {
   const sp = machine.regs.sp;
   const a = machine.clone();
@@ -134,9 +144,7 @@ function unitDiff(candidate, machine) {
   oracle(a);
   candidate(b);
   const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
-  if (ram) return ram;
-  if (a.regs.de !== b.regs.de) return { addr: null, a: a.regs.de, b: b.regs.de };
-  return null;
+  return ram ?? null;
 }
 
 function craft({ play, up, cursor, guard }) {
@@ -265,7 +273,9 @@ const TWINS = [
   ["never-advances", brokenNeverAdvances, 48],
   ["teardown-keeps-the-phase", brokenTeardownKeepsThePhase, 24],
   ["fold-off-by-one", brokenFoldOffByOne, 24],
-  ["swaps-the-pairs", brokenSwapsThePairs, 48],
+  // Caught where the ring cell is free, as wrong-first-command is: on an occupied ring neither pair
+  // lands, and the order then shows only in the dead d/e the queueing arm leaves (not compared).
+  ["swaps-the-pairs", brokenSwapsThePairs, 24],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -293,6 +303,13 @@ test("NOT VACUOUS: an empty candidate FAILS on BOTH arms", { skip }, () => {
   console.log(`  NOT VACUOUS: queueing ${show(queueing)}; teardown ${show(teardown)}`);
 });
 
+/** Frames each TAPE_SESSIONS session runs for the DEAD AT EXIT arm. */
+const DEAD_FRAMES = 2500;
+
+test("DEAD AT EXIT: on the frozen game, d, e are dead where this entry hands back", { skip }, () => {
+  assertDeadAtExit({ at: TARGET, poison: ["d", "e"], sessions: TAPE_SESSIONS, frames: DEAD_FRAMES });
+});
+
 test("EXCLUDED, deliberately: registers and pc, pinned on each arm apart", { skip }, () => {
   for (const [point, expected] of [
     [LIVE_POINT, EXCLUDED_QUEUEING],
@@ -305,7 +322,7 @@ test("EXCLUDED, deliberately: registers and pc, pinned on each arm apart", { ski
     assert.deepEqual(
       REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
       expected,
-      "the excluded set changed shape: the command pair is a live-out and must not appear here",
+      "the excluded set changed shape",
     );
     assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   }

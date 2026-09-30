@@ -5,9 +5,8 @@
  * value, tears down and rebuilds the whole fifteen-slot formation; the live phase drifts the pair
  * with the world, dresses it, and — while off cooldown and the player strays into its band — hands a
  * free slot a homing spawn whose heading and stage-vector are computed here. Every callee, the
- * inline jump-table arm included, is reached as a direct call. LIVE-OUT: memory, plus ix/iy (the
- * record/sprite pointer the frame ends on). The record/sprite pair is threaded explicitly through
- * the whole recursion; the entry's ix/iy live-out seat rides its return and every arm keeps its
+ * inline jump-table arm included, is reached as a direct call. LIVE-OUT: memory. The record/sprite
+ * pair is threaded explicitly through the whole recursion and into every callee; every arm keeps its
  * `=m.regs.X` param-default as the frozen-caller bridge. */
 
 import { u8, u16 } from "../../../core/int.js";
@@ -63,12 +62,10 @@ const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors 
 export function stepMotherShip(m) {
   const { mem8 } = m;
   const state = mem8[u16(MOTHER_SHIP_STATE + STATE)];
-  // Seat the record/sprite pair as the live-out baseline (an arm that does not advance ix/iy leaves
-  // them here) AND pass the pair EXPLICITLY into the arm so no callee reads a stale register. The seat
-  // rides the return, so an advancing arm (46f0/474c/4734) overwrites it before this returns.
-  if (state === 0x00) return (m.regs.ix = MOTHER_SHIP_STATE, m.regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4535(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY)); // idle
-  if (u8(state + 1) !== 0x00) return (m.regs.ix = MOTHER_SHIP_STATE, m.regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4540(m, u8(state + 1), MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY)); // mid-phase (C = phase + 1)
-  return (m.regs.ix = MOTHER_SHIP_STATE, m.regs.iy = MOTHER_SHIP_ENTRY, loc_43f0_4403(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY)); // live
+  // The record/sprite pair is handed EXPLICITLY into the arm, and on by every arm to its callees.
+  if (state === 0x00) return loc_43f0_4535(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // idle
+  if (u8(state + 1) !== 0x00) return loc_43f0_4540(m, u8(state + 1), MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // mid-phase (C = phase + 1)
+  return loc_43f0_4403(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // live
 }
 
 export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
@@ -90,7 +87,7 @@ export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
   mem8[Y(0x33)] = u8(mem8[Y(0x31)] + 0x10);
   mem8[Y(0x02)] = mem8[Y(0x00)];
 
-  dressSpriteForHeadingOrRetireAtEdge(m);
+  dressSpriteForHeadingOrRetireAtEdge(m, ix, iy);
   return loc_43f0_46f0(m, ix, iy);
 }
 
@@ -151,7 +148,7 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
-  driftWithWorldScroll(m);
+  driftWithWorldScroll(m, ix, iy);
 
   // Dress the pair unless its heading or Y is out of range -> flag 0xFF instead.
   const heading = mem8[Y(0x31)];
@@ -236,7 +233,7 @@ export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   mem8[X(0x02)] = u8(player + 0xc0) & 0x80;
 
-  setMotherShipVelocityFromHeading(m);
+  setMotherShipVelocityFromHeading(m, ix);
 
   if (mem8[X(HOLD_COUNTER)] < 0x06) mem8[X(HOLD_COUNTER)] = 0x05; // floor
   mem8[X(STATE)] = 0xff; // activate the mothership
@@ -246,12 +243,12 @@ export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
 export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   // ix/iy walk the two-slot bank as plain locals; on a spawn they carry the current record/entry into
-  // loc_43f0_4734, and on a no-spawn walk-off they are the pointer live-out (folded onto the return).
+  // loc_43f0_4734.
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
-  if (u8(mem8[X(STATE)] + 1) !== 0x00) return; // not live (ix/iy live-out = the seat this arm was handed)
-  if (mem8[BANK_LAUNCH_COOLDOWN] !== 0x00) return; // cooling down (same)
+  if (u8(mem8[X(STATE)] + 1) !== 0x00) return; // not live
+  if (mem8[BANK_LAUNCH_COOLDOWN] !== 0x00) return; // cooling down
 
   const halfBand = mem8[BANK_LAUNCH_NEAR_HALF_Y]; // D
   const band = u8(halfBand + halfBand); // E
@@ -266,7 +263,7 @@ export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
     iy = u16(iy + 2);
     count = u8(count - 1);
   } while (count !== 0);
-  return (m.regs.iy = iy, m.regs.ix = ix); // walked off with no spawn: the advanced pair is the live-out
+  // walked off with no spawn
 }
 
 export function loc_43f0_4734(m, ix = m.regs.ix, iy = m.regs.iy) {
@@ -281,7 +278,7 @@ export function loc_43f0_4734(m, ix = m.regs.ix, iy = m.regs.iy) {
     entryPtr = u16(entryPtr + 2);
     count = u8(count - 1);
   } while (count !== 0);
-  return (m.regs.iy = iy, m.regs.ix = ix); // no free slot: keep the mother-ship pair 46f0 handed us as live-out
+  // no free slot
 }
 
 export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy = m.regs.iy) {
@@ -336,5 +333,4 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy
   mem8[Y(SECOND_ENTRY)] = 0x62;
   mem8[X(STATE)] = u8(mem8[X(STATE)] - 1); // 0x00 -> 0xFF: the entry is live
   mem8[BANK_LAUNCH_COOLDOWN] = mem8[BANK_LAUNCH_COOLDOWN_PERIOD]; // re-arm the cooldown
-  return (m.regs.iy = entryPtr, m.regs.ix = recordPtr); // the new slot's record/entry pointers are the live-out
 }

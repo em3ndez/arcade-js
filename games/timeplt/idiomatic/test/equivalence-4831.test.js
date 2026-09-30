@@ -10,16 +10,21 @@
  *      "we never reached it".
  *   2. EQUAL at the real dispatch — everything outside a two-byte dead scratch window below the
  *      entry stack pointer. Pinned by every arm.
- *   3. THE COMMAND PAIR IS A LIVE-OUT and is compared as well as memory: the frozen entry leaves
- *      the pair standing in the registers, and a rewrite that queued the right pair while leaving
- *      the registers wrong would pass a memory-only comparison.
+ *   3. NO REGISTER IS LIVE AT EXIT, measured on the ORACLE (DEAD AT EXIT): the frozen entry leaves
+ *      the command pair standing in the registers, but wrapped in the all-frozen game with that
+ *      pair and every other register it leaves complemented on the way out it is unheard anywhere
+ *      over a long undriven attract run, while SP flipped at the same exit is heard
+ *      (assertDeadAtExit). So the pair is compared where it lands — in the command ring — and not
+ *      in the registers.
  *   4. EXHAUSTIVE — the step number 0..255 crossed with the ring's own state, which is what
  *      decides whether the pair is queued or dropped. Both branches are therefore covered.
  *   5. BOTH SIDES OF THE STEP LIMIT REACHED, asserted: the sweep is shown to contain numbers that
  *      take an argument from the table and numbers that take the fixed one, and the two argument
  *      sets are shown to be different.
  *   6. TEETH — eight twins, each caught on its own exact count over the sweep; three of them
- *      differ from the real entry on a handful of step numbers only.
+ *      differ from the real entry on a handful of step numbers only. With the ring occupied the
+ *      pair is dropped, so a twin that differs only in the pair it would have queued is caught on
+ *      the free-ring half of the sweep alone.
  *
  * HOLE: what the queued pair MEANS is not decidable here — the command byte is consumed by a ring
  * reader this gate never runs. It fixes which pair goes out for which step number.
@@ -35,8 +40,8 @@ import { postNextParachutistBonus } from "../postNextParachutistBonus.js";
 import { loc_4831 as oracle } from "../../translated/loc_4831.js";
 import { offsetAddress } from "../offsetAddress.js";
 import { postCommand } from "../postCommand.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { COMMAND_RING } from "../names.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4831;
 
@@ -51,8 +56,10 @@ const RING_CELLS = 64;
 const WRITE_CURSOR = 0xa9b2;
 const SCRATCH_BYTES = 2;
 
-/** The registers allowed to differ. The command pair D/E is a live-out, so it must NOT be here. */
-const EXCLUDED = ["a", "f", "sp"];
+/** The undriven session DEAD AT EXIT poisons over: long enough to dispatch this entry several times. */
+const DEAD_FRAMES = 8000;
+/** Every register the oracle can leave behind, the stack pointer apart. */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 /** The attract run this entry is reached by, and the frame it is first reached on. Measured. */
 const ATTRACT_FRAMES = 3000;
@@ -77,18 +84,14 @@ function outsideScratch(a, b, sp) {
   return allDiffs(a, b).filter((d) => d.addr < sp - SCRATCH_BYTES || d.addr >= sp);
 }
 
-/** Oracle vs candidate on two clones: masked memory first, then the pair left in the registers. */
+/** Oracle vs candidate on two clones: masked memory. */
 function compare(candidate, machine) {
   const sp = machine.regs.sp;
   const a = machine.clone();
   const b = machine.clone();
   oracle(a);
   candidate(b);
-  const ram = outsideScratch(a, b, sp)[0];
-  if (ram) return ram;
-  if (a.regs.d !== b.regs.d) return { addr: null, a: a.regs.d, b: b.regs.d };
-  if (a.regs.e !== b.regs.e) return { addr: null, a: a.regs.e, b: b.regs.e };
-  return null;
+  return outsideScratch(a, b, sp)[0] ?? null;
 }
 
 let captured = null;
@@ -173,16 +176,17 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
     [],
     `a divergence escaped the scratch window — ${show(outsideScratch(a, b, sp)[0])}`,
   );
-  assert.equal(a.regs.d, b.regs.d, "the command byte left behind diverged");
-  assert.equal(a.regs.e, b.regs.e, "the argument byte left behind diverged");
-  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
-  assert.deepEqual(
-    unexpected,
-    [],
-    "a register diverged outside the excluded set: the command pair is a live-out and is not in it",
-  );
-  console.log(`  EQUAL: pair ${a.regs.d}/${a.regs.e}; identical outside [SP-${SCRATCH_BYTES}, SP)`);
+  console.log(`  EQUAL: identical outside [SP-${SCRATCH_BYTES}, SP)`);
+});
+
+test("DEAD AT EXIT: no register the oracle leaves is heard, and a flipped stack pointer is", { skip }, () => {
+  // Beside the helper's SP flip: SP complemented on the way out must reach game data.
+  const [run] = assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: DEAD_FRAMES, sessions: [{ label: "attract", tape: [] }],
+    controls: [{ label: "SP complemented", poison: ["sp"], dataOnly: true }],
+  });
+  console.log(`  DEAD AT EXIT: ${run.dead.poisoned} exits poisoned over ${DEAD_FRAMES} undriven frames, ` +
+    "nothing differs");
 });
 
 test("IT COUNTS AND IT STEPS: both bytes of the record move", { skip }, () => {
@@ -271,16 +275,16 @@ function stage(m, o) {
 
 const TWINS = [
   ["no-op", () => {}, 512],
-  ["limit-one-low", (m) => stage(m, { limit: STEPS - 1 }), 2],
-  ["limit-one-high", (m) => stage(m, { limit: STEPS + 1 }), 2],
-  ["table-off-by-one", (m) => stage(m, { table: STEP_TABLE + 1 }), 8],
-  ["wrong-command", (m) => stage(m, { command: COMMAND + 1 }), 512],
-  ["wrong-fixed-argument", (m) => stage(m, { pastArgument: PAST_THE_LAST_STEP + 1 }), 504],
+  ["limit-one-low", (m) => stage(m, { limit: STEPS - 1 }), 1],
+  ["limit-one-high", (m) => stage(m, { limit: STEPS + 1 }), 1],
+  ["table-off-by-one", (m) => stage(m, { table: STEP_TABLE + 1 }), 4],
+  ["wrong-command", (m) => stage(m, { command: COMMAND + 1 }), 256],
+  ["wrong-fixed-argument", (m) => stage(m, { pastArgument: PAST_THE_LAST_STEP + 1 }), 252],
   ["steps-before-reading", (m) => {
     const record = m.regs.ix;
     m.mem8[record + STEP] = m.mem8[record + STEP] + 1;
     stage(m, { stepStep: 0 });
-  }, 10],
+  }, 5],
   ["no-countdown", (m) => stage(m, { countdownStep: 0 }), 512],
 ];
 

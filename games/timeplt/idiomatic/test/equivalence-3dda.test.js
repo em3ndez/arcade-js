@@ -12,21 +12,23 @@
  *   undriven session is in the era the guard accepts — at every one of its dispatches — but the
  *   slot it then services is EMPTY every time, so the servicer returns without writing. NOT ONE
  *   REAL DISPATCH IN ANY SESSION WRITES A BYTE, and the whole-run masked diff is consequently
- *   BLIND TO EVERY TWIN HERE, which is asserted per twin rather than glossed. What still bites at
- *   a real dispatch is the pair of bases the entry sets: those are held outside the ceiling, so a
- *   twin that aims elsewhere is caught on a register even when no cell moves. FOR MEMORY EFFECTS
- *   THE CRAFTED CROSS IS THE ENTIRE GATE, and arms 2, 6 and 11 assert that rather than describe
- *   it — each with a control showing the instrument would have seen the thing it did not find.
+ *   BLIND TO EVERY TWIN HERE, which is asserted per twin rather than glossed. The rewrite HANDS the
+ *   two bases to the servicer as arguments and leaves no register behind, so nothing bites at a
+ *   real dispatch either: THE CRAFTED CROSS IS THE ENTIRE GATE, and arms 2, 6 and 11 assert that
+ *   rather than describe it — each with a control showing the instrument would have seen the thing
+ *   it did not find.
  *
  * ★ LIVE-OUT, DERIVED FROM THE ORACLE, NOT FROM THE MODULE. One site reaches this entry: the
  *   fixed per-frame call list at ROM 0x1199, which calls it and returns to 0x11C3. That is
  *   `call 0x3E36`, and 0x3E36 begins `ld ix,0xA810 / ld iy,0xAA12` before calling 0x3E63, whose
  *   own first instruction is `ld a,(ix+0)`. So neither index register nor any other register this
- *   entry leaves is read, and nothing tests the flags. THE DECLARED LIVE-OUT IS MEMORY ONLY.
- *   The ceiling below is wide because the servicer's own contract is wide — its gate lets the
- *   accumulator, the flags and both scratch pairs move — and this entry inherits that. It is a
- *   CEILING: a register outside it fails, a rewrite that diverged on fewer still passes. Both
- *   index registers are OUTSIDE it, so the choice of bases is held exactly.
+ *   entry leaves is read, and nothing tests the flags. THE DECLARED LIVE-OUT IS MEMORY ONLY, and
+ *   the DEAD AT EXIT arm measures it rather than citing it: wrapped in the all-frozen game, every
+ *   register the oracle leaves complemented on the way out is unheard in any per-frame state (the
+ *   stack page included but for two register-save slots it is pushed through, PUSHED_SAVE_SLOTS;
+ *   assertDeadAtExit) over the era-1 session and the driven one, while a
+ *   complemented stack pointer is heard in game data at once. So no
+ *   register is compared; the choice of bases is held by the crafted cross, in memory.
  *
  * ★ THE ORACLE PUSHES ON THE SERVICED PATH AND NOT ON THE REJECTED ONE. The window is MEASURED by
  *   instrumenting the oracle's own pushes over the whole cross, not inferred from the diff.
@@ -36,12 +38,14 @@
  *   a whole-run masked diff. Holes stated:
  *
  *   1. EQUAL at the real dispatch — identical outside the measured window.
- *   2. MEMORY-DEGENERATE AT THE REAL DISPATCH — a no-op is caught there only on a REGISTER, and
- *      the SAME masked diff catches it on a CELL on a crafted serviced entry, so the silence in
- *      memory is the corpus's doing and not the instrument's.
+ *   2. MEMORY-DEGENERATE AT THE REAL DISPATCH — a no-op is not caught there at all, and the SAME
+ *      masked diff catches it on a CELL on a crafted serviced entry, so the silence is the corpus's
+ *      doing and not the instrument's.
  *   3. WINDOW — the oracle's deepest push over the whole cross, measured.
- *   4. EXCLUDED — the registers that move over the cross, bounded by the ceiling, with an in-arm
- *      control that moves one outside it so the clean reading means something.
+ *   4. DEAD AT EXIT — no register the oracle leaves is heard anywhere but its pushed copies in
+ *      PUSHED_SAVE_SLOTS (oracle,
+ *      era-1 and driven sessions; assertDeadAtExit), with a complemented stack pointer as the control
+ *      that is heard in game data.
  *   5. THE GUARD — every era value swept against a slot that would definitely be serviced; the
  *      set of eras the oracle acts on is asserted to be exactly one value.
  *   6. UNIFORM CORPUS — measured dispatch counts, the eras and head bytes every real dispatch
@@ -56,9 +60,8 @@
  *      be seen; without that its clean verdict would be indistinguishable from an unwired arm.
  *  12. TEETH — a bank of twins, each with an exact catch count over the cross and per session,
  *      and its whole-run verdict recorded rather than assumed. Every one is whole-run BLIND, and
- *      one — the guard that tests a bit rather than the value — is invisible on every real
- *      dispatch too, since the only era real play presents past the guard is one the bit test
- *      also admits. The crafted cross is the only thing holding that twin.
+ *      the real-dispatch counts record which the memory-degenerate corpus can see at all. The
+ *      crafted cross is what holds them.
  *
  * HOLE: the crafted records are seeded with a fixed synthetic pattern, not with states the game
  * produced; nothing here says the servicer is ever REACHED with a live slot in real play, only
@@ -79,8 +82,8 @@ import { serviceSlotByHeadByte } from "../serviceSlotByHeadByte.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_3dda as oracle } from "../../translated/loc_3dda.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8 } from "../../../../core/int.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x3dda;
 
@@ -99,11 +102,14 @@ const RETIRE_COLUMN = 4;
 /** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
 const SCRATCH_BYTES = 4;
 
-/**
- * The ceiling on divergence, inherited from the servicer's own contract. Both index registers are
- * deliberately absent: the choice of bases is the content of this entry and is held exactly.
- */
-const MOVED = ["a", "f", "d", "e", "h", "l", "sp"];
+/** The sessions DEAD AT EXIT poisons over: the era-1 hold (the era the guard accepts) and the driven one. */
+const DEAD_SESSIONS = {
+  "era 1": [{ addr: ERA_INDEX, val: SERVICED_ERA, frame: 701, dur: null }],
+  driven: [],
+};
+const DEAD_FRAMES = 2400;
+/** Every register the oracle can leave behind, the stack pointer apart. */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 const CORPUS_FRAMES = 2000;
 const WHOLE_FRAMES = 1400;
@@ -132,7 +138,7 @@ const HELPER = ["serviceSlotByHeadByte", "../serviceSlotByHeadByte.js", "ALL_ONE
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
-    text.includes(`${name}(m)`) &&
+    new RegExp(`${name}\\(m[,)]`).test(text) &&
     !text.includes(ownConstant);
 }
 
@@ -201,7 +207,7 @@ function inScratch(addr, sp) {
   return addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp;
 }
 
-/** Oracle vs candidate on clones: masked RAM, then every register outside the ceiling. */
+/** Oracle vs candidate on clones: masked RAM. */
 function unitDiff(candidate, machine) {
   const sp = machine.regs.sp;
   const a = machine.clone();
@@ -212,13 +218,7 @@ function unitDiff(candidate, machine) {
   } catch (e) {
     return { addr: null, a: "returned", b: `raised ${String(e).slice(0, 40)}` };
   }
-  const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
-  if (ram) return ram;
-  for (const k of REG_FIELDS) {
-    if (MOVED.includes(k)) continue;
-    if (a.regs[k] !== b.regs[k]) return { addr: null, a: a.regs[k], b: b.regs[k] };
-  }
-  return null;
+  return allDiffs(a, b).find((d) => !inScratch(d.addr, sp)) ?? null;
 }
 
 /** How far below its seat the oracle's own pushes take the stack pointer, on one entry state. */
@@ -477,18 +477,26 @@ function brokenOnlyRecordBase(m) {
   serviceSlotByHeadByte(m);
 }
 
+/**
+ * Exact counts, measured. A crafted entry whose slot head is zero takes the servicer's do-nothing
+ * arm, which writes no memory, so a twin that differs from the rewrite only there — in the
+ * registers the zero arm used to leave, which DEAD AT EXIT shows no one reads — is not a defect on
+ * those entries; that is the three to six entries each twin below is not caught on. The real
+ * sessions are memory-degenerate, so only a twin that aims at a slot some session has occupied is
+ * seen there at all.
+ */
 const TWINS = [
-  ["no-op", brokenNoOp, 768, [0, 847, 0], false],
-  ["guard-inverted", brokenGuardInverted, 1536, [598, 847, 823], false],
-  ["no-guard", brokenNoGuard, 768, [598, 0, 823], false],
-  ["guard-off-by-one", brokenGuardOffByOne, 1024, [0, 847, 0], false],
-  ["guard-tests-low-bit", brokenGuardTestsLowBit, 256, [0, 0, 0], false],
-  ["next-record", brokenNextRecord, 768, [0, 879, 0], false],
-  ["previous-record", brokenPreviousRecord, 768, [0, 879, 0], false],
-  ["next-sprite-entry", brokenNextSpriteEntry, 768, [0, 879, 0], false],
-  ["bases-swapped", brokenBasesSwapped, 768, [0, 879, 0], false],
-  ["keeps-caller-bases", brokenKeepsCallerBases, 768, [0, 847, 0], false],
-  ["only-record-base", brokenOnlyRecordBase, 768, [0, 847, 0], false],
+  ["no-op", brokenNoOp, 765, [0, 0, 0], false],
+  ["guard-inverted", brokenGuardInverted, 1530, [0, 0, 0], false],
+  ["no-guard", brokenNoGuard, 765, [0, 0, 0], false],
+  ["guard-off-by-one", brokenGuardOffByOne, 1020, [0, 0, 0], false],
+  ["guard-tests-low-bit", brokenGuardTestsLowBit, 255, [0, 0, 0], false],
+  ["next-record", brokenNextRecord, 768, [0, 35, 0], false],
+  ["previous-record", brokenPreviousRecord, 768, [0, 0, 0], false],
+  ["next-sprite-entry", brokenNextSpriteEntry, 765, [0, 0, 0], false],
+  ["bases-swapped", brokenBasesSwapped, 768, [0, 0, 0], false],
+  ["keeps-caller-bases", brokenKeepsCallerBases, 765, [0, 337, 0], false],
+  ["only-record-base", brokenOnlyRecordBase, 765, [0, 0, 0], false],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -510,18 +518,16 @@ test("EQUAL at the real dispatch: identical outside the measured window", { skip
       `${strays.length} outside the window`,
   );
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
-  assert.equal(a.regs.ix, b.regs.ix, "the record base left behind differs");
-  assert.equal(a.regs.iy, b.regs.iy, "the sprite entry left behind differs");
 });
 
-test("MEMORY-DEGENERATE AT THE REAL DISPATCH: the no-op is caught there ON A REGISTER, and on " +
-  "a crafted serviced entry ON A CELL", { skip }, () => {
+test("MEMORY-DEGENERATE AT THE REAL DISPATCH: the no-op is not caught there, and on a crafted " +
+  "serviced entry it is caught ON A CELL", { skip }, () => {
   const atReal = unitDiff(brokenNoOp, entryState());
   const serviced = craft(SERVICED_ERA, 255, PLACEMENTS[1][1]);
   const atCrafted = unitDiff(brokenNoOp, serviced);
   console.log(
-    `  MEMORY-DEGENERATE: at the real entry the no-op is caught on ` +
-      `${atReal && atReal.addr === null ? "a register" : `a cell — ${show(atReal)}`}; on a ` +
+    `  MEMORY-DEGENERATE: at the real entry the no-op is ` +
+      `${atReal === null ? "not caught" : `caught on a cell — ${show(atReal)}`}; on a ` +
       `crafted serviced entry it is caught on ${atCrafted && atCrafted.addr !== null
         ? `a cell — ${show(atCrafted)}` : "a register only"}`,
   );
@@ -529,9 +535,7 @@ test("MEMORY-DEGENERATE AT THE REAL DISPATCH: the no-op is caught there ON A REG
     "oracle demonstrably writes on, so this gate's instrument is broken rather than its corpus");
   assert.notEqual(atCrafted.addr, null, "on a serviced entry the no-op is caught only on a " +
     "register, so the crafted arms are not reaching the servicer's memory effects at all");
-  assert.notEqual(atReal, null, "the no-op now passes at the real entry outright, so even the " +
-    "bases this entry sets stopped discriminating and the corpus proves nothing whatever");
-  assert.equal(atReal.addr, null, "the real entry now distinguishes a no-op ON A CELL, so it " +
+  assert.equal(atReal, null, "the real entry now distinguishes a no-op ON A CELL, so it " +
     "stopped being memory-degenerate and every verdict below has to be re-derived");
   assert.equal(oracleWrites(entryState()).length, 0, "the oracle writes at the real entry after " +
     "all, which contradicts the degeneracy this file is built around");
@@ -547,37 +551,20 @@ test("WINDOW: the oracle's own deepest push, measured over the whole cross", { s
     "is no longer the measured one and every arm below is masking the wrong bytes");
 });
 
-/** Which registers a candidate parts company with the oracle on, over the whole cross. */
-function movedOver(candidate) {
-  const moved = new Set();
-  for (const [era, head, [, place]] of cross()) {
-    const a = craft(era, head, place);
-    const b = a.clone();
-    oracle(a);
-    try {
-      candidate(b);
-    } catch {
-      continue;
-    }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
-}
+/** Stack-page slots the frozen code pushes register saves through (each is a push16 slot in the
+ * all-frozen session): a poisoned register shows here as a pushed copy and nowhere else. Measured by the
+ * DEAD AT EXIT arm, which lets exactly these through and nothing else. */
+const PUSHED_SAVE_SLOTS = [0xafde, 0xafdf];
 
-test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(serviceFixedSlotInEra1);
-  // The absence is evidence only if the measurement CAN report a register outside the ceiling;
-  // the bases are outside it, and the twin that swaps them moves both.
-  const control = movedOver(brokenBasesSwapped);
-  assert.ok(control.has("ix") && control.has("iy"), "the measurement misses a candidate that " +
-    "plainly moves both bases, so a clean reading below proves nothing");
-  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")} — ` +
-    `ceiling ${MOVED.join(", ")}; the control also moves ` +
-    `${REG_FIELDS.filter((k) => control.has(k) && !MOVED.includes(k)).join(", ")}`);
-  // MOVED is a CEILING. deepEqual against it would DEMAND the divergence and go RED on a rewrite
-  // that became register-exact — a gate that requires a wart refuses the fix.
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
-    "a register outside the declared ceiling diverged");
+test("DEAD AT EXIT: no register the oracle leaves is heard, and a complemented stack pointer is", { skip }, () => {
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: DEAD_FRAMES, reachEvery: true,
+    scratch: PUSHED_SAVE_SLOTS,
+    sessions: Object.entries(DEAD_SESSIONS).map(([label, pokes]) => ({ label, pokes })),
+    // A complemented stack pointer on the way out must be heard in game data in every session, or the
+    // silence proves nothing.
+    controls: [{ label: "complemented SP", poison: ["sp"], dataOnly: true, every: true, reachEvery: true }],
+  });
 });
 
 test("THE GUARD: exactly one era value gets past it", { skip }, () => {

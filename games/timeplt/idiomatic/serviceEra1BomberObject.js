@@ -9,12 +9,13 @@ import { advanceTwoTileObjectThenTryAimedSpawn } from "./advanceTwoTileObjectThe
 import { ERA_INDEX, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
 
 export function serviceEra1BomberObject(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   if (mem8[ERA_INDEX] !== 1) return;
 
-  const head = mem8[ERA_OBJECT_RECORD_SLOT0];
-  if (head === 0) return (regs.ix = ERA_OBJECT_RECORD_SLOT0, regs.iy = ERA_OBJECT_ENTRY_SLOT0, armBomberSlotWhenTimerFires(m));
-
-  if (head !== 0xff) return (regs.ix = ERA_OBJECT_RECORD_SLOT0, regs.iy = ERA_OBJECT_ENTRY_SLOT0, regs.a = u8(head + 1), advanceHitSoakingObjectThenAnimateDeath(m));
-  return (regs.ix = ERA_OBJECT_RECORD_SLOT0, regs.iy = ERA_OBJECT_ENTRY_SLOT0, regs.a = u8(head + 1), advanceTwoTileObjectThenTryAimedSpawn(m));
+  const record = ERA_OBJECT_RECORD_SLOT0;
+  const entry = ERA_OBJECT_ENTRY_SLOT0;
+  const head = mem8[record];
+  if (head === 0) return armBomberSlotWhenTimerFires(m, record, entry);
+  if (head !== 0xff) return advanceHitSoakingObjectThenAnimateDeath(m, record, entry, u8(head + 1));
+  return advanceTwoTileObjectThenTryAimedSpawn(m, record, entry);
 }

@@ -15,6 +15,10 @@
  * running the whole game with each scribbled, carrying a memory control and a register control so an
  * absence cannot look like a blind instrument. Whether the pair is read INSIDE the loop is the
  * corpus and sweep arms' question, since they run every remaining turn and compare all of RAM.
+ * DEAD AFTER THE PASS asks the same of the frozen game over a coin-start session AND undriven
+ * attract, at the exit of the driver every entry into the search is a tail of, with an SP exit
+ * control — including C and H/L, which the shape step a filled slot runs leaves on the frozen side
+ * and the rewrite, handing the step count and table pointer over as arguments, does not.
  *
  * HOLE: the sweeps vary the count and the slot heads only; the rest is whatever the frame left.
  * HOLE: the whole-game arm is one tape of 1400 frames.
@@ -33,6 +37,7 @@ import { loc_3847 as oracle } from "../../translated/loc_3847.js";
 import { loc_382d as registerProducer } from "../../translated/loc_382d.js";
 import { wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { deadAfterThePass } from "./_spawnPassScratchDeadAtExit.js";
 
 const TARGET = 0x3847;
 const REGISTER_PRODUCER = 0x382d;
@@ -59,15 +64,20 @@ const DATA_TOP = 0xadff;
 
 /**
  * The ceiling on divergence, measured: the flag byte and the register pair the oracle stages its
- * backward step in, the accumulator and shadow set the dissolved body leaves differently, and the
- * stack pointer it moves by taking the return the rewrite leaves. Checked as a SUBSET, so a rewrite
+ * backward step in, the accumulator and shadow set the dissolved body leaves differently, the
+ * stack pointer it moves by taking the return the rewrite leaves, and the count and the two cursors,
+ * which the rewrite threads from turn to turn as arguments and never seats, and C and H/L, the step
+ * count and table pointer the shape step leaves on the frozen side. Those last six are in the
+ * ceiling on the ORACLE's word, not the rewrite's: the LIVE REGISTERS arm below scribbles each of
+ * them where the frozen pass ends and the whole run does not change, and DEAD AFTER THE PASS
+ * poisons them at the end of every search over two sessions. Checked as a SUBSET, so a rewrite
  * that diverged on fewer would still pass and this can never refuse a fix.
  */
-const EXCLUDED = ["f", "d", "e", "sp", "a", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+const EXCLUDED = ["f", "c", "d", "e", "h", "l", "sp", "a", "b", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 /** Registers the LIVE-REGISTERS arm scribbles, one game each; a flip not an assignment, so it can
  * never land on the value already held and read as tested when it was not. */
-const SCRIBBLED = ["de", "hl", "a", "f", "b", "ix", "iy"];
+const SCRIBBLED = ["c", "de", "hl", "a", "f", "b", "ix", "iy"];
 const FLIP = 0xffff;
 /** A cell the walk reads, flipped the same way as the memory positive control for that arm. */
 const CONTROL_CELL = BANK_FLOOR;
@@ -273,20 +283,36 @@ function brokenNeverTurnsAgain(m) {
   regs.b = regs.b - 1;
 }
 
-/** BUG: scribbles on a register outside the ceiling; the in-arm control for EXCLUDED. */
-function brokenMovesTheCursor(m) {
-  closeOneTurnOfTheFreeSlotSearch(m);
-  m.regs.iy = m.regs.iy + 1;
+/** BUG: a count of zero stops the walk instead of wrapping to 256 turns. */
+function brokenZeroCountDoesNotWrap(m) {
+  const { regs } = m;
+  const remaining = Math.max(regs.b - 1, 0);
+  regs.ix = regs.ix - RECORD_STRIDE;
+  regs.iy = regs.iy - ENTRY_STRIDE;
+  regs.b = remaining;
+  if (remaining !== 0) return m.call(SLOT_BODY);
 }
 
-/** Each twin with the exact number of COUNT and OCCUPANCY sweep points that must catch it. */
+/** BUG: scribbles on a register outside the ceiling; the in-arm control for EXCLUDED. Aimed at the
+ * interrupt vector, the one register left outside the ceiling. */
+function brokenMovesAnUntouchedRegister(m) {
+  closeOneTurnOfTheFreeSlotSearch(m);
+  m.regs.i = m.regs.i ^ 0xff;
+}
+
+/**
+ * Each twin with the exact number of COUNT and OCCUPANCY sweep points that must catch it. The points
+ * a twin passes are the ones where the whole difference is the count or a cursor left behind — a
+ * count of one, or a bank the walk finds all busy and writes nothing to — which the LIVE REGISTERS
+ * arm shows nothing reads; every point where the twin's walk lands in memory is still caught.
+ */
 const TWINS = [
-  ["no-op", brokenNoOp, [8, 32]],
-  ["walks-forward", brokenWalksForward, [8, 32]],
-  ["record-stepped-by-an-entry", brokenRecordStride, [8, 32]],
-  ["entry-cursor-stuck", brokenEntryCursorStuck, [8, 32]],
-  ["one-turn-short", brokenOneTurnShort, [1, 4]],
-  ["never-turns-again", brokenNeverTurnsAgain, [7, 32]],
+  ["no-op", brokenNoOp, [7, 30]],
+  ["walks-forward", brokenWalksForward, [7, 32]],
+  ["record-stepped-by-an-entry", brokenRecordStride, [7, 32]],
+  ["entry-cursor-stuck", brokenEntryCursorStuck, [7, 30]],
+  ["one-turn-short", brokenOneTurnShort, [1, 2]],
+  ["never-turns-again", brokenNeverTurnsAgain, [7, 30]],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -332,6 +358,21 @@ test("COUNT: every count that keeps the walk in its bank, both arms of the split
   assert.equal(new Set(reached).size, BANK_SLOTS, "two counts stopped the walk in the same place");
   console.log(`  COUNT: ${COUNT_VALUES} counts identical; over a full bank the cursor comes to ` +
     `rest at ${reached.map(hex4).join(", ")}`);
+});
+
+test("COUNT ZERO: the count wraps, so a zero runs 256 turns, with a twin that does not", { skip }, () => {
+  // The count is struck off before it is tested, so zero goes round to 255 and the walk keeps
+  // going down through memory. The count is an argument now, not the register that wrapped it by
+  // itself, so this is held separately, over every captured entry.
+  let caught = 0;
+  for (const e of capture()) {
+    const zero = (m) => { const c = m.clone(); c.regs.b = 0; return c; };
+    const d = unitDiff(closeOneTurnOfTheFreeSlotSearch, zero(e));
+    assert.equal(d, null, `a zero count at ${hex4(e.regs.ix)}: ${show(d)}`);
+    if (unitDiff(brokenZeroCountDoesNotWrap, zero(e))) caught++;
+  }
+  assert.equal(caught, capture().length, "a twin that stops at zero passed a captured entry, so this arm does not see the wrap");
+  console.log(`  COUNT ZERO: ${capture().length} entries identical with the count at zero; the non-wrapping twin caught on all`);
 });
 
 test("OCCUPANCY: all 32 free/busy patterns of the reachable slot heads", { skip }, () => {
@@ -405,6 +446,11 @@ test("LIVE REGISTERS: nothing reads what the pass leaves, with two positive cont
       `frame ${regControl.frame}`);
   });
 
+test("DEAD AFTER THE PASS: on the frozen game, the count, the cursors and the shape step's C and H/L are read by nobody once the pass ends",
+  { skip }, () => {
+    deadAfterThePass();
+  });
+
 /** Which registers a candidate parts company with the oracle on, over the corpus. */
 function movedOver(candidate) {
   const moved = new Set();
@@ -439,13 +485,13 @@ function movedOverCounts(candidate) {
   return moved;
 }
 
-test("EXCLUDED, deliberately: the flag byte, the staging pair and the stack pointer",
+test("EXCLUDED, deliberately: the flag byte, the staging pair, the stack pointer and the walk's own registers",
   { skip }, () => {
     const moved = new Set([...movedOver(closeOneTurnOfTheFreeSlotSearch), ...movedOverCounts(closeOneTurnOfTheFreeSlotSearch)]);
-    const control = movedOver(brokenMovesTheCursor);
+    const control = movedOver(brokenMovesAnUntouchedRegister);
     assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
       "the measurement reports nothing outside the ceiling even for a twin that scribbles on a " +
-        "cursor, so a clean reading here proves nothing");
+        "register, so a clean reading here proves nothing");
     const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
     assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
     // Reported and not asserted, on purpose: a member that stopped moving would mean the rewrite

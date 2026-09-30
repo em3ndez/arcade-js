@@ -100,7 +100,7 @@ import { loc_28ee as oracle } from "../../translated/loc_28ee.js";
 import { ERA_INDEX, MOTHER_SHIP_ARMED, MOTHER_SHIP_STATE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { heard, heardAs, poisonedRun } from "./_deadAtExit.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x28ee;
 const HANDLER = 0x290e;
@@ -129,8 +129,12 @@ const REAL_GATE_BYTES = [0];
  * A CEILING on the registers that may differ, not a pin: asserted as a subset, so a rewrite that
  * happens to agree on one of these still passes. What is asserted positively is HELD.
  */
-const MAY_MOVE = ["a", "f", "b", "c", "d", "e", "h", "l", "a_"];
-const HELD = ["ix", "iy", "sp"];
+const MAY_MOVE = ["a", "f", "b", "c", "d", "e", "h", "l", "a_", "ix", "iy"];
+/**
+ * The seat. The two cursors are in the ceiling: the rewrite hands them to the handler as arguments, and
+ * DEAD AT EXIT flips both on the frozen game where this entry hands back with nothing after it hearing them.
+ */
+const HELD = ["sp"];
 
 /** Gate-byte values crossed against every era. Only the first occurs in real play. */
 const GATE_VALUES = [0, 1, 0x80, 0xff];
@@ -427,10 +431,14 @@ function brokenGateOnTheEraCell(m) {
   return dispatchSeatedSlotByEraIndex(m);
 }
 
-/** NOT A TWIN OF THIS ROUTINE: the positive control for the held-register instrument. */
-function clobbersAHeldRegister(m) {
+/**
+ * NOT A TWIN OF THIS ROUTINE: the positive control for the register instrument -- it clobbers a register
+ * outside the ceiling (a shadow half this entry never touches). The held seat, SP, is not clobbered here:
+ * the seam refuses a moved SP outright, which is what the SP-TOOTH arm measures.
+ */
+function clobbersARegisterOutsideTheCeiling(m) {
   seatMotherShipSlotThenDispatchByEraUnlessArmed(m);
-  m.regs.iy = (m.regs.iy + 2) & 0xffff;
+  m.regs.h_ = (m.regs.h_ + 1) & 0xff;
 }
 
 /** Measured: crafted catches, then real catches per session in SESSIONS order. */
@@ -658,35 +666,16 @@ test("SP-TOOTH: the seam places the rewrite, and refuses one that parks or lifts
 });
 
 test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
-  let controlSees = 0;
-  let exitSees = 0;
-  for (const [label, opts] of SESSIONS) {
-    const dead = poisonedRun({ at: TARGET, poison: MAY_MOVE, tape: opts.tape, frames: CORPUS_FRAMES });
-    assert.equal(dead.threw, null, `${label}: the poisoned run threw: ${dead.threw}`);
-    assert.equal(dead.stopped, null, `${label}: the poisoned run stopped early: ${dead.stopped}`);
-    assert.equal(dead.frames, CORPUS_FRAMES, `${label}: compared ${dead.frames} of ${CORPUS_FRAMES} frames`);
-    assert.equal(dead.poisoned, DISPATCHES[label], `${label}: poisoned ${dead.poisoned} of ${DISPATCHES[label]} dispatches`);
-    assert.deepEqual(dead.cells.map(hex4), [], `${label}: a register in the ceiling was read after this entry handed back`);
-    // POSITIVE CONTROL, same instrument: shift the record register one record on, on this entry's
-    // way INTO the handler, where it is read. Silence at the exit means something only if this is heard.
-    const control = poisonedRun({
-      at: HANDLER, poison: ["ix"], flip: { ix: RECORD_STRIDE }, before: true,
-      tape: opts.tape, frames: CORPUS_FRAMES, only: (m) => m.regs.ix === CRAFT_RECORD,
-    });
-    assert.ok(control.poisoned > 0, `${label}: the control never reached this entry's handler`);
-    if (heard(control)) controlSees++;
-    // EXIT-SIDE CONTROL, same instrument and exit: flip SP where this entry hands back. The ROM
-    // returns through the stack, so an exit poison that lands has to be heard.
-    const exitControl = poisonedRun({ at: TARGET, poison: ["sp"], flip: { sp: 2 }, tape: opts.tape, frames: CORPUS_FRAMES });
-    if (heard(exitControl)) exitSees++;
-    console.log(`  DEAD AT EXIT/${label}: ${dead.poisoned} exits poisoned (${MAY_MOVE.join(", ")}), ` +
-      `nothing differs; the entry control ${heard(control) ? `is heard (${heardAs(control)})` : "is not heard"}; ` +
-      `the exit control ${heard(exitControl) ? `is heard (${heardAs(exitControl)})` : "is not heard"}`);
-  }
-  assert.ok(controlSees > 0, "the control shifted the record on its way into the handler and no session " +
-    "noticed, so the silence at the exit proves nothing");
-  assert.ok(exitSees > 0, "the control flipped SP at this entry's exit and no session noticed, so the " +
-    "exit poison never lands and its silence proves nothing");
+  assertDeadAtExit({
+    at: TARGET, poison: MAY_MOVE, frames: CORPUS_FRAMES,
+    sessions: SESSIONS.map(([label, opts]) => ({ label, tape: opts.tape, dispatches: DISPATCHES[label] })),
+    controls: [{
+      // POSITIVE CONTROL, same instrument: shift the record register one record on, on this entry's
+      // way INTO the handler, where it is read. Silence at the exit means something only if this is heard.
+      label: "entry", at: HANDLER, poison: ["ix"], flip: { ix: RECORD_STRIDE }, before: true,
+      only: (m) => m.regs.ix === CRAFT_RECORD, reachEvery: true,
+    }],
+  });
 });
 
 test("EXCLUDED: the registers that move, bounded by a ceiling; the pair is held", { skip }, () => {
@@ -707,13 +696,13 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; the pair is held"
   // rewrite that became register-exact.
   assert.deepEqual(list.filter((k) => !MAY_MOVE.includes(k)), [], "a register outside the ceiling moved");
   for (const k of HELD) assert.ok(!moved.has(k), `a register the handler is handed moved (${k})`);
-  // POSITIVE CONTROL, same breath: the held check above is an ABSENCE claim, so show the same
-  // instrument reporting a held register that really did move.
+  // POSITIVE CONTROL, same breath: the ceiling check above is an ABSENCE claim, so show the same
+  // instrument reporting a register outside the ceiling that really did move.
   const control = new Set();
   for (const [label] of SESSIONS) {
-    for (const k of diffOf(clobbersAHeldRegister, entryFor(label)).moved) control.add(k);
+    for (const k of diffOf(clobbersARegisterOutsideTheCeiling, entryFor(label)).moved) control.add(k);
   }
-  assert.ok(control.has("iy"), "the register instrument cannot see a held register being clobbered, " +
+  assert.ok(control.has("h_"), "the register instrument cannot see a register outside the ceiling being clobbered, " +
     "so the assertion above proves nothing");
   console.log(`  EXCLUDED control: the same instrument reports ${[...control].join(", ")} on a clobbered twin`);
 });

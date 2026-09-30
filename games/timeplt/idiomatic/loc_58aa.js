@@ -7,6 +7,6 @@ import { loc_59d7 } from "./names.js";
 
 const VELOCITY_TABLE = loc_59d7;
 
-export function loc_58aa(m) {
-  flyAlongHeadingAtDoubleVelocity(m, VELOCITY_TABLE);
+export function loc_58aa(m, object = m.regs.ix, sprite = m.regs.iy) {
+  flyAlongHeadingAtDoubleVelocity(m, VELOCITY_TABLE, object, sprite);
 }

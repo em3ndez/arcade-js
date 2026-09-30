@@ -26,8 +26,7 @@ export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
   const savedPen = playerTwo ? PLAYER_TWO_PEN_GLYPH : PLAYER_ONE_PEN_GLYPH;
   const era = playerTwo ? mem8[PLAYER_TWO_ERA_INDEX] : mem8[PLAYER_ONE_ERA_INDEX];
 
-  // fetchTableByte leaves the table pointer standing at the indexed entry; the colour is the
-  // record's second byte, read straight off that entry.
+  // the colour is the record's second byte, read straight off the indexed entry.
   const entry = u16(loc_0f8d_ADDR + u8(era * 2));
   const glyph = fetchTableByte(m, loc_0f8d_ADDR, u8(era * 2));
   mem8[savedPen] = glyph;

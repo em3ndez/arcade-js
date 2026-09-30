@@ -15,15 +15,15 @@ const FREE = 0;
 const HELD = 0xfe;
 const LIVE = 0xff;
 
-export function serviceEra4EnemyCraftSlot(m, ix = m.regs.ix) {
+export function serviceEra4EnemyCraftSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   const state = m.mem8[ix];
   if (state === FREE) return;
-  if (state === HELD) return releaseHeldObject(m);
-  if (state !== LIVE) return stepDyingObjectState(m);
+  if (state === HELD) return releaseHeldObject(m, ix);
+  if (state !== LIVE) return stepDyingObjectState(m, ix, iy);
 
-  steerEnemyTowardShip(m);
-  if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
-  animateSelectedShapeCycle(m);
-  launchBankEnemyWhenAimedNearPlayer(m);
-  launchAttackerIntoFreeSlot(m);
+  steerEnemyTowardShip(m, iy, ix);
+  if (hasReachedRetireLine(m, iy)) return retireSlotAndSubPixel(m, ix, iy);
+  animateSelectedShapeCycle(m, ix, iy);
+  launchBankEnemyWhenAimedNearPlayer(m, ix, iy);
+  launchAttackerIntoFreeSlot(m, ix, iy);
 }

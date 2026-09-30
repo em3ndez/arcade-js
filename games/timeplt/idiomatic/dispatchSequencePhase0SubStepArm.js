@@ -3,8 +3,8 @@
  * this entry. The table never changes while the game runs, so each case below is the literal target its
  * slot held, dispatched directly rather than through a jump computed from the read-out value. Only two of
  * the eight slots name a transcribed arm; the other six point at bytes that carry no routine, so reaching
- * one is a fault and it is raised, not assumed away. The selector value is kept in `a` for the arm, exactly
- * as it stood when the read-out arithmetic finished. LIVE-OUT: memory, and the arm's. */
+ * one is a fault and it is raised, not assumed away. Neither arm reads the selector value the read-out
+ * arithmetic leaves behind, so nothing is handed in. LIVE-OUT: memory, and the arm's. */
 
 import { NotImplemented } from "../../../boards/timeplt/io.js";
 import { SEQUENCE_SUBSTEP } from "./names.js";
@@ -17,9 +17,9 @@ export function dispatchSequencePhase0SubStepArm(m) {
   const index = m.mem8[SEQUENCE_SUBSTEP] & ARM_MASK;
   switch (index) {
     // Slot 0 -> the whole-plane-wipe arm (its inline table word). Slot 6 -> the attract high-score
-    // arm. The selector rides into each on `a`, the value the read-out arithmetic left there.
-    case 0: return (m.regs.a = index, startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase(m));
-    case 6: return (m.regs.a = index, armAttractScreenShowingHighScore(m));
+    // arm.
+    case 0: return startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase(m);
+    case 6: return armAttractScreenShowingHighScore(m);
     // Slots 1-5 and 7 hold words that address bytes this port has not transcribed as routines; the
     // inline dispatch would jump into them and fault, so surface the same fault here instead.
     default:

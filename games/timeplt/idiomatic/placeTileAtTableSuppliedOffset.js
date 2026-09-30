@@ -3,7 +3,7 @@
  * by an amount a table supplies. The entry one stride on takes one coordinate straight from the
  * register the caller loaded it into, and the other displaced by the byte the caller's pointer
  * selects — so the shape of the offset belongs to the table, not to any arithmetic here. Both
- * cursors then step onto the entry just written. LIVE-OUT: the two bytes, the cursors, the sum. */
+ * cursors then step onto the entry just written. LIVE-OUT: the two bytes and the stepped cursors. */
 
 import { advanceToNextSlot } from "./advanceToNextSlot.js";
 
@@ -17,5 +17,5 @@ export function placeTileAtTableSuppliedOffset(m, iy = m.regs.iy, hl = m.regs.hl
   const sum = mem8[hl] + c;
   mem8[nextEntry + SECOND_AXIS_OFFSET] = b;
   mem8[nextEntry] = sum;
-  return (m.regs.a = sum, void advanceToNextSlot(m));
+  advanceToNextSlot(m);
 }

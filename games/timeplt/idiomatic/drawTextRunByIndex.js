@@ -3,8 +3,8 @@
  * of pointers; the record opens with the cell the caption starts at and the colour every cell of
  * it takes, and the glyph run follows those three bytes. Nothing here decides what the caption
  * says or where it lands: the index does, and this entry only unpacks the header and hands the
- * three pieces to the painting. LIVE-OUT: the painted cells, plus the cursor and the run pointer
- * left standing where the painting stopped. */
+ * three pieces to the painting. LIVE-OUT: the painted cells, plus the cursor left standing where
+ * the painting stopped. */
 
 import { drawTextRun } from "./drawTextRun.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
@@ -19,5 +19,5 @@ export function drawTextRunByIndex(m, caption = m.regs.a) {
   const cursor = mem8[record] | (mem8[u16(record + 1)] << 8);
   const colour = mem8[u16(record + 2)];
   const run = u16(record + HEADER_BYTES);
-  return (m.regs.c = colour, drawTextRun(m, run, cursor, colour));
+  return drawTextRun(m, run, cursor, colour);
 }

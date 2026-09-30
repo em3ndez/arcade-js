@@ -16,14 +16,14 @@ const TILE_X = 0x00;
 const SECOND_TILE_X = 0x02;
 const TILE_DROP = 0x10;
 
-export function advanceTwoTileObjectThenTryAimedSpawn(m, sprite = m.regs.iy) {
+export function advanceTwoTileObjectThenTryAimedSpawn(m, record = m.regs.ix, sprite = m.regs.iy) {
   const { mem8 } = m;
 
-  flyAlongStoredVelocity(m);
+  flyAlongStoredVelocity(m, record, sprite);
   mem8[u16(sprite + SECOND_TILE_Y)] = u8(mem8[u16(sprite + TILE_Y)] + TILE_DROP);
   mem8[u16(sprite + SECOND_TILE_X)] = mem8[u16(sprite + TILE_X)];
 
-  if (hasReachedBoundaryBandSelectedByHeading(m)) return retireObjectAndHold(m);
-  mirrorTwoTileObjectByHeading(m);
-  return spawnAimedEnemyIntoEraBankWhenInWindow(m);
+  if (hasReachedBoundaryBandSelectedByHeading(m, record, sprite)) return retireObjectAndHold(m, record, sprite);
+  mirrorTwoTileObjectByHeading(m, record, sprite);
+  return spawnAimedEnemyIntoEraBankWhenInWindow(m, record, sprite);
 }

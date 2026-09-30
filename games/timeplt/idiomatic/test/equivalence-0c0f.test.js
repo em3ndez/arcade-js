@@ -19,7 +19,13 @@
  *      caller steps it on twice without reloading it. RAM equality is not blind to it here, and
  *      the arm says so rather than claiming credit it has not earned.
  *   5. EXCLUDED — the register divergence bounded by a measured set: one outside it fails, and a
- *      rewrite that stops clobbering one of them stays green.
+ *      rewrite that stops clobbering one of them stays green. H and L are in it because the rewrite
+ *      hands the painter its run pointer as an argument and gets back only the cursor, while the
+ *      frozen painter leaves HL on the terminator.
+ *   5a. HL IS DEAD WHERE THIS HANDS BACK, asked of the ORACLE by assertDeadAtExit: H and L
+ *      complemented on every exit of the all-frozen game over the attract and coin -> start
+ *      sessions move no cell of per-frame state, while the same instrument hears, in both
+ *      sessions, the record index nudged on the way in and SP moved at the same exit.
  *   6. EXHAUSTIVE — the routine's whole input space is the record index and the colour cell.
  *      Every index the table can be walked to is swept against sixteen colours, and the colour
  *      is swept over its full 0..255 at a fixed index to pin the low-nibble mask.
@@ -42,6 +48,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 import { drawCaptionInPenColour } from "../drawCaptionInPenColour.js";
 import { loc_0c0f as oracle } from "../../translated/loc_0c0f.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -65,7 +72,10 @@ const DISPATCHES = { shared: 25, attract: 13 };
 /** The records each session selects. Measured, and asserted as sets, because they differ. */
 const REAL_RECORDS = { shared: [2, 9, 14, 26], attract: [2, 27] };
 
-const EXCLUDED = ["a", "f", "sp"];
+const EXCLUDED = ["a", "f", "sp", "h", "l"];
+/** The run pointer the frozen painter leaves on the terminator; nothing after this exit reads it. */
+const DEAD_AT_EXIT = ["h", "l"];
+const DEAD_SESSIONS = [["attract", []], ["coin -> start", undefined]];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: frozen=${d.a} candidate=${d.b}` : "identical");
@@ -328,8 +338,26 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch push", { skip },
     "a register outside the declared excluded set diverged: the cursor is a live-out and must " +
       "not appear here",
   );
+  assert.equal(a.regs.de, b.regs.de, "the cursor is a live-out and must be reproduced");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
-  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
+  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; moved here ${moved.join(", ")}`);
+});
+
+test("DEAD AT EXIT: the run pointer, as the frozen painter leaves it, is read by nothing after it", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: DEAD_AT_EXIT, frames: ENTRY_FRAMES, reachEvery: true,
+    sessions: DEAD_SESSIONS.map(([label, tape]) => ({ label, tape })),
+    // ENTRY CONTROL: the record index this routine reads, nudged on the way in, must be heard.
+    controls: [{ label: "entry", poison: ["a"], flip: { a: 1 }, before: true, every: true, reachEvery: true }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so every session hears it.
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+  }
+  console.log(`  DEAD AT EXIT: ${DEAD_AT_EXIT.join(", ")} complemented, nothing differs; entry and exit ` +
+    `controls heard in every session (${exits.map((r) => `${r.label} ${heardAs(r.exitControl)}`).join("; ")})`);
 });
 
 test("EXHAUSTIVE: every backed record against sixteen colours, and one record against all", { skip }, () => {

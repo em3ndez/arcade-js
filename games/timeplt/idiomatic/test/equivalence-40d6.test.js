@@ -9,6 +9,13 @@
  * omits the oracle's one ret (a uniform 2-byte drift) -- the sweep body's turns are direct calls, so
  * the routine is one plain function on all three paths, which is what lets its caller call it
  * without a return seat.
+ * NO REGISTER IS LIVE AT EXIT, measured on the ORACLE (DEAD AT EXIT): the early exits leave the
+ * tested byte and its flags, the sweep leaves both cursors, the count and the stride pair, and
+ * wrapped in the all-frozen game with every register complemented on the way out (assertDeadAtExit)
+ * none of it is heard in any per-frame state but its pushed copies in two register-save slots
+ * (PUSHED_SAVE_SLOTS), over the driven session and
+ * era-2/era-4 holds, while a complemented stack pointer is heard in game data.
+ * So the rewrite leaves none of them, and the gate compares memory.
  * HOLE: the crafted entries force the era, the count and the bank heads, so the body runs against a
  * state the cabinet reaches only after deeper play, not a captured one.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-40d6.test.js
@@ -20,6 +27,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { sweepEra2PlusObjectBank } from "../sweepEra2PlusObjectBank.js";
 import { loc_40d6 as oracle } from "../../translated/loc_40d6.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x40d6;
 const ERA_INDEX = 0xad04;
@@ -238,3 +246,24 @@ for (const [label, twin] of TWINS) {
     console.log(`  TEETH/${label}: real ${onReal}, sweep ${onSweep}, era>=2-count0 ${onEmpty}`);
   });
 }
+
+/** Stack-page slots the frozen code pushes register saves through (each is a push16 slot in the
+ * all-frozen session): a poisoned register shows here as a pushed copy and nowhere else. Measured by the
+ * DEAD AT EXIT arm, which lets exactly these through and nothing else. */
+const PUSHED_SAVE_SLOTS = [0xafde, 0xafdf];
+
+test("DEAD AT EXIT: no register the oracle leaves is heard, and a complemented stack pointer is", { skip }, () => {
+  const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+  const sessions = {
+    driven: [],
+    "era 2": [{ addr: ERA_INDEX, val: 2, frame: 900, dur: null }],
+    "era 4": [{ addr: ERA_INDEX, val: 4, frame: 700, dur: null }],
+  };
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: 2400, reachEvery: true,
+    scratch: PUSHED_SAVE_SLOTS,
+    sessions: Object.entries(sessions).map(([label, pokes]) => ({ label, pokes })),
+    // A complemented stack pointer on the way out must be heard in game data in every session.
+    controls: [{ label: "complemented SP", poison: ["sp"], dataOnly: true, every: true, reachEvery: true }],
+  });
+});

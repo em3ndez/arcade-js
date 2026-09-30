@@ -35,6 +35,7 @@ import { loc_37bd as inlineTwin } from "../../translated/loc_37bd.js";
 import { KILLS_REMAINING, LIFE_TICKS_MID } from "../names.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { deadAfterThePass } from "./_spawnPassScratchDeadAtExit.js";
 
 const TARGET = 0x3793;
 const BRANCHING_SITE = 0x37bd;
@@ -64,11 +65,15 @@ const NEIGHBOUR_CAP = 120;
 const DATA_TOP = 0xadff;
 
 /**
- * The ceiling on divergence. This entry seats three values and touches nothing else, but the body
- * it tails into drops its tail return and leaves the flag byte, the accumulator, the staging pair
- * and the shadow set differently, and moves the stack pointer. Checked as a SUBSET, a ceiling.
+ * The ceiling on divergence. The body this entry tails into drops its tail return and leaves the
+ * flag byte, the accumulator, the staging pair and the shadow set differently, and moves the stack
+ * pointer. The three values this entry seats — the count and the two cursors — are handed to the
+ * body as arguments and never land in a register, and so are the step count and table pointer the
+ * shape step works a filled slot with, which the frozen side leaves in C and H/L; all six are in
+ * the ceiling on the ORACLE's word: DEAD AFTER THE PASS below poisons them wherever the frozen
+ * search ends and nothing changes. Checked as a SUBSET, a ceiling.
  */
-const EXCLUDED = ["a", "d", "e", "f", "sp", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+const EXCLUDED = ["a", "b", "c", "d", "e", "f", "h", "l", "sp", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) =>
@@ -200,9 +205,9 @@ function sweepOccupancy(candidate) {
 }
 
 /**
- * The same sweep counting only patterns where the two sides' RAM parted company. With nothing
- * excluded, a register difference alone catches everything, and a teeth count that cannot tell
- * the two apart would report a gate with real memory reach and one with none identically.
+ * The same sweep counting only patterns where the two sides' RAM parted company, measured on the
+ * unmasked dump and independently of the ceiling, so it says how much of a catch is memory reach
+ * whatever the ceiling holds.
  */
 function sweepOccupancyRam(candidate) {
   let caught = 0;
@@ -283,15 +288,20 @@ function brokenNeverTransfers(m) {
   regs.iy = ENTRY_CURSOR_SEAT;
 }
 
-/** BUG: scribbles a register the routine has no business touching; the control for EXCLUDED. */
+/** BUG: scribbles a register the routine has no business touching; the control for EXCLUDED. It
+ * is aimed at the interrupt vector, the one register left outside the ceiling. */
 function brokenMovesSpareRegister(m) {
   loc_3793(m);
-  m.regs.h = (m.regs.h + 1) & 0xff;
+  m.regs.i = (m.regs.i + 1) & 0xff;
 }
 
-/** Each twin with the number of occupancy patterns that must catch it IN MEMORY rather than in
- * a cursor. The one is the finding: covering one slot too few is invisible in RAM on all but a
- * single pattern, because the pass fills at most one slot and usually not the one that was cut. */
+/** Each twin with the number of occupancy patterns that must catch it IN MEMORY. With the cursors
+ * in the ceiling that is also the whole of the occupancy catch, and the TEETH arm asserts both. The
+ * single pattern the no-op, entry-cursor and never-transfers twins pass is the full bank, where the
+ * frozen pass writes nothing and leaves only the values DEAD AFTER THE PASS shows nobody reads. The
+ * one is the finding: covering one slot too few
+ * is invisible in RAM on all but a single pattern, because the pass fills at most one slot and
+ * usually not the one that was cut. */
 const TWINS = [
   ["no-op", brokenNoOp, 31],
   ["other-bank", brokenOtherBank, 32],
@@ -391,6 +401,11 @@ test("SP AND SCRATCH: the drift is exactly two bytes and the mask floor sits abo
     console.log(`  SP AND SCRATCH: spDiff 2; window floor ${hex4(r.low)} over an all-free bank`);
   });
 
+test("DEAD AFTER THE PASS: on the frozen game, the three seated values and the shape step's C and H/L are read by nobody once the pass ends",
+  { skip }, () => {
+    deadAfterThePass();
+  });
+
 test("THE SEATS: the three values, read back off the frozen side and pinned", { skip }, () => {
   // This arm reads the FROZEN side only, deliberately: it pins what the seats are so the prose
   // here cannot drift from them. Holding the rewrite to them is the other arms' job.
@@ -481,8 +496,8 @@ for (const [label, twin, ramExpected] of TWINS) {
       `${onNeighbours}/${captureNeighbours().length} neighbours, ` +
       `${onPoked}/${capturePoked().length} poked`);
     assert.ok(onPatterns + onNeighbours + onPoked > 0, `every sweep PASSED the ${label} twin`);
-    assert.equal(onPatterns, OCCUPANCY_PATTERNS,
-      `the ${label} twin escaped an occupancy pattern`);
     assert.equal(inRam, ramExpected, `the ${label} twin's MEMORY catch count moved`);
+    assert.equal(onPatterns, inRam,
+      `the ${label} twin's occupancy catch is not exactly its memory catch, so the gate is catching on something other than RAM`);
   });
 }

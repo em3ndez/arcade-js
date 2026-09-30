@@ -10,6 +10,5 @@ import { CREDIT_COUNT, CREDIT_COUNT_READOUT_CELL } from "./names.js";
 const PEN_COLOUR = 16;
 
 export function paintCreditCountPanel(m) {
-  const { regs } = m;
-  return (regs.c = PEN_COLOUR, regs.de = CREDIT_COUNT_READOUT_CELL, regs.hl = CREDIT_COUNT), void paintTwoUnsuppressedDigitsFromByte(m);
+  paintTwoUnsuppressedDigitsFromByte(m, CREDIT_COUNT, CREDIT_COUNT_READOUT_CELL, PEN_COLOUR);
 }

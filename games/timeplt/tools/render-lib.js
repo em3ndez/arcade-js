@@ -32,7 +32,7 @@ import { buildRoutines } from "../routines.js";
 import { runIdiomaticGame } from "../../../core/frame-stepped.js";
 import manifest from "../manifest.js";
 import { parseEmitArgs } from "../../../tools/emit-core.js";
-import { ROUTINES } from "../idiomatic/names.js";
+import { ERA_OBJECT_RECORD_SLOT0, ROUTINES } from "../idiomatic/names.js";
 
 export const GAME_DIR = dirname(dirname(fileURLToPath(import.meta.url))); // games/timeplt
 const REPO = join(GAME_DIR, "..", "..");
@@ -224,11 +224,16 @@ const GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
  * ★ stepCountdownSlotThenCloseTurn (0x4108) is INLINED into serviceSlotByMarkerThenCloseSweepTurn
  * (0x40ea): its ROM body is the sweep's drifting-countdown arm, reached as a call into
  * stepDriftingCountdownObjectByEraFrames from the sweep. That ARM is what is counted -- the 0x4108
- * module's own body is also counted, so a direct entry of it counts too.
+ * module's own body is also counted, so a direct entry of it counts too. The sweep hands the slot's
+ * record to the step as an argument, not in IX, so the cell is any slot record's countdown byte (the
+ * record's first byte, at the bank's sixteen-byte stride); the innermost-frame test is what pins the
+ * read to the step.
  */
+const isSlotRecordBase = (a) => a >= ERA_OBJECT_RECORD_SLOT0 && a < ERA_OBJECT_RECORD_SLOT0 + 0x100 &&
+  ((a - ERA_OBJECT_RECORD_SLOT0) & 0x0f) === 0;
 export const DIRECT_PROBES = {
   stepCountdownSlotThenCloseTurn: {
-    cell: (m, a) => a === (m.regs.ix & 0xffff), // the object's countdown byte
+    cell: (m, a) => isSlotRecordBase(a), // a slot's countdown byte
     fn: "stepDriftingCountdownObjectByEraFrames",
     under: ["serviceSlotByMarkerThenCloseSweepTurn", "stepCountdownSlotThenCloseTurn"],
   },

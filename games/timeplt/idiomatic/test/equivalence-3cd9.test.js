@@ -3,15 +3,21 @@
  * hasDriftedOffTheField — memory-equivalent to the frozen oracle at ROM 0x3CD9.
  *
  * GATE: strict unit-capture with NO exclusion — the frozen routine pushes nothing and writes
- *   nothing — PLUS a live-out comparison on the carry flag, an EXHAUSTIVE sweep of the routine's
- *   entire input space, and teeth.
+ *   nothing — PLUS a live-out comparison of the rewrite's RETURNED answer against the carry the
+ *   frozen routine leaves, an EXHAUSTIVE sweep of the routine's entire input space, and teeth.
+ *
+ *   THE ANSWER IS RETURNED, NOT MIRRORED INTO CARRY. The frozen routine answers in the carry flag;
+ *   the rewrite answers with its return value, and every idiomatic caller consumes that return
+ *   (hasReachedBoundaryBandSelectedByHeading tail-returns it, and its callers branch on it) — held
+ *   by those callers' own equivalence tests against their frozen routines. So the oracle's carry
+ *   is compared against the candidate's RETURN, and the candidate's own flag byte is not read.
  *
  *   THE ANSWER, NOT THE MEMORY, IS THE CONTRACT. This routine writes no cell at all, so a RAM
  *   diff alone would pass a candidate that returned the opposite answer every time. The first
  *   arm measures that rather than asserting it: the always-wrong twin is RAM-identical.
  *
  * What it exercises, holes stated:
- *   1. EQUAL at the real dispatch — the whole dump, stack included, AND the carry flag. The
+ *   1. EQUAL at the real dispatch — the whole dump, stack included, AND the answer. The
  *      first dispatch lands past the shared entry budget, which is asserted rather than worked
  *      around silently.
  *   2. RAM IS BLIND — measured, with the inverted twin, so the live-out arm is known to be the
@@ -21,10 +27,10 @@
  *   4. EXCLUDED — the register divergence bounded by a measured set: anything outside it fails,
  *      and a rewrite that diverges on fewer of them passes.
  *   5. EXHAUSTIVE — the whole input space is the two coordinate bytes of one sprite entry:
- *      all 65536 pairs, comparing the carry the frozen routine leaves against the carry AND the
- *      returned boolean. Both windows are covered, including the one the second test owns.
+ *      all 65536 pairs, comparing the carry the frozen routine leaves against the returned
+ *      boolean. Both windows are covered, including the one the second test owns.
  *   6. TEETH — seven twins, each caught on an exact count of the 65536 pairs. Only the inverted
- *      one is caught everywhere; the rest score in the hundreds or low thousands, because the
+ *      one and the no-op (which returns no answer at all) are caught everywhere; the rest score in the hundreds or low thousands, because the
  *      answer is true on a narrow band and two candidates that disagree about the band still
  *      agree over most of the plane. Those counts are the shape of the routine, not a score, and
  *      the lowest of them belongs to the twin whose band differs from the right one by one.
@@ -108,15 +114,15 @@ function allDiffs(a, b) {
   return out;
 }
 
-/** RAM, then the carry the answer is mirrored into. Clone per point. */
+/** RAM, then the answer: the oracle's carry against the candidate's return. Clone per point. */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
   oracle(a);
-  candidate(b);
+  const returned = candidate(b);
   const ram = allDiffs(a, b)[0];
   if (ram) return ram;
-  if (carry(a) !== carry(b)) return { addr: null, a: carry(a), b: carry(b) };
+  if (returned !== carry(a)) return { addr: null, a: carry(a), b: returned };
   return null;
 }
 
@@ -145,8 +151,7 @@ function answerDiffers(candidate, first, second) {
   }
   oracle(a);
   const returned = candidate(b);
-  if (carry(a) !== carry(b)) return true;
-  return returned !== undefined && returned !== carry(a);
+  return returned !== carry(a);
 }
 
 function sweepCaught(candidate) {
@@ -200,7 +205,7 @@ const coordinates = (m) => [
   m.mem8[u16(m.regs.iy + SECOND_COORDINATE)],
 ];
 
-/** BUG: does nothing at all, so the carry it leaves is whatever the caller had. */
+/** BUG: does nothing at all, so it returns no answer. */
 function brokenNoOp() {}
 
 /** BUG: the answer is always the opposite. */
@@ -243,7 +248,7 @@ function brokenSwapsTheAxes(m) {
 }
 
 const TWINS = [
-  ["no-op", brokenNoOp, 1780],
+  ["no-op", brokenNoOp, 65536],
   ["inverted", brokenInverted, 65536],
   ["drops-the-second-test", brokenDropsTheSecondTest, 1012],
   ["drops-the-first-test", brokenDropsTheFirstTest, 756],
@@ -265,7 +270,7 @@ test("THE SHARED ENTRY BUDGET FALLS SHORT, which is why this file raises it", { 
   console.log(`  BUDGET: ${ENTRY_FRAMES} frames never reach it; ${REACH_FRAMES} do`);
 });
 
-test("EQUAL at the real dispatch: the whole dump and the carry", { skip }, () => {
+test("EQUAL at the real dispatch: the whole dump and the answer", { skip }, () => {
   const r = gate(hasDriftedOffTheField);
   assert.notEqual(entry, null, "vacuous: the undriven session never reached the routine");
   assert.equal(r.ram, null, `a byte diverged — ${show(r.ram)}`);
@@ -273,8 +278,7 @@ test("EQUAL at the real dispatch: the whole dump and the carry", { skip }, () =>
   const b = entryState().clone();
   oracle(a);
   const returned = hasDriftedOffTheField(b);
-  assert.equal(carry(a), carry(b), "the carry the answer rides in diverged");
-  assert.equal(returned, carry(a), "the returned boolean disagrees with the carry");
+  assert.equal(returned, carry(a), "the returned answer disagrees with the frozen routine's carry");
   const e = entryState();
   console.log(
     `  EQUAL: entry slot=${hex4(e.regs.iy)} first=${e.mem8[e.regs.iy]} ` +
@@ -286,11 +290,11 @@ test("RAM IS BLIND: an always-wrong candidate leaves the dump identical", { skip
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  brokenInverted(b);
+  const returned = brokenInverted(b);
   assert.deepEqual(allDiffs(a, b), [], "the inverted twin now moves a byte, so RAM is no longer " +
     "blind here and this file's account of what the gate rests on must be re-derived");
-  assert.notEqual(carry(a), carry(b), "the inverted twin must differ where RAM cannot see");
-  console.log("  RAM IS BLIND: the inverted twin is dump-identical; only the carry separates them");
+  assert.notEqual(returned, carry(a), "the inverted twin must differ where RAM cannot see");
+  console.log("  RAM IS BLIND: the inverted twin is dump-identical; only the answer separates them");
 });
 
 test("CORPUS: the undriven session's every dispatch; the driven tape reaches none", { skip }, () => {
@@ -315,12 +319,12 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
-  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — the carry inside f is compared apart`);
+  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — the answer is compared apart, as the return`);
 });
 
 test("EXHAUSTIVE: all 65536 coordinate pairs give the same answer", { skip }, () => {
   assert.equal(sweepCaught(hasDriftedOffTheField), 0, "the rewrite answered differently somewhere");
-  console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} coordinate pairs, carry and return identical`);
+  console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} coordinate pairs, frozen carry and returned answer identical`);
 });
 
 test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip }, () => {

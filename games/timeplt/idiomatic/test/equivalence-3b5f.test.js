@@ -3,6 +3,11 @@
  * serviceEra1BomberObject — memory-equivalent to the frozen oracle at ROM 0x3b5f. GATE: masked strict — real
  * dispatches under the tape plus crafted entries forcing each head arm; the dissolved arms drop the
  * oracle's tail return, so [low, seat) stack scratch is masked and the two-byte SP drift asserted.
+ * FIRING ARM: a REGRESSION check. The rewrite seats no index register; arming hands the snapped facing
+ * to the velocity lookup as an argument. So with a STALE IX (another bank's record base, whose heading
+ * no facing snaps to) the rewrite must still match the frozen oracle on the arming path, and a twin
+ * that takes the lookup's heading off the record the register names is caught there -- and only
+ * there: with IX seated on the right record the same twin matches, so the catch is the stale record.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-3b5f.test.js
  */
 
@@ -12,8 +17,9 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { serviceEra1BomberObject } from "../serviceEra1BomberObject.js";
 import { loc_3b5f as oracle } from "../../translated/loc_3b5f.js";
-import { ERA_INDEX } from "../names.js";
+import { ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_ARMED } from "../names.js";
 import { armBomberSlotWhenTimerFires } from "../armBomberSlotWhenTimerFires.js";
+import { loc_5942 } from "../loc_5942.js";
 import { advanceHitSoakingObjectThenAnimateDeath } from "../advanceHitSoakingObjectThenAnimateDeath.js";
 import { advanceTwoTileObjectThenTryAimedSpawn } from "../advanceTwoTileObjectThenTryAimedSpawn.js";
 
@@ -202,4 +208,77 @@ test("TEETH: broken twins are caught", { skip }, () => {
   // ★ the correct routine must PASS the same entries the twins fail, or catching is vacuous.
   for (const m of [live, hit, empty]) assert.equal(unitDiff(serviceEra1BomberObject, m), null, "serviceEra1BomberObject itself diverged");
   console.log("  TEETH: no-op, swapped-arms, empty-moves, no-era-gate all caught");
+});
+
+/** BUG: hands the hit arm the head as it stands, not advanced by one. */
+function brokenHeadNotAdvanced(m) {
+  const head = m.mem8[RECORD];
+  if (m.mem8[ERA_INDEX] !== ACTIVE_ERA || head === HEAD_EMPTY || head === HEAD_LIVE) return serviceEra1BomberObject(m);
+  return advanceHitSoakingObjectThenAnimateDeath(m, RECORD, ENTRY, head);
+}
+
+/** Heads either side of the hit arm's 0x61 death-animation threshold, hits spent so the head counts on. */
+const THRESHOLD_HEADS = [0x5f, 0x60, 0x61, 0x62];
+
+test("HEAD THRESHOLD: the advanced head reaches the hit arm, where its threshold tells", { skip }, () => {
+  let caught = 0;
+  for (const head of THRESHOLD_HEADS) {
+    const m = craft(ACTIVE_ERA, head);
+    m.mem8[HITS_REMAINING] = 0;
+    assert.equal(unitDiff(serviceEra1BomberObject, m), null, `head ${hex4(head)} diverged`);
+    if (unitDiff(brokenHeadNotAdvanced, m)) caught++;
+  }
+  assert.ok(caught > 0, "a hit arm handed the unadvanced head passed every threshold head");
+  console.log(`  HEAD THRESHOLD: ${THRESHOLD_HEADS.length} heads identical; the unadvanced-head twin caught on ${caught}`);
+});
+
+// ── the firing arm: the heading reaches the velocity lookup as an argument, not through IX ────
+
+const COUNTDOWN = 0x0e;
+const VELOCITY = 0x0a;
+/** A stale IX the frame could have left from an earlier service: another bank's record base. */
+const STALE_IX = 0xa850;
+
+/** Era one, empty head, the arming countdown about to fire on an even frame with no Mother-Ship. */
+function craftFiring(ix = STALE_IX) {
+  const m = craft(ACTIVE_ERA, HEAD_EMPTY);
+  m.mem8[RECORD + COUNTDOWN] = 1;
+  m.mem8[FRAME_TICK] &= 0xfe;
+  m.mem8[MOTHER_SHIP_ARMED] = 0;
+  m.regs.ix = ix;
+  // A heading at the stale base that no facing snaps to (facings are 0x00 or 0x80), on both sides.
+  m.mem8[STALE_IX + 2] = 0x40;
+  return m;
+}
+
+/** BUG: arms correctly, then takes the velocity lookup's heading off the record the IX REGISTER names
+ *  rather than the slot's own facing -- the wrong record whenever IX is stale. */
+function brokenHeadingFromRegisterRecord(m) {
+  const armed = m.mem8[ERA_INDEX] === ACTIVE_ERA && m.mem8[RECORD] === HEAD_EMPTY;
+  const r = serviceEra1BomberObject(m);
+  if (armed && m.mem8[RECORD] === HEAD_LIVE) {
+    const [de, bc] = loc_5942(m);
+    m.mem8[RECORD + VELOCITY] = de & 0xff;
+    m.mem8[RECORD + VELOCITY + 1] = de >> 8;
+    m.mem8[RECORD + VELOCITY + 2] = bc & 0xff;
+    m.mem8[RECORD + VELOCITY + 3] = bc >> 8;
+  }
+  return r;
+}
+
+test("FIRING ARM (regression): arming fires identically with a stale IX; a heading off the register's record is caught", { skip }, () => {
+  const m = craftFiring();
+  const d = unitDiff(serviceEra1BomberObject, m);
+  assert.equal(d, null, `the firing arm diverged under a stale IX: ${show(d)}`);
+  const after = m.clone();
+  oracle(after);
+  assert.equal(after.mem8[RECORD], HEAD_LIVE, "the countdown did not fire, so this is not the arming path");
+  assert.notEqual(after.mem16[RECORD + VELOCITY], m.mem16[RECORD + VELOCITY], "arming wrote no velocity");
+  const seated = craftFiring(RECORD);
+  assert.equal(unitDiff(serviceEra1BomberObject, seated), null, "the firing arm diverged with IX on the record");
+  assert.ok(unitDiff(brokenHeadingFromRegisterRecord, craftFiring()),
+    "a velocity looked up from the stale record IX names passed, so the firing arm cannot see the wrong record");
+  assert.equal(unitDiff(brokenHeadingFromRegisterRecord, seated), null,
+    "the wrong-record twin was caught with IX on the right record, so its catch is not the stale record");
+  console.log("  FIRING ARM: identical under a stale IX and a seated one; the register-record twin caught only when IX is stale");
 });

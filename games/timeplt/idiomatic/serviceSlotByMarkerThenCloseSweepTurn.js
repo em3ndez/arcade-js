@@ -5,14 +5,15 @@
  * a chased object whose handler turns on the era and on the record's countdown — the final era runs
  * the approach-then-breakaway handler, a live countdown flies the slot and ticks it, and a spent one
  * chases its aim point for the frame. Every path ends in closing the turn, which goes round again
- * while turns remain. LIVE-OUT: memory, the two cursors and the turn count. */
+ * while turns remain. The record cursor, the sprite-entry cursor and the turns left are this turn's
+ * arguments and are handed on as arguments. LIVE-OUT: memory. */
 
 import { u16 } from "../../../core/int.js";
 import { ERA_INDEX } from "./names.js";
 import { closeOneTurnOfTheSlotSweep } from "./closeOneTurnOfTheSlotSweep.js";
 import { stepDriftingCountdownObjectByEraFrames } from "./stepDriftingCountdownObjectByEraFrames.js";
 import { stepSlotApproachThenBreakawayRetire } from "./stepSlotApproachThenBreakawayRetire.js";
-import { flyLiveSlotAndTickCountdown } from "./flyLiveSlotAndTickCountdown.js";
+import { flyAndRetireSlotCyclingShapeInEra4 } from "./flyAndRetireSlotCyclingShapeInEra4.js";
 import { chaseOneAimPointAndRetireAtTheLine } from "./chaseOneAimPointAndRetireAtTheLine.js";
 
 const MARKER = 0x00;
@@ -21,20 +22,27 @@ const FREE = 0x00;
 const FULL = 0xff;
 const FINAL_ERA = 4;
 
-export function serviceSlotByMarkerThenCloseSweepTurn(m, ix = m.regs.ix) {
+export function serviceSlotByMarkerThenCloseSweepTurn(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b) {
   const { mem8 } = m;
   const marker = mem8[u16(ix + MARKER)];
 
-  if (marker === FREE) return closeOneTurnOfTheSlotSweep(m);
+  if (marker === FREE) return closeOneTurnOfTheSlotSweep(m, ix, iy, b);
 
   if (marker !== FULL) {
-    stepDriftingCountdownObjectByEraFrames(m);
-    return closeOneTurnOfTheSlotSweep(m);
+    stepDriftingCountdownObjectByEraFrames(m, ix, iy);
+    return closeOneTurnOfTheSlotSweep(m, ix, iy, b);
   }
 
-  if (mem8[ERA_INDEX] === FINAL_ERA) return stepSlotApproachThenBreakawayRetire(m);
-  if (mem8[u16(ix + COUNTDOWN)] !== 0) return flyLiveSlotAndTickCountdown(m);
+  if (mem8[ERA_INDEX] === FINAL_ERA) return stepSlotApproachThenBreakawayRetire(m, ix, iy, b);
 
-  chaseOneAimPointAndRetireAtTheLine(m);
-  return closeOneTurnOfTheSlotSweep(m);
+  const countdown = u16(ix + COUNTDOWN);
+  if (mem8[countdown] !== 0) {
+    // a live countdown: fly the slot, tick its countdown, then close the turn
+    flyAndRetireSlotCyclingShapeInEra4(m, ix, iy);
+    mem8[countdown] = mem8[countdown] - 1;
+    return closeOneTurnOfTheSlotSweep(m, ix, iy, b);
+  }
+
+  chaseOneAimPointAndRetireAtTheLine(m, ix, iy);
+  return closeOneTurnOfTheSlotSweep(m, ix, iy, b);
 }

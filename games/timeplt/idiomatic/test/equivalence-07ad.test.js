@@ -2,11 +2,13 @@
 /**
  * parkTheImageTotalForTheTamperVerdict — the real dispatch (a genuine image, the match arm) plus
  * crafted tamper entries forcing the trap arm, compared with the dead push words below the seat
- * masked out. This entry parks the total in B and tails into the verdict; the dissolved verdict
+ * masked out. The trap arm is compared AT the transfer into the trap 0x0F8D: the oracle is stopped on
+ * entry there and the rewrite must raise naming it (the trap unwinds return words the idiomatic layer
+ * never lays down, so it raises; equivalence-0f8d gates that). This entry parks the total in B and tails into the verdict; the dissolved verdict
  * drops its tail return and brackets its own call with a push the rewrite never writes, so [low,
  * seat) is masked (floor watched off the oracle's pushes, proved above the data), the SP drift is
- * asserted per arm, and the scanline is pinned so the trap's cycle-driven fixup read matches a
- * cycle-free rewrite. Registers are not compared: the dissolved callees drop the register dance and
+ * asserted per arm, and the scanline is pinned so the frozen trap's cycle-driven fixup read is
+ * repeatable for the twins that still run it. Registers are not compared: the dissolved callees drop the register dance and
  * the verdict's own return carries this entry, so nothing downstream consumes what it leaves.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-07ad.test.js
  */
@@ -14,6 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { stopAtLandings, landingOf } from "./_landingProbe.js";
 import { parkTheImageTotalForTheTamperVerdict as candidate } from "../parkTheImageTotalForTheTamperVerdict.js";
 import { loc_07ad as oracle } from "../../translated/loc_07ad.js";
 import { buildRoutines } from "../../routines.js";
@@ -40,6 +43,18 @@ const skip = romsPresent() ? false : "ROM images are gitignored; none assembled"
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
 // ── the masked comparison ─────────────────────────────────────────────────────────────────
+/** The trap the mismatch arm transfers into. The rewrite raises NotImplemented there (its landing has
+ * no faithful form: it unwinds return words the idiomatic layer never lays down), so the oracle is
+ * stopped on entry to it and the two sides are compared AT the transfer; the trap's own effects are
+ * gated (and pinned off the frozen side) by equivalence-0f8d. */
+const TRAP = 0x0f8d;
+const LANDINGS = new Map([[TRAP, "loc_0f8d"]]);
+function outcomeOf(err) {
+  if (err === null) return "returned";
+  if (landingOf(err, LANDINGS) === TRAP) return "trap";
+  return `fault: ${String(err.message ?? err).slice(0, 40)}`;
+}
+
 /**
  * Oracle vs a candidate on clones with the scanline pinned identically. The verdict pushes a return
  * word its dissolved rewrite never writes, so the diff excludes [low, seat) — low watched off the
@@ -54,9 +69,14 @@ function compare(cand, machine, scanline) {
   let low = seat;
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
-  const retOracle = oracle(a);
-  let retCand, threw = null;
-  try { retCand = cand(b); } catch (e) { threw = String(e).slice(0, 40); }
+  stopAtLandings(a, [TRAP]);
+  let retOracle, retCand, errA = null, errB = null;
+  try { retOracle = oracle(a); } catch (e) { errA = e; }
+  try { retCand = cand(b); } catch (e) { errB = e; }
+  const outcomeA = outcomeOf(errA);
+  const outcomeB = outcomeOf(errB);
+  // A side that left some other way than returning or reaching the trap is a fault, never an arm.
+  const threw = outcomeA !== outcomeB ? `oracle ${outcomeA}, candidate ${outcomeB}` : null;
   const da = a.dumpState();
   const db = b.dumpState();
   let escaped = null;
@@ -66,7 +86,7 @@ function compare(cand, machine, scanline) {
     if (addr >= low && addr < seat) continue;
     escaped = { addr, oracle: da[i], candidate: db[i] };
   }
-  return { escaped, low, seat, spDiff: ((a.regs.sp - b.regs.sp) << 16) >> 16, retOracle, retCand, threw };
+  return { escaped, low, seat, spDiff: ((a.regs.sp - b.regs.sp) << 16) >> 16, retOracle, retCand, threw, outcome: outcomeA };
 }
 
 /** Cells the oracle moves from a state, ignoring the push scratch — one arm's footprint. */
@@ -75,7 +95,8 @@ function footprint(machine, scanline) {
   a.io.readScanline = () => scanline & 0xff;
   const seat = a.regs.sp;
   const before = a.dumpState().slice();
-  oracle(a);
+  stopAtLandings(a, [TRAP]);
+  try { oracle(a); } catch (e) { if (landingOf(e, LANDINGS) !== TRAP) throw e; }
   const now = a.dumpState();
   const cells = [];
   for (let i = 0; i < now.length; i++) {
@@ -133,15 +154,18 @@ const brokenScribblesData = (m) => {
 };
 
 // The four staging twins flip the genuine image to the trap, so they are caught on the match arm
-// where the correct total passes; the trap itself is total-blind, so the tamper arms cannot see a
-// wrong total. never-hands-on and extra-pop diverge on every scenario, in the return and the SP.
+// where the correct total passes. They reach the verdict through the registry, so on the tamper arms
+// they run the FROZEN trap, which unwinds and returns where the rewrite raises at the transfer -- they
+// are caught there too, by the transfer contract rather than by the total (the trap is total-blind).
+// never-hands-on diverges on every scenario; extra-pop only on the match arm, because on a tamper
+// arm the rewrite raises at the trap before the extra pop can run.
 const TWINS = [
-  ["no-copy", brokenNoCopy, 1],
-  ["copies-c", brokenCopiesC, 1],
-  ["copies-backwards", brokenCopiesBackwards, 1],
-  ["clears-total", brokenClearsTotal, 1],
+  ["no-copy", brokenNoCopy, 5],
+  ["copies-c", brokenCopiesC, 5],
+  ["copies-backwards", brokenCopiesBackwards, 5],
+  ["clears-total", brokenClearsTotal, 5],
   ["never-hands-on", brokenNeverHandsOn, 5],
-  ["extra-pop", brokenExtraPop, 5],
+  ["extra-pop", brokenExtraPop, 1],
 ];
 
 function isCaught(twin, sc) {
@@ -181,14 +205,15 @@ test("ARMS: match and trap are memory-equivalent, and the arms really differ", {
   const prints = {};
   for (const sc of scenarios()) {
     const r = compare(candidate, sc.m, sc.scan);
-    assert.equal(r.threw, null, `${sc.label} threw: ${r.threw}`);
+    assert.equal(r.threw, null, `${sc.label} left differently: ${r.threw}`);
     assert.equal(r.escaped, null, `${sc.label} escaped at ${r.escaped && hex4(r.escaped.addr)}`);
+    // ★ Vacuity guard: the arms must leave DIFFERENTLY -- the match arm returns, every tampered
+    // total reaches the trap -- or the poke changed nothing.
+    assert.equal(r.outcome, sc.label === "match" ? "returned" : "trap", `${sc.label} took the wrong arm`);
     prints[sc.label] = footprint(sc.m, sc.scan).map(hex4).join(",");
   }
-  // ★ Vacuity guard: the two arms must move DIFFERENT cells, or the poke changed nothing.
   assert.notEqual(prints.match, prints["tamper-00"], "the match and trap arms move the same cells");
-  assert.ok(prints["tamper-00"].length > 0, "the trap arm's fixup never fired, so its comparison is vacuous");
-  console.log(`  ARMS: 5 scenarios equivalent; match moves ${prints.match.split(",").length}, trap ${prints["tamper-00"].split(",").length} cells`);
+  console.log(`  ARMS: 5 scenarios equivalent; match returns and moves ${prints.match.split(",").length} cells, every tampered total reaches the trap`);
 });
 
 test("TOTAL: all 256 totals parked and carried, both arms of the verdict", { skip }, () => {
@@ -197,6 +222,7 @@ test("TOTAL: all 256 totals parked and carried, both arms of the verdict", { ski
     const scan = v === GENUINE ? 0 : FIRING_SCANLINE;
     const m = craft((mm) => { mm.regs.a = v; for (const y of SLOT_Y) mm.mem8[y] = ARMED; });
     const r = compare(candidate, m, scan);
+    assert.equal(r.threw, null, `total ${hex4(v)} left differently: ${r.threw}`);
     assert.equal(r.escaped, null, `total ${hex4(v)} escaped at ${r.escaped && hex4(r.escaped.addr)}`);
     assert.equal(r.spDiff, v === GENUINE ? MATCH_DRIFT : MISMATCH_DRIFT, `total ${hex4(v)}: SP drift moved`);
     if (v === GENUINE) clean++; else trap++;

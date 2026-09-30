@@ -7,6 +7,7 @@
  * of pure scaling of one another, rungs on a ladder of six that climbs in steps of 25. What the era picks is a rung.
  * LIVE-OUT: memory. */
 
+import { u16 } from "../../../core/int.js";
 import { negateVelocityIntoWorldScrollThenDressSprite } from "./negateVelocityIntoWorldScrollThenDressSprite.js";
 import { velocityForHeading } from "./velocityForHeading.js";
 import { ERA_INDEX, loc_2e3e, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_08FA } from "./names.js";
@@ -15,13 +16,14 @@ const OPENING_ERA_PACE = OPENING_ERA_VELOCITY_TABLE;
 const EARLY_ERA_PACE = loc_2e3e;
 const LATER_ERA_PACE = VELOCITY_TABLE_08FA;
 const FIRST_LATER_ERA = 3;
+const HEADING_IN_RECORD = 2;
 
-export function scrollWorldAtTheEraPace(m) {
+export function scrollWorldAtTheEraPace(m, heading = m.mem8[u16(m.regs.ix + HEADING_IN_RECORD)]) {
   const era = m.mem8[ERA_INDEX];
   let pace = LATER_ERA_PACE;
   if (era === 0) pace = OPENING_ERA_PACE;
   else if (era < FIRST_LATER_ERA) pace = EARLY_ERA_PACE;
 
-  velocityForHeading(m, pace);
-  negateVelocityIntoWorldScrollThenDressSprite(m);
+  const [alongY, alongX] = velocityForHeading(m, pace, heading);
+  negateVelocityIntoWorldScrollThenDressSprite(m, alongY, alongX);
 }

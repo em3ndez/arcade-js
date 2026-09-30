@@ -6,13 +6,17 @@
  *
  *   1. ★ RAM IS NOT THE GATE HERE, AND SAYING SO IS THE POINT. This routine writes NOTHING, so
  *      a RAM comparison passes a candidate that does nothing at all. The contract is therefore
- *      the returned answer plus the registers and flags the routine leaves, and every arm below
- *      asserts those. The "not vacuous" test proves the RAM-only reading is empty by showing a
- *      no-op candidate survives it.
+ *      the returned answer, held against the zero flag the oracle's comparison leaves, and every
+ *      arm below asserts it. The "not vacuous" test proves the RAM-only reading is empty by
+ *      showing a no-op candidate survives it.
  *   2. EQUAL at the real dispatch — the captured entry replayed on two clones.
- *   3. EXCLUDED, deliberately: the stack pointer alone, because the oracle returns through the
- *      stack and the rewrite returns to JavaScript. Nothing else may move — not the flag byte,
- *      because the comparison this routine performs IS its product.
+ *   3. EXCLUDED, deliberately, and read off the oracle's one caller: the oracle leaves the total
+ *      in A, the pointer in HL, a spent count in B and the comparison's flags in F, and the only
+ *      call site (0x30AC) reloads every one of them before reading any -- ld a,(0xad04), add a,a,
+ *      ld hl,0x3176, ld b,0x08 -- so none is a live-out and the rewrite no longer leaves them. What
+ *      is asserted instead is stronger than a ceiling: the rewrite leaves EVERY register as it found
+ *      it. The total is not lost: the answer is swept over all 256 expected bytes at every length
+ *      and base, so a wrong total disagrees with the oracle's zero flag at two of them.
  *   4. CORPUS — every dispatch of a driven session and of the undriven attract demo. ★ THIS IS A
  *      THIN CORPUS AND THAT IS THE HEADLINE: the routine fires a handful of times in thousands
  *      of frames, always on the same arguments. The crafted sweep is the load-bearing arm.
@@ -24,6 +28,11 @@
  *      always read that address would pass both of them. Its own arm below varies the base and
  *      its own twin proves the arm bites.
  *   7. TEETH — broken twins, each with the exact number of crafted entries that catch it.
+ *   8. HARMLESS — the pointer-not-moved twin, whose only defect is a register the caller reloads,
+ *      is caught on no crafted entry.
+ *   9. DEAD AT EXIT — the set in 3 measured on the ORACLE rather than read off the call site: every
+ *      register in it complemented where the frozen routine hands back, over both sessions, is heard
+ *      nowhere, with an SP flip at the same exit as the control that the exit poison lands.
  *
  * HOLE: the single call site in the image discards the answer, the total, the pointer and the
  * flags alike, so nothing downstream can distinguish this rewrite from one that returns a
@@ -42,11 +51,15 @@ import { sumByteRunAndCompareToExpected } from "../sumByteRunAndCompareToExpecte
 import { loc_0b4c as oracle } from "../../translated/loc_0b4c.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x0b4c;
 const EXCLUDED = ["sp"];
+/** What the oracle leaves in registers -- total in A, compare flags in F, spent count in B, pointer
+ * in HL -- and the one call site in the image (0x30AC) reloads each before any read. */
+const ORACLE_DEAD = ["a", "f", "b", "h", "l"];
 const CORPUS_FRAMES = 2500;
 
 const TAPES = [
@@ -81,8 +94,8 @@ function entryState() {
 }
 
 /**
- * The real contract: RAM, then the registers this routine actually produces — the total, the
- * pointer, the spent count, the flag byte the comparison leaves, and the returned answer.
+ * The real contract: RAM, then the returned answer against the zero flag the oracle's comparison
+ * leaves. The registers the oracle leaves are dead at its one caller (EXCLUDED, below).
  */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
@@ -91,9 +104,6 @@ function unitDiff(candidate, machine) {
   const answerB = candidate(b);
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return ram;
-  for (const k of ["a", "f", "b", "h", "l"]) {
-    if (a.regs[k] !== b.regs[k]) return { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
-  }
   // The oracle returns nothing, so the answer is checked against the flag it leaves instead.
   const oracleSaysEqual = (a.regs.f & 0x40) !== 0;
   if (oracleSaysEqual !== Boolean(answerB)) {
@@ -115,22 +125,22 @@ function craft(base, length, expected) {
 const REAL_BASE = 0x086b;
 const REAL_LENGTH = 0x10;
 
-/** Every expected byte against the real run, plus a length sweep that reaches the zero case. */
+/** Every expected byte, at the real length and at every length of a sweep that reaches the zero
+ * case: the answer is yes at exactly one expected byte per run, so this pins each run's total. */
 const EXPECTED_SWEEP = Array.from({ length: 256 }, (_unused, v) => v);
 const LENGTH_SWEEP = [0, 1, 2, 3, 15, 16, 17, 64, 128, 254, 255];
 
 function sweepCaught(candidate) {
   let caught = 0;
-  for (const expected of EXPECTED_SWEEP) {
-    if (unitDiff(candidate, craft(REAL_BASE, REAL_LENGTH, expected))) caught++;
-  }
   for (const length of LENGTH_SWEEP) {
-    if (unitDiff(candidate, craft(REAL_BASE, length, 0x22))) caught++;
+    for (const expected of EXPECTED_SWEEP) {
+      if (unitDiff(candidate, craft(REAL_BASE, length, expected))) caught++;
+    }
   }
   return caught;
 }
 
-const SWEEP_SIZE = EXPECTED_SWEEP.length + LENGTH_SWEEP.length;
+const SWEEP_SIZE = EXPECTED_SWEEP.length * LENGTH_SWEEP.length;
 
 /**
  * Bases other than the one the single call site fixes. The two sweeps above cannot see a
@@ -141,7 +151,9 @@ const BASE_SWEEP = [0x0800, 0x0900, 0x0a00, 0x1000, 0x2000];
 function baseSweepCaught(candidate) {
   let caught = 0;
   for (const base of BASE_SWEEP) {
-    if (unitDiff(candidate, craft(base, REAL_LENGTH, 0x22))) caught++;
+    for (const expected of EXPECTED_SWEEP) {
+      if (unitDiff(candidate, craft(base, REAL_LENGTH, expected))) caught++;
+    }
   }
   return caught;
 }
@@ -236,7 +248,17 @@ function brokenAlwaysAgrees(m) {
   return true;
 }
 
-/** BUG: leaves the pointer where it started instead of one past the run. */
+/** BUG: compares the total against the length instead of the expected byte. */
+function brokenComparesLength(m) {
+  const { regs, mem8 } = m;
+  const run = regs.b === 0 ? 256 : regs.b;
+  let total = 0;
+  for (let i = 0; i < run; i++) total = (total + mem8[(regs.hl + i) & 0xffff]) & 0xff;
+  return total === regs.b;
+}
+
+/** Formerly a BUG, now HARMLESS: the right answer, but the pointer left where it started instead of one
+ * past the run. HL is dead at the one caller (DEAD AT EXIT), so this is not a defect. */
 function brokenPointerNotMoved(m) {
   const { regs, mem8 } = m;
   const run = regs.b === 0 ? 256 : regs.b;
@@ -248,22 +270,25 @@ function brokenPointerNotMoved(m) {
   return total === regs.c;
 }
 
+// Measured counts over the length-by-expected sweep. A candidate that answers from a wrong total
+// disagrees with the oracle at most at two expected bytes per run (the true total and its own), so
+// the counts are small by construction; the no-op answers no everywhere and is caught exactly once
+// per swept length, where the oracle's total matches.
 const TWINS = [
-  ["no-op", brokenNoOp, SWEEP_SIZE],
-  ["short-by-one", brokenShortByOne, 266],
-  // The weakest twin here, and deliberately kept: only the crafted zero-length entry sees it.
-  ["zero-means-none", brokenZeroMeansNone, 1],
-  // Caught where the MASKED total matches the expected byte and the unmasked one does not. The
-  // unmasked total over the real run is far past a byte, so it can never itself equal an
-  // expected value -- the catch is the masked side agreeing, not the unmasked side colliding.
-  ["no-wrap", brokenNoWrap, 2],
-  ["always-agrees", brokenAlwaysAgrees, 265],
-  ["pointer-not-moved", brokenPointerNotMoved, SWEEP_SIZE],
+  ["no-op", brokenNoOp, 11],
+  ["short-by-one", brokenShortByOne, 20],
+  // The weakest twin here, and deliberately kept: only the crafted zero-length run sees it.
+  ["zero-means-none", brokenZeroMeansNone, 2],
+  // Caught at the one expected byte per run where the MASKED total matches and the unmasked one,
+  // far past a byte on all but the shortest runs, cannot.
+  ["no-wrap", brokenNoWrap, 10],
+  ["always-agrees", brokenAlwaysAgrees, 2805],
+  ["compares-the-length", brokenComparesLength, 11],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: sumByteRunAndCompareToExpected == oracle on RAM, registers and the answer", { skip }, () => {
+test("EQUAL at the real dispatch: sumByteRunAndCompareToExpected == oracle on RAM and the answer", { skip }, () => {
   const r = gate(sumByteRunAndCompareToExpected);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
@@ -271,7 +296,7 @@ test("EQUAL at the real dispatch: sumByteRunAndCompareToExpected == oracle on RA
   assert.equal(d, null, `the contract diverged — ${JSON.stringify(d)}`);
   console.log(
     `  EQUAL: entry pointer=${hex4(entryState().regs.hl)} length=${entryState().regs.b} ` +
-      `expected=${entryState().regs.c}; RAM, registers, flags and the answer identical`,
+      `expected=${entryState().regs.c}; RAM and the answer identical`,
   );
 });
 
@@ -288,22 +313,31 @@ test("NOT VACUOUS: RAM alone passes a candidate that does nothing", { skip }, ()
       "register-contract framing of this file must be re-derived",
   );
   assert.notEqual(unitDiff(brokenNoOp, entryState()), null, "the real contract must catch it");
-  console.log("  NOT VACUOUS: RAM is empty here; the registers and the answer are the gate");
+  console.log("  NOT VACUOUS: RAM is empty here; the answer is the gate");
 });
 
-test("EXCLUDED, deliberately: the stack pointer, and nothing else", { skip }, () => {
-  const a = entryState().clone();
-  const b = entryState().clone();
+test("EXCLUDED, deliberately: what the oracle leaves in registers, none of it read by its one caller", { skip }, () => {
+  const e = entryState();
+  const a = e.clone();
+  const b = e.clone();
   oracle(a);
   sumByteRunAndCompareToExpected(b);
+  // The rewrite is pure on the register file: every register as it arrived.
+  assert.deepEqual(REG_FIELDS.filter((k) => b.regs[k] !== e.regs[k]), [],
+    "the rewrite moved a register, and nothing downstream reads one");
+  // The oracle's own register product is exactly the dead set its caller reloads, plus the return.
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: only the stack pointer may differ, because the flag byte " +
-      "carries this routine's own answer",
+    REG_FIELDS.filter((k) => a.regs[k] !== e.regs[k]).filter((k) => !EXCLUDED.includes(k)),
+    ORACLE_DEAD.filter((k) => a.regs[k] !== e.regs[k]),
+    "the oracle moved a register outside the set its one caller reloads, so that set is wrong",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
+  // Control: a rewrite that leaves a register behind is seen by the purity check above.
+  const c = e.clone();
+  sumByteRunAndCompareToExpected(c);
+  c.regs.a = (c.regs.a + 1) & 0xff;
+  assert.notDeepEqual(REG_FIELDS.filter((k) => c.regs[k] !== e.regs[k]), [], "the purity check is blind");
+  console.log(`  EXCLUDED: oracle leaves ${ORACLE_DEAD.join(", ")} (dead at 0x30AC) and ${EXCLUDED.join(", ")}; rewrite moves none`);
 });
 
 test("CORPUS: every real dispatch replays identically, on a thin and uniform corpus", { skip }, () => {
@@ -329,11 +363,10 @@ test("EXHAUSTIVE: every expected byte, and a length sweep reaching the zero case
 
   // The zero-length case is the one the corpus can never show: a count of zero is a full run.
   const zero = craft(REAL_BASE, 0, 0);
-  const none = craft(REAL_BASE, 0, 0);
   oracle(zero);
-  sumByteRunAndCompareToExpected(none);
   assert.equal(zero.regs.hl, (REAL_BASE + 256) & 0xffff, "zero must walk a full 256 bytes");
-  assert.equal(none.regs.hl, zero.regs.hl, "the rewrite must walk the same full run");
+  const full = craft(REAL_BASE, 0, zero.regs.a);
+  assert.equal(sumByteRunAndCompareToExpected(full), true, "the rewrite does not fold the same full run");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} crafted entries identical, the zero-length run included`);
 });
 
@@ -344,6 +377,24 @@ for (const [label, twin, craftedCaught] of TWINS) {
     console.log(`  TEETH/${label}: caught on ${craftedCaught} of ${SWEEP_SIZE} crafted entries`);
   });
 }
+
+test("HARMLESS: the pointer-not-moved twin is caught on no crafted entry", { skip }, () => {
+  assert.equal(sweepCaught(brokenPointerNotMoved), 0, "the pointer is not a live-out; only the answer may be judged");
+  assert.equal(baseSweepCaught(brokenPointerNotMoved), 0, "the pointer is not a live-out at any base either");
+  const a = entryState().clone();
+  const b = entryState().clone();
+  oracle(a);
+  brokenPointerNotMoved(b);
+  assert.notEqual(b.regs.hl, a.regs.hl, "the twin must actually leave HL different, or this proves nothing");
+  console.log(`  HARMLESS/pointer-not-moved: caught on 0 of ${SWEEP_SIZE} crafted entries; HL ${hex4(b.regs.hl)} vs ${hex4(a.regs.hl)}`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register the oracle leaves is dead where it hands back", { skip }, () => {
+  assertDeadAtExit({
+    at: TARGET, poison: ORACLE_DEAD, frames: CORPUS_FRAMES,
+    sessions: TAPES.map(([label, opts]) => ({ label, tape: opts.tape, dispatches: DISPATCHES[label] })),
+  });
+});
 
 test("THE BASE POINTER IS SWEPT: the answer follows the caller's pointer", { skip }, () => {
   assert.equal(baseSweepCaught(sumByteRunAndCompareToExpected), 0, "the rewrite diverged at some base other than the real one");
@@ -358,5 +409,5 @@ test("TEETH: a twin that ignores the caller's pointer is caught, and ONLY by the
     "the expected/length sweeps caught it — then this file's own stated hole is wrong");
   const caught = baseSweepCaught(brokenIgnoresBase);
   assert.ok(caught > 0, "nothing catches a candidate that ignores its pointer argument");
-  console.log(`  TEETH/ignores-base: invisible to ${SWEEP_SIZE} crafted entries, caught on ${caught} of ${BASE_SWEEP.length} bases`);
+  console.log(`  TEETH/ignores-base: invisible to ${SWEEP_SIZE} crafted entries, caught on ${caught} entries over ${BASE_SWEEP.length} bases`);
 });

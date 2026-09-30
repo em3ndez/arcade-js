@@ -5,7 +5,7 @@
  * One nibble value is special: it raises a flag cell to all-ones BEFORE the lookup, and both nibbles raise
  * the SAME cell, so either one on its own is enough and the lookup still happens afterwards. The source
  * byte is re-read for the second nibble rather than kept. LIVE-OUT: the flag cell, the two stored bytes,
- * the table pointer, and the last byte read. */
+ * and the last byte read. */
 
 import { fetchTableByte } from "./fetchTableByte.js";
 import { COINAGE_SETTINGS, COIN_SLOT_1_RATIO, COIN_SLOT_2_RATIO, FREE_PLAY, COINAGE_VALUE_TABLE } from "./names.js";

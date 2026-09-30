@@ -6,7 +6,10 @@
  * "(c) KONAMI 1982" caption glyph: a pointer is built from a program byte — the first opcode of the
  * parachutist routine, read as data — which lands on the caption's N cell only on an untouched image,
  * and the glyph there must read 0x3B. If it does not, the sequence DERAILS into the anti-tamper trap
- * (data run as code). Otherwise one caption cell's glyph and colour are seated into the tamper-witness
+ * -- a caption record run as code that stores through whatever pointer it arrives with and
+ * calls into unmapped space, so control is destroyed rather than reported; that landing has no
+ * faithful transcription, so this raises where the transfer would land, as the colour walk's own
+ * derail does. Otherwise one caption cell's glyph and colour are seated into the tamper-witness
  * pair and the sequence steps on. LIVE-OUT: memory only.
  *
  * The derived pointer is the tamper mechanism itself: add 2 to the program byte for the low pointer
@@ -20,7 +23,7 @@ import { stampCopyrightStrip } from "./stampCopyrightStrip.js";
 import { flashCopyrightLine } from "./flashCopyrightLine.js";
 import { checkTheCopyrightLineColoursOrDerail } from "./checkTheCopyrightLineColoursOrDerail.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { loc_15ca } from "../translated/loc_15ca.js";
+import { NotImplemented } from "../../../boards/timeplt/io.js";
 
 // The N glyph of the "(c) KONAMI 1982" caption line; the check the derived pointer guards.
 const KONAMI_GLYPH = 0x3b;
@@ -44,9 +47,13 @@ export function holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail(m) {
   const low = u8(mem8[runParachutistSlot_ADDR] + LOW_BIAS);
   const cell = u16((u8(low + HIGH_BIAS) << 8) | low);
   const glyph = mem8[cell];
-  // Tampered glyph: the derail reads the registers this arm left standing, so seat them for the
-  // frozen trap (born-live fallback). Unreachable on a genuine image.
-  if (glyph !== KONAMI_GLYPH) return (m.regs.a = glyph, m.regs.hl = cell, loc_15ca(m));
+  if (glyph !== KONAMI_GLYPH) {
+    throw new NotImplemented(
+      `loc_15ca: the caption cell 0x${cell.toString(16)} the program byte points at holds glyph ${glyph}, not the N ` +
+        "of the copyright line, so the image is tampered and the original runs a caption record as code; " +
+        "a genuine image never does",
+    );
+  }
 
   const colourCell = TAMPER_GLYPH_SOURCE_CELL & ~CHARACTER_PLANE_BIT;
   mem8[TAMPER_GLYPH_COPY] = mem8[TAMPER_GLYPH_SOURCE_CELL];

@@ -18,7 +18,7 @@ const RUN_SELECTOR = 10;
 const SHAPE_BYTE = 8;
 
 export function stepShapeAnimation(m, record = m.regs.ix) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   const remaining = mem8[record + STEP_TIMER];
   if (remaining === 0) return;
 
@@ -27,5 +27,5 @@ export function stepShapeAnimation(m, record = m.regs.ix) {
 
   const run = fetchTableWord(m, mem8[record + RUN_SELECTOR], SHAPE_RUN_POINTER_TABLE);
 
-  return void (regs.c = step, mem8[record + SHAPE_BYTE] = fetchTableByte(m, run, step));
+  mem8[record + SHAPE_BYTE] = fetchTableByte(m, run, step);
 }

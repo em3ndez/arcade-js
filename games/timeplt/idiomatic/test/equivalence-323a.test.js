@@ -10,8 +10,13 @@
  *   2. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, pinned to [SP-4, SP): the oracle pushes a
  *      return address for each of the two lookups it delegates, and the rewrite models no stack.
  *      Every arm walks the whole dump and asserts nothing escapes it.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to exactly {f, sp} — so the two
- *      pointers and the accumulator the lookups leave behind are reproduced and compared.
+ *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, as a ceiling: the flag byte and sp, the dead
+ *      table pointer in d/e, and the new count in c and the entry pointer in h/l that the two
+ *      frozen lookups leave behind. The rewrite hands the count and the pointer to the lookups as
+ *      arguments and leaves no register behind, so the accumulator is the only register held.
+ *   3a. DEAD AT EXIT — c, h and l flipped on the FROZEN game at every exit of this routine, over a
+ *      coin-start session and undriven attract, change nothing, while flipping SP at the same exit
+ *      is heard. That is the ORACLE's word that nobody reads what the rewrite no longer leaves.
  *   4. THE EARLY EXIT IS A REAL BRANCH — a timer already at zero must leave the whole dump
  *      untouched, which is measured off the ORACLE rather than assumed from the rewrite.
  *   5. EXHAUSTIVE — all 256 timer values crossed with a spread of run selectors, on a painted
@@ -21,7 +26,8 @@
  *      poked run bytes, so it could have come out the other way.
  *   7. TEETH — eight twins, each with its exact catch count over the sweep. The no-floor twin's
  *      count of four is the whole of the branch it breaks: it differs only where the timer is
- *      already zero, which is one entry of the sweep per selector.
+ *      already zero, which is one entry of the sweep per selector. The three wrong-entry twins are
+ *      caught only where the wrong entry holds a different shape byte (see TWINS).
  *
  * HOLE: the corpus presents a narrow set of selectors, asserted as a set, so the sweep is what
  * covers the rest. Nothing here says what a shape byte draws, nor which records this is run on.
@@ -38,6 +44,7 @@ import { loc_323a as oracle } from "../../translated/loc_323a.js";
 import { fetchTableByte } from "../fetchTableByte.js";
 import { fetchTableWord } from "../fetchTableWord.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x323a;
 
@@ -50,7 +57,16 @@ const SCRATCH_BYTES = 4;
 // A BOUND, not an exact list: the flag byte and sp always move (oracle returns through the stack),
 // and d/e hold the dead table pointer the stack-free rewrite leaves standing rather than swapping
 // back into de — no caller reads it (the three callers exx, overwrite, or reload de first).
-const EXCLUDED = ["f", "d", "e", "sp"];
+// c (the new count, parked for the second lookup) and h/l (where the byte lookup landed) are what
+// the frozen side's register-passing leaves; the rewrite passes both as arguments and leaves
+// neither. DEAD AT EXIT below shows the oracle never reads either after this routine hands back.
+const EXCLUDED = ["f", "c", "d", "e", "h", "l", "sp"];
+/** The registers the rewrite stopped leaving, each poisoned at the frozen exit by DEAD AT EXIT. */
+const LEFT_BEHIND = ["c", "h", "l"];
+const DEAD_SESSIONS = [
+  { label: "coin-start", tape: undefined, frames: ENTRY_FRAMES },
+  { label: "attract", tape: [], frames: 3000 },
+];
 
 const DISPATCHES = { shared: 45, attract: 31 };
 const TAPES = [["shared", {}], ["attract", { tape: [] }]];
@@ -189,7 +205,7 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: the flag byte, sp, pc and the two lookup pushes", { skip }, () => {
+test("EXCLUDED, deliberately: the ceiling registers, pc and the two lookup pushes", { skip }, () => {
   const entry = craft(7, 0);
   const sp = entry.regs.sp;
   const a = entry.clone();
@@ -202,6 +218,18 @@ test("EXCLUDED, deliberately: the flag byte, sp, pc and the two lookup pushes", 
   assert.deepEqual(allDiffs(a, b).filter((d) => !inScratch(d.addr, sp)), [],
     "a divergence escaped the scratch window");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}, pc, and [SP-${SCRATCH_BYTES}, SP)`);
+});
+
+test("DEAD AT EXIT: on the frozen game, c, h and l are read by nobody once this routine hands back", { skip }, () => {
+  // assertDeadAtExit runs the SP exit control at the same exit and needs it heard in some session.
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, reachEvery: true, sessions: DEAD_SESSIONS,
+    // ENTRY CONTROL: the record register shifted one byte on the way IN, where it is read.
+    controls: [{ label: "entry", poison: ["ix"], flip: { ix: 1 }, before: true }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+  }
 });
 
 test("THE EARLY EXIT IS REAL: a timer at zero leaves the whole dump untouched", { skip }, () => {
@@ -313,15 +341,22 @@ function brokenNoRefresh(m, record = m.regs.ix) {
 }
 
 /** The 1020 is the sweep minus its four already-at-zero entries, where the early exit hides
- * every twin that only changes what the working arm does. */
+ * every twin that only changes what the working arm does.
+ *
+ * Three twins read the WRONG run entry and are caught on fewer: wherever the entry they land on
+ * holds the same byte as the right one, memory is identical and the
+ * only trace left was the lookup's landing address in h/l — which DEAD AT EXIT shows nobody reads,
+ * so it is in the ceiling and those entries are, correctly, no longer catches. The counts are
+ * memory catches: unitDiff checks the dump before any register, and every register these twins
+ * could still move beyond memory is in the ceiling. */
 const WORKING = SWEEP_SIZE - SELECTORS.length;
 const TWINS = [
   ["no-op", brokenNoOp, WORKING],
   ["no-decrement", brokenNoDecrement, WORKING],
-  ["index-before-step", brokenIndexBeforeStep, WORKING],
+  ["index-before-step", brokenIndexBeforeStep, 228],
   ["no-floor-at-zero", brokenNoFloor, SELECTORS.length],
-  ["selector-off-by-one", brokenSelectorOffByOne, WORKING],
-  ["pointers-off-by-one", brokenPointersOffByOne, WORKING],
+  ["selector-off-by-one", brokenSelectorOffByOne, 993],
+  ["pointers-off-by-one", brokenPointersOffByOne, 678],
   ["shape-off-by-one", brokenShapeOffByOne, WORKING],
   ["no-refresh", brokenNoRefresh, WORKING],
 ];

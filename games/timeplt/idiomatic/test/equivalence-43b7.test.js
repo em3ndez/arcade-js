@@ -11,9 +11,14 @@
  * arm can no longer be stubbed via the registry — it runs the REAL stepper on both sides and compares
  * work RAM with the stack scratch masked (the ROM's call pushes a return frame the direct JS call does
  * not). The stepper's own byte-equivalence is proven by equivalence-43f0.test.js; here we only prove the
- * caller reaches it and returns its result. Its scratch registers (a,f,b,c,d,e,h,l + shadows, sp) are the
- * dissolved-form live-out excluded set for that arm; ix/iy — the stepper's real pointer live-out — are
- * still held.
+ * caller reaches it and returns its result.
+ *
+ * NO REGISTER IS LIVE AT EXIT, measured on the ORACLE (DEAD AT EXIT): wrapped in the all-frozen game,
+ * every register it leaves — the record/entry pair the occupied and spawn arms seat included — is
+ * complemented on the way out (assertDeadAtExit) and nothing differs, the stack page included, over the
+ * driven session and three quota-spent holds (the ship armed and stepped in eras 0, 2 and 4), while a
+ * complemented stack pointer is heard at once. The rewrite hands the pair to the retirer and to the
+ * stepper as arguments and leaves no register behind, so registers are not compared.
  */
 
 import test from "node:test";
@@ -24,7 +29,7 @@ import { armMotherShipOrStep } from "../armMotherShipOrStep.js";
 import { loc_43b7 as oracle } from "../../translated/loc_43b7.js";
 import { retireEntryPairIntoCooldown } from "../retireEntryPairIntoCooldown.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x43b7;
 const STEP_ACTIVE = 0x43f0;
@@ -48,11 +53,17 @@ const skip = romsPresent() ? false : "ROM images are gitignored; none assembled"
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
 
-const EXCLUDED = ["a", "f", "sp"];
-/** The active arm delegates to the deep stepper, whose scratch registers legitimately move; ix/iy —
- *  its real pointer live-out — stay held (proven by equivalence-43f0.test.js). */
-const STEPPER_EXCLUDED = ["a", "f", "sp", "b", "c", "d", "e", "h", "l",
-  "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+/** The sessions DEAD AT EXIT poisons over (JS frames): driven, and the kill quota spent in three eras. */
+const DEAD_FRAMES = 3000;
+const QUOTA_SPENT = { addr: SPAWN_GATE, val: 0, frame: 621, dur: null };
+const DEAD_SESSIONS = {
+  driven: [],
+  "armed, era 0": [QUOTA_SPENT],
+  "armed, era 2": [QUOTA_SPENT, { addr: 0xad04, val: 2, frame: 701, dur: null }],
+  "armed, era 4": [QUOTA_SPENT, { addr: 0xad04, val: 4, frame: 701, dur: null }],
+};
+/** Every register the oracle can leave behind, the stack pointer apart. */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 const ARM_NAMES = ["hold", "active", "phase", "occupied", "spawn"];
 
 // ── one booted machine, cloned per arm ────────────────────────────────────────────────────────
@@ -153,27 +164,17 @@ test("REAL TAIL: the live-special arm runs the true stepper and still agrees", {
   console.log("  REAL TAIL: the true stepper subtree ran on both sides, byte-identical");
 });
 
-test("EXCLUDED, deliberately: the caller-owned arms move only a, f and sp; the delegated arm holds ix/iy", { skip }, () => {
-  const escaped = [];
-  for (const arm of ARM_NAMES) {
-    // the active arm delegates to the deep stepper — its scratch registers legitimately move, ix/iy held.
-    const excl = arm === "active" ? STEPPER_EXCLUDED : EXCLUDED;
-    const a = craftArm(arm);
-    const b = a.clone();
-    oracle(a);
-    armMotherShipOrStep(b);
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k] && !excl.includes(k)) escaped.push(`${arm}:${k}`);
-  }
-  const control = new Set();
-  const a = craftArm("spawn");
-  const b = a.clone();
-  oracle(a);
-  armMotherShipOrStep(b);
-  b.regs.h = (b.regs.h + 1) & 0xff; // ★ a spare register the routine never touches
-  for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) control.add(k);
-  assert.ok(control.has("h"), "the register instrument is blind, so the clean reading proves nothing");
-  assert.deepEqual(escaped.sort(), [], "a register moved outside its arm's excluded set");
-  console.log(`  EXCLUDED: no register escaped its arm's set (active holds ix/iy); control also moves h`);
+test("DEAD AT EXIT: no register the oracle leaves is heard, and a complemented stack pointer is", { skip }, () => {
+  // assertDeadAtExit: every session reaches this routine and nothing differs, the stack page
+  // included; beside the helper's own SP flip, a COMPLEMENTED stack pointer at the same exit must be
+  // heard in game data (dataOnly) in every session, as before.
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: DEAD_FRAMES, reachEvery: true,
+    sessions: Object.entries(DEAD_SESSIONS).map(([label, pokes]) => ({ label, pokes })),
+    controls: [{
+      label: "complemented SP", poison: ["sp"], expect: "heard", every: true, reachEvery: true, dataOnly: true,
+    }],
+  });
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────────

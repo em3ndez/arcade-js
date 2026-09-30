@@ -6,6 +6,14 @@
  *   reaches, a boundary probe, register-ceiling and dissolve checks, and teeth.
  * ★ The dissolved printer at paintHighScoreReadout takes no return the direct call takes, so dead scratch sits
  *   below the seat and a/f/sp are the measured register ceiling; every arm masks ONLY that window.
+ * ★ The guard is consumed as a RETURN. blankNextLine hands back whether its line count reached zero
+ *   (the ROM's Z flag) and no longer leaves B, HL or F behind, so this entry's guard-block arm leaves
+ *   the caller's B, HL and F where the oracle leaves the guard's, and its proceed arm leaves them
+ *   where the oracle's patch loop leaves them. B, H and L join the ceiling on the ORACLE's evidence:
+ *   DEAD AT EXIT complements every register in the ceiling on every exit of the all-frozen game over
+ *   the attract and the coin -> start sessions and no cell of per-frame state moves, while SP moved
+ *   at the same exit is heard. GUARD RETURN keeps the replaced register compared: at every arm the
+ *   boolean blankNextLine returns is the Z flag the frozen guard at ROM 0x01C2 leaves.
  */
 
 import test from "node:test";
@@ -15,6 +23,8 @@ import { readFileSync } from "node:fs";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { armAttractScreenShowingHighScore } from "../armAttractScreenShowingHighScore.js";
 import { loc_15fe as oracle } from "../../translated/loc_15fe.js";
+import { loc_01c2 as frozenGuard } from "../../translated/loc_01c2.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 import { paintHighScoreReadout } from "../paintHighScoreReadout.js";
 import { postCommand } from "../postCommand.js";
 import { blankNextLine } from "../blankNextLine.js";
@@ -39,8 +49,23 @@ const SCRATCH_BYTES = 10;
  * leaves the last command's bytes standing there; the rewrite passes the command as arguments and
  * never touches DE. DE is dead scratch after this arm (its live-out is memory only), so a difference
  * there is not a divergence in the contract. A ceiling, not a demand — a rewrite that moved fewer still passes. */
-const MOVED = ["a", "f", "sp", "d", "e"];
-const SPARE_REG = "b";
+/**
+ * c (the pen colour the high-score printer leaves) is NOT a live-out: the printer now takes its
+ * colour as an argument. Measured on the ORACLE: in the frozen game, c poisoned (0x00/0x5a/0xa5/0xff) at the printer's
+ * return inside this entry (0x162C)
+ * leaves RAM (minus dead stack scratch below SP), pc and SP identical frame by frame over the
+ * session, where the same probe on drawRandomByte's A (a real live-out) forks.
+ */
+/**
+ * b, h and l: the guard's line counter and eraser cursor (and the patch loop's count and record
+ * cursor) are left standing by the oracle and not by the rewrite; DEAD AT EXIT shows them dead here.
+ */
+const MOVED = ["a", "f", "sp", "d", "e", "c", "b", "h", "l"];
+/** The registers DEAD AT EXIT poisons: the whole ceiling but SP, which the exit control moves. */
+const DEAD_AT_EXIT = MOVED.filter((k) => k !== "sp");
+const DEAD_SESSIONS = [["attract", []], ["coin -> start", undefined]];
+/** A register outside the ceiling that no side touches, for the scribbling control. */
+const SPARE_REG = "a_";
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) =>
@@ -151,8 +176,7 @@ function variant(bug) {
     const { regs, mem8 } = m;
     if (bug === "noop") return;
     if (bug !== "no-guard") {
-      blankNextLine(m);
-      if (regs.fNZ) return;
+      if (!blankNextLine(m)) return;
     }
     regs.de = 0x0105; postCommand(m);
     regs.de = 0x0106; postCommand(m);
@@ -269,12 +293,43 @@ function movedOver(candidate) {
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
   const moved = movedOver(armAttractScreenShowingHighScore);
   const control = movedOver((m) => { armAttractScreenShowingHighScore(m); m.regs[SPARE_REG] = (m.regs[SPARE_REG] + 1) & 0xff; });
+  assert.ok(!moved.has(SPARE_REG), "the spare register moves without the scribble, so it is no control");
   assert.ok(control.has(SPARE_REG) && !MOVED.includes(SPARE_REG),
     "the measurement misses a twin that scribbles a spare register, so a clean reading proves nothing");
   assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
     "a register outside the declared ceiling diverged");
   console.log(`  EXCLUDED (measured): moves ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}; ` +
     `ceiling ${MOVED.join(", ")}; control also moves ${SPARE_REG}`);
+});
+
+test("GUARD RETURN: blankNextLine's boolean is the frozen guard's Z flag at every arm", { skip }, () => {
+  let zero = 0;
+  let nonZero = 0;
+  for (const mc of allArms()) {
+    const a = mc.clone();
+    const b = mc.clone();
+    frozenGuard(a);
+    const returned = blankNextLine(b);
+    assert.equal(typeof returned, "boolean", "the guard no longer returns a boolean");
+    assert.equal(returned, a.regs.fZ, "the guard's return disagrees with the frozen guard's Z flag");
+    if (returned) zero++; else nonZero++;
+  }
+  assert.ok(zero > 0 && nonZero > 0, "the arms never present both guard outcomes, so the comparison is one-sided");
+  console.log(`  GUARD RETURN: ${zero} arms return true (Z set), ${nonZero} false, each matching the frozen guard`);
+});
+
+test("DEAD AT EXIT: every register in the ceiling is read by nothing after this entry hands back", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: DEAD_AT_EXIT, frames: ENTRY_FRAMES, reachEvery: true,
+    sessions: DEAD_SESSIONS.map(([label, tape]) => ({ label, tape })),
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so every session hears it.
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+    console.log(`  DEAD AT EXIT/${r.label}: exit control ${heardAs(r.exitControl)}`);
+  }
 });
 
 test("DISSOLVED: the printer, the enqueue, AND the guard are all called directly", () => {

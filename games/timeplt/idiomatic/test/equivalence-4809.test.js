@@ -20,7 +20,9 @@
  *   2. NOT VACUOUS — a candidate that does nothing FAILS the same masked comparison.
  *   3. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
  *      sweep, asserted to stay inside the allowed set: a register diverging outside it fails the
- *      arm, and a rewrite diverging on fewer still passes.
+ *      arm, and a rewrite diverging on fewer still passes. DEAD AT EXIT complements every one of
+ *      them but SP on the frozen game as this entry returns, over an attract and a coin-start
+ *      session, and nothing differs, beside an SP flip at the same exit that is heard.
  *   4. CORPUS — both real dispatches replayed, with the count and the index they present asserted.
  *   5. EXHAUSTIVE — all 256 index values against BOTH states of the permission cell the sound
  *      request consults. The arm covers every table entry, the first value past the end, and the
@@ -47,6 +49,7 @@ import { requestParachutistAwardSound } from "../requestParachutistAwardSound.js
 import { PLAY_ACTIVE } from "../names.js";
 import { loc_4809 as oracle } from "../../translated/loc_4809.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x4809;
 
@@ -67,11 +70,18 @@ const SECOND_BYTE = 0x6c;
  */
 const SCRATCH_BYTES = 8;
 const SCRATCH_OFFSETS = [-8, -7, -6, -5, -4, -3, -2, -1];
-const EXCLUDED = ["a", "f", "sp"];
+/**
+ * H and L joined the ceiling when fetchTableByte stopped leaving HL on the shape entry: the oracle's
+ * in-range arm ends with HL there, the rewrite's wherever the sound request left it. DEAD AT EXIT
+ * measures every one but SP dead where this entry returns.
+ */
+const EXCLUDED = ["a", "f", "h", "l", "sp"];
 
 const CORPUS_FRAMES = 4000;
 const DISPATCHES = 2;
 const ATTRACT = { tape: [] };
+/** Attract reaches it in the corpus budget; the shared coin-start tape needs longer to. Measured. */
+const DEAD_SESSIONS = [["attract", [], CORPUS_FRAMES], ["coin-start", undefined, 12000]];
 
 /** The only cells a whole session leaves differing: where the frame interrupt pushes. Measured. */
 const SESSION_SCRATCH = [0xaffd, 0xaffe];
@@ -293,6 +303,19 @@ test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, (
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
+});
+
+test("DEAD AT EXIT: every excluded register but SP is dead where this entry returns", { skip }, () => {
+  const poison = EXCLUDED.filter((k) => k !== "sp");
+  // assertDeadAtExit: every session must reach this entry (reachEvery) and stay silent over its full
+  // length; the SP flip at the same exit must be heard in some session.
+  const exits = assertDeadAtExit({
+    at: TARGET, poison, reachEvery: true,
+    sessions: DEAD_SESSIONS.map(([label, tape, frames]) => ({ label, tape, frames })),
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+  }
 });
 
 test("CORPUS: both real dispatches replay identically, and both are in range", { skip }, () => {

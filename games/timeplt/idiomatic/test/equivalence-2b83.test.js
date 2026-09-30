@@ -10,12 +10,15 @@
  * broken twin, and for a bare no-op alike. That test asserts the tautology on purpose: if it ever
  * FAILS, the routine has started writing memory and this whole file must be re-derived.
  *
- * The real live-out is the CARRY FLAG — what every caller of this address branches on — mirrored
- * by the returned boolean. Every arm below compares BOTH. `r.equal` is never asserted: it folds
- * in the register diff that memory-equivalence deliberately drops, so it is false by design.
+ * The frozen routine's live-out is the CARRY FLAG — what every ROM caller of this address
+ * branches on. The rewrite answers with its RETURNED boolean instead and leaves the flags alone:
+ * every idiomatic caller branches on that return (held by those callers' own equivalence tests
+ * against their frozen routines, and by the whole-game run). So every arm below compares the
+ * oracle's carry against the candidate's RETURN. `r.equal` is never asserted: it folds in the
+ * register diff that memory-equivalence deliberately drops, so it is false by design.
  *
  * What it exercises:
- *   1. EQUAL at the real dispatch — RAM identical, carry identical, and the registers allowed to
+ *   1. EQUAL at the real dispatch — RAM identical, answer identical, and the registers allowed to
  *      differ BOUNDED by {a, f, sp}: any register that diverges outside that set fails the arm,
  *      so "excluded" cannot quietly widen, while a rewrite that diverges on FEWER of them still
  *      passes. The stack pointer is in that set because the layer models no stack: the frozen
@@ -32,15 +35,16 @@
  *   4. LEAK, EXPECTED — wiring the routine in as-is and running faults, because its callers are
  *      still register-passing and nothing pops what they push. The arm asserts the fault and
  *      records its shape, so the cost of the convention is measured rather than assumed.
- *   5. WHOLE-MACHINE — the same logic with the two dropped things handed back (the cycles, and
- *      the pop) reproduces the entire state trace byte for byte. That is what licenses "carry is
- *      the only live register": any other flag a caller read would surface here as state drift.
+ *   5. WHOLE-MACHINE — the same logic with the three dropped things handed back (the cycles, the
+ *      pop, and the answer published into carry, the flag the FROZEN callers in this translated
+ *      run branch on) reproduces the entire state trace byte for byte. That is what licenses
+ *      "carry is the only live register": any other flag a caller read would surface here as drift.
  *   6. TEETH — broken twins, each caught by an arm the real routine passes.
  *
  * HOLE: the sweep varies the two coordinate cells at ONE captured base pointer; the rest of the
  * machine is frozen at that entry. The corpus is what covers the other bases the game uses.
- * HOLE: the whole-machine arm runs a DIAGNOSTIC twin, not the shipped routine, and the two
- * things it hands back are exactly the two the layer drops on purpose.
+ * HOLE: the whole-machine arm runs a DIAGNOSTIC twin, not the shipped routine, and the three
+ * things it hands back are exactly the three the layer drops on purpose.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-2b83.test.js
  */
@@ -109,7 +113,7 @@ function sweep(candidate) {
       oracle(a);
       const answer = candidate(b);
       if (a.regs.fC) retires++;
-      if (a.regs.fC !== b.regs.fC || a.regs.fC !== (answer === true)) caught++;
+      if (a.regs.fC !== (answer === true)) caught++;
     }
   }
   return { caught, retires, total: 256 * 256 };
@@ -138,7 +142,6 @@ function corpus(candidate) {
           leaks.add(m.regs.sp - b.regs.sp);
           const bad =
             firstStateDiff(m.dumpState(), b.dumpState()) !== null ||
-            m.regs.fC !== b.regs.fC ||
             m.regs.fC !== (answer === true);
           if (bad) caught++;
           for (const k of REG_FIELDS) if (m.regs[k] !== b.regs[k]) moved.add(k);
@@ -163,14 +166,16 @@ function wireRun(candidate) {
 }
 
 /**
- * The shipped logic with the two things the layer drops on purpose handed back: the cycles the
- * frozen routine charges, and the return address a register-passing caller pushed. A DIAGNOSTIC,
+ * The shipped logic with the three things the layer drops on purpose handed back: the cycles the
+ * frozen routine charges, the return address a register-passing caller pushed, and the answer
+ * published into the carry the frozen callers of this translated run branch on. A DIAGNOSTIC,
  * not the shipped routine — and the only form in which a whole-machine trace means anything.
  */
 const CARRY_CYCLES = 34;
 const FALLTHROUGH_CYCLES = 71;
 function restored(m) {
   const answer = hasReachedRetireLine(m);
+  m.regs.f = answer ? F_C : 0;
   m.tick(answer ? CARRY_CYCLES : FALLTHROUGH_CYCLES);
   m.ret();
   return answer;
@@ -199,12 +204,11 @@ test("EQUAL at the real dispatch: RAM and carry, with the excluded set bounded",
   oracle(a);
   const answer = hasReachedRetireLine(b);
 
-  assert.equal(b.regs.fC, a.regs.fC, "the carry live-out");
-  assert.equal(answer, a.regs.fC, "the returned boolean must mirror the carry");
+  assert.equal(answer, a.regs.fC, "the returned answer must be the frozen routine's carry");
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-  console.log(`  EQUAL: carry=${a.regs.fC}; only ${EXCLUDED.join(", ")} differ`);
+  console.log(`  EQUAL: answer=${answer}; only ${EXCLUDED.join(", ")} differ`);
 });
 
 test("CORPUS: every real dispatch of a driven run agrees", { skip }, () => {
@@ -247,7 +251,7 @@ test("LEAK, expected: wiring the routine in as-is faults, and this is its shape"
   );
 });
 
-test("WHOLE-MACHINE: hand back the cycles and the pop, and the trace matches", { skip }, () => {
+test("WHOLE-MACHINE: hand back the cycles, the pop and the carry, and the trace matches", { skip }, () => {
   const r = wholeMachineEquivalence(makeMachine, CORPUS_FRAMES, new Map([[TARGET, restored]]));
   assert.equal(r.equal, true, `state drifted at frame ${r.frame}, address ${r.addr}`);
   assert.ok(r.invocations.get(TARGET) > 0, "vacuous: the override never fired");
@@ -283,8 +287,9 @@ const brokenWideWindow = (m) =>
 /** BUG: the cell next door to the row cell. */
 const brokenWrongCell = (m) =>
   publish(m, at(rowOf(m, ROW_CELL - 1), RETIRE_ROW) || at(columnOf(m), RETIRE_COLUMN));
-/** BUG: right answer, never published in the flag a register-passing caller branches on. */
-const brokenNoCarry = (m) => answerOf(m);
+/** NOT A BUG ANY MORE: right answer, never published in carry — which is the shipped form, since
+ *  every idiomatic caller branches on the return. Asserted to PASS below. */
+const answersWithoutCarry = (m) => answerOf(m);
 /** BUG: right flag, nothing returned to a caller that wants a value. */
 const brokenNoReturn = (m) => {
   publish(m, answerOf(m));
@@ -296,7 +301,6 @@ const TWINS = [
   ["swapped-axes", brokenSwappedAxes],
   ["window-one-wider", brokenWideWindow],
   ["wrong-cell", brokenWrongCell],
-  ["no-carry", brokenNoCarry],
   ["no-return", brokenNoReturn],
 ];
 
@@ -307,6 +311,12 @@ for (const [label, twin] of TWINS) {
     console.log(`  TEETH/${label}: caught on ${r.caught} of ${r.total} input pairs`);
   });
 }
+
+test("NARROWED: a twin that answers without publishing carry passes — carry is not the rewrite's live-out", { skip }, () => {
+  const r = sweep(answersWithoutCarry);
+  assert.equal(r.caught, 0, "the carry is not a live-out of the rewrite, so an unpublished one must pass");
+  console.log(`  NARROWED/no-carry: caught on 0 of ${r.total} input pairs, as the narrowed contract says`);
+});
 
 test("TEETH: the corpus of real dispatches also catches the no-op twin", { skip }, () => {
   const r = corpus(brokenNoOp);

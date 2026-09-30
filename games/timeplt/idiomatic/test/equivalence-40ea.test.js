@@ -3,22 +3,24 @@
  * serviceSlotByMarkerThenCloseSweepTurn — memory-equivalent to the frozen oracle at ROM 0x40EA.
  *
  * GATE: real dispatches captured under an era poke, plus crafted entries that force the head slot into
- *   each of the five arms at both an ending and a looping turn count, compared under the LIVE registry
- *   (translated table with every idiomatic override wired, as the running game has it) so oracle and
- *   rewrite reach the SAME callees and any divergence is this body's own. The candidate runs through
- *   the game's withOmittedRet seam, so SP and pc are compared exactly, not as a per-arm drift. The dead
- *   stack scratch below the seat is masked, bounded above game data. Registers: all but A and F.
+ *   each of the five arms at both an ending and a looping turn count, compared against the ORACLE on
+ *   the pure translated table: the oracle's turns and callees are all frozen, the rewrite's are all
+ *   its own direct calls, and a looping count compares the whole rewritten sweep against the whole
+ *   oracle sweep. The candidate runs through the game's withOmittedRet seam, so SP and pc are
+ *   compared exactly, not as a per-arm drift. The dead stack scratch below the seat is masked,
+ *   bounded above game data. Registers: none — see DEAD AT EXIT.
  *
- * ★ WHY THE LIVE REGISTRY. Under the pure translated table the oracle reaches translated callees while
- *   the rewrite reaches their idiomatic modules directly, and every callee's own register ceiling would
- *   be charged to this routine. Under the live table both sides reach the same wired modules. The
- *   sweep body itself is removed from it, so the oracle's nested turns run the oracle; the rewrite's
- *   turn-closer runs the next turn as a direct call, so its nested turns run the rewrite, and a
- *   looping count compares the whole rewritten sweep against the whole oracle sweep.
+ * ★ WHY NOT THE LIVE REGISTRY. The rewrite hands the cursors and the turns left down its sweep as
+ *   arguments, so its callees no longer carry BC back up for a frozen caller's loop; a frozen 0x40EA
+ *   reaching them through the override map would lose its count. Nothing in the running game does
+ *   that — this address is itself overridden, and its only caller, the sweep entry, is too — so the
+ *   oracle here is the frozen routine on the frozen table, as it runs on the cabinet.
  *
- * ★ A AND F ARE DEAD. On the ending turn the only reader after the sweep is the sprite multiplexer,
- *   which reads C and F; the F it inherits is already outside the turn-closer's own ceiling (the
- *   turn-closer never set the flags the stride addition leaves), and A is overwritten there.
+ * ★ NO REGISTER IS LIVE AT EXIT, measured on the ORACLE: wrapped in the all-frozen game and every
+ *   register it can leave complemented on the way out, it is unheard in every dumped cell over era-2,
+ *   era-3, era-4 and countdown sessions (the sweep's exit is the sweep entry's exit, whose caller runs
+ *   the sprite multiplexer next). SP flipped at the same exit is heard, so the exit poison lands, and
+ *   a poisoned record cursor on its entry is heard at once, so the instrument is not deaf.
  *
  * What it exercises, holes stated:
  *   1. REACHABILITY — the tapes' dispatch count, with the sweep's entry as the positive control.
@@ -26,7 +28,8 @@
  *   3. ARMS — each arm crafted, turn count 1 (ends) and 3 (loops round: oracle turns against rewrite
  *      turns, still exactly one net ret through the seam on the rewrite's side).
  *   4. DRIFTING MARKERS — the non-full marker values across the drifting object's own thresholds.
- *   5. EXCLUDED — nothing outside A/F diverges, with a control twin that can be seen.
+ *   5. DEAD AT EXIT — no register the oracle leaves is heard in any dumped cell (assertDeadAtExit, with its
+ *      exit-side SP control), plus an entry-side control that a poisoned record cursor is heard.
  *   6. TEETH — broken twins, each caught on the arm it breaks.
  * HOLE: the era poke puts the game in an era it did not earn; the crafts vary the routine's own inputs.
  *
@@ -37,7 +40,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { resolveAllIdiomatic, withOmittedRet } from "../../machine.js";
+import { withOmittedRet } from "../../machine.js";
 import { ROUTINES } from "../../routines.js";
 import { serviceSlotByMarkerThenCloseSweepTurn as candidate } from "../serviceSlotByMarkerThenCloseSweepTurn.js";
 import { loc_40ea as oracle } from "../../translated/loc_40ea.js";
@@ -47,8 +50,8 @@ import { stepDriftingCountdownObjectByEraFrames } from "../stepDriftingCountdown
 import { stepSlotApproachThenBreakawayRetire } from "../stepSlotApproachThenBreakawayRetire.js";
 import { flyLiveSlotAndTickCountdown } from "../flyLiveSlotAndTickCountdown.js";
 import { chaseOneAimPointAndRetireAtTheLine } from "../chaseOneAimPointAndRetireAtTheLine.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { ERA_INDEX } from "../names.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x40ea;
 const SWEEP_ENTRY = 0x40d6;
@@ -66,7 +69,18 @@ const CRAFT_BASES = 24;
 
 // The oracle's stack reach sits far above game data; a window bounded above this cannot hide a write.
 const DATA_TOP = 0xadff;
-const EXCLUDED = ["a", "f"];
+
+/** The sessions DEAD AT EXIT poisons over (JS frames, one later than a lua schedule's). */
+const SESSION_FRAMES = 2400;
+const SESSIONS = {
+  "era 2": [{ addr: ERA_INDEX, val: 2, frame: POKE_FROM_FRAME, dur: null }],
+  "era 3": [{ addr: ERA_INDEX, val: 3, frame: POKE_FROM_FRAME, dur: null }],
+  "era 4": [{ addr: ERA_INDEX, val: FINAL_ERA, frame: 700, dur: null }],
+  countdown: [{ addr: 0xad14, val: 3, frame: 561, dur: 1 },
+    ...Array.from({ length: 19 }, (_, k) => ({ addr: 0xaa81, val: 3, frame: 701 + 16 * k, dur: 1 }))],
+};
+/** Every register the oracle can leave behind, the stack pointer apart (its return pops through it). */
+const LEFT_BEHIND = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 // Drifting-object counts straddling its thresholds: retire at 1, below the window, in it, the reset
 // mark, and a marker with bit 7 set that is still not full.
@@ -75,15 +89,9 @@ const DRIFT_MARKERS = [0x01, 0x02, 0x10, 0x1c, 0x20, 0x3b, 0x3c, 0x80, 0xfe];
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
-// ── the live registry ─────────────────────────────────────────────────────────────────────
+// ── the frozen table the oracle runs on ─────────────────────────────────────────────────────
 
-const LIVE = new Map(ROUTINES);
-if (romsPresent()) {
-  for (const [addr, fn] of await resolveAllIdiomatic(new URL("../../machine.js", import.meta.url))) {
-    LIVE.set(addr, fn);
-  }
-}
-LIVE.set(TARGET, oracle);
+const FROZEN = new Map(ROUTINES);
 const seamed = (fn) => withOmittedRet(fn, TARGET);
 
 // ── the captured dispatches, and the crafted slot ─────────────────────────────────────────
@@ -109,11 +117,18 @@ function captured() {
   return raw;
 }
 
+/**
+ * A captured entry with the head slot forced into one arm and `count` turns left. The `count` slots
+ * after the head are planted with drifting objects, so every turn the sweep takes writes memory and a
+ * sweep one turn too long or too short leaves a slot stepped, or not, that should not be.
+ */
+const DRIFTING_PLANT = 0x30;
 function craft(base, { marker, era = ERA_WITH_SWEEP, cd = 0, count = 1 }) {
   const m = base.clone();
   m.mem8[ERA_INDEX] = era;
   m.mem8[(m.regs.ix + MARKER) & 0xffff] = marker;
   m.mem8[(m.regs.ix + COUNTDOWN) & 0xffff] = cd;
+  for (let turn = 1; turn <= count; turn++) m.mem8[(m.regs.ix + 0x10 * turn + MARKER) & 0xffff] = DRIFTING_PLANT;
   m.regs.b = count;
   return m;
 }
@@ -148,8 +163,8 @@ function armOf(m) {
 function compare(cand, machine) {
   const a = machine.clone();
   const b = machine.clone();
-  a.routines = LIVE;
-  b.routines = LIVE;
+  a.routines = FROZEN;
+  b.routines = FROZEN;
   const seat = a.regs.sp;
   let floor = seat;
   const pushA = a.push16.bind(a);
@@ -175,12 +190,6 @@ function compare(cand, machine) {
       escaped = { addr, a: da[i], b: db[i] };
     }
   }
-  if (!escaped) {
-    for (const k of REG_FIELDS) {
-      if (EXCLUDED.includes(k)) continue;
-      if (a.regs[k] !== b.regs[k]) { escaped = { addr: null, reg: k, a: a.regs[k], b: b.regs[k] }; break; }
-    }
-  }
   return { escaped, floor, seat };
 }
 
@@ -189,7 +198,7 @@ const show = (r) => r.escaped && `escaped at ${hex4(r.escaped.addr ?? 0)}: ${JSO
 /** Bytes the oracle moves in game data from a state — proof an entry is not idle. */
 function footprint(machine) {
   const a = machine.clone();
-  a.routines = LIVE;
+  a.routines = FROZEN;
   const before = a.dumpState().slice();
   oracle(a);
   const now = a.dumpState();
@@ -198,20 +207,6 @@ function footprint(machine) {
     if (now[i] !== before[i] && a.stateOffsetToAddr(i) <= DATA_TOP) n++;
   }
   return n;
-}
-
-function movedOver(cand, entries) {
-  const moved = new Set();
-  for (const m of entries) {
-    const a = m.clone();
-    const b = m.clone();
-    a.routines = LIVE;
-    b.routines = LIVE;
-    oracle(a);
-    try { seamed(cand)(b); } catch { continue; }
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
-  }
-  return moved;
 }
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
@@ -269,15 +264,10 @@ function freeEndsSweep(m) {
   if (markerAt(m) === FREE) return undefined;
   return candidate(m);
 }
-/** The control for the excluded set: scribbles a register the routine leaves alone. */
-function movesSpareCounter(m) {
-  const r = candidate(m);
-  m.regs.c = (m.regs.c + 1) & 0xff;
-  return r;
-}
-
 const TWINS = [
-  ["no-op", () => {}, ["free", "drifting", "final", "live", "chased"]],
+  // A free slot on the LAST turn writes nothing and hands nothing on, so no memory contract can tell
+  // it from a no-op there; the free arm is bitten where it goes round again onto an occupied slot.
+  ["no-op", () => {}, ["free-loop", "drifting", "final", "live", "chased"]],
   ["free-not-skipped", freeNotSkipped, ["free"]],
   ["full-as-bit-seven", fullAsBitSeven, ["drift-high"]],
   ["drift-not-stepped", driftNotStepped, ["drifting"]],
@@ -289,7 +279,13 @@ const TWINS = [
 
 function twinEntries(which) {
   if (which === "drift-high") return captured().slice(0, CRAFT_BASES).map((e) => craft(e, { marker: 0x80 }));
-  if (which === "free-loop") return armEntries("free", 3);
+  // the next turn's slot is planted with a drifting object, so skipping the turn it goes round to shows
+  if (which === "free-loop") {
+    return armEntries("free", 3).map((m) => {
+      m.mem8[(m.regs.ix + 0x10 + MARKER) & 0xffff] = 0x20;
+      return m;
+    });
+  }
   // the byte one short of the countdown is set to the opposite sense, so reading it picks the other arm
   if (which.endsWith("-shadowed")) {
     const arm = which.replace("-shadowed", "");
@@ -365,16 +361,13 @@ test("DRIFTING MARKERS: every non-full marker across the drifting thresholds", {
   console.log(`  DRIFTING MARKERS: ${n} identical`);
 });
 
-test("EXCLUDED: nothing outside A/F diverges, and the check can see one", { skip }, () => {
-  const entries = [...captured(), ...Object.keys(ARM_SHAPES).flatMap((a) => armEntries(a, 1))];
-  const moved = movedOver(candidate, entries);
-  const control = movedOver(movesSpareCounter, entries);
-  assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
-    "even a twin that scribbles C moves nothing, so the reading below proves nothing");
-  // A CEILING, not a demand: a rewrite exact on A/F as well still passes.
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k)), [],
-    "a register outside the dead A/F diverged");
-  console.log(`  EXCLUDED: moves ${[...moved].sort().join(",") || "nothing"}; ceiling ${EXCLUDED.join(",")}`);
+test("DEAD AT EXIT: no register the oracle leaves is heard, and the instrument hears one that is read", { skip }, () => {
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: SESSION_FRAMES, reachEvery: true,
+    sessions: Object.entries(SESSIONS).map(([label, pokes]) => ({ label, pokes })),
+    // A poisoned record cursor on entry is heard in game data in every session: the instrument is not deaf.
+    controls: [{ label: "entry IX", poison: ["ix"], before: true, expect: "heard", every: true, dataOnly: true }],
+  });
 });
 
 for (const [label, twin, targets] of TWINS) {

@@ -9,5 +9,5 @@ import { PLAYER_HEADING } from "./names.js";
 export function snapHeadingOntoTheTurnTarget(m, target = m.regs.b) {
   const { mem8 } = m;
   mem8[PLAYER_HEADING] = target;
-  scrollWorldAtTheEraPace(m);
+  scrollWorldAtTheEraPace(m, target);
 }

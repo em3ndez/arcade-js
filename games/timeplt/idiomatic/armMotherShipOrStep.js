@@ -24,7 +24,7 @@ const FIRE_BYTE = 0x04;
 const FIRE_ARMED = 0x07;
 
 export function armMotherShipOrStep(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[ROUND_TRANSITION_HOLD] === HELD) return;
 
@@ -32,11 +32,9 @@ export function armMotherShipOrStep(m) {
 
   if ((mem8[FRAME_TICK] & PHASE_MASK) !== PHASE_DUE) return;
 
-  if ((mem8[KILLS_REMAINING] | mem8[MOTHER_SHIP_STATE] | mem8[MOTHER_SHIP_STATE + RECORD_STRIDE]) !== 0) {
-    return void (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY);
-  }
+  if ((mem8[KILLS_REMAINING] | mem8[MOTHER_SHIP_STATE] | mem8[MOTHER_SHIP_STATE + RECORD_STRIDE]) !== 0) return;
 
   mem8[MOTHER_SHIP_ARMED] = HELD;
   mem8[MOTHER_SHIP_STATE + FIRE_BYTE] = FIRE_ARMED;
-  return (regs.ix = MOTHER_SHIP_STATE, regs.iy = MOTHER_SHIP_ENTRY, retireEntryPairIntoCooldown(m));
+  return retireEntryPairIntoCooldown(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY);
 }

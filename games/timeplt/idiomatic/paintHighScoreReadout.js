@@ -11,6 +11,5 @@ import { HIGH_SCORE_HI, HIGH_SCORE_READOUT_BASE } from "./names.js";
 const DIGIT_COLOUR = 0x10;
 
 export function paintHighScoreReadout(m) {
-  const { regs } = m;
-  return (regs.de = HIGH_SCORE_READOUT_BASE, regs.hl = HIGH_SCORE_HI, regs.c = DIGIT_COLOUR, paintSixDigitFieldSuppressingLeadingZeros(m));
+  return paintSixDigitFieldSuppressingLeadingZeros(m, HIGH_SCORE_HI, HIGH_SCORE_READOUT_BASE, DIGIT_COLOUR);
 }

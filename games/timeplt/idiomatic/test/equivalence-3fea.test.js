@@ -2,7 +2,12 @@
 /**
  * serviceEra0BallisticObjectBank vs the frozen oracle at ROM 0x3fea: real coin-start dispatches, the four decision
  * branches crafted, and a three-slot occupancy x era sweep, each masked for the dead stack scratch
- * the dissolved tails leave and held to a register ceiling. Run:
+ * the dissolved tails leave and held to a register ceiling. The bank's cursors (IX record, IY sprite,
+ * B count) are no longer pinned as registers: the oracle leaves them in IX/IY/B at its ret, but a
+ * poisoned all-frozen session (DEAD AT EXIT below) shows nothing the ROM runs after this routine
+ * reads them there. The rewrite RETURNS them instead ({ record, sprite, count }), and that returned
+ * tuple is held to the oracle's exit IX/IY/B on every compare -- the same coverage, moved from the
+ * register file to the return. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-3fea.test.js
  */
 
@@ -16,6 +21,7 @@ import { advanceSlotThenSweepObjectBankByHead } from "../advanceSlotThenSweepObj
 import { sweepObjectSlotBankServicingFirstSlot as sweep } from "../sweepObjectSlotBankServicingFirstSlot.js";
 import { flyAlongBallisticArc as fly } from "../flyAlongBallisticArc.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit, heard } from "./_deadAtExit.js";
 
 const TARGET = 0x3fea;
 const ERA_INDEX = 0xad04;
@@ -33,7 +39,9 @@ const DATA_TOP = 0xadff;
 
 // The dissolved tails leave the accumulator, the staging pair and the flag/HL working set where the
 // frozen side does not, and re-seat the stack; checked as a subset so a cleaner rewrite still passes.
-const EXCLUDED = ["a", "d", "e", "f", "h", "l", "sp", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+// The cursor triple is held through the RETURN (CURSOR below), not the register file.
+const CURSOR = ["ix", "iy", "b"];
+const EXCLUDED = ["a", "d", "e", "f", "h", "l", "sp", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_", ...CURSOR];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -66,6 +74,7 @@ function compare(cand, machine) {
   const a = machine.clone();
   const b = machine.clone();
   const seat = a.regs.sp;
+  const runsBank = a.mem8[ERA_INDEX] === 0;
   let low = seat;
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
@@ -87,6 +96,13 @@ function compare(cand, machine) {
       if (EXCLUDED.includes(k)) continue;
       if (a.regs[k] !== b.regs[k]) { reg = { k, a: a.regs[k], b: b.regs[k] }; break; }
     }
+  }
+  // The cursor the oracle leaves in IX/IY/B when it runs the bank, held against the returned tuple;
+  // outside era zero the oracle leaves them untouched and the rewrite returns nothing.
+  if (!threw && reg === null) {
+    const want = runsBank ? { record: a.regs.ix, sprite: a.regs.iy, count: a.regs.b } : undefined;
+    const got = rC && typeof rC === "object" ? { record: rC.record, sprite: rC.sprite, count: rC.count } : rC;
+    if (JSON.stringify(want) !== JSON.stringify(got)) reg = { k: "returned cursor", a: JSON.stringify(want), b: JSON.stringify(got) };
   }
   return { escaped, reg, threw, low, seat, spDiff: a.regs.sp - b.regs.sp, rO, rC };
 }
@@ -149,6 +165,8 @@ const TWINS = [
   ["wrong-count", twinBody({ b: 2 }), 27],
   ["empty-goes-sweep", twinBody({ guardEmpty: false }), 9],
   ["ballistic-skips-fly", twinBody({ flyBallistic: false }), 9],
+  // Memory-perfect, but hands back a sprite cursor one entry short: only the returned-cursor hold sees it.
+  ["wrong-returned-cursor", (m) => { const r = candidate(m); return r && { ...r, sprite: (r.sprite - 2) & 0xffff }; }, 27],
 ];
 
 function movedOver(cand, states) {
@@ -216,9 +234,9 @@ test("SP AND RETURN: +2 re-seat on every path, mask floor over the data, returns
     const r = compare(candidate, m);
     assert.equal(r.spDiff, 2, "the oracle no longer pops exactly one return the rewrite leaves");
     assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached into game data`);
-    assert.equal(r.rO, r.rC, "the return value diverged");
+    assert.equal(r.reg, null, `the returned cursor diverged from the oracle's exit IX/IY/B: ${r.reg && r.reg.a} vs ${r.reg && r.reg.b}`);
   }
-  console.log("  SP: +2 on every path; window over the data; returns identical");
+  console.log("  SP: +2 on every path; window over the data; returned cursor = oracle exit IX/IY/B");
 });
 
 test("EXCLUDED, measured: nothing moves outside the ceiling, with a control that does", { skip }, () => {
@@ -250,3 +268,26 @@ for (const [label, twin, expected] of TWINS) {
     console.log(`  TEETH/${label}: caught on ${caught}/${states.length}`);
   });
 }
+
+// ── the cursor registers are dead where the oracle hands back ─────────────────────────────────
+
+const DEAD_FRAMES = 2000;
+
+test("DEAD AT EXIT: the oracle's IX/IY/B cursor is read by nothing the ROM runs after this routine", { skip }, () => {
+  // Poison the cursor triple as the FROZEN routine hands back, on every dispatch that ran the bank
+  // (era zero), over the whole coin-start session; nothing per-frame may move.
+  // assertDeadAtExit also flips SP at the same exit (same `only`): the ROM returns through the stack,
+  // so an exit poison that lands has to be heard.
+  const [r] = assertDeadAtExit({
+    at: TARGET, poison: CURSOR, frames: DEAD_FRAMES, only: (m) => m.mem8[ERA_INDEX] === 0,
+    sessions: [{ label: "coin-start" }],
+    // ENTRY-SIDE CONTROL: the slot count widened (bit 2 flipped) on the way INTO the advance-step entry,
+    // where the sweep reads it, must be heard -- the instrument hears this register when it is live.
+    controls: [{
+      label: "entry", at: 0x400b, poison: ["b"], flip: { b: 0x04 }, before: true, reachEvery: true,
+    }],
+  });
+  assert.equal(r.dead.stopped, null, `the poisoned run stopped early: ${r.dead.stopped}`);
+  assert.ok(heard(r.exitControl), "the SP flip at this exit was not heard, so the exit poison never lands");
+  assert.ok(heard(r.controls.entry), "widening the live slot count on entry to 0x400b went unheard");
+});

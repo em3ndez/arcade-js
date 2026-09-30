@@ -13,15 +13,23 @@
  *   1. REACH, ASSERTED BOTH WAYS — the two budgets and the two tapes, as exact counts.
  *   2. CORPUS — every dispatch replayed, whole state dump, no exclusion window at all: this
  *      routine pushes nothing, so the two arms agree on every byte including the stack.
- *   3. REGISTERS ARE EXCLUDED, DELIBERATELY, and pinned. The record cursor the loop walks IS
- *      reproduced and compared; the stride and count registers are not, and its one caller
- *      reaches it by a tail jump whose own caller reloads before reading any of them.
+ *   3. REGISTERS ARE EXCLUDED, DELIBERATELY, and pinned. The guard byte and its flags, the
+ *      stride, the count and the record cursor the loop walks are all left behind by the oracle
+ *      and none is handed back by the rewrite: its one caller reaches it by a tail jump whose own
+ *      caller reloads before reading any of them. That is a claim about the callers, so it is
+ *      MEASURED off the oracle: a whole attract session with every one of them forced hostile
+ *      after each dispatch is bit-identical to the clean run, and a tooth beside it proves the
+ *      instrument reaches the routine.
  *   4. BOTH ARMS OF THE GUARD ARE REACHED — the real corpus is measured for which it presents,
  *      and the crafted sweep forces the other, so neither is covered only by argument.
  *   5. THE RESET LANDS — over a painted band across all five records, exactly ten cells move and
  *      they are the two named bytes of each. Measured off the ORACLE.
  *   6. EXHAUSTIVE over the guard byte — all 256 values, so "only zero passes" is swept.
  *   7. TEETH — seven twins, each with its exact catch count.
+ *   8. THE DROPPED REGISTERS — forced hostile over a whole attract session, with a tooth; and
+ *      DEAD AT EXIT, the same registers complemented at the exit over every tape session (the
+ *      driven sessions that reach this entry are the poke-driven ones; plain coin-start does not),
+ *      with an SP flip at the same exit as the control that the poison lands.
  *
  * HOLE: the guard byte is the caller's, and nothing here says which cell a real caller points at
  * or what it means. Nothing establishes what the shape byte draws either.
@@ -33,6 +41,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, TAPE_SESSIONS } from "./_deadAtExit.js";
 import { stopFiveSlotAnimations } from "../stopFiveSlotAnimations.js";
 import { loc_3855 as oracle } from "../../translated/loc_3855.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -53,7 +62,7 @@ const DISPATCHES_LONG = { shared: 0, attract: 120 };
 const TAPES = [["shared", {}], ["attract", { tape: [] }]];
 
 const PAINT_EITHER_SIDE = 4;
-const EXCLUDED = ["a", "f", "b", "d", "e", "sp"];
+const EXCLUDED = ["a", "f", "b", "d", "e", "ix", "sp"];
 
 /** A work-RAM cell the crafted arms point the guard at, so the guard's value can be forced. */
 const CRAFTED_GUARD = 0xafc4;
@@ -199,9 +208,8 @@ test("EXCLUDED, deliberately: the walk's scratch registers, sp and pc", { skip }
   stopFiveSlotAnimations(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.ok(moved.every((k) => EXCLUDED.includes(k)), `a register outside the set moved: ${moved}`);
-  assert.equal(a.regs.ix, b.regs.ix, "the record cursor is reproduced, not excluded");
   assert.equal(a.regs.ix, FIRST_RECORD + RECORDS * RECORD_STRIDE,
-    "the record cursor did not come out past the last record");
+    "the oracle's record cursor did not come out past the last record");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${moved.join(", ")} and pc`);
 });
@@ -229,6 +237,70 @@ test("THE RESET LANDS: ten cells over five records, and nothing else in the band
 test("EXHAUSTIVE over the guard byte: all 256 values", { skip }, () => {
   assert.equal(sweepCaught(stopFiveSlotAnimations), 0, "the rewrite diverged somewhere in the crafted space");
   console.log("  EXHAUSTIVE: 256 guard values identical");
+});
+
+// ── the dropped registers, measured off the oracle ─────────────────────────────────────
+
+/** Every register the rewrite no longer hands back, forced to a value no real exit leaves. */
+function clobberDropped(m) {
+  m.regs.a = 0xa5;
+  m.regs.f = 0x5a;
+  m.regs.b = 0x77;
+  m.regs.de = 0x1234;
+  m.regs.ix = 0x4321;
+}
+
+/** An undriven session run for the corpus budget with `after` applied behind every oracle dispatch. */
+function attractRun(after) {
+  let fired = 0;
+  const host = makeMachine(
+    new Map([[TARGET, (mm) => {
+      fired++;
+      const r = oracle(mm);
+      after(mm);
+      return r;
+    }]]),
+    { tape: [] },
+  );
+  const frames = host.runFrames(CORPUS_FRAMES);
+  return { frames, fired, stoppedBy: host.stoppedBy, offsetToAddr: (o) => host.stateOffsetToAddr(o) };
+}
+
+function forkedCells(base, run) {
+  const cells = new Set();
+  const n = Math.min(base.frames.length, run.frames.length);
+  for (let i = 0; i < n; i++) {
+    const x = base.frames[i];
+    const y = run.frames[i];
+    for (let o = 0; o < x.length; o++) if (x[o] !== y[o]) cells.add(base.offsetToAddr(o));
+  }
+  return [...cells];
+}
+
+test("THE DROPPED REGISTERS: forced hostile behind every oracle dispatch, no trace", { skip }, () => {
+  const base = attractRun(() => {});
+  const hostile = attractRun(clobberDropped);
+  assert.equal(hostile.stoppedBy, null, `the hostile run stopped: ${hostile.stoppedBy}`);
+  assert.equal(hostile.fired, DISPATCHES_LONG.attract, "the instrument did not reach every dispatch");
+  assert.deepEqual(forkedCells(base, hostile), [], "a register the rewrite drops reached game " +
+    "memory, so some caller CONSUMES it and dropping it is wrong");
+
+  // The tooth on the instrument: a change the routine's own effect DOES carry — every record's
+  // shape byte armed one code out — must spread past the ten cells it pokes into the game.
+  const control = attractRun((mm) => {
+    for (let i = 0; i < RECORDS; i++) mm.mem8[FIRST_RECORD + i * RECORD_STRIDE + SHAPE_BYTE] = RESTING_SHAPE + 1;
+  });
+  const forked = forkedCells(base, control);
+  console.log(
+    `  DROPPED REGISTERS: ${hostile.fired} dispatches, no trace; the control forks ${forked.length} cells`,
+  );
+  assert.ok(forked.length > RECORDS * 2 || control.stoppedBy !== null, "re-arming the shapes this " +
+    "routine writes did not spread into the game, so the instrument reaches nothing and the arm " +
+    "above proves nothing");
+});
+
+test("DEAD AT EXIT: on the frozen game, every dropped register is dead where this entry hands back", { skip }, () => {
+  assertDeadAtExit({ at: TARGET, poison: EXCLUDED.filter((k) => k !== "sp"), sessions: TAPE_SESSIONS, frames: CORPUS_FRAMES });
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────

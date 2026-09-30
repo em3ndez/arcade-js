@@ -37,6 +37,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, TAPE_SESSIONS } from "./_deadAtExit.js";
 import { paintHighScoreReadout } from "../paintHighScoreReadout.js";
 import { paintSixDigitFieldSuppressingLeadingZeros } from "../paintSixDigitFieldSuppressingLeadingZeros.js";
 import { loc_0d6b as oracle } from "../../translated/loc_0d6b.js";
@@ -58,7 +59,15 @@ const DIGIT_COLOUR = 0x10;
 const SCRATCH_BYTES = 8;
 
 /** The ceiling on divergence: a BOUND, not a demand — a rewrite diverging on fewer still passes. */
-const MOVED = ["a", "f", "sp"];
+/**
+ * c (the pen colour) is NOT a live-out: the printer now takes its colour as an argument, so the rewrite
+ * leaves c alone where the oracle leaves the colour in it. Measured on the ORACLE by the DEAD AT EXIT
+ * arm below, over every tape session (each reaches the return at 0x162C once): c complemented where
+ * this entry hands back is heard nowhere.
+ * The other caller's continuation (0x0CDA) reloads a and reaches the 1-UP/2-UP readouts, which
+ * seat their own colour, without reading c.
+ */
+const MOVED = ["a", "f", "sp", "c"];
 
 const TAPES = [
   ["driven", {}],
@@ -78,7 +87,7 @@ const HELPER = ["paintSixDigitFieldSuppressingLeadingZeros", "../paintSixDigitFi
 
 function callsRatherThanRestates(text, [name, file, ownName]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
-    text.includes(`${name}(m)`) &&
+    text.includes(`${name}(m`) &&
     !text.includes(ownName);
 }
 
@@ -375,6 +384,13 @@ function movedOver(candidate) {
   }
   return new Set(REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]));
 }
+
+/** Frames each TAPE_SESSIONS session runs for the DEAD AT EXIT arm. */
+const DEAD_FRAMES = 2500;
+
+test("DEAD AT EXIT: on the frozen game, c is dead where this entry hands back", { skip }, () => {
+  assertDeadAtExit({ at: TARGET, poison: ["c"], sessions: TAPE_SESSIONS, frames: DEAD_FRAMES });
+});
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
   const moved = movedOver(paintHighScoreReadout);

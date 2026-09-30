@@ -9,11 +9,16 @@
  *      whole-state-dump comparison outside the scratch window.
  *   2. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, pinned to [SP-2, SP): the oracle pushes one
  *      return address for the table lookup it delegates. Every arm asserts nothing escapes it.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by {a, f, sp} — a register
+ *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by {a, f, sp, h, l} — a register
  *      outside that set diverging fails the arm; a rewrite that diverges on fewer does not. The
  *      accumulator is in that set because the painter this entry hands over to leaves the run's
- *      terminating code there and the rewrite of that painter does not model it; both cursors
- *      the painter leaves ARE reproduced and compared.
+ *      terminating code there and the rewrite of that painter does not model it. H and L are in
+ *      it because the rewrite hands the painter its run pointer as an argument and gets back only
+ *      the cursor, while the frozen painter leaves HL on the terminator. The cursor the painter
+ *      leaves, and the colour in C, ARE reproduced and compared.
+ *   3a. HL IS DEAD WHERE THIS HANDS BACK, asked of the ORACLE: H and L complemented on every exit
+ *      of the all-frozen game over both tapes move no cell of per-frame state, while the same
+ *      instrument hears the record index nudged on the way in and SP moved at the same exit.
  *   4. THE CAPTION LANDS — over poisoned planes, the cells that change are a contiguous run in
  *      each plane, and every colour cell holds the SAME value. Measured off the ORACLE.
  *   5. THE RECORD'S OWN COLOUR IS NOT USED — the record's colour byte is poked to a value the
@@ -35,6 +40,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, heard } from "./_deadAtExit.js";
 import { drawCaptionFivePastSharedColour } from "../drawCaptionFivePastSharedColour.js";
 import { loc_3421 as oracle } from "../../translated/loc_3421.js";
 import { drawTextRun } from "../drawTextRun.js";
@@ -57,7 +63,9 @@ const PLANE_BYTES = 0x400;
 const POISON = 0x5a;
 
 const SCRATCH_BYTES = 2;
-const EXCLUDED = ["a", "f", "sp"];
+const EXCLUDED = ["a", "f", "sp", "h", "l"];
+/** The run pointer the frozen painter leaves on the terminator; nothing after this exit reads it. */
+const DEAD_AT_EXIT = ["h", "l"];
 
 const DISPATCHES = { shared: 18, attract: 11 };
 const TAPES = [["shared", {}], ["attract", { tape: [] }]];
@@ -193,6 +201,25 @@ test("EXCLUDED, deliberately: the accumulator, the flag byte, sp, pc and one pus
   assert.deepEqual(allDiffs(a, b).filter((d) => !inScratch(d.addr, sp)), [],
     "a divergence escaped the scratch window");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}, pc, and [SP-${SCRATCH_BYTES}, SP)`);
+});
+
+test("DEAD AT EXIT: the run pointer, as the frozen painter leaves it, is read by nothing after it", { skip }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: DEAD_AT_EXIT, frames: ENTRY_FRAMES,
+    sessions: TAPES.map(([label, opts]) => ({ label, tape: opts.tape, dispatches: DISPATCHES[label] })),
+    // ENTRY CONTROL: the record index this routine reads, nudged on the way in, must be heard.
+    controls: [{
+      label: "entry", poison: ["a"], flip: { a: 1 }, before: true, every: true, reachEvery: true,
+    }],
+  });
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so it must be heard.
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+  }
+  console.log("  DEAD AT EXIT: the exit control and the record-index entry control are heard in every " +
+    "session");
 });
 
 test("THE CAPTION LANDS: a run in each plane, and one colour across the whole of it", { skip }, () => {

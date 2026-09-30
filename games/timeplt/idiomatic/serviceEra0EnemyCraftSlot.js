@@ -17,16 +17,16 @@ const EMPTY = 0;
 const HELD = 0xfe;
 const ACTIVE = 0xff;
 
-export function serviceEra0EnemyCraftSlot(m, ix = m.regs.ix) {
+export function serviceEra0EnemyCraftSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   const status = m.mem8[ix];
   if (status === EMPTY) return;
-  if (status === HELD) return releaseHeldObject(m);
-  if (status !== ACTIVE) return stepDyingObjectState(m);
+  if (status === HELD) return releaseHeldObject(m, ix);
+  if (status !== ACTIVE) return stepDyingObjectState(m, ix, iy);
 
-  steerTowardAimHeading(m);
-  flyAtSlowestSpeed(m);
-  if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
-  launchBankEnemyWhenAimedNearPlayer(m);
-  refreshSpriteFromHeading(m);
-  return launchAttackerIntoFreeSlot(m);
+  steerTowardAimHeading(m, ix);
+  flyAtSlowestSpeed(m, ix, iy);
+  if (hasReachedRetireLine(m, iy)) return retireSlotAndSubPixel(m, ix, iy);
+  launchBankEnemyWhenAimedNearPlayer(m, ix, iy);
+  refreshSpriteFromHeading(m, iy, ix);
+  return launchAttackerIntoFreeSlot(m, ix, iy);
 }

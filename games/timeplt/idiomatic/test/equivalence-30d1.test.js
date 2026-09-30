@@ -266,3 +266,42 @@ for (const [label, twin, expected] of TWINS) {
     console.log(`  TEETH/${label}: caught on ${n} of ${scenarios().length} scenarios`);
   });
 }
+
+// ── the guard-fail divert below era four ────────────────────────────────────────────────────
+// Below era four the seed step's own guard (TAMPER_WITNESS 0xAD39, then 0xAD3A) diverts through
+// 0x3114 into 0x307F, which stores E through the witness pointer, counts B down and places one tile
+// through IY offset by C. This routine is what leaves E (its clear stride, low byte of DE = 2) and B
+// (its spent clear count, 0) standing for that divert -- the rewrite hands both on as arguments,
+// with the era and cursor it was given. MAME at 0x3117: DE = 0x0002, B = 0 at every fetch.
+
+const WITNESS = 0xad39;
+const divertEntries = () => [
+  ["witness-byte0", craft((m) => { m.mem8[WITNESS] = 0x00; })],
+  ["witness-byte1", craft((m) => { m.mem8[WITNESS + 1] = 0x07; })],
+];
+
+/** BUG: hands the divert a stride of 1, not the clear loop's 2. */
+function brokenDivertStride(m, fillByte = m.regs.a, era = m.regs.c, entryCursor = m.regs.iy) {
+  let clearAddr = 0xaa60;
+  for (let n = 8; n !== 0; n--) {
+    m.mem8[clearAddr] = fillByte;
+    clearAddr = (clearAddr + 2) & 0xffff;
+  }
+  if (era < ERA_FOUR) return seedSceneryEntriesThenRunScenery(m, era, entryCursor, 1, 0);
+  return candidate(m, fillByte, era, entryCursor);
+}
+
+test("DIVERT: a failed seed guard below era four diverts identically, with the clear loop's stride and count", { skip }, () => {
+  for (const [tag, m] of divertEntries()) {
+    assert.ok(m.regs.c < ERA_FOUR, `${tag}: the captured entry is not below era four`);
+    const r = compare(candidate, m);
+    assert.ok(!caught(r), `${tag} diverged — ${show(r.escaped ?? r.throwMismatch ?? r.liveOut)}`);
+    // Vacuity: the divert really ran -- the witness cell took the stride (2), the seat never happened.
+    const probe = m.clone();
+    oracle(probe);
+    assert.equal(probe.mem8[tag === "witness-byte0" ? WITNESS : WITNESS + 1], 2, `${tag}: the oracle did not divert`);
+    // Teeth: the wrong stride is caught on the same entry.
+    assert.ok(caught(compare(brokenDivertStride, m)), `${tag}: a divert handed the wrong stride passed`);
+  }
+  console.log("  DIVERT: both witness cells divert identically; a wrong-stride hand-on is caught");
+});

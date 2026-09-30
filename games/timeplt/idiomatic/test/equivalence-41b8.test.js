@@ -3,9 +3,19 @@
  * flyTowardShipStandoffThenEndApproach — memory-equivalent to the frozen oracle at ROM 0x41B8.
  * GATE: era-poked real dispatches (the tapes never reach it) plus crafted re-aim and arrival
  *   entries. RAM compared with the dead stack scratch below the seat masked out (the oracle nests
- *   calls and tail-rets, the rewrite does not), the +2 SP drift asserted, and the two live-outs the
- *   ROM form leaves checked: the retire carry and the passed-through BC. Other registers are not
- *   compared -- the dissolved callees drop the register dance. Teeth below.
+ *   calls and tail-rets, the rewrite does not), the +2 SP drift asserted, and the retire verdict the
+ *   ROM form leaves in the carry held equal to the one the rewrite RETURNS. Teeth below.
+ *
+ * ★ NO REGISTER IS LIVE AT EXIT but the sweep count and cursors, and those are handed back untouched
+ *   — measured on the ORACLE. The ROM form passes BC, IX and IY through (HANDED BACK: over every
+ *   dispatch and crafted path the oracle returns them exactly as it got them), because its caller's
+ *   turn-closer reads the count and both cursors next; the rewrite's caller holds them as locals and
+ *   hands them to the turn-closer itself, so this routine carries no BC and takes the cursors as
+ *   arguments. Every other register it leaves — the carry
+ *   included — is unheard over the held-era session, but for its pushed copy in one register-save
+ *   slot (PUSHED_SAVE_SLOTS), when complemented on
+ *   the way out (assertDeadAtExit); a complemented B is heard in game data at once, so the
+ *   instrument is not deaf.
  *   Run: node --test games/timeplt/idiomatic/test/equivalence-41b8.test.js
  */
 
@@ -22,6 +32,8 @@ import { loc_58b6 } from "../loc_58b6.js";
 import { animateFixedShapeCycleAtHalfRate } from "../animateFixedShapeCycleAtHalfRate.js";
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { u8, u16 } from "../../../../core/int.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
+import { ROUTINES } from "../names.js";
 
 const TARGET = 0x41b8;
 const ERA_INDEX = 0xad04;
@@ -42,13 +54,21 @@ const LIVE_COUNTDOWN = 0x21;
 // The stack seats at 0xB000; every write this routine and its callees make lands at or below here.
 const DATA_TOP = 0xadff;
 
+// The session DEAD AT EXIT poisons over: the era held at 4 from the corpus's own frame.
+const SESSION = [{ frame: POKE_FROM, addr: ERA_INDEX, val: 4, dur: null }];
+const SESSION_FRAMES = 2400;
+/** What the caller's turn-closer reads next: the count and the two cursors, all handed back untouched. */
+const HANDED_BACK = ["bc", "ix", "iy"];
+/** Every other register the oracle can leave behind, the stack pointer apart. */
+const LEFT_BEHIND = ["a", "f", "c", "d", "e", "h", "l", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
 // ── the masked comparison ─────────────────────────────────────────────────────────────────
 
-/** Oracle vs candidate on clones: RAM diffed outside [lowestSp, seat), the SP drift, and the two
- * live-outs the ROM form actually hands back -- the retire carry and BC. */
+/** Oracle vs candidate on clones: RAM diffed outside [lowestSp, seat), the SP drift, and the retire
+ * verdict -- the oracle's carry against the rewrite's returned value. */
 function compare(cand, machine) {
   const a = machine.clone();
   const b = machine.clone();
@@ -57,7 +77,7 @@ function compare(cand, machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  cand(b);
+  const verdict = cand(b);
   const da = a.dumpState();
   const db = b.dumpState();
   let escaped = null;
@@ -70,13 +90,11 @@ function compare(cand, machine) {
   return {
     escaped, low, seat,
     spDiff: a.regs.sp - b.regs.sp,
-    carryOracle: a.regs.f & F_C, carryCand: b.regs.f & F_C,
-    bcOracle: a.regs.bc, bcCand: b.regs.bc,
+    carryOracle: (a.regs.f & F_C) !== 0, verdict: verdict === true,
   };
 }
 
-const diverged = (r) =>
-  r.escaped !== null || r.spDiff !== 2 || r.carryOracle !== r.carryCand || r.bcOracle !== r.bcCand;
+const diverged = (r) => r.escaped !== null || r.spDiff !== 2 || r.carryOracle !== r.verdict;
 
 /** Cells the oracle moves at or below the data ceiling -- an entry's footprint. */
 function footprint(machine) {
@@ -137,8 +155,25 @@ function craftReaim(bitSet, arrive) {
   return e;
 }
 
+/**
+ * A non-re-aim entry whose object ends its move on a retire line, so the verdict is TRUE and a
+ * rewrite that drops it shows: the first column value (searched, on the oracle) that leaves the
+ * oracle's carry set.
+ */
+function craftRetiring() {
+  for (let column = 0; column < 0x100; column++) {
+    const e = nonReaimBase().clone();
+    e.mem8[e.regs.iy] = column;
+    const a = e.clone();
+    oracle(a);
+    if (a.regs.f & F_C) return e;
+  }
+  throw new Error("no column puts the object on a retire line");
+}
+
 const scenarios = () => [
   ["nonreaim", nonReaimBase().clone()],
+  ["retiring", craftRetiring()],
   ["reaim-clear", craftReaim(false, false)],
   ["reaim-set", craftReaim(true, false)],
   ["arrive-clear", craftReaim(false, true)],
@@ -148,10 +183,9 @@ const scenarios = () => [
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
 /** The rewrite with one deliberate defect each; every knob matches flyTowardShipStandoffThenEndApproach by default. */
-function twin({ reaim = true, swap = false, end = true, bc = true, move = true }) {
+function twin({ reaim = true, swap = false, end = true, move = true }) {
   return (m) => {
     const { regs, mem8 } = m;
-    const held = regs.bc;
     if (reaim && (mem8[FRAME_TICK] & 0x0f) === 0) {
       const setP = swap ? AIM_POINT_CLEAR : AIM_POINT_SET;
       const clrP = swap ? AIM_POINT_SET : AIM_POINT_CLEAR;
@@ -164,18 +198,17 @@ function twin({ reaim = true, swap = false, end = true, bc = true, move = true }
     steerTowardAimAtFixedRate(m);
     if (move) loc_58b6(m);
     animateFixedShapeCycleAtHalfRate(m);
-    if (bc) regs.bc = held;
     return hasReachedRetireLine(m);
   };
 }
 
 const TWINS = [
-  ["no-op", () => {}, 5],
+  ["no-op", () => {}, 6],
   ["skip-reaim", twin({ reaim: false }), 4],
   ["swap-aim-points", twin({ swap: true }), 4],
   ["skip-arrival-cutoff", twin({ end: false }), 2],
-  ["forget-bc", twin({ bc: false }), 5],
-  ["skip-move", twin({ move: false }), 5],
+  ["skip-verdict", (m) => { candidate(m); }, 1],
+  ["skip-move", twin({ move: false }), 6],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
@@ -198,7 +231,7 @@ test("POKED DISPATCH: era held at 4, every real dispatch replays identically", {
   assert.ok(entries.length > 0, "vacuous: holding the era at 4 no longer reaches this address");
   for (const e of entries) {
     const r = compare(candidate, e);
-    assert.ok(!diverged(r), r.escaped ? `diverged at ${hex4(r.escaped.addr)}` : "sp/carry/bc diverged");
+    assert.ok(!diverged(r), r.escaped ? `diverged at ${hex4(r.escaped.addr)}` : "sp/verdict diverged");
     assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached into game data`);
   }
   const prints = entries.map(footprint);
@@ -222,7 +255,49 @@ test("SCENARIOS: every crafted path is equivalent, and arrival really cuts the c
     oracle(a);
     assert.equal(a.mem8[cell], 0, `${label} did not cut the countdown`);
   }
-  console.log("  SCENARIOS: 5 paths equivalent; both arrival paths cut the countdown to 0");
+  const retiring = scenarios().find(([label]) => label === "retiring")[1].clone();
+  oracle(retiring);
+  assert.ok(retiring.regs.f & F_C, "the retiring path does not end on a retire line, so the verdict is untested");
+  console.log(`  SCENARIOS: ${scenarios().length} paths equivalent; both arrival paths cut the countdown to 0; ` +
+    "the retiring path's verdict is true");
+});
+
+test("HANDED BACK: the oracle returns the count and both cursors its caller's turn-closer reads, untouched", { skip }, () => {
+  const entries = [...capturePoked(), ...scenarios().map(([, m]) => m)];
+  const moved = entries.filter((e) => {
+    const a = e.clone();
+    oracle(a);
+    return HANDED_BACK.some((k) => a.regs[k] !== e.regs[k]);
+  });
+  assert.equal(moved.length, 0, "the oracle hands back a changed BC, so the caller's own count is not " +
+    "its live-out and the rewrite's caller is wrong to keep it");
+  // The measurement can see a BC that is not handed back: the rewrite carries no BC, and its callees
+  // leave one behind.
+  const control = entries.filter((e) => { const b = e.clone(); candidate(b); return b.regs.bc !== e.regs.bc; });
+  assert.ok(control.length > 0, "the measurement sees nothing even on a routine that does not restore BC");
+  // The hand-back is safe only while its frozen readers never run: the caller 0x4194 and the turn-closer
+  // 0x410B it jumps to must both be replaced by overrides that take the count and cursors as arguments.
+  for (const reader of [0x4194, 0x410b]) {
+    assert.ok(ROUTINES[reader] !== undefined, `${hex4(reader)} reads the handed-back registers and is frozen, so the ` +
+      "rewrite's moved count would reach it");
+  }
+  console.log(`  HANDED BACK: BC unchanged by the oracle on all ${entries.length}; the rewrite moves it on ${control.length}`);
+});
+
+/** Stack-page slots the frozen code pushes register saves through (each is a push16 slot in the
+ * all-frozen session): a poisoned register shows here as a pushed copy and nowhere else. Measured by the
+ * DEAD AT EXIT arm, which lets exactly these through and nothing else. */
+const PUSHED_SAVE_SLOTS = [0xafe0];
+
+test("DEAD AT EXIT: no other register the oracle leaves is heard; the count is", { skip }, () => {
+  // assertDeadAtExit: nothing differs but the pushed copy in PUSHED_SAVE_SLOTS; the count, poisoned
+  // at the same exit, must be heard in game data (dataOnly), not only as pushed scratch on the stack page.
+  assertDeadAtExit({
+    at: TARGET, poison: LEFT_BEHIND, frames: SESSION_FRAMES, reachEvery: true,
+    scratch: PUSHED_SAVE_SLOTS,
+    sessions: [{ label: "held era", pokes: SESSION }],
+    controls: [{ label: "count", poison: ["b"], expect: "heard", every: true, dataOnly: true }],
+  });
 });
 
 for (const [label, brokenTwin, expected] of TWINS) {

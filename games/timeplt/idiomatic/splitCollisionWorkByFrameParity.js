@@ -14,8 +14,7 @@ import { destroyFixedTargetReachedByPlayer } from "./destroyFixedTargetReachedBy
 import { markObjectsTouchingPlayer } from "./markObjectsTouchingPlayer.js";
 import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT2, FRAME_TICK, MOTHER_SHIP_ARMED } from "./names.js";
 
-// The mark's enter-flags carry is dead here (it only feeds an unread return flag on the player-dead
-// guard-bail; this routine's live-out is memory only), so pass a fixed zero.
+// The mark's second parameter slot (the enter flags) is read by nothing; pass a fixed zero to fill it.
 const MARK_ENTER_FLAGS = 0;
 
 export function splitCollisionWorkByFrameParity(m) {

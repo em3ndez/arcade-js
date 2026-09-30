@@ -28,9 +28,9 @@
  *   derail. Every derail arm below is crafted, and CRAFTED-MATTERS records that the corpus alone
  *   passes a twin that never derails at all.
  *
- * ★ THE CLEAN PATH'S REGISTERS ARE DEAD, AND THAT IS MEASURED RATHER THAN ASSUMED. A, F, B and HL
- *   sit in the ceiling: the rewrite still sets them on a clean walk, but the gate does not demand
- *   it. CONTINUATION runs both real callers to
+ * ★ THE CLEAN PATH'S REGISTERS ARE DEAD, AND THAT IS MEASURED RATHER THAN ASSUMED. A, F, B, HL
+ *   and DE sit in the ceiling: the rewrite leaves none of them on a clean walk, and the gate does
+ *   not demand them. CONTINUATION runs both real callers to
  *   completion with the rewrite seamed in over the registry and finds no difference in memory OR in
  *   any register, which is what licenses those four sitting in the ceiling.
  *
@@ -61,6 +61,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, TAPE_SESSIONS } from "./_deadAtExit.js";
 import { checkTheCopyrightLineColoursOrDerail } from "../checkTheCopyrightLineColoursOrDerail.js";
 import { loc_19da as oracle } from "../../translated/loc_19da.js";
 import { loc_176a as caller176a } from "../../translated/loc_176a.js";
@@ -90,12 +91,18 @@ const SCRATCH_BYTES = 0;
  *   f — the comparisons and the counter's decrements set flags nothing reads.
  *   b — the oracle counts the walk down in B; the rewrite counts in a local.
  *   h,l — the oracle walks HL across the cells; the rewrite indexes from a base.
+ *   d,e — the oracle adds its stride through DE (0xFFE0); the rewrite keeps the stride a constant.
+ *         Read off the oracle's two callers: 0x178C reloads DE (ld de,0xab43) and 0x176A reloads it
+ *         (ld de,0x0113) before any read; the one landing that read D from this walk, 0x15CA on
+ *         0x178C's wrong-glyph arm, is now a raise in that caller, so nothing is left to read it.
+ *         Measured too, by the DEAD AT EXIT arm below: d/e complemented where this entry hands back
+ *         are heard nowhere over every tape session (attract and game-over reach it).
  *   sp — the oracle takes its own return and the rewrite leaves that to the seam.
  * CONTINUATION is what makes this safe rather than merely declared: both real callers run to
  * completion with the rewrite in place and no register survives to be read.
  * A ceiling, not a demand — a rewrite that diverged on fewer of these still passes.
  */
-const MOVED = ["a", "f", "b", "h", "l", "sp"];
+const MOVED = ["a", "f", "b", "d", "e", "h", "l", "sp"];
 
 const VALUES = 256;
 const STACK_SEAT = 0xb000;
@@ -388,6 +395,13 @@ function movedOver(candidate) {
   }
   return moved;
 }
+
+/** Frames each TAPE_SESSIONS session runs for the DEAD AT EXIT arm. */
+const DEAD_FRAMES = 2500;
+
+test("DEAD AT EXIT: on the frozen game, d, e are dead where this entry hands back", { skip }, () => {
+  assertDeadAtExit({ at: TARGET, poison: ["d", "e"], sessions: TAPE_SESSIONS, frames: DEAD_FRAMES });
+});
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
   const moved = movedOver(checkTheCopyrightLineColoursOrDerail);

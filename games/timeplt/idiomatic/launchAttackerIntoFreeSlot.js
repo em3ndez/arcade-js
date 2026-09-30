@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** launchAttackerIntoFreeSlot — on this object's one turn of the eight-frame round, and only once the shared spawn
  * cooldown has run out, walk the object-record bank for a free slot; when one sits far enough from
- * either of two fixed lines, stash its record and paired-entry pointers, hand the caller's facing to
- * the launcher, and pick the aligned-facing launcher on era zero or the heading-follows one on the
- * rest. Otherwise it counts the cooldown down or leaves untouched. LIVE-OUT: memory, and the facing
- * byte in C the launcher reads. */
+ * either of two fixed lines, stash its record and paired-entry pointers, and pick the aligned-facing
+ * launcher on era zero or, on the rest, the heading-follows one handed the record's heading byte as
+ * its facing. Otherwise it counts the cooldown down or leaves untouched. LIVE-OUT: memory. */
 
 import { setTheLaunchFacingInsideOneAimWindow } from "./setTheLaunchFacingInsideOneAimWindow.js";
 import { commissionStagedAttackerByEra } from "./commissionStagedAttackerByEra.js";
@@ -17,7 +16,7 @@ const FIRST_LINE = 0x78;
 const SECOND_LINE = 0x84;
 
 export function launchAttackerIntoFreeSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if ((mem8[FRAME_TICK] & 7) + PHASE_BIAS !== mem8[ix + 0x0f]) return;
 
@@ -51,6 +50,6 @@ export function launchAttackerIntoFreeSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   }
 
   const facing = mem8[ix + 0x02];
-  if (mem8[ERA_INDEX] === 0) return (regs.c = facing, setTheLaunchFacingInsideOneAimWindow(m));
-  return (regs.c = facing, commissionStagedAttackerByEra(m));
+  if (mem8[ERA_INDEX] === 0) return setTheLaunchFacingInsideOneAimWindow(m, ix, iy);
+  return commissionStagedAttackerByEra(m, ix, iy, facing);
 }

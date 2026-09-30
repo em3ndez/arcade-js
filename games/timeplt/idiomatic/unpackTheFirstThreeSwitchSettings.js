@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** unpackTheFirstThreeSwitchSettings — open the first three settings cells: the first takes the whole
  * byte the caller arrived with, the next two each one bit of a packed byte in ascending order. The
- * packed byte is handed on rotated until the last bit spent sits lowest, twice over in both carrying
- * registers; control tail-transfers into the continuation and never comes back. LIVE-OUT: memory. */
+ * packed byte is handed on rotated until the last bit spent sits lowest; control tail-transfers into
+ * the continuation and never comes back. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
 import { finishBootSelfTestAndColdStart } from "./finishBootSelfTestAndColdStart.js";
@@ -16,9 +16,9 @@ const LAST_BIT_SPENT = SINGLE_BIT_CELLS[SINGLE_BIT_CELLS.length - 1].bit;
 const BITS_IN_A_BYTE = 8;
 
 export function unpackTheFirstThreeSwitchSettings(m, whole = m.regs.a, packed = m.regs.c) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   mem8[STARTING_LIVES] = whole;
   for (const { cell, bit } of SINGLE_BIT_CELLS) mem8[cell] = (packed >> bit) & 1;
   const unspent = u8((packed >> LAST_BIT_SPENT) | (packed << (BITS_IN_A_BYTE - LAST_BIT_SPENT)));
-  return (regs.a = unspent, regs.c = unspent, finishBootSelfTestAndColdStart(m));
+  return finishBootSelfTestAndColdStart(m, unspent);
 }

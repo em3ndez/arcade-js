@@ -8,8 +8,11 @@
  *   are already decompiled, so both transfers are dissolved into direct calls here.
  *
  * What it exercises, holes stated:
- *   1. EQUAL at the real dispatch — RAM identical outside the scratch window, and the colour, the
- *      cursor and the run pointer the painting leaves behind identical too.
+ *   1. EQUAL at the real dispatch — RAM identical outside the scratch window, and the cursor the
+ *      painting leaves behind identical too. The colour is judged where it lands, in the colour
+ *      plane: the rewrite hands it to the painter and leaves no copy in C. The run pointer is judged
+ *      nowhere: the rewrite hands it to the painter as an argument and gets back only the cursor,
+ *      while the frozen painter leaves HL on the terminator — see 6b.
  *   2. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, pinned to [SP-2, SP): the oracle pushes a
  *      return address for the fetch it calls and pops it again; the rewrite models no stack. The
  *      window is MEASURED dirty at the real dispatch, and every arm walks the whole dump and
@@ -22,8 +25,19 @@
  *      that BOTH sides fail there, which is what fixes the table's extent.
  *   5. COLOUR SWEEP — all 256 values of the cell the colour follows, which is the only coverage
  *      of both the eight-bit wrap of the bias and the four-bit mask.
- *   6. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by {a, f, sp}: a register outside
- *      that set fails, and a rewrite that clobbers fewer of them stays green.
+ *   6. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by {a, f, c, h, l, sp}: a register
+ *      outside that set fails, and a rewrite that clobbers fewer of them stays green.
+ *   6a. C IS DEAD WHERE THIS HANDS BACK, asked of the ORACLE (assertDeadAtExit). Its one caller is
+ *      the ring drain loop (0x0B93), which reloads C from the ring at 0x0B9E before reading it; the
+ *      vertical-blank interrupt saves the main set with pushes, runs on the exchanged bank, and pops
+ *      it back. Measured: C complemented on every exit of the all-frozen game over both tapes moves
+ *      ONE cell, the byte `push bc` at 0x00DA saves C into when the interrupt lands on the drain loop
+ *      (SP 0xB000) — a copy popped straight back into C, which the loop then overwrites. Controls
+ *      on the same instrument: the selector complemented on ENTRY is heard, and SP moved at the
+ *      EXIT is heard, on both tapes.
+ *   6b. HL IS DEAD WHERE THIS HANDS BACK, asked of the ORACLE on the same instrument and sessions
+ *      as 6a: H and L complemented on every exit move no cell of per-frame state at all, beside the
+ *      same entry and exit controls.
  *   7. TEETH — eight twins, each asserted caught on exact counts of both sweeps.
  *
  * HOLE: THE ACCUMULATOR IS EXCLUDED. The oracle leaves it holding the code that ends the glyph
@@ -40,6 +54,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 import { drawCaptionTenPastSharedColour } from "../drawCaptionTenPastSharedColour.js";
 import { loc_0c23 as oracle } from "../../translated/loc_0c23.js";
 import { drawTextRun } from "../drawTextRun.js";
@@ -57,7 +72,14 @@ const COLOUR_MASK = 0x0f;
 const SCRATCH_BYTES = 2;
 
 /** Registers the rewrite may leave diverged. Dead for this routine, so it need not move them. */
-const EXCLUDED = ["a", "f", "sp"];
+const EXCLUDED = ["a", "f", "c", "h", "l", "sp"];
+/** The run pointer the frozen painter leaves on the terminator; nothing after this exit reads it. */
+const HL_DEAD_AT_EXIT = ["h", "l"];
+/** The byte the vertical-blank interrupt's `push bc` (0x00DA) saves C into when it lands on the
+ *  ring drain loop, whose stack pointer is 0xB000: 0xAFFE/F the return address, 0xAFFC/D AF. */
+const NMI_SAVED_C = 0xaffa;
+const END_OF_TEXT = 185;
+const CHARACTER_PLANE_BIT = 0x400;
 
 /** The last selector whose record the painter can follow without leaving writable memory. */
 const LAST_SELECTOR = 32;
@@ -91,7 +113,7 @@ function allDiffs(a, b) {
 }
 
 /**
- * Masked state dump plus the three values the painting leaves behind. A candidate that THROWS is
+ * Masked state dump plus the cursor the painting leaves behind. A candidate that THROWS is
  * a divergence, not a crash: a wrong record pointer sends the painter at unwritable memory, and
  * that is exactly the failure some twins here are built to cause.
  */
@@ -107,9 +129,7 @@ function unitDiff(candidate, machine) {
   }
   const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
   if (ram) return ram;
-  if (a.regs.c !== b.regs.c) return { addr: null, a: a.regs.c, b: b.regs.c };
   if (a.regs.de !== b.regs.de) return { addr: null, a: a.regs.de, b: b.regs.de };
-  if (a.regs.hl !== b.regs.hl) return { addr: null, a: a.regs.hl, b: b.regs.hl };
   return null;
 }
 
@@ -181,9 +201,7 @@ test("EQUAL at the real dispatch: drawCaptionTenPastSharedColour == oracle outsi
   drawCaptionTenPastSharedColour(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
-  assert.equal(a.regs.c, b.regs.c, "the colour diverged");
   assert.equal(a.regs.de, b.regs.de, "the cursor left behind diverged");
-  assert.equal(a.regs.hl, b.regs.hl, "the run pointer left behind diverged");
 
   const dirty = allDiffs(a, b).map((d) => d.addr);
   assert.deepEqual(
@@ -231,17 +249,57 @@ test("COLOUR SWEEP: all 256 values of the cell the colour follows", { skip: SKIP
     assert.equal(d, null, `cycle=${cycle}: ${show(d)}`);
   }
 
-  // THE TWO ARITHMETIC EDGES, read back out of the colour the rewrite leaves.
-  const wrapping = craft(REAL_SELECTORS.attract[0], 0xff);
-  drawCaptionTenPastSharedColour(wrapping);
-  assert.equal(wrapping.regs.c, u8(0xff + COLOUR_BIAS) & COLOUR_MASK, "the byte wrap of the bias moved");
-  const masking = craft(REAL_SELECTORS.attract[0], 0x70);
-  drawCaptionTenPastSharedColour(masking);
-  assert.equal(masking.regs.c, (0x70 + COLOUR_BIAS) & COLOUR_MASK, "the four-bit mask moved");
+  // THE TWO ARITHMETIC EDGES, read back out of the colour plane the rewrite paints.
+  assert.equal(paintedColour(0xff), u8(0xff + COLOUR_BIAS) & COLOUR_MASK, "the byte wrap of the bias moved");
+  assert.equal(paintedColour(0x70), (0x70 + COLOUR_BIAS) & COLOUR_MASK, "the four-bit mask moved");
   console.log(`  COLOUR SWEEP: 256 cycle values identical, the byte wrap and the mask included`);
 });
 
-test("EXCLUDED, deliberately: the accumulator, the flag byte, the stack pointer and pc", { skip: SKIP }, () => {
+/** The colour the rewrite paints on the real selector's first cell, read from the colour plane after
+ *  seeding that cell with a value no four-bit colour can equal, so the read proves a write. */
+function paintedColour(cycle) {
+  const selector = REAL_SELECTORS.attract[0];
+  const m = craft(selector, cycle);
+  const record = m.mem16[RECORD_TABLE + 2 * selector];
+  assert.notEqual(m.mem8[record + GLYPHS_FROM], END_OF_TEXT, "the real selector's run is empty");
+  const colourCell = m.mem16[record] & ~CHARACTER_PLANE_BIT;
+  m.mem8[colourCell] = 0xff;
+  drawCaptionTenPastSharedColour(m);
+  return m.mem8[colourCell];
+}
+
+test("C AND HL ARE DEAD AT EXIT: complemented on every exit of the ORACLE; C moves only the interrupt's saved copy, HL nothing", { skip: SKIP }, () => {
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ["c"], frames: ENTRY_FRAMES, scratch: [NMI_SAVED_C],
+    sessions: TAPES.map(([label, opts]) => ({ label, tape: opts.tape, dispatches: DISPATCHES[label] })),
+    controls: [
+      // H and L at the same exits: silent here, and held to NO cell at all below.
+      { label: "HL", poison: HL_DEAD_AT_EXIT, expect: "silent", reachEvery: true },
+      // ENTRY CONTROL: the selector this routine reads, complemented on the way in, must be heard.
+      { label: "entry", poison: ["a"], before: true, every: true, reachEvery: true },
+    ],
+  });
+  for (const r of exits) {
+    const hl = r.controls.HL;
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    // The saved copy is the ONE cell C moves, and it does move: the exit poison is seen landing.
+    assert.deepEqual(r.dead.cells.map(hex4), [hex4(NMI_SAVED_C)],
+      `${r.label}: C was read after this routine handed back, somewhere other than the interrupt's ` +
+        "save slot");
+    assert.equal(hl.stopped, null, `${r.label}: the HL-poisoned run stopped early: ${hl.stopped}`);
+    assert.equal(hl.frames, ENTRY_FRAMES, `${r.label}: compared ${hl.frames} of ${ENTRY_FRAMES} frames`);
+    assert.equal(hl.poisoned, DISPATCHES[r.label], `${r.label}: poisoned ${hl.poisoned} exits`);
+    assert.deepEqual(hl.cells.map(hex4), [],
+      `${r.label}: the run pointer was read after this routine handed back`);
+    // EXIT CONTROL: SP moved where this hands back; the ROM returns through it, so every tape hears it.
+    assert.ok(heard(r.exitControl),
+      `${r.label}: the exit control was not heard, so the exit poison never lands`);
+  }
+  console.log(`  DEAD AT EXIT: C moves only ${hex4(NMI_SAVED_C)}, H and L nothing; entry and exit controls ` +
+    `heard on every tape (${exits.map((r) => `${r.label} ${heardAs(r.exitControl)}`).join("; ")})`);
+});
+
+test("EXCLUDED, deliberately: the accumulator, the flag byte, C, the run pointer, the stack pointer and pc", { skip: SKIP }, () => {
   const e = entryState();
   const a = e.clone();
   const b = e.clone();
@@ -255,7 +313,8 @@ test("EXCLUDED, deliberately: the accumulator, the flag byte, the stack pointer 
   );
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle returns; the rewrite does not");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  console.log(`  EXCLUDED: a, f, sp and pc — RAM, the colour and both pointers are held`);
+  assert.equal(a.regs.de, b.regs.de, "the cursor is a live-out and must be reproduced");
+  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — RAM (the painted colour with it) and the cursor are held`);
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────────
@@ -320,7 +379,10 @@ function brokenWrongCycleCell(m) {
  * fixes the cycle value at 2 and 2 plus the bias has no bits for a mask to remove — only the
  * colour sweep sees it, on the 240 values where the sum runs past four bits. `wrong-cycle-cell`
  * reads a neighbouring cell whose value the craft does not touch, so it agrees on the 16 cycle
- * values congruent to that one, and is caught on the other 240.
+ * values congruent to that one, and is caught on the other 240. The two colour twins, `no-bias`
+ * and `wrong-cycle-cell`, fall short on the selector sweep by exactly selectors 24 (an empty run)
+ * and 32, where the wrong colour reaches no cell: the twin is memory-identical there, and only the
+ * dead C register used to tell them apart.
  */
 const TWINS = [
   ["no-op", brokenNoOp, 33, 256],
@@ -328,9 +390,9 @@ const TWINS = [
   ["glyphs-from-two", brokenGlyphsFromTwo, 33, 256],
   ["glyphs-from-four", brokenGlyphsFromFour, 33, 256],
   ["swaps-destination", brokenSwapsDestination, 33, 256],
-  ["no-bias", brokenNoBias, 33, 256],
+  ["no-bias", brokenNoBias, 31, 256],
   ["no-mask", brokenNoMask, 0, 240],
-  ["wrong-cycle-cell", brokenWrongCycleCell, 33, 240],
+  ["wrong-cycle-cell", brokenWrongCycleCell, 31, 240],
 ];
 
 for (const [label, twin, selectorsCaught, cyclesCaught] of TWINS) {

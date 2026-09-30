@@ -33,6 +33,7 @@ import { loc_37bd as oracle } from "../../translated/loc_37bd.js";
 import { loc_36af as caller } from "../../translated/loc_36af.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { deadAfterThePass } from "./_spawnPassScratchDeadAtExit.js";
 
 const TARGET = 0x37bd;
 const CALLER = 0x36af;
@@ -58,9 +59,14 @@ const DATA_TOP = 0xadff;
 /**
  * The ceiling on divergence. The gate leaves the tested byte in A and the comparison in the flags
  * and takes a return the rewrite does not; the spawner it tails into leaves the staging pair, the
- * accumulator and the shadow set differently. A CEILING and not a demand: a subset still passes.
+ * accumulator and the shadow set differently. The count and the two cursors the gate stages are
+ * handed to the spawner as arguments and never land in a register, and so are the step count and
+ * table pointer the shape step works a filled slot with, which the frozen side leaves in C and H/L;
+ * all six are in the ceiling on the ORACLE's word: DEAD AFTER THE PASS below poisons them wherever
+ * the frozen search ends and nothing changes. The TWINS stage through the registers and are held by the recorder, which
+ * compares what they stage whatever the ceiling. A CEILING and not a demand: a subset still passes.
  */
-const MOVED = ["a", "d", "e", "f", "sp", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+const MOVED = ["a", "b", "c", "d", "e", "f", "h", "l", "sp", "ix", "iy", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
@@ -288,10 +294,11 @@ function brokenEntryCursorStale(m) {
   return m.call(SLOT_BODY);
 }
 
-/** BUG: scribbles on a register outside the ceiling — the control for the EXCLUDED arm. */
-function brokenMovesIy(m) {
+/** BUG: scribbles on a register outside the ceiling — the control for the EXCLUDED arm. Aimed at
+ * the interrupt vector, the one register left outside the ceiling. */
+function brokenMovesI(m) {
   gateTheFreeSlotSearchAndPickItsRun(m);
-  m.regs.iy = (m.regs.iy + 1) & 0xffff;
+  m.regs.i = m.regs.i ^ 0xff;
 }
 
 const TWINS = [
@@ -416,9 +423,14 @@ function movedOver(candidate) {
   return moved;
 }
 
+test("DEAD AFTER THE PASS: on the frozen game, the three staged values and the shape step's C and H/L are read by nobody once the pass ends",
+  { skip }, () => {
+    deadAfterThePass();
+  });
+
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
   const moved = movedOver(gateTheFreeSlotSearchAndPickItsRun);
-  const control = movedOver(brokenMovesIy);
+  const control = movedOver(brokenMovesI);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
     "the measurement reports nothing outside the ceiling even for a twin that scribbles on a " +
       "register, so a clean reading below proves nothing");

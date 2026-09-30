@@ -3,10 +3,9 @@
  * then branch on the era and two runtime guards. Below era four one path seats and runs the whole
  * frame's scenery; at era four and up, when the guard pair reads its expected values a second packed
  * table fills eight entry cells before the scenery runs; a guard that reads wrong transfers into a
- * data table and faults. LIVE-OUT: memory. Every register the body touches is dead-after-return
- * scratch — each returning arm hands on to a callee (seedScenery / runSceneryForEra) that reseats
- * both cursors, and the guard-fail arm transfers into a fault — so the scratch lives here as JS
- * locals; only the two caller inputs (fill byte in A, era in C) stay boundary-seated. */
+ * data table and faults. LIVE-OUT: memory. The clear loop's stride and its spent count are handed to
+ * the seed step below era four, because its guard-fail divert stores the one and counts down the
+ * other (the original leaves them in E and B); every other register the body touches is scratch. */
 
 import { u16 } from "../../../core/int.js";
 import { seedSceneryEntriesThenRunScenery } from "./seedSceneryEntriesThenRunScenery.js";
@@ -22,8 +21,9 @@ const SUBGUARD_A = 0x05;
 const SUBGUARD_B = 0x10;
 const SEAT_COUNT = 8;
 const SEAT_SHADOW = 0x31; // byte0 of each packed pair lands at the entry cell +0x31
+const CLEAR_SPENT = 0; // the clear loop runs its count down to nothing
 
-export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era = m.regs.c) {
+export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era = m.regs.c, entryCursor = m.regs.iy) {
   const { mem8 } = m;
 
   // clear eight object cells, stride two, to the fill byte
@@ -33,7 +33,7 @@ export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era
     clearAddr = u16(clearAddr + CLEAR_STRIDE);
   }
 
-  if (era < ERA_FLOOR) return seedSceneryEntriesThenRunScenery(m);
+  if (era < ERA_FLOOR) return seedSceneryEntriesThenRunScenery(m, era, entryCursor, CLEAR_STRIDE, CLEAR_SPENT);
 
   let guardAddr = TAMPER_GLYPH_KONAMI;
   if (mem8[guardAddr] !== GUARD_OK) return loc_315b(m);

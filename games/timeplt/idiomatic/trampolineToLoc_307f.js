@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** trampolineToLoc_307f — a bare tail transfer into a lifted destination that drops the trailing ret chain and the register dance; control does not return, the stack pointer ends one word higher on the frozen side, and the live-out is whatever the destination leaves. */
+/** trampolineToLoc_307f — a bare tail transfer into a lifted destination: every input the destination reads is handed
+ * straight through, control does not return here, and the live-out is whatever the destination leaves. */
 import { loc_307f } from "./loc_307f.js";
 
-export function trampolineToLoc_307f(m) {
-  return loc_307f(m);
+export function trampolineToLoc_307f(m, pointer = m.regs.hl, coordinate = m.regs.e, fold = m.regs.a, counter = m.regs.b, entry = m.regs.iy, offset = m.regs.c) {
+  return loc_307f(m, pointer, coordinate, fold, counter, entry, offset);
 }

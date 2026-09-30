@@ -5,8 +5,8 @@
  * cell, advancing both positions each step, until the stamped cell reaches the run's end cell.
  * Then bump the run index, read the next run's row and column out of the word table, reseat the
  * pen there with the fractions cleared, and leave the Z flag set when the new row integer is zero.
- * LIVE-OUT: the stamped cells and the pen state; the Z flag (new row integer == 0), which callers
- * branch on with a conditional return. */
+ * LIVE-OUT: the stamped cells and the pen state; the flags, returned, whose Z bit (new row
+ * integer == 0) callers branch on with a conditional return. */
 
 import { u16 } from "../../../core/int.js";
 import { F_H, F_PV, F_S, F_Z, F_F3, F_F5 } from "../../../core/cpu/z80.js";
@@ -28,11 +28,11 @@ const parity8 = (v) => {
 };
 const sz8 = (v) => (v & 0x80 ? F_S : 0) | (v === 0 ? F_Z : 0) | (v & (F_F3 | F_F5));
 // Flags an AND of a byte with itself leaves: sign/zero/undocumented from the byte, half-carry always,
-// parity, no subtract, no carry. The Z bit (byte == 0) is the live-out callers read via regs.fNZ.
+// parity, no subtract, no carry. The Z bit (byte == 0) is the live-out callers branch on.
 const andFlags = (v) => sz8(v) | F_H | parity8(v);
 
 export function drawInterpolatedPenRun(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   plotPenCell(m);
   mem16[PEN_ROW_STEP] = stepToward(mem16[PEN_ROW_TARGET], mem16[PEN_ROW_POS]);
@@ -54,7 +54,7 @@ export function drawInterpolatedPenRun(m) {
   mem8[PEN_COLUMN_POS] = 0;
   mem8[PEN_COLUMN_POS + 1] = word >> 8;
 
-  // A carries the new row integer; the AND-with-itself seats the flags -- Z when the row integer is
-  // zero -- that callers branch on via regs.fNZ. The original's return is this function's own return.
-  return (regs.a = rowInt, regs.f = andFlags(rowInt));
+  // The flags an AND of the new row integer with itself leaves -- Z when it is zero -- returned for
+  // the callers to branch on.
+  return andFlags(rowInt);
 }

@@ -6,13 +6,15 @@
  *   exercises, holes stated:
  *
  *   1. ★ RAM IS NOT THE GATE HERE. The routine writes nothing, so a RAM comparison passes a
- *      candidate that does nothing at all. The contract is the returned total and the registers
- *      the routine leaves — the total, the last byte the second walk read, both pointers, and the
- *      spent count. The "not vacuous" arm proves the RAM-only reading is empty.
+ *      candidate that does nothing at all. The contract is the returned total, also left in the
+ *      accumulator for a caller that reaches the routine by address. The "not vacuous" arm proves
+ *      the RAM-only reading is empty.
  *   2. EQUAL at the real dispatch.
- *   3. EXCLUDED, deliberately: the flag byte and the stack pointer. The stack pointer because the
- *      oracle returns and the rewrite does not; the flag byte because the last addition's flags
- *      are a by-product, not the product, and this asserts that no more than those two move.
+ *   3. EXCLUDED, deliberately: the flag byte, the stack pointer, and everything else the oracle
+ *      leaves in registers — the last byte the second walk read, both pointers, and the spent
+ *      count. The stack pointer because the oracle returns and the rewrite does not; the flag byte
+ *      because the last addition's flags are a by-product; the rest because nothing after the
+ *      call reads them, which arm 6 MEASURES off the oracle. This asserts no more than those move.
  *   4. CORPUS — every dispatch of a driven session and of the undriven attract demo. ★ THIS ENTRY
  *      IS REACHED ONLY BY THE UNDRIVEN DEMO, once, and the driven tape misses it entirely: the
  *      corpus arm asserts BOTH of those, so a change in either is a finding.
@@ -20,11 +22,16 @@
  *      what separates the two walks from each other. It reaches the zero-length case, where a
  *      count of zero means a full 256 bytes rather than none, and the case where the two pointers
  *      are the same, which no real dispatch presents.
- *   6. ★ THE SECOND WALK'S RESULT IS PROVED DISCARDABLE-LOOKING AND KEPT ANYWAY. A twin that
- *      skips the second walk entirely is caught by the crafted sweep and by the real dispatch,
- *      because the last byte it read survives in a register. Whether anything downstream READS
- *      that register is not a question this file can answer, and it does not claim to.
- *   7. TEETH — six twins with their exact crafted catch counts.
+ *   6. ★ THE SECOND WALK'S RESULT IS DISCARDED, AND THAT IS MEASURED. The oracle leaves the last
+ *      byte the second walk read, both pointers and the spent count in registers; a whole
+ *      undriven session with every one of them forced hostile behind the oracle's one dispatch is
+ *      bit-identical to the clean run, and a tooth beside it — the returned total nudged — forks
+ *      the run, so the instrument reaches what the routine hands back. (MAME agrees: the
+ *      routine's grounding flipped the byte the second walk left behind and moved no RAM
+ *      signature.) So the twins that only mis-walk the second pointer are NOT bugs any more, and
+ *      arm 8 pins that they pass.
+ *   7. TEETH — the twins that break the total, with their exact crafted catch counts.
+ *   8. HARMLESS — the second-walk twins, pinned at zero catches.
  *
  * HOLE: one real dispatch, on one argument set. Everything discriminating here is crafted.
  * HOLE: the shared unit harness is NOT used, because it always arms the coin-and-start tape and
@@ -88,7 +95,10 @@ function entryState() {
   return entry;
 }
 
-/** RAM, then the registers this routine really produces, then the returned total. */
+/** The registers the oracle leaves that nothing after the call reads (measured, arm 6). */
+const DISCARDED = ["b", "c", "d", "e", "h", "l"];
+
+/** RAM, then the total left in the accumulator, then the returned total. */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
@@ -96,9 +106,7 @@ function unitDiff(candidate, machine) {
   const returned = candidate(b);
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return ram;
-  for (const k of ["a", "b", "c", "d", "e", "h", "l"]) {
-    if (a.regs[k] !== b.regs[k]) return { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
-  }
+  if (a.regs.a !== b.regs.a) return { addr: null, reg: "a", a: a.regs.a, b: b.regs.a };
   if (returned !== a.regs.a) return { addr: null, reg: "return", a: a.regs.a, b: returned };
   return null;
 }
@@ -224,19 +232,23 @@ function loop(m, start, sumFrom, walkFrom, length, walkToo, runOverride) {
 const TWINS = [
   ["no-op", brokenNoOp],
   ["ignores-starting-total", brokenIgnoresStartingTotal],
-  ["skips-second-walk", brokenSkipsSecondWalk],
   ["sums-the-other-walk", brokenSumsTheOtherWalk],
-  ["keeps-first-not-last", brokenKeepsFirstNotLast],
   ["zero-means-none", brokenZeroMeansNone],
+];
+
+/** Twins that only mis-walk the second pointer: what they get wrong is discarded (arm 6). */
+const HARMLESS = [
+  ["skips-second-walk", brokenSkipsSecondWalk],
+  ["keeps-first-not-last", brokenKeepsFirstNotLast],
 ];
 
 /** Measured catch counts. Each is asserted exactly, so a twin caught on a different set fails. */
 const CAUGHT = {
   "no-op": 28,
   "ignores-starting-total": 6,
-  "skips-second-walk": 28,
-  "sums-the-other-walk": 27,
-  "keeps-first-not-last": 27,
+  // measured: the swap gives the same total on the entry pointing both walks at one block, and on
+  // the one-byte run
+  "sums-the-other-walk": 26,
   "zero-means-none": 2,
 };
 
@@ -273,19 +285,19 @@ test("NOT VACUOUS: RAM alone passes a candidate that does nothing", { skip }, ()
   console.log("  NOT VACUOUS: RAM is empty here; the registers and the total are the gate");
 });
 
-test("EXCLUDED, deliberately: the flag byte and the stack pointer, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: the flags, the stack pointer and the discarded registers, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   foldBlockIntoTotal(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: only the flag byte the last addition leaves and the stack " +
-      "pointer may differ",
+    moved.filter((k) => !EXCLUDED.includes(k) && !DISCARDED.includes(k)),
+    [],
+    "a register outside the flags, the stack pointer and the measured-discarded set moved",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
+  console.log(`  EXCLUDED (measured): ${moved.join(", ")} and pc`);
 });
 
 test("CORPUS: the driven tape never reaches this entry and the demo reaches it once", { skip }, () => {
@@ -312,10 +324,71 @@ test("CRAFTED: every argument varied on its own behaves as the oracle behaves", 
   oracle(zeroOracle);
   foldBlockIntoTotal(zeroRewrite);
   assert.equal(zeroOracle.regs.hl, (REAL_SUM_FROM + 256) & 0xffff, "zero must walk a full 256");
-  assert.equal(zeroRewrite.regs.hl, zeroOracle.regs.hl, "the rewrite must walk the same run");
-  assert.equal(zeroRewrite.regs.de, zeroOracle.regs.de, "and step the second pointer with it");
+  let full = REAL_RUNNING;
+  for (let i = 0; i < 256; i++) full = (full + zeroOracle.mem8[(REAL_SUM_FROM + i) & 0xffff]) & 0xff;
+  assert.equal(zeroOracle.regs.a, full, "the oracle's zero-length total is not a full 256-byte sum");
+  assert.equal(zeroRewrite.regs.a, zeroOracle.regs.a, "the rewrite must sum the same full run");
   console.log(`  CRAFTED: ${CRAFTED.length} entries identical, the zero-length full run included`);
 });
+
+// ── the discarded registers, measured off the oracle ───────────────────────────────────
+
+/** An undriven session with `after` applied behind the oracle's dispatch, every frame kept. */
+function attractRun(after) {
+  let fired = 0;
+  const host = makeMachine(
+    new Map([[TARGET, (mm) => {
+      fired++;
+      const r = oracle(mm);
+      after(mm);
+      return r;
+    }]]),
+    { tape: [] },
+  );
+  const frames = host.runFrames(CORPUS_FRAMES);
+  return { frames, fired, stoppedBy: host.stoppedBy, offsetToAddr: (o) => host.stateOffsetToAddr(o) };
+}
+
+function forkedCells(base, run) {
+  const cells = new Set();
+  const n = Math.min(base.frames.length, run.frames.length);
+  for (let i = 0; i < n; i++) {
+    const x = base.frames[i];
+    const y = run.frames[i];
+    for (let o = 0; o < x.length; o++) if (x[o] !== y[o]) cells.add(base.offsetToAddr(o));
+  }
+  return [...cells];
+}
+
+test("THE DISCARDED REGISTERS: forced hostile behind the oracle's dispatch, no trace", { skip }, () => {
+  const base = attractRun(() => {});
+  const hostile = attractRun((mm) => {
+    mm.regs.b = 0x77;
+    mm.regs.c = 0x5a;
+    mm.regs.de = 0x1234;
+    mm.regs.hl = 0x4321;
+  });
+  assert.equal(hostile.stoppedBy, null, `the hostile run stopped: ${hostile.stoppedBy}`);
+  assert.equal(hostile.fired, DISPATCHES.attract, "the instrument did not reach the dispatch");
+  assert.deepEqual(forkedCells(base, hostile), [], "a register the rewrite discards reached game " +
+    "memory, so some caller CONSUMES it and discarding it is wrong");
+
+  // The tooth on the instrument: the total the routine hands back, nudged, forks the run.
+  const control = attractRun((mm) => {
+    mm.regs.a = (mm.regs.a + 1) & 0xff;
+  });
+  const forked = forkedCells(base, control);
+  console.log(`  DISCARDED: ${hostile.fired} dispatch, no trace; the control forks ${forked.length} cells`);
+  assert.ok(forked.length > 0 || control.stoppedBy !== null, "nudging the returned total also " +
+    "left no trace, so the instrument reaches nothing and the arm above proves nothing");
+});
+
+for (const [label, twin] of HARMLESS) {
+  test(`HARMLESS: the ${label} twin only mis-walks what is discarded, and passes`, { skip }, () => {
+    assert.equal(sweepCaught(twin), 0, `the ${label} twin is caught, so the second walk reaches the contract`);
+    console.log(`  HARMLESS/${label}: caught on none of ${CRAFTED.length} crafted entries`);
+  });
+}
 
 for (const [label, twin] of TWINS) {
   test(`TEETH: the ${label} twin is caught on an exact count of crafted entries`, { skip }, () => {

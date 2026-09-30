@@ -23,7 +23,7 @@ export function advanceHitSoakingObjectThenAnimateDeath(m, ix = m.regs.ix, iy = 
     mem8[HITS_REMAINING] = mem8[HITS_REMAINING] - 1;
     mem8[record] = 0xff;
     requestTwoSounds(m);
-    return advanceTwoTileObjectThenTryAimedSpawn(m);
+    return advanceTwoTileObjectThenTryAimedSpawn(m, record, entry);
   }
 
   if (head >= 0x61) {
@@ -36,7 +36,7 @@ export function advanceHitSoakingObjectThenAnimateDeath(m, ix = m.regs.ix, iy = 
   mem8[record] = mem8[record] - 1;
   if (mem8[record] === 0) return retireObjectAndHold(m, record, entry);
 
-  driftWithWorldScroll(m);
+  driftWithWorldScroll(m, record, entry);
   mem8[entry + 0x33] = mem8[entry + 0x31] + 0x10;
   mem8[entry + 0x02] = mem8[entry + 0x00];
 

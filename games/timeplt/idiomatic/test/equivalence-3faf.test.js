@@ -18,11 +18,13 @@
  *
  *   1. EQUAL at the real dispatch — RAM identical outside the dead stack bytes.
  *   2. NOT VACUOUS — a candidate that does nothing FAILS that same diff, so RAM really is the gate.
- *   3. EXCLUDED, DELIBERATELY — the register file differs nowhere outside {a, f, d, e, l, sp}, and
- *      pc. The set is an upper BOUND on the divergence rather than a measurement of it: a rewrite
- *      that leaves fewer of those registers dirty is strictly better and still passes. Those are
- *      dead: this entry's one caller loads its own values into every one of them before reading
- *      any of them again, and the whole-machine arm is what holds it.
+ *   3. EXCLUDED, DELIBERATELY — the register file differs nowhere outside {a, f, d, e, h, l, sp},
+ *      and pc. The set is an upper BOUND on the divergence rather than a measurement of it: a
+ *      rewrite that leaves fewer of those registers dirty is strictly better and still passes.
+ *      DEAD AT EXIT (assertDeadAtExit) complements every one but SP on the frozen game as this entry
+ *      returns, over three era-pinned sessions, and no cell differs but one register-save slot it is
+ *      pushed through (PUSHED_SAVE_SLOTS, attract only); an
+ *      SP flip at the same exit is heard.
  *   4. CORPUS — every dispatch replayed, with the dispatch count and the sector spread asserted.
  *   5. EXHAUSTIVE — all 256 headings on a real entry, which covers every sector and both sides of
  *      the rounding step, including the wrap that closes the circle.
@@ -50,6 +52,7 @@ import { dressSpriteShapeAndAttributeForHeadingSector } from "../dressSpriteShap
 import { ERA_INDEX } from "../names.js";
 import { loc_3faf as oracle } from "../../translated/loc_3faf.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit } from "./_deadAtExit.js";
 
 const TARGET = 0x3faf;
 
@@ -63,8 +66,14 @@ const SECTORS = 16;
 
 const SCRATCH_BYTES = 2;
 const SCRATCH_OFFSETS = [-2, -1];
-/** An upper bound on what the register file may diverge in, not a measurement of what it does. */
-const EXCLUDED = ["a", "f", "d", "e", "l", "sp"];
+/**
+ * An upper bound on what the register file may diverge in, not a measurement of what it does. H joined
+ * it when fetchTableByte stopped leaving HL on the entry: the oracle's HL ends in the second table,
+ * the rewrite's is never seated. DEAD AT EXIT measures every one but SP dead where this entry returns.
+ */
+const EXCLUDED = ["a", "f", "d", "e", "h", "l", "sp"];
+/** The register the rewrite newly leaves different; its exit poison must be silent everywhere. */
+const NEWLY_MOVED = ["h"];
 
 const CORPUS_FRAMES = 2000;
 const DISPATCHES = 703;
@@ -298,6 +307,37 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
+});
+
+/** Stack-page slots the frozen code pushes register saves through (each is a push16 slot in the
+ * all-frozen session): a poisoned register shows here as a pushed copy and nowhere else. Measured by the
+ * DEAD AT EXIT arm, which lets exactly these through and nothing else. */
+const PUSHED_SAVE_SLOTS = [0xafda];
+
+test("DEAD AT EXIT: every excluded register but SP is dead where this entry returns, era pinned", { skip }, () => {
+  // No unpinned tape reaches this entry, so each session carries the same era pin the corpus uses:
+  // the pinned turning tape, the shared coin-start tape, and undriven attract.
+  const pokes = [{ addr: ERA_INDEX, val: PINNED_ERA, frame: PIN_FROM_FRAME, dur: null }];
+  const poison = EXCLUDED.filter((k) => k !== "sp");
+  // assertDeadAtExit: every session must reach this entry (reachEvery) and nothing may differ but the
+  // pushed copy in PUSHED_SAVE_SLOTS; the SP flip at the same exit must be heard in some session.
+  const exits = assertDeadAtExit({
+    at: TARGET, poison, frames: CORPUS_FRAMES, reachEvery: true,
+    scratch: PUSHED_SAVE_SLOTS,
+    sessions: [["turning", TAPE], ["coin-start", undefined], ["attract", []]]
+      .map(([label, tape]) => ({ label, tape, pokes })),
+    // The newly moved register leaves no trace at all, not even pushed scratch on the stack page.
+    controls: [
+      { label: `${NEWLY_MOVED} alone`, poison: NEWLY_MOVED, expect: "silent", reachEvery: true },
+      // SP complemented at the same exit is heard in game data, not just on the stack page.
+      { label: "SP complemented", poison: ["sp"], expect: "heard", dataOnly: true },
+    ],
+  });
+  for (const r of exits) {
+    const fresh = r.controls[`${NEWLY_MOVED} alone`];
+    assert.equal(fresh.frames, CORPUS_FRAMES, `${r.label}: ${NEWLY_MOVED} alone ran ${fresh.frames} frames`);
+    assert.deepEqual(fresh.cells.map(hex4), [], `${r.label}: ${NEWLY_MOVED} is heard after this returns`);
+  }
 });
 
 test("CORPUS: every dispatch of the pinned session replays identically", { skip }, () => {

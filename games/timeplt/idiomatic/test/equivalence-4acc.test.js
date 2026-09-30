@@ -9,8 +9,10 @@
  *      identically over the whole state dump outside the scratch window.
  *   2. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, pinned to [SP-2, SP): the oracle pushes a
  *      return address for each of the two lookups it delegates, and both use the same slot.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to exactly {f, sp} — the table
- *      pointer and the last byte fetched are reproduced and compared, not excused.
+ *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to exactly {f, h, l, sp} — the last
+ *      byte fetched is reproduced and compared, not excused. The table pointer is excused because
+ *      the rewrite's lookup no longer leaves HL on the entry it read, and it is excused on the
+ *      ORACLE's evidence, not the module's say-so: DEAD AT EXIT (8 below).
  *   4. EXHAUSTIVE — all 256 source bytes, each a whole-dump comparison, and for each one the two
  *      destination bytes and the flag cell are read back off the ORACLE and checked against the
  *      table entry the nibble selects. So the routing is pinned per value, not just the equality.
@@ -19,6 +21,9 @@
  *   6. THE FLAG IS NOT LOWERED — a source byte with neither nibble at the raising value leaves a
  *      pre-raised flag cell standing, which is what makes "raises" the right word for it.
  *   7. TEETH — eight twins, each reported with its catch count over the sweep.
+ *   8. DEAD AT EXIT — F, H and L flipped on the FROZEN game where this entry hands back, over a
+ *      whole attract session and a whole coin -> start session, change not one frame of state,
+ *      while flipping SP at the same exit is heard in each (assertDeadAtExit).
  *
  * HOLE: nothing here says what the two destination bytes are used for, nor what the flag cell
  * gates. The table is read as data; its entries are not interpreted.
@@ -34,6 +39,7 @@ import { unpackCoinage } from "../unpackCoinage.js";
 import { loc_4acc as oracle } from "../../translated/loc_4acc.js";
 import { fetchTableByte } from "../fetchTableByte.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { assertDeadAtExit, heard, heardAs } from "./_deadAtExit.js";
 import {
   COINAGE_SETTINGS as SETTINGS,
   COIN_SLOT_1_RATIO as LOW_DESTINATION,
@@ -52,7 +58,13 @@ const RAISED = 255;
 const FLAG_PRIOR = 0x3c;
 
 const SCRATCH_BYTES = 2;
-const EXCLUDED = ["f", "sp"];
+const EXCLUDED = ["f", "h", "l", "sp"];
+
+/** The whole sessions DEAD AT EXIT poisons this entry's exits over, with each one's exit count. Measured. */
+const DEAD_SESSIONS = [
+  { label: "attract", tape: [], frames: 20000, exits: 1 },
+  { label: "coin-start", tape: undefined, frames: 20000, exits: 1 },
+];
 
 const DISPATCHES = { shared: 1, attract: 1 };
 const TAPES = [["shared", {}], ["attract", { tape: [] }]];
@@ -152,7 +164,7 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: the flag byte, sp, pc and one scratch slot", { skip }, () => {
+test("EXCLUDED, deliberately: the flag byte, the dead table pointer, sp, pc and one scratch slot", { skip }, () => {
   const entry = craft(0x53);
   const sp = entry.regs.sp;
   const a = entry.clone();
@@ -165,6 +177,22 @@ test("EXCLUDED, deliberately: the flag byte, sp, pc and one scratch slot", { ski
   assert.deepEqual(allDiffs(a, b).filter((d) => !inScratch(d.addr, sp)), [],
     "a divergence escaped the scratch window");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}, pc, and [SP-${SCRATCH_BYTES}, SP)`);
+});
+
+test("DEAD AT EXIT: on the frozen game, every register in the ceiling is dead where this entry hands back", { skip }, () => {
+  const ceiling = EXCLUDED.filter((k) => k !== "sp");
+  const exits = assertDeadAtExit({
+    at: TARGET, poison: ceiling,
+    sessions: DEAD_SESSIONS.map(({ label, tape, frames, exits }) =>
+      ({ label, tape, frames, dispatches: exits })),
+  });
+  // The ROM returns through SP, so the exit control is heard in EVERY session here, not just in one.
+  for (const r of exits) {
+    assert.equal(r.dead.stopped, null, `${r.label}: the poisoned run stopped early: ${r.dead.stopped}`);
+    assert.ok(r.exitControl.poisoned > 0 && heard(r.exitControl),
+      `${r.label}: the SP flip at this exit was not heard`);
+    console.log(`  DEAD AT EXIT/${r.label}: exit control heard (${heardAs(r.exitControl)})`);
+  }
 });
 
 test("EXHAUSTIVE: all 256 source bytes, with the routing read back for each", { skip }, () => {

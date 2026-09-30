@@ -39,8 +39,20 @@
  *   5. EXCLUDED   — no register outside the declared ceiling moves, with an index-scribbling control.
  *   6. EXPIRES    — the expiring dispatch really verifies, samples both planes into the witness pair
  *                   and steps the sequence; the strip is restamped over a poisoned cell.
- *   7. DERAIL     — a tampered glyph takes the anti-tamper trap identically on both sides, and a twin
- *                   that seats the witness instead of derailing is caught there.
+ *   7. DERAIL     — a tampered glyph takes the anti-tamper trap on both sides, compared AT the
+ *                   transfer: the oracle is stopped on entry to the landing 0x15CA and the rewrite
+ *                   must raise naming it, with the machine identical at that point. The landing is a
+ *                   caption record run as code (it stores through whatever pointer it arrives with
+ *                   and calls into unmapped space -- RAW LANDING shows the unprobed oracle faulting
+ *                   inside it), so its own effects have no faithful form and are not compared. A twin
+ *                   that seats the witness instead of derailing, and one that runs the frozen landing
+ *                   the old way, are both caught there.
+ *   7a. GENUINE   — the arm is dead on a genuine image: the program byte is 0x3A, so the pointer is
+ *                   the copyright caption's N cell 0xA63C, and it holds 0x3B at the one natural
+ *                   expiring dispatch. MAME agrees: a PC-gated tap over 600 s driven and 600 s of
+ *                   attract saw the glyph test at 0x17A6 with A = (0xA63C) = 0x3B at every sampled
+ *                   fetch (the tap logs the first six per run; 9 attract + 1 driven fetches, 7
+ *                   logged) and 0x15CA fetched zero times.
  *   8. TEETH      — twins, each caught somewhere in the corpus.
  *
  * HOLE: the four callees are gated by their own files. What this file gates is that all four are
@@ -64,6 +76,14 @@ import { loc_178c as oracle } from "../../translated/loc_178c.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { SEQUENCE_DELAY, SEQUENCE_SUBSTEP, TAMPER_GLYPH_SOURCE_CELL, TAMPER_GLYPH_COPY, runParachutistSlot_ADDR } from "../names.js";
+import { loc_15ca as frozenLanding } from "../../translated/loc_15ca.js";
+import { stopAtLandings, landingOf } from "./_landingProbe.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
+
+const LANDING = 0x15ca;
+const LANDINGS = new Map([[LANDING, "loc_15ca"]]);
+const GENUINE_PROGRAM_BYTE = 0x3a;
+const CAPTION_N_CELL = 0xa63c;
 
 const TARGET = 0x178c;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -381,25 +401,33 @@ test("EXPIRES: the expiring dispatch verifies, samples both planes, and steps on
     `all ${STRIP_CELLS.length} strip cells restamped`);
 });
 
-test("DERAIL: a tampered glyph takes the anti-tamper trap identically on both sides", { skip }, () => {
+test("DERAIL: a tampered glyph takes the anti-tamper trap on both sides, compared at the transfer", { skip }, () => {
   const e = expiringEntry().clone();
   const cell = derivedCell(e);
   e.mem8[cell] = (KONAMI_GLYPH + 1) & 0xff; // move the caption glyph off its expected value
 
-  const a = e.clone();
+  // Oracle stopped on entry to the landing; the rewrite must raise naming the same landing.
+  const a = stopAtLandings(e.clone(), [LANDING]);
   const b = e.clone();
   let oracleErr = null;
   let candErr = null;
-  try { oracle(a); } catch (err) { oracleErr = String(err.message ?? err); }
-  try { holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail(b); } catch (err) { candErr = String(err.message ?? err); }
-  assert.equal(candErr, oracleErr, `the derail arm diverged: oracle=${oracleErr} candidate=${candErr}`);
-  if (oracleErr === null) {
-    const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, e.regs.sp));
-    assert.deepEqual(strays, [], `the derail arm's state diverged: ${show(strays[0])}`);
-  }
-  // The witness must NOT be seated on the derail arm — the trap runs instead.
+  try { oracle(a); } catch (err) { oracleErr = err; }
+  try { holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail(b); } catch (err) { candErr = err; }
+  assert.equal(landingOf(oracleErr, LANDINGS), LANDING, `the oracle did not reach the landing: ${oracleErr}`);
+  assert.ok(candErr instanceof NotImplemented, `the rewrite did not raise at the landing: ${candErr}`);
+  assert.equal(landingOf(candErr, LANDINGS), LANDING, `the rewrite raised somewhere else: ${candErr && candErr.message}`);
+  const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, e.regs.sp));
+  assert.deepEqual(strays, [], `the state at the transfer diverged: ${show(strays[0])}`);
+  // The witness must NOT be seated on the derail arm -- the trap runs instead.
   assert.equal(a.mem8[SEQUENCE_SUBSTEP], b.mem8[SEQUENCE_SUBSTEP], "the two sides disagree on the substep");
 
+  const caughtAtTransfer = (twin) => {
+    const c = e.clone();
+    let err = null;
+    try { twin(c); } catch (x) { err = x; }
+    if (landingOf(err, LANDINGS) !== LANDING) return true;
+    return allDiffs(a, c).some((d) => !inScratch(d.addr, e.regs.sp));
+  };
   // A twin that seats the witness instead of derailing is CAUGHT here.
   const seatingTwin = (m) => {
     const { mem8 } = m;
@@ -413,11 +441,49 @@ test("DERAIL: a tampered glyph takes the anti-tamper trap identically on both si
     mem8[TAMPER_GLYPH_COPY + 1] = mem8[SOURCE_COLOUR_CELL];
     advanceSequenceSubStep(m);
   };
-  const c = e.clone();
-  let twinErr = null;
-  try { seatingTwin(c); } catch (err) { twinErr = String(err.message ?? err); }
-  assert.notEqual(twinErr, oracleErr, "the no-derail twin was NOT caught: it must not match the trap");
-  console.log(`  DERAIL: tampered glyph => oracle ${oracleErr ? "trap" : "seat"}; the no-derail twin is caught`);
+  // So is the old bridge: seating the registers and running the frozen landing, which faults
+  // somewhere inside it rather than at the transfer.
+  const frozenBridgeTwin = (m) => {
+    const { mem8 } = m;
+    stampCopyrightStrip(m);
+    flashCopyrightLine(m);
+    const left = (mem8[SEQUENCE_DELAY] - 1) & 0xff;
+    mem8[SEQUENCE_DELAY] = left;
+    if (left !== 0) return;
+    checkTheCopyrightLineColoursOrDerail(m);
+    const at = derivedCell(m);
+    m.regs.a = mem8[at];
+    m.regs.hl = at;
+    return frozenLanding(m);
+  };
+  assert.ok(caughtAtTransfer(seatingTwin), "the no-derail twin was NOT caught at the transfer");
+  assert.ok(caughtAtTransfer(frozenBridgeTwin), "the frozen-landing twin was NOT caught at the transfer");
+  assert.ok(!caughtAtTransfer(holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail), "the rewrite itself is flagged");
+  console.log("  DERAIL: tampered glyph => both sides reach 0x15ca with identical state; seating and frozen-landing twins caught");
+});
+
+test("RAW LANDING: unprobed, the oracle faults inside the landing rather than returning", { skip }, () => {
+  const e = expiringEntry().clone();
+  e.mem8[derivedCell(e)] = (KONAMI_GLYPH + 1) & 0xff;
+  let err = null;
+  try { oracle(e.clone()); } catch (x) { err = x; }
+  assert.ok(err instanceof NotImplemented, `the frozen landing returned or faulted otherwise: ${err}`);
+  assert.equal(landingOf(err, LANDINGS), null, "the frozen landing faulted AT its own entry, so this arm measures nothing");
+  console.log(`  RAW LANDING: the frozen trap faults inside -- ${err.message.slice(0, 60)}`);
+});
+
+test("GENUINE: the derail is dead on a genuine image", { skip }, () => {
+  const e = expiringEntry();
+  assert.equal(e.mem8[runParachutistSlot_ADDR], GENUINE_PROGRAM_BYTE, "the program byte is not the genuine 0x3A");
+  assert.equal(derivedCell(e), CAPTION_N_CELL, "the pointer does not land on the caption's N cell");
+  assert.equal(e.mem8[CAPTION_N_CELL], KONAMI_GLYPH, "the caption's N cell does not hold 0x3B at the natural dispatch");
+  const m = e.clone();
+  holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail(m); // must not raise
+  // Control: the same dispatch with the caption's N cell moved does raise.
+  const t = e.clone();
+  t.mem8[CAPTION_N_CELL] = 0x00;
+  assert.throws(() => holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail(t), NotImplemented, "a moved glyph did not raise");
+  console.log(`  GENUINE: program byte ${hex4(GENUINE_PROGRAM_BYTE)} -> cell ${hex4(CAPTION_N_CELL)} holds ${hex4(KONAMI_GLYPH)}; a moved glyph raises`);
 });
 
 for (const [label, twin] of TWINS) {

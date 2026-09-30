@@ -35,7 +35,7 @@ export function armBomberSlotWhenTimerFires(m, ix = m.regs.ix, iy = m.regs.iy) {
   const facing = u8(heading + 0xc0) & 0x80;
   mem8[u16(ix + 0x02)] = facing;
 
-  const [de, bc] = loc_5942(m);
+  const [de, bc] = loc_5942(m, facing);
   mem8[u16(ix + 0x0a)] = de;
   mem8[u16(ix + 0x0b)] = de >> 8;
   mem8[u16(ix + 0x0c)] = bc;

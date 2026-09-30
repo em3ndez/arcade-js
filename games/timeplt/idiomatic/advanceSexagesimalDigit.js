@@ -3,12 +3,10 @@
  * is written back first and only then tested, so a byte that lands at sixty or beyond is stored
  * twice: once stepped, once as zero. The decimal correction is the hardware's own, which is why a
  * byte that was never valid packed decimal still comes out exactly where the hardware would put
- * it rather than somewhere a tidier rule would. LIVE-OUT: the byte; and whether it rolled over —
- * returned, and mirrored into carry as its OPPOSITE, since carry standing for "it did not" is
- * what a caller chaining the next digit pair branches on. */
+ * it rather than somewhere a tidier rule would. LIVE-OUT: the byte; and whether it rolled over,
+ * returned — what a caller chaining the next digit pair branches on. */
 
 import { u8 } from "../../../core/int.js";
-import { F_C } from "../../../core/cpu/z80.js";
 
 const ROLLS_OVER_AT = 0x60;
 const LOW_DIGIT = 0x0f;
@@ -25,12 +23,12 @@ function stepPackedDecimal(value) {
   return u8(sum + correction);
 }
 
-export function advanceSexagesimalDigit(m, cell = m.regs.hl, flags = m.regs.f) {
+export function advanceSexagesimalDigit(m, cell = m.regs.hl) {
   const { mem8 } = m;
   const stepped = stepPackedDecimal(mem8[cell]);
   mem8[cell] = stepped;
 
   const rolledOver = stepped >= ROLLS_OVER_AT;
   if (rolledOver) mem8[cell] = 0;
-  return (m.regs.f = (flags & ~F_C) | (rolledOver ? 0 : F_C)), rolledOver;
+  return rolledOver;
 }

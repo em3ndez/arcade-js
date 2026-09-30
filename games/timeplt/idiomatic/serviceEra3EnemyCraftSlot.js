@@ -18,17 +18,17 @@ const IDLE = 0;
 const LIVE = 0xff;
 const HELD = 0xfe;
 
-export function serviceEra3EnemyCraftSlot(m, ix = m.regs.ix) {
+export function serviceEra3EnemyCraftSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   const state = m.mem8[ix];
   if (state === IDLE) return;
   if (state !== LIVE) {
-    if (state === HELD) return releaseHeldObject(m);
-    return stepDyingObjectState(m);
+    if (state === HELD) return releaseHeldObject(m, ix);
+    return stepDyingObjectState(m, ix, iy);
   }
-  steerTowardAimHeading(m);
-  loc_58a4(m);
-  if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
-  launchBankEnemyWhenAimedNearPlayer(m);
-  dressSpriteForCoarseHeading(m);
-  return launchAttackerIntoFreeSlot(m);
+  steerTowardAimHeading(m, ix);
+  loc_58a4(m, ix, iy);
+  if (hasReachedRetireLine(m, iy)) return retireSlotAndSubPixel(m, ix, iy);
+  launchBankEnemyWhenAimedNearPlayer(m, ix, iy);
+  dressSpriteForCoarseHeading(m, ix, iy);
+  return launchAttackerIntoFreeSlot(m, ix, iy);
 }
