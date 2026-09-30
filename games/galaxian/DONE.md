@@ -58,3 +58,32 @@ re-verified; gameplay and attract are byte-exact vs MAME (PART A 0.45% / PART B 
 drift (PART C 1.34% clean); the audio synth honestly tracks MAME (+0.676 envelope correlation); and the three
 forced transitions are covered by the whole-game gate with real triggers and mutation teeth, which the runbook
 accepts in lieu of a separate poke-vs-MAME mechanics suite. galaxian is DONE at commit `2596d862`.
+
+---
+
+## Correction — 2026-09-29
+
+**The wiring row's "No `m.call` into a translated layer" is false for the boot path at the audited commit
+(`2596d862`).** `idiomatic/names.js` had no override for 0x0000, so the idiomatic engine's power-on
+`machine.call(0x0000)` ran translated `loc_0000` and the translated cold-boot chain (`loc_1a55` … `loc_1b79`)
+on the first frame, before handing off to the idiomatic main loop at 0x2000. No translated code ran after
+that hand-off. The registry-coverage and stale-call gates the row cites could not see this, because the
+entry is the engine's own boot call rather than a call from an idiomatic module.
+
+Measured by `tools/translated_live_probe.mjs` (commit `09ecc730`), which counts any execution of
+`translated/` code in a live run on the shipped engine: 20 translated routines, all on frame 1.
+
+**Fixed in `96290f03`:** the six boot routines (`coldBoot`, `wipeVideoAndHardwareLatches`,
+`marchTestWorkRam`, `marchTestVideoRam`, `blankVideoRam`, `checksumRomAndSeedWorkRam`) are lifted, wired and
+equivalence-tested against the frozen lift, and hand off to the main loop directly; their roles are
+grounded `[seen]` from a MAME boot capture. The RAM/ROM fault screens, which the verified image on working
+RAM never reaches (no fault-path instruction ran in the MAME capture), raise a named error. After the fix
+the probe reads **0 translated routines** on the input tape and in attract; the galaxian test suites and
+the pixel suite vs MAME pass, and both changes were independently reviewed.
+
+What "0" means here: no translated routine executed on the paths these inputs drove. It is not a
+reachability proof.
+
+Open, not decided in this correction: the `idiomatic_gate` exemption for register writes after `return`
+was found too loose; galaxian's count under the tightened rule is measured and with Jimmy-prime for
+decision.
