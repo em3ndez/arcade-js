@@ -12,7 +12,10 @@
  * copied; data dirs such as rom/ linked; the rest of the repo linked). Copied, not linked: the loader
  * resolves a link to its real path, so a linked module would import the REAL, uninstrumented tree. Every
  * `export function NAME(` in translated/*.js (the generated _registry excluded) opens with one counter
- * statement and nothing else in the copy differs. The engine is the one web/worker.js ships: the machine
+ * statement and nothing else in the copy differs. Everything else in the tree is a link, and a module
+ * reached through one resolves to its REAL path -- so a module resolve hook reports every real
+ * games/<g>/translated/ module the run loads (summary.uncounted, with the importer): uncountable, so a
+ * failure. The engine is the one web/worker.js ships: the machine
  * is built through web/machine-factory.js buildGameMachine with resolveAllIdiomatic() overrides and a
  * board Inputs, then run under runIdiomaticGame (vblank-NMI games) or runIdiomaticIrqGame (manifest
  * convergence.idiomatic.irq games), rendering each frame the way serviceIdiomaticFrame does. Inputs come
@@ -32,14 +35,18 @@
  */
 
 import {
-  cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync,
+  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync,
 } from "node:fs";
+import { createHook } from "node:async_hooks";
+import { registerHooks } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const REPO = realpathSync(join(dirname(fileURLToPath(import.meta.url)), ".."));
 const HOOK_FILE = "__translated_live_probe_hook.js";
+const DRAIN_TURNS = 8; // event-loop turns after the run (each: one setImmediate, one setTimeout 0)
+const REGISTRY_FILE = "_registry.generated.js"; // the generated address->routine map: imports, no bodies
 export const SAMPLE_FIRST = 64;
 export const SAMPLE_EVERY = 256;
 
@@ -68,17 +75,165 @@ export function instrumentSource(src, stmtFor) {
   return { src: out + src.slice(last), names };
 }
 
+/**
+ * The byte offsets of every `export` keyword in CODE -- comments, string and template literals skipped,
+ * member accesses (`x.export`) and longer identifiers (`exported`) excluded. Deliberately small: the
+ * translated/ files are generated straight-line JS with no regex literals. Regex literals are NOT parsed:
+ * one holding a quote could mis-open a string and hide a MID-LINE export from this scan. A line-LEADING
+ * export cannot hide that way -- assertOnlyExportFunctions checks raw lines for those -- but a mid-line
+ * export after such a regex literal is the one form neither check sees.
+ */
+export function exportTokens(src) {
+  return codeWords(src, new Set(["export"]));
+}
+
+/** The byte offsets of each word in `words` used as a bare identifier in CODE (same scan as exportTokens). */
+export function codeWords(src, words) {
+  const at = [];
+  let prev = ""; // the last non-blank CODE character (comments excluded): "." marks a member access
+  for (let i = 0; i < src.length;) {
+    const c = src[i];
+    if (c === "/" && src[i + 1] === "/") { const e = src.indexOf("\n", i); i = e < 0 ? src.length : e; continue; }
+    if (c === "/" && src[i + 1] === "*") { const e = src.indexOf("*/", i + 2); i = e < 0 ? src.length : e + 2; continue; }
+    if (c === '"' || c === "'" || c === "`") {
+      for (i++; i < src.length && src[i] !== c; i++) if (src[i] === "\\") i++;
+      i++;
+      prev = c;
+      continue;
+    }
+    if (/[A-Za-z_$]/.test(c)) {
+      let j = i;
+      while (j < src.length && /[\w$]/.test(src[j])) j++;
+      if (words.has(src.slice(i, j)) && prev !== ".") at.push(i);
+      prev = src[j - 1];
+      i = j;
+      continue;
+    }
+    if (!/\s/.test(c)) prev = c;
+    i++;
+  }
+  return at;
+}
+
+/**
+ * Fail closed on a translated/ file this probe cannot fully instrument: every `export` in code must be a
+ * line-leading `export function[*] NAME(` -- the one form instrumentSource opens. `export const f = (m) =>`,
+ * `export async function`, `export { f }`, `export default`, an indented or mid-line export: each is a
+ * routine that could run live uncounted, so each throws. So does any use of the global object
+ * (globalThis/window/self/global) or eval/Function. WHAT THIS DOES NOT SEE: a non-exported function handed
+ * out at module top level some other way -- pushed into an object imported from another module, say -- and
+ * then called without any export running. The probe counts exported entry points, not every function body.
+ */
+export function assertOnlyExportFunctions(src, file, names) {
+  const raw = /^[ \t]+export\b.*|^export\b(?!\s+function\b).*/m.exec(src);
+  if (raw) {
+    throw new Error(`probe: ${file}: an export the probe cannot instrument (only a line-leading ` +
+      `\`export function NAME(\` is counted): ${raw[0].trim()}`);
+  }
+  const tokens = exportTokens(src);
+  for (const i of tokens) {
+    const lineStart = src.lastIndexOf("\n", i - 1) + 1;
+    if (i !== lineStart || !/^export function\*?\s*[A-Za-z_$][\w$]*\s*\(/.test(src.slice(i))) {
+      const line = src.slice(lineStart, (src.indexOf("\n", i) + 1 || src.length + 1) - 1).trim();
+      throw new Error(`probe: ${file}: an export the probe cannot instrument (only a line-leading ` +
+        `\`export function NAME(\` is counted): ${line}`);
+    }
+  }
+  if (tokens.length !== names.length) {
+    throw new Error(`probe: ${file}: ${tokens.length} export(s) in code but ${names.length} instrumented`);
+  }
+  // A non-exported function is not instrumented. It can only run uncounted if something outside the file
+  // gets a reference to it without calling an export first -- the global object is the channel a module's
+  // top level could use, so any global-object or code-from-string name in code throws.
+  for (const i of codeWords(src, GLOBAL_CHANNELS)) {
+    const line = src.slice(src.lastIndexOf("\n", i - 1) + 1, (src.indexOf("\n", i) + 1 || src.length + 1) - 1).trim();
+    throw new Error(`probe: ${file}: a global-object reference the probe cannot follow: ${line}`);
+  }
+}
+const GLOBAL_CHANNELS = new Set(["globalThis", "window", "self", "global", "eval", "Function"]);
+
+/**
+ * The registry is skipped by NAME, so hold it to what the generator writes: comments, `import { a, b }
+ * from "./x.js";`, `export const NAME = [` or `= new Map([`, `[0xADDR, name],` rows and the closers. Any
+ * other line (a function body, an arrow, a call) throws -- code there would run uncounted.
+ */
+export function assertRegistryTableOnly(src) {
+  const id = "[A-Za-z_$][\\w$]*";
+  const ok = new RegExp(`^(\\s*(//.*)?|import \\{ ${id}(, ${id})* \\} from "\\./[\\w$]+\\.js";|` +
+    `export const ${id} = (\\[|new Map\\(\\[)|  \\[0x[0-9a-fA-F]+, ${id}\\],|\\];|\\]\\);)$`);
+  const lines = src.split("\n");
+  lines.forEach((line, i) => {
+    if (!ok.test(line)) throw new Error(`probe: translated/${REGISTRY_FILE}:${i + 1}: not a table line: ${line.trim()}`);
+  });
+}
+
+// ── uncounted translated modules ─────────────────────────────────────────────────────────────────
+//
+// Only games/<g>/idiomatic|translated and top-level .js are COPIES; everything else in the tree is a link,
+// and Node resolves a linked module to its REAL path -- so a module reached through a link (games/<g>/audio/,
+// core/, boards/, web/, another game) that imports ../translated/X.js loads the real, UNINSTRUMENTED X. A
+// resolve hook records every resolution to a real games/*/translated/ file outside a probe tree: loading one
+// is a failure (its execution cannot be counted), attributed to the importer.
+const GAMES_REAL = join(REPO, "games") + "/";
+//
+// And the static module graph is fully linked before frame 0, so ANY translated/ resolution -- in-tree copy
+// or real -- once the live run has started is a DEFERRED load (a dynamic import(), a callback that pulls one
+// in): recorded in `late`, also a failure.
+let activeRun = null; // { uncounted, late, live } for the running probe; outside any probe -> strayUncounted
+export const strayUncounted = [];
+let resolveHooked = false;
+function hookResolve() {
+  if (resolveHooked) return;
+  resolveHooked = true;
+  registerHooks({
+    resolve(specifier, context, nextResolve) {
+      const r = nextResolve(specifier, context);
+      if (r.url?.startsWith("file:")) {
+        let p = fileURLToPath(r.url);
+        try { p = realpathSync(p); } catch { /* unresolvable: leave as is, the load will fail loudly */ }
+        const base = [...trees, REPO].find((t) => p.startsWith(t + "/"));
+        const file = base ? p.slice(base.length + 1) : p;
+        if (base && /^games\/[^/]+\/translated\//.test(file) && !file.endsWith(`/${HOOK_FILE}`)) {
+          let from = context.parentURL ?? "<entry>";
+          if (from.startsWith("file:")) from = fileURLToPath(from);
+          for (const t of [...trees, REPO]) if (from.startsWith(t + "/")) { from = from.slice(t.length + 1); break; }
+          const rec = { file, importer: from, copy: base !== REPO };
+          if (base === REPO) (activeRun?.uncounted ?? strayUncounted).push(rec);
+          if (activeRun?.live) activeRun.late.push(rec);
+        }
+      }
+      return r;
+    },
+  });
+}
+
+// Temp trees are removed on exit and on SIGINT/SIGTERM (a killed run must not strand a repo-sized copy).
 const trees = [];
-process.on("exit", () => { for (const t of trees) rmSync(t, { recursive: true, force: true }); });
+function removeTrees() { for (const t of trees.splice(0)) rmSync(t, { recursive: true, force: true }); }
+process.on("exit", removeTrees);
+let signalsHooked = false;
+function hookSignals() {
+  if (signalsHooked) return;
+  signalsHooked = true;
+  for (const sig of ["SIGINT", "SIGTERM"]) {
+    process.once(sig, () => {
+      removeTrees();
+      process.kill(process.pid, sig); // listener gone (once): the default action now terminates
+    });
+  }
+}
 
 /**
  * Build the instrumented copy for `game`. `edits` (tests only): { "<path under games/<g>>": (src) => src },
- * applied AFTER instrumentation -- a mutant control. Fails closed: an edit that changes nothing throws, and
- * a translated/ file with no instrumentable export throws.
+ * applied AFTER instrumentation -- a mutant control. Fails closed: an edit that changes nothing throws, an
+ * edit whose real path is outside the temp tree throws, a translated/ file with no instrumentable export or
+ * with any export form but a line-leading `export function` throws, and a translated/ subdirectory (but
+ * test/) or .mjs/.cjs module (code this probe does not open) throws.
  */
 export function buildProbeTree(game, { edits = {}, instrument = true } = {}) {
   const gameDir = join(REPO, "games", game);
   statSync(join(gameDir, "machine.js"));
+  hookSignals();
   // realpath: stack frames carry resolved paths (macOS tmpdir is a /var -> /private/var link)
   const root = realpathSync(mkdtempSync(join(tmpdir(), `tlp-${game}-`)));
   trees.push(root);
@@ -105,17 +260,27 @@ export function buildProbeTree(game, { edits = {}, instrument = true } = {}) {
   const routines = [];
   if (instrument) {
     for (const f of readdirSync(tdir).sort()) {
-      if (!f.endsWith(".js") || f === HOOK_FILE || f.startsWith("_registry")) continue;
+      if (f === "test") continue; // translated/test/: the translated layer's own tests, never imported live
+      if (/\.[mc]js$/.test(f) || statSync(join(tdir, f)).isDirectory()) {
+        throw new Error(`probe: translated/${f} is code the probe does not instrument`);
+      }
+      if (f === REGISTRY_FILE) { assertRegistryTableOnly(readFileSync(join(tdir, f), "utf8")); continue; }
+      if (!f.endsWith(".js") || f === HOOK_FILE) continue;
       const path = join(tdir, f);
-      const { src, names } = instrumentSource(readFileSync(path, "utf8"),
-        (n) => `__tlpHook.hit(${JSON.stringify(n)});`);
+      const orig = readFileSync(path, "utf8");
+      const { src, names } = instrumentSource(orig, (n) => `__tlpHook.hit(${JSON.stringify(n)});`);
       if (!names.length) throw new Error(`probe: translated/${f} exports no function to instrument`);
+      assertOnlyExportFunctions(orig, `translated/${f}`, names);
       writeFileSync(path, `${src}\nimport { hook as __tlpHook } from "./${HOOK_FILE}";\n`);
       routines.push(...names);
     }
   }
   for (const [file, edit] of Object.entries(edits)) {
     const path = join(g, file);
+    // A link inside the tree (rom/, tapes/, the rest of the repo) resolves to the REAL repo: refuse any
+    // edit whose real path is not inside this temp tree, so a mutant can never write the working copy.
+    const real = realpathSync(path);
+    if (!real.startsWith(root + "/")) throw new Error(`probe: the edit of ${file} resolves outside the temp tree (${real})`);
     const before = readFileSync(path, "utf8");
     const after = edit(before);
     if (after === before) throw new Error(`probe: the edit of ${file} changed nothing -- a vacuous mutant`);
@@ -297,18 +462,58 @@ export const PLAY_WITNESS = {
 // Attract only: no input at all (boot + the attract/demo cycle, long enough to loop it).
 export const ATTRACT_ONLY = { source: "attract only (no input)", apply(m) { m.io.inputAssert = {}; } };
 
-export const DONE_GAMES = ["centiped", "dkong", "frogger", "galaxian", "invaders", "pooyan", "tempest", "thepit"];
-export const ALL_GAMES = [...DONE_GAMES, "timeplt"];
+// The games with a committed DONE.md -- read from disk, so a newly DONE game joins --all (and the standing
+// test tools/test/translated-live-all-done.test.js) with no list to update.
+export const DONE_GAMES = readdirSync(join(REPO, "games"))
+  .filter((g) => existsSync(join(REPO, "games", g, "DONE.md"))).sort();
+export const ALL_GAMES = [...new Set([...DONE_GAMES, ...Object.keys(TAPES)])].sort();
 
 // ── the live run (web/worker.js's engine, headless) ─────────────────────────────────────────────
 
 /**
  * Run `game` live under the probe. opts: { frames, edits, instrument, editOverrides(overrides), tape }.
- * Returns { game, engine, tape, frames, stop, stopError, summary, digest }.
+ * Returns { game, engine, tape, frames, stop, stopError, summary (incl. uncounted: real translated/ modules
+ * resolved outside the tree, with importer), digest }.
  */
 export async function probeGame(game, { frames = 3600, edits, instrument = true, editOverrides, tape } = {}) {
+  hookResolve();
   const tree = buildProbeTree(game, { edits, instrument });
   const probe = new Probe(tree);
+  hookAsync();
+  const run = {
+    uncounted: [], late: [], live: false, draining: false, tainted: new Set(), async: new Map(),
+  };
+  activeRun = run;
+  try {
+    return await runProbe(game, tree, probe, run, { frames, editOverrides, tape });
+  } finally {
+    activeRun = null;
+  }
+}
+
+// Async resources. The shipped engine (web/worker.js) runs a session SYNCHRONOUSLY -- a while-loop and
+// Atomics.wait, no await -- so the live game has no business creating any async resource: a timer (even
+// one it clears), an immediate, a Worker or MessagePort, a nextTick, an fs or socket request -- each is
+// code the probe might not see run (a Worker's thread has no counter at all), so each FAILS ON CREATION.
+// A resource is the live game's if it was created during the synchronous run, or was triggered -- at any
+// depth, through the drain -- by one that was (a setTimeout chain, a .then's callback). Promises fail too:
+// measured, no DONE game's live run creates one (tape or attract), so none is allowed. The probe's own
+// drain timers are created outside that lineage and so never count.
+let asyncHooked = false;
+function hookAsync() {
+  if (asyncHooked) return;
+  asyncHooked = true;
+  createHook({
+    init(id, type, triggerId) {
+      const run = activeRun;
+      if (!run || !(run.live && !run.draining ? true : run.tainted.has(triggerId))) return;
+      run.tainted.add(id);
+      run.async.set(type, (run.async.get(type) || 0) + 1);
+    },
+  }).enable();
+}
+
+async function runProbe(game, tree, probe, run, { frames, editOverrides, tape }) {
   const { hook } = await import(tree.hook.href);
   hook.hit = (name) => probe.hit(name);
 
@@ -343,20 +548,37 @@ export async function probeGame(game, { frames = 3600, edits, instrument = true,
     if (beam) mm.startBeamFrame();
   };
   const engine = irqCfg ? "runIdiomaticIrqGame" : "runIdiomaticGame";
+  run.live = true; // the static graph is linked: any translated/ resolution from here on is deferred
   const r = irqCfg
     ? runIdiomaticIrqGame(m, { bootAddr: irqCfg.bootAddr, irqVblank: irqCfg.irqVblank, maxFrames: frames, onFrame })
     : runIdiomaticGame(m, { nmiReturnPC: liveCfg.nmiReturnPC, maxFrames: frames, onFrame });
-  hook.hit = null;
+  // The run is synchronous, but code it queued (a .then, a microtask, setTimeout/setImmediate, a pending
+  // import()) runs only when the event loop turns. Turn it until it is quiet, with the hook still counting,
+  // so deferred translated execution lands in the summary; any async resource the run (or its
+  // descendants, during the drain) created is reported -- fail closed on work it cannot watch.
+  run.draining = true;
+  for (let i = 0; i < DRAIN_TURNS; i++) {
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  const deferred = [...run.async].map(([k, n]) => `${n} ${k} async resource(s) created by the live run`);
   let digest = 0;
   const st = typeof m.dumpState === "function" ? m.dumpState() : m.mem.dumpState();
   for (const b of st) digest = (Math.imul(digest, 31) + b) | 0;
   return {
     game, engine, tape: t.source, frames: r.frames, stop: r.stop, stopError: r.stopError ? String(r.stopError) : null,
-    instrumented: tree.routines.length, play, summary: probe.summary(), digest,
+    instrumented: tree.routines.length, play,
+    summary: { ...probe.summary(), uncounted: run.uncounted, late: run.late, deferred }, digest,
   };
 }
 
 // ── CLI ────────────────────────────────────────────────────────────────────────────────────────
+
+/** No translated routine counted, none loaded uninstrumented or late, and no deferred work left pending. */
+export function clean(res) {
+  const s = res.summary;
+  return s.routinesExecuted === 0 && !s.uncounted.length && !s.late.length && !s.deferred.length;
+}
 
 function printResult(res, top) {
   const s = res.summary;
@@ -371,7 +593,11 @@ function printResult(res, top) {
   if (s.routines.length > top) console.log(`   ... ${s.routines.length - top} more`);
   console.log("   entry paths (root <- via <- from, sampled):");
   for (const e of s.entryPaths.slice(0, top)) console.log(`     ${String(e.samples).padStart(6)}  ${e.path}`);
-  console.log(`   verdict (a): ${s.routinesExecuted === 0 ? "PASS -- no translated routine executed" : "FAIL -- translated code ran live"}`);
+  for (const u of s.uncounted) console.log(`   UNCOUNTED translated module loaded: ${u.file} <- ${u.importer}`);
+  for (const u of s.late) console.log(`   LATE translated resolution during the live run: ${u.file} <- ${u.importer}`);
+  for (const d of s.deferred) console.log(`   DEFERRED: ${d}`);
+  console.log(`   verdict (a): ${clean(res) ? "PASS -- no translated routine executed"
+    : s.routinesExecuted ? "FAIL -- translated code ran live" : "FAIL -- translated code loaded or left deferred work (see above)"}`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -390,5 +616,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   const json = opt("--json");
   if (json) writeFileSync(json, JSON.stringify(out, null, 2));
-  process.exit(out.every((r) => r.summary.routinesExecuted === 0 && !r.stopError) ? 0 : 1);
+  process.exit(out.every((r) => clean(r) && !r.stopError) ? 0 : 1);
 }

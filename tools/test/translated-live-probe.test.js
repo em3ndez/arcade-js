@@ -13,10 +13,13 @@
 
 import nodeTest from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { REPO, probeGame, instrumentSource } from "../translated_live_probe.mjs";
+import {
+  REPO, probeGame, instrumentSource, assertOnlyExportFunctions, assertRegistryTableOnly, buildProbeTree,
+} from "../translated_live_probe.mjs";
 
 const HAVE_ROM = ["maincpu", "gfx1", "proms"].every((n) => existsSync(join(REPO, "games", "galaxian", "rom", `${n}.bin`)));
 const test = HAVE_ROM ? nodeTest : (name, fn) => nodeTest(name, { skip: "galaxian ROM absent (BYO)" }, fn);
@@ -91,4 +94,134 @@ test("positive: translated code called directly from machine.js (fireNmi) is cou
   assert.ok(count(res, "loc_0066") >= 1, `loc_0066 counted ${count(res, "loc_0066")}`);
   assert.ok(paths(res, "loc_0066").some((p) => p.startsWith("loc_0066 <- machine.js:Machine.fireNmi")),
     `entry path not attributed to machine.js fireNmi: ${paths(res, "loc_0066")}`);
+});
+
+nodeTest("fail closed: any translated export form but a line-leading `export function` throws", () => {
+  const check = (src) => assertOnlyExportFunctions(src, "t.js", instrumentSource(src, () => "").names);
+  // counted: plain and generator functions; `export` in comments, strings and member names is not code
+  check("// comment ends with a period.\nexport function f(m) { return \"export const x\"; }\n");
+  check("/* export default 1 */\nexport function* g(m) { m.export(1); }\n");
+  for (const bad of [
+    "export function f(m) {}\nexport const g = (m) => 1;\n",
+    "export async function g(m) {}\n",
+    "function g(m) {}\nexport { g };\n",
+    "export default function (m) {}\n",
+    "export let g = function (m) {};\n",
+    "export * from \"./x.js\";\n",
+    "  export function g(m) {}\n", // indented: instrumentSource's line-anchored match would miss it
+    "x(); export function g(m) {}\n", // mid-line: likewise
+    "export function f(m) {}\nfunction h(m) {}\nglobalThis.h = h;\n", // a non-export handed out globally
+    "export function f(m) {}\nfunction h(m) {}\nwindow[\"h\"] = h;\n",
+    "export function f(m) { return eval(\"m\"); }\n",
+  ]) {
+    assert.throws(() => check(bad), /cannot instrument|instrumented|global-object/, `accepted: ${JSON.stringify(bad)}`);
+  }
+});
+
+nodeTest("fail closed: an edit whose real path leaves the temp tree is refused, and the repo file is untouched", () => {
+  const target = join(REPO, "tools", "translated_live_probe.mjs");
+  const before = readFileSync(target, "utf8");
+  // games/<g>/../../tools is the tree's link to the REAL tools/ -- inside the tree by name, outside by realpath
+  assert.throws(() => buildProbeTree("galaxian", {
+    instrument: false,
+    edits: { "../../tools/translated_live_probe.mjs": (s) => `${s}// mutant\n` },
+  }), /outside the temp tree/);
+  assert.equal(readFileSync(target, "utf8"), before);
+});
+
+nodeTest("temp trees are removed when the process is killed by SIGTERM or SIGINT", async () => {
+  for (const sig of ["SIGTERM", "SIGINT"]) {
+    const code = `import { buildProbeTree } from ${JSON.stringify(join(REPO, "tools", "translated_live_probe.mjs"))};
+      console.log(buildProbeTree("galaxian", { instrument: false }).root); setInterval(() => {}, 1000);`;
+    const child = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "pipe", "inherit"] });
+    const root = await new Promise((resolve) => child.stdout.once("data", (d) => resolve(String(d).trim())));
+    assert.ok(existsSync(join(root, "games", "galaxian", "translated")), `${sig}: no tree at ${root}`);
+    const exited = new Promise((resolve) => child.once("exit", (c, s) => resolve(s)));
+    child.kill(sig);
+    assert.equal(await exited, sig, `${sig}: the child did not die by the signal`);
+    assert.equal(existsSync(root), false, `${sig}: ${root} survived the signal`);
+  }
+});
+
+test("positive: a REAL (uninstrumented) translated module loaded past the copy is reported, with its importer", async () => {
+  // Stands in for any module reached through a link (games/<g>/audio/, core/, boards/, web/, another game):
+  // Node resolves it to its real path, so its ../translated/ import bypasses the instrumented copy.
+  const real = join(REPO, "games", "galaxian", "translated", `${TWIN}.js`);
+  const res = await probeGame("galaxian", {
+    frames: 60,
+    edits: {
+      "machine.js": (s) => `import { ${TWIN} as __real } from ${JSON.stringify(real)};\nglobalThis.__tlpReal = __real;\n${s}`,
+    },
+  });
+  assert.deepEqual(res.summary.uncounted.map((u) => u.file), [`games/galaxian/translated/${TWIN}.js`]);
+  assert.equal(res.summary.uncounted[0].importer, "games/galaxian/machine.js");
+  const clean = await probeGame("galaxian", { frames: 60 });
+  assert.deepEqual(clean.summary.uncounted, [], "the unmodified game loads an uninstrumented translated module");
+});
+
+nodeTest("fail closed: the name-skipped registry must be a table -- any code line throws", () => {
+  const table = '// gen\nimport { loc_0001, loc_0002 } from "./loc_0001.js";\n\nexport const ROUTINE_ENTRIES = [\n' +
+    "  [0x0001, loc_0001],\n];\nexport const ORACLE_ROUTINES = new Map([\n  [0x0002, loc_0002],\n]);\n";
+  assertRegistryTableOnly(table);
+  for (const bad of ["function f(m) { m.call(1); }\n", "  [0x0003, (m) => loc_0001(m)],\n", "loc_0001(globalThis.m);\n",
+    "export function loc_0009(m) {}\n"]) {
+    assert.throws(() => assertRegistryTableOnly(table + bad), /not a table line/, `accepted: ${JSON.stringify(bad)}`);
+  }
+});
+
+// Deferred execution: the live run is synchronous, so code it QUEUES runs only after it returns. Each plant
+// runs the game's own (in-tree, instrumented) translated loc_0000 exactly once, from renderFrame, deferred.
+const RENDER = "  renderFrame() {";
+const plant = (head, body) => ({
+  "machine.js": (s) => {
+    assert.ok(s.includes(RENDER), "galaxian machine.js renderFrame() not found");
+    return head + s.replace(RENDER, `${RENDER}\n    if (!this.__tlpPlant) { this.__tlpPlant = 1; ${body} }`);
+  },
+});
+const STATIC = 'import { loc_0000 as __q } from "./translated/loc_0000.js";\n';
+
+test("positive: a deferred dynamic import().then of translated code is counted and reported late", async () => {
+  const res = await probeGame("galaxian", {
+    frames: 120,
+    edits: plant("", 'import("./translated/loc_0000.js").then((mm) => { try { mm.loc_0000({}); } catch {} });'),
+  });
+  assert.equal(count(res, "loc_0000"), 1, "the .then's translated call was not counted");
+  assert.deepEqual(res.summary.late.map((u) => u.file), ["games/galaxian/translated/loc_0000.js"]);
+});
+
+test("positive: translated code run from setTimeout(0) / queueMicrotask after the run is counted", async () => {
+  for (const q of ["setTimeout(() => { try { __q({}); } catch {} });", "queueMicrotask(() => { try { __q({}); } catch {} });"]) {
+    const res = await probeGame("galaxian", { frames: 120, edits: plant(STATIC, q) });
+    assert.equal(count(res, "loc_0000"), 1, `${q}: not counted`);
+  }
+});
+
+// The engine runs a session synchronously (web/worker.js: while-loop + Atomics.wait), so the live game creates
+// no async resource; the probe fails any it does ON CREATION -- including ones created during the drain by
+// the run's own lineage -- whether or not translated code ran in it or was seen.
+const types = (res) => Object.fromEntries(res.summary.deferred.map((d) => { const [n, t] = d.split(" "); return [t, Number(n)]; }));
+const ASYNC_PLANTS = {
+  "a long unref'd timer": [STATIC, "setTimeout(() => { try { __q({}); } catch {} }, 60000).unref();", (t) => t.Timeout === 1],
+  "a timer created then cleared": [STATIC, "clearTimeout(setTimeout(() => { try { __q({}); } catch {} }, 0));", (t) => t.Timeout === 1],
+  // hop 1 is created in the live run, the rest by the drain turning -- each tainted through its trigger
+  "a 20-hop setTimeout chain": [STATIC, "const hop = (n) => { if (n) setTimeout(() => hop(n - 1)); }; hop(20);", (t) => t.Timeout >= 2],
+  "a bare promise": ["", "Promise.resolve(1);", (t) => t.PROMISE >= 1],
+  "a Worker running translated code off-thread (error swallowed)": [
+    'import { Worker as __W } from "node:worker_threads";\n',
+    "const u = new URL(\"./translated/loc_0000.js\", import.meta.url).href; " +
+      "const w = new __W(`import(${JSON.stringify(u)}).then((mm) => { try { mm.loc_0000({}); } catch {} })`, { eval: true }); " +
+      "w.on(\"error\", () => {}); w.unref();",
+    (t) => t.WORKER >= 1,
+  ],
+};
+for (const [name, [head, body, ok]] of Object.entries(ASYNC_PLANTS)) {
+  test(`positive: ${name} in the live run is reported`, async () => {
+    const res = await probeGame("galaxian", { frames: 120, edits: plant(head, body) });
+    assert.ok(ok(types(res)), `${name}: deferred ${JSON.stringify(res.summary.deferred)}`);
+  });
+}
+
+test("negative: the unmodified game creates no async resource and resolves nothing late", async () => {
+  const clean = await probeGame("galaxian", { frames: 120 });
+  assert.deepEqual([clean.summary.late, clean.summary.deferred], [[], []]);
 });
