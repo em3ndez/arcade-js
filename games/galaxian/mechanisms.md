@@ -179,12 +179,25 @@ holding a step until it crosses zero.
 
 ### Boot: fill the screen, then latch the machine config
 
-Power-on enters at the reset vector `loc_0000`: it clears the interrupt-enable latch (so no vblank interrupt
-fires during boot) and jumps into the cold-boot wipe at 0x1a55. That wipe blanks all four pages of tile VRAM
-(0x5000-0x53ff) with the blank tile, zeroes OBJRAM (0x5800-0x58ff), clears the 0x6000 output latches (start
-lamps, coin lockout, coin counter), silences the eight sound registers at 0x6800 and the 0x7000 control
-latches (interrupt enable, starfield, the two screen-flip latches), runs a walking-pattern test over work
-RAM, and brings the machine up with `GAME_STATE` at 0.
+Power-on enters at the reset vector `coldBoot` [seen] (0x0000): it clears the interrupt-enable latch (so no
+vblank interrupt fires during boot) and jumps into the cold-boot chain, one straight line that ends in the
+main loop. `wipeVideoAndHardwareLatches` [seen] (0x1a55) blanks all four pages of tile VRAM (0x5000-0x53ff)
+with the blank tile 16 in its own loop, zeroes OBJRAM (0x5800-0x58ff), clears the 0x6000 output latches (start
+lamps, coin lockout, coin counter), parks the four sound LFO latches at 1, silences the eight sound registers
+at 0x6800 and the 0x7000 control latches (interrupt enable, starfield, the two screen-flip latches), and
+drives the pitch latch to 0xff. `marchTestWorkRam` [seen] (0x1a9a) then pattern-tests work RAM (0x4000-0x43ff)
+for 32 seeds -- each pass writes a stepped pattern (+0x2f per byte, +1 per page, from the seed) and reads it
+back -- and `marchTestVideoRam` [seen] (0x1aca) does the same over the tilemap. A read-back mismatch sends the
+ROM to a fault screen (code 1 for work RAM, 2 for video RAM) that holds while the service switch is on and
+otherwise restarts from the reset vector; on working RAM neither test fails. Last, `checksumRomAndSeedWorkRam`
+[seen] (0x1b70) blanks the screen again through `blankVideoRam` [seen] (0x1b5d), requires the 8-bit sum of the
+program ROM (0x0000-0x27ff) to be 0 (a non-zero sum goes to the same fault screen; the shipped image sums to
+0), seeds work RAM 0x4000-0x439f (zero, except the command-queue ring 0x40c0-0x40ff filled with 0xff = free;
+the top 0x60 bytes, the stack's end of RAM, keep the RAM test's last pattern), points the queue write head
+`loc_40a0` and `DISPLAY_LIST_CURSOR` (0x40a1) at the ring floor 0xc0, sets `SELFTEST_MODE` (0x401a) to 3 with
+the pass counter `loc_4008` at 32 -- so the first interrupts run the object-RAM color pass described under
+"The alternate per-frame path" -- turns the starfield on, enables the interrupt, and jumps to `enterMainLoop`
+(0x2000). `GAME_STATE` is 0 from the seeding.
 
 Phase 0 is `fillScreenThenLatchConfigAndAdvanceState` [seen], and it does two jobs across many frames. Every
 frame it fills a 32-byte block of the blank tile (value 16) at the VRAM write cursor `VRAM_WRITE_PTR`

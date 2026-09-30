@@ -29,6 +29,7 @@ export const PLAYER2_STATUS_VRAM = 0x50e0; // [seen] player-2 status tilemap cel
 export const PLAYER1_STATUS_VRAM = 0x5340; // [seen] player-1 status tilemap cell
 
 // Work RAM.
+export const WORK_RAM_BASE = 0x4000; // [seen] base of the 1KB work RAM (0x4000-0x43ff), the span the power-on RAM test and seeding walk
 export const RNG_SEED = 0x401e; // [seen] 8-bit LCG PRNG seed
 export const SELFTEST_MODE = 0x401a; // [seen] power-on self-test mode; nonzero routes the vblank NMI to the self-test path (3->1->2->0 then normal)
 export const GAME_STATE = 0x4005; // [seen] game state index (cleared by the fill re-seed)
@@ -256,6 +257,12 @@ export const CREDIT_COUNT_UNITS_VRAM = 0x527f; // [seen] VRAM units-digit cell o
 export const OBJECT_GRID_BASE = 0x4120; // [seen] base of the 6-row object/occupancy grid (row stride 0x10; occupancy cells at +3)
 
 export const ROUTINES = {
+  0x0000: { name: "coldBoot", role: "[seen] Reset vector: clear IRQ_ENABLE (0x7001) so no vblank interrupt fires during boot, then run the cold-boot chain (hardware wipe -> work-RAM and video-RAM march tests -> ROM checksum + work-RAM seeding) that ends by handing off to the main loop.", cert: "seen" },
+  0x1a55: { name: "wipeVideoAndHardwareLatches", role: "[seen] Cold-boot hardware wipe: blank the tilemap, zero OBJRAM (0x5800), clear the 0x6000-0x6003 output latches, park the four SOUND_LFO_FREQ latches at 1, zero the eight sound registers and the 0x7001-0x7008 control slots, drive SOUND_PITCH_W=0xff; then run the work-RAM march test with 32 seeds.", cert: "seen" },
+  0x1a9a: { name: "marchTestWorkRam", role: "[seen] Power-on work-RAM test over 0x4000-0x43ff: for each seed (C, counting down to 1) write a +0x2f stepped pattern (+1 per page) and read it back, kicking the watchdog per pass; a mismatch is a RAM fault (raised by name); then the video-RAM test with 32 seeds.", cert: "seen" },
+  0x1aca: { name: "marchTestVideoRam", role: "[seen] Power-on video-RAM test: the same stepped-pattern write/read-back over the tilemap 0x5000-0x53ff for each seed (C, down to 1), two watchdog kicks per pass; a mismatch is a RAM fault (raised by name); then the ROM checksum stage.", cert: "seen" },
+  0x1b5d: { name: "blankVideoRam", role: "[seen] Fill all four tilemap pages (0x5000-0x53ff) with the blank tile 16, kicking the watchdog after each page.", cert: "seen" },
+  0x1b70: { name: "checksumRomAndSeedWorkRam", role: "[seen] Last power-on stage: blank the tilemap, 8-bit-sum program ROM 0x0000-0x27ff (must be 0; a bad ROM is raised by name), seed work RAM 0x4000-0x439f (zero, command-queue ring 0x40c0-0x40ff = 0xff), clear the flips and 0x4018, set 0x4008=32, SELFTEST_MODE (0x401a)=3, queue write head 0x40a0 and DISPLAY_LIST_CURSOR (0x40a1)=0xc0, enable the starfield and the vblank interrupt, and hand off to enterMainLoop (0x2000).", cert: "seen" },
   0x003c: { name: "advanceRandomSeed", role: "[seen] advance the 8-bit LCG PRNG seed (RNG_SEED, 0x401e) one step (seed*5+1) and return the new byte as this frame's random draw", cert: "seen" },
   0x0322: { name: "enterSequenceStep1", role: "[seen] RST-28 sequence-state handler: set SEQUENCE_STATE (0x400a) to 1 and arm the step-1 dwell cascade (0x4008/0x4009 = 3,3)", cert: "seen" },
   0x0331: { name: "tickCascadeCountdown", role: "[seen] shared dec-and-carry timer tick: decrement the byte at HL; on expiry step to the next in-page byte and increment it. Both current callers pass HL=0x4009, carrying into SEQUENCE_STATE (0x400a)", cert: "seen" },
