@@ -100,11 +100,13 @@ export function resetPlayfieldAndArmNewRound(m) {
   // Lay out the whole object array afresh: clear every record's occupancy byte and number each
   // record (freeAndNumberEveryObjectSlot, 0x1AE4); then zero the eight sprite-entry bytes listed in
   // CLEARED_ENTRY_OFFSETS.
-  freeAndNumberEveryObjectSlot(m);
+  const recordCursor = freeAndNumberEveryObjectSlot(m);
   for (const off of CLEARED_ENTRY_OFFSETS) mem8[ERA_OBJECT_ENTRY_SLOT0 + off] = 0;
 
-  // Seat the era's scenery band and run its scenery setup (0x30A5).
-  seatEraSceneryRowThenClearAndRunScenery(m);
+  // Seat the era's scenery band and run its scenery setup (0x30A5), handing on the two cursors the
+  // ROM leaves standing here: the sprite-entry cursor just seated on the era-object bank, and the
+  // record cursor the numbering walk ended on. Only the scenery seed's tamper divert reads them.
+  seatEraSceneryRowThenClearAndRunScenery(m, ERA_OBJECT_ENTRY_SLOT0, recordCursor);
 
   // Arm the round's difficulty. The settings table at 0x1B04 (ERA_RUNG_SETTINGS_POINTER_TABLE) holds
   // a pointer per (era, rung): the ROM builds the index (era << 4) + rung with four `rlca`,

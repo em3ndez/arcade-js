@@ -15,13 +15,15 @@
  * written and no flag moves.
  *
  * PARAMETERS: total = the folded eight-bit total (the ROM's A); pointer = the fold's pointer, left
- * one past the block (HL). Both pass straight through.
+ * one past the block (HL); offset = the DE the chain carries into the verdict's address walk. All
+ * pass straight through -- the total twice, as the count the verdict hands back (B) and as the
+ * walk's narrow step (the A the ROM still holds at 0x200C).
  * LIVE-OUT: the verdict arm's memory and return. */
 
 import { advanceSequenceUnlessImageTampered } from "./advanceSequenceUnlessImageTampered.js";
 
-export function parkTheImageTotalForTheTamperVerdict(m, total = m.regs.a, pointer = m.regs.hl) {
+export function parkTheImageTotalForTheTamperVerdict(m, total = m.regs.a, pointer = m.regs.hl, offset = m.regs.de) {
   /* The whole routine: the register move has no counterpart once the total is an argument, so
    * all that is left is the transfer. The verdict's own exits are this entry's exits too. */
-  return advanceSequenceUnlessImageTampered(m, total, pointer);
+  return advanceSequenceUnlessImageTampered(m, total, pointer, offset, total);
 }

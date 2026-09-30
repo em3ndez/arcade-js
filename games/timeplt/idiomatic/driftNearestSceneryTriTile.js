@@ -28,11 +28,11 @@ export function driftNearestSceneryTriTile(m, record = m.regs.ix, entry = m.regs
   // 1. Head tile: move by the world scroll plus a quarter of it (call 0x2D6E).
   driftAtFiveQuartersWorldScroll(m, record, entry);
   // 2. Second tile: flush against the head, one sprite width on (call 0x3058).
-  placeAbuttingTile(m, entry, record);
+  const [secondRecord, secondEntry] = placeAbuttingTile(m, entry, record);
   // 3. Third tile: diagonally off the second, 16 back on one axis and 16 on along the other
   //    (call 0x308A).
-  placeDiagonallyAbuttingTile(m);
+  const [thirdRecord, thirdEntry] = placeDiagonallyAbuttingTile(m, secondEntry, secondRecord);
   // 4. Step both cursors past the last tile so the caller lands on the next object's slot
-  //    (tail jump 0x309B).
-  advanceToNextSlot(m);
+  //    (tail jump 0x309B), and hand them back for the next step in the running order.
+  return advanceToNextSlot(m, thirdRecord, thirdEntry);
 }

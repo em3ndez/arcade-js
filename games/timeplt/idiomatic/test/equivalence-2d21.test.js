@@ -62,12 +62,20 @@ function compare(cand, machine) {
     if (EXCLUDED.includes(k)) continue;
     if (a.regs[k] !== b.regs[k]) { regEscaped = { k, oracle: a.regs[k], candidate: b.regs[k] }; break; }
   }
-  return { escaped, regEscaped, threw, low, seat, spDiff: a.regs.sp - b.regs.sp, retOracle, retCand };
+  return { escaped, regEscaped, threw, low, seat, spDiff: a.regs.sp - b.regs.sp, retOracle, retCand, cursorsOracle: [a.regs.ix, a.regs.iy] };
 }
+
+// The oracle is a Z80 routine: it hands its cursors back in IX/IY and its JS return is always
+// undefined. A rewrite that returns something must return exactly those two cursors (the running
+// order threads them into the next step); one that returns nothing is judged on IX/IY alone.
+const handsBackCursors = (r) => r.retCand === undefined
+  ? r.retOracle === undefined
+  : Array.isArray(r.retCand) && r.retCand.length === 2 &&
+    r.retCand[0] === r.cursorsOracle[0] && r.retCand[1] === r.cursorsOracle[1];
 
 const caught = (r) =>
   r.threw !== null || r.escaped !== null || r.regEscaped !== null ||
-  r.spDiff !== SP_RESEAT || r.retOracle !== r.retCand;
+  r.spDiff !== SP_RESEAT || !handsBackCursors(r);
 
 /** Cells the oracle moves from a state, ignoring the stack scratch — a dispatch's footprint. */
 function footprint(machine) {
@@ -143,13 +151,14 @@ test("CORPUS: every attract dispatch replays; coin-start never reaches it", { sk
   console.log(`  CORPUS: ${entries.length} attract dispatches identical, coin-start ${coin}`);
 });
 
-test("SP, RETURN and CURSORS: +2 re-seat, equal return, and the two cursors match", { skip }, () => {
+test("SP, RETURN and CURSORS: +2 re-seat, the returned cursors are the oracle's IX/IY, and the two cursors match", { skip }, () => {
   const entries = captureCorpus();
   const prints = new Set();
   for (const e of entries) {
     const r = compare(candidate, e);
     assert.equal(r.spDiff, SP_RESEAT, "the oracle tail-pops the caller's return and the rewrite does not");
-    assert.equal(r.retOracle, r.retCand, "the return value diverged");
+    assert.equal(r.retOracle, undefined, "the frozen routine returned a JS value");
+    assert.deepEqual(r.retCand, r.cursorsOracle, "the rewrite does not return the cursors the oracle leaves in IX/IY");
     assert.equal(r.regEscaped, null, r.regEscaped && `a live-out register diverged: ${r.regEscaped.k}`);
     prints.add(footprint(e));
   }

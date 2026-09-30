@@ -112,3 +112,10 @@ invaders 0x0798 dead  # one-player start; callers loc_077f (0x0798 fall-through)
 invaders 0x079b dead  # start tail (-> startRoundFlow); callers startOnePlayerGame (0x079b fall-through) and startTwoPlayerGame (0x086f jmp 0x079b), now the idiomatic modules which yield* the idiomatic startGameFlow
 invaders 0x0857 dead  # two-player branch; only caller loc_077f (0x0788 jnz 0x0857), dissolved into the idiomatic creditScreen (in1 & 0x02 -> yield* the idiomatic startTwoPlayerGame)
 invaders 0x086d dead  # two-player start; only caller loc_0857 (0x0863 jc 0x086d), the idiomatic creditScreen yield* the idiomatic startTwoPlayerGame
+# timeplt: its DISSOLVED UNWIRED modules (tools/registry-coverage.config.mjs UNWIRED.timeplt), each run as
+# JS by a direct idiomatic call, the translated routine at the address never executing in the live game
+# (0 machine.call after boot, translated_live_probe 0). timeplt is not in CLOSURE_GAMES, so the gate does
+# not yet read these lines; they record the disposition the day it is enrolled.
+timeplt 0x3074 dead  # placeTileAtTableSuppliedOffset: direct-called by loc_307f on the scenery seed's tamper divert; not oracle-served
+timeplt 0x5254 dead  # loc_5254: absorbed into destroyTargetsHitByShots' own body; not oracle-served
+timeplt 0x562a dead  # appendSoundCommandToQueue: direct-called by the three enqueueSound* entries; not oracle-served

@@ -60,8 +60,12 @@ export function startTwoPlayerGame(m) {
   mem8[PLAYER_ONE_LIVES] = mem8[STARTING_LIVES];
   mem8[PLAYER_TWO_LIVES] = mem8[STARTING_LIVES];
 
-  // Step 3 (`call 0x460e`): the two-player-start arm.
-  setUpTwoPlayerStartObjectOnce(m);
+  // Step 3 (`call 0x460e`): the two-player-start arm. Its acting arm (taken only when the witness
+  // pair disagrees, which no measured run has shown) steps pointers the ROM leaves over in IX and IY
+  // from earlier routines; this routine computes none, so it hands over none (null); the oracle's
+  // measured two-player dispatch arrived with IX in ROM (0x3010), where the frozen routine's first
+  // store faults too.
+  setUpTwoPlayerStartObjectOnce(m, null, null);
 
   // Step 4 (ROM 0x18B5-0x18BD): charge two credits -- `ld hl,0xa986` / `ld a,(hl)` / `sub 0x02` /
   // `daa` / `ld (hl),a`.

@@ -31,6 +31,7 @@ import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { postCommand } from "./postCommand.js";
 import { stampCopyrightStrip } from "./stampCopyrightStrip.js";
 import { sumImageBlockForTheTamperCheck } from "./sumImageBlockForTheTamperCheck.js";
+import { advanceSequenceUnlessTotalTampered } from "./advanceSequenceUnlessImageTampered.js";
 import { BANK_LAUNCH_COOLDOWN, FREE_PLAY, COPYRIGHT_CAPTION_RECORD } from "./names.js";
 import { NotImplemented } from "../../../boards/timeplt/io.js";
 
@@ -70,8 +71,9 @@ export function showCreditLine(m) {
 
   // Guard passed: stamp the copyright strip into the display list (0x0B06), request its line in this
   // frame's flash colour (0x0B39), then tail into the tamper sum over the caption record, whose chain
-  // decides whether the sequence steps on.
+  // decides whether the sequence steps on. The chain's middle links (0x07AD, 0x200C) only park the
+  // total and walk an address no one reads, so the sum hands its total straight to the verdict.
   stampCopyrightStrip(m);
   flashCopyrightLine(m);
-  return sumImageBlockForTheTamperCheck(m, BLOCK_START, BLOCK_BYTES);
+  return sumImageBlockForTheTamperCheck(m, BLOCK_START, BLOCK_BYTES, advanceSequenceUnlessTotalTampered);
 }

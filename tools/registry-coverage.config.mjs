@@ -16,43 +16,38 @@ export const UNWIRED = {
       "Not a ROUTINES override: the double-skip's +4 SP move is outside the seam's 0/+2 window.",
   },
   timeplt: {
+    // DISSOLVED, NOT oracle-served. Each module below runs as JS in the live game by a DIRECT call from
+    // another idiomatic module, never as a ROUTINES override, and the translated routine at its address
+    // never runs. Measured on the shipped engine (runIdiomaticGame, resolveAllIdiomatic) over the
+    // coin/start/play tape, attract and every tapes/*.poke.json state: machine.call is never entered after
+    // boot in any session, and tools/translated_live_probe.mjs --game timeplt reads no translated routine
+    // executed.
+    // The address-bearing entries are also recorded `dead` in tools/idiomatic-boundaries.txt.
     "replayCloudBands.js":
-      "the beam-sync render step (docs/beam-sync.md): runCommandRingDrainLoop calls it directly before its vblank " +
-      "yield to repaint the frame's beam-multiplexed scenery in scanline bands. It has no ROM " +
-      "address, so no ROUTINES entry can name it, and it is not a dispatch target -- the frozen " +
-      "layer never transfers to it; it reads m.beamPlan (recorded by the multiplexers) and drives " +
-      "the machine's band accumulator, state-neutrally. A render support routine, not a ROM routine.",
+      "NOT a ROM routine, so nothing to dissolve and nothing oracle-served: it has no ROM address and no " +
+      "ROUTINES entry can name it. runCommandRingDrainLoop calls it directly before its vblank yield to " +
+      "repaint the frame's beam-multiplexed scenery in scanline bands (docs/beam-sync.md); it reads " +
+      "m.beamPlan and drives the machine's band accumulator, state-neutrally. Entered once per frame " +
+      "on every measured session.",
     "placeTileAtTableSuppliedOffset.js":
-      "Not a dispatch entry: it is an interior continuation. Decoding the image from EVERY byte " +
-      "offset -- which over-generates and cannot under-generate -- finds exactly one transfer to " +
-      "0x3074 in the whole 24KB, a `djnz` at 0x3081, and 0x307F..0x3089 is a CAPTION RECORD " +
-      "(destination, colour, then glyph codes) rather than instructions, so that transfer is a " +
-      "decode of data and not a real entry. The genuine way in is a fall-through from 0x306A, " +
-      "four instructions that load the two coordinate registers off the sprite entry and point HL " +
-      "at a table -- and 0x306A has no transcribed routine, which is why 0x3074 stands alone at " +
-      "all. Both tapes dispatch it zero times, asserted in its gate. A ROUTINES entry would claim " +
-      "an entry point the image does not have; it becomes dispatchable when 0x306A is lifted and " +
-      "swallows it.",
+      "DISSOLVED into a direct call, not oracle-served: loc_307f calls it directly on the scenery seed's " +
+      "tamper divert (seedSceneryEntriesThenRunScenery -> trampolineToLoc_307f -> loc_307f), which no " +
+      "measured session takes, and the translated loc_3074 never runs. Not a ROUTINES override: 0x3074 " +
+      "is not a dispatch entry (the one decoded transfer to it, a djnz at 0x3081, is a caption record " +
+      "read as code; the genuine way in is a fall-through from 0x306A, which has no transcribed routine).",
     "loc_5254.js":
-      "Not a dispatch entry: it is an interior continuation of destroyTargetsHitByShots, and the " +
-      "frozen layer never transfers to it. A scan of the whole 24 KB for the little-endian word " +
-      "0x5254, at every alignment, finds no occurrence, so no table can name it -- and the same " +
-      "scan is shown able to find an entry point in the same breath, returning six occurrences of " +
-      "0x5211's word, each behind a `c3`, `cd` or `c2`. Both paths in are interior to 0x5211's " +
-      "own body: a `jr nz` at 0x5215 and the fall-through of the `djnz` at 0x5252. The frozen " +
-      "transcription says the same thing by giving loc_5211 the range 0x5211-0x5269 and holding " +
-      "0x5254-0x5269 a second time inside it, and loc_5211 reaches that stretch by falling into " +
-      "it rather than by calling 0x5254. The idiomatic destroyTargetsHitByShots has already " +
-      "SWALLOWED the continuation -- its own body reloads the two target cursors from 0xA991 and " +
-      "0xA993 and the inner count from the shadow accumulator between passes, which is the whole " +
-      "of what this module does -- so a ROUTINES entry would claim an entry point the image does " +
-      "not have and override an address the enclosing routine's rewrite already covers.",
+      "DISSOLVED by absorption, not oracle-served: destroyTargetsHitByShots already carries this " +
+      "continuation in its own body (it reloads the two target cursors from 0xA991/0xA993 and the " +
+      "inner count between passes), no idiomatic module imports this one, and the translated loc_5254 " +
+      "never runs (no machine.call after boot). Not a ROUTINES override: 0x5254 is no dispatch entry -- " +
+      "its little-endian word occurs nowhere in the image; both ways in (a jr nz at 0x5215, the djnz " +
+      "fall-through at 0x5252) are interior to 0x5211's body.",
     "appendSoundCommandToQueue.js":
-      "Not a dispatch entry at all. The little-endian word for its address occurs nowhere in the " +
-      "ROM image, so no table can name it, and every path in reaches it from a point interior to " +
-      "another routine -- two conditional branches and a fall-through, all three of which have " +
-      "idiomatic twins that call it directly. Its idiomatic form also takes the sound code as a " +
-      "second parameter, which the override map has no way to supply.",
+      "DISSOLVED into a direct call, not oracle-served: enqueueSoundIfGameInProgress, " +
+      "enqueueSoundIfGameOrAttract and enqueueSoundUnconditional call it directly with the sound code " +
+      "as an argument -- entered on every measured session -- and the translated loc_562a never runs. " +
+      "Not a ROUTINES override: its address's word occurs nowhere in the image, so no table names it; " +
+      "every way in is a branch or fall-through interior to another routine.",
   },
   pooyan: {
     "mainLoopStep.js": "the main-loop state-driver body (loc_020f), direct-called by the mainLoop generator so it can yield at the vblank; the generator imports it rather than dispatching through ROUTINES. Memory-equivalent to the frozen loop body (equivalence-020f); not a dispatch entry.",

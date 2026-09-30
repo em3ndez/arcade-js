@@ -13,9 +13,14 @@
  * Under MAME the trap took zero dispatches on the real ROM -- a genuine image never fails.
  * Reads and writes nothing itself; the chosen arm owns all of that.
  *
- * PARAMETERS: total = the carried checksum (B in the ROM); pointer and offset = the HL and DE the
- * chain carries, which presentChecksumForTamperTest walks forward as arithmetic only and which
- * nothing downstream dereferences.
+ * PARAMETERS: total = the carried checksum (B in the ROM); pointer, offset and walk = the HL, DE and
+ * A the chain carries, which presentChecksumForTamperTest walks forward as arithmetic only (HL + DE
+ * + A, left in HL) and which nothing downstream dereferences.
+ *
+ * TWO ENTRIES. advanceSequenceUnlessImageTampered is the register-dispatched one (ROUTINES 0x5303):
+ * it reproduces the walk so the registers a frozen caller sees are the ROM's. The verdict alone is
+ * advanceSequenceUnlessTotalTampered, which an idiomatic chain hands the total to: the walk writes
+ * no memory and decides nothing, so a caller holding only the total has nothing else to pass.
  *
  * LIVE-OUT: that arm's memory and its return.
  */
@@ -27,10 +32,13 @@ import { loc_0f8d as springTamperTrap } from "./loc_0f8d.js";
 // The total a genuine program image produces (ROM 0x5306: cp 0x67).
 const GENUINE_IMAGE_CHECKSUM = 0x67;
 
-export function advanceSequenceUnlessImageTampered(m, total = m.regs.b, pointer = m.regs.hl, offset = m.regs.de) {
+export function advanceSequenceUnlessImageTampered(m, total = m.regs.b, pointer = m.regs.hl, offset = m.regs.de, walk = m.regs.a) {
   // presentChecksumForTamperTest (0x200C) puts the carried total back where the comparison reads
   // it (the ROM's final `ld a,b`); its address walk touches no memory.
-  const checksum = presentChecksumForTamperTest(m, pointer, offset, total);
+  return advanceSequenceUnlessTotalTampered(m, presentChecksumForTamperTest(m, pointer, offset, total, walk));
+}
+
+export function advanceSequenceUnlessTotalTampered(m, checksum) {
   // Wrong total: the image was altered, so divert to the trap (ROM: jp nz,0x0f8d).
   if (checksum !== GENUINE_IMAGE_CHECKSUM) return springTamperTrap(m);
   // Right total: carry on with the sequence by stepping its sub-step (ROM: jp 0x0f1a).

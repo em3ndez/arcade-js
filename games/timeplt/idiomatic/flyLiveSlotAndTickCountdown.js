@@ -21,14 +21,18 @@ import { flyAndRetireSlotCyclingShapeInEra4 } from "./flyAndRetireSlotCyclingSha
 /* The slot's own countdown sits at +0x0E in its sixteen-byte record (the ROM's `dec (ix+0x0e)`). */
 const COUNTDOWN_OFFSET = 0x0e;
 
-/* `ix` is the slot's record, the sweep's record cursor (the ROM's IX). */
-export function flyLiveSlotAndTickCountdown(m, ix = m.regs.ix) {
+/* `ix` is the slot's record, the sweep's record cursor (the ROM's IX); `iy` the slot's sprite entry,
+ * the sweep's entry cursor (IY); `b` the turns the sweep has left (B). No idiomatic routine calls
+ * this entry -- the sweep body serviceSlotByMarkerThenCloseSweepTurn runs the same three steps
+ * inline -- so the three arrive only from a register-dispatched caller, and are handed on as
+ * arguments from here. */
+export function flyLiveSlotAndTickCountdown(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b) {
   /*
    * Step 1 (the ROM's `call 0x3e6c`): fly the object one step along the velocity it carries and retire
    * the slot if that step put it on a retire line. The mover works on the sweep's current record and
-   * sprite entry, which it takes from the machine's cursor registers.
+   * sprite entry.
    */
-  flyAndRetireSlotCyclingShapeInEra4(m);
+  flyAndRetireSlotCyclingShapeInEra4(m, ix, iy);
   /*
    * Step 2: count the slot's countdown down by one. The byte wraps as the Z80's `dec` does; the sweep
    * body only sends a slot here while it is nonzero, and when it reaches zero the next pass takes the
@@ -41,5 +45,5 @@ export function flyLiveSlotAndTickCountdown(m, ix = m.regs.ix) {
    * slot and go round again while turns remain. Because it is a tail, one call here services this slot
    * and every slot after it in the bank.
    */
-  return closeOneTurnOfTheSlotSweep(m);
+  return closeOneTurnOfTheSlotSweep(m, ix, iy, b);
 }

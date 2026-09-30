@@ -25,5 +25,5 @@ export function driftOneTileSceneryAtHalf(m, record = m.regs.ix, entry = m.regs.
   // 1. Move the object by half the world scroll on both axes (call 0x2DF4).
   driftAtHalfWorldScroll(m, record, entry);
   // 2. No further tile: step straight on to the next slot (tail jump 0x309B).
-  advanceToNextSlot(m, record, entry);
+  return advanceToNextSlot(m, record, entry);
 }

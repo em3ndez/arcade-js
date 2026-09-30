@@ -17,10 +17,11 @@
  *   fold       (A)  -- the sentinel byte the guard read, folded against the stored byte;
  *   counter    (B)  -- the caller's spent clear count, counted down by loc_307f's `djnz`;
  *   entry      (IY) -- the caller's sprite-entry cursor, where the placer lays its tile;
- *   offset     (C)  -- the era, the offset the placer applies to the tile. */
+ *   offset     (C)  -- the era, the offset the placer applies to the tile;
+ *   record     (IX) -- the caller's record cursor, stepped on with the entry cursor after the tile. */
 import { loc_307f } from "./loc_307f.js";
 
-export function trampolineToLoc_307f(m, pointer = m.regs.hl, coordinate = m.regs.e, fold = m.regs.a, counter = m.regs.b, entry = m.regs.iy, offset = m.regs.c) {
+export function trampolineToLoc_307f(m, pointer = m.regs.hl, coordinate = m.regs.e, fold = m.regs.a, counter = m.regs.b, entry = m.regs.iy, offset = m.regs.c, record = m.regs.ix) {
   // `jp 0x307f`: hand every input across unchanged and return whatever the destination returns.
-  return loc_307f(m, pointer, coordinate, fold, counter, entry, offset);
+  return loc_307f(m, pointer, coordinate, fold, counter, entry, offset, record);
 }

@@ -22,7 +22,10 @@
 import { stepDriftingCountdownObjectByEraFrames } from "./stepDriftingCountdownObjectByEraFrames.js";
 import { closeOneTurnOfTheSlotSweep } from "./closeOneTurnOfTheSlotSweep.js";
 
-export function stepCountdownSlotThenCloseTurn(m) {
-  stepDriftingCountdownObjectByEraFrames(m);
-  return closeOneTurnOfTheSlotSweep(m);
+// The record cursor, the entry cursor and the turns left (IX, IY, B) are this entry's inputs. No
+// idiomatic routine calls it -- serviceSlotByMarkerThenCloseSweepTurn runs the same two steps inline --
+// so they arrive only from a register-dispatched caller, and are handed on as arguments from here.
+export function stepCountdownSlotThenCloseTurn(m, ix = m.regs.ix, iy = m.regs.iy, b = m.regs.b) {
+  stepDriftingCountdownObjectByEraFrames(m, ix, iy);
+  return closeOneTurnOfTheSlotSweep(m, ix, iy, b);
 }

@@ -19,8 +19,8 @@
  * then 0x05 or 0x10; anything else sends the machine through loc_315b into 0x3176, a data table
  * executed as code, which is how the ROM derails a tampered copy.
  *
- * Parameters: `fillByte` (A) and `era` (C) come from the caller as above; `entryCursor` (IY) is
- * passed on unchanged to the below-era-four seed step. */
+ * Parameters: `fillByte` (A) and `era` (C) come from the caller as above; `entryCursor` (IY) and
+ * `recordCursor` (IX) are passed on unchanged to the below-era-four seed step. */
 
 import { u16 } from "../../../core/int.js";
 import { seedSceneryEntriesThenRunScenery } from "./seedSceneryEntriesThenRunScenery.js";
@@ -42,7 +42,7 @@ const SEAT_COUNT = 8;
 const SEAT_SHADOW = 0x31; // byte0 of each packed pair lands at the entry cell +0x31
 const CLEAR_SPENT = 0; // the clear loop runs its count down to nothing
 
-export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era = m.regs.c, entryCursor = m.regs.iy) {
+export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era = m.regs.c, entryCursor = m.regs.iy, recordCursor = m.regs.ix) {
   const { mem8 } = m;
 
   /* Step 1 (0x30D1-0x30DC): clear eight object cells, stride two, to the fill byte. They start at
@@ -58,7 +58,7 @@ export function clearSceneryEntriesThenRunEraScenery(m, fillByte = m.regs.a, era
   /* Step 2 (0x30DE-0x30E2): eras 0-3 go on to seedSceneryEntriesThenRunScenery (0x3117, a tail
    * jump), which seats four objects from its own packed table and runs the scenery. The stride and
    * spent count are handed over so its own guard-fail divert sees what the ROM leaves in E and B. */
-  if (era < ERA_FLOOR) return seedSceneryEntriesThenRunScenery(m, era, entryCursor, CLEAR_STRIDE, CLEAR_SPENT);
+  if (era < ERA_FLOOR) return seedSceneryEntriesThenRunScenery(m, era, entryCursor, CLEAR_STRIDE, CLEAR_SPENT, recordCursor);
 
   /* Step 3 (0x30E3-0x30F7): era four checks the tamper guard pair first; a wrong value tails into
    * loc_315b and never returns here. */

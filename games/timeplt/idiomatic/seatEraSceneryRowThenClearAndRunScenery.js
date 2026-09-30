@@ -16,8 +16,11 @@
  * codes of the current era and then runs the era's scenery setup.
  *
  * PARAMETERS. `entryCursor` is the sprite-entry pointer the caller leaves behind (IY in the ROM,
- * defaulting to ERA_OBJECT_ENTRY_SLOT0, 0xAA28, where the caller last pointed it); it is only passed
- * on to the scenery chain.
+ * defaulting to ERA_OBJECT_ENTRY_SLOT0, 0xAA28, where the caller last pointed it); `recordCursor` is
+ * the record pointer the caller leaves behind (IX; resetPlayfieldAndArmNewRound's numbering walk ends
+ * it one record past the object run -- under the oracle every dispatch into the scenery clear arrived
+ * with IX = 0xA980). Both are only passed on to the scenery chain, where only the seed step's tamper
+ * divert reads them.
  */
 
 import { sumByteRunAndCompareToExpected } from "./sumByteRunAndCompareToExpected.js";
@@ -39,7 +42,7 @@ const SEAT_COUNT = 8;
 const ERA_FOUR = 0x04;
 const FILL_BYTE = 0xcc;
 
-export function seatEraSceneryRowThenClearAndRunScenery(m, entryCursor = ERA_OBJECT_ENTRY_SLOT0) {
+export function seatEraSceneryRowThenClearAndRunScenery(m, entryCursor = ERA_OBJECT_ENTRY_SLOT0, recordCursor = m.regs.ix) {
   const { mem8 } = m;
 
   // Anti-tamper tripwire. The ROM sums the 16-byte copyright caption record at 0x086B
@@ -66,6 +69,6 @@ export function seatEraSceneryRowThenClearAndRunScenery(m, entryCursor = ERA_OBJ
   // seatSceneryFillByte0x28ThenClearEraScenery (0x3156), whose only job is to choose 0x28; every
   // other era falls into 0x30D1 with 0xCC. Both are ROM jumps, so control does not come back here.
   // fill byte 0x28 at era four, else 0xCC
-  if (era === ERA_FOUR) return seatSceneryFillByte0x28ThenClearEraScenery(m, era, entryCursor);
-  return clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE, era, entryCursor);
+  if (era === ERA_FOUR) return seatSceneryFillByte0x28ThenClearEraScenery(m, era, entryCursor, recordCursor);
+  return clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE, era, entryCursor, recordCursor);
 }

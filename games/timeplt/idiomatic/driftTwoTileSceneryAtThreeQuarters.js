@@ -28,7 +28,8 @@ export function driftTwoTileSceneryAtThreeQuarters(m, record = m.regs.ix, entry 
   // 1. Head tile: move by three quarters of the world scroll (call 0x2D93).
   driftAtThreeQuartersWorldScroll(m, record, entry);
   // 2. Second tile, flush against the head, one sprite width on (call 0x3058).
-  placeAbuttingTile(m, entry, record);
-  // 3. Step both cursors past the second tile onto the next object's slot (tail jump 0x309B).
-  advanceToNextSlot(m);
+  const [tileRecord, tileEntry] = placeAbuttingTile(m, entry, record);
+  // 3. Step both cursors past the second tile onto the next object's slot (tail jump 0x309B), and
+  //    hand them back for the next step in the running order.
+  return advanceToNextSlot(m, tileRecord, tileEntry);
 }

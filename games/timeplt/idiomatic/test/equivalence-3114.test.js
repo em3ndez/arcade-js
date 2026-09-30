@@ -108,6 +108,7 @@ function compare(cand, machine) {
     iyMatch: a.regs.iy === b.regs.iy,
     retOracle,
     retCand,
+    cursorsOracle: [a.regs.ix, a.regs.iy],
   };
 }
 
@@ -154,7 +155,9 @@ test("EQUAL at the poked dispatch: RAM identical outside the mask, cursors carri
     assert.deepEqual(r.regMoved, [], `a live register moved: ${r.regMoved}`);
     assert.ok(r.ixMatch && r.iyMatch, "the bare transfer did not carry the cursors");
     assert.equal(r.spDiff, SP_DRIFT, "the dropped tail ret no longer moves the stack pointer");
-    assert.equal(r.retOracle, r.retCand, "the return value diverged");
+    // The oracle hands its cursors back in IX/IY (its JS return is undefined); the rewrite returns them.
+    assert.equal(r.retOracle, undefined, "the frozen routine returned a JS value");
+    assert.deepEqual(r.retCand, r.cursorsOracle, "the rewrite does not return the oracle's IX/IY cursors");
     // The mask floor sits above every game cell either side writes — proven, not assumed.
     assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached into game data`);
     console.log(`  EQUAL: window [${hex4(r.low)},${hex4(r.seat)}) masked, spDiff ${r.spDiff}`);

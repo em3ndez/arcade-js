@@ -13,12 +13,20 @@
  * without acting (mechanisms.md). What the acting arm is for -- which counter and which slot the
  * caller's pointers name there -- is recorded as open in mechanisms.md; mechanisms.md reads it as
  * replaying a fragment of the Mother-Ship warp's bookkeeping.
+ *
+ * PARAMETERS: counterBase, slotBase = the pointers the acting arm steps and seats through (the ROM's
+ * IX and IY). The ROM's caller never loads either: at the one dispatch the tapes reach (the
+ * two-player start, via startTwoPlayerGame) the oracle arrived with IX = 0x3010, a ROM address, and
+ * IY = 0xAA18, left there by earlier routines. A direct caller therefore has no pointer to give and
+ * passes null for both; the acting arm then refuses rather than invent one. A register-dispatched
+ * caller in the frozen layer reaches it with whatever the registers hold, as the ROM does.
  */
 
 import { u16 } from "../../../core/int.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
 import { PLAYER_STATE, TAMPER_GLYPH_COPY, TAMPER_GLYPH_SOURCE_CELL } from "./names.js";
+import { NotImplemented } from "../../../boards/timeplt/io.js";
 
 // Offsets into the slot the caller's IY points at. Read as a sprite entry, +0x01 and +0x03 are the
 // two tiles' shape codes and +0x30 and +0x32 their attribute bytes -- the same four stores, with the
@@ -37,6 +45,12 @@ export function setUpTwoPlayerStartObjectOnce(m, counterBase = m.regs.ix, slotBa
   // 0x461B and executes eight bytes of an animation table as `sub` instructions; they only
   // disturb A and the flags, and execution then reaches the real stores below at 0x4623.
   // Count the caller's counter down by one, then seat the four fixed bytes into the slot.
+  if (counterBase === null || slotBase === null) {
+    throw new NotImplemented(
+      "setUpTwoPlayerStartObjectOnce: the anti-tamper witness pair disagrees, so the acting arm would step " +
+        "the pointers the caller left in IX and IY -- a direct caller carries none; the oracle's measured two-player dispatch arrived with the pair equal and IX in ROM, where the frozen routine's own first store would fault too",
+    );
+  }
   mem8[counterBase] = mem8[counterBase] - 1;
   mem8[u16(slotBase + SLOT_VERTICAL_A)] = 0xfe;
   mem8[u16(slotBase + SLOT_VERTICAL_B)] = 0xfd;

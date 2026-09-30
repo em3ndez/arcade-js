@@ -2,7 +2,8 @@
 /** freeAndNumberEveryObjectSlot — lay out a run of twenty-three records, sixteen bytes apart from a fixed start:
  * each record's first byte is cleared and its sixteenth is stamped with that record's position
  * in the run, counting from one. Nothing is read, so the run comes out the same however it went
- * in, and the stamped byte is what tells one record from another. LIVE-OUT: memory-only.
+ * in, and the stamped byte is what tells one record from another. LIVE-OUT: memory, and the record
+ * cursor the walk ends on -- one record past the run (the ROM leaves it in IX) -- returned.
  *
  * ROM 0x1AE4-0x1AFB (lift: translated/loc_1ae4.js). Grounding: [seen].
  *
@@ -34,4 +35,6 @@ export function freeAndNumberEveryObjectSlot(m) {
     mem8[record + STATE] = 0;
     mem8[record + NUMBER] = i + 1;
   }
+  // The walk's record cursor ends one record past the run (`add ix,de` after the last record).
+  return ACTOR_RECORD_SLOT0 + RECORDS * RECORD_BYTES;
 }

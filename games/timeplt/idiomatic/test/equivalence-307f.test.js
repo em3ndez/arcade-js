@@ -166,6 +166,7 @@ function compare(cand, machine) {
     iyMatch: !returned || a.regs.iy === b.regs.iy,
     retOracle,
     retCand,
+    cursorsOracle: returned ? [a.regs.ix, a.regs.iy] : null,
   };
 }
 
@@ -324,7 +325,9 @@ test("BOTH PATHS EQUAL: straight returns with cursors and SP drift +2; last slot
     assert.deepEqual(r.regMoved, [], `${label} moved a live register: ${r.regMoved}`);
     assert.ok(r.ixMatch && r.iyMatch, `${label} did not carry the cursors`);
     assert.equal(r.spDiff, SP_DRIFT, `${label} SP drift moved`);
-    assert.equal(r.retOracle, r.retCand, `${label} return value diverged`);
+    // The oracle hands its cursors back in IX/IY (its JS return is undefined); the rewrite returns them.
+    assert.equal(r.retOracle, undefined, `${label}: the frozen routine returned a JS value`);
+    assert.deepEqual(r.retCand, r.cursorsOracle, `${label}: the rewrite does not return the oracle's IX/IY cursors`);
     // The mask floor sits above every cell either side moves -- proven, not assumed.
     assert.ok(r.low > DATA_TOP, `${label} stack window ${hex4(r.low)} reached into game data`);
     assert.ok(footprintTop(m) <= DATA_TOP, `${label} wrote above ${hex4(DATA_TOP)}`);

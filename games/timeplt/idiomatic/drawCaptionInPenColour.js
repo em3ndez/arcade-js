@@ -17,8 +17,8 @@
  * sibling that reads the byte this one steps over, which is what shows that byte is the record's
  * own colour (names.js).
  * PARAMETER: index = the caption number, the ring command's argument (the ROM's A).
- * LIVE-OUT: the cells painted, plus the cursor the painter leaves standing; the colour used is
- * also returned (left in C). */
+ * LIVE-OUT: the cells painted, plus the cursor the painter leaves standing; both the colour used
+ * (left in C) and that cursor are returned, as [colour, cursor]. */
 
 import { u16 } from "../../../core/int.js";
 import { drawTextRun } from "./drawTextRun.js";
@@ -39,6 +39,6 @@ export function drawCaptionInPenColour(m, index = m.regs.a) {
   const colour = mem8[PEN_COLOUR] & COLOUR_FIELD;
   // Paint the glyph run from +3 at the record's start cell; the ROM enters drawTextRun (0x0BFF)
   // by a tail jump (`jr 0x0bff`).
-  drawTextRun(m, u16(record + GLYPHS_START), m.mem16[record], colour);
-  return (m.regs.c = colour);
+  const cursor = drawTextRun(m, u16(record + GLYPHS_START), m.mem16[record], colour);
+  return [(m.regs.c = colour), cursor];
 }

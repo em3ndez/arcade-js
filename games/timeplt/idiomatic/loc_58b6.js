@@ -26,8 +26,10 @@ import { OPENING_ERA_VELOCITY_TABLE } from "./names.js";
 // The table this shim fixes: the ROM's `ld hl,0x5e00`.
 const VELOCITY_TABLE = OPENING_ERA_VELOCITY_TABLE;
 
-export function loc_58b6(m) {
-  // `jp 0x58fe` — a tail jump, so the mover's `ret` returns straight to our caller. The object
-  // (the ROM's IX) and its sprite entry (IY) are whatever the caller already seated.
-  flyAlongHeadingAtDoubleVelocity(m, VELOCITY_TABLE);
+// `object` and `sprite` are the object's record and its sprite entry (the ROM's IX and IY), which the
+// caller seats; no idiomatic routine calls this entry, so they arrive only from a register-dispatched
+// caller and are handed on as arguments from here.
+export function loc_58b6(m, object = m.regs.ix, sprite = m.regs.iy) {
+  // `jp 0x58fe` — a tail jump, so the mover's `ret` returns straight to our caller.
+  flyAlongHeadingAtDoubleVelocity(m, VELOCITY_TABLE, object, sprite);
 }

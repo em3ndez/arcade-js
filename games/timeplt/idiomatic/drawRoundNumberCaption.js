@@ -41,18 +41,20 @@ export function drawRoundNumberCaption(m) {
   const value = mem8[ROUND_NUMBER];
   if (value >= 100) return;
 
-  // Paint the frame, then step the cursor back two cells (ROM `rst 0x28` twice) onto the tens position.
-  drawCaptionInPenColour(m, FIELD_CAPTION);
-  retreatCharCursor(m);
-  retreatCharCursor(m);
+  // Paint the frame, then step the cursor it leaves back two cells (ROM `rst 0x28` twice) onto the
+  // tens position.
+  let [, cursor] = drawCaptionInPenColour(m, FIELD_CAPTION);
+  cursor = retreatCharCursor(m, cursor);
+  cursor = retreatCharCursor(m, cursor);
 
   const colour = mem8[PEN_COLOUR];
   // The tens paint is called with allowance 1: both its paths (paint-and-spend, or drop-and-decrement)
-  // leave the allowance at 0, so the ones digit inherits 0 and a trailing zero always shows.
-  paintDigitDroppingLeadingZero(m, Math.floor(value / 10), 1, colour);
-  advanceCharCursor(m);
-  paintDigitDroppingLeadingZero(m, value % 10, 0, colour);
-  advanceCharCursor(m);
+  // leave the allowance at 0, so the ones digit inherits 0 and a trailing zero always shows. Each
+  // paint hands back the cursor it leaves, and the ROM's `rst 0x20` steps it one cell on.
+  [, cursor] = paintDigitDroppingLeadingZero(m, Math.floor(value / 10), 1, colour, cursor);
+  cursor = advanceCharCursor(m, cursor);
+  [, cursor] = paintDigitDroppingLeadingZero(m, value % 10, 0, colour, cursor);
+  advanceCharCursor(m, cursor);
 
   // The anti-tamper guard (ROM 0x0EDB-0x0EE7).
   let checksum = CHECK_SEED;

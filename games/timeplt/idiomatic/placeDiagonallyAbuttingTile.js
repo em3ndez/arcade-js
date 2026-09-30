@@ -18,7 +18,8 @@
  * Sprite entries: the table at 0xAA10 holds a coordinate byte at +0 of each entry, and the table
  * 0x30 bytes further on holds the other coordinate at +0x31. Adjacent slots are two bytes apart.
  *
- * Parameter: `entry` the current tile's sprite entry (IY in the ROM).
+ * Parameters: `entry` the current tile's sprite entry (IY in the ROM); `record` the slot's record
+ * cursor (IX in the ROM), which only the closing step onto the next slot uses.
  *
  * LIVE-OUT: the two bytes written, and the two stepped cursors. */
 
@@ -36,7 +37,7 @@ const LOW_AXIS = 0;
 // added as one 16-bit quantity.
 const DIAGONAL_STEP = -SPRITE_PITCH * 256 + SPRITE_PITCH;
 
-export function placeDiagonallyAbuttingTile(m, entry = m.regs.iy) {
+export function placeDiagonallyAbuttingTile(m, entry = m.regs.iy, record = m.regs.ix) {
   const { mem8 } = m;
   const nextEntry = entry + ENTRY_STRIDE;
 
@@ -48,5 +49,5 @@ export function placeDiagonallyAbuttingTile(m, entry = m.regs.iy) {
   mem8[nextEntry + LOW_AXIS] = moved;
   // The fall-through into 0x309B: advanceToNextSlot steps the record cursor (IX) by 16 and the entry
   // cursor (IY) by 2, onto the tile just written.
-  advanceToNextSlot(m);
+  return advanceToNextSlot(m, record, entry);
 }

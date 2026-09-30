@@ -44,8 +44,10 @@ export function runSceneryForEra(m) {
   const era = mem8[ERA_INDEX];
   const order = era === FIRST_ERA ? OPENING_ORDER : era === LAST_ERA ? CLOSING_ORDER : MIDDLE_ORDER;
 
-  // Seed the opening step with the first slot; each step then advances both cursors for the next.
-  // (The ROM seats IX = 0xA900 and IY = 0xAA30 once, then calls each step in turn.)
-  order[0](m, SCENERY_RECORD_SLOT0, SCENERY_ENTRY_SLOT0);
-  for (let i = 1; i < order.length; i++) order[i](m);
+  // Seed the opening step with the first slot; each step hands back both cursors advanced past the
+  // slots it used, and the next step starts from them. (The ROM seats IX = 0xA900 and IY = 0xAA30
+  // once, then calls each step in turn, the cursors riding in IX and IY between calls.)
+  let cursors = [SCENERY_RECORD_SLOT0, SCENERY_ENTRY_SLOT0];
+  for (const step of order) cursors = step(m, ...cursors);
+  return cursors;
 }

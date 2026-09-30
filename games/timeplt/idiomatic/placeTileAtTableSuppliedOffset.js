@@ -14,7 +14,8 @@
  *
  * Parameters, all supplied by loc_307f: `iy` is the sprite entry the object occupies now, `hl`
  * points at the table byte that sets the offset, `c` is the coordinate that offset is added to,
- * and `b` is the other coordinate, stored unchanged.
+ * and `b` is the other coordinate, stored unchanged; `ix` is the record cursor (IX), stepped on
+ * with the entry cursor at the end.
  */
 
 import { advanceToNextSlot } from "./advanceToNextSlot.js";
@@ -25,7 +26,7 @@ import { advanceToNextSlot } from "./advanceToNextSlot.js";
 const ENTRY_STRIDE = 2;
 const SECOND_AXIS_OFFSET = 49;
 
-export function placeTileAtTableSuppliedOffset(m, iy = m.regs.iy, hl = m.regs.hl, c = m.regs.c, b = m.regs.b) {
+export function placeTileAtTableSuppliedOffset(m, iy = m.regs.iy, hl = m.regs.hl, c = m.regs.c, b = m.regs.b, ix = m.regs.ix) {
   const { mem8 } = m;
   const nextEntry = iy + ENTRY_STRIDE;
 
@@ -41,5 +42,5 @@ export function placeTileAtTableSuppliedOffset(m, iy = m.regs.iy, hl = m.regs.hl
   /* Step on. The ROM ends with `jp 0x309b`, a tail jump into advanceToNextSlot [seen], which
    * moves the record cursor and the parallel sprite-entry cursor to the next object slot — so
    * the caller comes back already pointing at the entry this call just filled. */
-  advanceToNextSlot(m);
+  return advanceToNextSlot(m, ix, iy);
 }

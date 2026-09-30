@@ -1614,6 +1614,7 @@ export const holdCopyrightThenEraseTheCoinInvitation_ADDR = 0x1748; // routine 0
 export const saveAccumulatorForFrameInterrupt_ADDR = 0x00d8; // routine 0x00d8's own code, checksummed as data by clearWorkRamAndSpriteBanksThenColdInit (which also calls saveAccumulatorForFrameInterrupt)
 export const guardBlockOrBlankDisplay_ADDR = 0x17b9; // routine 0x17b9's own code, walked as data by foldImageBlockIntoSignatureThenAdvanceSequence's tamper signature
 export const ERA_PEN_TABLE = 0x0f8d; // ROM table of two-byte (glyph, colour) pen records indexed 2*era, read by seatCaptionPenFromEraFoldingTamperIntoPhase and setSavedPenFromEra; the bytes are also routine 0x0f8d's own code [seen]
+export const fileTwoPairsIntoObjectRecordHighByteFirst_ADDR = 0x46ce; // routine 0x46ce's own code, read as the past-the-end words of setMotherShipVelocityFromHeading's era arm table, which ends where it begins
 export const PLAYER_ANIM_STRIP_0 = 0x1f76; // player-animation keyframe tile shape-strip base (advancePlayerAnimationStrip FRAME_ARMS)
 export const PLAYER_ANIM_STRIP_1 = 0x1f94; // player-animation keyframe shape-strip base
 export const PLAYER_ANIM_STRIP_2 = 0x1fb2; // player-animation keyframe shape-strip base (reused on the ping-pong)

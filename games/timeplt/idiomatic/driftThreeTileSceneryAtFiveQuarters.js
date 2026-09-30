@@ -31,9 +31,10 @@ export function driftThreeTileSceneryAtFiveQuarters(m, record = m.regs.ix, entry
   // 1. Head tile: move by the world scroll plus a quarter of it (call 0x2D6E).
   driftAtFiveQuartersWorldScroll(m, record, entry);
   // 2. Second tile, flush against the head (first `call 0x3058`).
-  placeAbuttingTile(m, entry, record);
+  let [tileRecord, tileEntry] = placeAbuttingTile(m, entry, record);
   // 3. The remaining further tile(s), each flush against the one before (second `call 0x3058`).
-  for (let tile = 1; tile < FURTHER_TILES; tile++) placeAbuttingTile(m);
-  // 4. Step both cursors past the last tile onto the next object's slot (tail jump 0x309B).
-  advanceToNextSlot(m);
+  for (let tile = 1; tile < FURTHER_TILES; tile++) [tileRecord, tileEntry] = placeAbuttingTile(m, tileEntry, tileRecord);
+  // 4. Step both cursors past the last tile onto the next object's slot (tail jump 0x309B), and hand
+  //    them back for the next step in the running order.
+  return advanceToNextSlot(m, tileRecord, tileEntry);
 }

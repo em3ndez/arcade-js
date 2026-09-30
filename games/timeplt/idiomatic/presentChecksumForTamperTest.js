@@ -18,15 +18,18 @@
  * Why the address walk exists at all is not visible from here: nothing downstream reads the
  * address it lands on (names.js: "never dereferenced by anything downstream"), so it reads as a
  * decoy that makes the routine look like a table-index helper.
+ *
+ * PARAMETERS: hl, de, a = the address, the wide step and the narrow step of the walk (HL, DE, A);
+ * b = the carried count handed back (B).
  */
 
 import { u16 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
 
-export function presentChecksumForTamperTest(m, hl = m.regs.hl, de = m.regs.de, b = m.regs.b) {
+export function presentChecksumForTamperTest(m, hl = m.regs.hl, de = m.regs.de, b = m.regs.b, a = m.regs.a) {
   /* The walk: `add hl,de` (the wide step), then `rst 0x18` — offsetAddress, HL += A — which moves
    * it on again by the byte in A. Only address arithmetic; no fetch. */
-  offsetAddress(m, u16(hl + de));
+  offsetAddress(m, u16(hl + de), a);
   /* The verdict: `ld a,b` puts the carried total where the caller's `cp 0x67` reads it. The
    * move is needed because the walk above clobbers A. */
   return (m.regs.a = b);

@@ -3,8 +3,8 @@
  * SECOND pointer alongside it a byte at a time, overwriting one byte-sized holder at each step, and
  * left that holder, both pointers and the spent count standing in registers; the second walk
  * contributes nothing to the total and nothing after the call reads any of what it left, so it
- * is not repeated here. The second pointer and the holder's prior value are still accepted, so
- * the call keeps the shape its callers use. The length arrives as a count that means a full 256
+ * is not repeated here. The second pointer is still accepted, so the call keeps the shape its
+ * callers use; the holder's prior value (C) is not, since nothing here or after it reads it. The length arrives as a count that means a full 256
  * when it is zero, and the total wraps at eight bits. Nothing is written.
  * LIVE-OUT: the total, returned and left standing in A for a caller that reaches it by address. */
 
@@ -12,7 +12,7 @@ import { u8, u16 } from "../../../core/int.js";
 
 const LENGTH_ZERO_MEANS = 256;
 
-export function foldBlockIntoTotal(m, running = m.regs.a, sumFrom = m.regs.hl, walkFrom = m.regs.de, length = m.regs.b, lastWalked = m.regs.c) {
+export function foldBlockIntoTotal(m, running = m.regs.a, sumFrom = m.regs.hl, walkFrom = m.regs.de, length = m.regs.b) {
   const { mem8 } = m;
   const run = length === 0 ? LENGTH_ZERO_MEANS : length;
   let total = running;

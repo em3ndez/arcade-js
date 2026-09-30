@@ -26,7 +26,14 @@
  * Parameters: c, f — the C register and flags on entry. The ROM threads A, C and the flags from one
  * block into the next. An idle slot never loads C, and BIT keeps the incoming carry flag, so if no slot
  * is armed the C and carry the pass ends with are the caller's own; they are therefore taken in and
- * handed on.
+ * handed on. They reach ONLY that register hand-back, never a sprite byte: every armed slot reloads C
+ * from its own Y byte and recomputes the carry from its own add before anything is written.
+ *
+ * Two entries. multiplexSpriteSlotsSkipping is the register-dispatched one (ROUTINES 0x0f97): the
+ * frozen layer's callers leave C and the flags in the registers and read A, C and the flags back.
+ * sweepSpriteSlotsSkipping is the one an idiomatic caller calls: it carries no register in (a direct
+ * caller has no C or flags to hand over -- what the ROM would carry is whatever the previous routine
+ * left) and leaves none behind; it does the same sprite work through the same slot code.
  */
 
 import {
@@ -109,10 +116,24 @@ function serviceSlot(m, yAddr, xAddr, c, f) {
   return [a, c, f];
 }
 
-export function multiplexSpriteSlotsSkipping(m, c = m.regs.c, f = m.regs.f) {
-  // Walk the eight slots in ROM order, each block taking the A/C/flags the previous one left.
+// Walk the eight slots in ROM order, each block taking the A/C/flags the previous one left, and
+// return what the last slot leaves.
+function sweep(m, c, f) {
   let a;
   for (const [yAddr, xAddr] of SLOTS) [a, c, f] = serviceSlot(m, yAddr, xAddr, c, f);
+  return [a, c, f];
+}
+
+export function multiplexSpriteSlotsSkipping(m, c = m.regs.c, f = m.regs.f) {
   // Hand the last slot's A, C and flags back, and leave them in the registers for the caller.
-  return [(m.regs.a = a), (m.regs.c = c), (m.regs.f = f)];
+  const [a, lastC, lastF] = sweep(m, c, f);
+  return [(m.regs.a = a), (m.regs.c = lastC), (m.regs.f = lastF)];
+}
+
+// No register is carried in: an idle slot passes the incoming C and flags straight through to the
+// hand-back, which a direct caller does not take, so starting them at zero changes no sprite byte.
+const NOTHING_CARRIED = 0;
+
+export function sweepSpriteSlotsSkipping(m) {
+  sweep(m, NOTHING_CARRIED, NOTHING_CARRIED);
 }

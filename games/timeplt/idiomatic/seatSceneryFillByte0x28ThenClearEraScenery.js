@@ -14,8 +14,8 @@
  * ROLE IN THE MACHINE. Reached from seatEraSceneryRowThenClearAndRunScenery on its era-four path.
  * Control transfers to the body and does not come back here.
  *
- * PARAMETERS. `era` is the era the caller carried (the body branches on it), `entryCursor` the
- * sprite-entry cursor it carried; both pass straight through.
+ * PARAMETERS. `era` is the era the caller carried (the body branches on it), `entryCursor` and
+ * `recordCursor` the sprite-entry and record cursors it carried (IY, IX); all pass straight through.
  *
  * LIVE-OUT: memory.
  */
@@ -25,7 +25,7 @@ import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenR
 // The fill byte this entry seats (0x28).
 const FILL_BYTE = 40;
 
-export function seatSceneryFillByte0x28ThenClearEraScenery(m, era = m.regs.c, entryCursor = m.regs.iy) {
-  // Tail into the body with the fixed fill byte and the caller's era and cursor.
-  return clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE, era, entryCursor);
+export function seatSceneryFillByte0x28ThenClearEraScenery(m, era = m.regs.c, entryCursor = m.regs.iy, recordCursor = m.regs.ix) {
+  // Tail into the body with the fixed fill byte and the caller's era and cursors.
+  return clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE, era, entryCursor, recordCursor);
 }

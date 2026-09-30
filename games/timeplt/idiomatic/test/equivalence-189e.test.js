@@ -5,7 +5,15 @@
  *   scratch below the seated SP masked out (the oracle brackets its dissolved calls with pushes the
  *   rewrite does not), the SP re-seat and the return value checked, and teeth. Registers are not
  *   compared: the dissolved callees do not reproduce the register dance and both callers reach here
- *   by a tail jump, so no caller consumes one. Run:
+ *   by a tail jump, so no caller consumes one.
+ * ACTIVE ARM: a disagreeing witness pair sends the oracle's 0x460E call into its acting arm, which
+ *   steps the pointers LEFT OVER in IX and IY, nothing this routine or its caller computes. Every
+ *   measured two-player dispatch arrived with 0xAB43 == 0xA67C == 0x7C and IX = 0x3010, in ROM;
+ *   whether any genuine run makes the pair disagree is open (mechanisms.md). The rewrite carries no register, so it
+ *   hands 0x460E no pointers and the arm refuses (NotImplemented); that arm's own gate,
+ *   equivalence-460e, still compares it against the oracle with pointers supplied. The crafted
+ *   active entry is therefore asserted as the oracle acting and the rewrite refusing, not as equal.
+ *   Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-189e.test.js
  */
 
@@ -21,6 +29,7 @@ import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { seatSequencePhase3AndResetSubStep } from "../seatSequencePhase3AndResetSubStep.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "../names.js";
 import { u8 } from "../../../../core/int.js";
+import { NotImplemented } from "../../../../boards/timeplt/io.js";
 
 const TARGET = 0x189e;
 const IN0 = 0xc300;
@@ -120,6 +129,12 @@ function makeActive(m) {
   m.regs.ix = WRITABLE_COUNTER;
 }
 
+const ROM_TOP = 0x5fff;
+
+/** The scenarios the rewrite must match the oracle on: every one but the tampered active arm. */
+const equalScenarios = () => scenarios().filter(([label]) => label !== "active-arm");
+const activeArm = () => scenarios().find(([label]) => label === "active-arm")[1];
+
 function scenarios() {
   return [
     ["captured", craft(() => {})],
@@ -142,7 +157,7 @@ function deductTwoBcd(value) {
   return u8(d - c);
 }
 
-/** The rewrite with one deliberate defect each; every knob matches startTwoPlayerGame by default. */
+/** The rewrite with one deliberate defect each; every knob matches startTwoPlayerGame by default except the start arm: a twin calls setUpTwoPlayerStartObjectOnce with the entry's IX and IY (as the oracle's register dispatch does), where startTwoPlayerGame hands it null. So on the active-arm scenario a default twin acts as the oracle does, and the rewrite's refusal there is held by the ACTIVE ARM test, not by these twins. */
 function twin({ credit = "two", p2flag = ALL_BITS, p2lives = true, arm = true }) {
   return (m) => {
     const { mem8 } = m;
@@ -199,19 +214,30 @@ test("UNREACHED: neither the coin-start tape nor attract dispatches this, with a
     console.log(`  UNREACHED: coin-start 0, attract 0, two-player ${twoPlayer}`);
   });
 
-test("PATHS: every scenario is equivalent, and the start arm really changes the footprint",
+test("PATHS: every scenario but the active arm is equivalent, and the start arm really changes the footprint",
   { skip }, () => {
     const prints = {};
-    for (const [label, m] of scenarios()) {
+    for (const [label, m] of scenarios()) prints[label] = footprint(m).length;
+    for (const [label, m] of equalScenarios()) {
       const r = compare(candidate, m);
       assert.equal(r.escaped, null, `${label} escaped at ${r.escaped && hex4(r.escaped.addr)}`);
-      prints[label] = footprint(m).length;
     }
     // ★ Vacuity guard: the active arm must move MORE cells than the captured no-op entry, or the
     // craft changed nothing and the arm would pass a rewrite that ignored setUpTwoPlayerStartObjectOnce entirely.
     assert.ok(prints["active-arm"] > prints["captured"], "the start arm moved no extra cells");
-    console.log(`  PATHS: 5 scenarios equivalent; active arm moves ${prints["active-arm"]} cells`);
+    console.log(`  PATHS: ${equalScenarios().length} scenarios equivalent; active arm moves ${prints["active-arm"]} cells`);
   });
+
+test("ACTIVE ARM: the oracle steps leftover pointers; the rewrite, carrying none, refuses", { skip }, () => {
+  // The pointers are leftovers: at the real dispatch IX points into ROM, not at anything the start sets.
+  assert.ok(entryState().regs.ix <= ROM_TOP, `the real dispatch's IX ${hex4(entryState().regs.ix)} is not a ROM leftover`);
+  assert.equal(entryState().mem8[MIRROR], entryState().mem8[WATCHED], "the genuine two-player dispatch arrived with the witness pair disagreeing -- the acting arm is reachable on a good ROM");
+  const a = activeArm().clone();
+  oracle(a);
+  assert.ok(footprint(activeArm()).length > footprint(craft(() => {})).length, "the oracle's acting arm moved nothing extra");
+  assert.throws(() => candidate(activeArm().clone()), NotImplemented, "the rewrite ran the acting arm without pointers");
+  console.log(`  ACTIVE ARM: real IX ${hex4(entryState().regs.ix)} (ROM); oracle acts, rewrite refuses`);
+});
 
 test("BCD: every credit value deducts two under the oracle's decimal correction", { skip }, () => {
   for (let v = 0; v <= 0xff; v++) {
@@ -228,12 +254,12 @@ test("BCD: every credit value deducts two under the oracle's decimal correction"
 });
 
 test("SP and RETURN: the oracle re-seats two bytes higher and both return the same", { skip }, () => {
-  for (const [label, m] of scenarios()) {
+  for (const [label, m] of equalScenarios()) {
     const r = compare(candidate, m);
     assert.equal(r.spDiff, 2, `${label}: the oracle pops the tail-jump slot and the rewrite does not`);
     assert.equal(r.retOracle, r.retCand, `${label}: the return value diverged`);
   }
-  console.log("  SP: +2 on every scenario; return values identical");
+  console.log("  SP: +2 on every scenario but the active arm; return values identical");
 });
 
 for (const [label, brokenTwin, expected] of TWINS) {
