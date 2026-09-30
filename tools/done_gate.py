@@ -19,7 +19,8 @@ subsystem with no gate guarding the done-claim. Subsystems:
 Slow subsystems (pixel, suite) are fine: this is a ship-time gate, not per-commit. A subsystem whose
 tooling is absent or errors is reported RED (fail-closed), never silently skipped.
 
-Subcommand: check --game <game>.
+Subcommands: check --game <game>; selftest; strict-report --game <game> (read-only R16 per-cell tag
+accounting for any game, enrolled in STRICT_TAG_GAMES or not).
 """
 import argparse
 import glob
@@ -139,18 +140,110 @@ def _read_grounding_debt(game):
     return debt
 
 
+# ---- strict per-cell tag mode (reviewer-rules R16, runbook §4) --------------------------------------
+# The legacy counter above grades TAGS it happens to see: a cell with NO tag is invisible to it, so a
+# names.js with hundreds of unrated cells reads "fully grounded". R16 is the opposite contract: every
+# `export const NAME = 0x…` carries a rating in ITS OWN comment -- its inline `// …` or the /** … */ block
+# directly above it; a `//` section header never counts. Opt-in per game (like idiomatic_gate TIGHT_GAMES)
+# so enrolling a game is a deliberate, reviewed step, never a silent reddening of a shipped game's status.
+STRICT_TAG_GAMES = {"timeplt"}
+STRICT_CONST = re.compile(r"^export const ([A-Za-z_$][\w$]*)\s*=\s*(0x[0-9a-fA-F]+)\s*;")
+ROUTINE_ALIAS = re.compile(r"^[a-z][A-Za-z0-9]*_ADDR$")   # <routineName>_ADDR: a code address used as a value
+
+
+def _own_tag(text):
+    """First evidence tag in a cell's own comment text ([code]->[seen] = seen), or None if untagged."""
+    m = FIRST_TAG.search(GND_ARROW.sub("[seen]", text))
+    return m.group(1) if m else None
+
+
+def _strict_cells(lines):
+    """Every `export const NAME = 0x…` cell with its OWN tag. Returns (cells, aliases): cells is a list of
+    (name, addr, tag|None); aliases the <routine>_ADDR consts whose address IS a ROUTINES key -- those are
+    graded by that routine's cert (counted as a routine), so they are not cells. An _ADDR alias whose
+    address is NOT a ROUTINES entry has no cert to inherit and is graded as a cell (fail-closed)."""
+    rkeys, in_rout = set(), False
+    for ln in lines:
+        if ln.startswith("export const ROUTINES"):
+            in_rout = True
+            continue
+        if in_rout:
+            if ln.startswith("};"):
+                in_rout = False
+                continue
+            m = re.match(r"^\s*(0x[0-9a-fA-F]+)\s*:", ln)
+            if m:
+                rkeys.add(int(m.group(1), 16))
+    cells, aliases = [], []
+    for i, ln in enumerate(lines):
+        m = STRICT_CONST.match(ln)
+        if not m:
+            if re.match(r"^export const [A-Za-z_$][\w$]*\s*=\s*(0x|$)", ln):  # multi-line/compound hex const: fail-closed
+                cells.append((ln.split()[2].split("=")[0], None, None))
+            continue
+        name, addr = m.group(1), int(m.group(2), 16)
+        if ROUTINE_ALIAS.match(name) and addr in rkeys:
+            aliases.append((name, addr))
+            continue
+        tags = []
+        rest = ln[m.end():]
+        if "//" in rest:                                   # inline comment on the const line
+            tags.append(_own_tag(rest.split("//", 1)[1]))
+        j = i - 1                                          # the /** … */ block directly above (blank lines ok)
+        while j >= 0 and not lines[j].strip():
+            j -= 1
+        if j >= 0 and lines[j].rstrip().endswith("*/"):
+            k = j
+            while k >= 0 and "/*" not in lines[k]:
+                k -= 1
+            block = "".join(lines[max(k, 0):j + 1])
+            if "evidence tag" not in block:                # the file legend is nobody's own comment
+                tags.append(_own_tag(block))
+        tags = [t for t in tags if t]
+        if not tags:
+            tag = None
+        elif any(t in ("code", "guess") for t in tags):    # fail-closed: any own [code]/[guess] wins
+            tag = next(t for t in tags if t in ("code", "guess"))
+        else:
+            tag = "seen"
+        cells.append((name, addr, tag))
+    return cells, aliases
+
+
+def _strict_grounding(lines, debt):
+    """Strict R16 accounting. Returns a dict: untagged (names), code/guess (names), debt-covered (names),
+    ungrounded cell count, alias count. Untagged cells are ungrounded REGARDLESS of grounding-debt.txt
+    (R16: every cell carries a rating, no exception); a [code]/[guess] cell is subtracted iff its address
+    is a debt entry."""
+    cells, aliases = _strict_cells(lines)
+    r = {"total": len(cells), "aliases": len(aliases), "untagged": [], "code": [], "guess": [],
+         "debt_covered": [], "seen": 0, "ung_addrs": set()}
+    for name, addr, tag in cells:
+        if tag is None:
+            r["untagged"].append(name)
+        elif tag == "seen":
+            r["seen"] += 1
+        else:
+            r["ung_addrs"].add(addr)
+            (r["debt_covered"] if addr in debt else r[tag]).append(name)
+    r["ungrounded"] = len(r["untagged"]) + len(r["code"]) + len(r["guess"])
+    return r
+
+
 def check_grounding(game):
     # names.js (the registry) is the authoritative grounding artifact; mechanisms.md `[code]` are
     # accounted-for prose, not counted here. grounding-debt.txt subtracts the honestly-irreducible tail.
     path = f"games/{game}/idiomatic/names.js"
     if not os.path.exists(path):
         return False, "no names.js"
-    cells, routines, cell_addrs, rout_addrs = _count_grounding(
-        open(path, encoding="utf-8", errors="replace").readlines())
+    lines = open(path, encoding="utf-8", errors="replace").readlines()
+    cells, routines, cell_addrs, rout_addrs = _count_grounding(lines)
     debt = _read_grounding_debt(game)
     noreason = sorted(a for a, r in debt.items() if not r)
     if noreason:
         return False, "grounding-debt.txt: entries need a reason -> " + ", ".join(hex(a) for a in noreason)
+    if game in STRICT_TAG_GAMES:
+        return _check_grounding_strict(lines, rout_addrs, debt)
     ung = {a for a in cell_addrs + rout_addrs if a is not None}
     stale = sorted(set(debt) - ung)
     if stale:
@@ -164,6 +257,43 @@ def check_grounding(game):
     if rem_cells + rem_rout == 0:
         return True, "fully grounded" + tail
     return False, f"{rem_cells} ungrounded cells + {rem_rout} ungrounded routines" + tail
+
+
+def _check_grounding_strict(lines, rout_addrs, debt):
+    # STRICT_TAG_GAMES: cells graded per-cell (R16) by _strict_grounding; routines by the same cert rule.
+    st = _strict_grounding(lines, debt)
+    stale = sorted(set(debt) - st["ung_addrs"] - {a for a in rout_addrs if a is not None})
+    if stale:
+        return False, ("grounding-debt.txt: stale (not a [code]/[guess] cell or ungrounded routine) -> "
+                       + ", ".join(hex(a) for a in stale))
+    acc_rout = sum(1 for a in rout_addrs if a is not None and a in debt)
+    rem_rout = len(rout_addrs) - acc_rout
+    acc = acc_rout + len(st["debt_covered"])
+    tail = f" ({acc} accounted-for via grounding-debt.txt)" if acc else ""
+    if st["ungrounded"] + rem_rout == 0:
+        return True, "fully grounded, every cell carries its own tag [strict R16]" + tail
+    detail = (f"{st['ungrounded']} ungrounded cells ({len(st['untagged'])} untagged, {len(st['code'])} [code], "
+              f"{len(st['guess'])} [guess]) + {rem_rout} ungrounded routines [strict R16]" + tail)
+    for label in ("untagged", "code", "guess"):
+        if st[label]:
+            detail += f"\n      {label}: " + " ".join(st[label])
+    return False, detail
+
+
+def strict_report(game):
+    """Read-only: the strict R16 cell accounting for ANY game (enrolled or not) -- the rollout measurement."""
+    path = f"games/{game}/idiomatic/names.js"
+    if not os.path.exists(path):
+        print(f"{game}: no names.js"); return 1
+    st = _strict_grounding(open(path, encoding="utf-8", errors="replace").readlines(),
+                           _read_grounding_debt(game))
+    print(f"{game}: cells={st['total']} seen={st['seen']} untagged={len(st['untagged'])} "
+          f"code={len(st['code'])} guess={len(st['guess'])} debt-covered={len(st['debt_covered'])} "
+          f"routine-aliases-excluded={st['aliases']} strict={'yes' if game in STRICT_TAG_GAMES else 'no'}")
+    for label in ("untagged", "code", "guess", "debt_covered"):
+        for n in st[label]:
+            print(f"  {label} {n}")
+    return 0
 
 
 def check_audio(game):
@@ -379,6 +509,63 @@ def selftest():
     # accounting: a grounding-debt entry subtracts an ungrounded item by ADDRESS (0x8800 here -> 1 accounted).
     if sum(1 for a in cell_addrs + rout_addrs if a in {0x8800}) != 1:
         print("selftest FAIL: grounding accounting arithmetic", file=sys.stderr); ok = False
+    # strict R16 per-cell tags (STRICT_TAG_GAMES): drive the REAL check_grounding over a synthetic game, once
+    # enrolled and once not. Each case names the cell it is about; the untagged list must name it.
+    import tempfile
+    strict_src = [
+        "/**\n", " * legend: every name carries an evidence tag: [seen] [code] [guess]\n", " */\n", "\n",
+        "export const UNTAGGED_CELL = 0xa001;\n",                            # (a) no tag at all
+        "// ── Section header [seen]\n",
+        "export const HEADER_ONLY_CELL = 0xa002; // role prose, no tag\n",   # (b) tag only on a // header
+        "/** [seen] watched under MAME */\n",
+        "export const SEEN_CELL = 0xa003;\n",                                # (c) own JSDoc [seen]
+        "export const SEEN_INLINE = 0xa004; // [seen] watched\n",           # (c') own inline [seen]
+        "/**\n", " * [code] role read from the routines\n", " */\n",
+        "export const DEBT_CELL = 0xa005;\n",                                # (d) own [code], debt-covered
+        "export const fooBar_ADDR = 0x1234; // entry address of routine 0x1234\n",  # routine alias
+        "export const ROUTINES = {\n", '  0x1234: { name: "fooBar", role: "r", cert: "seen" },\n', "};\n",
+    ]
+    real_strict, cwd = set(STRICT_TAG_GAMES), os.getcwd()
+    with tempfile.TemporaryDirectory() as root:
+        os.makedirs(os.path.join(root, "games", "sg", "idiomatic"))
+        with open(os.path.join(root, "games", "sg", "idiomatic", "names.js"), "w") as fh:
+            fh.writelines(strict_src)
+        with open(os.path.join(root, "games", "sg", "grounding-debt.txt"), "w") as fh:
+            fh.write("0xa005  [anti-tamper] test reason\n")
+        try:
+            os.chdir(root)
+            STRICT_TAG_GAMES.discard("sg")
+            ok_legacy, det_legacy = check_grounding("sg")                  # (e) not enrolled -> legacy verdict
+            STRICT_TAG_GAMES.add("sg")
+            ok_s, det_s = check_grounding("sg")
+            st = _strict_grounding(strict_src, {0xa005: "r"})
+            st_nodebt = _strict_grounding(strict_src, {})
+        finally:
+            STRICT_TAG_GAMES.clear(); STRICT_TAG_GAMES.update(real_strict)
+            os.chdir(cwd)
+    for label, got, want in [
+        ("(e) non-strict game keeps the legacy verdict", (ok_legacy, det_legacy),
+         (True, "fully grounded (1 accounted-for via grounding-debt.txt)")),
+        ("strict game is red", ok_s, False),
+        ("(a) untagged cell counted + named", "UNTAGGED_CELL" in st["untagged"], True),
+        ("(b) //-header-only cell counted + named", "HEADER_ONLY_CELL" in st["untagged"], True),
+        ("(a)+(b) listed in the failure output", all(n in det_s for n in ("UNTAGGED_CELL", "HEADER_ONLY_CELL")), True),
+        ("(c) [seen] cells not counted", any(n in det_s for n in ("SEEN_CELL", "SEEN_INLINE")), False),
+        ("(d) debt-covered [code] cell not counted", ("DEBT_CELL" in st["debt_covered"], st["ungrounded"]), (True, 2)),
+        ("(d') same [code] cell without debt IS counted", ("DEBT_CELL" in st_nodebt["code"], st_nodebt["ungrounded"]), (True, 3)),
+        ("routine alias graded by its ROUTINES cert, not as a cell", (st["aliases"], st["total"]), (1, 5)),
+    ]:
+        if got != want:
+            print(f"selftest FAIL: strict grounding {label} -> {got!r} want {want!r}", file=sys.stderr); ok = False
+    # fail-closed edges: an _ADDR alias with NO ROUTINES entry is a cell; a debt entry cannot excuse an
+    # UNTAGGED cell (R16: rated first) -- it is reported stale instead.
+    if _strict_cells(["export const orphan_ADDR = 0x9999;\n"]) != ([("orphan_ADDR", 0x9999, None)], []):
+        print("selftest FAIL: strict grounding orphan _ADDR alias not graded as a cell", file=sys.stderr); ok = False
+    if _strict_cells(["/** [code] from the routines */\n", "export const MIX = 0xa006; // [seen]\n"])[0] != [("MIX", 0xa006, "code")]:
+        print("selftest FAIL: strict grounding an own [seen] masked an own [code] (fail-closed precedence)", file=sys.stderr); ok = False
+    ok_u, det_u = _check_grounding_strict(["export const U = 0xa001;\n"], [], {0xa001: "r"})
+    if ok_u or "stale" not in det_u:
+        print(f"selftest FAIL: strict grounding debt excused an untagged cell -> {det_u!r}", file=sys.stderr); ok = False
     # done-record: subsystem-green is only the PRE-FILTER; "done" also needs a COMMITTED DONE.md. The
     # helper counts a record only when git-tracked (an untracked working-tree DONE.md has not been reviewed).
     if not done_record_committed("x", tracked={"games/x/DONE.md"}):
@@ -420,9 +607,11 @@ def selftest():
 
 def main():
     ap = argparse.ArgumentParser(description="Definition-of-done gate: every subsystem must pass.")
-    ap.add_argument("cmd", choices=("check", "selftest"))
+    ap.add_argument("cmd", choices=("check", "selftest", "strict-report"))
     ap.add_argument("--game", default="frogger")
     args = ap.parse_args()
+    if args.cmd == "strict-report":
+        return strict_report(args.game)
     return selftest() if args.cmd == "selftest" else check(args.game)
 
 

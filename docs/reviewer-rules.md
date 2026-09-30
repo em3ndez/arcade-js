@@ -170,6 +170,10 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   each `export const NAME = 0x…`, its own comment must contain `[seen]`, `[code]`, or `[guess]`.
   **FAIL if ANY named cell is unrated** — no ratchet, no legacy-debt exception. A name is not
   understanding; the registry is complete only when every cell is labeled.
+  done_gate enforces this for games in `tools/done_gate.py` `STRICT_TAG_GAMES`: its grounding subsystem
+  counts every untagged `export const NAME = 0x…` cell (a `//` header tag does not count; a `<routine>_ADDR` alias of a ROUTINES address is graded by that routine's `cert:`, so R16 review of alias tags stays with the reviewer), and
+  `python3 tools/done_gate.py strict-report --game <g>` measures any game. Games are enrolled one at a time
+  with their grounding pass, never flipped red first.
 
 ## Translation conventions
 - **R9 [ALL]** No import from `optimized/` (retired layer). Imports resolve from `./names.js` and other

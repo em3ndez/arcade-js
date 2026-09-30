@@ -16,10 +16,10 @@
  *
  * Each table row (SCENERY_SEED_TABLE 0x316E) is a packed byte pair that fills TWO sprite slots, at
  * the entry cursor and two bytes on: the first byte goes to +0x31 of the first slot and, plus 0x10,
- * to +0x31 of the second; the second byte goes to +0x00 of both. names.js calls the pair
- * (tint, shape) and the constants below keep that vocabulary; mechanisms.md records that +0x31 and
- * +0x00 are where a sprite entry keeps its two coordinates, so these are really starting
- * positions, and the names are due for re-derivation.
+ * to +0x31 of the second; the second byte goes to +0x00 of both. The constants below call the
+ * pair (tint, shape), an older vocabulary; names.js and mechanisms.md record that +0x31 and +0x00
+ * are where a sprite entry keeps its native-Y and native-X, so these are really starting
+ * positions, and the local names are due for re-derivation.
  *
  * PARAMETERS (all from the caller, and read only by the divert arm): `era` (the ROM's C),
  * `entryCursor` (IY), `clearStride` (E), `clearCount` (B, the caller's clear loop's spent count) and

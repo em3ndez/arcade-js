@@ -651,6 +651,12 @@ workflow+review+push cycle. Do it once, wide. The steps:
   each is independently reviewed as truly un-groundable-on-a-good-ROM (reviewer-rules R39). A routine or
   cell a deep capture COULD reach (a later board, the eagle/bonus stage, a sound event, a forced
   transition) is GROUNDED, never allowlisted — allowlist only the true irreducible residue.
+- **Per-cell tag accounting (R16, strict mode).** For a game listed in `tools/done_gate.py`
+  `STRICT_TAG_GAMES`, done_gate's grounding subsystem counts every `export const NAME = 0x…` cell (except a `<routine>_ADDR` alias whose address is a ROUTINES key, which is graded by that routine's `cert:`) whose OWN
+  comment (its inline `// …` or the `/** … */` block directly above it) carries no tag as ungrounded — a `//`
+  section-header tag does not count — and a `[code]`/`[guess]` cell is accounted-for only when its address is
+  in `grounding-debt.txt`. `python3 tools/done_gate.py strict-report --game <g>` measures any game, enrolled
+  or not. Games are enrolled one at a time together with their grounding pass, never flipped red first.
 
 **Derive the method from this runbook and `understanding.md`, never from the shape of an old commit.**
 Grounding leaves almost no *diff* artifacts — it is `[seen]` tags, notes, and the occasional overturned
