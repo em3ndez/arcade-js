@@ -22,17 +22,18 @@
  * Whatever pointer the caller had in HL is overwritten by the table base, which is why no incoming
  * pointer survives.
  *
- * LIVE-OUT: the component pair velocityForHeading leaves (DE, BC) — the pair is the whole product;
- * no memory is written.
+ * LIVE-OUT: the component pair velocityForHeading leaves (DE, BC), also returned — the pair is the
+ * whole product; no memory is written.
  */
 
 import { velocityForHeading } from "./velocityForHeading.js";
+import { VELOCITY_TABLE_08FA } from "./names.js";
 
-// The ROM's `ld hl,0x08fa`: the 331-peak velocity table (VELOCITY_TABLE_08FA in names.js).
-const VELOCITY_TABLE = 0x8fa;
+// The ROM's `ld hl,0x08fa`: the 331-peak velocity table.
+const VELOCITY_TABLE = VELOCITY_TABLE_08FA;
 
 export function loc_596b(m) {
-  // The fall-through into 0x596E: velocityForHeading runs next and leaves the pair in DE and BC; this
-  // entry returns nothing itself, so those registers are its live-out.
-  velocityForHeading(m, VELOCITY_TABLE);
+  // The fall-through into 0x596E: velocityForHeading runs next, so its return is this entry's
+  // return; the pair is also left in DE and BC.
+  return velocityForHeading(m, VELOCITY_TABLE);
 }

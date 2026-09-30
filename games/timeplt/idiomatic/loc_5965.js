@@ -21,7 +21,7 @@
  * Whatever pointer the caller had in HL is overwritten by the table base before the jump, which is
  * why no incoming pointer survives.
  *
- * LIVE-OUT: the component pair velocityForHeading leaves (DE, BC); no memory is written.
+ * LIVE-OUT: the component pair velocityForHeading leaves (DE, BC), also returned; no memory is written.
  */
 
 import { velocityForHeading } from "./velocityForHeading.js";
@@ -31,7 +31,7 @@ import { loc_2e3e } from "./names.js";
 const VELOCITY_TABLE = loc_2e3e;
 
 export function loc_5965(m) {
-  // The ROM's `jp 0x596e`: a tail jump. velocityForHeading leaves the pair in DE/BC; this entry
-  // does not return its JS value.
-  velocityForHeading(m, VELOCITY_TABLE);
+  // The ROM's `jp 0x596e`: a tail jump, so velocityForHeading's return is this entry's return; the
+  // pair is also left in DE/BC.
+  return velocityForHeading(m, VELOCITY_TABLE);
 }
