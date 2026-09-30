@@ -1733,8 +1733,8 @@
 1AA8	point at the table of tuning-row addresses
 1AAB	fetch the chosen row's address
 1AAD	first byte: a launch-bank slot cap
-1AB2	the bank's near-approach X half-window
-1AB7	the bank's near-approach Y half-window
+1AB2	the bank launch's heading half-window
+1AB7	the bank's near-approach half-window, both axes
 1ABC	the bank-launch cooldown
 1ABF	-- into its paired reload cell too
 1AC4	the craft-per-round count
@@ -2904,14 +2904,14 @@
 3717	read this slot's head byte
 371A	test it
 371B	slot busy: step to the next one
-371E	read the descriptor's shape offset
+371E	read the descriptor's edge-position offset
 371F	add the heading bias
-3720	double it -- two-byte shape entries
-3721	point at the shape-run table
-3724	fetch the shape byte
-3725	write the shape into the sprite entry
-3729	read the paired attribute byte
-372A	write it to the entry head
+3720	double it -- two-byte position entries
+3721	point at the edge-position table
+3724	fetch the position's first coordinate
+3725	write it to the sprite entry's +0x31 coordinate
+3729	read the position's second coordinate
+372A	write it to the sprite entry's +0x00 coordinate
 372D	read the player heading
 3730	flip it half a turn
 3732	store it as the craft's heading
@@ -3406,7 +3406,7 @@
 3EFE	bank full -- nothing to launch
 3EFF	remember the free record pointer
 3F02	and its sprite entry pointer
-3F06	read the near half-width for Y
+3F06	read the near half-width, both axes
 3F0A	double it -- the full near band
 3F0C	screen Y reference ($78)
 3F0E	minus the player entry's Y
@@ -3418,12 +3418,12 @@
 3F1A	re-centre by the half-width
 3F1B	within the near X band too?
 3F1C	too close on both axes -- reject this launch
-3F1D	read the near half-width for the scroll axis
+3F1D	read the heading half-width
 3F21	double it -- the full band
-3F23	read the scroll reference
-3F26	minus the object's X
+3F23	read the player's heading
+3F26	minus the craft's heading
 3F29	re-centre by the half-width
-3F2A	within the scroll band?
+3F2A	within the heading window?
 3F2B	outside it -- reject this launch
 3F2C	read the found entry's page byte
 3F2D	is the entry page $02?
@@ -4906,7 +4906,7 @@
 50DF	the destroyed code
 50E1	destroy the player
 50E4	destroy the mother ship
-50E8	clear the mother ship's hold counter, the cell beside its state
+50E8	clear the mother ship's hits-to-absorb count, the cell beside its state
 50EB	post the chained hit score
 50EE	point at the player's sprite entry
 50F2	read the player's state
@@ -4926,7 +4926,7 @@
 5112	the destroyed code
 5114	destroy the player
 5117	destroy the mother ship
-511B	clear the mother ship's hold counter, the cell beside its state
+511B	clear the mother ship's hits-to-absorb count, the cell beside its state
 511E	post the chained hit score
 5121	read the player's state -- the fixed attacker
 5125	player gone -- nothing to do

@@ -401,7 +401,13 @@ feeds the next batch's targets.
     session drives is not measured. Then the register is dead in the live game and need not be set; move
     it to the excluded set, and relabel a twin whose only defect is that register HARMLESS (asserted caught
     nowhere) instead of deleting it. That each override computes the value itself is a REVIEW check, not
-    the arm's. This relaxes the held set only as LAST MILE (a) below does (derived from the oracle,
+    the arm's. So is the **reader->owner pairing**: the arm MEASURES which return addresses hear the
+    register, but the table naming the override that owns each one (timeplt's `HL_READERS` / `A_READERS`) is authored,
+    and the arm only checks that every owner it is handed is in `ROUTINES`, never that the return
+    address lies in that owner's code. The reviewer re-derives each pair from the disassembly (the
+    instruction after the call, and the routine whose body it sits in): a reader paired to the wrong
+    owner passes the arm, and if its real owner is an override that still takes the value from the
+    register (a `m.regs` default parameter), no frozen code runs and the live probe passes too. This relaxes the held set only as LAST MILE (a) below does (derived from the oracle,
     proposer≠confirmer); it never licenses dropping a register a still-FROZEN routine reads (R37, next).
     Reference: timeplt `equivalence-0008` (HL) / `equivalence-0018` (A), via `_deadAtExit.js`
     `TAPE_SESSIONS` + `handOffReaders`.

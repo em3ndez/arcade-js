@@ -13,7 +13,7 @@
  * round engine's collision pass reaches it through splitCollisionWorkByFrameParity and
  * runAllCollisionSweepsThisFrame, only while the Mother-Ship is armed (names.js 0x4ebc). A touch
  * kills both: the player loses a life and the Mother-Ship is destroyed outright rather than
- * losing one of its hits, because MOTHER_SHIP_HOLD_COUNTER 0xA8A4 [seen] -- the hits it can still
+ * losing one of its hits, because MOTHER_SHIP_HITS_TO_ABSORB 0xA8A4 [seen] -- the hits it can still
  * absorb -- is zeroed here.
  *
  * THE BOX. Every collision test in this game compares two sprite entries' whole-part coordinates
@@ -25,7 +25,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { destroyPlayerAndMotherShipOnContact } from "./destroyPlayerAndMotherShipOnContact.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { ERA_INDEX, MOTHER_SHIP_ENTRY, MOTHER_SHIP_HOLD_COUNTER, MOTHER_SHIP_SPRITE_Y, MOTHER_SHIP_STATE, PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
+import { ERA_INDEX, MOTHER_SHIP_ENTRY, MOTHER_SHIP_HITS_TO_ABSORB, MOTHER_SHIP_SPRITE_Y, MOTHER_SHIP_STATE, PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
 
 // A sprite entry's two coordinate bytes sit 49 (0x31) apart: +0x00 is the first native axis,
 // +0x31 the second. PLAYER_ENTRY + 49 is therefore the player's second-axis byte (0xAA41).
@@ -75,7 +75,7 @@ export function ramTestPlayerVsMotherShip(m) {
   // hit and put the ship back to live: it proceeds straight into its destruction.
   mem8[PLAYER_STATE] = DESTROYED;
   mem8[MOTHER_SHIP_STATE] = DESTROYED;
-  mem8[MOTHER_SHIP_HOLD_COUNTER] = 0;
+  mem8[MOTHER_SHIP_HITS_TO_ABSORB] = 0;
   // Step 6 -- pay for the kill through the chained-hit scorer (ROM tail `jp 0x51de`), which
   // steps the award up while hits keep landing inside the chain window.
   postChainedHitScore(m);

@@ -27,7 +27,7 @@
 import { u16 } from "../../../core/int.js";
 import { OPENING_ERA_VELOCITY_TABLE } from "./names.js";
 import { flyAlongHeadingAtDoubleVelocity } from "./flyAlongHeadingAtDoubleVelocity.js";
-import { animateFixedShapeCycleAtHalfRate } from "./animateFixedShapeCycleAtHalfRate.js";
+import { animateFixedShapeCycleFromShape50 } from "./animateFixedShapeCycleFromShape50.js";
 import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 import { retireSlot } from "./retireSlot.js";
 import { closeOneTurnOfTheSlotSweep } from "./closeOneTurnOfTheSlotSweep.js";
@@ -50,7 +50,7 @@ export function stepSlotApproachThenBreakawayRetire(m, ix = m.regs.ix, iy = m.re
     // saving. Fly one step along the held heading at twice the velocity (call 0x58B6), then give the
     // sprite the current frame of its eight-frame shape cycle (call 0x41F1).
     flyAlongHeadingAtDoubleVelocity(m, BREAKAWAY_VELOCITY_TABLE, ix, iy);
-    animateFixedShapeCycleAtHalfRate(m, iy);
+    animateFixedShapeCycleFromShape50(m, iy);
     // call 0x2B83 answers in carry whether the object sits on either retire line; `jp nc,0x410b`
     // skips the retirement, otherwise call 0x40AB frees the slot (occupancy byte and both sprite
     // coordinates zeroed). The object is not retired for simply losing its approach -- only for

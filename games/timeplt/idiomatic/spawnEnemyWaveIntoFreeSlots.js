@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** spawnEnemyWaveIntoFreeSlots — spawn a wave across a fixed bank of object slots. A count is read (the configured
  * wave size, or five while MOTHER_SHIP_ARMED is set, i.e. a large boss craft is present); the bank is then walked that many times and every
- * free slot is filled from a randomly-picked shape record — its three bytes seat the entry's shape
- * index and two slot fields — while an ordinal within the pass picks a per-slot byte, the step
+ * free slot is filled from a randomly-picked spawn record of ENEMY_SPAWN_RECORD_TABLE — its first two
+ * bytes seat the sprite entry's two coordinates (a starting position) and its third both heading
+ * bytes of the record — while an ordinal within the pass picks a per-slot byte, the step
  * counter is primed, the shape animation is stepped once, and the slot head is marked live. A fixed
  * status byte is stored when the pass ends. LIVE-OUT: memory.
  *
@@ -52,13 +53,13 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
       // (ROM 0x3A3B). Byte 0 goes to the entry's +0x31 coordinate, byte 1 to its +0x00
       // coordinate, and byte 2 to both the aim heading (+1) and the current heading (+2).
       const pick = drawRandomByte(m) & 0xfc;
-      const shapeIndex = fetchTableByte(m, ENEMY_SPAWN_RECORD_TABLE, pick);
+      const firstCoordinate = fetchTableByte(m, ENEMY_SPAWN_RECORD_TABLE, pick);
       const record = u16(ENEMY_SPAWN_RECORD_TABLE + pick);
-      mem8[entry + 0x31] = shapeIndex;
+      mem8[entry + 0x31] = firstCoordinate;
       mem8[entry] = mem8[record + 1];
-      const slotField = mem8[record + 2];
-      mem8[slot + 0x01] = slotField;
-      mem8[slot + 0x02] = slotField;
+      const startHeading = mem8[record + 2];
+      mem8[slot + 0x01] = startHeading;
+      mem8[slot + 0x02] = startHeading;
 
       // Step 4 -- the animation run selector (+0x0A) comes from WAVE_RUN_SELECTOR_TABLE (ROM
       // 0x38D2) at this slot's ordinal, computed as the quota minus the slots still to walk (the

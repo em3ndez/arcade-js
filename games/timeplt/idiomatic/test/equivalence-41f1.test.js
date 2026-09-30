@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * animateFixedShapeCycleAtHalfRate — memory-equivalent to the frozen oracle at ROM 0x41F1.
+ * animateFixedShapeCycleFromShape50 — memory-equivalent to the frozen oracle at ROM 0x41F1.
  *
  * GATE: poked-natural dispatch with a negative control, replayed over every dispatch of the
  *   session, plus an exhaustive crafted sweep over the counter cell, plus teeth.
@@ -35,7 +35,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { animateFixedShapeCycleAtHalfRate } from "../animateFixedShapeCycleAtHalfRate.js";
+import { animateFixedShapeCycleFromShape50 } from "../animateFixedShapeCycleFromShape50.js";
 import { loc_41f1 as oracle } from "../../translated/loc_41f1.js";
 import { ERA_INDEX, FRAME_TICK } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -136,7 +136,7 @@ function replay(candidate, poked = true) {
 }
 
 function entryState() {
-  if (entry === null) replay(animateFixedShapeCycleAtHalfRate);
+  if (entry === null) replay(animateFixedShapeCycleFromShape50);
   assert.notEqual(entry, null, "vacuous: the poked session never reached the routine");
   return entry;
 }
@@ -205,18 +205,18 @@ const TWINS = [
 // ── the control ─────────────────────────────────────────────────────────────────────────
 
 test("NEGATIVE CONTROL: with the era left alone the session never dispatches it", { skip }, () => {
-  const r = replay(animateFixedShapeCycleAtHalfRate, false);
+  const r = replay(animateFixedShapeCycleFromShape50, false);
   assert.equal(r.dispatches, 0, "the unpoked session reached the arm, so the poke proves nothing");
   console.log("  CONTROL: zero dispatches with the era left alone");
 });
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the poked dispatch: animateFixedShapeCycleAtHalfRate == oracle over the whole dump", { skip }, () => {
+test("EQUAL at the poked dispatch: animateFixedShapeCycleFromShape50 == oracle over the whole dump", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  animateFixedShapeCycleAtHalfRate(b);
+  animateFixedShapeCycleFromShape50(b);
   assert.deepEqual(allDiffs(a, b), [], "the dumps must agree byte for byte, the stack included");
   console.log(`  EQUAL: sp=${hex4(entryState().regs.sp)}, no byte differs`);
 });
@@ -232,7 +232,7 @@ test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  animateFixedShapeCycleAtHalfRate(b);
+  animateFixedShapeCycleFromShape50(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
@@ -240,7 +240,7 @@ test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip 
 });
 
 test("CORPUS: every dispatch of the poked session replays identically", { skip }, () => {
-  const r = replay(animateFixedShapeCycleAtHalfRate);
+  const r = replay(animateFixedShapeCycleFromShape50);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
   assert.equal(r.caught, 0, "the rewrite diverged on a real dispatch");
   assert.ok(r.counters.size > 1, "vacuous: the session presents one counter value only");
@@ -248,10 +248,10 @@ test("CORPUS: every dispatch of the poked session replays identically", { skip }
 });
 
 test("EXHAUSTIVE: all 256 counters, and the run is eight shapes held two counts each", { skip }, () => {
-  assert.equal(sweepCaught(animateFixedShapeCycleAtHalfRate), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(animateFixedShapeCycleFromShape50), 0, "the rewrite diverged somewhere in the crafted space");
   const byCounter = COUNTERS.map((c) => {
     const m = craft(c);
-    animateFixedShapeCycleAtHalfRate(m);
+    animateFixedShapeCycleFromShape50(m);
     return m.mem8[m.regs.iy + SHAPE];
   });
   const distinct = new Set(byCounter);

@@ -24,7 +24,7 @@ import { loc_4194 as oracle } from "../../translated/loc_4194.js";
 import { loc_40ea as dispatchSite } from "../../translated/loc_40ea.js";
 import { loc_40d6 as sweepEntry } from "../../translated/loc_40d6.js";
 import { loc_58b6 } from "../loc_58b6.js";
-import { animateFixedShapeCycleAtHalfRate } from "../animateFixedShapeCycleAtHalfRate.js";
+import { animateFixedShapeCycleFromShape50 } from "../animateFixedShapeCycleFromShape50.js";
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { retireSlot } from "../retireSlot.js";
 import { closeOneTurnOfTheSlotSweep } from "../closeOneTurnOfTheSlotSweep.js";
@@ -131,7 +131,7 @@ function classify() {
       zero.push(e);
       const p = e.clone();
       loc_58b6(p);
-      animateFixedShapeCycleAtHalfRate(p);
+      animateFixedShapeCycleFromShape50(p);
       if (hasReachedRetireLine(p)) reached.push(e);
     } else {
       running.push(e);
@@ -175,7 +175,7 @@ function twin({ fly = true, retire = true, alwaysRetire = false, advance = true,
     const zeroBranch = invert ? mem8[c] !== 0 : mem8[c] === 0;
     if (zeroBranch) {
       if (fly) flyAlongHeadingAtDoubleVelocity(m, OPENING_ERA_VELOCITY_TABLE, ix, iy);
-      animateFixedShapeCycleAtHalfRate(m, iy);
+      animateFixedShapeCycleFromShape50(m, iy);
       const reached = hasReachedRetireLine(m, iy);
       // the count lost: taken back from whatever the object work left in B
       if (!holdCount) turns = m.regs.b;

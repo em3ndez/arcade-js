@@ -21,9 +21,9 @@ whose role is only partly pinned, carry a terse caveat.
 | a817 | bankLaunchCooldown | Live per-vblank cooldown for the bank-launch arm (launchBankEnemyWhenAimedNearPlayer) and the Mother-Ship's homing spawn. |
 | a820 | actorRecordSlot1 | Actor slot 1's record head. |
 | a821 | claimToken | The shared "last of the wave" token, holding one claimant at a time. |
-| a827 | bankLaunchNearHalfY | Near-band proximity half-width gating a bank launch, one axis. |
+| a827 | bankLaunchNearHalfWidth | Near-band proximity half-width gating a bank launch, the same value on both axes. |
 | a830 | actorRecordSlot2 | Actor slot 2's record head; also the free-slot-search band base. |
-| a837 | bankLaunchNearHalfX | The other-axis near-band proximity half-width for the bank launch (launchBankEnemyWhenAimedNearPlayer only; its local name calls it X). |
+| a837 | bankLaunchHeadingHalfWidth | Half-width of the heading window for a bank launch: the craft fires only when its heading lies within this of PLAYER_HEADING. |
 | a840 | actorRecordSlot3 | Actor slot 3's record head; also doubles as the aimed-spawn era "bank A" record seat. |
 | a844 | bankLaunchSlotCount | Count of records the bank-launch arm scans for a free slot (loop bound; zero disables the arm). |
 | a850 | craftRecordSlot0 | Slot 0's record, and the iteration base of the whole 7-slot craft band. |
@@ -32,7 +32,7 @@ whose role is only partly pinned, carry a terse caveat.
 | a880 | craftRecordSlot3 | Slot 3's record head. |
 | a890 | craftRecordSlot4 | Slot 4's record head, and the seat of the "cleared" free-slot spawn search. |
 | a8a0 | motherShipState | State byte of the Mother-Ship's record, which begins at this address and runs two slots. |
-| a8a4 | motherShipHoldCounter | Mother-Ship record +4 (the code's own alias is HOLD_COUNTER): a countdown decremented each mid-phase frame while the ship is kept live, reaching 0 ends the phase; zeroed on the player-contact kill. |
+| a8a4 | motherShipHitsToAbsorb | Mother-Ship record +4: the hits it can still absorb. |
 | a8b0 | craftRecordSlot6 | Slot 6's record head (the last ordinary craft slot), with two extra duties. |
 | a8b4 | motherShipAimSideToggle | The Mother-Ship's homing-launch aim-side toggle: inc'd each launch, bit 0 picks the +0x18 / -0x18 side of the aim. |
 | a8c0 | eraObjectRecordSlot0 | Era-object bank slot 0's record head -- base of the three-slot per-era special-object bank (array 12-14). |

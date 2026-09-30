@@ -32,7 +32,7 @@ import { stopFiveSlotAnimations } from "./stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "./gateTheFreeSlotSearchAndPickItsRun.js";
 import { spawnEnemyCraftWhenBandUnderTwo } from "./spawnEnemyCraftWhenBandUnderTwo.js";
 import { requestEnemyWaveSound } from "./requestEnemyWaveSound.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, KILLS_REMAINING, LIFE_TICKS_LOW, LIFE_TICKS_MID, PLAYER_HEADING, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN, WAVE_HEADING_BIAS_TABLE, WAVE_SHAPE_TABLE, WAVE_DESCRIPTOR_TABLE, WAVE_SPAWN_BUSY_FLAG } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, KILLS_REMAINING, LIFE_TICKS_LOW, LIFE_TICKS_MID, PLAYER_HEADING, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN, WAVE_HEADING_BIAS_TABLE, WAVE_EDGE_POSITION_TABLE, WAVE_DESCRIPTOR_TABLE, WAVE_SPAWN_BUSY_FLAG } from "./names.js";
 
 // Era 4 (2001) has its own spawner.
 const BOSS_ERA = 4;
@@ -95,10 +95,10 @@ export function driveEnemyWaveForLifePhase(m) {
       // Position: 2 * (descriptor byte + heading bias) indexes the two-byte table at 0x38E9, whose 64
       // pairs trace the edge of the screen. The first byte goes to the sprite entry's +0x31 byte (Y),
       // the second to its +0x00 byte (X), so the pair is a spawn position on the edge, not a shape.
-      const shapeIndex = u8(2 * (mem8[descriptor] + bias));
-      const shapeEntry = u16(WAVE_SHAPE_TABLE + shapeIndex);
-      mem8[entry + 0x31] = fetchTableByte(m, WAVE_SHAPE_TABLE, shapeIndex);
-      mem8[entry] = mem8[shapeEntry + 1];
+      const positionIndex = u8(2 * (mem8[descriptor] + bias));
+      const positionEntry = u16(WAVE_EDGE_POSITION_TABLE + positionIndex);
+      mem8[entry + 0x31] = fetchTableByte(m, WAVE_EDGE_POSITION_TABLE, positionIndex);
+      mem8[entry] = mem8[positionEntry + 1];
 
       // Heading: opposite the player's, written to both heading bytes of the record (+0x01, +0x02).
       const aimed = u8(mem8[PLAYER_HEADING] + AIM_OFFSET);

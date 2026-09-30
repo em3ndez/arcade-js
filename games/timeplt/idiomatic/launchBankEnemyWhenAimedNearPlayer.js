@@ -24,7 +24,7 @@
 // craft, era by era") it fires only when: the craft is on its one-in-eight turn, BANK_LAUNCH_COOLDOWN
 // has run out, one of the first BANK_LAUNCH_SLOT_COUNT shot slots is free, the craft is NOT within
 // the near band of the player's fixed screen position on both axes, the craft's heading is within
-// BANK_LAUNCH_NEAR_HALF_X of the player's heading, and the heading toward the aim point is within 16
+// BANK_LAUNCH_HEADING_HALF_WIDTH of the player's heading, and the heading toward the aim point is within 16
 // of the craft's own. The shot then starts at the craft and flies along that aim heading.
 //
 // PARAMETERS. `ixEntry` is the launching craft's record (the ROM's IX), `iyEntry` its sprite entry
@@ -39,7 +39,7 @@ import { headingToward } from "./headingToward.js";
 import { requestEraKeyedLaunchSound } from "./requestEraKeyedLaunchSound.js";
 import { loc_59cb } from "./loc_59cb.js";
 import { loc_59d1 } from "./loc_59d1.js";
-import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, PLAYER_HEADING, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_HEADING_HALF_WIDTH, BANK_LAUNCH_NEAR_HALF_WIDTH, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, PLAYER_HEADING, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 // Offsets. Sprite entry: +0x00 and +0x31 are the two coordinate bytes, +0x01 the shape, +0x30 the
 // attribute. Record: +0x02 is the heading field every actor family shares (see PLAYER_HEADING in
@@ -89,21 +89,21 @@ export function launchBankEnemyWhenAimedNearPlayer(m, ixEntry = m.regs.ix, iyEnt
   // margin window against the player entry: vertical, and horizontal only if the vertical is close
   // GATE 4 -- NOT ON TOP OF THE PLAYER (0x3F09-0x3F1C). The player's ship is pinned at a fixed screen
   // position, 0x78 on the +0x31 axis and 0x84 on the +0x00 axis. If the craft is within
-  // BANK_LAUNCH_NEAR_HALF_Y (0xA827) of it on the first axis AND on the second, give up.
-  const halfY = mem8[BANK_LAUNCH_NEAR_HALF_Y];
-  const fullY = u8(halfY + halfY);
-  let near = u8(u8(0x78 - mem8[u16(iyEntry + COORD_Y)]) + halfY);
-  if (near < fullY) {
-    near = u8(u8(0x84 - mem8[iyEntry]) + halfY);
-    if (near < fullY) return;
+  // BANK_LAUNCH_NEAR_HALF_WIDTH (0xA827) of it on the first axis AND on the second, give up.
+  const halfNear = mem8[BANK_LAUNCH_NEAR_HALF_WIDTH];
+  const fullNear = u8(halfNear + halfNear);
+  let near = u8(u8(0x78 - mem8[u16(iyEntry + COORD_Y)]) + halfNear);
+  if (near < fullNear) {
+    near = u8(u8(0x84 - mem8[iyEntry]) + halfNear);
+    if (near < fullNear) return;
   }
 
   // GATE 5 -- FLYING THE PLAYER'S WAY (0x3F1D-0x3F2B). The craft's heading must be within
-  // BANK_LAUNCH_NEAR_HALF_X (0xA837) of PLAYER_HEADING (0xA802).
-  const halfX = mem8[BANK_LAUNCH_NEAR_HALF_X];
-  const fullX = u8(halfX + halfX);
-  const nearX = u8(u8(mem8[PLAYER_HEADING] - mem8[u16(ixEntry + OBJ_X)]) + halfX);
-  if (nearX >= fullX) return;
+  // BANK_LAUNCH_HEADING_HALF_WIDTH (0xA837) of PLAYER_HEADING (0xA802).
+  const halfHeading = mem8[BANK_LAUNCH_HEADING_HALF_WIDTH];
+  const fullHeading = u8(halfHeading + halfHeading);
+  const headingGap = u8(u8(mem8[PLAYER_HEADING] - mem8[u16(ixEntry + OBJ_X)]) + halfHeading);
+  if (headingGap >= fullHeading) return;
 
   // the entry cursor's high byte is the bank page and nothing rewrites it, so this window never
   // fires; kept as a faithful mirror of the detached block

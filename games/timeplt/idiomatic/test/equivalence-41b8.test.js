@@ -29,7 +29,7 @@ import { headingToward } from "../headingToward.js";
 import { endApproachNow } from "../endApproachNow.js";
 import { steerTowardAimAtFixedRate } from "../steerTowardAimAtFixedRate.js";
 import { loc_58b6 } from "../loc_58b6.js";
-import { animateFixedShapeCycleAtHalfRate } from "../animateFixedShapeCycleAtHalfRate.js";
+import { animateFixedShapeCycleFromShape50 } from "../animateFixedShapeCycleFromShape50.js";
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { assertDeadAtExit } from "./_deadAtExit.js";
@@ -197,7 +197,7 @@ function twin({ reaim = true, swap = false, end = true, move = true }) {
     }
     steerTowardAimAtFixedRate(m);
     if (move) loc_58b6(m);
-    animateFixedShapeCycleAtHalfRate(m);
+    animateFixedShapeCycleFromShape50(m);
     return hasReachedRetireLine(m);
   };
 }

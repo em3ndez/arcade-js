@@ -10,7 +10,7 @@
  * ROLE. Both must be live (PLAYER_STATE 0xA800, MOTHER_SHIP_STATE 0xA8A0) and their coordinates
  * must fall inside a box around the Mother-Ship: -8..+8 on the first axis and an off-centre -25..+9
  * on the second. When it holds, both state bytes take the destroyed code, the Mother-Ship's
- * remaining-hit count at record +4 (MOTHER_SHIP_HOLD_COUNTER 0xA8A4) is zeroed so the contact
+ * remaining-hit count at record +4 (MOTHER_SHIP_HITS_TO_ABSORB 0xA8A4) is zeroed so the contact
  * destroys it outright instead of costing it one of the hits it can absorb (the arming path seeds
  * seven), and the chained
  * hit score is posted -- reached by transfer, not call, so that routine's return carries it. Any
@@ -21,7 +21,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { MOTHER_SHIP_ENTRY, MOTHER_SHIP_HOLD_COUNTER, MOTHER_SHIP_SPRITE_Y, MOTHER_SHIP_STATE, PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
+import { MOTHER_SHIP_ENTRY, MOTHER_SHIP_HITS_TO_ABSORB, MOTHER_SHIP_SPRITE_Y, MOTHER_SHIP_STATE, PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
 
 // Sprite-entry offset of the Y byte (0x31): PLAYER_ENTRY 0xAA10 + 0x31 = the player's sprite Y 0xAA41.
 const ENTRY_SECOND_AXIS = 49;
@@ -61,6 +61,6 @@ export function destroyPlayerAndMotherShipOnContact(m) {
   // transfer in the ROM).
   mem8[PLAYER_STATE] = DESTROYED;
   mem8[MOTHER_SHIP_STATE] = DESTROYED;
-  mem8[MOTHER_SHIP_HOLD_COUNTER] = 0;
+  mem8[MOTHER_SHIP_HITS_TO_ABSORB] = 0;
   postChainedHitScore(m);
 }

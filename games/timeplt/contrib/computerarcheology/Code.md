@@ -8354,7 +8354,7 @@ stepSlotApproachThenBreakawayRetire:
 loc_41a4:
 41A4: C5              PUSH    BC                  ; save the sweep's turn count
 41A5: CD B6 58        CALL    $58B6               ; {code.loc_58b6} move the object
-41A8: CD F1 41        CALL    $41F1               ; {code.animateFixedShapeCycleAtHalfRate} animate its shape from the frame counter
+41A8: CD F1 41        CALL    $41F1               ; {code.animateFixedShapeCycleFromShape50} animate its shape from the frame counter
 41AB: CD 83 2B        CALL    $2B83               ; {code.hasReachedRetireLine} has it reached a retire line?
 41AE: C1              POP     BC                  ; restore the turn count
 41AF: D2 0B 41        JP      NC,$410B            ; {code.closeOneTurnOfTheSlotSweep} no: leave it and close the turn
@@ -8393,7 +8393,7 @@ loc_41dc:
 loc_41df:
 41DF: CD 1F 42        CALL    $421F               ; {code.steerTowardAimAtFixedRate} turn toward the aim at the fixed rate
 41E2: CD B6 58        CALL    $58B6               ; {code.loc_58b6} move the object
-41E5: CD F1 41        CALL    $41F1               ; {code.animateFixedShapeCycleAtHalfRate} animate its shape
+41E5: CD F1 41        CALL    $41F1               ; {code.animateFixedShapeCycleFromShape50} animate its shape
 41E8: C1              POP     BC                  
 41E9: C3 83 2B        JP      $2B83               ; {code.hasReachedRetireLine} answer whether it reached a retire line
 
@@ -8409,7 +8409,7 @@ endApproachNow:
 ; from bits one to three of the free-running counter, so the cycle turns
 ; over once every sixteen counts. Nothing about the object is read, so two
 ; entries written in one tick get the same shape
-animateFixedShapeCycleAtHalfRate:
+animateFixedShapeCycleFromShape50:
 41F1: 3A 80 A9        LD      A,($A980)           ; {hard.workRam+180} read the free-running frame counter
 41F4: 0F              RRCA                        ; halve it
 41F5: E6 07           AND     $07                 ; keep three bits -- a frame 0..7
@@ -10693,7 +10693,7 @@ ramTestPlayerVsMotherShip:
 50E1: 32 00 A8        LD      ($A800),A           ; {hard.workRam} destroy the player
 50E4: 32 A0 A8        LD      ($A8A0),A           ; {hard.workRam+A0} destroy the mother ship
 50E7: AF              XOR     A                   
-50E8: 32 A4 A8        LD      ($A8A4),A           ; {hard.workRam+A4} clear the mother ship's hold counter, the cell beside its state
+50E8: 32 A4 A8        LD      ($A8A4),A           ; {hard.workRam+A4} clear the mother ship's hits-to-absorb count, the cell beside its state
 50EB: C3 DE 51        JP      $51DE               ; {code.postChainedHitScore} post the chained hit score
 
 ; destroy the player and one fixed two-slot target together when they
@@ -10723,7 +10723,7 @@ destroyPlayerAndMotherShipOnContact:
 5114: 32 00 A8        LD      ($A800),A           ; {hard.workRam} destroy the player
 5117: 32 A0 A8        LD      ($A8A0),A           ; {hard.workRam+A0} destroy the mother ship
 511A: AF              XOR     A                   
-511B: 32 A4 A8        LD      ($A8A4),A           ; {hard.workRam+A4} clear the mother ship's hold counter, the cell beside its state
+511B: 32 A4 A8        LD      ($A8A4),A           ; {hard.workRam+A4} clear the mother ship's hits-to-absorb count, the cell beside its state
 511E: C3 DE 51        JP      $51DE               ; {code.postChainedHitScore} post the chained hit score
 
 ; destroy every target of a caller's run that one fixed attacker -- the

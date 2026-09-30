@@ -18,7 +18,7 @@
 // ROLE IN THE MACHINE. Once the round's kill quota (KILLS_REMAINING) is spent, armMotherShipOrStep
 // arms the Mother-Ship: it takes the last two records of the craft band, MOTHER_SHIP_STATE (0xA8A0)
 // [seen] and the one after it (0xA8B0), with its sprite entry at MOTHER_SHIP_ENTRY (0xAA24) [seen],
-// and seeds the record's +0x04 byte (MOTHER_SHIP_HOLD_COUNTER, which counts the hits it can absorb)
+// and seeds the record's +0x04 byte (MOTHER_SHIP_HITS_TO_ABSORB, which counts the hits it can absorb)
 // with 7 and the idle delay at +0x0E. From then on this routine is its whole life, and the record's
 // head byte (+0x00) is its phase:
 //
@@ -58,7 +58,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
-import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, MOTHER_SHIP_WARP_SHAPE_TABLE } from "./names.js";
+import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_WIDTH, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, MOTHER_SHIP_WARP_SHAPE_TABLE } from "./names.js";
 
 // The field sweep (loc_43f0_4554): fifteen sixteen-byte records from ACTOR_RECORD_SLOT0 (0xA810) up
 // to the parachutist's (0xA8F0); the dying codes it hands out start at 0x14 and step 10 per record;
@@ -76,9 +76,9 @@ const READY_ARMED = 0xfe;
 const SPRITE_SEED = 0x3d;
 const REBUILD_TRIGGER = 0xf0;
 
-// Record offsets: the idle delay (+0x0E), the hit counter MOTHER_SHIP_HOLD_COUNTER (+0x04), the head.
+// Record offsets: the idle delay (+0x0E), the hit counter MOTHER_SHIP_HITS_TO_ABSORB (+0x04), the head.
 const IDLE_DELAY = 0x0e;
-const HOLD_COUNTER = 0x04;
+const HITS_TO_ABSORB = 0x04;
 const STATE = 0x00;
 
 // Scoring-ring command (4, 13): 3,000 points, posted at the flash (`ld de,0x040d` at 0x463D).
@@ -153,7 +153,7 @@ export function loc_43f0_4535(m, ix = m.regs.ix, iy = m.regs.iy) {
 }
 
 // ── Any head other than 0x00 and 0xFF (0x4540). `phase` is the head plus one (the ROM's C).
-// A collision sweep marks a hit by writing 0xF0 into the head. While MOTHER_SHIP_HOLD_COUNTER (+0x04)
+// A collision sweep marks a hit by writing 0xF0 into the head. While MOTHER_SHIP_HITS_TO_ABSORB (+0x04)
 // is non-zero the hit is ABSORBED: spend one, put the head back to 0xFF (live), request the pair of hit
 // sounds (requestTwoSounds, 0x5683 [seen]) and run the live step this same frame. Armed with 7, the
 // ship survives seven hits and the eighth, finding the counter at zero, starts its death. From then on
@@ -161,8 +161,8 @@ export function loc_43f0_4535(m, ix = m.regs.ix, iy = m.regs.iy) {
 export function loc_43f0_4540(m, phase = m.regs.a, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
-  if (mem8[X(HOLD_COUNTER)] === 0x00) return loc_43f0_4554(m, phase, ix, iy);
-  mem8[X(HOLD_COUNTER)] = u8(mem8[X(HOLD_COUNTER)] - 1);
+  if (mem8[X(HITS_TO_ABSORB)] === 0x00) return loc_43f0_4554(m, phase, ix, iy);
+  mem8[X(HITS_TO_ABSORB)] = u8(mem8[X(HITS_TO_ABSORB)] - 1);
   mem8[X(STATE)] = 0xff; // back to live
   requestTwoSounds(m);
   return loc_43f0_4403(m, ix, iy);
@@ -339,7 +339,7 @@ export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   // The hit counter at launch (`cp 0x06` at 0x4697): below 6 it is raised to 5. A fresh ship keeps the 7
   // it was armed with; one that went idle after two or more hits and relaunched comes back needing six.
-  if (mem8[X(HOLD_COUNTER)] < 0x06) mem8[X(HOLD_COUNTER)] = 0x05; // floor
+  if (mem8[X(HITS_TO_ABSORB)] < 0x06) mem8[X(HITS_TO_ABSORB)] = 0x05; // floor
   mem8[X(STATE)] = 0xff; // activate the mothership
   // Announce it with the era's sound (requestCurrentEraSound, `jp 0x57f7`, a tail).
   return requestCurrentEraSound(m);
@@ -347,7 +347,7 @@ export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
 
 // ── FIRE TEST (0x46F0), after every live step: only while the head is 0xFF and BANK_LAUNCH_COOLDOWN
 // (0xA817) [seen] -- the cooldown the Mother-Ship shares with the bank launcher -- has run out
-// (`ld a,(0xa817)` at 0x46F5). The half-width of the near band is BANK_LAUNCH_NEAR_HALF_Y (0xA827)
+// (`ld a,(0xa817)` at 0x46F5). The half-width of the near band is BANK_LAUNCH_NEAR_HALF_WIDTH (0xA827)
 // [seen], doubled into the band's width.
 export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
@@ -359,14 +359,14 @@ export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
   if (u8(mem8[X(STATE)] + 1) !== 0x00) return; // not live
   if (mem8[BANK_LAUNCH_COOLDOWN] !== 0x00) return; // cooling down
 
-  const halfBand = mem8[BANK_LAUNCH_NEAR_HALF_Y]; // D
+  const halfBand = mem8[BANK_LAUNCH_NEAR_HALF_WIDTH]; // D
   const band = u8(halfBand + halfBand); // E
   let count = 0x02;
   do {
     // Each of the ship's two records/tiles in turn. It must be on the picture on both coordinates
     // (`cp 0x28` at 0x4707, `cp 0x20` at 0x4710), and then it fires if it is OUTSIDE the near band on
     // either coordinate: the byte-wrapped (centre - coordinate + half) lands at or above the band's
-    // width (`cp e / jr nc,0x4734` at 0x471A and 0x4723; mechanisms.md: "more than BANK_LAUNCH_NEAR_HALF_Y from the
+    // width (`cp e / jr nc,0x4734` at 0x471A and 0x4723; mechanisms.md: "more than BANK_LAUNCH_NEAR_HALF_WIDTH from the
     // player's fixed screen position ... on either axis").
     if (u8(mem8[Y(0x00)] + 0x08) >= ON_SCREEN_X && u8(mem8[Y(0x31)] + 0x10) >= ON_SCREEN_Y) {
       if (u8(u8(NEAR_X - mem8[Y(0x00)]) + halfBand) >= band) return loc_43f0_4734(m, ix, iy);

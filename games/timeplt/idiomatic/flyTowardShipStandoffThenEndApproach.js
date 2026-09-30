@@ -24,7 +24,7 @@ import { headingToward } from "./headingToward.js";
 import { endApproachNow } from "./endApproachNow.js";
 import { steerTowardAimAtFixedRate } from "./steerTowardAimAtFixedRate.js";
 import { flyAlongHeadingAtDoubleVelocity } from "./flyAlongHeadingAtDoubleVelocity.js";
-import { animateFixedShapeCycleAtHalfRate } from "./animateFixedShapeCycleAtHalfRate.js";
+import { animateFixedShapeCycleFromShape50 } from "./animateFixedShapeCycleFromShape50.js";
 import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 
 /* Low four bits of FRAME_TICK: all clear on one frame in sixteen, the re-aim frame (`and 0x0f`). */
@@ -80,12 +80,12 @@ export function flyTowardShipStandoffThenEndApproach(m, ix = m.regs.ix, iy = m.r
    *  - fly one step at twice the velocity from the opening-era table at 0x5E00 (the ROM's `call 0x58b6`,
    *    a shim that fixes that table for the double-velocity mover at 0x58FE), the world scroll added
    *    once;
-   *  - animateFixedShapeCycleAtHalfRate (0x41F1): dress the sprite with the current frame of an
+   *  - animateFixedShapeCycleFromShape50 (0x41F1): dress the sprite with the current frame of an
    *    eight-frame shape cycle taken from FRAME_TICK bits 1-3.
    */
   steerTowardAimAtFixedRate(m, ix);
   flyAlongHeadingAtDoubleVelocity(m, APPROACH_VELOCITY_TABLE, ix, iy);
-  animateFixedShapeCycleAtHalfRate(m, iy);
+  animateFixedShapeCycleFromShape50(m, iy);
 
   /*
    * Finally (the ROM's tail `jp 0x2b83`): has the sprite entry drifted onto one of the two fixed retire

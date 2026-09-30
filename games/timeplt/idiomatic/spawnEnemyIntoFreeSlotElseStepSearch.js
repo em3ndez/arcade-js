@@ -40,7 +40,7 @@ const DIRECTION_MASK = 0x3f;
 const JITTER_MASK = 0x0f;
 const JITTER_BIAS = 0x08;
 // ENEMY_SPAWN_RECORD_TABLE entries are four bytes each.
-const VELOCITY_STRIDE = 4;
+const RECORD_STRIDE = 4;
 // Half of the 256-step circle: the new craft faces opposite the player's heading.
 const FACING_BIAS = 0x80;
 
@@ -63,10 +63,10 @@ export function spawnEnemyIntoFreeSlotElseStepSearch(m, record = m.regs.ix, entr
   // Step 3 -- two chained tables. ENEMY_SPAWN_DIRECTION_INDEX_TABLE (ROM 0x39FB) turns the
   // direction into a record number, times four for ENEMY_SPAWN_RECORD_TABLE (ROM 0x3A3B). That
   // record's byte 0 goes to the entry's +0x31 coordinate and byte 1 to its +0x00 coordinate.
-  const velocityIndex = u8(fetchTableByte(m, ENEMY_SPAWN_DIRECTION_INDEX_TABLE, heading) * VELOCITY_STRIDE);
-  const velocityEntry = u16(ENEMY_SPAWN_RECORD_TABLE + velocityIndex);
-  mem8[entry + 0x31] = fetchTableByte(m, ENEMY_SPAWN_RECORD_TABLE, velocityIndex);
-  mem8[entry + 0x00] = mem8[u16(velocityEntry + 1)];
+  const recordOffset = u8(fetchTableByte(m, ENEMY_SPAWN_DIRECTION_INDEX_TABLE, heading) * RECORD_STRIDE);
+  const recordAddress = u16(ENEMY_SPAWN_RECORD_TABLE + recordOffset);
+  mem8[entry + 0x31] = fetchTableByte(m, ENEMY_SPAWN_RECORD_TABLE, recordOffset);
+  mem8[entry + 0x00] = mem8[u16(recordAddress + 1)];
 
   // Step 4 -- the craft's aim heading (+1) and current heading (+2) both start half a turn from
   // the player's heading.

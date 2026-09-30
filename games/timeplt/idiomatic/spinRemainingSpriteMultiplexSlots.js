@@ -20,11 +20,12 @@
  *
  * The ROM spins on the raster before each trade (and pads with a net-zero `inc hl/inc hl/dec hl/
  * dec hl` delay); that hold is not reproduced here -- the same bytes land either way.
- * mechanisms.md records the only caller in the image as a CALL NZ at 0x15D9 on a path through
- * undefined opcodes from 0x15CA; whether any real execution reaches this entry is open (§9).
+ * The only CALL to this entry in the image, the CALL NZ at 0x15D9, sits in caption record 5
+ * (0x15D6), whose bytes run as code only on the anti-tamper derail into 0x15CA at 0x17A6; the body itself is shared with
+ * multiplexSpriteSlots, whose closing pass runs 0x10FD onward every time (mechanisms.md §9).
  *
- * ROM 0x10FD-0x1198 (frozen lift translated/loc_10fd.js). Grounding: [seen] (names.js ROUTINES
- * 0x10fd). LIVE-OUT: memory only.
+ * ROM 0x10FD-0x1198 (frozen lift translated/loc_10fd.js). Grounding: [code], anti-tamper entry
+ * (names.js ROUTINES 0x10fd, grounding-debt.txt). LIVE-OUT: memory only.
  */
 
 import { loc_10f8 } from "./loc_10f8.js";
