@@ -152,7 +152,7 @@ const branches = () => [
   ["phase7", craft({ phase: 0x07 })],
   ["phase8", craft({ phase: 0x08, occ: 0 })],
   ["lowNZ", craft({ phase: 0x09, low: 3 })],
-  ["stale-hl", craft({ phase: 0x07, hl: SHAPE_TABLE })],
+  ["stale-hl", craft({ phase: 0x07, hl: EDGE_POSITION_TABLE })],
 ];
 const corpus = () => [...occupancyStates(), ...branches().map(([, m]) => m)];
 
@@ -193,8 +193,8 @@ function twin(opts) {
         // The oracle reads the second shape byte through the HL its rst 08 leaves on the entry, inside
         // this routine; fetchTableByte no longer hands that pointer back, so the twin addresses it.
         const index = u8(2 * (mem8[descriptor] + bias));
-        const at = u16(SHAPE_TABLE + index);
-        mem8[entry + 0x31] = fetchTableByte(m, SHAPE_TABLE, index);
+        const at = u16(EDGE_POSITION_TABLE + index);
+        mem8[entry + 0x31] = fetchTableByte(m, EDGE_POSITION_TABLE, index);
         mem8[entry] = mem8[u16(at + 1)];
         const aimed = u8(mem8[PLAYER_HEADING] + 0x80);
         mem8[record + 0x01] = aimed;
