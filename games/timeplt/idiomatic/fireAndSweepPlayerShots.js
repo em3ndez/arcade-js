@@ -8,7 +8,7 @@ import { readPlayerControls } from "./readPlayerControls.js";
 import { requestPlayerShotSound } from "./requestPlayerShotSound.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { queueTileStampForObject } from "./queueTileStampForObject.js";
-import { FIRE_BUTTON_EDGE_SHIFT, PLAYER_HEADING, PLAYER_SHOT_ARRAY, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, SHOT_BURST_PENDING, SHOT_SPAWN_COOLDOWN, WORLD_SCROLL_X, WORLD_SCROLL_Y, PLAYER_SHOT_SLOT_STRIDE_WORD, PLAYER_SHOT_VELOCITY_TABLE } from "./names.js";
+import { FIRE_BUTTON_EDGE_SHIFT, PLAYER_HEADING, PLAYER_SHOT_ARRAY, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, SHOT_BURST_PENDING, SHOT_SPAWN_COOLDOWN, WORLD_SCROLL_X, WORLD_SCROLL_Y, PLAYER_SHOT_SLOT_STRIDE_WORD, PLAYER_SHOT_SPAWN_POSITION_TABLE } from "./names.js";
 
 const SLOT_COUNT = 6;
 const RECORD_STRIDE = 16;
@@ -46,13 +46,13 @@ function spawnIntoFreeSlot(m, slot) {
   mem16[slot + SEED1] = u16(-4 * mem16[WORLD_SCROLL_Y]);
   mem16[slot + SEED2] = u16(-4 * mem16[WORLD_SCROLL_X]);
 
-  const velocity = fetchWideTableWord(m, PLAYER_SHOT_VELOCITY_TABLE, (u8(mem8[PLAYER_HEADING] + 4) >> 3) & 0x1f);
+  const muzzle = fetchWideTableWord(m, PLAYER_SHOT_SPAWN_POSITION_TABLE, (u8(mem8[PLAYER_HEADING] + 4) >> 3) & 0x1f);
 
   mem8[slot + OCC] = u8(mem8[slot + OCC] - 1);
   mem8[slot + AXIS1] = 0;
-  mem8[slot + AXIS1 + 1] = velocity;
+  mem8[slot + AXIS1 + 1] = muzzle;
   mem8[slot + AXIS2] = 0;
-  mem8[slot + AXIS2 + 1] = velocity >> 8;
+  mem8[slot + AXIS2 + 1] = muzzle >> 8;
 
   mem8[SHOT_BURST_PENDING] = u8(mem8[SHOT_BURST_PENDING] - 1);
   mem8[SHOT_SPAWN_COOLDOWN] = 6;

@@ -15,7 +15,7 @@ import { runSceneryForEra } from "./runSceneryForEra.js";
 import { multiplexSpriteSlots } from "./multiplexSpriteSlots.js";
 import { postCommand } from "./postCommand.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { ERA_INDEX, FRAME_TICK, ROUND_ARMED, SEQUENCE_DELAY, SEQUENCE_PHASE, loc_4d9f } from "./names.js";
+import { ERA_INDEX, FRAME_TICK, ROUND_ARMED, SEQUENCE_DELAY, SEQUENCE_PHASE, ROUND_INTRO_CHECKSUM_BASE } from "./names.js";
 
 const FOLD_BYTES = 256;
 const FOLD_KEY = 0xa2;
@@ -32,7 +32,7 @@ export function flyRoundIntroFlashingEraYearThenEraseIntroCaptions(m) {
   const { mem8 } = m;
 
   let fold = mem8[SEQUENCE_PHASE];
-  for (let i = 0; i < FOLD_BYTES; i++) fold = u8(fold - mem8[loc_4d9f + i]);
+  for (let i = 0; i < FOLD_BYTES; i++) fold = u8(fold - mem8[ROUND_INTRO_CHECKSUM_BASE + i]);
   mem8[SEQUENCE_PHASE] = fold ^ FOLD_KEY;
 
   multiplexSpriteSlotsSkipping(m);

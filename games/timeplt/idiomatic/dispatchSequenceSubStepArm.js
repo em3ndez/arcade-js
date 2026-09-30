@@ -23,7 +23,7 @@ import { erasePenRouteThenOpenInitialsEntry } from "./erasePenRouteThenOpenIniti
 import { stepHighScoreInitialsEntry } from "./stepHighScoreInitialsEntry.js";
 import { loc_12e2 } from "./loc_12e2.js";
 import { restartAttractSequence } from "./restartAttractSequence.js";
-import { paintSelfTestScreenPhaseThenStepSequence } from "./paintSelfTestScreenPhaseThenStepSequence.js";
+import { armRoundWonBandAnimationThenStepSequence } from "./armRoundWonBandAnimationThenStepSequence.js";
 import { stepRoundStartIntroAnimation } from "./stepRoundStartIntroAnimation.js";
 import { loc_15b5 } from "./loc_15b5.js";
 
@@ -50,7 +50,7 @@ export function dispatchSequenceSubStepArm(m) {
     case 10: stepHighScoreInitialsEntry(m); break;
     case 11: loc_12e2(m); break;
     case 12: restartAttractSequence(m); break;
-    case 13: paintSelfTestScreenPhaseThenStepSequence(m); break;
+    case 13: armRoundWonBandAnimationThenStepSequence(m); break;
     case 14: stepRoundStartIntroAnimation(m); break;
     case 15: loc_15b5(m); break;
   }

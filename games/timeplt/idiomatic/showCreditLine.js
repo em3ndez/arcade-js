@@ -12,12 +12,12 @@ import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { postCommand } from "./postCommand.js";
 import { stampCopyrightStrip } from "./stampCopyrightStrip.js";
 import { sumImageBlockForTheTamperCheck } from "./sumImageBlockForTheTamperCheck.js";
-import { BANK_LAUNCH_COOLDOWN, FREE_PLAY, BOOT_CONFIG_CHECKSUM_BASE } from "./names.js";
+import { BANK_LAUNCH_COOLDOWN, FREE_PLAY, COPYRIGHT_CAPTION_RECORD } from "./names.js";
 import { NotImplemented } from "../../../boards/timeplt/io.js";
 
 const CAPTION_COMMAND = 1;
 const CAPTION_RECORD = 8;
-const BLOCK_START = BOOT_CONFIG_CHECKSUM_BASE;
+const BLOCK_START = COPYRIGHT_CAPTION_RECORD;
 const BLOCK_BYTES = 20;
 
 export function showCreditLine(m) {

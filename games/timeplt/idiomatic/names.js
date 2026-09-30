@@ -10,9 +10,9 @@
  * ★ PROVENANCE / CONFIDENCE (be honest — a wrong name is the sprite-record trap, worse than a
  * neutral hex address). Every name carries an evidence-source tag saying HOW we know the role:
  *   [seen]  — observed under MAME: a capture watched THIS address and confirmed what it does.
- *   [code]  — understood from the routines that touch it: consistent across them, but the cell
- *             itself was not observed.
- *   [guess] — one plausible reading, not confirmed; treat as a hint and verify.
+ *   [code]  — the evidence tag for a role understood from the routines that touch it: consistent
+ *             across them, but the cell itself was not observed.
+ *   [guess] — the evidence tag for one plausible reading, not confirmed; treat as a hint and verify.
  *   keep-hex — no confident name, so no const exists; the absence of an entry IS the signal.
  * The pixel gate, not the name, remains the correctness authority.
  */
@@ -116,7 +116,7 @@ export const IN2_MIRROR = 0xa9b0; // inverted mirror of IN2 0xC340 (cocktail / p
 // ── Cursors and counters that sit in this address range but belong to other subsystems. [code]
 // (0xA991/0xA993 -- a general 16-bit scratch-pointer pair used across object spawn, collision, and
 //  high-score filing -- are DEFERRED: too general for a single subsystem name; naming needs its own pass.)
-export const COMMAND_WRITE_CURSOR = 0xa9b2; // SOUND: write index into the 64-cell command ring (pairs 0xa9b3)
+export const COMMAND_WRITE_CURSOR = 0xa9b2; // COMMAND RING: write index into the 64-cell command ring (pairs 0xa9b3)
 export const BCD_FRAME_COUNTER = 0xa9ce; // free-running packed-decimal frame counter (inc+daa each vblank)
 export const SCRIPT_CYCLE_COUNTER = 0xa9cf; // 0..4 round-robin index for in-turn demo-script selection
 export const ATTRACT_STAGE_COUNTER = 0xa9d0; // attract scene counter cycling 1->2->3->1
@@ -386,16 +386,18 @@ export const PARACHUTIST_RUNG = 0xa8f7;
 
 /**
  * A copy of one character cell's glyph, taken so the anti-tamper machinery can check later that the
- * display still says what it should. [code]
+ * display still says what it should. [seen]
  *
- * Written by the routine that takes the copy and by one other site, both with the same glyph code;
- * three separate guards then compare the live cell against this copy, or this copy against that
- * glyph as a literal, and divert into data when they disagree. It is the same shape as
- * TAMPER_WITNESS on a different pair of cells.
+ * Written at three sites, all with the glyph code 0x7C: two copy it out of the character cell
+ * TAMPER_GLYPH_SOURCE_CELL 0xA67C (the copyright hold and the three-cell tile-map copy), and the
+ * attract screen's patch list seeds it directly. Guards then compare the live cell against this
+ * copy, or this copy against that glyph as a literal, and divert into data when they disagree. Two
+ * guard sites were watched reading it under MAME; that the code holds three is a code-level count.
+ * It is the same shape as TAMPER_WITNESS on a different pair of cells.
  *
- * The cell it is copied FROM is in the character plane rather than work RAM, so it is outside this
- * registry's window and stays a bare address; it is rewritten constantly by the caption painter,
- * and under MAME the two disagree for most of a run, so the guards' failing arms are NOT dead.
+ * The cell it is copied FROM is in the character plane rather than work RAM. The caption painters
+ * rewrite that cell with other glyphs during a run, but at every guard read captured under MAME it
+ * held 0x7C, matching this copy, and no guard's failing arm ran.
  */
 export const TAMPER_GLYPH_COPY = 0xab43;
 
@@ -580,15 +582,18 @@ export const COMMAND_READ_CURSOR = 0xa9b3;
 export const COMMAND_RING = 0xac00;
 
 /**
- * A character cell copied out of the display when the image checksum fails, glyph then colour. [code]
+ * A two-cell anti-tamper witness, glyph then colour, that one part of the machine seeds and another
+ * verifies. [seen]
  *
- * Written only by the failing arm of the routine that folds a block of the program image, and read
- * by a routine that compares this cell against one glyph code and the next against two colours,
- * taking a different path on a match. So it is not scratch: it is a mark one part of the anti-tamper
- * machinery leaves for another to find.
+ * The attract screen's patch list (armAttractScreenShowingHighScore) seeds it with glyph 0x68, and the cell after it with colour 0x05.
+ * seedSceneryEntriesThenRunScenery reads it back and goes on only when it holds 0x68 and the next cell holds
+ * 0x10 or 0x05; anything else jumps into data. Under MAME it is seeded and checked in every capture
+ * and the check always takes the match path.
  *
- * The arm that writes it cannot run on a genuine image — the fold comes to exactly the compared
- * value — so what this cell does downstream is derived from the code and cannot be watched.
+ * The code holds a second writer: the failing arm of the routine that folds a block of the program
+ * image would overwrite the pair with a character cell copied out of the display
+ * (TAMPER_WITNESS_SAMPLE_CELL, glyph then colour). That fold comes to exactly the compared value on
+ * a genuine image, and the arm never ran in any capture.
  */
 export const TAMPER_WITNESS = 0xad39;
 
@@ -796,8 +801,10 @@ export const PLAYER_TWO_LIVES = 0xad20;
  * Each is a sixteen-byte mirror of the live context at 0xAD00. loadActivePlayerContextAndPostRoundHud
  * copies the ACTIVE_PLAYER-selected block into 0xAD00 byte for byte (CONTEXT_BYTES = 16) and
  * loseLifeAndHandOver copies it back, so every cell below is its active sibling at the same low nibble.
- * armRoundStartThenStepSequence seeds both blocks at a round arm. All [code]: the meanings come from the
- * active siblings (several themselves [seen]); the saved copies were not independently observed. */
+ * armRoundStartThenStepSequence seeds both blocks at a round arm. The meanings come from the active
+ * siblings, and the saved copies were watched under MAME too -- written by the context copies at a
+ * round clear and a life loss, read back by the context load. Each cell's own grounding is on its
+ * entry below. */
 
 /** Player one's copy of ROUND_NUMBER (0xAD01), the unwrapped round ordinal. Seeded 1 at a fresh round
  * arm; the attract arm overloads it to attract-stage + 1. [seen] */
@@ -869,7 +876,10 @@ export const PEN_GLYPH = 0xad0b;
  * era-indexed glyph/colour record; the context load copies it back into PEN_GLYPH. [seen] */
 export const PLAYER_ONE_PEN_GLYPH = 0xad1b;
 
-/** Player two's saved copy of PEN_GLYPH; the twin of PLAYER_ONE_PEN_GLYPH, the other block. [code] */
+/** Player two's saved copy of PEN_GLYPH; the twin of PLAYER_ONE_PEN_GLYPH, the other block. [code]
+ * Under MAME the two-player branch of the caption-pen seat writes it, but always with 0xF1: byte 0 of
+ * every era's pen record is 0xF1, so on a genuine image its value never changes or spreads. What is
+ * missing is a watched change of value that only this cell's role would explain. */
 export const PLAYER_TWO_PEN_GLYPH = 0xad2b;
 
 /** Player one's saved copy of PEN_COLOUR (saved context +0x0C); the source floodColourPlaneWithSavedPlayerColour
@@ -895,13 +905,12 @@ export const PLAYER_TWO_PEN_COLOUR = 0xad2c;
  * at every site predicted from the image except one no tape reached, and then this one, which no
  * prediction contained. No run can rule out a further writer in a state none of them drove.
  *
- * `[code]` and not `[seen]`: the writers were watched, but that its users are all the SEQUENCE
- * machine is read off the code rather than observed -- and the delay loop above is a counterexample
- * to the tidier version of that claim.
+ * Under MAME every site that reads or writes it is a phase-3 sequence arm or the startup delay loop
+ * above, and the only reads are those countdown sites themselves.
  */
 export const SEQUENCE_DELAY = 0xa9eb;
 
-/* ── The tracing pen's fixed route and the round-start intro animation (0xA9E2-0xA9F7) ──
+/* ── The tracing pen's fixed route and the between-eras band animation (0xA9E2-0xA9F7) ──
  * The pen draws captions by walking an L-shaped route as an 8.8 fixed-point interpolator: drawInterpolatedPenRun
  * steps a position toward each leg's target and plotPenCell stamps the whole cell. */
 
@@ -930,12 +939,10 @@ export const PEN_ROW_STEP = 0xa9e7;
 /** Signed 8.8 per-step column increment, added to PEN_COLUMN_POS each step. [seen] */
 export const PEN_COLUMN_STEP = 0xa9e9;
 
-/** The round-start intro animation's step selector (0..5): stepRoundStartIntroAnimation dispatches on it and each
+/** The between-eras band animation's step selector (0..5), played after a round is won and before the next round: stepRoundStartIntroAnimation dispatches on it and each
  * sub-animation writes the next step to hand off (flash->1, band-to-2->2, colour-cycle->3, band-to-4->4, flood->5).
- * paintSelfTestScreenPhaseThenStepSequence reuses 0xA9F0-0xA9F8 as an eight-byte scratch control block (offset 0 =
- * a shape byte) within the same sequence subsystem -- so the "step" reading holds for the intro, while those bytes
- * are transient object scratch during the self-test phase, where that routine keeps its own local CONTROL_BLOCK
- * alias for the base rather than this name. [seen] */
+ * It heads the eight-byte control block 0xA9F0-0xA9F8 that armRoundWonBandAnimationThenStepSequence stocks when a
+ * round is won (this byte seeded to 0), just before the animation runs. [seen] */
 export const INTRO_ANIMATION_STEP = 0xa9f0;
 
 /** Frame tick of the player-ship white flash (intro step 0/1): bit 0 alternates the sprite colour; at tick 8 it
@@ -946,8 +953,9 @@ export const PLAYER_FLASH_TICK = 0xa9f1;
  * pass and zeroed at the script's end, which sets INTRO_ANIMATION_STEP to 2. [seen] */
 export const BAND_TO2_PASS_COUNTDOWN = 0xa9f2;
 
-/** Countdown driving a sprite's colour field during the colour-cycle step (bit 2 holds each colour four frames);
- * advances INTRO_ANIMATION_STEP when it reaches zero, wrapping below zero. [code] */
+/** Countdown driving a sprite's colour field during the colour-cycle step: seeded 4 and stepped down once per call,
+ * so bit 2 is set only on the first call (colour 0x37) and clear for the rest (0x3F); when it reads zero the step
+ * sets INTRO_ANIMATION_STEP to 3, and the counter then wraps below zero. [seen] */
 export const SPRITE_COLOUR_CYCLE_COUNTDOWN = 0xa9f3;
 
 /** Per-pass countdown for advanceScriptedCharPlaneBandTo4 (bit 0 selects blank vs draw), zeroed at the script's
@@ -955,7 +963,7 @@ export const SPRITE_COLOUR_CYCLE_COUNTDOWN = 0xa9f3;
 export const BAND_TO4_PASS_COUNTDOWN = 0xa9f4;
 
 /** Countdown stepped down once as floodColourPlaneWithSavedPlayerColour finishes painting the colour plane
- * (intro step 4). [seen] */
+ * (intro step 4); nothing but that stepper reads it. [seen] */
 export const COLOUR_FLOOD_COUNTDOWN = 0xa9f6;
 
 /** 16-bit cursor walking the char-plane band script (a byte per plane cell); shared by the band-to-2 / band-to-4
@@ -998,13 +1006,14 @@ export const DIFFICULTY_SETTING = 0xa9c4;
 export const START_RUNG_ROUNDS_1_5 = 0xa9d3;
 
 /**
- * The same, for rounds six to ten. [code]
+ * The same, for rounds six to ten. [seen]
  *
  * Second byte of the same record; startNextRound reads it when the round number is at least 6 and
- * below 11. `[code]` and not `[seen]` for a specific reason: no run we have driven completed a
- * round, so the round number never reached 6 and this bracket was never taken. Its VALUES were
- * watched arriving here at all eight DIP positions -- 2, 3, 4, 6, 8, 10, 13, 15 -- and they are
- * uniformly at or above the first bracket's; that it is read on the rounds claimed is from the code.
+ * below 11. Under MAME a poked round-clear capture that stepped the round from 7 to 8 read it there
+ * (0x06) and stored it as the round's rung (ERA_RUNG), while round clears into rounds 2, 13 and 34
+ * took the other two brackets. Its VALUES were watched arriving here at all eight DIP positions in an
+ * earlier sweep -- 2, 3, 4, 6, 8, 10, 13, 15 (this grounding's captures reproduce 2, 4 and 6) -- and
+ * they are uniformly at or above the first bracket's.
  */
 export const START_RUNG_ROUNDS_6_10 = 0xa9d4;
 
@@ -1375,8 +1384,9 @@ export const TAMPER_SAMPLE_COLOUR_CELL = 0xa1dc;
 export const DEFERRED_WRITE_LIST = 0xae04;
 
 /**
- * Head of the deferred-BLANK list (same 4-byte record layout) that DEFERRED_BLANK_CURSOR 0xae80 fills and
- * blankCellsPaintedLastPass drains, stamping the blank glyph 0x20 into the character plane only. [code]
+ * Head of the deferred-BLANK list (same 4-byte record layout). drainBothDeferredCellLists fills it each pass by
+ * copying last pass's paint list (0xae00..) into 0xae80.. and writing the count (+0x80) into DEFERRED_BLANK_CURSOR
+ * 0xae80; blankCellsPaintedLastPass drains it, stamping the blank glyph 0x20 into the character plane only. [seen]
  */
 export const DEFERRED_BLANK_LIST = 0xae84;
 
@@ -1522,8 +1532,8 @@ export const ENEMY_STANDOFF_AIM_BLOCK_END = 0xac83;
  * (these ten plus ROUND_CRAFT_COUNT and SCRIPT_PICK_THRESHOLD). Two parallel spawn-config families, same shape --
  * a live per-vblank cooldown + its reload period + proximity/aim window half-widths + a bank slot count. Family
  * BANK_LAUNCH is read by the launchBankEnemyWhenAimedNearPlayer bank-launch arm and the Mother-Ship stepper; family ATTACKER_SPAWN by the
- * per-era attacker/craft-bank spawners. §3 watched the row's values climb a difficulty ladder [seen]; the specific
- * per-cell role here is [code]. Row byte order: 0->a844, 1->a837, 2->a827, 3->a817+a814, 6->a8c6, 7->a8d6, 8->a8e6, 9->a8f4+a8f6.
+ * per-era attacker/craft-bank spawners. §3 watched the row's values climb a difficulty ladder [seen]; each cell's
+ * own role is tagged on its const below. Row byte order: 0->a844, 1->a837, 2->a827, 3->a817+a814, 6->a8c6, 7->a8d6, 8->a8e6, 9->a8f4+a8f6.
  */
 
 /**
@@ -1651,12 +1661,12 @@ export const BLANK_LINE_START_CELL = 0xa404; // VRAM cell the line-wipe starts a
 export const CHAR_PLANE_COLUMN_BASE = 0xa451; // top cell of the scripted working character-plane column, walked by +0x20 (gatherCharColumnIntoBackingRun/restoreColumnFromSavedRun)
 export const PLAYER_ANIM_VRAM_BASE = 0xa5af; // char-plane blit destination (row13,col15) for the animated player figure (advancePlayerAnimationStrip)
 export const CHAR_PLANE_UPPER_RUN_BOTTOM = 0xa5d1; // bottom cell (row14,col0x11) of the working column's upper 13-run; fillCellRun/stepThirteen walk up to CHAR_PLANE_COLUMN_BASE
-export const CHAR_PLANE_STUB_LEFT_TOP = 0xa5f0; // top cell of the left flanking 2-cell stub column (row15,col0x10); LEFT/RIGHT side is [guess] (90deg-rotated video)
+export const CHAR_PLANE_STUB_LEFT_TOP = 0xa5f0; // stub cell at native row 15, col 0x10, one video-RAM column left of the working column 0x11, also written by unrelated painters [seen]; LEFT/TOP are native video-RAM column/row order, and its on-glass side is [guess]: by the rotation it would be the right-hand cell of the segment above the line, but no MAME frame has shown it
 export const CHAR_PLANE_COLUMN_MID_TOP = 0xa5f1; // column-center cell (row15,col0x11), index 13 of the 28-cell gather/restore walk
-export const CHAR_PLANE_STUB_RIGHT_TOP = 0xa5f2; // top cell of the right flanking stub column (row15,col0x12); side is [guess]
-export const CHAR_PLANE_STUB_LEFT_BOTTOM = 0xa610; // bottom cell of the left stub column (row16,col0x10); side is [guess]
+export const CHAR_PLANE_STUB_RIGHT_TOP = 0xa5f2; // stub cell at native row 15, col 0x12; RIGHT/TOP are native video-RAM column/row order, and its on-glass side is [guess]: by the rotation that puts col 0x10 above the line it would sit below it, but no MAME frame has shown which side it lands on
+export const CHAR_PLANE_STUB_LEFT_BOTTOM = 0xa610; // stub cell at native row 16, col 0x10; LEFT/BOTTOM are native video-RAM column/row order, and its on-glass side is [guess]: by the rotation it would be the left-hand cell of the segment above the line, but no MAME frame has shown it
 export const CHAR_PLANE_COLUMN_MID_BOTTOM = 0xa611; // column-center cell (row16,col0x11), index 14 of the 28-cell walk; paired with the mid-top under the script's second bit
-export const CHAR_PLANE_STUB_RIGHT_BOTTOM = 0xa612; // bottom cell of the right stub column (row16,col0x12); side is [guess]
+export const CHAR_PLANE_STUB_RIGHT_BOTTOM = 0xa612; // stub cell at native row 16, col 0x12; RIGHT/BOTTOM are native video-RAM column/row order, and its on-glass side is [guess]: missing a MAME frame showing where col 0x12 lands against col 0x10
 export const CHAR_PLANE_LOWER_RUN_TOP = 0xa631; // top cell (row17,col0x11) of the working column's lower 13-run; stepThirteen walks down to the run bottom
 export const HIGH_SCORE_MARKER_CELL_UPPER = 0xa6e1; // marker glyph 0x13 cell (col1,row23) written when arming the high-score attract screen [seen]
 export const HIGH_SCORE_MARKER_CELL_LOWER = 0xa701; // marker glyph 0x13 cell (col1,row24), one row below the upper marker [seen]
@@ -1714,7 +1724,7 @@ export const CHAR_PLANE_BASE = 0xa400; // first cell (0xa400) of the character/v
 // routine-local const in foldImageBlockIntoSignatureThenAdvanceSequence -- flagged for the coordinator.
 export const PLAYER_SHOT_SLOT_STRIDE = 0x0861; // ROM byte (16) = stride between the 6 player-shot slots (freeAllShotSlots); pairs with PLAYER_SHOT_ARRAY
 export const PLAYER_SHOT_SLOT_STRIDE_WORD = 0x0d46; // ROM word (16) = stride to the next slot in the 6-slot shot bank (fireAndSweepPlayerShots); word form of PLAYER_SHOT_SLOT_STRIDE
-export const PLAYER_SHOT_VELOCITY_TABLE = 0x2771; // 32-entry ROM word table: shot velocity vector by heading ((heading+4)>>3 & 0x1f) (fireAndSweepPlayerShots)
+export const PLAYER_SHOT_SPAWN_POSITION_TABLE = 0x2771; // 32-entry ROM word table by heading ((heading+4)>>3 & 0x1f): the low/high bytes seed the whole parts of a new shot's two coordinates (its muzzle position); the velocity comes from the world scroll (fireAndSweepPlayerShots)
 export const TAMPER_SIGNATURE_SEED_BYTE = 0x27c0; // ROM seed byte for the image-signature fold (foldImageBlockIntoSignatureThenAdvanceSequence -> TAMPER_IMAGE_SIGNATURE)
 export const WAVE_HEADING_BIAS_TABLE = 0x38d9; // 16-entry ROM byte table: per-heading bias added to wave shape indices ((PLAYER_HEADING+8)>>4) (driveEnemyWaveForLifePhase)
 export const WAVE_SHAPE_TABLE = 0x38e9; // ROM 2-byte (attr,shape) table indexed 2*(descriptor+bias) (driveEnemyWaveForLifePhase)
@@ -1738,7 +1748,7 @@ export const CAPTION_BAND_COLOUR_CELL1 = 0xa211; // 2nd caption colour-band colo
 export const CAPTION_BAND_COLOUR_CELL2 = 0xa212; // 3rd scattered caption colour-RAM cell (0xe0+base / -row 0x60+base), with CAPTION_BAND_COLOUR_CELL0/1 (paintCaptionColourBandAndStepSequence)
 export const CAPTION_COLOUR_LOWER_RUN_BOTTOM = 0xa3b1; // colour-plane counterpart (res 2,h fold) of CHAR_PLANE_LOWER_RUN_BOTTOM (0xa7b1); fillCellRun base for the caption's lower colour run
 export const CAPTION_COLOUR_UPPER_RUN_BOTTOM = 0xa1d1; // colour-plane counterpart of CHAR_PLANE_UPPER_RUN_BOTTOM (0xa5d1); fillCellRun base for the caption's upper colour run
-export const SELFTEST_INTRO_SHAPE_SEED = 0x3213; // ROM byte seeding INTRO_ANIMATION_STEP[0] (the intro/self-test control block's shape byte) (paintSelfTestScreenPhaseThenStepSequence) [guess]
+export const INTRO_ANIMATION_STEP_SEED = 0x3213; // program-image code byte (0x00, the immediate operand of ld (ix+9),0 at 0x3210) read as a value to seed INTRO_ANIMATION_STEP to 0 when a won round's band animation is set up (armRoundWonBandAnimationThenStepSequence) [seen]
 export const DIGIT_GLYPH_TABLE = 0x0dcc; // ROM table mapping a digit (0-9) to its glyph; paint(Un)SuppressedDigit fetchTableByte
 export const LEADING_ZERO_BLANK_GLYPH_INDEX = 0x3246; // ROM byte: glyph-table index used for a suppressed leading zero (paintSuppressedDigit)
 export const SPRITE_BANK0_BASE = 0xb010; // base of hardware sprite-attribute bank 0 (0xb000 spriteram); sibling of SPRITE_BANK1_BASE (publishSpriteShadow)
@@ -1748,7 +1758,7 @@ export const ERA_RUNG_SETTINGS_POINTER_TABLE = 0x1b04; // ROM table indexed (era
 export const ATTRACT_RESTART_FOLD_BYTE = 0x4901; // ROM byte folded with PLAYER_ANIM_COL_COUNT to recompute SEQUENCE_SUBSTEP (nets to 0 on a genuine image) -- anti-tamper (restartAttractSequence) [seen]
 export const loc_178c = 0x178c; // proposal: seatCaptionPenFromEraFoldingTamperIntoPhase IMAGE_BLOCK
 export const runParachutistSlot_ADDR = 0x47b3; // §3 collision: routine 0x47b3's own first opcode (0x3A) read as data -- a caption-cell pointer seed by holdCopyright's anti-tamper glyph check [seen]
-export const BOOT_CONFIG_CHECKSUM_BASE = 0x086b; // base of the 16-byte boot-config ROM block (holds the RNG seed guard words + default kill quota) summed as a tamper tripwire (seatEraSceneryRowThenClearAndRunScenery) [guess]
+export const COPYRIGHT_CAPTION_RECORD = 0x086b; // the 16-byte copyright caption record (header 0x086b-0x086d, glyphs 0x086e-0x087a) that drawTextRunByIndex paints; its bytes double as the RNG seed guard words and the default kill quota, and the whole record is summed as a tamper tripwire (seatEraSceneryRowThenClearAndRunScenery, showCreditLine) [seen]
 export const loc_3176 = 0x3176; // proposal: seatEraSceneryRowThenClearAndRunScenery ROW_TABLE
 
 // Batch 6 (final data batch): data addresses lifted out of routine-local consts / raw hex in 19 files.
@@ -1770,7 +1780,7 @@ export const WIPE_SUBSTEP_SEED = 0x1749; // ROM byte (=0x06, a code operand reus
 export const SEQUENCE_PHASE_TAMPER_SPAN_BASE = 0x5648; // base of a 256-byte ROM block sub-folded into SEQUENCE_PHASE then XOR 0x4e -- anti-tamper (corrupts the phase on a modified image)
 export const MOTHER_SHIP_WARP_SHAPE_TABLE = 0x461b; // 8-entry ROM shape table for the mother-ship warp/flash animation (stepMotherShip/stepMotherShipWarpFlashFrame)
 export const MOTHER_SHIP_STAGE_ARM_TABLE = 0x478b; // ROM word dispatch table of the Mother-Ship's per-era stage arms (stepMotherShip)
-export const INTRO_SUBSTEP_RELOAD = 0x2750; // ROM byte (=3) reloading SEQUENCE_SUBSTEP after the round-start intro animation (stepRoundStartIntroAnimation)
+export const INTRO_SUBSTEP_RELOAD = 0x2750; // ROM byte (=3) reloading SEQUENCE_SUBSTEP after the between-eras band animation (stepRoundStartIntroAnimation)
 export const SEQUENCE_CHECKSUM_SPAN_BASE = 0x0bcc; // base of the 256-byte ROM block summed vs EXPECTED_CHECKSUM_TOTAL -> derail on mismatch (stepSequenceUnderChecksum)
 export const EXPECTED_CHECKSUM_TOTAL = 0x1a50; // anti-tamper reference total; stepSequenceUnderChecksum derails if the 256-byte sum from SEQUENCE_CHECKSUM_SPAN_BASE mismatches
 export const NMI_ENABLE_LATCH = 0xc300; // W side of dual-mapped 0xc300: LS259 control-latch bit 0 (NMI enable), and the latch-bank base the boot clear-walk steps through; READ side = IN0_PORT
@@ -1915,7 +1925,7 @@ export const DEMO_AUTOPILOT_SCRIPT_THIRD = 0x22fa; // ROM heading-command script
 export const TRANSITION_SOUND_CODE_CELL_167C = 0x167c; // program-image cell whose byte is read as a sound code (Code.md "a sound code from the program image") (enqueueTransitionSoundBurst)
 export const TRANSITION_SOUND_CODE_CELL_1484 = 0x1484; // program-image cell whose byte is read as a sound code (Code.md "the next code") (enqueueTransitionSoundBurst)
 export const TRANSITION_SOUND_CODE_CELL_33B4 = 0x33b4; // program-image cell whose byte is read as a sound code (Code.md "the next code") (enqueueTransitionSoundBurst)
-export const SELFTEST_CONTROL_BLOCK_PARKED_POINTER = 0x56f1; // ROM pointer parked into the intro/self-test control block's tail two bytes (Code.md "the script pointer 0x56F1") (paintSelfTestScreenPhaseThenStepSequence)
+export const BAND_SCRIPT_START = 0x56f1; // ROM start of the band animation's script, stored into BAND_SCRIPT_CURSOR when a won round's band animation is set up (Code.md "the script pointer 0x56F1") (armRoundWonBandAnimationThenStepSequence)
 export const DIFFICULTY_RECORD_TABLE = 0x186a; // base of the fixed 4-byte-record difficulty table copied into the in-force settings cells (Code.md "point at the difficulty-record table") (loadDifficultyRecord)
 export const COLOUR_FLOOD_FIRST_CELL = 0xa044; // first (top-left inset) cell of the colour-plane flood rectangle (Code.md "first cell of the colour-plane rectangle") (floodColourPlaneWithSavedPlayerColour)
 
@@ -1929,14 +1939,14 @@ export const INITIALS_ALT_COMMIT_PRESS_HISTORY = 0xa998; // press history of the
 export const INITIALS_LETTER_INDEX = 0xa999; // index (0..26) of the letter shown at the initials cursor, selecting its glyph from INITIALS_LETTER_GLYPH_TABLE: zeroed when the entry opens, stepped by forward/back, reset to 0 after each committed letter [seen]
 export const INITIALS_SLOTS_LEFT = 0xa99a; // count of initials still to enter: set to 3 when the entry opens, decremented on each committed letter; reaching 0 finishes the entry [seen]
 export const INITIALS_CURSOR_FLASH_TIMER = 0xa99c; // initials cursor blink counter: incremented every odd frame of the entry, bit 4 picks the cursor cell's colour (0x14 over 0x10); zeroed whenever the cursor letter is redrawn [seen]
-export const INITIALS_LETTER_GLYPH_TABLE = 0x12c7; // 27-entry ROM table mapping INITIALS_LETTER_INDEX to the glyph drawn at the entry cursor and locked into the saved initials: A..Z in order, then one final non-letter mark (glyph 0x1a, a small low bar) [seen]
+export const INITIALS_LETTER_GLYPH_TABLE = 0x12c7; // 27-entry ROM table mapping INITIALS_LETTER_INDEX to the glyph drawn at the entry cursor and locked into the saved initials: A..Z in order, then one final non-letter mark (glyph 0x1a, whose tile is a small dot); MAME read indices 0, 1 and 26, and the A..Z order rests on matching the tile bitmaps against the caption font [seen]
 export const ROUND_START_CHECKSUM_BASE = 0x4c99; // base of a 256-byte ROM anti-tamper block XOR-folded by the round-start sequence arm (sub-step 4); any fold but 0x6b advances the outer sequence phase [seen]
 export const INITIALS_ENTRY_CHECKSUM_BASE = 0x4880; // base of a 256-byte ROM anti-tamper block XOR-folded by the initials-entry setup arm (sub-step 9); any fold but 0x30 derails into the frame service [seen]
 export const HIGH_SCORE_FILED_CHECKSUM_BASE = 0x01f1; // base of a 256-byte ROM anti-tamper block summed to 8 bits by the game-over hold arm on the path where the score was filed; any total but 0x19 advances the outer sequence phase [seen]
 export const SKIP_INITIALS_SUBSTEP_SEED = 0x0843; // ROM code byte (0x0b, operand of the call at 0x0841) read as a value: seeds SEQUENCE_SUBSTEP when the finished score beats no high-score record, so the sequence bypasses the initials setup (sub-step 9) and entry (sub-step 10) [seen]
-export const loc_4d9f = 0x4d9f; // base of a 256-byte ROM block subtract-folded into SEQUENCE_PHASE then XORed with 0xa2 by the phase-3 sub-step-5 arm; nets out on a genuine image (anti-tamper); context of the arm ungrounded [guess]
-export const loc_0831 = 0x0831; // base of the first 256-byte ROM block the phase-3 sub-step-6 arm subtract-folds into SEQUENCE_PHASE (closed by XOR 0xc2) every frame; nets out on a genuine image (anti-tamper); context of the arm ungrounded [guess]
-export const loc_12a7 = 0x12a7; // base of the second 256-byte ROM block the phase-3 sub-step-6 arm subtract-folds into SEQUENCE_PHASE (closed by XOR 0x59) on the frame SEQUENCE_DELAY expires; nets out on a genuine image (anti-tamper); context of the arm ungrounded [guess]
+export const ROUND_INTRO_CHECKSUM_BASE = 0x4d9f; // base of a 256-byte ROM anti-tamper block subtract-folded into SEQUENCE_PHASE then XORed with 0xa2 by the round-intro arm (phase-3 sub-step 5, flyRoundIntroFlashingEraYearThenEraseIntroCaptions); nets out on a genuine image [seen]
+export const LEAD_IN_CHECKSUM_BASE = 0x0831; // base of the first 256-byte ROM anti-tamper block the lead-in arm (phase-3 sub-step 6, flyEnemyFreeLeadInThenStepSequence) subtract-folds into SEQUENCE_PHASE (closed by XOR 0xc2) every frame; nets out on a genuine image; the block is live code (it starts inside drawKillMeter) read here as data [seen]
+export const LEAD_IN_EXPIRY_CHECKSUM_BASE = 0x12a7; // base of the second 256-byte ROM anti-tamper block the lead-in arm subtract-folds into SEQUENCE_PHASE (closed by XOR 0x59) on the frame SEQUENCE_DELAY expires; nets out on a genuine image [seen]
 
 export const ROUTINES = {
   0x0774: {
@@ -2027,7 +2037,7 @@ export const ROUTINES = {
   0x4f2a: { name: "dispatchEra4CollisionByFrameParity", role: "era-4 (ERA_INDEX 0xad04=4) per-frame collision dispatch split by frame parity (FRAME_TICK 0xa980), reached only as dispatchCollisionPassByEra's era-4 tail: even frames run the whole player-vs-object collision-and-destruction pass; odd frames stage one shot-vs-target sweep over the object-slot run at 0xa810/0xaa12 (six shots, box l=7/h=0x0f), restaging the shared body's two reload cursors 0xa991/0xa993 first -- while MOTHER_SHIP_ARMED (0xad0d) is set the run is nine long and a mother-ship mutual-kill pass (0x4fe0) follows, while clear the run is eleven long and none does", cert: "seen" },
   0x4447: { name: "dressSpriteForHeadingOrRetireAtEdge", role: "dress an object's sprite entry to face its heading (heading-quadrant picks a shape pair, era picks a colour, one heading half swaps the pair and the other biases the colour by half a page), unless the object has reached the field edge, in which case retire the entry pair; on the flutter era instead give a two-frame flutter and step/cap/close-out the wind-down counter", cert: "seen" },
   0x4941: { name: "tallyCoinSlot1AndAwardCredit", role: "one frame of coin slot 1 accounting: clock the raw coin line into a debounce shift register and, on a clean rising edge, count the coin -- blip the coin sound, bump the tally, add a unit to the coins-inserted accumulator; once it passes the coinage threshold (coins-per-credit high nibble, credits awarded low) carry the overshoot forward and, unless the no-credit flag is set, add the low nibble to the packed-decimal credit count (saturated at 99) and repaint its panel; either overshoot path then pulses the mechanical coin counter", cert: "seen" },
-  0x4a0f: { name: "paintSelfTestScreenPhaseThenStepSequence", role: "lay out one phase of the sequenced intro/self-test screen: stock an 8-byte control block at 0xA9F0 (ROM shape byte 0x3213, fixed fields, parked ROM pointer 0x56F1), write a fixed attribute run at 0xA400, colour three colour-plane rows and a small block by adding the base colour at 0xAD0C to fixed offsets, seed the active player's saved pen from its era, then tail-step the sequence sub-step; unreached by either tape", cert: "code" },
+  0x4a0f: { name: "armRoundWonBandAnimationThenStepSequence", role: "set up the band animation a won round plays between eras (sequence sub-step 13): stock the eight-byte control block at INTRO_ANIMATION_STEP 0xA9F0 (step 0 from ROM 0x3213, flash tick 0, both band pass countdowns 0xFF, colour-cycle countdown 4, colour-flood countdown 8, band-script cursor aimed at 0x56F1), seed the character plane's first row 0xA400 with the band's backing picture, colour the band's colour-plane rows and stub cells from PEN_COLOUR 0xAD0C plus fixed offsets, seed the active player's saved pen from its era, then tail-step the sequence sub-step", cert: "seen" },
   0x27b1: { name: "armRoundStartThenStepSequence", role: "round-start sequence arm: seat two player-object records (0xAD0C-0xAD2E) and position seeds (0xAC64=0x78,0xAC65=0x84), request a sound and load the difficulty record, then split on PLAY_ACTIVE(0xAD30) -- mid-game it queues command de=0x0400 and folds a +1 XOR checksum of 256 program bytes at 0x1550 into control latch 0xC308 (0xA9EB=0x96); on a fresh round it cycles the 1..3 stage counter at 0xA9D0, reseeds the random register, clears 0xAA80-0xAADF and 0xA800-0xA97F, SUB-checksums 256 bytes at 0x3310 into 0xA9AB (xor 0x90) and paints star field 0xAC74-0xAC83 with 0x80 (0xA9EB=0x5A); both arms tail-advance the sequence sub-step", cert: "seen" },
   0x4cc3: { name: "fileScoreIntoHighScoreTable", role: "file the active player's finished score into the five-record high-score board: walk the standing scores top-down comparing each (isScoreBelow) to find the first the new score is not below, slide the records beneath down one slot (lddr), write the new score with blank 0xf1 name-cell sentinels, look up its initial-glyph row pointer, and renumber the rank column 0..4; carry returns clear when filed, set when the score beat none", cert: "seen" },
   0x326c: { name: "layOutEnemyAimPointsFromScrollAngle", role: "when the mode byte in C selects sub-mode 7 (low nibble == 7), fill sprite object 0xac64's twelve coordinate fields (0x10-0x1b) with six XY pairs around centre (0x78 across, 0x84 down): the scroll angle +0x40 and the scroll angle itself, each drawn through the velocity table (via 0x59d1) at x8 and x16 radii, the +0x40 direction also mirrored to its negatives; other sub-modes return without writing", cert: "seen" },
@@ -2129,7 +2139,7 @@ export const ROUTINES = {
   },
   0x4a42: {
     name: "paintCaptionColourBandAndStepSequence",
-    role: "continue a caption's colour band from the caller's HL cursor: lay the caller's A over one cell, a 13-cell run of the caller's C and a 4-cell tail (0x0e), then fill two colour-RAM rows and six scattered colour cells from the base colour at 0xAD0C (each value base+offset), then seed the saved pen from the era and step the sequence sub-step; A/C/HL/DE left scratch",
+    role: "continue a caption's colour band from the caller's HL cursor: lay the caller's A over one cell, a 13-cell run of the caller's C and a 4-cell tail (0x0e), then fill two colour-RAM rows and six scattered colour cells from the base colour at 0xAD0C (each value base+offset), then seed the saved pen from the era and step the sequence sub-step; A/C/HL/DE left scratch. On a genuine image this body runs only as the fall-through of armRoundWonBandAnimationThenStepSequence, which seats A/C/HL; its separately registered entry is reached only by a tamper derail",
     cert: "seen",
   },
   0x4d72: {
@@ -2234,7 +2244,7 @@ export const ROUTINES = {
   },
   0x4d3a: {
     name: "escalateDifficultyRungOnCounterWrap",
-    role: "step a three-place base-sixty tick counter at 0xAD05, carrying into the next place only while a place rolls over; only on a full roll-over count down the reload timer at 0xA9D7, and each time it fires rearm it from 0xA9D6, climb the escalation rung at 0xACC0 one step (held at 15), and apply that rung's tuning row",
+    role: "step a three-place base-sixty tick counter at 0xAD05, carrying into the next place only while a place rolls over; each time the lowest place rolls over (every sixty passes) count down the reload timer at 0xA9D7, and each time it fires rearm it from 0xA9D6, climb the escalation rung at 0xACC0 one step (held at 15), and apply that rung's tuning row",
     cert: "seen",
   },
   0x50b1: {
@@ -2365,7 +2375,7 @@ export const ROUTINES = {
   },
   0x0f54: {
     name: "advanceAttractTowardGameStart",
-    role: "guarded tail of the phase-3 image-service step, reached as dispatchSequenceSubStepArm's pushed continuation: returns while the play-active flag (0xAD30) is set; on a nonzero credit count (0xA986) it zeroes the sequence sub-step (0xA9AC) and reloads the phase (0xA9AB) from the ROM constant at 0x1736; otherwise, only when the free-play flag (0xA9C0) is set and one of two input bits (0xA9AE & 0x18) is held, it zero-fills the work table 0x15b6 clears and tail-calls loc_1690",
+    role: "guarded tail of the phase-3 image-service step, reached as dispatchSequenceSubStepArm's pushed continuation: returns while the play-active flag (0xAD30) is set; on a nonzero credit count (0xA986) it zeroes the sequence sub-step (0xA9AC) and reloads the phase (0xA9AB) from the ROM constant at 0x1736; otherwise, only when the free-play flag (0xA9C0) is set and one of two input bits (0xA9AE & 0x18) is held, it zero-fills the work table 0x15b6 clears and tail-calls loc_1690 (that free-play arm was not observed under MAME)",
     cert: "seen",
   },
   0x1253: {
@@ -2376,7 +2386,7 @@ export const ROUTINES = {
   },
   0x1271: {
     name: "advanceRoundWhenFieldCleared",
-    role: "gated two-arm state transition: fires only when 0xad02=0, 0xacc6!=0 and all 15 slots at 0xa810 are empty, then queues the fixed sound set and runs one of two arms on 0xad30 — disarm+reset a cell cluster, or clear a strided run and copy a 16-byte record into 0xad10/0xad20",
+    role: "gated two-arm state transition: fires only when 0xad02=0, 0xacc6!=0 and all 15 slots at 0xa810 are empty, then queues the fixed sound set and runs one of two arms on 0xad30 — disarm+reset a cell cluster, or clear a strided run and copy a 16-byte record into 0xad10/0xad20 (only the 0xad10 destination was watched under MAME; the 0xad20 copy is code-level)",
     cert: "seen",
   },
   0x12e7: {
@@ -2418,7 +2428,7 @@ export const ROUTINES = {
   },
   0x15b5: {
     name: "loc_15b5",
-    role: "a single ROM byte, `ret`, wired in as slot 15 of the sixteen-word table at 0x0F29 that dispatchSequenceSubStepArm dispatches on the low nibble of SEQUENCE_SUBSTEP; taking this arm reads nothing, writes nothing and drops straight into 0x0F54, the continuation every arm of that table returns into. The address occurs exactly once in the whole 24KB image as a little-endian word -- that table slot -- and its gate measures both shipped tapes never presenting nibble 15, so whether the slot is a deliberate idle rung or filler for an index the machine never produces is not settled by anything read here",
+    role: "a single ROM byte, `ret`, wired in as slot 15 of the sixteen-word table at 0x0F29 that dispatchSequenceSubStepArm dispatches on the low nibble of SEQUENCE_SUBSTEP; taking this arm reads nothing, writes nothing and drops straight into 0x0F54, the continuation every arm of that table returns into. The address occurs exactly once in the whole 24KB image as a little-endian word -- that table slot. The machine does produce nibble 15, but only transiently: arm 14 steps the sub-step to 15 and overwrites it with 3 in the same interrupt, with interrupts disabled, so no dispatch ever reads 15 and the slot is unreachable filler",
     cert: "code",
   },
   0x15c2: {
@@ -2496,7 +2506,7 @@ export const ROUTINES = {
   },
   0x1f99: {
     name: "loc_1f99",
-    role: "direction-table bytes decoded as code: pops a long run of stack words while shuffling registers, pushes the pointer once and decrements one cell, then exits via ret / an off-map call / a computed jp(hl); no input tape dispatches it",
+    role: "direction-table bytes decoded as code: pops a long run of stack words while shuffling registers, pushes the pointer once and decrements one cell, then exits via ret / an off-map call / a computed jp(hl); entered only through the tamper derail into the 0x1F2E table, taken iff TAMPER_GLYPH_STRIP is not 0xA5 or TAMPER_COLOUR_STRIP is not 0x05/0x10, which never fires on a genuine image",
     cert: "code",
   },
   0x200c: {
@@ -2580,7 +2590,7 @@ export const ROUTINES = {
   },
   0x3cc4: {
     name: "hasReachedBoundaryBandSelectedByHeading",
-    role: "answer, in the carry flag, whether an object has reached a boundary, the heading choosing which of two adjacent and disjoint three-wide bands is the one tested",
+    role: "answer, in the carry flag, whether an object has reached a boundary: the heading in the object's record chooses which of two adjacent and disjoint three-wide bands is tested on the sprite entry's byte at +0x31, and when that band test fails a second, four-wide window test on the same sprite entry's head byte (hasReachedHorizontalEdgeWindow) decides -- so carry is the OR of the two tests",
     cert: "seen",
   },
   0x3dda: {
@@ -2590,7 +2600,7 @@ export const ROUTINES = {
   },
   0x3deb: {
     name: "serviceSlotByHeadByte",
-    role: "service one slot, splitting three ways on the head byte of its record: zero does nothing at all, all-ones flies the object one step along the velocity it carries and retires it into the shared cooldown only once that step has put it on a retire line, and any OTHER value retires it on the spot without moving it first",
+    role: "service one slot, splitting three ways on the head byte of its record: zero does nothing at all, all-ones flies the object one step along the velocity it carries and retires it into the shared cooldown only once that step has put it on a retire line, and any OTHER value retires it on the spot without moving it first (that last arm is a code-level reading: no capture wrote the head byte with any value but zero or all-ones)",
     cert: "seen",
   },
   0x3e6c: {
@@ -3132,7 +3142,7 @@ export const ROUTINES = {
     name: "destroyTargetsHitByShots",
     role: "destroy every target a live shot has reached, spending the shot with them, and post the score for each; the sweep does not stop at the first, so one shot can take several in a pass",
     cert: "seen",
-    why: "every caller fixes the outer array at the six-slot table fireAndSweepPlayerShots owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one stepDyingObjectState converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision",
+    why: "every caller fixes the outer array at the six-slot table fireAndSweepPlayerShots owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one stepDyingObjectState converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision. That one shot can take several targets in a pass is read off the code rather than separately observed",
   },
   0x58a4: {
     name: "loc_58a4",
@@ -3422,6 +3432,7 @@ export const ROUTINES = {
     name: "enqueueSoundUnconditional",
     role: "queue a sound code with no permission test, so it is queued whether or not a game is being played",
     cert: "code",
+    why: "reached in every capture, but its own body is only the two pushes that save HL and AF before it falls into 0x562A, which makes the role-defining writes (SOUND_QUEUE_COUNT and the FIFO after it); those PCs lie outside this entry's body, and 0x562A is not registered. Its [seen] caller enqueueTransitionSoundBurst (0x5634) reaches the queue only through this entry, but that caller is itself a chain of calls with no write of its own, so it cannot stand as an independent consumer. Missing: 0x562A registered and grounded on its own enqueue writes, after which this entry grounds as the unconditional way into it",
   },
   0x5617: {
     name: "enqueueSoundIfGameOrAttract",

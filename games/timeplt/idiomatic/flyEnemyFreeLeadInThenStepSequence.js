@@ -12,7 +12,7 @@ import { fireAndSweepPlayerShots } from "./fireAndSweepPlayerShots.js";
 import { multiplexSpriteSlots } from "./multiplexSpriteSlots.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
-import { SEQUENCE_DELAY, SEQUENCE_PHASE, loc_0831, loc_12a7 } from "./names.js";
+import { SEQUENCE_DELAY, SEQUENCE_PHASE, LEAD_IN_CHECKSUM_BASE, LEAD_IN_EXPIRY_CHECKSUM_BASE } from "./names.js";
 
 // The two program blocks folded into the phase.
 const FOLD_LENGTH = 256;
@@ -27,7 +27,7 @@ function foldIntoPhase(m, base, key) {
 
 export function flyEnemyFreeLeadInThenStepSequence(m) {
   const { mem8 } = m;
-  foldIntoPhase(m, loc_0831, 0xc2);
+  foldIntoPhase(m, LEAD_IN_CHECKSUM_BASE, 0xc2);
 
   multiplexSpriteSlotsSkipping(m);
   dispatchPlayerFrameByState(m);
@@ -40,6 +40,6 @@ export function flyEnemyFreeLeadInThenStepSequence(m) {
   mem8[SEQUENCE_DELAY] = delay;
   if (delay !== 0) return;
 
-  foldIntoPhase(m, loc_12a7, 0x59);
+  foldIntoPhase(m, LEAD_IN_EXPIRY_CHECKSUM_BASE, 0x59);
   return advanceSequenceSubStep(m);
 }
