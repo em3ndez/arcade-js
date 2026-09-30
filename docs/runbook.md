@@ -921,6 +921,14 @@ distinct phase, gated on a flag, and runs in this order.
   checker per section, fold the real findings. The map carries **NO port plumbing** (`m.call`, the seam,
   `withOmittedRet`, `push16`, "address-dispatched") — that is how the port is wired, not how the machine
   works.
+  **Exception — a map regenerated whole since the last role change needs a currency check, not another regen.**
+  When the map was already regenerated blind (and section-checked) at a commit after which only register
+  plumbing, value-identical renames and grounding tags changed — no routine's role or behaviour — the
+  cleanup milestone runs the per-section adversarial checkers against the CURRENT code instead of regenerating:
+  each claim re-verified, each fix given as literal replacement prose, applied by an editor and re-verified.
+  A blind regen re-derives the same substance at real cost and risks losing grounding narrative; the checker
+  pass catches exactly what drifted. Any role or behaviour change since the regen still requires the whole
+  regen. (Codified 2026-09-30 on timeplt's cleanup; runbook rule-1 novel decision.)
 - **Rewrite `names.js`.** It accretes run-on role strings and port-plumbing prose across the pass. Make
   every role concise, consistent, plumbing-free, correctly tagged. It is ONE file (edit contention): agents
   PROPOSE cleaned entries per disjoint address range; the lead APPLIES them serially as the single writer.

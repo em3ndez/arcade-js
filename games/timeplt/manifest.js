@@ -13,6 +13,7 @@ export default {
   mameDriver: "timeplt.cpp",
 
   runtime: "idiomatic",
+  idiomaticComplete: true,
 
   rom: {
     zip: "timeplt.zip",
