@@ -11,7 +11,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, INTRO_ANIMATION_STEP_SEED, BAND_SCRIPT_START, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
+import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, INTRO_ANIMATION_STEP_SEED, BAND_SCRIPT_START, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_UPPER_LEFT, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_LOWER_LEFT } from "./names.js";
 
 const ROW_STEP = -32;
 
@@ -43,8 +43,8 @@ export function armRoundWonBandAnimationThenStepSequence(m) {
   fillCellRun(m, u8(0x20 + base), toColour(CHAR_PLANE_UPPER_RUN_BOTTOM));
 
   // three columns of the colour plane, each a cell and the cell one row above it
-  paintColumn(mem8, toColour(CHAR_PLANE_STUB_LEFT_BOTTOM), u8(0xa0 + base), u8(0x20 + base));
-  paintColumn(mem8, toColour(CHAR_PLANE_STUB_RIGHT_BOTTOM), u8(0xe0 + base), u8(0x60 + base));
+  paintColumn(mem8, toColour(CHAR_PLANE_STUB_UPPER_LEFT), u8(0xa0 + base), u8(0x20 + base));
+  paintColumn(mem8, toColour(CHAR_PLANE_STUB_LOWER_LEFT), u8(0xe0 + base), u8(0x60 + base));
   paintColumn(mem8, toColour(CHAR_PLANE_COLUMN_MID_BOTTOM), u8(0xa0 + base), u8(0x20 + base));
 
   setSavedPenFromEra(m);

@@ -110,12 +110,12 @@ The main processor never waits on the audio processor. Sound requests are append
 
 - SOUND_QUEUE_COUNT 0xAC43 [seen] holds how many bytes are waiting.
 - The bytes follow it from SOUND_QUEUE_HEAD 0xAC44 [seen], right after the 64-cell command ring.
-- `appendSoundCommandToQueue` bumps the count and stores the new code at the count's own offset, so codes line up in arrival order.
+- The enqueue body at 0x562A (`appendSoundCommandToQueue`) bumps the count and stores the new code at the count's own offset, so codes line up in arrival order.
 - Nothing checks for room, and the count wraps at a byte.
 
 Producers reach the queue through one of three gates:
 
-- `enqueueSoundUnconditional` (0x5628) [code] always queues.
+- `enqueueSoundUnconditional` (0x5628) [seen] always queues: its own body only saves HL and the code on the stack, then falls straight into the append, which takes both back.
 - `enqueueSoundIfGameInProgress` (0x560C) [seen] queues only while PLAY_ACTIVE 0xAD30 [seen] is set.
 - `enqueueSoundIfGameOrAttract` (0x5617) [seen] queues while PLAY_ACTIVE or DEMO_SOUNDS_ENABLE is set.
 
@@ -292,7 +292,7 @@ The table is easiest to follow as the life of a game.
 - **In a credited game** it zeroes both score triples and posts score-command 0 to the command ring, which repaints the score labels. It loads the difficulty record the Difficulty switch selects (see *The gameplay-config bank*). It folds a program block into the picture-enable latch (see *ROM self-checks*). Both players' start rungs are copied from START_RUNG_ROUNDS_1_5 0xA9D3 [seen], and SEQUENCE_DELAY 0xA9EB [seen] is set to 150 before the step advances.
 - **In the demo** it cycles ATTRACT_STAGE_COUNTER 0xA9D0 [code] through 1, 2, 3 and back to 1, and uses that value as player one's era (PLAYER_ONE_ERA_INDEX 0xAD14 [seen]). The demo therefore only ever flies eras 1, 2 and 3 — 1940, 1970 and 1982 — never 1910 or 2001. This matches gameplay.md's report of the Konami set's attract mode. It zeroes FRAME_TICK 0xA980 [seen], BCD_FRAME_COUNTER 0xA9CE [code] and SCRIPT_CYCLE_COUNTER 0xA9CF [code], and re-seeds the random generator. It clears the shot array (PLAYER_SHOT_ARRAY 0xAA80 [seen] and up) and the player/actor block (PLAYER_STATE 0xA800 [seen] and up), then loads difficulty record 2 whatever the switches say. Every demo therefore starts from the same generator state on the same fixed difficulty. The delay is set to 90.
 
-**Step 1 — seat the caption pen (seatCaptionPenFromEraFoldingTamperIntoPhase [seen]).** A two-byte glyph/colour record is chosen by the active player's era. It comes from a table at 0x0F8D whose bytes are also the code of loc_0f8d [code]. The record is written both into that player's saved pen (PLAYER_ONE_PEN_GLYPH 0xAD1B [seen], or PLAYER_TWO_PEN_GLYPH 0xAD2B [code]) and into the live PEN_GLYPH 0xAD0B / PEN_COLOUR 0xAD0C [seen]. If the colour did not change, the step advances twice, which skips step 2. The pen is then sent back to the start of its route, and the step advances.
+**Step 1 — seat the caption pen (seatCaptionPenFromEraFoldingTamperIntoPhase [seen]).** A two-byte glyph/colour record is chosen by the active player's era. It comes from a table at 0x0F8D whose bytes are also the code of loc_0f8d [code]. The record is written both into that player's saved pen (PLAYER_ONE_PEN_GLYPH 0xAD1B [seen], or PLAYER_TWO_PEN_GLYPH 0xAD2B [seen]) and into the live PEN_GLYPH 0xAD0B / PEN_COLOUR 0xAD0C [seen]. If the colour did not change, the step advances twice, which skips step 2. The pen is then sent back to the start of its route, and the step advances.
 
 **Step 2 — trace the pen route (blankCaptionThenAdvancePenRunStep [seen]).** Each frame, this step blanks the fourteen kill-meter cells (blankFourteenCharCells [seen]) and draws one leg of the pen's route (drawInterpolatedPenRun [seen]). Each leg stamps PEN_GLYPH/PEN_COLOUR along a line interpolated between two route points. The step stays put until the route reseats on row zero, and then advances. The code does not establish what the traced route looks like on the glass.
 
@@ -1428,7 +1428,7 @@ The copyright line holds a counterintuitive fact. COPYRIGHT_CAPTION_RECORD 0x086
 
 ### Pens: the colour of the era
 
-PEN_COLOUR 0xAD0C [seen] and PEN_GLYPH 0xAD0B [seen] are the pen pair in the active player's context. Each player keeps a saved copy: PLAYER_ONE_PEN_GLYPH 0xAD1B [seen] / PLAYER_ONE_PEN_COLOUR 0xAD1C [seen], and PLAYER_TWO_PEN_GLYPH 0xAD2B [code] / PLAYER_TWO_PEN_COLOUR 0xAD2C [seen].
+PEN_COLOUR 0xAD0C [seen] and PEN_GLYPH 0xAD0B [seen] are the pen pair in the active player's context. Each player keeps a saved copy: PLAYER_ONE_PEN_GLYPH 0xAD1B [seen] / PLAYER_ONE_PEN_COLOUR 0xAD1C [seen], and PLAYER_TWO_PEN_GLYPH 0xAD2B [seen] / PLAYER_TWO_PEN_COLOUR 0xAD2C [seen].
 
 Both setSavedPenFromEra [seen] and seatCaptionPenFromEraFoldingTamperIntoPhase [seen] load the pair from a two-byte-per-era table at 0x0F8D, indexed by the player's era. The first five entries are glyph 0xF1 with colours 1, 2, 3, 4 and 5, so the pen colour is simply the era number plus one. The seat routine writes the live pen as well as the saved copy.
 
@@ -1552,7 +1552,7 @@ Second, it colours the cells that picture belongs to. The 28 visible cells of na
 - two centre cells, CHAR_PLANE_COLUMN_MID_TOP 0xA5F1 and CHAR_PLANE_COLUMN_MID_BOTTOM 0xA611;
 - a lower run of thirteen, starting at CHAR_PLANE_LOWER_RUN_TOP 0xA631.
 
-Beside the centre sit four stub cells in native columns 0x10 and 0x12: CHAR_PLANE_STUB_LEFT_TOP 0xA5F0, CHAR_PLANE_STUB_LEFT_BOTTOM 0xA610, CHAR_PLANE_STUB_RIGHT_TOP 0xA5F2 and CHAR_PLANE_STUB_RIGHT_BOTTOM 0xA612. LEFT/RIGHT and TOP/BOTTOM in these names are native video-RAM column and row order. Which side of the line each cell lands on the glass is [guess] for all four, since no MAME frame has shown it. 0xA5F0's role as a stub cell is [seen].
+Beside the centre sit four stub cells, in native columns 0x10 and 0x12 of rows 15 and 16. On the glass the line is the horizontal streak through the centre of the screen at display_y 136-143, where the player's jet sits, and the four stubs are the corners of a diamond-shaped bulge on that streak around the jet: CHAR_PLANE_STUB_UPPER_RIGHT 0xA5F0 [seen] above the streak and right of centre, CHAR_PLANE_STUB_UPPER_LEFT 0xA610 [seen] above it and left, CHAR_PLANE_STUB_LOWER_RIGHT 0xA5F2 [seen] below it and right, and CHAR_PLANE_STUB_LOWER_LEFT 0xA612 [seen] below it and left. So native column 0x10 is the row of tiles above the streak and column 0x12 the row below it, while native row 15 is the right-hand tile of each pair and row 16 the left. The band always gives all four the same glyph, and their colour bytes differ only in the two top bits, so the one tile shape is drawn mirrored into the four corners.
 
 The colouring uses fillCellRun [seen], which fills thirteen cells stepping −32:
 - upper run: 0x20 + pen;
@@ -1612,7 +1612,7 @@ These are the questions the routines do not settle on their own, grouped by the 
 
 ### The frame and the sequence
 
-- serviceVerticalBlankInterrupt (0x00D9), sendOneQueuedSoundThenUnwindTheFrameInterrupt (0x0174) and appendSoundCommandToQueue carry no evidence tag in names.js. Their roles rest on the code alone. A MAME capture of the vblank entry, the queue append and the epilogue's sound-latch write would ground them.
+- serviceVerticalBlankInterrupt (0x00D9) and sendOneQueuedSoundThenUnwindTheFrameInterrupt (0x0174) carry no evidence tag in names.js. Their roles rest on the code alone. A MAME capture of the vblank entry and the epilogue's sound-latch write would ground them.
 - COCKTAIL_MODE (0xA9C2) polarity. The frame service turns the screen round for player two when the cell reads 0, and the machine's measured default DSW1 value of 0x4B puts an upright cabinet at 1. Read together with SCREEN_UNFLIPPED's observed behaviour, the cell reads 0 on a cocktail cabinet and 1 on an upright, which is the opposite of what its name says. names.js still marks the polarity MAME-pending. A MAME run with the cabinet switch set each way, watching 0xA9C2 and the flip latch, would settle it, and the name would follow.
 - The starting-lives setting that folds to 6 is stored in STARTING_LIVES as 0xFF, where gameplay.md says '256'. In code each lost life takes one off LIVES_REMAINING and the game ends at zero, so 0xFF plays as 255 lives, except that a bonus life awarded while the byte reads 0xFF adds one and wraps it to 0. Neither has been watched in play, and nor has how the lives HUD shows the count beyond the six-emblem clamp. A MAME run on that setting, losing lives and watching LIVES_REMAINING and the emblem strip, would close both.
 - DIP1_MIRROR (0xA9AD) is re-latched every frame and nothing uses it. Across every MAME full-span read-tap capture, the only read of 0xA9AD is the power-on wipe's ldir at 0x0091. What remains open is only whether a path none of the captures ran, such as the service switch held at boot, reads it. A read tap on such a run would close it.
@@ -1693,6 +1693,6 @@ These are the questions the routines do not settle on their own, grouped by the 
 - The caption texts in §8 are decoded but have not been seen on screen. Only the digit mapping comes from the code (DIGIT_GLYPH_TABLE 0x0DCC). The letter mapping is inferred from how consistently the records read: records 12, 14 and 19 read as INPUT YOUR INITIALS !, STAGE and SCORE RANKING TABLE only under it. Records 20 and 21 (colour 0x32, second tile bank), which the initials screen posts, are pictorial and not identified. A MAME snapshot of each caption would confirm the mapping.
 - The ring's slot-0 handler at 0x0BDD draws a caption's glyphs without touching colour. It is unreached as far as the code shows: no routine posts command 0, and a ROM byte scan for immediate ring posts (ld de,nn / ld d,n before RST 0x38) found no command 0. A post whose command is loaded from a register could still exist. A MAME PC-hit on 0x0BDD would close it.
 - Caption record 24 (0x3ED2, start cell 0xA692) has no glyphs, because its terminator comes first. No poster for caption 0x18 appears in the routines or in a ROM byte scan. Not checked under MAME.
-- What the between-eras band's tile codes (0x14/0x0E and their bumped successors, second tile bank) look like on the glass is not established. The on-glass side of the four stub cells is also open.
+- What the between-eras band's tile codes (0x14/0x0E and their bumped successors, second tile bank) look like on the glass is not established.
 - The kill meter blanks only one cell past the bar's end. That is safe only if the bar shrinks by at most one cell between draws, which holds because the round engine redraws it every pass. This is a code-level inference, not an observation.
 - blankCellsPaintedLastPass blanks shot cells with glyph 0x20, where text uses 0xF1 as its blank. What glyph 0x20 shows has not been checked, though sky is the likely reading. A look at its tile bitmap would settle it.

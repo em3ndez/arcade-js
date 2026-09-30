@@ -876,10 +876,13 @@ export const PEN_GLYPH = 0xad0b;
  * era-indexed glyph/colour record; the context load copies it back into PEN_GLYPH. [seen] */
 export const PLAYER_ONE_PEN_GLYPH = 0xad1b;
 
-/** Player two's saved copy of PEN_GLYPH; the twin of PLAYER_ONE_PEN_GLYPH, the other block. [code]
- * Under MAME the two-player branch of the caption-pen seat writes it, but always with 0xF1: byte 0 of
- * every era's pen record is 0xF1, so on a genuine image its value never changes or spreads. What is
- * missing is a watched change of value that only this cell's role would explain. */
+/** Player two's saved copy of PEN_GLYPH (saved context +0x0B); the twin of PLAYER_ONE_PEN_GLYPH, the other
+ * block. The two-player branch of the caption-pen seat writes the era record's glyph here (0xF1 on every era
+ * of a genuine image); the context-load ldir at 0x4C8A copies it into PEN_GLYPH when player two comes up, and
+ * the save ldir at 0x1211 copies PEN_GLYPH back into it when player two's turn ends. [seen] -- under MAME a
+ * marker 0x5A seated here before player two's context load came out in PEN_GLYPH for the whole of player
+ * two's turn and was written back here by the ROM's save ldir at the hand-over, while PLAYER_ONE_PEN_GLYPH
+ * kept 0xF1 throughout. */
 export const PLAYER_TWO_PEN_GLYPH = 0xad2b;
 
 /** Player one's saved copy of PEN_COLOUR (saved context +0x0C); the source floodColourPlaneWithSavedPlayerColour
@@ -1661,12 +1664,12 @@ export const BLANK_LINE_START_CELL = 0xa404; // VRAM cell the line-wipe starts a
 export const CHAR_PLANE_COLUMN_BASE = 0xa451; // top cell of the scripted working character-plane column, walked by +0x20 (gatherCharColumnIntoBackingRun/restoreColumnFromSavedRun)
 export const PLAYER_ANIM_VRAM_BASE = 0xa5af; // char-plane blit destination (row13,col15) for the animated player figure (advancePlayerAnimationStrip)
 export const CHAR_PLANE_UPPER_RUN_BOTTOM = 0xa5d1; // bottom cell (row14,col0x11) of the working column's upper 13-run; fillCellRun/stepThirteen walk up to CHAR_PLANE_COLUMN_BASE
-export const CHAR_PLANE_STUB_LEFT_TOP = 0xa5f0; // stub cell at native row 15, col 0x10, one video-RAM column left of the working column 0x11, also written by unrelated painters [seen]; LEFT/TOP are native video-RAM column/row order, and its on-glass side is [guess]: by the rotation it would be the right-hand cell of the segment above the line, but no MAME frame has shown it
+export const CHAR_PLANE_STUB_UPPER_RIGHT = 0xa5f0; // warp-band flare corner at native row 15, col 0x10, one video-RAM column beside the working column 0x11; also written by unrelated painters. On glass (ROT90) it is the tile above the band's horizontal streak, right of the jet's centre column: under MAME, blanking only this cell during the round-won band changes only the tile at x112-119,y128-135 of the rotated 224x256 frame. The band paints it with the same glyph as its three mirror corners (colour twin 0xa1f0 = 0x20 + pen) [seen]
 export const CHAR_PLANE_COLUMN_MID_TOP = 0xa5f1; // column-center cell (row15,col0x11), index 13 of the 28-cell gather/restore walk
-export const CHAR_PLANE_STUB_RIGHT_TOP = 0xa5f2; // stub cell at native row 15, col 0x12; RIGHT/TOP are native video-RAM column/row order, and its on-glass side is [guess]: by the rotation that puts col 0x10 above the line it would sit below it, but no MAME frame has shown which side it lands on
-export const CHAR_PLANE_STUB_LEFT_BOTTOM = 0xa610; // stub cell at native row 16, col 0x10; LEFT/BOTTOM are native video-RAM column/row order, and its on-glass side is [guess]: by the rotation it would be the left-hand cell of the segment above the line, but no MAME frame has shown it
+export const CHAR_PLANE_STUB_LOWER_RIGHT = 0xa5f2; // warp-band flare corner at native row 15, col 0x12. On glass it is the tile below the streak, right of centre: under MAME, blanking only this cell during the round-won band changes only the tile at x112-119,y144-151. The vertical mirror of CHAR_PLANE_STUB_UPPER_RIGHT (colour twin 0xa1f2 = 0x60 + pen) [seen]
+export const CHAR_PLANE_STUB_UPPER_LEFT = 0xa610; // warp-band flare corner at native row 16, col 0x10. On glass it is the tile above the streak, left of centre: under MAME, blanking only this cell during the round-won band changes only the tile at x104-111,y128-135. The horizontal mirror of CHAR_PLANE_STUB_UPPER_RIGHT (colour twin 0xa210 = 0xa0 + pen) [seen]
 export const CHAR_PLANE_COLUMN_MID_BOTTOM = 0xa611; // column-center cell (row16,col0x11), index 14 of the 28-cell walk; paired with the mid-top under the script's second bit
-export const CHAR_PLANE_STUB_RIGHT_BOTTOM = 0xa612; // stub cell at native row 16, col 0x12; RIGHT/BOTTOM are native video-RAM column/row order, and its on-glass side is [guess]: missing a MAME frame showing where col 0x12 lands against col 0x10
+export const CHAR_PLANE_STUB_LOWER_LEFT = 0xa612; // warp-band flare corner at native row 16, col 0x12. On glass it is the tile below the streak, left of centre: under MAME, blanking only this cell during the round-won band changes only the tile at x104-111,y144-151. Mirrored both ways from CHAR_PLANE_STUB_UPPER_RIGHT (colour twin 0xa212 = 0xe0 + pen) [seen]
 export const CHAR_PLANE_LOWER_RUN_TOP = 0xa631; // top cell (row17,col0x11) of the working column's lower 13-run; stepThirteen walks down to the run bottom
 export const HIGH_SCORE_MARKER_CELL_UPPER = 0xa6e1; // marker glyph 0x13 cell (col1,row23) written when arming the high-score attract screen [seen]
 export const HIGH_SCORE_MARKER_CELL_LOWER = 0xa701; // marker glyph 0x13 cell (col1,row24), one row below the upper marker [seen]
@@ -3431,8 +3434,8 @@ export const ROUTINES = {
   0x5628: {
     name: "enqueueSoundUnconditional",
     role: "queue a sound code with no permission test, so it is queued whether or not a game is being played",
-    cert: "code",
-    why: "reached in every capture, but its own body is only the two pushes that save HL and AF before it falls into 0x562A, which makes the role-defining writes (SOUND_QUEUE_COUNT and the FIFO after it); those PCs lie outside this entry's body, and 0x562A is not registered. Its [seen] caller enqueueTransitionSoundBurst (0x5634) reaches the queue only through this entry, but that caller is itself a chain of calls with no write of its own, so it cannot stand as an independent consumer. Missing: 0x562A registered and grounded on its own enqueue writes, after which this entry grounds as the unconditional way into it",
+    cert: "seen",
+    why: "it is the unconditional way into the enqueue body at 0x562A: its own two pushes (HL, then the code in AF) fall straight into that body, which pops them back, steps SOUND_QUEUE_COUNT on and stores the code at the slot the new count selects. Under MAME (attract, a state enqueueSoundIfGameInProgress would drop) every fetch at 0x5628 was followed by exactly one count bump at pc 0x562D and exactly one store at pc 0x5631 of the A value held at entry, with no test between; the fetches came from the six call sites in enqueueTransitionSoundBurst 0x5634 and from that routine's tail-jump carrying its last code. The enqueue body 0x562A has no ROUTINES entry: no call, jump or table word anywhere in the ROM holds its address (a byte scan finds none); it is entered only by falling through from this entry or by the relative jr nz branches at 0x5612, 0x561D and 0x5623 in the two gated entries, always with the caller's HL and the code already pushed. So this entry is grounded on the pairing of its own fetches with those writes",
   },
   0x5617: {
     name: "enqueueSoundIfGameOrAttract",
