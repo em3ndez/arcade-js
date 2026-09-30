@@ -10,7 +10,7 @@
  * and the world moves opposite it: negateVelocityIntoWorldScrollThenDressSprite writes WORLD_SCROLL_Y
  * (0xA808) and WORLD_SCROLL_X (0xA80A) each frame as the NEGATION of the player's velocity, and
  * adding that pair to a world-static object streams it past the ship (names.js "why"; gameplay.md).
- * The object handlers that call it include stepMotherShip, runParachutistSlot and
+ * The object handlers that call it include loc_43f0, runParachutistSlot and
  * runOneShotAnimatedObjectSlot. The half, three-quarter and five-quarter wrappers do the same with a
  * fraction of the scroll, for parallax.
  *

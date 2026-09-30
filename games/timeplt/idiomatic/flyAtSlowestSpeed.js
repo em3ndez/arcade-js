@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_59d7 } from "./names.js";
+import { SLOWEST_VELOCITY_TABLE } from "./names.js";
 /**
  * flyAtSlowestSpeed — fly one object a single step at the slowest of the velocity-table speeds.
  *
@@ -26,7 +26,7 @@ import { flyAlongHeading } from "./flyAlongHeading.js";
  * The table at ROM 0x59D7: 256 16-bit velocity words. It keeps a hex name because the same address is
  * also the derail target of the whole-ROM checksum in clearScreenRamAndVerifyImageThenColdInit (names.js).
  */
-const VELOCITY_TABLE = loc_59d7;
+const VELOCITY_TABLE = SLOWEST_VELOCITY_TABLE;
 
 /*
  * `object` is the object's record (the ROM's IX) and `sprite` its sprite entry (the ROM's IY), passed

@@ -25,7 +25,7 @@ import { offsetAddress } from "./offsetAddress.js";
 import { seatSceneryFillByte0x28ThenClearEraScenery } from "./seatSceneryFillByte0x28ThenClearEraScenery.js";
 import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenRunEraScenery.js";
 import { u8, u16 } from "../../../core/int.js";
-import { SCENERY_SPRITE_CODE_SLOT0, ERA_INDEX, COPYRIGHT_CAPTION_RECORD, ERA_OBJECT_ENTRY_SLOT0, loc_3176 } from "./names.js";
+import { SCENERY_SPRITE_CODE_SLOT0, ERA_INDEX, COPYRIGHT_CAPTION_RECORD, ERA_OBJECT_ENTRY_SLOT0, ERA_SCENERY_ROW_TABLE } from "./names.js";
 
 // The tamper sum: sixteen bytes (`ld b,0x10`) compared against 0x22 (`ld c,0x22`).
 const CHECK_LEN = 0x10;
@@ -53,7 +53,7 @@ export function seatEraSceneryRowThenClearAndRunScenery(m, entryCursor = ERA_OBJ
   // (offsetAddress). Its eight bytes go to SCENERY_SPRITE_CODE_SLOT0 (0xAA31, [seen]) and every
   // second byte after it -- the code/shape byte of each of the eight scenery sprite entries.
   const era = mem8[ERA_INDEX];
-  let src = offsetAddress(m, loc_3176, u8(era * ROW_STRIDE)); // row table + 8*era
+  let src = offsetAddress(m, ERA_SCENERY_ROW_TABLE, u8(era * ROW_STRIDE)); // row table + 8*era
   let dst = SCENERY_SPRITE_CODE_SLOT0;
   for (let n = SEAT_COUNT; n !== 0; n--) {
     mem8[dst] = mem8[src];

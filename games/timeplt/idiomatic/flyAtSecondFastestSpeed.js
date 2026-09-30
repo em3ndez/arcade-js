@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2e3e } from "./names.js";
+import { SECOND_FASTEST_VELOCITY_TABLE } from "./names.js";
 /**
  * flyAtSecondFastestSpeed — fly one object a single step at the second-fastest pace in the ladder.
  *
@@ -27,7 +27,7 @@ import { flyAlongHeading } from "./flyAlongHeading.js";
  * The velocity table at ROM 0x2E3E -- also the era-1/2 pace of scrollWorldAtTheEraPace. It keeps a hex
  * name because the same address is the tamper-trap jump target in showCreditLine (names.js).
  */
-const VELOCITY_TABLE = loc_2e3e;
+const VELOCITY_TABLE = SECOND_FASTEST_VELOCITY_TABLE;
 
 /*
  * `object` is the object's record (the ROM's IX) and `sprite` its sprite entry (the ROM's IY), passed

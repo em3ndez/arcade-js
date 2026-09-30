@@ -6,7 +6,10 @@
  * never land while this frame's work is half done. In the original this is also where both register banks
  * come back off the stack and control returns to the interrupted code; those registers carry no game
  * state across the interrupt, so the unwind is not represented. LIVE-OUT: the sound queue and what the
- * send leaves latched, and the interrupt gate. */
+ * send leaves latched, and the interrupt gate.
+ *
+ * ROM 0x0174-0x018B, reached as the resume address the frame service pushes at 0x0155 (`ld hl,0x0174 /
+ * push hl`). Grounding: [seen] (names.js ROUTINES 0x0174). */
 
 import { sendOldestQueuedSoundCommand } from "./sendOldestQueuedSoundCommand.js";
 import { NMI_ENABLE_LATCH, NMI_REENABLE_BYTE } from "./names.js";

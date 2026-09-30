@@ -5,7 +5,7 @@
  *
  * ROM 0x57F7-0x57FE (frozen lift loc_57f7). Grounding: [seen] (names.js ROUTINES 0x57F7).
  *
- * Role in the machine: its one caller is stepMotherShip, which tail-calls it on the path that
+ * Role in the machine: its one caller is loc_43f0, which tail-calls it on the path that
  * activates the Mother-Ship (state byte set to 0xFF), so the sound heard when the Mother-Ship
  * appears differs by era.
  *

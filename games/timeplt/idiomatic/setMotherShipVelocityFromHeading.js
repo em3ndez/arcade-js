@@ -3,7 +3,7 @@
  * setMotherShipVelocityFromHeading — ROM 0x46BA [seen]
  *
  * WHAT IT IS. Gives the Mother-Ship the velocity its current heading calls for, at the speed the
- * current era sets. stepMotherShip calls it with the Mother-Ship's record (under MAME every
+ * current era sets. loc_43f0 calls it with the Mother-Ship's record (under MAME every
  * dispatch had IX = 0xA8A0, MOTHER_SHIP_STATE; names.js).
  *
  * ROLE IN THE MACHINE. Speed is chosen by era and nothing else. The ROM pushes the address of the
@@ -25,7 +25,7 @@
  */
 
 import { NotImplemented } from "../../../boards/timeplt/io.js";
-import { ERA_INDEX, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_08FA, loc_2e3e, loc_59d7 } from "./names.js";
+import { ERA_INDEX, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_08FA, SECOND_FASTEST_VELOCITY_TABLE, SLOWEST_VELOCITY_TABLE } from "./names.js";
 import { fileTwoPairsIntoObjectRecordHighByteFirst } from "./fileTwoPairsIntoObjectRecordHighByteFirst.js";
 import { velocityForHeading } from "./velocityForHeading.js";
 import { paintSixDigitFieldSuppressingLeadingZeros } from "./paintSixDigitFieldSuppressingLeadingZeros.js";
@@ -37,10 +37,10 @@ const HEADING = 2;
 
 // The five defined arms in index order, each as the velocity table it samples.
 const ARM_TABLES = [
-  loc_59d7,
+  SLOWEST_VELOCITY_TABLE,
   OPENING_ERA_VELOCITY_TABLE,
   OPENING_ERA_VELOCITY_TABLE,
-  loc_2e3e,
+  SECOND_FASTEST_VELOCITY_TABLE,
   VELOCITY_TABLE_08FA,
 ];
 // The index whose table word, read past the end, names the six-digit painter.

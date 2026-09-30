@@ -24,7 +24,7 @@
  * only in the colour byte: 0x10 in the record at 0x086B and 0x05 in the record at 0x4900. Those are
  * exactly the two accepted values, so a genuine line in either state passes.
  *
- * The derail target 0x49FA (loc_49fa in names.js) is CAPTION RECORD 4 -- destination 0xA6EE,
+ * The derail target 0x49FA is CAPTION RECORD 4 -- destination 0xA6EE,
  * colour 0x14, seventeen glyphs and a 0xB9 terminator at 0x4A0E -- text, not a routine. */
 
 import { u16 } from "../../../core/int.js";

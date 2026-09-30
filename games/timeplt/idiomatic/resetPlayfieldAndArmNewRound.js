@@ -25,7 +25,7 @@ import { freeAndNumberEveryObjectSlot } from "./freeAndNumberEveryObjectSlot.js"
 import { seatEraSceneryRowThenClearAndRunScenery } from "./seatEraSceneryRowThenClearAndRunScenery.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { u8 } from "../../../core/int.js";
-import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_HEADING_HALF_WIDTH, BANK_LAUNCH_NEAR_HALF_WIDTH, BANK_LAUNCH_SLOT_COUNT, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_RECORD_SLOT2, PARACHUTIST_ENTRY, PARACHUTIST_RECORD, PLAYER_ENTRY, PLAYER_SPRITE_Y, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING, START_RUNG, ERA_INDEX, WORLD_SCROLL_Y, WORLD_SCROLL_X, LIFE_TICKS_MID, LIFE_TICKS_LOW, MOTHER_SHIP_ARMED, PARACHUTIST_RUNG, ERA_RUNG_TIMER, ERA_RUNG_PERIOD, ERA_RUNG, PLAYER_HEADING, PLAYER_STATE, loc_a801, ERA_RUNG_SETTINGS_POINTER_TABLE } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_HEADING_HALF_WIDTH, BANK_LAUNCH_NEAR_HALF_WIDTH, BANK_LAUNCH_SLOT_COUNT, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_RECORD_SLOT2, PARACHUTIST_ENTRY, PARACHUTIST_RECORD, PLAYER_ENTRY, PLAYER_SPRITE_Y, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING, START_RUNG, ERA_INDEX, WORLD_SCROLL_Y, WORLD_SCROLL_X, LIFE_TICKS_MID, LIFE_TICKS_LOW, MOTHER_SHIP_ARMED, PARACHUTIST_RUNG, ERA_RUNG_TIMER, ERA_RUNG_PERIOD, ERA_RUNG, PLAYER_HEADING, PLAYER_STATE, PLAYER_RECORD_SPARE_BYTE, ERA_RUNG_SETTINGS_POINTER_TABLE } from "./names.js";
 
 // The sub-pixel retire loop covers seven records (ROM `ld b,0x07` feeding the djnz at 0x1A6E),
 // stepping one 16-byte object record and one two-byte sprite entry at a time.
@@ -60,11 +60,11 @@ export function resetPlayfieldAndArmNewRound(m) {
   // No shots owed from a fire press, and no round/mother-ship transition underway.
   mem8[SHOT_BURST_PENDING] = 0;
   mem8[ROUND_TRANSITION_HOLD] = 0;
-  // The player's ship: heading 0x80, the byte after the state cell cleared (loc_a801, role not yet
-  // determined), state 0xFF (the life-start value), and the ship's sprite pinned at (0x84, 0x78) -- the ship stays at
+  // The player's ship: heading 0x80, the byte after the state cell cleared (PLAYER_RECORD_SPARE_BYTE, which no code
+  // reads), state 0xFF (the life-start value), and the ship's sprite pinned at (0x84, 0x78) -- the ship stays at
   // that screen spot and the world scrolls past it.
   mem8[PLAYER_HEADING] = 0x80;
-  mem8[loc_a801] = 0;
+  mem8[PLAYER_RECORD_SPARE_BYTE] = 0;
   mem8[PLAYER_STATE] = 0xff;
   mem8[PLAYER_SPRITE_Y] = 0x78;
   mem8[PLAYER_ENTRY] = 0x84;

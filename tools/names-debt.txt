@@ -39,24 +39,6 @@ frogger 0x83af
 frogger 0x83b0
 frogger 0x83b1
 frogger 0x83c4
-timeplt 0x0f6d
-timeplt 0x1601
-timeplt 0x178c
-timeplt 0x18fa
-timeplt 0x1fcf
-timeplt 0x2e3e
-timeplt 0x2f01
-timeplt 0x3176
-timeplt 0x43f0
-timeplt 0x49fa
-timeplt 0x59d7
-timeplt 0xa801
-timeplt 0xacc5
-timeplt 0xbc00
-timeplt 0xc600
-timeplt 0xde00
-timeplt 0xf1eb
-timeplt 0xf1f1
 pooyan 0x8905  # role unknown; touched by loc_191c, promote at [code]->grounding
 pooyan 0x8906  # role unknown; touched by loc_191c, promote at [code]->grounding
 pooyan 0x89e3  # role unknown; promote to a descriptive name at grounding

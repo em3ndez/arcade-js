@@ -12,15 +12,15 @@
  * object record. Its caller is spawnAimedEnemyIntoEraBankWhenInWindow, which hands in the heading
  * it has just aimed and stores the returned pair as the new enemy's velocity.
  *
- * The table is loc_59d7 (0x59D7), the ROM table of 256 16-bit velocity words — the same table
+ * The table is SLOWEST_VELOCITY_TABLE (0x59D7), the ROM table of 256 16-bit velocity words — the same table
  * loc_598e seats. loc_59cb and loc_59d1 are this entry with the other two table immediates.
  */
 
 import { doubledVelocityForHeading } from "./doubledVelocityForHeading.js";
-import { loc_59d7 } from "./names.js";
+import { SLOWEST_VELOCITY_TABLE } from "./names.js";
 
 export function loc_59c5(m, heading = m.regs.a) {
   // `ld hl,0x59d7 / jp 0x59a0`: fixed table, caller's heading (the ROM's A). The tail jump means
   // the lookup's `ret` returns to our caller with the pair in DE/BC; here it is also returned.
-  return doubledVelocityForHeading(m, loc_59d7, heading);
+  return doubledVelocityForHeading(m, SLOWEST_VELOCITY_TABLE, heading);
 }

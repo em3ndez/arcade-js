@@ -20,7 +20,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "./armThePenRouteThenColdStartOnATamperedImage.js";
-import { PEN_COLOUR, PEN_GLYPH, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH, SEQUENCE_PHASE, ACTIVE_PLAYER, loc_178c, loc_0f8d_ADDR } from "./names.js";
+import { PEN_COLOUR, PEN_GLYPH, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH, SEQUENCE_PHASE, ACTIVE_PLAYER, CAPTION_PEN_CHECKSUM_BASE, ERA_PEN_TABLE } from "./names.js";
 
 // The fold's run length (`ld b,0x1e`, thirty bytes from 0x178C) and the constant added after it
 // (`add a,0x2c`) that brings a genuine image's total back to zero change in the phase.
@@ -31,11 +31,11 @@ export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
   const { mem8 } = m;
 
   /* Tamper tripwire. `ld a,(0xa9ab)` then `add a,(hl)` over the thirty program bytes at 0x178C
-   * (loc_178c — they are also that routine's code), then `add a,0x2c`, stored back into
+   * (CAPTION_PEN_CHECKSUM_BASE — they are also that routine's code), then `add a,0x2c`, stored back into
    * SEQUENCE_PHASE [seen]. On the genuine image the bytes plus the bias sum to 0 mod 256, so the
    * outer phase comes out unchanged; an edited block leaves the machine in a wrong phase. */
   let total = mem8[SEQUENCE_PHASE];
-  for (let i = 0; i < IMAGE_BYTES; i++) total = u8(total + mem8[u16(loc_178c + i)]);
+  for (let i = 0; i < IMAGE_BYTES; i++) total = u8(total + mem8[u16(CAPTION_PEN_CHECKSUM_BASE + i)]);
   mem8[SEQUENCE_PHASE] = u8(total + GENUINE_BIAS);
 
   /* Which player? ACTIVE_PLAYER [seen] is 0 for player one, 1 for player two. It picks both the
@@ -49,8 +49,8 @@ export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
    * reads byte 0 of the record from the table at 0x0F8D, which is routine 0x0F8D's own code read
    * as data. The glyph is stored into the save block and onto the live pen (0xAD0B). */
   // the colour is the record's second byte, read straight off the indexed entry.
-  const entry = u16(loc_0f8d_ADDR + u8(era * 2));
-  const glyph = fetchTableByte(m, loc_0f8d_ADDR, u8(era * 2));
+  const entry = u16(ERA_PEN_TABLE + u8(era * 2));
+  const glyph = fetchTableByte(m, ERA_PEN_TABLE, u8(era * 2));
   mem8[savedPen] = glyph;
   mem8[PEN_GLYPH] = glyph;
 

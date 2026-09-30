@@ -8,7 +8,7 @@
  * dressing): it fills the pair of shape bytes at entry +1 / +3 and the pair of colour/flip bytes at
  * entry +0x30 / +0x32 -- the second sprite bank sits 0x30 above the first, which is why the
  * attribute bytes are 0x30 along (see PLAYER_SPRITE_ATTRIBUTE in names.js: "Slot 0's +0x30
- * descriptor byte"). Its caller is the Mother-Ship's step (stepMotherShip), which moves the pair
+ * descriptor byte"). Its caller is the Mother-Ship's step (loc_43f0), which moves the pair
  * by its own velocity plus the world scroll and then calls this to dress it (mechanisms.md: "0xFF
  * (live) moves the pair ... and dresses it").
  *

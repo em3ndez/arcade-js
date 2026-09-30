@@ -152,7 +152,8 @@ def check():
 
         retired_routines = routine_names("HEAD", game) - routine_names(":", game)
         retired_exports = head_exports - index_exports
-        retired = retired_routines | retired_exports
+        # a name still carried by a staged routine file is live, not retired
+        retired = (retired_routines | retired_exports) - routine_names(":", game)
 
         understanding_change = renamed_routines or exports_changed
 

@@ -4,7 +4,7 @@
  *
  * ROM 0x580B-0x5810 (frozen lift loc_580b). Grounding: [seen] (names.js ROUTINES 0x580B).
  *
- * Role in the machine: the warp sound. stepMotherShip asks for it (mechanisms.md places the
+ * Role in the machine: the warp sound. loc_43f0 asks for it (mechanisms.md places the
  * request in the sweep that follows the Mother-Ship's destruction) and
  * setUpTwoPlayerStartObjectOnce asks for it too; both callers first check that PLAYER_STATE reads
  * 0xFF, i.e. the player is alive.

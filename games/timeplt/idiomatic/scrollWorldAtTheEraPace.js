@@ -20,11 +20,11 @@
 import { u16 } from "../../../core/int.js";
 import { negateVelocityIntoWorldScrollThenDressSprite } from "./negateVelocityIntoWorldScrollThenDressSprite.js";
 import { velocityForHeading } from "./velocityForHeading.js";
-import { ERA_INDEX, loc_2e3e, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_08FA } from "./names.js";
+import { ERA_INDEX, SECOND_FASTEST_VELOCITY_TABLE, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_08FA } from "./names.js";
 
 // Era 0 (1910): table at 0x5E00, peak 256. Eras 1-2: 0x2E3E, peak 306. Eras 3-4: 0x08FA, peak 331.
 const OPENING_ERA_PACE = OPENING_ERA_VELOCITY_TABLE;
-const EARLY_ERA_PACE = loc_2e3e;
+const EARLY_ERA_PACE = SECOND_FASTEST_VELOCITY_TABLE;
 const LATER_ERA_PACE = VELOCITY_TABLE_08FA;
 const FIRST_LATER_ERA = 3;
 // The heading is byte +2 of the flying record (for the player, PLAYER_HEADING 0xA802 [seen]).

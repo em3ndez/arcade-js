@@ -8,7 +8,9 @@
  * ROM 0x3074-0x307E (frozen lift translated/loc_3074.js). names.js has no ROUTINES entry for
  * 0x3074, so this entry carries no grounding tag of its own; its only caller is loc_307f
  * (0x307F) [code], the tail of a per-slot sprite-entry fill, which hands each slot here while
- * its counter (B) still holds — "the straight placer" in that entry's role text.
+ * its counter (B) still holds — "the straight placer" in that entry's role text. loc_307f runs
+ * only on a patched image (grounding-debt.txt 0x307F), and 0x306A, the only other way in, follows
+ * an unconditional `jp 0x309B` with nothing transferring to it, so no genuine run executes this.
  *
  * Parameters, all supplied by loc_307f: `iy` is the sprite entry the object occupies now, `hl`
  * points at the table byte that sets the offset, `c` is the coordinate that offset is added to,

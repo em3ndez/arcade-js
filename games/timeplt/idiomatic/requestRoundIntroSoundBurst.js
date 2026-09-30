@@ -8,7 +8,7 @@
  * ROM 0x56D2-0x56E3, falling through into 0x56E4. Grounding: [seen] (names.js ROUTINES 0x56d2).
  *
  * ROLE IN THE MACHINE. Called by advancePlayerAnimationStrip on the opening frame of the player's
- * explosion and by stepMotherShip. Despite the name, mechanisms.md notes that which sounds these
+ * explosion and by loc_43f0. Despite the name, mechanisms.md notes that which sounds these
  * codes are has not been identified. The looser-permission tail (requestInterRoundSoundPair) also
  * admits requests while the cell at 0xA9C6 is set, so a state that drops the first three can still
  * let the last two through.

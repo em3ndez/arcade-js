@@ -20,7 +20,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { ACTIVE_PLAYER, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH, loc_0f8d_ADDR } from "./names.js";
+import { ACTIVE_PLAYER, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH, ERA_PEN_TABLE } from "./names.js";
 
 
 // Each table record is two bytes: glyph then colour.
@@ -38,7 +38,7 @@ export function setSavedPenFromEra(m) {
   // Locate the era's record. The table sits at 0x0F8D -- bytes of the program image that are also
   // routine 0x0F8D's own code, read here as data. The index is doubled in eight bits, then the
   // restart at 0x0018 (offsetAddress) adds it to the table base.
-  const entry = offsetAddress(m, loc_0f8d_ADDR, u8(round * FIELD_WIDTH));
+  const entry = offsetAddress(m, ERA_PEN_TABLE, u8(round * FIELD_WIDTH));
 
   // Copy the record's two bytes into the saved pen pair, glyph first -- the ROM's two `ldi`s.
   mem8[field] = mem8[entry];

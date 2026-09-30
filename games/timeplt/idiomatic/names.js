@@ -105,7 +105,7 @@ export const COCKTAIL_MODE = 0xa9c2; // cabinet type; gates screen flip (exact p
 export const BONUS_LIFE_SETTING = 0xa9c3; // selects the bonus-life mark list + the attract bonus captions
 export const DEMO_SOUNDS_ENABLE = 0xa9c6; // attract-sound gate: a queued request is dropped unless set or a game is active
 
-// ── Per-frame inverted port mirrors, latched each vblank alongside IN0_MIRROR/COINAGE_SETTINGS. [code]
+// ── Per-frame inverted port mirrors, latched each vblank alongside IN0_MIRROR/COINAGE_SETTINGS. [seen]
 export const DIP1_MIRROR = 0xa9ad; // inverted mirror of DSW 0xC200 (the gameplay dip bank)
 export const IN1_MIRROR = 0xa9af; // inverted mirror of IN1 0xC320 (main / player-1 controls)
 export const IN2_MIRROR = 0xa9b0; // inverted mirror of IN2 0xC340 (cocktail / player-2 controls)
@@ -113,7 +113,7 @@ export const IN2_MIRROR = 0xa9b0; // inverted mirror of IN2 0xC340 (cocktail / p
 // ── Cursors and counters that sit in this address range but belong to other subsystems. [code]
 // (The general scratch-pointer pair 0xA991/0xA993 is SCRATCH_PTR_A / SCRATCH_PTR_B, further down.)
 export const COMMAND_WRITE_CURSOR = 0xa9b2; // write index into the 64-cell COMMAND_RING, stepped two cells per posted pair (reader: COMMAND_READ_CURSOR)
-export const BCD_FRAME_COUNTER = 0xa9ce; // free-running packed-decimal frame counter (inc+daa each vblank)
+export const BCD_FRAME_COUNTER = 0xa9ce; // free-running packed-decimal frame counter (inc+daa each vblank) [seen]
 export const SCRIPT_CYCLE_COUNTER = 0xa9cf; // 0..4 round-robin index for in-turn demo-script selection
 export const ATTRACT_STAGE_COUNTER = 0xa9d0; // attract-demo counter cycling 1->2->3->1; each demo starts in that era (PLAYER_ONE_ERA_INDEX) and round (+1)
 
@@ -265,7 +265,7 @@ export const SCRIPT_PICK_THRESHOLD = 0xacc4;
  * Cleared when a round arms (resetPlayfieldAndArmNewRound, startNextRound) and when the field clears
  * in the demo (advanceRoundWhenFieldCleared reloads it from ROM byte 0x07D1, which is 0x00). Raised
  * by the Mother-Ship's destruction countdown: 0xFE at the formation rebuild one step in, 0xFF at the warp/flash finish
- * (both in stepMotherShip). While it is set, driveEnemyWaveForLifePhase returns at once,
+ * (both in loc_43f0). While it is set, driveEnemyWaveForLifePhase returns at once,
  * fireAndSweepPlayerShots only sweeps (no new shots), armMotherShipOrStep stands down on 0xFF but not
  * 0xFE, and a lost life goes straight to the next round (loseLifeAndHandOver). The round advances only
  * when this is set, the kill quota is spent and the object band is empty.
@@ -307,7 +307,7 @@ export const CLAIM_TOKEN = 0xa821;
 /*
  * Write-only, no reader, so no role is earned (both named further down):
  *   0xACC2  WAVE_SPAWN_BUSY_FLAG -- 0xFF across the inline wave-build loop, 0 after (driveEnemyWaveForLifePhase).
- *   0xACC5  loc_acc5 -- written 0 when a free slot is stocked (spawnEnemyIntoFreeSlotElseStepSearch).
+ *   0xACC5  SPAWN_CLEARED_SPARE_BYTE -- written 0 when a free slot is stocked (spawnEnemyIntoFreeSlotElseStepSearch).
  */
 
 /**
@@ -1262,7 +1262,7 @@ export const SCENERY_SPRITE_ATTRIBUTE_SLOT3 = 0xaa66;
 
 /**
  * Mother-Ship record +4: the hits it can still absorb. The arming path seeds it with seven. When a hit leaves
- * the record's state byte neither idle nor live, stepMotherShip, if this is non-zero, decrements it and puts
+ * the record's state byte neither idle nor live, loc_43f0, if this is non-zero, decrements it and puts
  * the ship back to live (the hit is absorbed); once it is zero the hit proceeds into the destruction
  * countdown, which rebuilds the formation one step in (ROUND_TRANSITION_HOLD = 0xFE) and at zero idles the ship
  * with ROUND_TRANSITION_HOLD = 0xFF. The player-contact kill
@@ -1592,7 +1592,7 @@ export const ROUND_INTRO_SOUND_1 = 0x0c5b; // 1st of three round-intro sound cod
 export const ROUND_INTRO_SOUND_3 = 0x1675; // 3rd of three round-intro sound codes (requestRoundIntroSoundBurst)
 export const ATTACKER_SPAWN_SOUND_ERA0 = 0x16de; // sound-command code, requestAttackerSpawnSoundEra0 (era-0 branch)
 export const ROUND_START_SOUND = 0x1767; // sound-command code enqueued by requestRoundStartSound
-export const loc_18fa = 0x18fa; // program-image byte read as a sound code, enqueued by requestHighScoreFiledSound only while a game is in progress
+export const HIGH_SCORE_FILED_SOUND_CODE = 0x18fa; // program-image byte read as a sound code by requestHighScoreFiledSound (`ld a,(0x18fa)` at 0x583A), enqueued only while a game is in progress [seen]
 export const ENEMY_WAVE_SOUND = 0x273a; // sound-command code enqueued by requestEnemyWaveSound
 export const ATTACKER_SPAWN_SOUND_LATE_ERA = 0x276b; // sound-command code, requestAttackerSpawnSoundLateEra (only era 4 reaches it; era 3 folds into the mid-era path)
 export const INTER_ROUND_SOUND_1 = 0x27cb; // 1st of the inter-round sound pair (requestInterRoundSoundPair)
@@ -1613,14 +1613,14 @@ export const SEQUENCE_PHASE_ON_CREDIT = 0x1736; // ROM byte SEQUENCE_PHASE jumps
 export const holdCopyrightThenEraseTheCoinInvitation_ADDR = 0x1748; // routine 0x1748's own code, read as data by advancePenRunAnimationStep's anti-tamper checksum
 export const saveAccumulatorForFrameInterrupt_ADDR = 0x00d8; // routine 0x00d8's own code, checksummed as data by clearWorkRamAndSpriteBanksThenColdInit (which also calls saveAccumulatorForFrameInterrupt)
 export const guardBlockOrBlankDisplay_ADDR = 0x17b9; // routine 0x17b9's own code, walked as data by foldImageBlockIntoSignatureThenAdvanceSequence's tamper signature
-export const loc_0f8d_ADDR = 0x0f8d; // routine 0x0f8d's own code, read as a glyph/colour table by seatCaptionPenFromEraFoldingTamperIntoPhase
+export const ERA_PEN_TABLE = 0x0f8d; // ROM table of two-byte (glyph, colour) pen records indexed 2*era, read by seatCaptionPenFromEraFoldingTamperIntoPhase and setSavedPenFromEra; the bytes are also routine 0x0f8d's own code [seen]
 export const PLAYER_ANIM_STRIP_0 = 0x1f76; // player-animation keyframe tile shape-strip base (advancePlayerAnimationStrip FRAME_ARMS)
 export const PLAYER_ANIM_STRIP_1 = 0x1f94; // player-animation keyframe shape-strip base
 export const PLAYER_ANIM_STRIP_2 = 0x1fb2; // player-animation keyframe shape-strip base (reused on the ping-pong)
 export const PLAYER_ANIM_STRIP_3 = 0x1fd0; // player-animation keyframe shape-strip base (reused)
 export const PLAYER_ANIM_STRIP_4 = 0x1fee; // player-animation final keyframe shape-strip base
 export const PLAYER_ANIM_ROW_COUNT = 0x337a; // outer djnz count of the strip blit = tile rows (advancePlayerAnimationStrip)
-export const HEADING_SHAPE_TABLE = 0x3c84; // 2-byte sprite-shape records indexed by heading; shared by armBomberSlotWhenTimerFires + stepMotherShip
+export const HEADING_SHAPE_TABLE = 0x3c84; // 2-byte sprite-shape records indexed by heading; shared by armBomberSlotWhenTimerFires + loc_43f0
 export const PLAYER_ANIM_COL_COUNT = 0x4902; // inner djnz count = tiles per row (advancePlayerAnimationStrip; also read as a word by restartAttractSequence's image-tamper fold)
 export const BLANK_LINE_START_CELL = 0xa404; // VRAM cell the line-wipe starts at, stored into BLANK_LINE_CURSOR (armLineWipeFromFifthLine)
 export const CHAR_PLANE_COLUMN_BASE = 0xa451; // top cell of the scripted working character-plane column, walked by +0x20 (gatherCharColumnIntoBackingRun/restoreColumnFromSavedRun)
@@ -1698,7 +1698,6 @@ export const WAVE_SPAWN_BUSY_FLAG = 0xacc2; // work-RAM busy/lock flag =0xff aro
 export const ERA_SLOT_DISPATCH_TABLE = 0x2914; // inline 8-entry word jump table selecting a seated-slot handler by era (dispatchSeatedSlotByEraIndex, mem16[here+2*(ERA_INDEX&7)])
 export const PHASE0_SUBSTEP_DISPATCH_TABLE = 0x15c8; // inline 8-entry word jump table of phase-0 sub-step arms (dispatchSequencePhase0SubStepArm)
 export const PHASE3_SUBSTEP_DISPATCH_TABLE = 0x0f29; // inline 16-entry word jump table of the phase-3 (round-engine) sub-step arms, keyed on SEQUENCE_SUBSTEP&0x0f (dispatchSequenceSubStepArm)
-export const loc_2f01 = 0x2f01; // program-space address loc_08fa's carry-clear path stores into -- a write into ROM
 export const CAPTION_BAND_COLOUR_CELL0 = 0xa210; // 1st of three colour-RAM cells the caption colour band sets: 0xa0+base here, 0x20+base one row back (paintCaptionColourBandAndStepSequence)
 export const CAPTION_BAND_COLOUR_CELL1 = 0xa211; // 2nd caption colour-band cell: 0xa0+base here, 0x20+base one row back
 export const CAPTION_BAND_COLOUR_CELL2 = 0xa212; // 3rd caption colour-band cell: 0xe0+base here, 0x60+base one row back (paintCaptionColourBandAndStepSequence)
@@ -1709,13 +1708,13 @@ export const DIGIT_GLYPH_TABLE = 0x0dcc; // ROM table mapping a digit (0-9) to i
 export const LEADING_ZERO_BLANK_GLYPH_INDEX = 0x3246; // ROM byte: glyph-table index used for a suppressed leading zero (paintSuppressedDigit)
 export const SPRITE_BANK0_BASE = 0xb010; // base of hardware sprite-attribute bank 0 (0xb000 spriteram); sibling of SPRITE_BANK1_BASE (publishSpriteShadow)
 export const SPRITE_RAISE_STEP_FLOOR = 0x0832; // ROM byte: lower bound of the sub-step window in which publishSpriteShadow raises 8 sprites' top bit
-export const loc_a801 = 0xa801; // work-RAM byte beside PLAYER_STATE (0xA800), zeroed at every life start by the playfield reset (resetPlayfieldAndArmNewRound); role not yet determined
+export const PLAYER_RECORD_SPARE_BYTE = 0xa801; // work-RAM byte after PLAYER_STATE (0xA800): zeroed at every life start by resetPlayfieldAndArmNewRound (`ld (0xa801),a` at 0x1A1F) and by the block wipes, and read by no code -- the only reads of it are the wipes' own LDIR source fetches [seen]
 export const ERA_RUNG_SETTINGS_POINTER_TABLE = 0x1b04; // ROM table indexed (era<<4)+rung via fetchTableWord -> pointer to a ~10-byte settings row scattered into spawn/launch cells (applyEraRungSettings)
 export const ATTRACT_RESTART_FOLD_BYTE = 0x4901; // ROM byte folded with PLAYER_ANIM_COL_COUNT to recompute SEQUENCE_SUBSTEP (nets to 0 on a genuine image) -- anti-tamper (restartAttractSequence) [seen]
-export const loc_178c = 0x178c; // base of the 30-byte program-image block summed into SEQUENCE_PHASE as an anti-tamper fold (seatCaptionPenFromEraFoldingTamperIntoPhase); the bytes are also code (routine loc_178c)
+export const CAPTION_PEN_CHECKSUM_BASE = 0x178c; // base of the 30-byte program-image block summed into SEQUENCE_PHASE as an anti-tamper fold (seatCaptionPenFromEraFoldingTamperIntoPhase); nets out on a genuine image; the bytes are also the code of holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail (0x178C) [seen]
 export const runParachutistSlot_ADDR = 0x47b3; // routine 0x47b3's own first opcode (0x3A) read as data -- a caption-cell pointer seed by holdCopyright's anti-tamper glyph check [seen]
 export const COPYRIGHT_CAPTION_RECORD = 0x086b; // the 16-byte copyright caption record (header 0x086b-0x086d, glyphs 0x086e-0x087a) that drawTextRunByIndex paints; its bytes double as the RNG seed guard words and the default kill quota, and the whole record is summed as a tamper tripwire (seatEraSceneryRowThenClearAndRunScenery, showCreditLine) [seen]
-export const loc_3176 = 0x3176; // ROM table of 8-byte per-era scenery rows, row = base + 8*era (seatEraSceneryRowThenClearAndRunScenery); also the landing of loc_315b's jp, which runs into data
+export const ERA_SCENERY_ROW_TABLE = 0x3176; // ROM table of 8-byte per-era scenery rows, row = base + 8*era (seatEraSceneryRowThenClearAndRunScenery); also the landing of loc_315b's jp, which runs into data [seen]
 
 // ROM-image cells and dispatch/data-table bases (below 0xA800) read as data; I/O-port hardware registers
 // (0xC000/0xC3xx); and work/screen/sprite RAM cells.
@@ -1731,8 +1730,8 @@ export const SPRITE_SHAPE_BY_SECTOR_TABLE = 0x2a77; // 16-entry ROM table: sprit
 export const SPRITE_MIRROR_BY_SECTOR_TABLE = 0x2a87; // 16-entry ROM table parallel to the shape table: sprite mirror/flip attribute by heading sector
 export const WIPE_SUBSTEP_SEED = 0x1749; // ROM byte (=0x06, a code operand reused as data) seeding SEQUENCE_SUBSTEP for the whole-plane wipe (startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase)
 export const SEQUENCE_PHASE_TAMPER_SPAN_BASE = 0x5648; // base of a 256-byte ROM block sub-folded into SEQUENCE_PHASE then XOR 0x4e -- anti-tamper (corrupts the phase on a modified image)
-export const MOTHER_SHIP_WARP_SHAPE_TABLE = 0x461b; // 8-entry ROM shape table for the mother-ship warp/flash animation (stepMotherShip/stepMotherShipWarpFlashFrame)
-export const MOTHER_SHIP_STAGE_ARM_TABLE = 0x478b; // ROM word dispatch table of the Mother-Ship's per-era stage arms (stepMotherShip)
+export const MOTHER_SHIP_WARP_SHAPE_TABLE = 0x461b; // 8-entry ROM shape table for the mother-ship warp/flash animation (loc_43f0/stepMotherShipWarpFlashFrame)
+export const MOTHER_SHIP_STAGE_ARM_TABLE = 0x478b; // ROM word dispatch table of the Mother-Ship's per-era stage arms (loc_43f0)
 export const INTRO_SUBSTEP_RELOAD = 0x2750; // ROM byte (=3) reloading SEQUENCE_SUBSTEP after the between-eras band animation (stepRoundStartIntroAnimation)
 export const SEQUENCE_CHECKSUM_SPAN_BASE = 0x0bcc; // base of the 256-byte ROM block summed vs EXPECTED_CHECKSUM_TOTAL -> derail on mismatch (stepSequenceUnderChecksum)
 export const EXPECTED_CHECKSUM_TOTAL = 0x1a50; // anti-tamper reference total; stepSequenceUnderChecksum derails if the 256-byte sum from SEQUENCE_CHECKSUM_SPAN_BASE mismatches
@@ -1747,7 +1746,7 @@ export const WATCHDOG_RESET = 0xc200; // W side of dual-mapped 0xc200: writing k
 export const SCANLINE_COUNTER = 0xc000; // R side of dual-mapped 0xc000: raster/scanline counter, read for the sprite-multiplex carry (multiplexSpriteSlotsSkipping, spinRemainingSpriteMultiplexSlots); WRITE side = SOUND_COMMAND_LATCH
 export const SOUND_COMMAND_LATCH = 0xc000; // W side of dual-mapped 0xc000: sound-command byte handed to the audio Z80 (sendSoundCommand); READ side = SCANLINE_COUNTER
 export const TAMPER_GLYPH_SOURCE_CELL = 0xa67c; // char-plane glyph cell copied to TAMPER_GLYPH_COPY (0xab43) and later compared against it -- anti-tamper witness (expected glyph 0x7c)
-export const loc_acc5 = 0xacc5; // work-RAM byte zeroed when an enemy is spawned into a free slot (spawnEnemyIntoFreeSlotElseStepSearch); role not yet determined
+export const SPAWN_CLEARED_SPARE_BYTE = 0xacc5; // work-RAM byte zeroed when an enemy is spawned into a free slot (spawnEnemyIntoFreeSlotElseStepSearch, `ld (0xacc5),a` at 0x3816) and by the boot wipe, and read by no code [seen]
 export const COPYRIGHT_GLYPH_SAMPLE_CELL = 0xa61c; // copyright-caption glyph cell sampled (glyph+colour) into TAMPER_GLYPH_STRIP each attract frame (stepCopyrightScreenAwaitingStart)
 export const SPRITE_BANK1_SLOT19_Y = 0xb437; // sprite-attribute bank 1 (spriteram2) slot 19 Y byte (bit7=multiplex arm, low7=trigger scanline)
 export const SPRITE_BANK0_SLOT19_X = 0xb036; // sprite-attribute bank 0 (spriteram) slot 19 X byte; multiplex pair with SPRITE_BANK1_SLOT19_Y
@@ -1803,7 +1802,7 @@ export const COMMAND_HANDLER_TABLE = 0x0bbc; // 16-entry ROM word table of ring-
 // ROM data-table bases, directly walked cells, I/O-port registers (0xC000/0xC2xx/0xC3xx), the boot stack seat and
 // the expansion-probe / picture-enable image bytes -- data, not code -- plus two routines' own code read as data.
 export const seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR = 0x335e; // routine 0x335e's own code read as data by selectFoldBlock
-export const loc_1f2e_ADDR = 0x1f2e; // routine 0x1f2e's own code read as data by turnShipTowardTargetHeading
+export const STICK_HEADING_TABLE = 0x1f2e; // ROM byte table turning the stick's direction bits into the heading the ship turns toward (turnShipTowardTargetHeading, `ld hl,0x1f2e / rst 0x08` at 0x1F01); the bytes are also routine 0x1f2e's own code [seen]
 export const ONE_SHOT_OBJECT_SHAPE_TABLE = 0x4094; // ROM sprite-shape byte table keyed on the slot's countdown (runOneShotAnimatedObjectSlot)
 export const PARACHUTIST_FLIGHT_SHAPE_TABLE = 0x47ea; // 8-entry ROM in-flight parachutist sprite-shape table keyed on FRAME_TICK (runParachutistSlot)
 export const COUNTDOWN_SLOT_SHAPE_TABLE = 0x3ec3; // 8-shape ROM animation table (each held 4 counts) for the countdown/drift object slot (runSlotCountdownDriftAndAnimateElseRetire)
@@ -1820,8 +1819,7 @@ export const TURN_RATE_BY_ERA_TABLE = 0x2c1d; // 5-entry per-era ROM turn-rate (
 export const SHAPE_RUN_POINTER_TABLE = 0x3438; // ROM word-pointer table; each entry points to a shape-byte run the record animates through, keyed by RUN_SELECTOR (stepShapeAnimation)
 export const COINAGE_VALUE_TABLE = 0x4b95; // 16-entry ROM table turning a DIP coinage nibble into a coin-per-credit value (unpackCoinage)
 
-// Code addresses used as values: routine entries (<name>_ADDR) and non-routine transfer targets -- derail, trap and
-// pushed-return addresses (loc_<addr>).
+// Code addresses used as values: routine entries (<name>_ADDR).
 export const blankNextLine_ADDR = 0x01c2; // entry address of routine 0x01c2
 export const advanceAttractTowardGameStart_ADDR = 0x0f54; // entry address of routine 0x0f54
 export const advanceSequenceElseStartFreePlayGame_ADDR = 0x167b; // entry address of routine 0x167b
@@ -1829,19 +1827,9 @@ export const commissionStagedAttackerByEra_ADDR = 0x42b7; // entry address of ro
 export const parkTheImageTotalForTheTamperVerdict_ADDR = 0x07ad; // entry address of routine 0x07ad
 export const serviceVerticalBlankInterrupt_ADDR = 0x00d9; // entry of the vblank service (0x00d9), which the push af at 0x00d8 falls into
 export const sendOneQueuedSoundThenUnwindTheFrameInterrupt_ADDR = 0x0174; // entry of the frame-service epilogue (0x0174), used as a return address
-export const loc_43f0 = 0x43f0; // Mother-Ship deep-state stepper transfer target (armMotherShipOrStep)
-export const loc_de00 = 0xde00; // anti-tamper derail target into unmapped space -- faults (loc_08fa)
-export const loc_c600 = 0xc600; // anti-tamper derail target into unmapped space -- faults (loc_08fa)
-export const loc_bc00 = 0xbc00; // anti-tamper derail target into unmapped space -- faults (loc_08fa)
-export const loc_f1f1 = 0xf1f1; // off-map transfer target (loc_1f99)
-export const loc_f1eb = 0xf1eb; // off-map transfer target (loc_1f99)
-export const loc_1601 = 0x1601; // return address armAttractScreenShowingHighScore pushes for its countdown call (blankNextLine)
-export const loc_0f6d = 0x0f6d; // return address advanceAttractTowardGameStart pushes for its hideAllSprites call
-export const loc_1fcf = 0x1fcf; // return address pushed for the off-map call (loc_1f99)
 export const serviceSlotByMarkerThenCloseSweepTurn_ADDR = 0x40ea; // routine 0x40ea as a code target -- the object-bank sweep body (sweepEra2PlusObjectBank)
-export const loc_2e3e = 0x2e3e; // ROM velocity table for the era-1/2 pace (scrollWorldAtTheEraPace), also read by flyAtSecondFastestSpeed/loc_5965/setMotherShipVelocityFromHeading; the same address is the tamper-trap jump target in showCreditLine
-export const loc_59d7 = 0x59d7; // ROM table of 256 16-bit velocity words, read by chaseOneAimPointAndRetireAtTheLine, flyAtSlowestSpeed, setMotherShipVelocityFromHeading and loc_58aa/loc_5942/loc_598e/loc_59c5; the same address is the derail target of the whole-ROM checksum in clearScreenRamAndVerifyImageThenColdInit
-export const loc_49fa = 0x49fa; // derail into a caption record decoded as code (checkTheCopyrightLineColoursOrDerail)
+export const SECOND_FASTEST_VELOCITY_TABLE = 0x2e3e; // ROM table of 256 16-bit velocity words, peak 306, second rung from the top of the velocity ladder: the era-1/2 pace (scrollWorldAtTheEraPace), also read by flyAtSecondFastestSpeed/loc_5965/setMotherShipVelocityFromHeading; the same address is the tamper-trap jump target in showCreditLine [seen]
+export const SLOWEST_VELOCITY_TABLE = 0x59d7; // ROM table of 256 16-bit velocity words, peak 206, the bottom rung of the velocity ladder, read by chaseOneAimPointAndRetireAtTheLine, flyAtSlowestSpeed, setMotherShipVelocityFromHeading and loc_58aa/loc_5942/loc_598e/loc_59c5; the same address is the derail target of the whole-ROM checksum in clearScreenRamAndVerifyImageThenColdInit [seen]
 
 // ROM data-table and cell bases shared by the velocity, bonus, sprite-frame, checksum, tile, demo-script, sound and
 // self-test modules; roles read from the modules' use and the ROM disassembly (contrib Code.md).
@@ -1935,7 +1923,7 @@ export const ROUTINES = {
     cert: "seen",
     why: "the body is exactly one stepDriftingCountdownObjectByEraFrames frame followed by the byte-for-byte fall-through into closeOneTurnOfTheSlotSweep (0x410b: stride, djnz back to 0x40ea), and its only entrant is serviceSlotByMarkerThenCloseSweepTurn's marker 1..0xFE arm (`inc a / jr nz,0x4108` after `and a / jp z,0x410b`) -- the marker being the object's own countdown. Whether the object is debris or an explosion is not settled by the code, so the name stays 'countdown slot'",
   },
-  0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "seen" },
+  0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (loc_43f0) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "seen" },
   0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "seen" },
   0x31b4: { name: "reaimAndAnimateEnemyCraftOnPhaseTick", role: "on the 00s and 30s tenths of the packed-decimal life counter 0xad05, service enemy-craft slot (units digit, only slots 0-6 whose record head at 0xa850 reads 0xff): advance that record's shape animation, then unless the state byte at ix+8 is 0x10 re-aim its heading toward a point the state byte indexes out of the aim table at 0xac65 -- state 0x11 aims at the table base, stores heading+0x80 into ix+1 and resets the record to state 0x10, every other state stores the heading straight into ix+1; on every other tenth hand off to layOutEnemyAimPointsFromScrollAngle", cert: "seen" },
   0x36af: { name: "driveEnemyWaveForLifePhase", role: "enemy-wave substep: while the wave-hold cell 0xacc6 is clear, dispatch by era and life-phase -- era 4 to spawnEnemyWaveIntoFreeSlots, phase 7 to stopFiveSlotAnimations, phase below 7 to gateTheFreeSlotSearchAndPickItsRun, phase 8 to spawnEnemyCraftWhenBandUnderTwo; at phase 9+ with the low life-tick 0xad05 spent, spawn a fresh wave inline across the 0xa850/0xaa1a craft band from a heading-biased shape run, then request a sound once enough of the five slots filled", cert: "seen" },
@@ -1984,7 +1972,10 @@ export const ROUTINES = {
   0x3ed6: { name: "launchBankEnemyWhenAimedNearPlayer", role: "one gated attempt to launch an enemy into the object bank: past a phase-key match, an arm flag, a non-empty flight count, and a strided scan for a free record, three window tests must pass -- the craft must NOT sit within BANK_LAUNCH_NEAR_HALF_WIDTH of the player's fixed screen position (0x84, 0x78) on both axes, its heading must lie within BANK_LAUNCH_HEADING_HALF_WIDTH of PLAYER_HEADING, and the heading toward the aim point must lie within 16 of its own; only then does it request the launch sound, copy the entry's two coordinates into the found record's paired entry, look up a doubled velocity pair from the heading via one of two tables chosen by a select cell, stock the record with that velocity, stamp two entry constants, re-arm the flag from its source, and count the record head down one", cert: "seen" },
   0x42b7: { name: "commissionStagedAttackerByEra", role: "commission the object the free-slot finder staged, whose record/entry pointers wait at 0xA991/0xA993: copy the spawner's two coordinate pairs and the caller's facing (C) into the new slot, then fit it out one of four ways chosen by the era cell 0xAD04 -- era 0 an unaimed drift with a mirror flag (IY+0x01=0x4F) and slow-fall marker; eras 1-2 a heading toward the fixed point 0xAC7F skewed by a stored half-turn from (IX+0x0F); era 3 a doubled velocity vector for a heading offset +/-0x1A from the facing; era 4 a straight aim at 0xAC7F plus a seeded (IX+0x04); each way winds the new slot's active count (IX+0x00) down, re-arms the spawn cooldown (0xA8F4 from 0xA8F6), restores the spawner's own IX/IY, and hands off to one era-specific sound request", cert: "seen" },
   0x3d25: { name: "spawnAimedEnemyIntoEraBankWhenInWindow", role: "spawn one aimed enemy when the spawn slot is free, the cooldown at 0xa8f4 is clear, the era count at 0xa8c6 is live, and an object in the caller's two-slot bank sits inside a doubled window: seat the found slot's coords, the doubled velocity pair aimed toward the player at 0xac7f (aim side alternated each spawn via 0xa8d4), a script and a shape into the era's fixed record+sprite bank (0xa840/0xaa18 or 0xa8e0/0xaa2c), decrement the new record head, and reload the cooldown from 0xa8f6", cert: "seen" },
-  0x459b: { name: "stepMotherShipWarpFlashFrame", role: "step one object's timed warp/flash sequence: drift it with the world, seed the sprite's heading and shape from angle/Y-gated tables, then count a state byte down — the 0xB4 frame flags the sprite, bumps the 0xA800 sentinel (which requests the warp sound at 0x580B when it wraps) and posts command 0x04/0x0D to the ring, above-trigger frames step an eight-shape ROM cycle, and a spent counter resets to idle then loops or returns on two program-image gates; reached through a misaligned prologue (two POP AF, DEC SP) whose stray carry can fold in a life-loss", cert: "seen" },
+  0x459b: { name: "stepMotherShipWarpFlashFrame", role: "step one object's timed warp/flash sequence: drift it with the world, seed the sprite's heading and shape from angle/Y-gated tables, then count a state byte down — the 0xB4 frame flags the sprite, bumps the 0xA800 sentinel (which requests the warp sound at 0x580B when it wraps) and posts command 0x04/0x0D to the ring, above-trigger frames step an eight-shape ROM cycle, and a spent counter resets to idle then loops or returns on two program-image gates; reached through a misaligned prologue (two POP AF, DEC SP) whose stray carry can fold in a life-loss",
+    cert: "code",
+    why: "no MAME observation is this entry's own: 0x459B/0x459C were fetched in none of the five full-span captures (their only reads are the whole-image checksum's data reads at pc 0x588D). The earlier [seen] rested on shared bytes -- the misaligned decode from 0x459B rejoins the aligned stream at the `call 0x2b60` at 0x45B3, which loc_43f0's dying countdown runs. Its only code transfers are anti-tamper derails: `jp nz,0x459b` at 0x1772 (paintReadoutsThenSampleWitnessOrDerail, taken iff the glyph at 0xA67C != 0x7C) and `jp 0x459b` at 0x4660 (the retire arm, reached iff TAMPER_GLYPH_COPY 0xAB43 != 0x7C or 0xAB44 is neither 0x10 nor 0x05); the third occurrence of the word, at 0x0C72, is caption pointer-table data",
+  },
   0x083e: {
     name: "buildCopyrightScreenThenVerifyImage",
     role: "title/attract copyright-screen layout arm (table-dispatched, no static call site): request the flashing copyright line, stamp the copyright caption strip, post caption commands (command 1, arguments 0,1,3..7,20,21) to the command ring, then XOR-fold the 24-byte program block at 0x176A and step the sequence sub-step when the fold matches 0xC9, else transfer to the checksum-failure landing",
@@ -3809,5 +3800,23 @@ export const ROUTINES = {
     role: "the last gate in front of a launch, and the one thing the launcher is told: on one of the two coordinates the sprite entry carries, the firing object must lie inside a window centred on a fixed line whose half-width is READ FROM 0xA8E6 rather than baked in, and outside it this entry ends and nothing is launched; inside it the OTHER coordinate is compared against a second fixed line, and which side it falls on is handed to the launcher at 0x42B7 in the narrow scratch byte as a plain zero or one, which that routine turns into a mirroring of the NEW object's sprite rather than of the firing one's. ★ 0xA8E6 is one of the two aim windows applyEraRungSettings scatters, which is why the name says 'one' and not 'the'; the cell also has a NON-WINDOW reader at 0x43AE (`ld a,(0xa8e6) / ld (ix+0x04),a`, seeding a record countdown), and mechanisms.md marks what each of those twelve scattered cells governs as not fully settled",
     cert: "seen",
     why: "the window is not a plain 'within the half-width', which is why the role claims a centre and no width: the cell is doubled and the coordinate re-centred in a BYTE, so half-widths of 0x00 and 0x80 both shut the window over every coordinate and anything above 0x80 reopens it narrower and off centre. That 0xA8E6 is a window at all is checked by the idiom rather than by a count of cells: the shape `ld a,(cell) / ld d|b,a / add a,a / ld c|e,a / ld a,LINE / sub (iy+off) / add a,d|b / cp c|e` occurs at four sites -- 0x3D47 and 0x4278 on 0xA8D6, 0x3F9E and this entry on 0xA8E6 -- so exactly two cells serve as half-widths, matching the 'two aim windows' applyEraRungSettings's role already names, and the indefinite article is right. The mirroring was followed rather than assumed: 0x42B7 copies the firing object's coordinates into the free slot the pointers at 0xA991 / 0xA993 name and stores the handed byte at the new record's +0x01, and the first-era arm at 0x42EC does `ld a,c / rrca / sra a / and 0xc0 / add a,0x0b`, giving attribute 0x0B for zero and 0xCB for one -- the two flip bits, and nothing else, differing. ★ The player is kept out of the name deliberately, following hasReachedRetireLine, whose role says 'two fixed retire lines' and leaves the derivation to its why: 0x84 and 0x78 are immediates here, and that they are the player's own pinned sprite-entry pair is a fact about the caller and not about these bytes. One static inbound, `jp z,0x429c` at 0x4296, taken when ERA_INDEX reads zero, with the other arm of that same test reaching 0x42B7 carrying the object's own heading -- so what this entry is, is the first era's substitution of an alignment-and-side facing for a heading-follows one",
+  },
+  0x00d9: {
+    name: "serviceVerticalBlankInterrupt",
+    role: "the vertical-blank service body, entered by falling through from the one-byte `push af` at 0x00D8 (saveAccumulatorForFrameInterrupt): publish the sprite shadow and drain the deferred cell lists, close the interrupt gate (0xC300 <- 0) and kick the watchdog (0xC200), set SCREEN_UNFLIPPED and the flip-screen latch 0xC302 from ACTIVE_PLAYER and COCKTAIL_MODE, latch the five complemented input/DIP ports into DIP1_MIRROR, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR and COINAGE_SETTINGS, step FRAME_TICK and the packed-decimal BCD_FRAME_COUNTER, take BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER and ATTACKER_SPAWN_COOLDOWN one step toward zero, service the coin inputs, then run the arm of the four-word table at 0x015F (0x15C2 / 0x1651 / 0x17FE / 0x0F1F) that the low two bits of SEQUENCE_PHASE select, with the epilogue 0x0174 pushed as its return so the frame closes there",
+    cert: "seen",
+    why: "each clause is a write or a transfer made from inside 0x00D9-0x015E, and each was watched under MAME in five captures (attract, driven play, the boss-armed tape and two Mother-Ship kill runs): once per frame the body writes 0x00 to 0xC300 (pc 0x00ED) and to 0xC200 (0x00F0), SCREEN_UNFLIPPED (0x00F4) and 0xC302 (0x0109), the five port mirrors 0xA9AD-0xA9B1 (0x0110-0x012C; the IN0 mirror 0xA9AE stays 0 through undriven attract and takes nonzero values in driven play), FRAME_TICK through every byte value (0x0132) and BCD_FRAME_COUNTER in packed-decimal steps (0x0139); the three countdowns are written only while nonzero (0x0141, 0x0149, 0x0151). The body is fetched exactly as often as the epilogue 0x0174 in every capture, and all four arms of the table were fetched -- 0x15C2 (the boot wipe), 0x1651 (attract), 0x17FE (the credit state) and 0x0F1F (the round engine). It is an entry of its own, not a stretch of 0x00D8: `jp nz,0x00d9` at 0x08C4 (erasePenRouteThenOpenInitialsEntry's tamper arm) transfers to it directly",
+  },
+  0x0174: {
+    name: "sendOneQueuedSoundThenUnwindTheFrameInterrupt",
+    role: "close the vertical-blank service: send the oldest queued sound byte (sendOldestQueuedSoundCommand), unstack the two register banks the service saved, reopen the interrupt gate from the program byte at 0x1600 (0xC300 <- 0x01) and return into the interrupted code; reached as the resume address the service pushes at 0x0155, never by a call",
+    cert: "seen",
+    why: "the gate write is the role-defining one and it is this body's own: under MAME, in each of five captures, pc 0x0187 wrote 0x01 to 0xC300 once per frame -- the same count as the frames the service body 0x00D9 ran and as its 0x00 write to 0xC300 at pc 0x00ED, so the gate the service closes is reopened here and nowhere else; the send is its callee's [seen] role. The only occurrence of the word 0x0174 in the image is the `ld hl,0x0174` at 0x0155 that the service follows with `push hl`, so control returns into this address rather than calling it; the address is absolute, which makes it an entry and not a fragment",
+  },
+  0x43f0: {
+    name: "loc_43f0",
+    role: "one frame of the Mother-Ship, dispatched on the head byte of its record MOTHER_SHIP_STATE (0xA8A0) with its sprite pair at MOTHER_SHIP_ENTRY (0xAA24). Head 0x00 (idle): count the delay at +0x0E down, and once it is spent and ROUND_TRANSITION_HOLD is clear, launch the ship at a position chosen from PLAYER_HEADING, raising its hits-to-absorb (+0x04) to 5 if below 6 and requesting the era's sound. Head 0xFF (live): move both tiles by the ship's velocity and the world scroll, dress them for the heading or retire the ship at the field edge, and while BANK_LAUNCH_COOLDOWN is spent and a tile is on screen but outside the near band around the player, fire an aimed shot into the first free of the shot slots 0xA830/0xA840 and re-arm the cooldown. Any other head is a hit (0xF0, written by the collision sweep) or a dying step: while +0x04 holds hits one is spent and the ship goes back to live; otherwise, at head 0xEF it sweeps the fifteen object records (each live one takes a staggered dying code from 0x14 in steps of 10 and scores 200), holds the round (ROUND_TRANSITION_HOLD=0xFE) and restarts the head at 0xE4, then counts the wreck down through its warp shapes, at 0xB4 flashes it and posts the 3,000-point award, and at 0 goes idle and releases ROUND_TRANSITION_HOLD to 0xFF",
+    cert: "seen",
+    why: "kept hex because the image has no absolute entry point here for an English name to be about: a scan of the whole 24 KB for the little-endian word 0x43F0, at every alignment, finds none, so no table can name it and nothing absolute reaches it; the only transfer that lands here is the RELATIVE `jr nz` at 0x43C0 in armMotherShipOrStep, across sumImageBlockForTheTamperCheck at 0x43E8 -- a range fragment, the same rule as loc_10f8/loc_3793/loc_5254. Every phase of the role was watched under MAME making its own writes, at pcs inside this body's arms (0x43F0-0x4446, 0x4535-0x459A, 0x45B3-0x46B9, 0x46F0-0x47B2; the callees housed in the span, 0x4447 and 0x46BA, are left out, and the overlapping 0x459B entry was never fetched): the entry 0x43F0 is the dispatcher and writes nothing, and all three of its arms ran; idle wrote the +0x0E delay counting down (pc 0x453C); launch wrote +0x02 as 0x00 or 0x80 (0x468E), the hit floor 5 (0x469B) and the head 0xFF (0x469F); live wrote both tiles' coordinates and fractions (0x4415-0x443E); the absorb arm stepped +0x04 down (0x4547) and put the head back to 0xFF (0x454A); the death sweep cleared HITS_REMAINING (0x455B), wrote 0x14 + 10*k into record head 0xA810 + 16*k for k up to 12 (0x4572), set ROUND_TRANSITION_HOLD 0xFE (0x4584) and the head 0xE4 (0x4587); the countdown wrote the second tile's coordinates, the warp shapes, the head and the 0xFF flattening (0x45C3-0x4609); the flash wrote head 0xB3, codes 0xFE/0xFD and attribute 0x6C (0x4623-0x4632); the end wrote ROUND_TRANSITION_HOLD 0xFF (0x4648) and head 0x00 (0x464B); and the fire test 0x46F0 and slot search 0x4734, which only test, led to 0x474C writing SCRATCH_PTR_A/B, the shot's velocity words, code 0x4D, attribute 0x62, head 0xFF into 0xA830/0xA840 (0x47A9) and the cooldown (0x47AF). The eleven exported arms are interior to the body and carry effect names only",
   },
 };

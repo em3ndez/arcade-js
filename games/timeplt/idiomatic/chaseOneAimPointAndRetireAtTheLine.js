@@ -22,7 +22,7 @@
  */
 
 import { u16 } from "../../../core/int.js";
-import { ENEMY_STANDOFF_AIM_MAIN, FRAME_TICK, loc_59d7 } from "./names.js";
+import { ENEMY_STANDOFF_AIM_MAIN, FRAME_TICK, SLOWEST_VELOCITY_TABLE } from "./names.js";
 import { headingToward } from "./headingToward.js";
 import { steerTowardAimOneUnitAFrame } from "./steerTowardAimOneUnitAFrame.js";
 import { flyAlongHeadingAtDoubleVelocity } from "./flyAlongHeadingAtDoubleVelocity.js";
@@ -38,7 +38,7 @@ const PHASE_WHEEL = 15;
 // the velocity table a chased object flies along
 // (0x59D7, the bottom rung of the velocity-table ladder; the ROM reaches it through the call to
 // 0x58AA, which loads that table before flying.)
-const CHASE_VELOCITY_TABLE = loc_59d7;
+const CHASE_VELOCITY_TABLE = SLOWEST_VELOCITY_TABLE;
 
 export function chaseOneAimPointAndRetireAtTheLine(m, object = m.regs.ix, sprite = m.regs.iy) {
   const { mem8 } = m;

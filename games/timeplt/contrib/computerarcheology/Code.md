@@ -8685,7 +8685,7 @@ loc_43ae:
 43B4: C3 13 43        JP      $4313               ; {code.loc_4313} then take the aim path
 
 ; once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag
-; 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it
+; 0xacc6 is clear, defer to the deep-state stepper (loc_43f0) if it
 ; is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the
 ; kill quota (KILLS_REMAINING 0xad02) is spent and both records of its
 ; two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed

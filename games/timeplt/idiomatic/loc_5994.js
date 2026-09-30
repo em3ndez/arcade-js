@@ -11,7 +11,7 @@
  * object's record; the Z80 seats the table in HL and jumps to 0x599D (loc_599d), which reads that
  * heading from (IX+2) and falls into doubledVelocityForHeading (0x59A0). That body looks up two
  * perpendicular 16-bit velocity components for the heading and doubles each. Its caller here is
- * stepMotherShip, which stores the pair into the object's record as its velocity.
+ * loc_43f0, which stores the pair into the object's record as its velocity.
  *
  * The table is VELOCITY_TABLE_5C00 (0x5C00): a ROM velocity table whose era names.js records as
  * not determined, read by this entry and loc_59cb.

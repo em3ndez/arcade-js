@@ -53,7 +53,7 @@ export function armBomberSlotWhenTimerFires(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   // shape record: rotate the heading to an even table offset, take its two bytes
   // Two rrca and mask 0x3E turn the 256-step index into one of 32 sectors times two, the offset
-  // of a two-byte record in HEADING_SHAPE_TABLE (0x3C84, shared with stepMotherShip). The first
+  // of a two-byte record in HEADING_SHAPE_TABLE (0x3C84, shared with loc_43f0). The first
   // byte goes to sprite entry +0x31, the second to entry +0x00 (ROM 0x3C44-0x3C54, via rst 0x08).
   const shapeIndex = ((index >> 2) | (index << 6)) & 0x3e;
   mem8[u16(iy + 0x31)] = fetchTableByte(m, HEADING_SHAPE_TABLE, shapeIndex);

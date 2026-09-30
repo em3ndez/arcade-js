@@ -20,7 +20,7 @@
 import { u8 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { scrollWorldAtTheEraPace } from "./scrollWorldAtTheEraPace.js";
-import { PLAYER_HEADING, ERA_INDEX, loc_1f2e_ADDR } from "./names.js";
+import { PLAYER_HEADING, ERA_INDEX, STICK_HEADING_TABLE } from "./names.js";
 
 // `cp 0x03` on ERA_INDEX's low nibble (0x1F13): from era 3 on the ship turns faster.
 const FAST_DIGIT = 3;
@@ -38,7 +38,7 @@ export function turnShipTowardTargetHeading(m, stick = m.regs.a) {
    * The stick's direction bits index the byte table at 0x1F2E through fetchTableByte (rst 0x08),
    * giving the heading the ship should face for that stick position. (names.js notes that these
    * bytes are also reachable as code — the ROM reads that stretch as a data table here.) */
-  const wanted = fetchTableByte(m, loc_1f2e_ADDR, stick);
+  const wanted = fetchTableByte(m, STICK_HEADING_TABLE, stick);
   const heading = mem8[PLAYER_HEADING];
   if (heading !== wanted) {
     /* Step 2 — choose how far to turn (0x1F0D-0x1F1D).

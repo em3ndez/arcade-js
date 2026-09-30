@@ -61,7 +61,7 @@ Anything that wants text on screen, whether frame code or foreground code, calls
 
 ### The vertical-blank service
 
-The interrupt vector at 0x0066, `enterVblankInterrupt` [seen], jumps to 0x00D8, `saveAccumulatorForFrameInterrupt` [seen]. That is a one-byte register save that falls into the service body, `serviceVerticalBlankInterrupt` at 0x00D9. The body saves both register banks, and nothing the game keeps lives in registers across the interrupt. One frame's work happens in this order:
+The interrupt vector at 0x0066, `enterVblankInterrupt` [seen], jumps to 0x00D8, `saveAccumulatorForFrameInterrupt` [seen]. That is a one-byte register save that falls into the service body, `serviceVerticalBlankInterrupt` [seen] at 0x00D9. The body saves both register banks, and nothing the game keeps lives in registers across the interrupt. One frame's work happens in this order:
 
 1. **Publish the display.** `publishSpriteShadow` (0x0365) [seen] copies the sprite shadow in work RAM into the two hardware sprite banks. It transforms the bytes according to which way round the picture is. `drainBothDeferredCellLists` (0x5286) [seen] blanks the character cells painted last pass and paints the ones now pending.
 2. **Close the gate, kick the watchdog.** NMI_ENABLE_LATCH 0xC300 is set to 0, so a second vertical blank cannot land in the middle of this frame. WATCHDOG_RESET 0xC200 is written.
@@ -70,17 +70,17 @@ The interrupt vector at 0x0066, `enterVblankInterrupt` [seen], jumps to 0x00D8, 
 
    | Port | Mirror cell |
    |---|---|
-   | DSW1 0xC200 | DIP1_MIRROR 0xA9AD [code] |
+   | DSW1 0xC200 | DIP1_MIRROR 0xA9AD [seen] |
    | IN0 0xC300 | IN0_MIRROR 0xA9AE [seen] |
-   | IN1 0xC320 | IN1_MIRROR 0xA9AF [code] |
-   | IN2 0xC340 | IN2_MIRROR 0xA9B0 [code] |
+   | IN1 0xC320 | IN1_MIRROR 0xA9AF [seen] |
+   | IN2 0xC340 | IN2_MIRROR 0xA9B0 [seen] |
    | DSW0 0xC360 | COINAGE_SETTINGS [seen] |
 
    In IN0_MIRROR, bit 0 is coin 1, bit 1 coin 2, bit 2 service, bit 3 the 1-player start and bit 4 the 2-player start. The write is unconditional, so the mirror shows what the panel is asserting on this frame and nothing more. ★ COINAGE_SETTINGS is refreshed every frame, but the coin ratios are unpacked from it only at power-on. A coinage switch moved while the machine runs changes this cell and not the charge.
-5. **Step the clocks.** FRAME_TICK 0xA980 [seen] goes up by one, wrapping at a byte. BCD_FRAME_COUNTER 0xA9CE [code] steps as a two-digit packed-decimal count, 00 to 99 and round again. Three countdowns are each taken one closer to zero and stop there: BANK_LAUNCH_COOLDOWN 0xA817 [seen], WAVE_CLAIM_TIMER 0xA812 [seen] and ATTACKER_SPAWN_COOLDOWN 0xA8F4 [seen].
+5. **Step the clocks.** FRAME_TICK 0xA980 [seen] goes up by one, wrapping at a byte. BCD_FRAME_COUNTER 0xA9CE [seen] steps as a two-digit packed-decimal count, 00 to 99 and round again. Three countdowns are each taken one closer to zero and stop there: BANK_LAUNCH_COOLDOWN 0xA817 [seen], WAVE_CLAIM_TIMER 0xA812 [seen] and ATTACKER_SPAWN_COOLDOWN 0xA8F4 [seen].
 6. **Service the coins.** `serviceCoinInputs` (0x48BE) [seen]; see below.
 7. **Run the sequence machine.** The low two bits of SEQUENCE_PHASE 0xA9AB [seen] select one of four phase arms from the table at SEQUENCE_PHASE_ARM_TABLE 0x015F: 0x15C2, 0x1651, 0x17FE, 0x0F1F. That arm runs.
-8. **Send one sound and reopen the gate.** `sendOneQueuedSoundThenUnwindTheFrameInterrupt` (0x0174) sends the oldest queued sound byte. It then sets NMI_ENABLE_LATCH from NMI_REENABLE_BYTE 0x1600, a program byte holding 1, and the service unwinds back into the foreground loop.
+8. **Send one sound and reopen the gate.** `sendOneQueuedSoundThenUnwindTheFrameInterrupt` [seen] (0x0174) sends the oldest queued sound byte. It then sets NMI_ENABLE_LATCH from NMI_REENABLE_BYTE 0x1600, a program byte holding 1, and the service unwinds back into the foreground loop.
 
 ### Coins, credits and coin counters
 
@@ -290,9 +290,9 @@ The table is easiest to follow as the life of a game.
 **Step 0 — arm the game (armRoundStartThenStepSequence [seen]).** This step asks for the round-start sound. It then gives both saved player contexts a fresh start: each player's kills-owed cell (PLAYER_ONE_KILLS_REMAINING 0xAD12 [seen] and its twin) is filled from KILL_QUOTA 0xA9CD [seen]. Era, bonus-life latch (PLAYER_ONE_BONUS_LIFE_LATCH 0xAD13 [seen]), Mother-Ship-armed flag and pen colour are zeroed, ACTIVE_PLAYER 0xAD32 [seen] is set to player one, and round number and round-armed are set to 1. The step then splits on PLAY_ACTIVE.
 
 - **In a credited game** it zeroes both score triples and posts command 4 with award index 0 to the command ring, which repaints the score labels. It loads the difficulty record the Difficulty switch selects (see *The gameplay-config bank*). It folds a program block into the picture-enable latch (see *ROM self-checks*). Both players' start rungs are copied from START_RUNG_ROUNDS_1_5 0xA9D3 [seen], and SEQUENCE_DELAY 0xA9EB [seen] is set to 150 before the step advances.
-- **In the demo** it cycles ATTRACT_STAGE_COUNTER 0xA9D0 [code] through 1, 2, 3 and back to 1. It uses that value as player one's era (PLAYER_ONE_ERA_INDEX 0xAD14 [seen]) and that value plus one as player one's round number. The demo therefore only ever flies eras 1, 2 and 3 — 1940, 1970 and 1982 — never 1910 or 2001. This matches gameplay.md's report of the Konami set's attract mode. It zeroes FRAME_TICK 0xA980 [seen], BCD_FRAME_COUNTER 0xA9CE [code] and SCRIPT_CYCLE_COUNTER 0xA9CF [code], and re-seeds the random generator. It clears the shot array (PLAYER_SHOT_ARRAY 0xAA80 [seen] and up) and the player/actor block (PLAYER_STATE 0xA800 [seen] and up). It then loads the third difficulty record (setting 3) whatever the switches say, and copies both players' start rungs from it. Every demo therefore starts from the same generator state on the same fixed difficulty. The delay is set to 90.
+- **In the demo** it cycles ATTRACT_STAGE_COUNTER 0xA9D0 [code] through 1, 2, 3 and back to 1. It uses that value as player one's era (PLAYER_ONE_ERA_INDEX 0xAD14 [seen]) and that value plus one as player one's round number. The demo therefore only ever flies eras 1, 2 and 3 — 1940, 1970 and 1982 — never 1910 or 2001. This matches gameplay.md's report of the Konami set's attract mode. It zeroes FRAME_TICK 0xA980 [seen], BCD_FRAME_COUNTER 0xA9CE [seen] and SCRIPT_CYCLE_COUNTER 0xA9CF [code], and re-seeds the random generator. It clears the shot array (PLAYER_SHOT_ARRAY 0xAA80 [seen] and up) and the player/actor block (PLAYER_STATE 0xA800 [seen] and up). It then loads the third difficulty record (setting 3) whatever the switches say, and copies both players' start rungs from it. Every demo therefore starts from the same generator state on the same fixed difficulty. The delay is set to 90.
 
-**Step 1 — seat the caption pen (seatCaptionPenFromEraFoldingTamperIntoPhase [seen]).** A two-byte glyph/colour record is chosen by the active player's era. It comes from a table at 0x0F8D whose bytes are also the code of loc_0f8d [code]. The record is written both into that player's saved pen (PLAYER_ONE_PEN_GLYPH 0xAD1B [seen], or PLAYER_TWO_PEN_GLYPH 0xAD2B [seen]) and into the live PEN_GLYPH 0xAD0B / PEN_COLOUR 0xAD0C [seen]. If the colour did not change, the step advances twice, which skips step 2. The pen is then sent back to the start of its route, and the step advances.
+**Step 1 — seat the caption pen (seatCaptionPenFromEraFoldingTamperIntoPhase [seen]).** A two-byte glyph/colour record is chosen by the active player's era. It comes from ERA_PEN_TABLE 0x0F8D [seen], whose bytes are also the code of loc_0f8d [code]. The record is written both into that player's saved pen (PLAYER_ONE_PEN_GLYPH 0xAD1B [seen], or PLAYER_TWO_PEN_GLYPH 0xAD2B [seen]) and into the live PEN_GLYPH 0xAD0B / PEN_COLOUR 0xAD0C [seen]. If the colour did not change, the step advances twice, which skips step 2. The pen is then sent back to the start of its route, and the step advances.
 
 **Step 2 — trace the pen route (blankCaptionThenAdvancePenRunStep [seen]).** Each frame, this step blanks the fourteen kill-meter cells (blankFourteenCharCells [seen]) and draws one leg of the pen's route (drawInterpolatedPenRun [seen]). Each leg stamps PEN_GLYPH/PEN_COLOUR along a line interpolated between two route points. The step stays put until the route reseats on row zero, and then advances. The code does not establish what the traced route looks like on the glass.
 
@@ -451,7 +451,7 @@ The posting sites seen in the code:
 - **Shot-down targets and ramming contacts go through postChainedHitScore [seen].** It does not post a flat 100. While CHAIN_WINDOW 0xA99D [seen] is still counting, each hit steps CHAIN_STEP 0xA99E [seen] and posts index (step mod 8) + 1. A hit arriving after the window has run out posts index 1. Every hit reloads the window to 30, and expireHitChain [seen] counts it down once per round-engine pass, holding CHAIN_STEP at zero once it is empty. Hits in quick succession therefore pay 100, 200, … 800 and then wrap to 100. **This disagrees with gameplay.md's flat "100 per common enemy"; the code wins.**
 - The hit-soaking object posts index 11 (1,500) when its level reaches 0x40 (advanceHitSoakingObjectThenAnimateDeath [seen]).
 - The wave's claim-token holder posts index 12 (2,000) once, when driveObjectAppearanceByPhaseBand [seen] consumes CLAIM_TOKEN 0xA821 [seen].
-- The Mother-Ship's warp posts index 13 (3,000) (stepMotherShip).
+- The Mother-Ship's warp posts index 13 (3,000) (loc_43f0).
 - The Mother-Ship's formation-rebuild arm posts index 2 (200) once for each of the fifteen slots that held a live craft.
 - The parachutist posts through postNextParachutistBonus [seen], which pays the rungs of PARACHUTIST_BONUS_ARG_TABLE 0x484F — indices 10, 12, 13 and 14 (1,000, 2,000, 3,000, 4,000) — and then index 15 (5,000) for every rescue after that. The rung counter is PARACHUTIST_RUNG 0xA8F7 [seen], which is zeroed at every life start. The ladder therefore restarts on death and on a new era, as gameplay.md's secondary sources say.
 
@@ -490,7 +490,7 @@ A score that beats none of the five is dropped. In that case step 8 erases capti
 
 On odd frames it flashes the cursor. INITIALS_CURSOR_FLASH_TIMER 0xA99C [seen] steps, and its bit 4 picks the cursor cell's colour, 0x14 or 0x10.
 
-On even frames it samples the control panel facing the picture (readPlayerControls [seen]: IN2_MIRROR 0xA9B0 when the screen is turned round, else IN1_MIRROR 0xA9AF [code]). Four controls are shifted into their press histories: back into INITIALS_BACK_PRESS_HISTORY 0xA995 [seen], forward into INITIALS_FORWARD_PRESS_HISTORY 0xA996 [seen], fire into INITIALS_COMMIT_PRESS_HISTORY 0xA997 [seen], and a bit-0x20 control into INITIALS_ALT_COMMIT_PRESS_HISTORY 0xA998 [seen]. A "fresh press" is a history whose last three samples read off, off, on.
+On even frames it samples the control panel facing the picture (readPlayerControls [seen]: IN2_MIRROR 0xA9B0 when the screen is turned round, else IN1_MIRROR 0xA9AF [seen]). Four controls are shifted into their press histories: back into INITIALS_BACK_PRESS_HISTORY 0xA995 [seen], forward into INITIALS_FORWARD_PRESS_HISTORY 0xA996 [seen], fire into INITIALS_COMMIT_PRESS_HISTORY 0xA997 [seen], and a bit-0x20 control into INITIALS_ALT_COMMIT_PRESS_HISTORY 0xA998 [seen]. A "fresh press" is a history whose last three samples read off, off, on.
 
 - A fresh commit, on either commit control, locks the shown letter into both the saved record and the screen. It moves both pointers on and decrements INITIALS_SLOTS_LEFT. Reaching zero finishes the entry at once. A held commit only commits once, because its history is never emptied.
 - A fresh forward or back press steps INITIALS_LETTER_INDEX round a ring of 27, looked up in INITIALS_LETTER_GLYPH_TABLE 0x12C7 [seen]: A to Z, then one dot mark.
@@ -518,7 +518,7 @@ The switch bank at DSW1_PORT 0xC200 (the read side of the watchdog address) is r
 | 4–6 | DIFFICULTY_SETTING 0xA9C4 [seen] | 0–7, in the order MAME labels 1 (Easiest) to 8 (Difficult) |
 | 7 | DEMO_SOUNDS_ENABLE 0xA9C6 [code] | enqueueSoundIfGameOrAttract [seen] drops a sound request unless this is set or a game is in play |
 
-The frame service also re-latches the complemented bank into DIP1_MIRROR 0xA9AD [code] every frame, but nothing reads that mirror. Moving a switch therefore has no effect until the next reset. The coinage bank (DSW0) is covered with the credit pipeline.
+The frame service also re-latches the complemented bank into DIP1_MIRROR 0xA9AD [seen] every frame, but nothing reads that mirror. Moving a switch therefore has no effect until the next reset. The coinage bank (DSW0) is covered with the credit pipeline.
 
 #### The difficulty ladder
 
@@ -598,7 +598,7 @@ The attract arms stepSequenceUnderChecksum and guardBlockOrDerailSequence, and t
   - Step 6, every frame: LEAD_IN_CHECKSUM_BASE 0x0831, key 0xC2 [seen].
   - Step 6, on the frame the delay expires: LEAD_IN_EXPIRY_CHECKSUM_BASE 0x12A7, key 0x59 [seen].
 - *Additive folds.*
-  - Step 1: thirty bytes at 0x178C, plus 0x2C.
+  - Step 1: thirty bytes at CAPTION_PEN_CHECKSUM_BASE 0x178C [seen], plus 0x2C.
   - Step 2: twenty bytes of advancePenRunAnimationStep's code at 0x1734, plus 0x77.
 - *The sub-step seed.* restartAttractSequence's second write of the sub-step folds a word read from 0x4902 and the byte at ATTRACT_RESTART_FOLD_BYTE 0x4901 [seen], less 155. On a genuine image that comes to 0; on a patched one the attract sequence restarts at some other step.
 
@@ -622,7 +622,7 @@ The attract arms stepSequenceUnderChecksum and guardBlockOrDerailSequence, and t
 - **TAMPER_WITNESS 0xAD39 [seen]** is seeded with glyph 0x68 and colour 0x05. When eras 0–3 seat their scenery, seedSceneryEntriesThenRunScenery [seen] requires 0x68, then 0x10 or 0x05. Otherwise it diverts into the tail of an unrelated sprite-entry fill (loc_307f [code], through trampolineToLoc_307f [code]).
 - **TAMPER_GLYPH_KONAMI 0xACC7 [seen]** holds the "N" of the "(c) KONAMI 1982" caption, with its colour in the next cell. holdCopyrightThenEraseTheCoinInvitation [seen] copies both from the caption cell when the copyright hold expires. Two steps later, holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail [seen] reads the same caption cell through a pointer built from a program byte, derails unless it holds 0x3B, and then seats TAMPER_GLYPH_COPY. The era-4 scenery seat, clearSceneryEntriesThenRunEraScenery [seen], requires 0x3B and then colour 0x05 or 0x10. Otherwise it jumps into a packed table run as code (loc_315b [code]). Attract step 6 already derails when that same caption cell's glyph is not 0x3B, and steps 5 and 6 derail when any of the copyright line's thirteen colour cells (checkTheCopyrightLineColoursOrDerail [seen]) is not 0x10 or 0x05. Until step 4 first copies the cell, the pair holds the literal 0x3B and 0x05 that the power-on patch list (armAttractScreenShowingHighScore [seen]) seeds. So a patched copyright caption derails in attract once the checks after step 4 have run. A game started by a credit or a free-play start before then plays with the literal pair if step 4 has not yet run, or with the patched copy if it has, and in the second case it dies on reaching 2001. This path has not been watched running.
 - **TAMPER_GLYPH_COPY 0xAB43 [seen]** holds glyph 0x7C, copied from TAMPER_GLYPH_SOURCE_CELL 0xA67C. It is checked in two places:
-  - When the Mother-Ship's warp finishes, stepMotherShip requires 0x7C followed by colour 0x10 or 0x05. Otherwise it enters stepMotherShipWarpFlashFrame [seen] through a misaligned prologue that pops the stack out of step.
+  - When the Mother-Ship's warp finishes, loc_43f0 requires 0x7C followed by colour 0x10 or 0x05. Otherwise it enters stepMotherShipWarpFlashFrame [code] through a misaligned prologue that pops the stack out of step.
   - At a two-player start, setUpTwoPlayerStartObjectOnce [seen] compares the copy with the live cell. A mismatch replays a fragment of the Mother-Ship warp's bookkeeping, including a 3,000-point award.
 - **TAMPER_GLYPH_STRIP 0xABFE / TAMPER_COLOUR_STRIP 0xABFF [seen]** are rechecked at the start of every player death. The round engine hands the player's frame to advancePlayerAnimationStrip [seen] whenever PLAYER_STATE is neither 0 nor 0xFF. On that animation's opening frame (state 0xB4 or above; a kill sets 0xF0) the routine requires glyph 0xA5 and colour 0x05 or 0x10. Otherwise it diverts into direction-table bytes run as code (loc_1f2e [code]).
 - **TAMPER_GLYPH_READBACK 0xADFB / TAMPER_COLOUR_READBACK 0xADFC [seen]** gate the demo's autopilot seed (seedDemoAutopilotScript [seen]). The glyph must be 0xFD and the colour 0x10 or 0x05; otherwise control lands in a data trap, loc_2251 [code].
@@ -658,7 +658,7 @@ The consequence is easy to miss: nothing reverts the scroll between frames. disp
 
 dispatchPlayerFrameByState [seen] routes the live ship's frame based on the stick. It asks readPlayerControls [seen] for the panel word and keeps the low four bits. If they are all clear, the stick is centred and it goes straight to scrollWorldAtTheEraPace [seen]: the heading is left alone and the ship keeps flying the way it points, so there is no throttle and no stopping. If any direction bit is set, it goes to turnShipTowardTargetHeading [seen]. In the attract demo, with PLAY_ACTIVE 0xAD30 [seen] clear, the stick is ignored. flyDemoShipByScript [seen] then nudges the heading by 3 steps either way (or not at all) from a dwell-and-command script at DEMO_SCRIPT_DWELL 0xADF2 [seen] / DEMO_SCRIPT_POINTER_LO 0xADF3 [seen], and falls into the same scroll routine.
 
-turnShipTowardTargetHeading [seen] uses the four direction bits as an index into a 16-byte table at 0x1F2E. That address also decodes as a routine, loc_1f2e [code], but only a tampered image ever runs it as code. The panel's bits are left 0x01, right 0x02, up 0x04 and down 0x08, and the table maps them to eight target headings spaced 32 apart: left 0, down-left 32, down 64, down-right 96, right 128, up-right 160, up 192, up-left 224. Heading therefore increases anticlockwise on the glass, and the 128 seated at life start faces right. Pairs that no stick can produce, such as left+right, read 0 from the table, which is the same target as left.
+turnShipTowardTargetHeading [seen] uses the four direction bits as an index into a 16-byte table, STICK_HEADING_TABLE 0x1F2E [seen]. That address also decodes as a routine, loc_1f2e [code], but only a tampered image ever runs it as code. The panel's bits are left 0x01, right 0x02, up 0x04 and down 0x08, and the table maps them to eight target headings spaced 32 apart: left 0, down-left 32, down 64, down-right 96, right 128, up-right 160, up 192, up-left 224. Heading therefore increases anticlockwise on the glass, and the 128 seated at life start faces right. Pairs that no stick can produce, such as left+right, read 0 from the table, which is the same target as left.
 
 The turn itself is a small state machine on the difference *current minus target*, taken as a wrapped byte:
 
@@ -685,10 +685,10 @@ Check this against heading 0, which is stick-left. The first component is +256 a
 scrollWorldAtTheEraPace [seen] reads the heading; it doesn't set it. Some paths write the heading before calling it and others arrive with whatever heading is already stored. It chooses the velocity table from ERA_INDEX 0xAD04 [seen] alone, split three ways:
 
 - The opening era (1910) uses OPENING_ERA_VELOCITY_TABLE 0x5E00, which peaks at 256 (1.0 pixel per step).
-- The second and third eras (1940, 1970) share the table at 0x2E3E, which peaks at 306 (about 1.2 pixels). The same bytes are also a trap target on the tamper path.
+- The second and third eras (1940, 1970) share SECOND_FASTEST_VELOCITY_TABLE 0x2E3E [seen], which peaks at 306 (about 1.2 pixels). The same bytes are also a trap target on the tamper path.
 - The fourth and fifth eras (1982, 2001) share VELOCITY_TABLE_08FA 0x08FA, which peaks at 331 (about 1.3 pixels). Those bytes also double as the checksum-failure landing loc_08fa.
 
-These are three of five velocity tables in the image that have the same shape at different sizes. The other two are VELOCITY_TABLE_5C00 0x5C00 (peak 231) and the table at 0x59D7 (peak 206). Together the peaks run 206, 231, 256, 306, 331, a ladder in steps of 25 with no 281 among the tables any routine loads (a 281-peak table does sit at 0x2530, but no routine loads it as a table). Enemy movers pick from the same ladder, including at double length through doubledVelocityForHeading [seen]. So "faster" and "slower" in this game always mean a different table, never a scaled value.
+These are three of five velocity tables in the image that have the same shape at different sizes. The other two are VELOCITY_TABLE_5C00 0x5C00 (peak 231) and SLOWEST_VELOCITY_TABLE 0x59D7 [seen] (peak 206). Together the peaks run 206, 231, 256, 306, 331, a ladder in steps of 25 with no 281 among the tables any routine loads (a 281-peak table does sit at 0x2530, but no routine loads it as a table). Enemy movers pick from the same ladder, including at double length through doubledVelocityForHeading [seen]. So "faster" and "slower" in this game always mean a different table, never a scaled value.
 
 Two consequences follow. First, the turn rate and the pace don't change together. Pace changes at eras {0}, {1,2}, {3,4}; turn step changes at {0,1,2}, {3,4}. Second, the pace depends only on the era and ERA_INDEX wraps. After 2001 it goes back to 0, so the second loop's 1910 scrolls and turns exactly like the first. Whatever the manual's "speed … gradually increased" refers to, it isn't the ship.
 
@@ -725,7 +725,7 @@ Any index other than 0 or 4 falls to the middle order and is not rejected. The s
 
 Nothing retires a scenery object when it leaves the picture. Its byte coordinates just wrap round the 256-wide space and come back in on the other side [code].
 
-The scenery is laid out again at every playfield reset. resetPlayfieldAndArmNewRound [seen] calls seatEraSceneryRowThenClearAndRunScenery [seen], which copies eight bytes from the era's row of the table at 0x3176 into the shape bytes of the eight slots, SCENERY_SPRITE_CODE_SLOT0 0xAA31 [seen] at stride 2. It then hands clearSceneryEntriesThenRunEraScenery [seen] a fill byte, 0xCC, or 0x28 in the fifth era. That routine writes the fill byte into the eight attribute bytes from SCENERY_SPRITE_ATTRIBUTE_SLOT0 0xAA60 [seen] at stride 2, and then sets the starting positions:
+The scenery is laid out again at every playfield reset. resetPlayfieldAndArmNewRound [seen] calls seatEraSceneryRowThenClearAndRunScenery [seen], which copies eight bytes from the era's row of ERA_SCENERY_ROW_TABLE 0x3176 [seen] into the shape bytes of the eight slots, SCENERY_SPRITE_CODE_SLOT0 0xAA31 [seen] at stride 2. It then hands clearSceneryEntriesThenRunEraScenery [seen] a fill byte, 0xCC, or 0x28 in the fifth era. That routine writes the fill byte into the eight attribute bytes from SCENERY_SPRITE_ATTRIBUTE_SLOT0 0xAA60 [seen] at stride 2, and then sets the starting positions:
 
 - Below the fifth era, seedSceneryEntriesThenRunScenery [seen] takes four packed pairs from SCENERY_SEED_TABLE 0x316E. Each pair supplies a native-Y byte (written to a slot's `+0x31`, and plus 16 to the next slot's) and a native-X byte (written to both slots).
 - In the fifth era, eight pairs from ERA4_SCENERY_SEED_TABLE 0x315E seat all eight slots directly.
@@ -766,7 +766,7 @@ At power-on, seedGameConfigFromDipSwitches [seen] complements DSW1 (0xC200) and 
 - Bits 4–6 go into DIFFICULTY_SETTING 0xA9C4 [seen], where 0 is the easiest.
 - Bit 7 goes into DEMO_SOUNDS_ENABLE 0xA9C6 [code]. These last two are handled by finishBootSelfTestAndColdStart [seen].
 
-The vblank service also stores a complemented copy of the bank every frame in DIP1_MIRROR 0xA9AD [code].
+The vblank service also stores a complemented copy of the bank every frame in DIP1_MIRROR 0xA9AD [seen].
 
 When a credited game starts, armRoundStartThenStepSequence [seen] calls loadDifficultyRecord [seen] with DIFFICULTY_SETTING. That routine copies one four-byte record from DIFFICULTY_RECORD_TABLE 0x186A into START_RUNG_ROUNDS_1_5, START_RUNG_ROUNDS_6_10, START_RUNG_ROUNDS_11_UP and ERA_RUNG_PERIOD. armRoundStartThenStepSequence then seeds both players' PLAYER_ONE_START_RUNG 0xAD1A [seen] / PLAYER_TWO_START_RUNG 0xAD2A [seen] from the first of the four. The eight records in the ROM are:
 
@@ -790,10 +790,10 @@ The attract demo ignores the switch. It loads record 2 directly, and it cycles A
 Every frame, serviceVerticalBlankInterrupt recomputes SCREEN_UNFLIPPED 0xA987 [seen]. It is 1 unless ACTIVE_PLAYER 0xAD32 [seen] is non-zero (player two) *and* COCKTAIL_MODE reads zero, in which case it is 0. The service copies the value to FLIPSCREEN_LATCH 0xC302. Three readers use it:
 
 - publishSpriteShadow [seen] selects a turned-round set of byte transforms when it copies the sprite shadow to the two hardware banks.
-- readPlayerControls [seen] returns IN2_MIRROR 0xA9B0 [code] (the second, cocktail panel) instead of IN1_MIRROR 0xA9AF [code].
+- readPlayerControls [seen] returns IN2_MIRROR 0xA9B0 [seen] (the second, cocktail panel) instead of IN1_MIRROR 0xA9AF [seen].
 - floodColourPlaneWithSavedPlayerColour [seen] floods its colour from the opposite corner.
 
-The two panels use the same bit layout. Because the picture is turned round along with the panel, the heading table from 0x1F2E serves both players unchanged.
+The two panels use the same bit layout. Because the picture is turned round along with the panel, the heading table STICK_HEADING_TABLE 0x1F2E serves both players unchanged.
 
 The name COCKTAIL_MODE is misleading. The flip happens when that cell is **zero**, and SCREEN_UNFLIPPED only reads 0 on a cocktail cabinet with player two up. So the cell holds 0 on a cocktail cabinet and 1 on an upright. Read it as "cabinet type, 1 = upright", not "cocktail enabled" [code].
 
@@ -801,12 +801,12 @@ The name COCKTAIL_MODE is misleading. The flip happens when that cell is **zero*
 
 Every constant in this section is data burned into the program image, and several of those tables share their addresses with code:
 
-- **Stick to target heading:** 16 bytes at 0x1F2E.
-- **Velocity ladder:** 256 signed words each at 0x59D7, VELOCITY_TABLE_5C00 0x5C00, OPENING_ERA_VELOCITY_TABLE 0x5E00, 0x2E3E and VELOCITY_TABLE_08FA 0x08FA, with peaks 206/231/256/306/331. The ship uses the last three, by era.
+- **Stick to target heading:** 16 bytes at STICK_HEADING_TABLE 0x1F2E.
+- **Velocity ladder:** 256 signed words each at SLOWEST_VELOCITY_TABLE 0x59D7, VELOCITY_TABLE_5C00 0x5C00, OPENING_ERA_VELOCITY_TABLE 0x5E00, SECOND_FASTEST_VELOCITY_TABLE 0x2E3E and VELOCITY_TABLE_08FA 0x08FA, with peaks 206/231/256/306/331. The ship uses the last three, by era.
 - **Ship sprite by heading:** PLAYER_HEADING_SHAPE_TABLE 0x20CE, 32 shapes and then 32 attributes.
 - **Player shot launch point by heading:** PLAYER_SHOT_SPAWN_POSITION_TABLE 0x2771. It has 32 entries, and each is a pair of whole-pixel coordinates (native Y, native X) on a small ring around the pinned ship at (120, 132).
 - **Enemy turn rate by era:** TURN_RATE_BY_ERA_TABLE 0x2C1D.
-- **Scenery:** shape rows at 0x3176, eight per era; starting positions at SCENERY_SEED_TABLE 0x316E (eras 0–3) and ERA4_SCENERY_SEED_TABLE 0x315E (era 4).
+- **Scenery:** shape rows at ERA_SCENERY_ROW_TABLE 0x3176, eight per era; starting positions at SCENERY_SEED_TABLE 0x316E (eras 0–3) and ERA4_SCENERY_SEED_TABLE 0x315E (era 4).
 - **Spawn tuning:** ERA_RUNG_SETTINGS_POINTER_TABLE 0x1B04, 80 pointers to ten-byte rows.
 - **Difficulty records:** DIFFICULTY_RECORD_TABLE 0x186A, eight four-byte records.
 - **Kill quota:** the byte at 0x0874 (DEFAULT_KILL_QUOTA), 56.
@@ -992,7 +992,7 @@ The list is acted on at the next vertical blank by drainBothDeferredCellLists [s
 
 ### The player record and the pinned sprite
 
-The ship is two things kept side by side. Its **record** begins at 0xA800 with PLAYER_STATE [seen], the byte that says what the ship is doing: 0xFF while it is alive and flying, 0xF0 at the moment something kills it, a falling count while it explodes, and zero once it is gone. The record's second byte, 0xA801 (still unnamed, loc_a801), is cleared at every life start and read by nothing in this section. The third byte is PLAYER_HEADING (0xA802) [seen], which holds the direction of flight as a full byte, so one turn of the circle is 256 steps. Its **sprite entry** begins at PLAYER_ENTRY (0xAA10) [seen]. The entry's first byte is the native-X coordinate, the byte after it is PLAYER_SPRITE_CODE (0xAA11) [seen], PLAYER_SPRITE_ATTRIBUTE (0xAA40) [seen] carries the colour and the two mirror bits, and PLAYER_SPRITE_Y (0xAA41) [seen] is the native-Y coordinate.
+The ship is two things kept side by side. Its **record** begins at 0xA800 with PLAYER_STATE [seen], the byte that says what the ship is doing: 0xFF while it is alive and flying, 0xF0 at the moment something kills it, a falling count while it explodes, and zero once it is gone. The record's second byte, PLAYER_RECORD_SPARE_BYTE 0xA801 [seen], is cleared at every life start and read by no code at all. The third byte is PLAYER_HEADING (0xA802) [seen], which holds the direction of flight as a full byte, so one turn of the circle is 256 steps. Its **sprite entry** begins at PLAYER_ENTRY (0xAA10) [seen]. The entry's first byte is the native-X coordinate, the byte after it is PLAYER_SPRITE_CODE (0xAA11) [seen], PLAYER_SPRITE_ATTRIBUTE (0xAA40) [seen] carries the colour and the two mirror bits, and PLAYER_SPRITE_Y (0xAA41) [seen] is the native-Y coordinate.
 
 The ship never moves on the glass. Its two coordinate bytes are set only by the life-start routine, resetPlayfieldAndArmNewRound [seen], which writes 132 into PLAYER_ENTRY and 120 into PLAYER_SPRITE_Y, and nothing that flies the ship ever changes them. The only other writers do not move the ship. hideAllSprites [seen] and hideCaptionSprites [seen] zero PLAYER_SPRITE_Y to hide the sprite, and loseLifeAndHandOver calls hideAllSprites at every life loss. On the attract copyright screen, stampCopyrightStrip [seen] reuses the entry for the first piece of the copyright caption strip, writing 216 into PLAYER_ENTRY and 160 into PLAYER_SPRITE_Y. Every collision test in the game measures against those two fixed bytes. The appearance of flight comes entirely from moving the world the other way (see "Speed and the world scroll" below).
 
@@ -1012,7 +1012,7 @@ The same routine also runs outside the round engine. The era-year caption hold (
 
 ### Reading the controls
 
-The vblank service copies both control panels into work RAM every frame, complemented so that a set bit means "asserted": IN1_MIRROR (0xA9AF) [code] for the main panel and IN2_MIRROR (0xA9B0) [code] for the cocktail panel. readPlayerControls [seen] returns one of the two, chosen by SCREEN_UNFLIPPED (0xA987) [seen]. When that cell is zero (a cocktail cabinet with the second player up) it returns the cocktail panel; otherwise it returns the main one. Callers split the returned word themselves:
+The vblank service copies both control panels into work RAM every frame, complemented so that a set bit means "asserted": IN1_MIRROR (0xA9AF) [seen] for the main panel and IN2_MIRROR (0xA9B0) [seen] for the cocktail panel. readPlayerControls [seen] returns one of the two, chosen by SCREEN_UNFLIPPED (0xA987) [seen]. When that cell is zero (a cocktail cabinet with the second player up) it returns the cocktail panel; otherwise it returns the main one. Callers split the returned word themselves:
 
 - **Stick:** the low nibble is the stick. Bit 0 is left, bit 1 right, bit 2 up and bit 3 down, which matches MAME's port layout for this board.
 - **Fire:** bit 4 is the fire button.
@@ -1021,7 +1021,7 @@ The vblank service copies both control panels into work RAM every frame, complem
 
 The stick does not set the heading directly. It picks a **target**, and the ship turns toward that target a few steps per frame.
 
-turnShipTowardTargetHeading [seen] uses the stick nibble to index a 16-byte table at 0x1F2E. The table holds the following targets:
+turnShipTowardTargetHeading [seen] uses the stick nibble to index STICK_HEADING_TABLE, 16 bytes at 0x1F2E. The table holds the following targets:
 
 | Stick | Target heading |
 |---|---|
@@ -1146,7 +1146,7 @@ Sub-step 4 of the round engine, postRoundStartCaptionsAndResetPlayfield [seen], 
 - zeroes both world-scroll words, so the world stands still until the ship's first frame;
 - zeroes SHOT_BURST_PENDING and ROUND_TRANSITION_HOLD;
 - sets PLAYER_HEADING to 128, the target the stick table gives for "right";
-- clears 0xA801 and sets PLAYER_STATE to 0xFF;
+- clears PLAYER_RECORD_SPARE_BYTE 0xA801 and sets PLAYER_STATE to 0xFF;
 - pins the sprite at native X 132, native Y 120;
 - dresses the sprite for its heading;
 - frees all six shot slots through freeAllShotSlots [seen].
@@ -1263,9 +1263,9 @@ The bomber's third record is not in any era-1 shot sweep. Instead, a later destr
 
 ### The Mother-Ship and its hit counter
 
-armMotherShipOrStep runs once per pass. It does nothing while ROUND_TRANSITION_HOLD (0xACC6) [seen] reads 0xFF. While MOTHER_SHIP_ARMED is set it runs stepMotherShip. Otherwise, on ticks where FRAME_TICK's low three bits equal 5, it checks three things together: KILLS_REMAINING, MOTHER_SHIP_STATE and the record one stride on. When all three are zero it raises MOTHER_SHIP_ARMED, writes 7 into MOTHER_SHIP_HITS_TO_ABSORB (the record's +4 byte), and hands the record pair to retireEntryPairIntoCooldown [seen], which clears the record head and both sprite entries and seeds the idle delay at +0x0E with 95.
+armMotherShipOrStep runs once per pass. It does nothing while ROUND_TRANSITION_HOLD (0xACC6) [seen] reads 0xFF. While MOTHER_SHIP_ARMED is set it runs loc_43f0 [seen]. Otherwise, on ticks where FRAME_TICK's low three bits equal 5, it checks three things together: KILLS_REMAINING, MOTHER_SHIP_STATE and the record one stride on. When all three are zero it raises MOTHER_SHIP_ARMED, writes 7 into MOTHER_SHIP_HITS_TO_ABSORB (the record's +4 byte), and hands the record pair to retireEntryPairIntoCooldown [seen], which clears the record head and both sprite entries and seeds the idle delay at +0x0E with 95.
 
-stepMotherShip treats the record's head byte as a phase.
+loc_43f0 treats the record's head byte as a phase.
 
 - **0x00 (idle)** counts a delay at +0x0E. When the delay runs out, the ship launches unless ROUND_TRANSITION_HOLD is non-zero. Its sprite is placed at the coordinate pair HEADING_SHAPE_TABLE (0x3C84) holds for PLAYER_HEADING [seen], nudged 16 steps one way or the other by bit 3 of FRAME_TICK. Its heading byte (+2) is set to 0 or 128, the top bit of PLAYER_HEADING plus 0xC0. setMotherShipVelocityFromHeading [seen] then sets its velocity from that heading, and its head becomes 0xFF. At that launch, a hit counter below 6 is raised to 5. A fresh ship keeps its 7. A ship that went idle and relaunched after taking two or more hits comes back needing six.
 - **0xFF (live)** moves the pair by its own velocity plus the world's scroll and dresses it (dressSpriteForHeadingOrRetireAtEdge [seen]), which retires it back to idle with a fresh delay if it reaches the field edge. Then, off cooldown, if either of its two records is on screen but more than BANK_LAUNCH_NEAR_HALF_WIDTH from the player's fixed screen position (0x84, 0x78) on either axis, it fires into a free slot of the last two enemy-shot slots. The shot is aimed at an aim point and swung ±0x18 alternately by a side toggle, and its speed comes from the era's stage arm.
@@ -1387,7 +1387,7 @@ When the last life goes, postGameOverBanner [seen] queues the player caption (ar
 
 Sub-step 8, fileScoreAfterGameOverHoldElsePassTurn [seen], counts that delay down. When it expires it tries to file the finished score with fileScoreIntoHighScoreTable [seen]. The board is five eight-byte records starting at HIGH_SCORE_TABLE_BASE 0xab08 [code]. Each record holds a rank byte at +0, the score from low to high byte at +1..+3, and three initials at +4..+6. At boot loadDefaultHighScores [seen] copies it from DEFAULT_HIGH_SCORE_TABLE 0x4bb1, whose defaults read 10,000 / 8,800 / 8,460 / 6,520 / 4,300. The filer compares the active player's score, from its top byte downward, against each record in turn from the top (HIGH_SCORE_REC0_SCORE_HI 0xab0b), using isScoreBelow [seen]. It stops at the first record the score is **not below**, so a tie takes the slot above the standing entry. The records beneath slide down one place and the bottom one falls off. The new score is written in with its three name cells blanked. SCRATCH_PTR_A 0xa991 [seen] is left pointing at the record's name cells, and SCRATCH_PTR_B 0xa993 [seen] at the on-screen initials cell for that rank (HIGH_SCORE_INITIALS_CELL_BASE 0xa531 [seen] plus twice the rank). The ranks are then renumbered 0–4. This five-record board is separate from the single displayed high score at HIGH_SCORE_HI. That cell is seeded at boot from DEFAULT_HIGH_SCORE_HI 0x08c9 (a top byte of 01, i.e. 10,000) and promoted live by awardScoreToPlayer.
 
-If the score beats no record, sub-step 8 erases the two banner captions (command 3 with arguments 9 and 11), seats the sub-step from SKIP_INITIALS_SUBSTEP_SEED 0x0843 (11) [seen], and decides the turn at once. If the score was filed, requestHighScoreFiledSound [seen] requests a sound (the code at ROM 0x18FA, only while a game is being played), the caption pen is set to the blanking glyph, and the pen route begins. Sub-step 9, erasePenRouteThenOpenInitialsEntry [seen], draws that route until it finishes. It then posts the table's captions, paints the five records with paintFiveLabelledNumericReadouts [seen], clears the press histories and INITIALS_LETTER_INDEX 0xa999, sets INITIALS_SLOTS_LEFT 0xa99a to 3 [seen], and shows the first letter at the cursor.
+If the score beats no record, sub-step 8 erases the two banner captions (command 3 with arguments 9 and 11), seats the sub-step from SKIP_INITIALS_SUBSTEP_SEED 0x0843 (11) [seen], and decides the turn at once. If the score was filed, requestHighScoreFiledSound [seen] requests a sound (HIGH_SCORE_FILED_SOUND_CODE 0x18FA [seen], a program byte, only while a game is being played), the caption pen is set to the blanking glyph, and the pen route begins. Sub-step 9, erasePenRouteThenOpenInitialsEntry [seen], draws that route until it finishes. It then posts the table's captions, paints the five records with paintFiveLabelledNumericReadouts [seen], clears the press histories and INITIALS_LETTER_INDEX 0xa999, sets INITIALS_SLOTS_LEFT 0xa99a to 3 [seen], and shows the first letter at the cursor.
 
 Sub-step 10, stepHighScoreInitialsEntry [seen], is the entry itself. On even frames it rolls four control bits into press histories. A fresh press of either commit control locks the shown letter into both the screen cell and the record, then moves on; after three letters the entry is finished. A fresh press of the forward or back control steps the letter round a 27-glyph ring, and a held control auto-repeats once its history saturates. On odd frames the cursor cell flashes. Every eighth frame the entry clock in SEQUENCE_DELAY ticks down, and when it runs out the cursor cell is blanked and the entry ends as well. The clock is not reloaded when entry opens. It carries over the zero that the game-over hold (sub-step 8) counted down to, so its first tick wraps it to 255, giving 256 ticks of the eighth-frame clock before entry times out. Finishing sets SEQUENCE_DELAY to 60 and steps to sub-step 11, loc_12e2 [seen], which counts those 60 frames. While the entry is running, a start press begins a new game immediately, but only if both saved lives counts are zero. On free play any start press counts; otherwise at least one credit is needed, and with exactly one credit only the one-player start works.
 
@@ -1426,7 +1426,7 @@ The copyright line holds a counterintuitive fact. COPYRIGHT_CAPTION_RECORD 0x086
 
 PEN_COLOUR 0xAD0C [seen] and PEN_GLYPH 0xAD0B [seen] are the pen pair in the active player's context. Each player keeps a saved copy: PLAYER_ONE_PEN_GLYPH 0xAD1B [seen] / PLAYER_ONE_PEN_COLOUR 0xAD1C [seen], and PLAYER_TWO_PEN_GLYPH 0xAD2B [seen] / PLAYER_TWO_PEN_COLOUR 0xAD2C [seen].
 
-Both setSavedPenFromEra [seen] and seatCaptionPenFromEraFoldingTamperIntoPhase [seen] load the pair from a two-byte-per-era table at 0x0F8D, indexed by the player's era. The first five entries are glyph 0xF1 with colours 1, 2, 3, 4 and 5, so the pen colour is simply the era number plus one. The seat routine writes the live pen as well as the saved copy.
+Both setSavedPenFromEra [seen] and seatCaptionPenFromEraFoldingTamperIntoPhase [seen] load the pair from ERA_PEN_TABLE 0x0F8D, two bytes per era, indexed by the player's era. The first five entries are glyph 0xF1 with colours 1, 2, 3, 4 and 5, so the pen colour is simply the era number plus one. The seat routine writes the live pen as well as the saved copy.
 
 So any caption drawn "in pen colour" changes colour from era to era. Those captions are PLAYER n and READY at round start, GAME OVER, and the flashing era year. Masking to the low nibble also clears bit 4, so pen-coloured captions always sit in the under-sprite category. Most record colours (0x10, 0x11, 0x13, 0x14, and 0x32 for records 20/21) have bit 4 set and draw over the sprites. Record 31, the copyright line's flash partner, is colour 0x05, so it sits under them.
 
@@ -1594,9 +1594,9 @@ Several caption records share their bytes with instruction streams that only a f
 - **Record 9 ("PLAYER 1") at 0x0167** is loc_0167 [code]. armWholePlaneWipeThenDerailOnATamperedImage [seen] calls it only when its image total misses.
 - **Record 2 ("READY") at 0x307F** is loc_307f [code]. Its start-cell bytes 0x73 0xA6 decode as `ld (hl),e / and (hl)`. It is entered only through trampolineToLoc_307f [code], which seedSceneryEntriesThenRunScenery [seen] takes when TAMPER_WITNESS 0xAD39 [seen] does not hold its planted glyph and colour.
 - **Record 4 ("AND TRY THIS GAME") at 0x49FA** is where checkTheCopyrightLineColoursOrDerail [seen] derails. Its own bytes end in a `jr c` to the band-colouring entry 0x4A42 that cannot fire, because the preceding `and l` clears carry.
-- **Record 17 at 0x459B** is the entry stepMotherShipWarpFlashFrame [seen]. stepMotherShip and paintReadoutsThenSampleWitnessOrDerail [seen] transfer there only on a failed witness or glyph check. Run as code, it pops its caller's return slot and misaligns the stack.
+- **Record 17 at 0x459B** is the entry stepMotherShipWarpFlashFrame [code]. loc_43f0 and paintReadoutsThenSampleWitnessOrDerail [seen] transfer there only on a failed witness or glyph check. Run as code, it pops its caller's return slot and misaligns the stack.
 - **Record 8 ("CREDIT") at 0x15CA** is also an instruction stream that names.js gives no entry of its own. holdCopyrightThenVerifyGlyphAndSeatWitnessOrDerail [seen] jumps there only when the glyph it samples is not 0x3B.
-- **The era pen table at 0x0F8D** doubles as loc_0f8d [code], the trap advanceSequenceUnlessImageTampered [seen] springs on a checksum mismatch.
+- **The era pen table ERA_PEN_TABLE 0x0F8D** doubles as loc_0f8d [code], the trap advanceSequenceUnlessImageTampered [seen] springs on a checksum mismatch.
 
 A patched text or pen table therefore changes code, and a patched routine changes text. The anti-tamper section covers how the guards use this.
 
@@ -1608,7 +1608,6 @@ These are the questions the routines do not settle on their own, grouped by the 
 
 ### The frame and the sequence
 
-- serviceVerticalBlankInterrupt (0x00D9) and sendOneQueuedSoundThenUnwindTheFrameInterrupt (0x0174) carry no evidence tag in names.js. Their roles rest on the code alone. A MAME capture of the vblank entry and the epilogue's sound-latch write would ground them.
 - COCKTAIL_MODE (0xA9C2) polarity. The frame service turns the screen round for player two when the cell reads 0, and the machine's measured default DSW1 value of 0x4B puts an upright cabinet at 1. Read together with SCREEN_UNFLIPPED's observed behaviour, the cell reads 0 on a cocktail cabinet and 1 on an upright, which is the opposite of what its name says. names.js still marks the polarity MAME-pending. A MAME run with the cabinet switch set each way, watching 0xA9C2 and the flip latch, would settle it, and the name would follow.
 - The starting-lives setting that folds to 6 is stored in STARTING_LIVES as 0xFF, where gameplay.md says '256'. In code each lost life takes one off LIVES_REMAINING and the game ends at zero, so 0xFF plays as 255 lives, except that a bonus life awarded while the byte reads 0xFF adds one and wraps it to 0. Neither has been watched in play, and nor has how the lives HUD shows the count beyond the six-emblem clamp. A MAME run on that setting, losing lives and watching LIVES_REMAINING and the emblem strip, would close both.
 - DIP1_MIRROR (0xA9AD) is re-latched every frame and nothing uses it. Across every MAME full-span read-tap capture, the only read of 0xA9AD is the power-on wipe's ldir at 0x0091. What remains open is only whether a path none of the captures ran, such as the service switch held at boot, reads it. A read tap on such a run would close it.
@@ -1631,9 +1630,8 @@ These are the questions the routines do not settle on their own, grouped by the 
 - The world keeps drifting at the last scroll value while the ship explodes. This is [code] only: apart from the bulk RAM clears, the scroll has two writers, and neither runs while PLAYER_STATE is animating or cleared. It has not been seen in play.
 - Scenery objects wrap round the 256-wide byte space and are never retired. This is [code] only. Where on the glass the wrapped pass shows up has not been checked.
 - The scenery seed tables hold starting positions, not appearance. seedSceneryEntriesThenRunScenery's own names call the packed bytes 'tint' and 'shape', and names.js calls SCENERY_SEED_TABLE a '(tint,shape) table'. But the bytes land at sprite entry +0x31 and +0x00, the native-Y and native-X coordinates that driftWithWorldScroll moves. ERA4_SCENERY_SEED_TABLE is the same. The names need re-deriving.
-- 0x2E3E is still named loc_2e3e in names.js. It is documented as the 306-peak velocity table for eras 1–2 (scrollWorldAtTheEraPace), also read by setMotherShipVelocityFromHeading, flyAtSecondFastestSpeed and loc_5965, and as the tamper-trap target in showCreditLine. It still needs a data name, as VELOCITY_TABLE_08FA has.
 - Which colours and flips the scenery attribute fill bytes select on screen has not been checked: 0xCC in eras 0–3 and 0x28 in era 4.
-- names.js gives no evidence tag to these table constants: PLAYER_HEADING_SHAPE_TABLE, TURN_RATE_BY_ERA_TABLE, the velocity tables, loc_3176, SCENERY_SEED_TABLE, ERA4_SCENERY_SEED_TABLE, loc_1f2e_ADDR and FLIPSCREEN_LATCH. ATTRACT_STAGE_COUNTER, BONUS_LIFE_SETTING, DEMO_SOUNDS_ENABLE, IN1_MIRROR and IN2_MIRROR carry [code] only, from their group header comment.
+- names.js gives no evidence tag to these table constants: PLAYER_HEADING_SHAPE_TABLE, TURN_RATE_BY_ERA_TABLE, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_5C00, VELOCITY_TABLE_08FA, SCENERY_SEED_TABLE, ERA4_SCENERY_SEED_TABLE and FLIPSCREEN_LATCH. ATTRACT_STAGE_COUNTER, BONUS_LIFE_SETTING and DEMO_SOUNDS_ENABLE carry [code] only, from their group header comment.
 - ROUND_NUMBER is one byte. After 255 rounds it would wrap, and startNextRound would fall back to the rounds-1–5 start rung. This follows from the code and has not been observed. Poking ROUND_NUMBER to 0xFF under MAME and clearing a round would show it.
 
 ### Objects
@@ -1665,7 +1663,6 @@ These are the questions the routines do not settle on their own, grouped by the 
 ### Killing and being killed
 
 - The Mother-Ship takes 8 hits in the code, not the manual's 7. armMotherShipOrStep seeds MOTHER_SHIP_HITS_TO_ABSORB (0xA8A4) with 7. The live step absorbs a hit while the counter is non-zero, so the eighth hit kills. No MAME count of hits-to-kill has been taken.
-- stepMotherShip carries no evidence tag in names.js. That covers its 200-per-record field sweep, its 3,000-point warp award and its phase machine.
 - Chained hit scores climb 100, 200 … 800 and then wrap to 100. The award index is (CHAIN_STEP mod 8)+1 into SCORE_AWARD_TABLE, within a 30-pass window. That contradicts the public 'every enemy 100': only isolated hits pay 100. This rests on the code and the ROM table bytes and has not been checked against a MAME score readout.
 - The enemy-shot slots (0xA810–0xA840) are in a shot sweep only in era 4. By the code, craft bullets cannot be shot down in eras 0–3, which contradicts the public 'any bullet shot down 100'. Not checked under MAME.
 - In era 1, whatever the bomber launches into ERA_OBJECT_RECORD_SLOT2 (0xA8E0) can only be contact-tested against the player, which pays no score. It can never be shot. Not checked under MAME.

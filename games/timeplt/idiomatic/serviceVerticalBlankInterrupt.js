@@ -10,8 +10,8 @@
  *
  * ROM 0x00D9-0x015E (serviceVerticalBlankInterrupt_ADDR), entered from the interrupt vector 0x0066
  * via the one-byte `push af` at 0x00D8; the arm table follows at 0x015F and the epilogue at 0x0174.
- * Grounding: names.js carries no ROUTINES entry for 0x00D9 itself; the routines around it
- * (enterVblankInterrupt, saveAccumulatorForFrameInterrupt, and each callee here) are [seen].
+ * Grounding: [seen] (names.js ROUTINES 0x00D9), as are the routines around it (enterVblankInterrupt,
+ * saveAccumulatorForFrameInterrupt, and each callee here).
  *
  * Role in the machine: everything the game does happens once per frame, from here. The board raises
  * its non-maskable interrupt at vertical blank, between one picture and the next, and this

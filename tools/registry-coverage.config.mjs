@@ -22,24 +22,6 @@ export const UNWIRED = {
       "address, so no ROUTINES entry can name it, and it is not a dispatch target -- the frozen " +
       "layer never transfers to it; it reads m.beamPlan (recorded by the multiplexers) and drives " +
       "the machine's band accumulator, state-neutrally. A render support routine, not a ROM routine.",
-    "serviceVerticalBlankInterrupt.js":
-      "the vblank NMI SERVICE, reached only through the interrupt seam: loc_00d8 lands the NMI, " +
-      "pushes AF and falls into it. It saves both register banks and unwinds the whole interrupt " +
-      "frame, moving SP by 4 net. `withOmittedRet` seats a dispatch only where the rewrite leaves " +
-      "SP where it found it or moves it by one return slot -- 0 or +2 -- so the seam cannot place " +
-      "this address, and wiring it in ROUTINES stops the generator on the first NMI (seam reports " +
-      "SP moved by 4, pc left at 0x0b93). Same class as sendOneQueuedSoundThenUnwindTheFrameInterrupt.js. " +
-      "The module and its equivalence-00d9 gate are correct and stay; the frozen layer runs it " +
-      "in-game via m.call (loc_00d8 -> 0x00d9, recorded in no-stale-mcall ALLOWED).",
-    "sendOneQueuedSoundThenUnwindTheFrameInterrupt.js":
-      "the vblank EPILOGUE: it unwinds the whole interrupt frame, so it legitimately moves SP by " +
-      "22. `withOmittedRet` places a dispatch only where the rewrite leaves SP where it found it " +
-      "or moves it by one return slot -- 0 or +2 -- so the seam cannot seat this address at all, " +
-      "and wiring it fails the assembled-game and seam gates by name. Nothing reaches it as a " +
-      "call either: the word 0x0174 occurs once in the image, at 0x0156, as the resume address " +
-      "the frame service PUSHES, so control RETURNS into it rather than calling it. The module " +
-      "and its gate are correct and stay; what is missing is a seam that can model a routine " +
-      "whose whole job is to dismantle the frame its caller is standing on.",
     "placeTileAtTableSuppliedOffset.js":
       "Not a dispatch entry: it is an interior continuation. Decoding the image from EVERY byte " +
       "offset -- which over-generates and cannot under-generate -- finds exactly one transfer to " +
@@ -71,14 +53,6 @@ export const UNWIRED = {
       "another routine -- two conditional branches and a fall-through, all three of which have " +
       "idiomatic twins that call it directly. Its idiomatic form also takes the sound code as a " +
       "second parameter, which the override map has no way to supply.",
-    "stepMotherShip.js":
-      "the Mother-Ship's per-frame stepper, reached ONLY when MOTHER_SHIP_ARMED 0xad0d != 0 -- through the " +
-      "jr nz at 0x43c0 inside armMotherShipOrStep. Neither driven tape reaches it (its target hits zero while " +
-      "the control anchor 0x43b7 hits hundreds), so the wired pixel render cannot exercise it and " +
-      "a ROUTINES entry would claim a dispatch the tapes never make. Its caller armMotherShipOrStep is WIRED " +
-      "and reaches it by m.call (recorded in no-stale-mcall ALLOWED, stubbed in equivalence-43b7). " +
-      "The module and its equivalence-43f0 gate are correct (byte-identical to the oracle in work " +
-      "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
   pooyan: {
     "mainLoopStep.js": "the main-loop state-driver body (loc_020f), direct-called by the mainLoop generator so it can yield at the vblank; the generator imports it rather than dispatching through ROUTINES. Memory-equivalent to the frozen loop body (equivalence-020f); not a dispatch entry.",

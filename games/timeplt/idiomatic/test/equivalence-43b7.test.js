@@ -6,7 +6,7 @@
  * the flag byte and the stack pointer are excluded, and the teeth below prove each gate condition is
  * independently load-bearing.
  *
- * DISSOLVED FORM: the active arm's `m.call(loc_43f0)` is dissolved to a direct `stepMotherShip(m)`
+ * DISSOLVED FORM: the active arm's `m.call(loc_43f0)` is dissolved to a direct `loc_43f0(m)`
  * (frogger call=0 form). The caller no longer dispatches the stepper through the routine map, so this
  * arm can no longer be stubbed via the registry — it runs the REAL stepper on both sides and compares
  * work RAM with the stack scratch masked (the ROM's call pushes a return frame the direct JS call does

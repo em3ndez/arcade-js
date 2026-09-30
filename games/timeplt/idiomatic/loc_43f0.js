@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** stepMotherShip — one frame of the Mother-Ship, a deep state machine seated on a fixed
+/** loc_43f0 — one frame of the Mother-Ship, a deep state machine seated on a fixed
  * record/sprite pair. The record's lead byte is the phase: idle counts a delay down and, once spent,
  * seeds a fresh launch aimed by the player angle; a mid-phase counts a hold down and, at one exact
  * value, tears down and rebuilds the whole fifteen-slot formation; the live phase drifts the pair
@@ -9,11 +9,11 @@
  * pair is threaded explicitly through the whole recursion and into every callee; every arm keeps its
  * `=m.regs.X` param-default as the frozen-caller bridge. */
 //
-// ROM 0x43F0-0x47B2 (the entry at 0x43F0 plus the arms exported below, each named loc_43f0_<its ROM
-// address>); lift: translated/loc_43f0.js. Grounding tag: stepMotherShip has NO entry in names.js
-// ROUTINES, so it carries no evidence tag (mechanisms.md records this); the cells it reads and writes
-// are individually tagged there. Reached from armMotherShipOrStep (0x43B7) [seen] while
-// MOTHER_SHIP_ARMED (0xAD0D) [seen] is set.
+// ROM 0x43F0-0x47B2 (the entry at 0x43F0 plus the arms exported below, each named for its effect and
+// headed with its ROM address; the arms are interior to 0x43F0 and are not routines of their own);
+// lift: translated/loc_43f0.js. Grounding: [seen] (names.js ROUTINES 0x43F0) -- every arm was watched
+// under MAME making its own role-defining writes. Reached from armMotherShipOrStep (0x43B7) [seen]
+// while MOTHER_SHIP_ARMED (0xAD0D) [seen] is set.
 //
 // ROLE IN THE MACHINE. Once the round's kill quota (KILLS_REMAINING) is spent, armMotherShipOrStep
 // arms the Mother-Ship: it takes the last two records of the craft band, MOTHER_SHIP_STATE (0xA8A0)
@@ -22,15 +22,16 @@
 // with 7 and the idle delay at +0x0E. From then on this routine is its whole life, and the record's
 // head byte (+0x00) is its phase:
 //
-//   0x00         IDLE      count the delay at +0x0E down; when spent, launch (loc_43f0_4663).
+//   0x00         IDLE      count the delay at +0x0E down; when spent, launch (launchMotherShipFromPlayerHeading).
 //   0xFF         LIVE      move with its velocity and the world, dress the sprite, and fire at the
-//                          player when it may (loc_43f0_4403 -> loc_43f0_46f0 -> ...4734 -> ...474c).
+//                          player when it may (flyMotherShipOneFrame -> tryToFireFromMotherShip -> fireMotherShipShotIntoFreeSlot ->
+//                          launchAimedMotherShipShot).
 //   0xF0         HIT       written by a collision sweep. While hits remain one is absorbed and the ship
-//                          goes back to LIVE (loc_43f0_4540); so it takes eight hits to kill.
-//   0xEF..0x01   DYING     with no hits left the head counts down one per step (loc_43f0_45b3): at 0xEF
-//                          it sweeps the whole field (loc_43f0_4554), from 0xE4 down it plays its warp-and-flash
-//                          shapes, at 0xB4 it pays 3,000 points (loc_43f0_4623), at 0x5A its sprite
-//                          codes are set to 0xFF, and at 0 it goes idle and hands over to the round advance (loc_43f0_4646).
+//                          goes back to LIVE (absorbMotherShipHitElseStepItsDeath); so it takes eight hits to kill.
+//   0xEF..0x01   DYING     with no hits left the head counts down one per step (stepMotherShipWreckCountdown): at 0xEF
+//                          it sweeps the whole field (sweepFieldOnMotherShipDeathElseStepWreck), from 0xE4 down it plays its warp-and-flash
+//                          shapes, at 0xB4 it pays 3,000 points (flashMotherShipWreckAndPayThreeThousand), at 0x5A its sprite
+//                          codes are set to 0xFF, and at 0 it goes idle and hands over to the round advance (retireMotherShipAndReleaseRoundHold).
 //
 // SPRITE ENTRY LAYOUT (mechanisms.md). An entry's +0x00 is one coordinate and +0x01 the sprite code
 // (shape); 0x30 bytes on, +0x30 is the attribute (colour and flip) and +0x31 the other coordinate. The
@@ -60,7 +61,7 @@ import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_WIDTH, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, MOTHER_SHIP_WARP_SHAPE_TABLE } from "./names.js";
 
-// The field sweep (loc_43f0_4554): fifteen sixteen-byte records from ACTOR_RECORD_SLOT0 (0xA810) up
+// The field sweep (sweepFieldOnMotherShipDeathElseStepWreck): fifteen sixteen-byte records from ACTOR_RECORD_SLOT0 (0xA810) up
 // to the parachutist's (0xA8F0); the dying codes it hands out start at 0x14 and step 10 per record;
 // each swept live record posts scoring-ring command (4, 2) -- 200 points (`ld de,0x0402` at 0x4574).
 const SLOT_STRIDE = 0x10;
@@ -93,7 +94,7 @@ const RESTART_MATCH = 0x7c;
 const RESTART_LOW = 0x10;
 const RESTART_HIGH = 0x05;
 
-// The launch test (loc_43f0_46f0): the player's fixed screen position (0x84, 0x78) is the centre of
+// The launch test (tryToFireFromMotherShip): the player's fixed screen position (0x84, 0x78) is the centre of
 // the near band, and the two on-screen floors keep a ship that is off the picture from firing.
 const NEAR_X = 0x84;
 const NEAR_Y = 0x78;
@@ -103,20 +104,20 @@ const ON_SCREEN_Y = 0x20;
 const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors fields 0x00-0x03)
 
 // ── Entry (0x43F0): seat the record (ix = 0xA8A0) and entry (iy = 0xAA24) and dispatch on the head.
-export function stepMotherShip(m) {
+export function loc_43f0(m) {
   const { mem8 } = m;
   const state = mem8[u16(MOTHER_SHIP_STATE + STATE)];
   // The record/sprite pair is handed EXPLICITLY into the arm, and on by every arm to its callees.
-  if (state === 0x00) return loc_43f0_4535(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // idle
-  if (u8(state + 1) !== 0x00) return loc_43f0_4540(m, u8(state + 1), MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // mid-phase (C = phase + 1)
-  return loc_43f0_4403(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // live
+  if (state === 0x00) return countDownIdleDelayThenLaunchMotherShip(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // idle
+  if (u8(state + 1) !== 0x00) return absorbMotherShipHitElseStepItsDeath(m, u8(state + 1), MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // mid-phase (C = phase + 1)
+  return flyMotherShipOneFrame(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY); // live
 }
 
 // ── LIVE (0x4403): move the ship one frame, dress it, then look for a chance to fire.
 // Each coordinate is glued from its whole byte (entry) and fraction (record), has the ship's own
 // velocity word and the world's scroll word added, and is split back -- so sub-pixel speeds build up in
 // the fraction. The ship moves with the scrolling sky, as every object does.
-export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function flyMotherShipOneFrame(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8, mem16 } = m;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
@@ -141,14 +142,14 @@ export function loc_43f0_4403(m, ix = m.regs.ix, iy = m.regs.iy) {
   // Dress the sprites for the heading, or -- if the ship has reached the field edge -- retire it back
   // to idle with a fresh delay (dressSpriteForHeadingOrRetireAtEdge, 0x4447 [seen]); then the fire test.
   dressSpriteForHeadingOrRetireAtEdge(m, ix, iy);
-  return loc_43f0_46f0(m, ix, iy);
+  return tryToFireFromMotherShip(m, ix, iy);
 }
 
 // ── IDLE (0x4535): count the delay at +0x0E down one per step; launch once it is already zero.
-export function loc_43f0_4535(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function countDownIdleDelayThenLaunchMotherShip(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
-  if (mem8[X(IDLE_DELAY)] === 0x00) return loc_43f0_4663(m, ix, iy);
+  if (mem8[X(IDLE_DELAY)] === 0x00) return launchMotherShipFromPlayerHeading(m, ix, iy);
   mem8[X(IDLE_DELAY)] = u8(mem8[X(IDLE_DELAY)] - 1);
 }
 
@@ -158,24 +159,24 @@ export function loc_43f0_4535(m, ix = m.regs.ix, iy = m.regs.iy) {
 // sounds (requestTwoSounds, 0x5683 [seen]) and run the live step this same frame. Armed with 7, the
 // ship survives seven hits and the eighth, finding the counter at zero, starts its death. From then on
 // the counter stays zero, so every later step of the dying countdown also passes straight through here.
-export function loc_43f0_4540(m, phase = m.regs.a, ix = m.regs.ix, iy = m.regs.iy) {
+export function absorbMotherShipHitElseStepItsDeath(m, phase = m.regs.a, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
-  if (mem8[X(HITS_TO_ABSORB)] === 0x00) return loc_43f0_4554(m, phase, ix, iy);
+  if (mem8[X(HITS_TO_ABSORB)] === 0x00) return sweepFieldOnMotherShipDeathElseStepWreck(m, phase, ix, iy);
   mem8[X(HITS_TO_ABSORB)] = u8(mem8[X(HITS_TO_ABSORB)] - 1);
   mem8[X(STATE)] = 0xff; // back to live
   requestTwoSounds(m);
-  return loc_43f0_4403(m, ix, iy);
+  return flyMotherShipOneFrame(m, ix, iy);
 }
 
 // ── Dying (0x4554). On the step where the head reads 0xEF (phase 0xF0, `cp 0xf0`) the ship sweeps the
 // whole field; on every other dying step it goes on to the countdown at 0x45B3.
-export function loc_43f0_4554(m, phase = m.regs.c, ix = m.regs.ix, iy = m.regs.iy) {
+export function sweepFieldOnMotherShipDeathElseStepWreck(m, phase = m.regs.c, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
-  if (phase !== REBUILD_TRIGGER) return loc_43f0_45b3(m, ix, iy);
+  if (phase !== REBUILD_TRIGGER) return stepMotherShipWreckCountdown(m, ix, iy);
 
   // The Mother-Ship's death clears HITS_REMAINING (0xA8DC) [seen] -- the bomber's hit counter -- and
   // queues the transition sound bursts (0x5634 and 0x56D2).
@@ -214,7 +215,7 @@ export function loc_43f0_4554(m, phase = m.regs.c, ix = m.regs.ix, iy = m.regs.i
 
 // ── The dying countdown (0x45B3): one step of the warp-and-flash, run every step the head is below
 // 0xF0 with no hits left, other than the sweep step.
-export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function stepMotherShipWreckCountdown(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
@@ -247,7 +248,7 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
   // rotated right three times, less one, masked to 0..7 (`and 0x07` at 0x45EC), then `rst 0x08` fetches
   // the entry. The second tile (+0x03) gets the shape and the first tile (+0x01) the shape plus one.
   const state = mem8[X(STATE)];
-  if (state === FLASH_STATE) return loc_43f0_4623(m, ix, iy);
+  if (state === FLASH_STATE) return flashMotherShipWreckAndPayThreeThousand(m, ix, iy);
   if (state > FLASH_STATE) {
     let sh = u8(state - FLASH_STATE);
     sh = ((sh >> 3) | (sh << 5)) & 0xff; // RRCA x3
@@ -261,7 +262,7 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
   // codes are set to 0xFF, as at the edge above.
   const spent = u8(mem8[X(STATE)] - 1);
   mem8[X(STATE)] = spent;
-  if (spent === 0x00) return loc_43f0_4646(m, ix);
+  if (spent === 0x00) return retireMotherShipAndReleaseRoundHold(m, ix);
   if (mem8[X(STATE)] !== SPENT_HOLD) return;
   mem8[Y(0x01)] = 0xff;
   mem8[Y(0x03)] = 0xff;
@@ -271,7 +272,7 @@ export function loc_43f0_45b3(m, ix = m.regs.ix, iy = m.regs.iy) {
 // (0xFE and 0xFD) with attribute 0x6C on both tiles, request the warp sound only if the player is
 // alive (PLAYER_STATE 0xA800 [seen] reading 0xFF, `ld a,(0xa800)` at 0x4636), and post the 3,000-point
 // award to the scoring ring as a tail (`jp 0x0038`).
-export function loc_43f0_4623(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function flashMotherShipWreckAndPayThreeThousand(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
@@ -291,9 +292,9 @@ export function loc_43f0_4623(m, ix = m.regs.ix, iy = m.regs.iy) {
 // (0xAB43) [seen] holds a glyph copied from the screen during attract, and the next byte its colour.
 // A genuine image reads 0x7C with colour 0x10 or 0x05 (`cp 0x7c`, `cp 0x10`, `cp 0x05`, 0x4653-0x465D)
 // and simply returns. Anything else is a patched caption, and the ROM jumps into
-// stepMotherShipWarpFlashFrame (0x459B) [seen] through a misaligned prologue that pops the stack out
+// stepMotherShipWarpFlashFrame (0x459B) [code] through a misaligned prologue that pops the stack out
 // of step -- a deliberate derail, not a routine this ship means to run.
-export function loc_43f0_4646(m, ix = m.regs.ix) {
+export function retireMotherShipAndReleaseRoundHold(m, ix = m.regs.ix) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
 
@@ -310,7 +311,7 @@ export function loc_43f0_4646(m, ix = m.regs.ix) {
 // ── LAUNCH (0x4663), reached from IDLE when the delay is spent. Nothing happens while
 // ROUND_TRANSITION_HOLD is set (`ld a,(0xacc6)` at 0x4663). Otherwise the ship appears at a position
 // chosen from the player's heading and is set flying.
-export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function launchMotherShipFromPlayerHeading(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
@@ -349,10 +350,10 @@ export function loc_43f0_4663(m, ix = m.regs.ix, iy = m.regs.iy) {
 // (0xA817) [seen] -- the cooldown the Mother-Ship shares with the bank launcher -- has run out
 // (`ld a,(0xa817)` at 0x46F5). The half-width of the near band is BANK_LAUNCH_NEAR_HALF_WIDTH (0xA827)
 // [seen], doubled into the band's width.
-export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function tryToFireFromMotherShip(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   // ix/iy walk the two-slot bank as plain locals; on a spawn they carry the current record/entry into
-  // loc_43f0_4734.
+  // fireMotherShipShotIntoFreeSlot.
   const X = (d) => u16(ix + d);
   const Y = (d) => u16(iy + d);
 
@@ -369,8 +370,8 @@ export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
     // width (`cp e / jr nc,0x4734` at 0x471A and 0x4723; mechanisms.md: "more than BANK_LAUNCH_NEAR_HALF_WIDTH from the
     // player's fixed screen position ... on either axis").
     if (u8(mem8[Y(0x00)] + 0x08) >= ON_SCREEN_X && u8(mem8[Y(0x31)] + 0x10) >= ON_SCREEN_Y) {
-      if (u8(u8(NEAR_X - mem8[Y(0x00)]) + halfBand) >= band) return loc_43f0_4734(m, ix, iy);
-      if (u8(u8(NEAR_Y - mem8[Y(0x31)]) + halfBand) >= band) return loc_43f0_4734(m, ix, iy);
+      if (u8(u8(NEAR_X - mem8[Y(0x00)]) + halfBand) >= band) return fireMotherShipShotIntoFreeSlot(m, ix, iy);
+      if (u8(u8(NEAR_Y - mem8[Y(0x31)]) + halfBand) >= band) return fireMotherShipShotIntoFreeSlot(m, ix, iy);
     }
     // Next record (16 bytes) and entry (2 bytes): the ship's second tile.
     ix = u16(ix + 0x10);
@@ -384,14 +385,14 @@ export function loc_43f0_46f0(m, ix = m.regs.ix, iy = m.regs.iy) {
 // records ACTOR_RECORD_SLOT2 (0xA830) and 0xA840 with entries from ACTOR_ENTRY_SLOT2 (0xAA16) [seen]
 // (`ld hl,0xa830` at 0x4734). A record head of 0x00 is free; with neither free the ship does not fire.
 // iy (the tile that passed the fire test) rides along as the shot's origin.
-export function loc_43f0_4734(m, ix = m.regs.ix, iy = m.regs.iy) {
+export function fireMotherShipShotIntoFreeSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
 
   let recordPtr = ACTOR_RECORD_SLOT2;
   let entryPtr = ACTOR_ENTRY_SLOT2;
   let count = 0x02;
   do {
-    if (mem8[recordPtr] === 0x00) return loc_43f0_474c(m, recordPtr, entryPtr, iy); // a free entry
+    if (mem8[recordPtr] === 0x00) return launchAimedMotherShipShot(m, recordPtr, entryPtr, iy); // a free entry
     recordPtr = u16(recordPtr + 0x10);
     entryPtr = u16(entryPtr + 2);
     count = u8(count - 1);
@@ -401,7 +402,7 @@ export function loc_43f0_4734(m, ix = m.regs.ix, iy = m.regs.iy) {
 
 // ── LAUNCH A SHOT (0x474C) into the free slot found above. recordPtr/entryPtr are the new shot's
 // record and sprite entry; iy is the Mother-Ship tile it leaves from.
-export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy = m.regs.iy) {
+export function launchAimedMotherShipShot(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy = m.regs.iy) {
   const { mem8, mem16 } = m;
 
   // Park the new shot's record and entry in the scratch pointer pair (SCRATCH_PTR_A 0xA991 /
@@ -451,7 +452,7 @@ export function loc_43f0_474c(m, recordPtr = m.regs.hl, entryPtr = m.regs.hl, iy
       [de, bc] = loc_5994(m, recordPtr);
       break;
     default:
-      throw new NotImplemented(`loc_43f0_474c: no stage arm for era ${era}`);
+      throw new NotImplemented(`launchAimedMotherShipShot: no stage arm for era ${era}`);
   }
 
   // Seat the shot: its velocity pair at +0x0A..+0x0D (`ld (ix+0x0a),e` .. `ld (ix+0x0d),b`), sprite code

@@ -32,7 +32,7 @@ import { fetchTableByte } from "./fetchTableByte.js";
 import { pickScriptAtRandomOrInTurn } from "./pickScriptAtRandomOrInTurn.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { u8, u16 } from "../../../core/int.js";
-import { PLAYER_HEADING, ENEMY_SPAWN_DIRECTION_INDEX_TABLE, ENEMY_SPAWN_RECORD_TABLE, loc_acc5 } from "./names.js";
+import { PLAYER_HEADING, ENEMY_SPAWN_DIRECTION_INDEX_TABLE, ENEMY_SPAWN_RECORD_TABLE, SPAWN_CLEARED_SPARE_BYTE } from "./names.js";
 
 // 64 spawn directions (0-63).
 const DIRECTION_MASK = 0x3f;
@@ -75,10 +75,10 @@ export function spawnEnemyIntoFreeSlotElseStepSearch(m, record = m.regs.ix, entr
   mem8[record + 0x02] = facing;
 
   // Step 5 -- the animation run selector (+0x0A) from pickScriptAtRandomOrInTurn; zero the work
-  // cell loc_acc5 (0xACC5, role not yet determined in names.js) and both coordinate fractions;
+  // cell SPAWN_CLEARED_SPARE_BYTE (0xACC5, which no code reads) and both coordinate fractions;
   // start the step timer at 0x20 (32), take one animation step, and clear the personal timer.
   mem8[record + 0x0a] = pickScriptAtRandomOrInTurn(m);
-  mem8[loc_acc5] = 0x00;
+  mem8[SPAWN_CLEARED_SPARE_BYTE] = 0x00;
   mem8[record + 0x03] = 0x00;
   mem8[record + 0x05] = 0x00;
   mem8[record + 0x09] = 0x20;

@@ -11,7 +11,7 @@
  * object's perpendicular velocity components, and the table's peak value is the speed. This entry
  * exists only to hand it ONE particular table.
  *
- * Role in the machine: the table here is the one at 0x2E3E (still carried as loc_2e3e in names.js),
+ * Role in the machine: the table here is the one at 0x2E3E (SECOND_FASTEST_VELOCITY_TABLE in names.js),
  * the velocity ladder rung that peaks at 306 (about 1.2 pixels per step in 8.8 fixed point) — the
  * pace mechanisms.md gives the second and third eras (1940, 1970). The same bytes are also a jump
  * target on the anti-tamper path; on a genuine image they are only ever read as data. Its siblings
@@ -25,10 +25,10 @@
  */
 
 import { velocityForHeading } from "./velocityForHeading.js";
-import { loc_2e3e } from "./names.js";
+import { SECOND_FASTEST_VELOCITY_TABLE } from "./names.js";
 
 // The ROM's `ld hl,0x2e3e`: the 306-peak velocity table.
-const VELOCITY_TABLE = loc_2e3e;
+const VELOCITY_TABLE = SECOND_FASTEST_VELOCITY_TABLE;
 
 export function loc_5965(m) {
   // The ROM's `jp 0x596e`: a tail jump, so velocityForHeading's return is this entry's return; the

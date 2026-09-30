@@ -15,10 +15,10 @@
 
 import { u16 } from "../../../core/int.js";
 import { velocityForHeading } from "./velocityForHeading.js";
-import { loc_59d7 } from "./names.js";
+import { SLOWEST_VELOCITY_TABLE } from "./names.js";
 
 // The fixed table, and record +2 of the object in IX, where the heading lives.
-const VELOCITY_TABLE = loc_59d7;
+const VELOCITY_TABLE = SLOWEST_VELOCITY_TABLE;
 const HEADING_IN_RECORD = 2;
 
 export function loc_5942(m, heading = m.mem8[u16(m.regs.ix + HEADING_IN_RECORD)]) {

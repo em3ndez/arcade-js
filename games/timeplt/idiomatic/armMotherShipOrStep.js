@@ -11,7 +11,7 @@
  *
  * ROLE IN THE MACHINE. Called once per dispatch of the round engine's service list
  * (serviceRoundThenResolvePlayerState, phase-3 sub-step 7). While the Mother-Ship is
- * live it simply hands the frame to stepMotherShip (ROM 0x43F0). Otherwise it arms the Mother-Ship
+ * live it simply hands the frame to loc_43f0 (ROM 0x43F0). Otherwise it arms the Mother-Ship
  * at most once every eight frames, and only when the quota is spent and its two-slot record bank
  * (MOTHER_SHIP_STATE 0xA8A0 and the record one stride on, 0xA8B0) is empty. Arming raises
  * MOTHER_SHIP_ARMED (0xAD0D), seeds the lead record's hit counter with seven, and retires the record
@@ -22,7 +22,7 @@
  */
 
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
-import { stepMotherShip } from "./stepMotherShip.js";
+import { loc_43f0 } from "./loc_43f0.js";
 import {
   FRAME_TICK,
   KILLS_REMAINING,
@@ -53,7 +53,7 @@ export function armMotherShipOrStep(m) {
 
   // Already armed: the Mother-Ship is on the field (or on its way), so its own deep state
   // machine runs every frame. This is a tail transfer to ROM 0x43F0.
-  if (mem8[MOTHER_SHIP_ARMED] !== 0) return stepMotherShip(m);
+  if (mem8[MOTHER_SHIP_ARMED] !== 0) return loc_43f0(m);
 
   // Not armed: consider arming only on one frame in eight (frame-tick phase 5).
   if ((mem8[FRAME_TICK] & PHASE_MASK) !== PHASE_DUE) return;
@@ -64,7 +64,7 @@ export function armMotherShipOrStep(m) {
 
   // Arm it: raise the armed flag, give the lead record its seven hits, then tail into the
   // entry-pair retire (ROM 0x46DB), which clears the record and both sprite entries and arms the
-  // record's delay -- the cooldown after which stepMotherShip launches it.
+  // record's delay -- the cooldown after which loc_43f0 launches it.
   mem8[MOTHER_SHIP_ARMED] = HELD;
   mem8[MOTHER_SHIP_STATE + FIRE_BYTE] = FIRE_ARMED;
   return retireEntryPairIntoCooldown(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY);

@@ -15,7 +15,7 @@
  * destroyed code, the Mother-Ship takes it too, and the chained hit score is posted. The Mother-Ship
  * is tested live only once, before the sweep, so the remaining slots are still run with it already
  * destroyed and one pass can pay for several. Marking it destroyed here is a hit, not necessarily
- * its death: stepMotherShip spends one of the hits it can absorb (record +4) before it dies.
+ * its death: loc_43f0 spends one of the hits it can absorb (record +4) before it dies.
  * Slots step a record at a time without leaving their page.
  *
  * LIVE-OUT: memory.

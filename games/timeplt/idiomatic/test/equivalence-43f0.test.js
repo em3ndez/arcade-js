@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** stepMotherShip — memory-equivalent to the frozen oracle. Nothing dispatches this deep-state driver on
+/** loc_43f0 — memory-equivalent to the frozen oracle. Nothing dispatches this deep-state driver on
  * either tape (a live control proves the run counts), so it runs on CRAFTED entries poked onto real
  * captured machines to force every state-byte arm, full work-RAM compared with the dead stack scratch
  * masked off both sides' pushes, and broken twins caught in memory. No register is compared: the
@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { stepMotherShip as candidate } from "../stepMotherShip.js";
+import { loc_43f0 as candidate } from "../loc_43f0.js";
 import { stepMotherShipWarpFlashFrame } from "../stepMotherShipWarpFlashFrame.js";
 import { loc_598e } from "../loc_598e.js";
 import { loc_5994 } from "../loc_5994.js";
