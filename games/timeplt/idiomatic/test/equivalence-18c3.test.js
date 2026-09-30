@@ -371,7 +371,7 @@ const MUTANTS = [
   ["lives-ignored", "if ((mem8[PLAYER_ONE_LIVES] | mem8[PLAYER_TWO_LIVES]) !== 0) return;", ""],
   ["free-play-ignored", "mem8[FREE_PLAY] !== 0", "false"],
   ["sprites-left-up", "  hideAllSprites(m);\n  if (start", "  if (start"],
-  ["stray-push", "  const { mem8 } = m;\n  if ((mem8[FRAME_TICK] & EVERY_OTHER_FRAME)", "  const { mem8 } = m;\n  m.push16(0);\n  if ((mem8[FRAME_TICK] & EVERY_OTHER_FRAME)"],
+  ["stray-push", "  if ((mem8[FRAME_TICK] & EVERY_OTHER_FRAME)", "  m.push16(0);\n  if ((mem8[FRAME_TICK] & EVERY_OTHER_FRAME)"],
 ];
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────

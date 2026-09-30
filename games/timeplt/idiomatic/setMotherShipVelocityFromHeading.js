@@ -1,12 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** setMotherShipVelocityFromHeading — run the arm the era index selects, then run the block just past the table of arms.
+/**
+ * setMotherShipVelocityFromHeading — ROM 0x46BA [seen]
+ *
+ * WHAT IT IS. Gives the Mother-Ship the velocity its current heading calls for, at the speed the
+ * current era sets. stepMotherShip calls it with the Mother-Ship's record (under MAME every
+ * dispatch had IX = 0xA8A0, MOTHER_SHIP_STATE; names.js).
+ *
+ * ROLE IN THE MACHINE. Speed is chosen by era and nothing else. The ROM pushes the address of the
+ * block at 0x46CE as a return slot, masks ERA_INDEX (0xAD04) to three bits and dispatches through
+ * the arm table right after `rst 0x30` at 0x46C4. Each of the five defined arms is a bare
+ * `ld hl,<table>` into the shared sampler at 0x596E (velocityForHeading [seen]), so each arm here
+ * is simply the table it names: 0x59D7, 0x5E00, 0x5E00, 0x2E3E, 0x08FA for eras 0-4 -- rungs of a
+ * ladder of scaled copies of one waveform, i.e. speeds. The sampler reads the record's heading
+ * (+0x02) and returns two perpendicular components: the word at the heading and the word a quarter
+ * turn (0x40) behind it. The arm's `ret` then lands on 0x46CE (fileTwoPairsIntoObjectRecordHighByteFirst
+ * [seen]), which files them into the record at +0x0C/+0x0D and +0x1C/+0x1D, high byte first, where
+ * the Mother-Ship's motion reads them.
+ *
  * The mask admits eight indices where the table defines five, so an index past the end reads the
  * first bytes of that block as though they were an entry: two of those words name no routine and
  * fault, and the last names the six-digit painter, which is run as the machine would run it.
- * Each defined arm only chooses a velocity table (the four loc_59xx arm bodies load it
- * and jump to the heading-velocity sampler), so here each is its table: the object's heading is
- * sampled from it and the component pair it yields is filed into the object's record by the block
- * after the arms. The object's record is an argument. LIVE-OUT: memory. */
+ * These arms are unreachable on a genuine image, where ERA_INDEX stays 0-4. The object's record is
+ * an argument (the ROM's IX). LIVE-OUT: memory.
+ */
 
 import { NotImplemented } from "../../../boards/timeplt/io.js";
 import { ERA_INDEX, OPENING_ERA_VELOCITY_TABLE, VELOCITY_TABLE_08FA, loc_2e3e, loc_59d7 } from "./names.js";
@@ -14,7 +30,9 @@ import { fileTwoPairsIntoObjectRecordHighByteFirst } from "./fileTwoPairsIntoObj
 import { velocityForHeading } from "./velocityForHeading.js";
 import { paintSixDigitFieldSuppressingLeadingZeros } from "./paintSixDigitFieldSuppressingLeadingZeros.js";
 
+// `and 0x07` at 0x46C1: three bits of the era index select the arm.
 const ARM_MASK = 0x07;
+// Record offset of the object's heading byte, the sampler's index into the velocity table.
 const HEADING = 2;
 
 // The five defined arms in index order, each as the velocity table it samples.
@@ -29,8 +47,12 @@ const ARM_TABLES = [
 const PAINTER_ARM = 7;
 
 export function setMotherShipVelocityFromHeading(m, record = m.regs.ix) {
+  // Step 1 -- choose the arm from the era (`ld a,(0xad04)` / `and 0x07`).
   const arm = m.mem8[ERA_INDEX] & ARM_MASK;
 
+  // Step 2 -- a defined arm: sample its table at the heading, then file the two words into the record,
+  // each split into its high and low byte (the ROM's D/E and B/C) in the order the filing block
+  // expects. The filing is the return slot the ROM pushed, so its return is this routine's.
   if (arm < ARM_TABLES.length) {
     const [alongFirstAxis, alongSecondAxis] = velocityForHeading(m, ARM_TABLES[arm], m.mem8[record + HEADING]);
     return fileTwoPairsIntoObjectRecordHighByteFirst(
@@ -47,5 +69,7 @@ export function setMotherShipVelocityFromHeading(m, record = m.regs.ix) {
     return fileTwoPairsIntoObjectRecordHighByteFirst(m, record);
   }
 
+  // Indices 5 and 6: the words read there are not routine addresses, so there is nothing faithful to
+  // run; stop loudly rather than guess.
   throw new NotImplemented(`setMotherShipVelocityFromHeading: era arm ${arm} reads a table word that names no routine`);
 }

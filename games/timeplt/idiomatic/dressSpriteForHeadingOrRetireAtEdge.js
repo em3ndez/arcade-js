@@ -1,11 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** dressSpriteForHeadingOrRetireAtEdge — dress one object's sprite entry so it shows the way it is heading, unless the object
- * has just reached the field edge, in which case it is retired instead. When the era cell holds one
- * fixed value the object is given a plain two-frame flutter and its wind-down counter is stepped,
- * capped, or closed out once it overruns; on any other era a heading-quadrant picks a shape pair and
- * the era picks a colour, and one half of the compass swaps the pair into the two entry slots in its
- * own colour while the other half biases that colour by half a page.
- * The record and its sprite entry are arguments.
+ * has just reached the field edge, in which case it is retired instead.
+ *
+ * ROM 0x4447-0x44C8 (lift: translated/loc_4447.js). Grounding: [seen] (names.js ROUTINES 0x4447).
+ *
+ * ROLE IN THE MACHINE. This is the dressing step for a TWO-SPRITE object (mechanisms.md, sprite
+ * dressing): it fills the pair of shape bytes at entry +1 / +3 and the pair of colour/flip bytes at
+ * entry +0x30 / +0x32 -- the second sprite bank sits 0x30 above the first, which is why the
+ * attribute bytes are 0x30 along (see PLAYER_SPRITE_ATTRIBUTE in names.js: "Slot 0's +0x30
+ * descriptor byte"). Its caller is the Mother-Ship's step (stepMotherShip), which moves the pair
+ * by its own velocity plus the world scroll and then calls this to dress it (mechanisms.md: "0xFF
+ * (live) moves the pair ... and dresses it").
+ *
+ * When the era cell holds one fixed value (ERA_INDEX 4, the last era) the object is given a plain
+ * two-frame flutter and its wind-down counter is stepped, capped, or closed out once it overruns; on
+ * any other era a heading-quadrant picks a shape pair and the era picks a colour, and one half of the
+ * compass swaps the pair into the two entry slots in its own colour while the other half biases that
+ * colour by half a page -- adding 0x80 flips bit 7, one of the two mirroring bits of the attribute
+ * byte, which is how the pair is drawn mirrored (mechanisms.md).
+ *
+ * PARAMETERS: record = the object's record (the ROM's IX); entry = its sprite entry (IY). Both
+ * arrive from the caller as it left them.
  * LIVE-OUT: the object's sprite entry and wind-down cell, plus whatever the retire or close-out
  * tail leaves in memory. */
 
@@ -17,20 +32,29 @@ import { restartAnimationCounterThenDressFlutterSprite } from "./restartAnimatio
 import { dressSpriteFlutterShapesByFrameTickBit } from "./dressSpriteFlutterShapesByFrameTickBit.js";
 import { ERA_INDEX, FRAME_TICK, HEADING_SHAPE_PAIR_TABLE, ERA_SPRITE_COLOUR_TABLE } from "./names.js";
 
+// The era value on which the object flutters instead of facing its heading (`cp 0x04` at 0x4451).
 const FLUTTER_ERA = 0x04;
+// A quadrant seed of 7 skips the wind-down counter entirely (`cp 0x07` at 0x44A6).
 const SETTLED = 0x07;
 
+// Record offsets (mechanisms.md, object record layout): +2 the current heading, +4 the quadrant
+// seed in this routine, +6 this routine's wind-down counter.
 const HEADING = 2;
 const QUADRANT_SEED = 4;
 const WIND_DOWN = 6;
 
+// Sprite-entry offsets: +1 / +3 the two shape bytes (bank 0), +0x30 / +0x32 their colour/flip
+// bytes (bank 1).
 const SHAPE_LO = 1;
 const SHAPE_HI = 3;
 const COLOUR_LO = 0x30;
 const COLOUR_HI = 0x32;
 
+// The one attribute code both flutter sprites wear (`ld (iy+0x30),0x70` at 0x44BF).
 const FLUTTER_CODE = 0x70;
+// Bit 7 of the wind-down counter marks it closed out (`bit 7,c` at 0x44B1; `ld (ix+0x06),0x80`).
 const CLOSED_OUT = 0x80;
+// Heading + 0x40 below 0x80 selects the half of the compass centred on heading 0 (0x447F-0x4483).
 const HEADING_BIAS = 0x40;
 const HALF = 0x80;
 
@@ -39,10 +63,23 @@ export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.re
   const record = ix;
   const entry = iy;
 
+  /* Step 1 -- the edge test (call 0x3CC4, jp c,0x46DB). hasReachedBoundaryBandSelectedByHeading
+   * answers whether the object has reached a boundary band chosen by its heading; if so the object
+   * is not dressed at all but retired: retireEntryPairIntoCooldown clears both sprite entries and
+   * arms the record's delay, so the object leaves the field and waits before it can come back. */
   if (hasReachedBoundaryBandSelectedByHeading(m, record, entry)) return retireEntryPairIntoCooldown(m, record, entry);
 
   const era = mem8[ERA_INDEX];
 
+  /* Step 2 -- the last era (ERA_INDEX == 4) flutters instead of facing a heading (0x44A2-0x44C7).
+   * The record's +4 seed decides whether the wind-down counter at +6 runs: a seed of 7 leaves it
+   * alone. Otherwise the counter is stepped by one; once bit 7 is set it is closed out and
+   * restartAnimationCounterThenDressFlutterSprite takes over the whole dressing. Below that, a
+   * counter that has overrun seed + 2 is forced to 0x80, so the NEXT call takes the close-out path.
+   * Either way both colour bytes take the fixed flutter code and dressSpriteFlutterShapesByFrameTickBit
+   * picks the two shapes from a frame-tick bit (mechanisms.md: FRAME_TICK bit 2), so the object
+   * holds each flutter pose for four frames (bit 2 flips every fourth tick) no matter which way it
+   * is heading. */
   if (era === FLUTTER_ERA) {
     const seed = mem8[record + QUADRANT_SEED];
     if (seed !== SETTLED) {
@@ -59,6 +96,12 @@ export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.re
     return dressSpriteFlutterShapesByFrameTickBit(m, entry);
   }
 
+  /* Step 3 -- pick the shape pair and the colour (0x4456-0x447C). The index into
+   * HEADING_SHAPE_PAIR_TABLE (0x44F1) is built as era * 16 (four `add a,a`), plus FRAME_TICK bit 1
+   * -- a two-frame pose, each pose two bytes -- plus 4 bytes per quadrant, where the quadrant is the
+   * record's +4 seed folded as ((7 - seed) >> 1) & 3. The two bytes there are the two tiles'
+   * shapes. The colour is one byte per era from ERA_SPRITE_COLOUR_TABLE (0x4531). offsetAddress is
+   * the ROM's `rst 0x18` (HL += A). */
   const index = u8(u8(era * 16) + (mem8[FRAME_TICK] & 0x02));
   const quadrant = (u8(SETTLED - mem8[record + QUADRANT_SEED]) >> 1) & 0x03;
   const shapePtr = offsetAddress(m, HEADING_SHAPE_PAIR_TABLE, u8(quadrant * 4 + index));
@@ -67,6 +110,12 @@ export function dressSpriteForHeadingOrRetireAtEdge(m, ix = m.regs.ix, iy = m.re
   const colourPtr = offsetAddress(m, ERA_SPRITE_COLOUR_TABLE, era);
   const colour = mem8[colourPtr];
 
+  /* Step 4 -- mirror by compass half (0x447F-0x44A1). The heading at +2 only decides which half
+   * of the compass the object faces. With (heading + 0x40) below 0x80 -- headings 0xC0-0xFF and
+   * 0x00-0x3F -- the two shapes are laid into the entry in swapped order and both tiles take the
+   * table colour as it is. The other half keeps the table order and adds 0x80 to the colour byte,
+   * flipping its top bit (a mirroring bit), so the same pair of shapes reads as facing the other
+   * way. Both colour bytes always match: the two tiles are one object. */
   if (u8(mem8[record + HEADING] + HEADING_BIAS) < HALF) {
     mem8[entry + SHAPE_LO] = shapeHi;
     mem8[entry + SHAPE_HI] = shapeLo;

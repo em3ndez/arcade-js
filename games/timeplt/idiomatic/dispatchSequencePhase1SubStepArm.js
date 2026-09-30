@@ -9,6 +9,26 @@
  * is entered directly, with no table word carried in on a register pair. LIVE-OUT: memory, and the
  * shared tail's. */
 
+/*
+ * ROM 0x1651-0x1658 (dispatch) + 0x1659 (the inline word table PHASE1_SUBSTEP_DISPATCH_TABLE),
+ * shared tail 0x167B; grounding [seen] (names.js ROUTINES 0x1651).
+ *
+ * ROLE. The game is driven by a two-level sequence machine: the outer phase SEQUENCE_PHASE (0 boot
+ * wipe, 1 attract sequence, 2 credit / push-start, 3 round engine) picks a per-phase dispatcher, and
+ * the inner index SEQUENCE_SUBSTEP (0xA9AC, [seen]) picks one "arm" -- one step of that phase -- from
+ * the dispatcher's table. This is the phase-1 dispatcher: the attract sequence, which runs the pen
+ * route animation, the credit line and the copyright screen, interleaved with the image-tamper
+ * checks, then starts the attract demo.
+ *
+ * MECHANISM IN THE ROM. `ld hl,0x167b / push hl` plants the shared tail's address as the return
+ * address, `ld a,(0xa9ac)` loads the index unmasked, and RST 0x30 (the computed-jump helper) jumps to
+ * the table word at 0x1659 + 2*index. The arm's closing `ret` therefore lands on the tail,
+ * advanceSequenceElseStartFreePlayGame (0x167B): with credits in the machine it steps the outer phase
+ * on (leaving attract for the push-start phase); otherwise, only with free play set and a start
+ * button held, it starts a game charging no credit. Here the
+ * switch calls the arm and then runs the tail explicitly.
+ */
+
 import { NotImplemented } from "../../../boards/timeplt/io.js";
 import { SEQUENCE_SUBSTEP } from "./names.js";
 import { advanceSequenceElseStartFreePlayGame } from "./advanceSequenceElseStartFreePlayGame.js";
@@ -31,6 +51,7 @@ import { verifyImageSignatureThenStartAttractDemoOrDerail } from "./verifyImageS
 const ENTRY_MASK = 0x7f;
 
 export function dispatchSequencePhase1SubStepArm(m) {
+  // Pick the table word: the raw inner index, reduced to the seven bits the eight-bit doubling keeps.
   const entry = m.mem8[SEQUENCE_SUBSTEP] & ENTRY_MASK;
   switch (entry) {
     // The tamper-check / copyright / attract sequence, in order: erase the pen route, animate the pen
@@ -56,5 +77,7 @@ export function dispatchSequencePhase1SubStepArm(m) {
     default:
       throw new NotImplemented(`dispatchSequencePhase1SubStepArm: phase-1 sub-step arm ${entry} is not a transcribed routine`);
   }
+  // The shared tail every arm returns into (0x167B): credits present -> step the outer phase; none
+  // -> start a game only when free play is set and a start button is held.
   return advanceSequenceElseStartFreePlayGame(m);
 }

@@ -1,12 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** runSlotCountdownDriftAndAnimateElseRetire — run down one slot's counter for a frame, and take the slot out of play as soon as
- * it has nothing left to run. Two things end it outright: the era cell not standing at the last
- * era, and the counter already sitting one above the floor. Otherwise the counter drops by one;
- * a counter that came in at or above a high mark is clamped by the step this hands to, and the
- * slot then drifts with the world. What the counter reads AFTERWARDS — the clamp may have moved
- * it — picks the shape: below a threshold nothing more is done, and from there up the count is
- * folded into one of eight shapes, held for four counts each and repeating past the eighth, which
- * goes into the sprite entry together with one fixed byte beside it. LIVE-OUT: memory. */
+/**
+ * runSlotCountdownDriftAndAnimateElseRetire — ROM 0x3E8E [seen]
+ *
+ * WHAT IT IS. The countdown arm of dispatchObjectSlotByHeadByte, the per-slot handler that
+ * stepFourActorSlots runs over the four enemy-shot slots (ACTOR_RECORD_SLOT0..3, 0xA810-0xA840).
+ * That dispatcher reads only the slot's head byte: 0 is empty, 0xFF is flying, and ANY other value
+ * comes here. The ROM passes the slot's state record in IX (here `ix`, byte +0 is the head/counter)
+ * and its sprite entry in IY (`iy`).
+ *
+ * ROLE IN THE MACHINE. Only the last era treats such a head as a countdown animation
+ * (mechanisms.md, retiring and hiding). Outside era 4 the slot is retired on the spot. In era 4 a
+ * head of 1 retires it; any other value drops by one this frame, a count that came in at 60 or more
+ * first clamps the head to 59 and asks for two sounds, and the object drifts with the world. While
+ * the count (re-read after the clamp) is 28 or more, the sprite takes one of eight shapes from
+ * COUNTDOWN_SLOT_SHAPE_TABLE (0x3EC3), each held for four counts and repeating, with a fixed 3 in
+ * its attribute byte. Retiring is the ROM block at 0x40AB (retireSlot [seen]): zero the head and
+ * both sprite coordinates, which takes the object off the screen.
+ *
+ * LIVE-OUT: memory.
+ */
 
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { ERA_INDEX, COUNTDOWN_SLOT_SHAPE_TABLE } from "./names.js";
@@ -14,13 +26,18 @@ import { fetchTableByte } from "./fetchTableByte.js";
 import { stampObjectStateByte3bThenRequestTwoSounds } from "./stampObjectStateByte3bThenRequestTwoSounds.js";
 import { retireSlot } from "./retireSlot.js";
 
+// ERA_INDEX 0xAD04 value of the one era that runs the countdown (`cp 0x04` at 0x3E91).
 const LAST_ERA = 4;
+// Record offset of the head byte, which doubles as the counter; a head of 1 is the last count
+// (`cp 0x01` / `jp z,0x40ab` at 0x3E9B).
 const COUNTER = 0;
 const FLOOR = 1;
+// 60 (0x3C): a count at or above this is clamped; 28 (0x1C): the lowest count that picks a shape.
 const CLAMPED_FROM = 60;
 const SHAPES_FROM = 28;
 const HELD_FOR = 4;
 const SHAPES = 8;
+// Sprite-entry offsets: shape at +1, attribute at +48 (0x30), which gets the fixed value 3.
 const SHAPE_IN_ENTRY = 1;
 const BESIDE_IT_IN_ENTRY = 48;
 const BESIDE_IT = 3;
@@ -28,23 +45,35 @@ const BESIDE_IT = 3;
 export function runSlotCountdownDriftAndAnimateElseRetire(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
 
+  // Step 1: outside era 4 a non-empty, non-flying slot has nothing to run -- retire it now
+  // (`jp 0x40ab`, a tail jump, so its return is this routine's).
   if (mem8[ERA_INDEX] !== LAST_ERA) {
     retireSlot(m, ix, iy);
     return;
   }
+  // Step 2: a head already at 1 has finished its count -- retire it too.
   const wasAt = mem8[ix + COUNTER];
   if (wasAt === FLOOR) {
     retireSlot(m, ix, iy);
     return;
   }
 
+  // Step 3: count down one (`dec (ix+0x00)`). The high-mark test that follows compares the value from
+  // BEFORE the decrement, which the ROM still has in A (`cp 0x3c`); at 60 or more the head is forced
+  // to 0x3B (59) and two sounds are requested (stampObjectStateByte3bThenRequestTwoSounds, 0x3ECB
+  // [seen]). Then the object drifts by the frame's world scroll (driftWithWorldScroll, 0x2B60 [seen]).
   mem8[ix + COUNTER] = wasAt - 1;
   if (wasAt >= CLAMPED_FROM) stampObjectStateByte3bThenRequestTwoSounds(m, ix);
   driftWithWorldScroll(m, ix, iy);
 
+  // Step 4: re-read the head -- the clamp may have moved it (`ld a,(ix+0x00)` at 0x3EAB) -- and below
+  // 28 leave the sprite's shape alone.
   const nowAt = mem8[ix + COUNTER];
   if (nowAt < SHAPES_FROM) return;
 
+  // Step 5: pick the shape. The ROM's `sub 0x1c` / `rrca` / `rrca` / `and 0x07` is (count - 28) / 4
+  // taken modulo 8, so each shape is held for four counts and the eight repeat; the byte comes from
+  // the table through `rst 0x08` (fetchTableByte [seen]) and the attribute byte beside it is set to 3.
   mem8[iy + SHAPE_IN_ENTRY] = fetchTableByte(m, COUNTDOWN_SLOT_SHAPE_TABLE, Math.floor((nowAt - SHAPES_FROM) / HELD_FOR) % SHAPES);
   mem8[iy + BESIDE_IT_IN_ENTRY] = BESIDE_IT;
 }

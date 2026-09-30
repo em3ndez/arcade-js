@@ -5,7 +5,29 @@
  * trigger the Y byte's bit 7 is cleared, quieting the slot, and the X byte's bit 7 is toggled.
  * LIVE-OUT: the touched sprite bytes, plus the accumulator, C and flags left by the last slot. The
  * register live-out is dispatched from the frozen translated layer, so it rides the closing return,
- * which is a plain return: the stack is left exactly where it was found. */
+ * which is a plain return: the stack is left exactly where it was found.
+ *
+ * ROM 0x0F97-0x1097 (frozen lift translated/loc_0f97.js): eight unrolled blocks, one per scenery
+ * sprite. Grounding: [seen] (names.js ROUTINES 0x0f97).
+ *
+ * Role in the machine: the OPPORTUNISTIC sprite-doubling pass. Time Pilot shows each of its eight
+ * scenery-fed hardware sprites (0-2 and 19-23) twice per frame by moving it half the coordinate range
+ * once the raster has drawn it at its first position (mechanisms.md, sprite doubling). A sprite's
+ * request is bit 7 of its Y byte, set by publishSpriteShadow's copy into the hardware banks. The round
+ * engine runs this pass five times at points spread through its service list: a sprite whose line the
+ * beam has already passed is traded now, and one whose line has not come is left armed for a later
+ * pass. multiplexSpriteSlots is the waiting pass that closes the list.
+ *
+ * Why it must go by the raster: the trade is due once SCANLINE_COUNTER (0xC000 read side) plus the Y
+ * byte carries out of eight bits -- once the counter has reached 256 minus the Y byte, a line that
+ * depends on where the sprite sits. Trading earlier would move the sprite before its first appearance
+ * is drawn.
+ *
+ * Parameters: c, f — the C register and flags on entry. The ROM threads A, C and the flags from one
+ * block into the next. An idle slot never loads C, and BIT keeps the incoming carry flag, so if no slot
+ * is armed the C and carry the pass ends with are the caller's own; they are therefore taken in and
+ * handed on.
+ */
 
 import {
   SCANLINE_COUNTER,
@@ -69,10 +91,13 @@ const bit7Flags = (f, set, operand) =>
 // Service one slot, threading the accumulator/C/flags carried between slots.
 function serviceSlot(m, yAddr, xAddr, c, f) {
   const { mem8 } = m;
+  // `ld a,(Y) / bit 7,a`: the request bit. BIT sets the flags whether or not the slot is armed.
   let a = mem8[yAddr];
   const armed = (a & 0x80) !== 0;
   f = bit7Flags(f, armed, a);
   if (!armed) return [a, c, f]; // bit 7 clear: slot idle
+  // `ld c,a / ld a,(0xC000) / add a,c`: keep the Y byte in C and add the live raster count to it;
+  // a carry out of eight bits means the beam has passed this sprite's line.
   c = a;
   [a, f] = add8(mem8[SCANLINE_COUNTER], c);
   if ((f & F_C) === 0) return [a, c, f]; // no carry: beam not past the trigger line yet
@@ -85,7 +110,9 @@ function serviceSlot(m, yAddr, xAddr, c, f) {
 }
 
 export function multiplexSpriteSlotsSkipping(m, c = m.regs.c, f = m.regs.f) {
+  // Walk the eight slots in ROM order, each block taking the A/C/flags the previous one left.
   let a;
   for (const [yAddr, xAddr] of SLOTS) [a, c, f] = serviceSlot(m, yAddr, xAddr, c, f);
+  // Hand the last slot's A, C and flags back, and leave them in the registers for the caller.
   return [(m.regs.a = a), (m.regs.c = c), (m.regs.f = f)];
 }

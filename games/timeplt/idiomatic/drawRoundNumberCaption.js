@@ -1,11 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** drawRoundNumberCaption — draw the round number as two decimal digits into a caption frame, then verify a fixed
- * block of program bytes. Nothing is drawn once the number reaches 100. The caption frame is
- * painted first and its cursor stepped down onto the two digit cells; each digit then goes through
- * the leading-zero dropping painter, the tens carrying an allowance that lets a leading zero vanish
- * and the ones inheriting whatever the tens left, so a trailing zero always shows. The tail folds a
- * fixed span of program bytes onto a seed and, on a genuine image, comes to zero; any other sum
- * means the bytes were altered, and this throws rather than run on. LIVE-OUT: memory. */
+/**
+ * drawRoundNumberCaption — paint the round number as two decimal digits inside its caption frame, then
+ * verify a fixed block of program bytes (an anti-tamper guard).
+ *
+ * ROM 0x0EAC-0x0EEA. Grounding: [seen] (names.js ROUTINES 0x0EAC).
+ *
+ * ROLE IN THE MACHINE. Command 7 of the command table at 0x0BBC (its dispatch word is at 0x0BCA), run by the
+ * foreground loop runCommandRingDrainLoop when that command comes off the ring. The round-start arm posts it
+ * when ROUND_ARMED is set (names.js: the round-start arm's entry, and 0x0BBC slot 7 = this routine). The number is ROUND_NUMBER (0xAD01) [seen], the unwrapped round count that keeps
+ * climbing past the fifth era, which is why it can need two digits — and why 100 and above draw nothing.
+ *
+ * DRAWING. The caption frame (caption 0x0E) is painted first in the live pen colour, then the character
+ * cursor is stepped back two cells onto the digit positions. Each digit is
+ * painted by paintDigitDroppingLeadingZero (ROM 0x0EEB) in PEN_COLOUR (0xAD0C) [seen]; the tens may be dropped
+ * as a leading zero, the ones never.
+ *
+ * THE CHECK. The 16 program bytes at 0x1748 (the start of holdCopyrightThenEraseTheCoinInvitation, read as
+ * data) are added onto a seed of 0x8C; on the genuine image the total wraps to exactly zero (checked against
+ * the ROM image). The ROM sends any other total to 0x2509 (`jp nz`); the port throws instead of running on.
+ *
+ * LIVE-OUT: memory.
+ */
 
 import { u8 } from "../../../core/int.js";
 import { PEN_COLOUR, ROUND_NUMBER, holdCopyrightThenEraseTheCoinInvitation_ADDR } from "./names.js";
@@ -14,15 +29,19 @@ import { retreatCharCursor } from "./retreatCharCursor.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
 import { paintDigitDroppingLeadingZero } from "./paintDigitDroppingLeadingZero.js";
 
+/** The caption frame the digits sit in (ROM `ld a,0x0e; call 0x0c0f`). */
 const FIELD_CAPTION = 0x0e;
+/** The guard: B = 0x10 bytes from 0x1748 added onto C = 0x8C (ROM `ld bc,0x108c`). */
 const CHECK_LEN = 16;
 const CHECK_SEED = 0x8c;
 
 export function drawRoundNumberCaption(m) {
   const { mem8 } = m;
+  // Two digits only: a round number of 100 or more draws nothing (ROM `cp 0x64; ret nc`).
   const value = mem8[ROUND_NUMBER];
   if (value >= 100) return;
 
+  // Paint the frame, then step the cursor back two cells (ROM `rst 0x28` twice) onto the tens position.
   drawCaptionInPenColour(m, FIELD_CAPTION);
   retreatCharCursor(m);
   retreatCharCursor(m);
@@ -35,6 +54,7 @@ export function drawRoundNumberCaption(m) {
   paintDigitDroppingLeadingZero(m, value % 10, 0, colour);
   advanceCharCursor(m);
 
+  // The anti-tamper guard (ROM 0x0EDB-0x0EE7).
   let checksum = CHECK_SEED;
   for (let i = 0; i < CHECK_LEN; i++) checksum = u8(checksum + mem8[holdCopyrightThenEraseTheCoinInvitation_ADDR + i]);
   if (checksum !== 0) throw new Error("Time Pilot: program block did not sum to zero; the image was altered.");

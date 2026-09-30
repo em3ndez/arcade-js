@@ -2,13 +2,27 @@
 /** setUpTwoPlayerStartObjectOnce — fire once when a watched pair of cells stops agreeing: step a shared counter down,
  * seat two vertical bytes and two glyph bytes into one object slot, ask for a sound when the trigger
  * cell is armed, and queue one display command. When the pair still agrees it does nothing.
- * LIVE-OUT: memory. */
+ * LIVE-OUT: memory.
+ *
+ * ROM 0x460E-0x4645. Grounding: [seen] (names.js ROUTINES 0x460e).
+ *
+ * ROLE IN THE MACHINE. startTwoPlayerGame runs this at a two-player start. The pair it watches is
+ * an anti-tamper witness: TAMPER_GLYPH_COPY 0xAB43 [seen] holds a copy of the glyph (0x7C) taken
+ * earlier from the character cell TAMPER_GLYPH_SOURCE_CELL 0xA67C, and a genuine image keeps the
+ * two equal. Under MAME both held 0x7C at every captured two-player start, so the routine returned
+ * without acting (mechanisms.md). What the acting arm is for -- which counter and which slot the
+ * caller's pointers name there -- is recorded as open in mechanisms.md; mechanisms.md reads it as
+ * replaying a fragment of the Mother-Ship warp's bookkeeping.
+ */
 
 import { u16 } from "../../../core/int.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
 import { PLAYER_STATE, TAMPER_GLYPH_COPY, TAMPER_GLYPH_SOURCE_CELL } from "./names.js";
 
+// Offsets into the slot the caller's IY points at. Read as a sprite entry, +0x01 and +0x03 are the
+// two tiles' shape codes and +0x30 and +0x32 their attribute bytes -- the same four stores, with the
+// same values (0xFE/0xFD, 0x6C/0x6C), as the Mother-Ship's flash at 0x4623, where this arm lands.
 const SLOT_VERTICAL_A = 0x01;
 const SLOT_VERTICAL_B = 0x03;
 const SLOT_GLYPH_A = 0x30;
@@ -16,14 +30,22 @@ const SLOT_GLYPH_B = 0x32;
 
 export function setUpTwoPlayerStartObjectOnce(m, counterBase = m.regs.ix, slotBase = m.regs.iy) {
   const { mem8 } = m;
+  // Step 1 -- the witness check. Equal cells (the genuine case) end the routine here.
   if (mem8[TAMPER_GLYPH_COPY] === mem8[TAMPER_GLYPH_SOURCE_CELL]) return;
 
+  // Step 2 -- the acting arm. In the ROM the mismatch jump lands at 0x4643, which jumps back to
+  // 0x461B and executes eight bytes of an animation table as `sub` instructions; they only
+  // disturb A and the flags, and execution then reaches the real stores below at 0x4623.
+  // Count the caller's counter down by one, then seat the four fixed bytes into the slot.
   mem8[counterBase] = mem8[counterBase] - 1;
   mem8[u16(slotBase + SLOT_VERTICAL_A)] = 0xfe;
   mem8[u16(slotBase + SLOT_VERTICAL_B)] = 0xfd;
   mem8[u16(slotBase + SLOT_GLYPH_A)] = 0x6c;
   mem8[u16(slotBase + SLOT_GLYPH_B)] = 0x6c;
 
+  // Step 3 -- only while the player is live (PLAYER_STATE 0xA800 [seen] = 0xFF) ask for the sound
+  // whose code is the program byte at 0x49EE, then queue command 0x04 with argument 0x0D in the
+  // command ring (ROM `ld de,0x040d` / `jp 0x0038`).
   if (mem8[PLAYER_STATE] === 0xff) requestMotherShipWarpSound(m);
   return postCommand(m, 0x04, 0x0d);
 }

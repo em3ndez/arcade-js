@@ -1,8 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * armMotherShipOrStep — the once-in-eight-frames gate for the Mother-Ship: while it is live, defer to
- * the stepper; else, once the kill quota is spent and both its two-slot-bank records are empty, arm it
- * (raise the armed flag, seed the seven-hit counter) and retire the entry pair to spawn it. LIVE-OUT: memory.
+ * armMotherShipOrStep — the once-in-eight-frames gate for the Mother-Ship.
+ *
+ * ROM 0x43B7-0x43E7. Grounding: [seen] (names.js ROUTINES 0x43b7).
+ *
+ * WHAT IT IS. Every era of Time Pilot ends with a Mother-Ship: once the player has destroyed the
+ * era's kill quota (KILLS_REMAINING 0xAD02, the manual's 56), the big ship appears and must be shot
+ * seven times. This routine decides, frame by frame, whether the Mother-Ship is already on the field
+ * (in which case its own state machine runs) or whether it is time to bring it on.
+ *
+ * ROLE IN THE MACHINE. Called once per dispatch of the round engine's service list
+ * (serviceRoundThenResolvePlayerState, phase-3 sub-step 7). While the Mother-Ship is
+ * live it simply hands the frame to stepMotherShip (ROM 0x43F0). Otherwise it arms the Mother-Ship
+ * at most once every eight frames, and only when the quota is spent and its two-slot record bank
+ * (MOTHER_SHIP_STATE 0xA8A0 and the record one stride on, 0xA8B0) is empty. Arming raises
+ * MOTHER_SHIP_ARMED (0xAD0D), seeds the lead record's hit counter with seven, and retires the record
+ * and its sprite-entry pair (MOTHER_SHIP_ENTRY 0xAA24) into a cooldown, from which the Mother-Ship's
+ * stepper launches it.
+ *
+ * LIVE-OUT: memory.
  */
 
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
@@ -16,24 +32,39 @@ import {
   ROUND_TRANSITION_HOLD,
 } from "./names.js";
 
+// One object record is sixteen bytes; the Mother-Ship's bank is two records long.
 const RECORD_STRIDE = 0x10;
+// The all-ones value: a transition hold of 0xFF, and the "armed" value of MOTHER_SHIP_ARMED.
 const HELD = 0xff;
+// FRAME_TICK & 7 == 5 is this routine's one frame in eight.
 const PHASE_MASK = 0x07;
 const PHASE_DUE = 0x05;
+// Record offset +0x04 is the hit counter; the Mother-Ship takes seven hits.
 const FIRE_BYTE = 0x04;
 const FIRE_ARMED = 0x07;
 
 export function armMotherShipOrStep(m) {
   const { mem8 } = m;
 
+  // Stand down entirely while ROUND_TRANSITION_HOLD (0xACC6) reads 0xFF -- the value the
+  // Mother-Ship's warp/flash finish leaves while the round hands over. The ROM tests it with
+  // `inc a / ret z`, so only 0xFF stops it; the 0xFE the formation rebuild writes does not.
   if (mem8[ROUND_TRANSITION_HOLD] === HELD) return;
 
+  // Already armed: the Mother-Ship is on the field (or on its way), so its own deep state
+  // machine runs every frame. This is a tail transfer to ROM 0x43F0.
   if (mem8[MOTHER_SHIP_ARMED] !== 0) return stepMotherShip(m);
 
+  // Not armed: consider arming only on one frame in eight (frame-tick phase 5).
   if ((mem8[FRAME_TICK] & PHASE_MASK) !== PHASE_DUE) return;
 
+  // Arm only when the kill quota is spent AND both records of the two-slot bank are free. The ROM
+  // ORs the three bytes together and returns on any nonzero bit, so a single nonzero one blocks it.
   if ((mem8[KILLS_REMAINING] | mem8[MOTHER_SHIP_STATE] | mem8[MOTHER_SHIP_STATE + RECORD_STRIDE]) !== 0) return;
 
+  // Arm it: raise the armed flag, give the lead record its seven hits, then tail into the
+  // entry-pair retire (ROM 0x46DB), which clears the record and both sprite entries and arms the
+  // record's delay -- the cooldown after which stepMotherShip launches it.
   mem8[MOTHER_SHIP_ARMED] = HELD;
   mem8[MOTHER_SHIP_STATE + FIRE_BYTE] = FIRE_ARMED;
   return retireEntryPairIntoCooldown(m, MOTHER_SHIP_STATE, MOTHER_SHIP_ENTRY);

@@ -1,11 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** seatSceneryFillByte0x28ThenClearEraScenery — fix the fill byte, then hand control on with the era and entry cursor the
- * caller carried; control leaves and does not come back. LIVE-OUT: memory. */
+/**
+ * seatSceneryFillByte0x28ThenClearEraScenery — fix the scenery fill byte at 0x28, then clear and run
+ * the era scenery.
+ *
+ * ROM 0x3156-0x315A (`ld a,0x28 / jp 0x30D1`). Grounding: [seen] (names.js ROUTINES 0x3156).
+ *
+ * WHAT IT IS. A two-instruction entry into the scenery clear-and-run body at ROM 0x30D1
+ * (clearSceneryEntriesThenRunEraScenery). That body clears a stride-two run of eight object cells to
+ * the fill byte carried in A and then seats and runs the frame's scenery for the era. This entry
+ * fixes that byte at 0x28 (decimal 40), and choosing that one
+ * constant is its entire content -- whatever fill byte the caller carried is discarded.
+ *
+ * ROLE IN THE MACHINE. Reached from seatEraSceneryRowThenClearAndRunScenery on its era-four path.
+ * Control transfers to the body and does not come back here.
+ *
+ * PARAMETERS. `era` is the era the caller carried (the body branches on it), `entryCursor` the
+ * sprite-entry cursor it carried; both pass straight through.
+ *
+ * LIVE-OUT: memory.
+ */
 
 import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenRunEraScenery.js";
 
+// The fill byte this entry seats (0x28).
 const FILL_BYTE = 40;
 
 export function seatSceneryFillByte0x28ThenClearEraScenery(m, era = m.regs.c, entryCursor = m.regs.iy) {
+  // Tail into the body with the fixed fill byte and the caller's era and cursor.
   return clearSceneryEntriesThenRunEraScenery(m, FILL_BYTE, era, entryCursor);
 }

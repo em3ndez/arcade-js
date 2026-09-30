@@ -1,13 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** snapHeadingOntoTheTurnTarget — end a turn by putting the ship exactly on the heading it was turning toward, then scroll the world for it.
- * The target is handed in. A turn steps 3 or 4 against targets spaced 32 apart; 3 does not divide 32, so the walk lands
- * 2 short, fails the guard and overshoots to one past — and this is the arm that stops it. LIVE-OUT: memory. */
+/**
+ * snapHeadingOntoTheTurnTarget — ROM 0x1F3E [seen]
+ *
+ * WHAT IT IS. The arm of the player's turn that ends it: the ship's heading is set exactly to the
+ * heading it was turning toward, and the world is then scrolled for it. The ROM is two instructions,
+ * `ld a,b` / `ld (0xa802),a`, falling into the world scroll at 0x1F42 (scrollWorldAtTheEraPace [seen]).
+ *
+ * ROLE IN THE MACHINE. The other arms of the turn STEP the live heading by 3 or 4 (chosen from
+ * ERA_INDEX's low nibble) toward a target taken from the direction table at 0x1F2E. Targets are 32
+ * apart and 3 does not divide 32, so a walk of 3s lands 2 short, fails the guard and overshoots to
+ * one past. This arm is taken when the live heading is one either side of the target (live minus
+ * target is 0xFF or 0x01), and writes the target itself -- a snap.
+ * No transfer targets this address: turnShipTowardTargetHeading runs these instructions inline, so
+ * this file stands for that arm (names.js).
+ *
+ * PARAMETER: `target` -- the heading being turned toward (the ROM's B, loaded at 0x1F05 and not
+ * written again before here). LIVE-OUT: memory.
+ */
 
 import { scrollWorldAtTheEraPace } from "./scrollWorldAtTheEraPace.js";
 import { PLAYER_HEADING } from "./names.js";
 
 export function snapHeadingOntoTheTurnTarget(m, target = m.regs.b) {
   const { mem8 } = m;
+  // The snap: PLAYER_HEADING (0xA802 [seen]) takes the target outright, then the shared tail scrolls
+  // the world at the era's pace along the heading just written.
   mem8[PLAYER_HEADING] = target;
   scrollWorldAtTheEraPace(m, target);
 }

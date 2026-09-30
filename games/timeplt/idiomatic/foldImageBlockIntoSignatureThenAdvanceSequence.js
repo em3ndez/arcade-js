@@ -1,22 +1,50 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** foldImageBlockIntoSignatureThenAdvanceSequence — raise one flag cell to all bits set, take a signature of a block of the program image,
- * and step the inner sequence index on. The block and its length are chosen elsewhere; the running
- * total starts from a single image byte, and where it lands is a second cell this file writes and
- * never reads. A second pointer is walked in step with the block and contributes nothing to the
- * total. What reads either cell is not established here. LIVE-OUT: memory-only. */
+/**
+ * foldImageBlockIntoSignatureThenAdvanceSequence — one step of the tamper-check sequence.
+ *
+ * WHAT IT IS: ROM 0x17E2-0x17FA, tag [seen] (names.js ROUTINES 0x17e2). It raises one flag cell to all
+ * bits set, folds a fixed block of the program image into a running total seeded from an image byte,
+ * banks the result, and steps the inner sequence index on.
+ *
+ * ROLE IN THE MACHINE: an anti-tamper check. The banked total, TAMPER_IMAGE_SIGNATURE (0xAA6F), is read
+ * once, by the sequence arm at ROM 0x2730 as `cp 0x76`, which jumps off the genuine path (to 0x2530) on
+ * a mismatch; 0x76 is what the thirty ROM bytes at 0x335E sum to on a genuine image (names.js, the cell
+ * and foldBlockIntoTotal's "why", which puts that read three frames after this one). So a modified
+ * image sends the game off its genuine path a few frames later.
+ *
+ * The flag cell, TAMPER_FOLD_FLAG (0xAA3F), is written here and no routine reads it back by address
+ * (names.js). A second pointer is walked in step with the block and contributes nothing to the total.
+ *
+ * LIVE-OUT: memory-only.
+ */
 
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { foldBlockIntoTotal } from "./foldBlockIntoTotal.js";
 import { trampolineToSelectFoldBlock } from "./trampolineToSelectFoldBlock.js";
 import { TAMPER_IMAGE_SIGNATURE, TAMPER_SIGNATURE_SEED_BYTE, TAMPER_FOLD_FLAG, guardBlockOrBlankDisplay_ADDR } from "./names.js";
 
+/* The flag value: every bit set (the ROM's `ld a,0xff`). */
 const ALL_BITS = 255;
 
 export function foldImageBlockIntoSignatureThenAdvanceSequence(m) {
   const { mem8 } = m;
+  /* Step 1: raise the flag cell 0xAA3F to 0xFF (`ld (0xaa3f),a`). */
   mem8[TAMPER_FOLD_FLAG] = ALL_BITS;
 
+  /*
+   * Step 2: find the block. The ROM calls 0x4BD9, a bare jump to selectFoldBlock (0x08AE), which hands
+   * back the block's start and length: 0x335E and thirty bytes (`ld hl,0x335e / ld b,0x1e`).
+   */
   const [blockStart, blockLength] = trampolineToSelectFoldBlock(m);
+  /*
+   * Step 3: fold the block into a total and bank it (ROM `call 0x291e / ld (0xaa6f),a`).
+   *  - The seed is the image byte at 0x27C0 (TAMPER_SIGNATURE_SEED_BYTE; 0x00 on a genuine image, per
+   *    the frozen lift).
+   *  - The total wraps at eight bits.
+   *  - The passenger pointer starts at 0x17B9, the first byte of routine guardBlockOrBlankDisplay's own
+   *    code read as data (the ROM's `ld de,0x17b9`). foldBlockIntoTotal walks it alongside the block but
+   *    only its last byte survives, and that byte is not part of the total.
+   */
   mem8[TAMPER_IMAGE_SIGNATURE] = foldBlockIntoTotal(
     m,
     mem8[TAMPER_SIGNATURE_SEED_BYTE],
@@ -25,5 +53,9 @@ export function foldImageBlockIntoSignatureThenAdvanceSequence(m) {
     blockLength,
   );
 
+  /*
+   * Step 4 (the ROM's tail `jp 0x0f1a`): step the inner sequence index on, so the next frame runs the
+   * next arm of the sequence.
+   */
   advanceSequenceSubStep(m);
 }

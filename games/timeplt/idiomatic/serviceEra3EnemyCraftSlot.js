@@ -1,8 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** serviceEra3EnemyCraftSlot — the era-3 step for one object slot, dispatched on the slot's lifecycle byte at ix+0:
- * an idle slot does nothing; a live slot (0xff) is steered, dressed, then either retired at the
- * line or flown on and given a spawn attempt; 0xfe releases a held slot; a lower value is a death
+ * an idle slot does nothing; a live slot (0xff) is steered and flown a step, then either retired at
+ * the line or given a bank launch, dressed and given a spawn attempt; 0xfe releases a held slot; a lower value is a death
  * countdown step. LIVE-OUT: memory. */
+
+/*
+ * ROM 0x29B0-0x29D4, grounding [seen] (names.js ROUTINES 0x29b0).
+ *
+ * ROLE. Word 3 of the era table at 0x2914 that dispatchSeatedSlotByEraIndex runs when ERA_INDEX's low
+ * three bits are 3 -- the fourth era (A.D. 1982/83, jet fighters, in gameplay.md, whose enemies are
+ * "as fast and manoeuvrable as you"). Called once per frame per seated enemy-craft slot. Same
+ * skeleton as the other era services; this era flies its craft with flyAtFastestSpeed and draws
+ * them with dressSpriteForCoarseHeading.
+ *
+ * The body below runs, for a live slot, in the ROM's call order at 0x29BF-0x29D4: steer, fly,
+ * retire test, bank launch, dress the sprite, attacker launch.
+ *
+ * PARAMETERS. `ix` is the slot's 16-byte object record (lifecycle byte at +0); `iy` is its two-byte
+ * sprite entry -- named for the Z80 index registers the ROM carries them in; the defaults read those
+ * registers for a caller that still seats them there.
+ *
+ * LIVE-OUT: memory only.
+ */
 
 import { steerTowardAimHeading } from "./steerTowardAimHeading.js";
 import { flyAtFastestSpeed } from "./flyAtFastestSpeed.js";
@@ -14,20 +33,33 @@ import { launchAttackerIntoFreeSlot } from "./launchAttackerIntoFreeSlot.js";
 import { releaseHeldObject } from "./releaseHeldObject.js";
 import { stepDyingObjectState } from "./stepDyingObjectState.js";
 
+// Lifecycle-byte values (record +0); any other nonzero value is a death countdown.
 const IDLE = 0;
 const LIVE = 0xff;
 const HELD = 0xfe;
 
 export function serviceEra3EnemyCraftSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
+  // Decode the lifecycle byte (ROM: `and a`, `inc a`, `inc a`). Idle: nothing to do. Held: count
+  // the release delay down, turning live when it expires (releaseHeldObject, 0x2B52). Anything else
+  // that is not live: one step of the dying state (stepDyingObjectState, 0x2B93). The last two are
+  // ROM tail jumps, so their result is returned as this routine's.
   const state = m.mem8[ix];
   if (state === IDLE) return;
   if (state !== LIVE) {
     if (state === HELD) return releaseHeldObject(m, ix);
     return stepDyingObjectState(m, ix, iy);
   }
+  // Live craft. Turn one step toward the aim heading every frame (steerTowardAimHeading, 0x2BEF),
+  // then move one step on the top rung of the velocity tables (flyAtFastestSpeed, 0x58A4).
   steerTowardAimHeading(m, ix);
   flyAtFastestSpeed(m, ix, iy);
+  // Retire test: a craft on either fixed retire line has left play. hasReachedRetireLine (0x2B83)
+  // answers with the carry flag and the ROM tail-jumps (`jp c,0x2BDE`) to retireSlotAndSubPixel,
+  // which zeroes the slot; nothing else runs for it.
   if (hasReachedRetireLine(m, iy)) return retireSlotAndSubPixel(m, ix, iy);
+  // Still in play: one gated bank launch when aimed near the player (0x3ED6); point the sprite
+  // along the heading rounded to sixteen sectors (dressSpriteForCoarseHeading, 0x2AFC); then the
+  // attacker launch into a free slot on this object's turn (launchAttackerIntoFreeSlot, 0x4243).
   launchBankEnemyWhenAimedNearPlayer(m, ix, iy);
   dressSpriteForCoarseHeading(m, ix, iy);
   return launchAttackerIntoFreeSlot(m, ix, iy);
